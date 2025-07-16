@@ -1,0 +1,14 @@
+{
+    "host": "https://api.europe-west2.gcp.tinybird.co",
+    "id": "0a17e1d1-00f5-4a27-918d-761574c2e2e0",
+    "name": "Freelinks",
+    "scope": "user",
+    "token": "p.eyJ1IjogIjBhMTdlMWQxLTAwZjUtNGEyNy05MThkLTc2MTU3NGMyZTJlMCIsICJpZCI6ICJkMjE0NjNlNC1jMDAzLTRjMDAtOWU3Mi1jMTFlYWYzYTg1OGYiLCAiaG9zdCI6ICJnY3AtZXVyb3BlLXdlc3QyIn0.0BJWSIkkwAPZS9FsRRSHpxRvb9Qq993ogZejRZl9Jwg",
+    "tokens": {
+        "https://api.europe-west2.gcp.tinybird.co": "p.eyJ1IjogIjBhMTdlMWQxLTAwZjUtNGEyNy05MThkLTc2MTU3NGMyZTJlMCIsICJpZCI6ICJkMjE0NjNlNC1jMDAzLTRjMDAtOWU3Mi1jMTFlYWYzYTg1OGYiLCAiaG9zdCI6ICJnY3AtZXVyb3BlLXdlc3QyIn0.0BJWSIkkwAPZS9FsRRSHpxRvb9Qq993ogZejRZl9Jwg"
+    },
+    "user_email": "lucasholt2021@gmail.com",
+    "user_id": "e6a1e7b1-aadb-4887-9cca-4eca1b5cb02e",
+    "user_token": "p.eyJ1IjogImU2YTFlN2IxLWFhZGItNDg4Ny05Y2NhLTRlY2ExYjVjYjAyZSIsICJpZCI6ICIyNGZkMTU5Zi05NmE2LTRkNGYtOTEyZi02NzcwNTIzNTFkN2EiLCAiaG9zdCI6ICJnY3AtZXVyb3BlLXdlc3QyIn0.dteSyKBv4nY5zwyRiXRXK_SCpWjrUrgXKh0GkTAVW7Y",
+    "version": "0.0.1.dev258"
+}
