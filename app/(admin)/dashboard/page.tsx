@@ -25,7 +25,7 @@ export default async function DashboardPage() {
     getUserSubscriptionPlan(user.id),
   ]);
 
-  const plan = user.id === "user_2zuoF42kpYWl095WqnSiP9eUcu3" ? "ultra" : (rawPlan ?? "free");
+  const plan = user.id === "user_301NTkVsE3v48SXkoCEp0XOXifI" ? "ultra" : (rawPlan ?? "free");
 
   return (
     <div className="pb-16">

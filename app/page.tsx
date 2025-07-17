@@ -1,13 +1,13 @@
 "use client";
 
-import React, { ReactNode } from "react";
+import React, { ReactNode, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
-
+import { useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import { Button } from "@/components/ui/button";
-import { SignInButton } from "@clerk/nextjs";
+import { SignInButton, useAuth } from "@clerk/nextjs";
 import {
   ArrowRight,
   CheckCircle,
@@ -98,7 +98,17 @@ const FadeInSection = ({ children }: { children: ReactNode }) => {
   );
 };
 
-export default function HomeClient() {
+export default function Home() {
+  const router = useRouter();
+  const { isSignedIn } = useAuth();
+
+  // Redireciona automaticamente se o usuário estiver logado
+  useEffect(() => {
+    if (isSignedIn) {
+      router.push("/dashboard");
+    }
+  }, [isSignedIn, router]);
+
   return (
     <div
       className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 scroll-smooth"
@@ -150,7 +160,7 @@ export default function HomeClient() {
             transition={{ duration: 0.6, delay: 0.4 }}
             className="inline-flex"
           >
-            <SignInButton mode="modal" >
+            <SignInButton mode="modal">
               <Button
                 size="lg"
                 className="bg-gradient-to-r from-blue-500 to-purple-600 text-lg px-8 py-5 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition duration-300"
@@ -236,149 +246,149 @@ export default function HomeClient() {
         </div>
       </section>
 
-    {/* CTA Final Section */}
-<section className="px-4 lg:px-8 py-20">
-  <FadeInSection>
-    <div className="max-w-4xl mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl p-12 lg:p-16 text-center text-white shadow-2xl">
-      <h2 className="text-4xl lg:text-5xl font-bold mb-6">Pronto para começar?</h2>
-      <p className="text-xl mb-8 opacity-90">
-        Crie sua página em minutos e junte-se a milhares de criadores que
-        confiam no Freelink.
-      </p>
+      {/* CTA Final Section */}
+      <section className="px-4 lg:px-8 py-20">
+        <FadeInSection>
+          <div className="max-w-4xl mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl p-12 lg:p-16 text-center text-white shadow-2xl">
+            <h2 className="text-4xl lg:text-5xl font-bold mb-6">Pronto para começar?</h2>
+            <p className="text-xl mb-8 opacity-90">
+              Crie sua página em minutos e junte-se a milhares de criadores que
+              confiam no Freelink.
+            </p>
 
-      <SignInButton mode="modal">
-        <Button
-          size="lg"
-          className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6 font-semibold shadow-sm hover:scale-105 transition duration-300"
-        >
-          Crie seu Freelink <ArrowRight className="w-5 h-5" />
-        </Button>
-      </SignInButton>
+            <SignInButton mode="modal">
+              <Button
+                size="lg"
+                className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6 font-semibold shadow-sm hover:scale-105 transition duration-300"
+              >
+                Crie seu Freelink <ArrowRight className="w-5 h-5" />
+              </Button>
+            </SignInButton>
 
-      <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm opacity-80">
-        {[
-          "Comece grátis",
-          "Não precisa de cartão",
-          "Configuração em 15 segundos",
-        ].map((item, i) => (
-          <div key={i} className="flex items-center gap-2 select-none cursor-default">
-            <CheckCircle className="w-4 h-4" />
-            {item}
+            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm opacity-80">
+              {[
+                "Comece grátis",
+                "Não precisa de cartão",
+                "Configuração em 15 segundos",
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-2 select-none cursor-default">
+                  <CheckCircle className="w-4 h-4" />
+                  {item}
+                </div>
+              ))}
+            </div>
           </div>
-        ))}
-      </div>
-    </div>
-  </FadeInSection>
-</section>
+        </FadeInSection>
+      </section>
 
-    {/* Footer */}
-<footer className="bg-white/90 backdrop-blur-md border-t border-gray-200 px-6 sm:px-12 lg:px-16 py-12">
-  <div className="max-w-7xl mx-auto space-y-12">
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
-      {/* Branding */}
-      <div className="space-y-4">
-        <h3 className="text-3xl font-extrabold tracking-tight text-gray-900">Freelink</h3>
-        <p className="text-gray-600 text-base max-w-xs">
-          A forma mais fácil de reunir e compartilhar todos os seus links em uma página incrível.
-        </p>
-      </div>
+      {/* Footer */}
+      <footer className="bg-white/90 backdrop-blur-md border-t border-gray-200 px-6 sm:px-12 lg:px-16 py-12">
+        <div className="max-w-7xl mx-auto space-y-12">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
+            {/* Branding */}
+            <div className="space-y-4">
+              <h3 className="text-3xl font-extrabold tracking-tight text-gray-900">Freelink</h3>
+              <p className="text-gray-600 text-base max-w-xs">
+                A forma mais fácil de reunir e compartilhar todos os seus links em uma página incrível.
+              </p>
+            </div>
 
-      {/* Produto */}
-      <nav aria-label="Produto" className="space-y-4">
-        <h4 className="text-lg font-semibold text-gray-900">Produto</h4>
-        <ul className="space-y-2 text-sm text-gray-600">
-          <li>
-            <a href="#features" className="hover:text-purple-600 transition-colors">
-              Características
-            </a>
-          </li>
-          <li>
-            <a href="#pricing" className="hover:text-purple-600 transition-colors">
-              Preços
-            </a>
-          </li>
-          <li>
-            <a href="#analytics" className="hover:text-purple-600 transition-colors">
-              Análise
-            </a>
-          </li>
-          <li>
-            <a href="#integrations" className="hover:text-purple-600 transition-colors">
-              Integrações
-            </a>
-          </li>
-        </ul>
-      </nav>
+            {/* Produto */}
+            <nav aria-label="Produto" className="space-y-4">
+              <h4 className="text-lg font-semibold text-gray-900">Produto</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>
+                  <a href="#features" className="hover:text-purple-600 transition-colors">
+                    Características
+                  </a>
+                </li>
+                <li>
+                  <a href="#pricing" className="hover:text-purple-600 transition-colors">
+                    Preços
+                  </a>
+                </li>
+                <li>
+                  <a href="#analytics" className="hover:text-purple-600 transition-colors">
+                    Análise
+                  </a>
+                </li>
+                <li>
+                  <a href="#integrations" className="hover:text-purple-600 transition-colors">
+                    Integrações
+                  </a>
+                </li>
+              </ul>
+            </nav>
 
-      {/* Empresa */}
-      <nav aria-label="Empresa" className="space-y-4">
-        <h4 className="text-lg font-semibold text-gray-900">Empresa</h4>
-        <ul className="space-y-2 text-sm text-gray-600">
-          <li>
-            <a href="/about" className="hover:text-purple-600 transition-colors">
-              Sobre
-            </a>
-          </li>
-          <li>
-            <a href="/blog" className="hover:text-purple-600 transition-colors">
-              Blog
-            </a>
-          </li>
-          <li>
-            <a href="/careers" className="hover:text-purple-600 transition-colors">
-              Carreiras
-            </a>
-          </li>
-          <li>
-            <a href="/contact" className="hover:text-purple-600 transition-colors">
-              Contato
-            </a>
-          </li>
-        </ul>
-      </nav>
+            {/* Empresa */}
+            <nav aria-label="Empresa" className="space-y-4">
+              <h4 className="text-lg font-semibold text-gray-900">Empresa</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>
+                  <a href="/about" className="hover:text-purple-600 transition-colors">
+                    Sobre
+                  </a>
+                </li>
+                <li>
+                  <a href="/blog" className="hover:text-purple-600 transition-colors">
+                    Blog
+                  </a>
+                </li>
+                <li>
+                  <a href="/careers" className="hover:text-purple-600 transition-colors">
+                    Carreiras
+                  </a>
+                </li>
+                <li>
+                  <a href="/contact" className="hover:text-purple-600 transition-colors">
+                    Contato
+                  </a>
+                </li>
+              </ul>
+            </nav>
 
-      {/* Suporte */}
-      <nav aria-label="Suporte" className="space-y-4">
-        <h4 className="text-lg font-semibold text-gray-900">Suporte</h4>
-        <ul className="space-y-2 text-sm text-gray-600">
-          <li>
-            <a href="/help-center" className="hover:text-purple-600 transition-colors">
-              Central de Ajuda
-            </a>
-          </li>
-          <li>
-            <a href="/docs" className="hover:text-purple-600 transition-colors">
-              Documentação
-            </a>
-          </li>
-          <li>
-            <a href="/community" className="hover:text-purple-600 transition-colors">
-              Comunidade
-            </a>
-          </li>
-          <li>
-            <a href="/status" className="hover:text-purple-600 transition-colors">
-              Status
-            </a>
-          </li>
-        </ul>
-      </nav>
-    </div>
+            {/* Suporte */}
+            <nav aria-label="Suporte" className="space-y-4">
+              <h4 className="text-lg font-semibold text-gray-900">Suporte</h4>
+              <ul className="space-y-2 text-sm text-gray-600">
+                <li>
+                  <a href="/help-center" className="hover:text-purple-600 transition-colors">
+                    Central de Ajuda
+                  </a>
+                </li>
+                <li>
+                  <a href="/docs" className="hover:text-purple-600 transition-colors">
+                    Documentação
+                  </a>
+                </li>
+                <li>
+                  <a href="/community" className="hover:text-purple-600 transition-colors">
+                    Comunidade
+                  </a>
+                </li>
+                <li>
+                  <a href="/status" className="hover:text-purple-600 transition-colors">
+                    Status
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
 
-    <div className="border-t border-gray-200 pt-6 text-center text-sm text-gray-500 select-none">
-      &copy; 2025{" "}
-      <a
-        href="https://mysite-eog7.vercel.app/"
-        target="_blank"
-        rel="noopener noreferrer"
-        className="underline hover:text-purple-600 transition-colors"
-      >
-        Impulsioneweb
-      </a>
-      . Todos os direitos reservados.
-    </div>
-  </div>
-</footer>
+          <div className="border-t border-gray-200 pt-6 text-center text-sm text-gray-500 select-none">
+            &copy; 2025{" "}
+            <a
+              href="https://mysite-eog7.vercel.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-purple-600 transition-colors"
+            >
+              Impulsioneweb
+            </a>
+            . Todos os direitos reservados.
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

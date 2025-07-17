@@ -13,7 +13,7 @@ async function NewLinkPage() {
   const user = await currentUser();
 
   // Substitua abaixo com seu ID real do Clerk:
-  const IS_ADMIN = user?.id === "user_2zuoF42kpYWl095WqnSiP9eUcu3"; // 🔁 substitua "user_123abc" pelo seu ID
+  const IS_ADMIN = user?.id === "user_301NTkVsE3v48SXkoCEp0XOXifI"; // 🔁 substitua "user_123abc" pelo seu ID
 
   const linkCount = await fetchQuery(api.lib.links.getLinkCountByUserId, {
     userId: user?.id || "",

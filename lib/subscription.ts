@@ -9,7 +9,7 @@ export type SubscriptionPlan = "free" | "pro" | "ultra";
 
 export async function getUserSubscriptionPlan(userId: string): Promise<SubscriptionPlan> {
   // Admin fixo com plano ultra sem pagar
-  if (userId === "user_2zuoF42kpYWl095WqnSiP9eUcu3") return "ultra";
+  if (userId === "user_301NTkVsE3v48SXkoCEp0XOXifI") return "ultra";
 
   try {
     const user = await users.getUser(userId);
