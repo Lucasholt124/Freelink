@@ -8,7 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export type SubscriptionPlan = "free" | "pro" | "ultra";
 
 export async function getUserSubscriptionPlan(userId: string): Promise<SubscriptionPlan> {
-  // Usuário admin fixo — sempre ultra sem pagar
+  // Admin fixo com plano ultra sem pagar
   if (userId === "user_2zuoF42kpYWl095WqnSiP9eUcu3") return "ultra";
 
   try {
@@ -32,8 +32,8 @@ export async function getUserSubscriptionPlan(userId: string): Promise<Subscript
     if (!priceId) return "free";
 
     const priceIdToPlan: Record<string, SubscriptionPlan> = {
-      [process.env.STRIPE_PRO_PRICE_ID!]: "pro",
-      [process.env.STRIPE_ULTRA_PRICE_ID!]: "ultra",
+      [process.env.STRIPE_PRICE_PRO!]: "pro",
+      [process.env.STRIPE_PRICE_ULTRA!]: "ultra",
     };
 
     return priceIdToPlan[priceId] || "free";

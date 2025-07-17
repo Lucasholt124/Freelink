@@ -3,16 +3,31 @@
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import { Loader2, Zap, Rocket } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import clsx from "clsx";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function BillingPage() {
   const { user } = useUser();
   const [loading, setLoading] = useState<"pro" | "ultra" | null>(null);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Sucesso no checkout, exibe feedback e limpa URL
+  useEffect(() => {
+    const success = searchParams.get("success");
+    if (success === "true") {
+      toast.success("Assinatura realizada com sucesso! 🎉");
+      router.replace("/dashboard"); // ou a página pós-pagamento que quiser
+    }
+  }, [searchParams, router]);
 
   async function handleCheckout(plan: "pro" | "ultra") {
-    if (!user?.id) return;
+    if (!user?.id) {
+      toast.error("Você precisa estar logado.");
+      return;
+    }
 
     try {
       setLoading(plan);
@@ -25,12 +40,13 @@ export default function BillingPage() {
 
       const data = await res.json();
 
-      if (data.url) {
+      if (data?.url) {
         window.location.href = data.url;
       } else {
         toast.error("Erro ao redirecionar para o Stripe.");
       }
-    } catch {
+    } catch (err) {
+      console.error(err);
       toast.error("Erro ao iniciar o checkout.");
     } finally {
       setLoading(null);
@@ -52,7 +68,7 @@ export default function BillingPage() {
               <h2 className="text-xl font-bold">Plano Pro</h2>
             </div>
             <p className="text-gray-700 text-2xl font-semibold mb-2">
-              R$9,90<span className="text-base font-normal">/mês</span>
+              R$9,90 <span className="text-base font-normal">/mês</span>
             </p>
             <ul className="text-gray-600 text-sm space-y-2 mt-4">
               <li>✔ Acesso ao Analytics</li>
@@ -86,7 +102,7 @@ export default function BillingPage() {
               <h2 className="text-xl font-bold">Plano Ultra</h2>
             </div>
             <p className="text-purple-800 text-2xl font-semibold mb-2">
-              R$19,90<span className="text-base font-normal">/mês</span>
+              R$19,90 <span className="text-base font-normal">/mês</span>
             </p>
             <ul className="text-purple-900 text-sm space-y-2 mt-4">
               <li>✔ Tudo do plano Pro</li>

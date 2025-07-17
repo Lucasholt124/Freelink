@@ -5,12 +5,12 @@ import { api } from "@/convex/_generated/api";
 import { fetchAnalytics } from "@/lib/analytics-server";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
 import { Lock } from "lucide-react";
-
 import UsernameForm from "@/components/UsernameForm";
 import CustomizationForm from "@/components/CustomizationForm";
 import ManageLinks from "@/components/ManageLinks";
 import DashboardMetrics from "@/components/DashboardMetrics";
 import SkeletonDashboard from "@/components/SkeletonDashboard";
+import DashboardToast from "@/components/DashboardToast";
 
 export default async function DashboardPage() {
   const user = await currentUser();
@@ -25,11 +25,13 @@ export default async function DashboardPage() {
     getUserSubscriptionPlan(user.id),
   ]);
 
-
   const plan = user.id === "user_2zuoF42kpYWl095WqnSiP9eUcu3" ? "ultra" : (rawPlan ?? "free");
 
   return (
     <div className="pb-16">
+      {/* Toast para sucesso da assinatura */}
+      <DashboardToast />
+
       {/* Métricas de Analytics */}
       {(plan === "pro" || plan === "ultra") ? (
         <Suspense fallback={<SkeletonDashboard />}>

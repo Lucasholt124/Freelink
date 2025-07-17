@@ -1,41 +1,34 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import ConvexClientProvider from "@/components/ConvexClientProvider";
-import { ClerkProvider } from "@clerk/nextjs";
-import { Toaster } from "sonner";
+  import type { Metadata } from "next";
+  import { Geist, Geist_Mono } from "next/font/google";
+  import "./globals.css";
+  import ConvexClientProvider from "@/components/ConvexClientProvider";
+  import { ClerkProvider } from "@clerk/nextjs";
+  import { Toaster } from "sonner";
 
+  const geistSans = Geist({
+    variable: "--font-geist-sans",
+    subsets: ["latin"],
+  });
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+  const geistMono = Geist_Mono({
+    variable: "--font-geist-mono",
+    subsets: ["latin"],
+  });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+  export const metadata: Metadata = {
+    title: "Freelink - Sua página de links personalizada",
+    description: "Crie uma página de links bonita e funcional com o Freelink",
+    icons: {
+      icon: "/convex.svg",
+    },
+  };
 
-export const metadata: Metadata = {
-  title: "Freelink - Sua página de links personalizada",
-  description: "Crie uma página de links bonita e funcional com o Freelink",
-  icons: {
-    icon: "/convex.svg",
-  },
-};
-
-export default function RootLayout({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+ export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-br">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ClerkProvider
-
+          signInFallbackRedirectUrl="/dashboard"
           localization={{
             locale: "pt-BR",
             signIn: {
@@ -59,7 +52,6 @@ export default function RootLayout({
         >
           <ConvexClientProvider>{children}</ConvexClientProvider>
         </ClerkProvider>
-
         <Toaster />
       </body>
     </html>

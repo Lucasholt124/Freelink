@@ -6,7 +6,6 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-06-30.basil",
 });
 
-// Mapeamento de planos para price_ids do Stripe
 const priceIds: Record<"pro" | "ultra", string> = {
   pro: process.env.STRIPE_PRICE_PRO!,
   ultra: process.env.STRIPE_PRICE_ULTRA!,
@@ -16,7 +15,6 @@ export async function POST(req: NextRequest) {
   const body = (await req.json()) as { plan: "pro" | "ultra" };
   const { plan } = body;
 
-  // Validação extra de segurança
   if (!["pro", "ultra"].includes(plan)) {
     return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
   }
@@ -26,13 +24,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Usuário não autenticado" }, { status: 401 });
   }
 
-  // Remove barra final da URL se existir
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL?.replace(/\/$/, "") ?? "";
-
+  if (!baseUrl) {
+    return NextResponse.json({ error: "Base URL não configurada" }, { status: 500 });
+  }
+  console.log("Base URL:", baseUrl);
+  console.log("User ID:", userId);
+console.log("Success URL:", `${baseUrl}/dashboard?subscribed=true`);
+console.log("Cancel URL:", `${baseUrl}/dashboard/billing`);
   try {
-    console.log("Success URL:", `${baseUrl}/dashboard`);
-    console.log("Cancel URL:", `${baseUrl}/dashboard/billing`);
-
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       payment_method_types: ["card"],
@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/dashboard`,
+      success_url: `${baseUrl}/dashboard?subscribed=true`,
       cancel_url: `${baseUrl}/dashboard/billing`,
       metadata: { userId },
     });
