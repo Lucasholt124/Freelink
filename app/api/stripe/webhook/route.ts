@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import Stripe from "stripe";
-import { clerkClient } from "@clerk/nextjs/server";
+import { users } from "@clerk/clerk-sdk-node";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-06-30.basil",
 });
 
 async function updateUserSubscriptionClerk(userId: string, plan: string, status: string) {
-  const client = await clerkClient(); // AQUI: chamar a função para pegar o client
-  await client.users.updateUserMetadata(userId, {
+  await users.updateUserMetadata(userId, {
     publicMetadata: {
       subscriptionPlan: plan,
       subscriptionStatus: status,
@@ -56,6 +55,15 @@ export async function POST(req: Request) {
         const status = subscription.status;
 
         await updateUserSubscriptionClerk(userId, plan, status);
+
+        // ✅ Salvar stripeCustomerId no Clerk (opcional mas útil)
+        if (session.customer) {
+          await users.updateUserMetadata(userId, {
+            privateMetadata: {
+              stripeCustomerId: session.customer as string,
+            },
+          });
+        }
       }
       break;
     }

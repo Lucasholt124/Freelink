@@ -28,10 +28,7 @@ export async function POST(req: NextRequest) {
   if (!baseUrl) {
     return NextResponse.json({ error: "Base URL não configurada" }, { status: 500 });
   }
-  console.log("Base URL:", baseUrl);
-  console.log("User ID:", userId);
-console.log("Success URL:", `${baseUrl}/dashboard?subscribed=true`);
-console.log("Cancel URL:", `${baseUrl}/dashboard/billing`);
+
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -45,6 +42,10 @@ console.log("Cancel URL:", `${baseUrl}/dashboard/billing`);
       success_url: `${baseUrl}/dashboard?subscribed=true`,
       cancel_url: `${baseUrl}/dashboard/billing`,
       metadata: { userId },
+      customer_creation: "always",
+      subscription_data: {
+        metadata: { userId },
+      },
     });
 
     return NextResponse.json({ url: session.url });

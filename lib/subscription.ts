@@ -42,22 +42,3 @@ export async function getUserSubscriptionPlan(userId: string): Promise<Subscript
     return "free";
   }
 }
-
-export async function getStripeCustomerId(userId: string): Promise<string | null> {
-  const user = await users.getUser(userId);
-  const existingCustomerId = user.privateMetadata.stripeCustomerId as string | undefined;
-  if (existingCustomerId) return existingCustomerId;
-
-  const customer = await stripe.customers.create({
-    email: user.emailAddresses[0]?.emailAddress,
-    metadata: { userId },
-  });
-
-  await users.updateUserMetadata(userId, {
-    privateMetadata: {
-      stripeCustomerId: customer.id,
-    },
-  });
-
-  return customer.id;
-}
