@@ -34,7 +34,7 @@ type CountryData = {
   percentage: number;
 };
 
-const ADMIN_ID = "user_2zuoF42kpYWl095WqnSiP9eUcu3";
+const ADMIN_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
 async function fetchUserPlanFromDB(userId: string): Promise<"free" | "pro" | "ultra"> {
   // Aqui você faz a consulta real no banco ou API para buscar o plano
   // Exemplo fictício:
