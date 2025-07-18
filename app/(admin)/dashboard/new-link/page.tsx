@@ -10,23 +10,17 @@ async function NewLinkPage() {
   const hasPro = has({ feature: "pro_capacity" });
   const hasUltra = has({ feature: "ultra_capacity" });
 
-  const user = await currentUser();
-
+    const user = await currentUser();
+  if (!user) return null;
   // Substitua abaixo com seu ID real do Clerk:
   const IS_ADMIN = user?.id === "user_301NTkVsE3v48SXkoCEp0XOXifI"; // 🔁 substitua "user_123abc" pelo seu ID
 
   const linkCount = await fetchQuery(api.lib.links.getLinkCountByUserId, {
-    userId: user?.id || "",
+    userId: user.id,
   });
 
   const access = {
-    canCreate: IS_ADMIN
-      ? true
-      : hasUltra
-        ? true
-        : hasPro
-          ? linkCount < 10
-          : linkCount < 3,
+    canCreate: IS_ADMIN ? true : hasUltra ? true : hasPro ? linkCount < 10 : linkCount < 3,
     limit: IS_ADMIN ? "∞" : hasUltra ? "∞" : hasPro ? 10 : 3,
     currentCount: linkCount,
   };

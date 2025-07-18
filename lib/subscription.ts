@@ -8,7 +8,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 export type SubscriptionPlan = "free" | "pro" | "ultra";
 
 export async function getUserSubscriptionPlan(userId: string): Promise<SubscriptionPlan> {
-  // Admin fixo com plano ultra sem pagar
+  // Admin fixo que sempre tem Ultra (não paga)
   if (userId === "user_301NTkVsE3v48SXkoCEp0XOXifI") return "ultra";
 
   try {
@@ -20,10 +20,12 @@ export async function getUserSubscriptionPlan(userId: string): Promise<Subscript
     const subscriptions = await stripe.subscriptions.list({
       customer: stripeCustomerId,
       status: "all",
+      expand: ["data.items"], // opcional, ajuda a garantir dados do item
     });
 
-    const activeSub = subscriptions.data.find(
-      (sub) => sub.status === "active" || sub.status === "trialing"
+    // Procura assinatura ativa ou trialing
+    const activeSub = subscriptions.data.find(sub =>
+      sub.status === "active" || sub.status === "trialing"
     );
 
     if (!activeSub) return "free";
@@ -37,8 +39,8 @@ export async function getUserSubscriptionPlan(userId: string): Promise<Subscript
     };
 
     return priceIdToPlan[priceId] || "free";
-  } catch (err) {
-    console.error("Erro ao buscar assinatura:", err);
+  } catch (error) {
+    console.error("Erro ao buscar plano de assinatura:", error);
     return "free";
   }
 }

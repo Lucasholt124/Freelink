@@ -1,6 +1,6 @@
-
 import { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
-import { auth } from "@clerk/nextjs/server";
+import clerkClient from "@clerk/clerk-sdk-node";
+import { auth  } from "@clerk/nextjs/server";
 import {
   Users,
   MousePointer,
@@ -18,8 +18,6 @@ interface LinkAnalyticsProps {
   analytics: LinkAnalyticsData;
 }
 
-
-
 // Tipos auxiliares baseados no uso do objeto analytics
 type DailyData = {
   date: string;
@@ -35,16 +33,27 @@ type CountryData = {
 };
 
 const ADMIN_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
-async function fetchUserPlanFromDB(userId: string): Promise<"free" | "pro" | "ultra"> {
-  // Aqui você faz a consulta real no banco ou API para buscar o plano
-  // Exemplo fictício:
-  // const userRecord = await db.users.findUnique({ where: { id: userId } });
-  // return userRecord?.subscriptionPlan || "free";
 
-  // Para teste, vamos supor:
-  if (userId === ADMIN_ID) return "ultra"; // admin tem ultra
-  if (userId.endsWith("1")) return "pro"; // usuário terminado em 1 é pro
-  return "free"; // padrão free
+async function fetchUserPlanFromDB(userId: string): Promise<"free" | "pro" | "ultra"> {
+  if (userId === ADMIN_ID) return "ultra";
+
+  try {
+    const user = await clerkClient.users.getUser(userId);
+    const plan = user.publicMetadata.subscriptionPlan as
+      | "free"
+      | "pro"
+      | "ultra"
+      | undefined;
+
+    if (plan === "free" || plan === "pro" || plan === "ultra") {
+      return plan;
+    }
+
+    return "free";
+  } catch (error) {
+    console.error("Erro ao buscar plano no Clerk:", error);
+    return "free";
+  }
 }
 
 async function getUserSubscriptionPlan() {
@@ -53,28 +62,23 @@ async function getUserSubscriptionPlan() {
   if (!userId) return { isPro: false, isUltra: false, isAdmin: false };
 
   const isAdmin = userId === ADMIN_ID;
-
-  // Busca o plano real do usuário
   const userPlan = await fetchUserPlanFromDB(userId);
 
-  const isPro = userPlan === "pro";
-  const isUltra = userPlan === "ultra";
-
-  return { isPro, isUltra, isAdmin };
+  return {
+    isPro: userPlan === "pro",
+    isUltra: userPlan === "ultra",
+    isAdmin,
+  };
 }
-async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
+
+export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   const { isPro, isUltra, isAdmin } = await getUserSubscriptionPlan();
 
-  // Define acessos
   const hasAnalyticsAccess = isPro || isUltra || isAdmin;
   const hasCountryAccess = isUltra || isAdmin;
 
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("pt-BR", {
-      month: "short",
-      day: "numeric",
-    });
-  };
+  const formatDate = (dateString: string) =>
+    new Date(dateString).toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
 
   const formatUrl = (url: string) => {
     try {
@@ -95,12 +99,8 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                 <BarChart3 className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  Análise de links
-                </h2>
-                <p className="text-gray-600">
-                  🔒 Atualize para desbloquear insights poderosos
-                </p>
+                <h2 className="text-2xl font-bold text-gray-900">Análise de links</h2>
+                <p className="text-gray-600">🔒 Atualize para desbloquear insights poderosos</p>
               </div>
             </div>
             <div className="mt-6 space-y-6">
@@ -151,13 +151,8 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
             </div>
 
             <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                {analytics.linkTitle}
-              </h1>
-              <Link
-                href={analytics.linkUrl}
-                className="flex items-center gap-2 text-gray-600"
-              >
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">{analytics.linkTitle}</h1>
+              <Link href={analytics.linkUrl} className="flex items-center gap-2 text-gray-600">
                 <ExternalLink className="w-4 h-4" />
                 <span className="text-sm">{formatUrl(analytics.linkUrl)}</span>
               </Link>
@@ -171,17 +166,11 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                   <div className="p-3 bg-blue-500 rounded-xl">
                     <MousePointer className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-blue-600">
-                    <TrendingUp className="w-5 h-5" />
-                  </div>
+                  <TrendingUp className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-blue-600 mb-1">
-                    Total de cliques
-                  </p>
-                  <p className="text-3xl font-bold text-blue-900">
-                    {analytics.totalClicks.toLocaleString()}
-                  </p>
+                  <p className="text-sm font-medium text-blue-600 mb-1">Total de cliques</p>
+                  <p className="text-3xl font-bold text-blue-900">{analytics.totalClicks.toLocaleString()}</p>
                 </div>
               </div>
 
@@ -191,17 +180,11 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                   <div className="p-3 bg-purple-500 rounded-xl">
                     <Users className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-purple-600">
-                    <TrendingUp className="w-5 h-5" />
-                  </div>
+                  <TrendingUp className="w-5 h-5 text-purple-600" />
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-purple-600 mb-1">
-                    Usuários Únicos
-                  </p>
-                  <p className="text-3xl font-bold text-purple-900">
-                    {analytics.uniqueUsers.toLocaleString()}
-                  </p>
+                  <p className="text-sm font-medium text-purple-600 mb-1">Usuários Únicos</p>
+                  <p className="text-3xl font-bold text-purple-900">{analytics.uniqueUsers.toLocaleString()}</p>
                 </div>
               </div>
 
@@ -212,17 +195,11 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                     <div className="p-3 bg-green-500 rounded-xl">
                       <Globe className="w-6 h-6 text-white" />
                     </div>
-                    <div className="text-green-600">
-                      <MapPin className="w-5 h-5" />
-                    </div>
+                    <MapPin className="w-5 h-5 text-green-600" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-green-600 mb-1">
-                      Países
-                    </p>
-                    <p className="text-3xl font-bold text-green-900">
-                      {analytics.countriesReached.toLocaleString()}
-                    </p>
+                    <p className="text-sm font-medium text-green-600 mb-1">Países</p>
+                    <p className="text-3xl font-bold text-green-900">{analytics.countriesReached.toLocaleString()}</p>
                   </div>
                 </div>
               ) : (
@@ -231,17 +208,11 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                     <div className="p-3 bg-green-500/50 rounded-xl">
                       <Globe className="w-6 h-6 text-white/75" />
                     </div>
-                    <div className="text-green-600/75">
-                      <Lock className="w-5 h-5" />
-                    </div>
+                    <Lock className="w-5 h-5 text-green-600/75" />
                   </div>
                   <div>
-                    <p className="text-sm font-medium text-green-600/75 mb-1">
-                      Países
-                    </p>
-                    <p className="text-3xl font-bold text-green-900/75">
-                      Atualizar para Ultra
-                    </p>
+                    <p className="text-sm font-medium text-green-600/75 mb-1">Países</p>
+                    <p className="text-3xl font-bold text-green-900/75">Atualizar para Ultra</p>
                   </div>
                 </div>
               )}
@@ -260,9 +231,7 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                   <BarChart3 className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    Desempenho diário
-                  </h2>
+                  <h2 className="text-2xl font-bold text-gray-900">Desempenho diário</h2>
                   <p className="text-gray-600">Atividade dos últimos 30 dias</p>
                 </div>
               </div>
@@ -270,17 +239,12 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
               {/* Representação simples de gráfico de barras */}
               <div className="space-y-4">
                 {analytics.dailyData.slice(0, 10).map((day: DailyData) => {
-                  const maxClicks = Math.max(
-                    ...analytics.dailyData.map((d: DailyData) => d.clicks),
-                  );
-                  const width =
-                    maxClicks > 0 ? (day.clicks / maxClicks) * 100 : 0;
+                  const maxClicks = Math.max(...analytics.dailyData.map((d: DailyData) => d.clicks));
+                  const width = maxClicks > 0 ? (day.clicks / maxClicks) * 100 : 0;
 
                   return (
                     <div key={day.date} className="flex items-center gap-4">
-                      <div className="w-16 text-sm text-gray-600 font-medium">
-                        {formatDate(day.date)}
-                      </div>
+                      <div className="w-16 text-sm text-gray-600 font-medium">{formatDate(day.date)}</div>
                       <div className="flex-1 relative">
                         <div className="bg-gray-200 rounded-full h-8 relative overflow-hidden">
                           <div
@@ -288,9 +252,7 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                             style={{ width: `${width}%` }}
                           />
                           <div className="absolute inset-0 flex items-center px-3">
-                            <span className="text-sm font-medium text-white">
-                              {day.clicks} cliques
-                            </span>
+                            <span className="text-sm font-medium text-white">{day.clicks} cliques</span>
                           </div>
                         </div>
                       </div>
@@ -332,12 +294,8 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                     <Globe className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold text-gray-900">
-                      Países
-                    </h2>
-                    <p className="text-gray-600">
-                      Distribuição de cliques por país
-                    </p>
+                    <h2 className="text-2xl font-bold text-gray-900">Países</h2>
+                    <p className="text-gray-600">Distribuição de cliques por país</p>
                   </div>
                 </div>
 
@@ -347,13 +305,8 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                     const width = country.percentage || 0;
 
                     return (
-                      <div
-                        key={country.country}
-                        className="flex items-center gap-4"
-                      >
-                        <div className="w-32 text-sm text-gray-900 font-medium truncate">
-                          {country.country}
-                        </div>
+                      <div key={country.country} className="flex items-center gap-4">
+                        <div className="w-32 text-sm text-gray-900 font-medium truncate">{country.country}</div>
                         <div className="flex-1 relative">
                           <div className="bg-gray-200 rounded-full h-6 relative overflow-hidden">
                             <div
@@ -361,16 +314,12 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                               style={{ width: `${width}%` }}
                             />
                             <div className="absolute inset-0 flex items-center px-3">
-                              <span className="text-xs font-medium text-white">
-                                {country.clicks} cliques
-                              </span>
+                              <span className="text-xs font-medium text-white">{country.clicks} cliques</span>
                             </div>
                           </div>
                         </div>
                         <div className="w-16 text-right">
-                          <span className="text-sm font-medium text-gray-600">
-                            {country.percentage.toFixed(1)}%
-                          </span>
+                          <span className="text-sm font-medium text-gray-600">{country.percentage.toFixed(1)}%</span>
                         </div>
                       </div>
                     );
@@ -379,9 +328,7 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
 
                 {analytics.countryData.length >= 20 && (
                   <div className="mt-6 text-center">
-                    <p className="text-gray-500 text-sm">
-                      Mostrando os 20 principais países
-                    </p>
+                    <p className="text-gray-500 text-sm">Mostrando os 20 principais países</p>
                   </div>
                 )}
               </div>
@@ -397,19 +344,13 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                   <Globe className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-gray-900">
-                    Países
-                  </h2>
-                  <p className="text-gray-600">
-                    🔒 Atualize para Ultra para desbloquear análises de países
-                  </p>
+                  <h2 className="text-2xl font-bold text-gray-900">Países</h2>
+                  <p className="text-gray-600">🔒 Atualize para Ultra para desbloquear análises de países</p>
                 </div>
               </div>
               <div className="mt-4 flex items-center">
                 <div className="bg-gray-100 rounded-lg p-4 text-center w-full">
-                  <p className="text-gray-500">
-                    Este recurso está disponível apenas no plano Ultra
-                  </p>
+                  <p className="text-gray-500">Este recurso está disponível apenas no plano Ultra</p>
                 </div>
               </div>
             </div>
@@ -425,9 +366,7 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
               <div className="text-gray-400 mb-4">
                 <BarChart3 className="w-16 h-16 mx-auto" />
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                Nenhum dado analítico ainda
-              </h3>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhum dado analítico ainda</h3>
               <p className="text-gray-600">
                 As análises aparecerão aqui assim que este link começar a receber cliques.
               </p>
@@ -438,5 +377,3 @@ async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
     </div>
   );
 }
-
-export default LinkAnalytics;
