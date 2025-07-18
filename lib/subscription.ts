@@ -1,9 +1,4 @@
-import Stripe from "stripe";
 import { users } from "@clerk/clerk-sdk-node";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-06-30.basil",
-});
 
 export type SubscriptionPlan = "free" | "pro" | "ultra";
 
@@ -13,34 +8,16 @@ export async function getUserSubscriptionPlan(userId: string): Promise<Subscript
 
   try {
     const user = await users.getUser(userId);
-    const stripeCustomerId = user.privateMetadata.stripeCustomerId as string | undefined;
+    const plan = user.publicMetadata.subscriptionPlan as SubscriptionPlan | undefined;
 
-    if (!stripeCustomerId) return "free";
+    if (plan === "free" || plan === "pro" || plan === "ultra") {
+      return plan;
+    }
 
-    const subscriptions = await stripe.subscriptions.list({
-      customer: stripeCustomerId,
-      status: "all",
-      expand: ["data.items"], // opcional, ajuda a garantir dados do item
-    });
-
-    // Procura assinatura ativa ou trialing
-    const activeSub = subscriptions.data.find(sub =>
-      sub.status === "active" || sub.status === "trialing"
-    );
-
-    if (!activeSub) return "free";
-
-    const priceId = activeSub.items.data[0]?.price.id;
-    if (!priceId) return "free";
-
-    const priceIdToPlan: Record<string, SubscriptionPlan> = {
-      [process.env.STRIPE_PRICE_PRO!]: "pro",
-      [process.env.STRIPE_PRICE_ULTRA!]: "ultra",
-    };
-
-    return priceIdToPlan[priceId] || "free";
+    // Caso não tenha metadata, assume "free"
+    return "free";
   } catch (error) {
-    console.error("Erro ao buscar plano de assinatura:", error);
+    console.error("Erro ao buscar plano de assinatura no Clerk:", error);
     return "free";
   }
 }

@@ -14,14 +14,14 @@ export default function BillingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Exibe toast e limpa URL após sucesso no checkout
   useEffect(() => {
     const success = searchParams.get("success");
     if (success === "true") {
       toast.success("Assinatura realizada com sucesso! 🎉");
-      router.replace("/dashboard"); // redireciona para dashboard
+      router.replace("/dashboard");
     }
-  }, [searchParams, router]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   async function handleCheckout(plan: "pro" | "ultra") {
     if (!user?.id) {
@@ -38,26 +38,30 @@ export default function BillingContent() {
         body: JSON.stringify({ plan }),
       });
 
+      if (!res.ok) {
+        toast.error("Erro no servidor ao iniciar checkout.");
+        setLoading(null);
+        return;
+      }
+
       const data = await res.json();
 
       if (data?.url) {
         window.location.href = data.url;
       } else {
         toast.error("Erro ao redirecionar para o Stripe.");
+        setLoading(null);
       }
     } catch (err) {
       console.error(err);
       toast.error("Erro ao iniciar o checkout.");
-    } finally {
       setLoading(null);
     }
   }
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-16">
-      <h1 className="text-4xl font-bold mb-12 text-center">
-        Escolha o seu plano
-      </h1>
+      <h1 className="text-4xl font-bold mb-12 text-center">Escolha o seu plano</h1>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Plano Pro */}
@@ -78,6 +82,7 @@ export default function BillingContent() {
           </div>
           <Button
             disabled={loading === "pro"}
+            aria-busy={loading === "pro"}
             onClick={() => handleCheckout("pro")}
             className={clsx("w-full mt-6", {
               "opacity-50 cursor-not-allowed": loading === "pro",
@@ -112,6 +117,7 @@ export default function BillingContent() {
           </div>
           <Button
             disabled={loading === "ultra"}
+            aria-busy={loading === "ultra"}
             onClick={() => handleCheckout("ultra")}
             className={clsx(
               "w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white",
