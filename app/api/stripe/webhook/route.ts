@@ -14,6 +14,7 @@ async function updateUserSubscriptionClerk(userId: string, plan: string, status:
         subscriptionStatus: status,
       },
     });
+    console.log(`Plano atualizado no Clerk para ${userId}: ${plan} (${status})`);
   } catch (error) {
     console.error("Erro ao atualizar plano no Clerk:", error);
   }
@@ -40,11 +41,17 @@ export async function POST(req: Request) {
     return new NextResponse("Webhook Error", { status: 400 });
   }
 
+  console.log("Evento Stripe:", event.type);
+
   switch (event.type) {
     case "checkout.session.completed": {
       const session = event.data.object as Stripe.Checkout.Session;
       const userId = session.metadata?.userId;
       const subscriptionId = session.subscription as string | undefined;
+
+      console.log("Session metadata:", session.metadata);
+      console.log("userId:", userId);
+      console.log("subscriptionId:", subscriptionId);
 
       if (!userId || !subscriptionId) {
         console.warn("⚠️ Webhook: session.completed sem userId ou subscriptionId");
@@ -78,6 +85,7 @@ export async function POST(req: Request) {
       await stripe.subscriptions.update(subscriptionId, {
         metadata: { userId },
       });
+      console.log("Assinatura atualizada com userId na metadata.");
 
       break;
     }
@@ -86,6 +94,9 @@ export async function POST(req: Request) {
     case "customer.subscription.deleted": {
       const subscription = event.data.object as Stripe.Subscription;
       const userId = subscription.metadata?.userId;
+
+      console.log("Subscription metadata:", subscription.metadata);
+      console.log("userId:", userId);
 
       if (!userId) {
         console.warn("⚠️ Subscription update/delete sem userId em metadata");
