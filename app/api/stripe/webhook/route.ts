@@ -5,18 +5,6 @@ import { users } from "@clerk/clerk-sdk-node";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-06-30.basil",
 });
-async function testUpdate() {
-  const subscriptionId = "sub_1RmcchQDWcFcDipFTOa3Bzzp"; // coloque o ID da assinatura
-  try {
-    const result = await stripe.subscriptions.update(subscriptionId, {
-      metadata: { userId: "user_301YTPGkisd671QSSP8sWtynlyq" },
-    });
-    console.log("Metadata atualizada:", result.metadata);
-  } catch (err) {
-    console.error("Erro ao atualizar assinatura:", err);
-  }
-}
-testUpdate();
 
 async function updateUserSubscriptionClerk(userId: string, plan: string, status: string) {
   try {
@@ -33,10 +21,13 @@ async function updateUserSubscriptionClerk(userId: string, plan: string, status:
 }
 
 export async function POST(req: Request) {
+  console.log("Webhook recebido!"); // <-- INÍCIO
+
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
 
   if (!signature) {
+    console.error("Faltando assinatura do Stripe!");
     return new NextResponse("Missing Stripe signature", { status: 400 });
   }
 
@@ -95,6 +86,8 @@ export async function POST(req: Request) {
 
       // Garante que o userId estará presente em eventos futuros
       try {
+        // Pequeno delay para garantir que a assinatura já foi criada
+        await new Promise((resolve) => setTimeout(resolve, 2000));
         const updateResult = await stripe.subscriptions.update(subscriptionId, {
           metadata: { userId },
         });
@@ -135,5 +128,6 @@ export async function POST(req: Request) {
       break;
   }
 
+  console.log("Webhook finalizado!"); // <-- FIM
   return new NextResponse("Success", { status: 200 });
 }
