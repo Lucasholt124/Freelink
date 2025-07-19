@@ -21,7 +21,7 @@ async function updateUserSubscriptionClerk(userId: string, plan: string, status:
 }
 
 export async function POST(req: Request) {
-  console.log("Webhook recebido!"); // <-- INÍCIO
+  console.log("=== INÍCIO DO WEBHOOK ===");
 
   const body = await req.text();
   const signature = req.headers.get("stripe-signature");
@@ -84,10 +84,11 @@ export async function POST(req: Request) {
         console.log(`✅ stripeCustomerId salvo para ${userId}`);
       }
 
-      // Garante que o userId estará presente em eventos futuros
+      // Delay para garantir que a assinatura já foi criada
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
+      // Atualiza a assinatura com o userId na metadata
       try {
-        // Pequeno delay para garantir que a assinatura já foi criada
-        await new Promise((resolve) => setTimeout(resolve, 2000));
         const updateResult = await stripe.subscriptions.update(subscriptionId, {
           metadata: { userId },
         });
@@ -128,6 +129,6 @@ export async function POST(req: Request) {
       break;
   }
 
-  console.log("Webhook finalizado!"); // <-- FIM
+  console.log("=== FIM DO WEBHOOK ===");
   return new NextResponse("Success", { status: 200 });
 }

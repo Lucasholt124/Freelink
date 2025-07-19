@@ -11,6 +11,7 @@ import ManageLinks from "@/components/ManageLinks";
 import DashboardMetrics from "@/components/DashboardMetrics";
 import SkeletonDashboard from "@/components/SkeletonDashboard";
 import DashboardToast from "@/components/DashboardToast";
+import WhatsappFloatingButton from "@/components/WhatsappFloatingButton";
 
 export default async function DashboardPage() {
   const user = await currentUser();
@@ -94,6 +95,9 @@ export default async function DashboardPage() {
           </div>
         </div>
       </section>
+
+      {/* Botão flutuante do WhatsApp */}
+      <WhatsappFloatingButton />
     </div>
   );
 }
