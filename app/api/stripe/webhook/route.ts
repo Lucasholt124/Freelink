@@ -64,6 +64,7 @@ export async function POST(req: Request) {
 
       await updateUserSubscriptionClerk(userId, plan, status);
 
+      // Salva o stripeCustomerId
       if (session.customer) {
         await users.updateUser(userId, {
           privateMetadata: {
@@ -72,6 +73,12 @@ export async function POST(req: Request) {
         });
         console.log(`✅ stripeCustomerId salvo para ${userId}`);
       }
+
+      // Garante que o userId estará presente em eventos futuros
+      await stripe.subscriptions.update(subscriptionId, {
+        metadata: { userId },
+      });
+
       break;
     }
 
