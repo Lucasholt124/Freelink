@@ -7,13 +7,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 async function updateUserSubscriptionClerk(userId: string, plan: string, status: string) {
-  console.log(`🔁 Atualizando plano do usuário ${userId} para ${plan} (${status})`);
-  await users.updateUserMetadata(userId, {
-    publicMetadata: {
-      subscriptionPlan: plan,
-      subscriptionStatus: status,
-    },
-  });
+  try {
+    await users.updateUser(userId, {
+      publicMetadata: {
+        subscriptionPlan: plan,
+        subscriptionStatus: status,
+      },
+    });
+  } catch (error) {
+    console.error("Erro ao atualizar plano no Clerk:", error);
+  }
 }
 
 export async function POST(req: Request) {
@@ -32,8 +35,8 @@ export async function POST(req: Request) {
       signature,
       process.env.STRIPE_WEBHOOK_SECRET!
     );
-  } catch (err) {
-    console.error("❌ Erro na verificação do webhook:", err);
+  } catch (error) {
+    console.error("❌ Erro na verificação do webhook:", error);
     return new NextResponse("Webhook Error", { status: 400 });
   }
 
@@ -62,7 +65,7 @@ export async function POST(req: Request) {
       await updateUserSubscriptionClerk(userId, plan, status);
 
       if (session.customer) {
-        await users.updateUserMetadata(userId, {
+        await users.updateUser(userId, {
           privateMetadata: {
             stripeCustomerId: session.customer as string,
           },

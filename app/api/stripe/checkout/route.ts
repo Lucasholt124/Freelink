@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import Stripe from "stripe";
 import { auth } from "@clerk/nextjs/server";
+import { users } from "@clerk/clerk-sdk-node";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-06-30.basil",
@@ -12,8 +13,7 @@ const priceIds: Record<"pro" | "ultra", string> = {
 };
 
 export async function POST(req: NextRequest) {
-  const body = (await req.json()) as { plan: "pro" | "ultra" };
-  const { plan } = body;
+  const { plan } = await req.json() as { plan: "pro" | "ultra" };
 
   if (!["pro", "ultra"].includes(plan)) {
     return NextResponse.json({ error: "Plano inválido" }, { status: 400 });
@@ -28,10 +28,11 @@ export async function POST(req: NextRequest) {
   if (!baseUrl) {
     return NextResponse.json({ error: "Base URL não configurada" }, { status: 500 });
   }
-  console.log("Base URL:", baseUrl);
-  console.log("User ID:", userId);
-console.log("Success URL:", `${baseUrl}/dashboard?subscribed=true`);
-console.log("Cancel URL:", `${baseUrl}/dashboard/billing`);
+
+  // Busca o stripeCustomerId se já existir
+  const user = await users.getUser(userId);
+  const stripeCustomerId = user.privateMetadata?.stripeCustomerId as string | undefined;
+
   try {
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
@@ -42,14 +43,15 @@ console.log("Cancel URL:", `${baseUrl}/dashboard/billing`);
           quantity: 1,
         },
       ],
-      success_url: `${baseUrl}/dashboard?subscribed=true`,
+      success_url: `${baseUrl}/dashboard/billing?success=true`,
       cancel_url: `${baseUrl}/dashboard/billing`,
       metadata: { userId },
+      ...(stripeCustomerId && { customer: stripeCustomerId }),
     });
 
     return NextResponse.json({ url: session.url });
-  } catch (err) {
-    console.error("Erro ao criar sessão Stripe:", err);
+  } catch (error) {
+    console.error("Erro ao criar sessão Stripe:", error);
     return NextResponse.json({ error: "Erro no checkout" }, { status: 500 });
   }
 }
