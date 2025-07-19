@@ -45,9 +45,11 @@ export async function POST(req: NextRequest) {
       ],
       success_url: `${baseUrl}/dashboard/billing?success=true`,
       cancel_url: `${baseUrl}/dashboard/billing`,
-      metadata: { userId },
+      metadata: { userId }, // ESSENCIAL!
       ...(stripeCustomerId && { customer: stripeCustomerId }),
     });
+
+    console.log("Checkout session criada:", session.id, "Metadata:", session.metadata);
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

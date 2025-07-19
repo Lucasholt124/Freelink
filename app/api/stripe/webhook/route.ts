@@ -82,10 +82,14 @@ export async function POST(req: Request) {
       }
 
       // Garante que o userId estará presente em eventos futuros
-      await stripe.subscriptions.update(subscriptionId, {
-        metadata: { userId },
-      });
-      console.log("Assinatura atualizada com userId na metadata.");
+      try {
+        const updateResult = await stripe.subscriptions.update(subscriptionId, {
+          metadata: { userId },
+        });
+        console.log("Assinatura atualizada:", updateResult.metadata);
+      } catch (err) {
+        console.error("Erro ao atualizar metadata da assinatura:", err);
+      }
 
       break;
     }

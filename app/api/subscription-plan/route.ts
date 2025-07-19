@@ -1,6 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
-import { users } from "@clerk/clerk-sdk-node";
 import { NextResponse } from "next/server";
+import { users } from '@clerk/clerk-sdk-node';
 
 export type SubscriptionPlan = "free" | "pro" | "ultra";
 
