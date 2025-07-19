@@ -10,6 +10,7 @@ async function NewLinkPage() {
   const hasPro = has({ feature: "pro_capacity" });
   const hasUltra = has({ feature: "ultra_capacity" });
 
+
     const user = await currentUser();
   if (!user) return null;
   // Substitua abaixo com seu ID real do Clerk:
