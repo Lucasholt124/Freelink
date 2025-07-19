@@ -5,6 +5,18 @@ import { users } from "@clerk/clerk-sdk-node";
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2025-06-30.basil",
 });
+async function testUpdate() {
+  const subscriptionId = "sub_1RmcchQDWcFcDipFTOa3Bzzp"; // coloque o ID da assinatura
+  try {
+    const result = await stripe.subscriptions.update(subscriptionId, {
+      metadata: { userId: "user_301YTPGkisd671QSSP8sWtynlyq" },
+    });
+    console.log("Metadata atualizada:", result.metadata);
+  } catch (err) {
+    console.error("Erro ao atualizar assinatura:", err);
+  }
+}
+testUpdate();
 
 async function updateUserSubscriptionClerk(userId: string, plan: string, status: string) {
   try {
