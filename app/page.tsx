@@ -19,6 +19,7 @@ import {
   Shield,
   Users,
 } from "lucide-react";
+import WhatsappFloatingButton from "@/components/WhatsappFloatingButton";
 
 const features = [
   {
@@ -83,6 +84,52 @@ const testimonials = [
   },
 ];
 
+const faq = [
+  {
+    question: "Posso cancelar quando quiser?",
+    answer: "Sim! O cancelamento é fácil e você mantém acesso até o fim do período já pago.",
+  },
+  {
+    question: "Como funciona o upgrade?",
+    answer: "Basta clicar em 'Assinar Pro' ou 'Assinar Ultra' no painel. O upgrade é instantâneo.",
+  },
+  {
+    question: "Tem suporte humano?",
+    answer: "Sim! Fale com nosso time pelo WhatsApp a qualquer momento.",
+  },
+  {
+    question: "Como funciona o analytics?",
+    answer: "Você vê cliques, visitantes únicos, países e muito mais em tempo real no painel.",
+  },
+];
+
+const comparison = [
+  {
+    name: "Freelink",
+    analytics: "Avançado",
+    suporte: "WhatsApp",
+    preço: "R$9,90/mês",
+    personalização: "Total",
+    moeda: "Reais (BRL)",
+  },
+  {
+    name: "Linktree",
+    analytics: "Básico",
+    suporte: "E-mail",
+    preço: "US$5/mês",
+    personalização: "Limitada",
+    moeda: "Dólar (USD)",
+  },
+  {
+    name: "Beacons",
+    analytics: "Básico",
+    suporte: "E-mail",
+    preço: "US$10/mês",
+    personalização: "Limitada",
+    moeda: "Dólar (USD)",
+  },
+];
+
 const FadeInSection = ({ children }: { children: ReactNode }) => {
   const [ref, inView] = useInView({ triggerOnce: true, threshold: 0.2 });
 
@@ -102,7 +149,6 @@ export default function Home() {
   const router = useRouter();
   const { isSignedIn } = useAuth();
 
-  // Redireciona automaticamente se o usuário estiver logado
   useEffect(() => {
     if (isSignedIn) {
       router.push("/dashboard");
@@ -172,6 +218,39 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Comparação com concorrentes */}
+      <section className="px-4 lg:px-8 py-12">
+        <div className="max-w-5xl mx-auto">
+          <h2 className="text-3xl font-bold text-center mb-8">Por que escolher o Freelink?</h2>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border border-gray-200 rounded-xl bg-white shadow">
+              <thead>
+                <tr>
+                  <th className="p-3 text-left font-bold">Plataforma</th>
+                  <th className="p-3 text-left">Analytics</th>
+                  <th className="p-3 text-left">Suporte</th>
+                  <th className="p-3 text-left">Preço</th>
+                  <th className="p-3 text-left">Personalização</th>
+                  <th className="p-3 text-left">Moeda</th>
+                </tr>
+              </thead>
+              <tbody>
+                {comparison.map((row) => (
+                  <tr key={row.name} className="border-t">
+                    <td className="p-3 font-semibold">{row.name}</td>
+                    <td className="p-3">{row.analytics}</td>
+                    <td className="p-3">{row.suporte}</td>
+                    <td className="p-3">{row.preço}</td>
+                    <td className="p-3">{row.personalização}</td>
+                    <td className="p-3">{row.moeda}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
       {/* Features Section */}
       <section id="features" className="px-4 lg:px-8 py-20">
         <div className="max-w-7xl mx-auto text-center mb-16 space-y-4">
@@ -201,6 +280,61 @@ export default function Home() {
               </div>
             </FadeInSection>
           ))}
+        </div>
+      </section>
+
+      {/* Prints reais do painel */}
+      <section className="px-4 lg:px-8 py-20 bg-gray-50">
+        <div className="max-w-7xl mx-auto text-center mb-12">
+          <h2 className="text-3xl font-bold mb-4">Veja o painel na prática</h2>
+          <p className="text-gray-600 mb-8">
+            Interface moderna, fácil de usar e com tudo que você precisa.
+          </p>
+          <div className="flex flex-col md:flex-row gap-8 justify-center items-center">
+            <Image
+              src="/public/Painel.png"
+              alt="Print do painel Freelink"
+              width={400}
+              height={250}
+              className="rounded-xl border shadow"
+            />
+            <Image
+              src="/public/Analise.png"
+              alt="Print do analytics Freelink"
+              width={400}
+              height={250}
+              className="rounded-xl border shadow"
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Bloco Por que Freelink */}
+      <section className="px-4 lg:px-8 py-16">
+        <div className="max-w-4xl mx-auto text-center space-y-8">
+          <h2 className="text-3xl font-bold">Por que Freelink?</h2>
+          <ul className="grid sm:grid-cols-2 gap-6 text-left mt-6">
+            <li className="flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-green-500" />
+              Analytics avançado e detalhado
+            </li>
+            <li className="flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-green-500" />
+              Suporte humano via WhatsApp
+            </li>
+            <li className="flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-green-500" />
+              Preço em reais, sem surpresas
+            </li>
+            <li className="flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-green-500" />
+              Personalização total da sua página
+            </li>
+            <li className="flex items-center gap-3">
+              <CheckCircle className="w-6 h-6 text-green-500" />
+              Cancelamento fácil e sem burocracia
+            </li>
+          </ul>
         </div>
       </section>
 
@@ -243,6 +377,21 @@ export default function Home() {
               </div>
             </FadeInSection>
           ))}
+        </div>
+      </section>
+
+      {/* FAQ */}
+      <section className="px-4 lg:px-8 py-20">
+        <div className="max-w-4xl mx-auto">
+          <h2 className="text-3xl font-bold mb-8 text-center">Perguntas frequentes</h2>
+          <div className="space-y-6">
+            {faq.map((item, i) => (
+              <div key={i} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                <h3 className="text-lg font-semibold mb-2">{item.question}</h3>
+                <p className="text-gray-600">{item.answer}</p>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -389,6 +538,9 @@ export default function Home() {
           </div>
         </div>
       </footer>
+
+      {/* Botão flutuante do WhatsApp */}
+      <WhatsappFloatingButton />
     </div>
   );
 }

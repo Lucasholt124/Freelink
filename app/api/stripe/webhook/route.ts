@@ -72,7 +72,9 @@ export async function POST(req: Request) {
       const plan = priceToPlan[priceId] || "free";
       const status = subscription.status;
 
-      await updateUserSubscriptionClerk(userId, plan, status);
+      // Se a assinatura já estiver cancelada, salva como free
+      const finalPlan = status === "canceled" ? "free" : plan;
+      await updateUserSubscriptionClerk(userId, finalPlan, status);
 
       // Salva o stripeCustomerId
       if (session.customer) {
@@ -120,7 +122,9 @@ export async function POST(req: Request) {
       }[priceId] || "free";
 
       const status = subscription.status;
-      await updateUserSubscriptionClerk(userId, plan, status);
+      // Se a assinatura foi cancelada, salva como free
+      const finalPlan = status === "canceled" ? "free" : plan;
+      await updateUserSubscriptionClerk(userId, finalPlan, status);
       break;
     }
 
