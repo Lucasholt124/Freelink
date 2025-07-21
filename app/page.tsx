@@ -292,14 +292,14 @@ export default function Home() {
           </p>
           <div className="flex flex-col md:flex-row gap-8 justify-center items-center">
             <Image
-              src="/public/Painel.png"
+              src="/Painel.png"
               alt="Print do painel Freelink"
               width={400}
               height={250}
               className="rounded-xl border shadow"
             />
             <Image
-              src="/public/Analise.png"
+              src="/Analise.png"
               alt="Print do analytics Freelink"
               width={400}
               height={250}

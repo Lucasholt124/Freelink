@@ -16,8 +16,11 @@ function Header({ isFixed = false }: { isFixed?: boolean }) {
       )}
     >
       <div className="max-w-7xl mx-auto px-4 xl:px-2 py-4 flex justify-between items-center">
-        <Link href="/dashboard" className="text-2xl font-bold">
-          Freelink
+        <Link href="/dashboard" className="text-2xl font-extrabold tracking-tight flex items-center gap-1 select-none">
+          Free
+          <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+            link
+          </span>
         </Link>
         <Authenticated>
           <div className="flex gap-2 items-center bg-white/50 backdrop-blur-sm border border-white/20 p-2 rounded-lg">
@@ -35,7 +38,6 @@ function Header({ isFixed = false }: { isFixed?: boolean }) {
             >
               <Link href="/dashboard/billing">Cobrança</Link>
             </Button>
-
             <UserButton />
           </div>
         </Authenticated>
