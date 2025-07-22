@@ -10,12 +10,13 @@ SQL >
             ELSE 'Unknown'
         END as country,
         count() as total_clicks,
-        uniq(visitorId) as unique_users,         -- CORRIGIDO AQUI
+        uniq(visitorId) as unique_users,
         round(count() * 100.0 / sum(count()) OVER (), 2) as percentage
     FROM link_clicks
     WHERE
         profileUserId = {{String(profileUserId)}}
         AND linkId = {{String(linkId)}}
+        AND visitorId != ''  -- IGNORA eventos antigos sem visitorId
         {% if defined(start_date) %}
         AND toDate(timestamp) >= {{Date(start_date)}}
         {% else %}

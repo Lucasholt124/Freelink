@@ -11,7 +11,7 @@ SQL >
         linkTitle,
         linkUrl,
         countState() as total_clicks,
-        uniqState(profileUserId) as unique_users,
+        uniqState(visitorId) as unique_users,           -- CORRIGIDO AQUI
         uniqState(location_country) as unique_countries,
         uniqState(referrer) as unique_referrers,
         minState(timestamp) as first_click_time,

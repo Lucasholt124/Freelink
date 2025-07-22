@@ -9,11 +9,12 @@ SQL >
         linkTitle,
         linkUrl,
         count() as total_clicks,
-        uniq(visitorId) as unique_users,         -- CORRIGIDO AQUI
+        uniq(visitorId) as unique_users,
         uniq(location_country) as countries_reached
     FROM link_clicks
     WHERE
         profileUserId = {{String(profileUserId)}}
+        AND visitorId != ''  -- IGNORA eventos antigos sem visitorId
         {% if defined(start_date) %}
         AND date >= {{Date(start_date)}}
         {% else %}

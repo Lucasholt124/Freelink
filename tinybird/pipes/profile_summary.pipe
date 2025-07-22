@@ -8,7 +8,7 @@ SQL >
         profileUserId,
         any(profileUsername) as profileUsername,
         count() as total_clicks,
-        uniq(visitorId) as unique_users,           -- CORRIGIDO AQUI
+        uniq(visitorId) as unique_users,
         uniq(linkId) as total_links_clicked,
         uniq(location_country) as countries_reached,
         min(timestamp) as first_click,
@@ -20,6 +20,7 @@ SQL >
     FROM link_clicks
     WHERE
         profileUserId = {{String(profileUserId)}}
+        AND visitorId != ''  -- IGNORA eventos antigos sem visitorId
         {% if defined(days_back) %}
         AND timestamp >= now() - INTERVAL {{Int32(days_back)}} DAY
         {% else %}

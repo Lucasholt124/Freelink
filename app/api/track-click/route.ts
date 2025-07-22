@@ -4,12 +4,39 @@ import { api } from "@/convex/_generated/api";
 import { ClientTrackingData, ServerTrackingEvent } from "@/lib/types";
 import { getClient } from "@/convex/client";
 
-
 export async function POST(request: NextRequest) {
   try {
     const data: ClientTrackingData = await request.json();
 
+    // Tente pegar a geolocalização do Vercel
     const geo = geolocation(request);
+
+    // Tente pegar o IP real do visitante
+    const ip =
+      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+      (request as unknown as { ip?: string }).ip || // Corrigido para evitar 'any'
+      "";
+
+    // Use o país do geo, ou busque via ipapi.co se não vier
+    let country = geo?.country || "";
+    let region = geo?.region || "";
+    let city = geo?.city || "";
+    let latitude = geo?.latitude || "";
+    let longitude = geo?.longitude || "";
+
+    if (!country && ip) {
+      try {
+        const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
+        const geoJson: Record<string, string> = await geoRes.json();
+        country = geoJson.country || "";
+        region = geoJson.region || "";
+        city = geoJson.city || "";
+        latitude = geoJson.latitude || "";
+        longitude = geoJson.longitude || "";
+      } catch {
+        country = "";
+      }
+    }
 
     const convex = getClient();
 
@@ -28,36 +55,39 @@ export async function POST(request: NextRequest) {
       timestamp: new Date().toISOString(),
       profileUserId: userId,
       location: {
-        ...geo,
+        country,
+        region,
+        city,
+        latitude,
+        longitude,
       },
       userAgent:
         data.userAgent || request.headers.get("user-agent") || "unknown",
     };
 
-   // Enviar para a API de eventos do Tinybird
+    // Enviar para a API de eventos do Tinybird
     console.log("Enviando evento para o Tinybird:", trackingEvent);
 
     if (process.env.TINYBIRD_TOKEN && process.env.TINYBIRD_HOST) {
       try {
-        // Envia a localização como objeto aninhado para corresponder aos caminhos do esquema json
         const eventForTinybird = {
-  timestamp: trackingEvent.timestamp,
-  profileUsername: trackingEvent.profileUsername,
-  profileUserId: trackingEvent.profileUserId,
-  linkId: trackingEvent.linkId,
-  linkTitle: trackingEvent.linkTitle,
-  linkUrl: trackingEvent.linkUrl,
-  userAgent: trackingEvent.userAgent,
-  referrer: trackingEvent.referrer,
-  visitorId: trackingEvent.visitorId, // <-- Adicione aqui!
-  location: {
-    country: trackingEvent.location.country || "",
-    region: trackingEvent.location.region || "",
-    city: trackingEvent.location.city || "",
-    latitude: trackingEvent.location.latitude || "",
-    longitude: trackingEvent.location.longitude || "",
-  },
-};
+          timestamp: trackingEvent.timestamp,
+          profileUsername: trackingEvent.profileUsername,
+          profileUserId: trackingEvent.profileUserId,
+          linkId: trackingEvent.linkId,
+          linkTitle: trackingEvent.linkTitle,
+          linkUrl: trackingEvent.linkUrl,
+          userAgent: trackingEvent.userAgent,
+          referrer: trackingEvent.referrer,
+          visitorId: trackingEvent.visitorId,
+          location: {
+            country: trackingEvent.location.country || "",
+            region: trackingEvent.location.region || "",
+            city: trackingEvent.location.city || "",
+            latitude: trackingEvent.location.latitude || "",
+            longitude: trackingEvent.location.longitude || "",
+          },
+        };
 
         console.log(
           "Enviando evento para o Tinybird:",
@@ -79,7 +109,6 @@ export async function POST(request: NextRequest) {
         if (!tinybirdResponse.ok) {
           const errorText = await tinybirdResponse.text();
           console.error("Falha ao enviar para o Tinybird:", errorText);
-          // Não falhe na solicitação se o Tinybird estiver inativo - apenas registre o erro
         } else {
           const responseBody = await tinybirdResponse.json();
           console.log("Enviado com sucesso para Tinybird:", responseBody);
@@ -90,7 +119,6 @@ export async function POST(request: NextRequest) {
         }
       } catch (tinybirdError) {
         console.error("Falha na solicitação do Tinybird:", tinybirdError);
-        // Não falhe na solicitação se o Tinybird estiver inativo
       }
     } else {
       console.log("Tinybird não configurado - somente eventos registrados");
