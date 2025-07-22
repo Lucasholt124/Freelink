@@ -8,7 +8,7 @@ SQL >
         profileUserId,
         any(profileUsername) as profileUsername,
         count() as total_clicks,
-        uniq(profileUserId) as unique_users,
+        uniq(visitorId) as unique_users,           -- CORRIGIDO AQUI
         uniq(linkId) as total_links_clicked,
         uniq(location_country) as countries_reached,
         min(timestamp) as first_click,
