@@ -233,27 +233,29 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
 
             {/* Ultra: Top fonte de tráfego, horário de pico e gráfico de barras por dia */}
             {isUltra && (
-              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-2xl border border-indigo-200">
-                  <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
-                    <ExternalLink className="w-5 h-5" /> Link Mais Clicado
-                  </h3>
-                  <p className="text-indigo-700 text-base">
-                    {topLinkTitle}
-                  </p>
-                </div>
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-2xl border border-orange-200">
-                  <h3 className="text-lg font-bold text-orange-900 mb-2 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" /> Horário de pico
-                  </h3>
-                  <p className="text-orange-700 text-base">
-                    {peakClickTime
-                      ? `${formatDateTime(peakClickTime)} (${getDayPeriod(peakClickTime)})`
-                      : "Nenhum dado de pico ainda."}
-                  </p>
+              <div className="mt-8 flex flex-col gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-2xl border border-indigo-200">
+                    <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                      <ExternalLink className="w-5 h-5" /> Link Mais Clicado
+                    </h3>
+                    <p className="text-indigo-700 text-base">
+                      {topLinkTitle}
+                    </p>
+                  </div>
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-2xl border border-orange-200">
+                    <h3 className="text-lg font-bold text-orange-900 mb-2 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" /> Horário de pico
+                    </h3>
+                    <p className="text-orange-700 text-base">
+                      {peakClickTime
+                        ? `${formatDateTime(peakClickTime)} (${getDayPeriod(peakClickTime)})`
+                        : "Nenhum dado de pico ainda."}
+                    </p>
+                  </div>
                 </div>
                 {/* Gráfico de barras por dia */}
-                <div className="col-span-2">
+                <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
                     <BarChart3 className="w-5 h-5" /> Gráfico de cliques por dia
                   </h3>
@@ -273,6 +275,7 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                             }}
                           />
                           <span className="text-xs mt-1">{formatDate(h.date)}</span>
+                          <span className="text-xs text-gray-500">{h.clicks} cliques</span>
                         </div>
                       ))}
                     </div>
