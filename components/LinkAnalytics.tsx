@@ -82,7 +82,8 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   const hasAnalyticsAccess = isPro || isUltra || isAdmin;
   const hasCountryAccess = isUltra || isAdmin;
 
-  // Ultra: Horário de pico real (dia com mais cliques)
+  // Ultra: Horário de pico real (timestamp do backend ou dia de maior movimento)
+
   const peakDay = analytics.dailyData.length > 0
     ? analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0])
     : null;
@@ -249,11 +250,11 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                       <BarChart3 className="w-5 h-5" /> Horário de pico
                     </h3>
                     <p className="text-orange-700 text-base">
-                    {analytics.peakClickTime
-  ? `${formatDateTime(analytics.peakClickTime)} (${getDayPeriod(analytics.peakClickTime)})`
-  : peakDay && peakDay.clicks > 0
-    ? `${formatDateTime(peakDay.date)} (${getDayPeriod(peakDay.date)}) - ${peakDay.clicks} cliques`
-    : "Ainda não há cliques suficientes para calcular o horário de pico."}
+                      {analytics.peakClickTime
+                        ? `${formatDateTime(analytics.peakClickTime)} (${getDayPeriod(analytics.peakClickTime)})`
+                        : peakDay && peakDay.clicks > 0
+                          ? `${formatDateTime(peakDay.date)} (${getDayPeriod(peakDay.date)}) - ${peakDay.clicks} cliques`
+                          : "Ainda não há cliques suficientes para calcular o horário de pico."}
                     </p>
                   </div>
                 </div>
