@@ -83,9 +83,13 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   const hasCountryAccess = isUltra || isAdmin;
 
   // Horário de pico real (timestamp do backend ou dia de maior movimento)
-  const peakDay = analytics.dailyData.length > 0
-    ? analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0])
-    : null;
+  // Se vier do backend, use, senão calcule o dia de maior clique
+  let peakClickTime = analytics.peakClickTime;
+  if (!peakClickTime && analytics.dailyData.length > 0) {
+    // Pega o dia com mais cliques
+    const peakDay = analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0]);
+    peakClickTime = peakDay.date;
+  }
 
   const maxClicks = analytics.dailyData.length > 0
     ? Math.max(...analytics.dailyData.map(d => d.clicks))
@@ -227,26 +231,80 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
               )}
             </div>
 
-            {/* PRO: BLOQUEIO DE GRÁFICOS E HORÁRIO DE PICO */}
+            {/* PRO: Desempenho diário (atividade dos últimos 30 dias) */}
             {isPro && (
-              <div className="mt-8 flex flex-col gap-6">
-                {/* Horário de pico bloqueado */}
-                <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-2xl border border-orange-200 opacity-75 flex flex-col items-center">
-                  <div className="flex items-center gap-2 mb-2">
-                    <BarChart3 className="w-5 h-5 text-orange-600/75" />
-                    <Lock className="w-5 h-5 text-orange-600/75" />
+              <div className="mt-8">
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
+                  <div className="max-w-7xl mx-auto">
+                    <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl shadow-gray-200/50">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-3 bg-slate-500 rounded-xl">
+                          <BarChart3 className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold text-gray-900">Desempenho diário</h2>
+                          <p className="text-gray-600">Atividade dos últimos 30 dias</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        {analytics.dailyData.slice(0, 10).map((day) => {
+                          const width = maxClicks > 0 ? (day.clicks / maxClicks) * 100 : 0;
+                          return (
+                            <div key={day.date} className="flex items-center gap-4">
+                              <div className="w-16 text-sm text-gray-600 font-medium">{formatDate(day.date)}</div>
+                              <div className="flex-1 relative">
+                                <div className="bg-gray-200 rounded-full h-8 relative overflow-hidden">
+                                  <div
+                                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${width}%`, minWidth: 8 }}
+                                  />
+                                  <div className="absolute inset-0 flex items-center px-3">
+                                    <span className="text-sm font-medium text-white">{day.clicks} cliques</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-gray-600">
+                                <div className="flex items-center gap-1">
+                                  <Users className="w-4 h-4" />
+                                  <span>{day.uniqueUsers}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Globe className="w-4 h-4" />
+                                  <span>{day.countries}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {analytics.dailyData.length > 10 && (
+                        <div className="mt-6 text-center">
+                          <p className="text-gray-500 text-sm">
+                            Exibindo os últimos 10 dias • {analytics.dailyData.length} dias total
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-orange-600/75 font-medium">Horário de pico</p>
-                  <p className="text-orange-900/75">Disponível só no Ultra</p>
                 </div>
-                {/* Gráfico de cliques por dia bloqueado */}
-                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-2xl border border-indigo-200 opacity-75 flex flex-col items-center">
-                  <div className="flex items-center gap-2 mb-2">
-                    <BarChart3 className="w-5 h-5 text-indigo-600/75" />
-                    <Lock className="w-5 h-5 text-indigo-600/75" />
+                {/* Gráficos detalhados e horário de pico bloqueados */}
+                <div className="flex flex-col gap-6">
+                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-2xl border border-orange-200 opacity-75 flex flex-col items-center">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BarChart3 className="w-5 h-5 text-orange-600/75" />
+                      <Lock className="w-5 h-5 text-orange-600/75" />
+                    </div>
+                    <p className="text-orange-600/75 font-medium">Horário de pico</p>
+                    <p className="text-orange-900/75">Disponível só no Ultra</p>
                   </div>
-                  <p className="text-indigo-600/75 font-medium">Gráfico de cliques por dia</p>
-                  <p className="text-indigo-900/75">Disponível só no Ultra</p>
+                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-2xl border border-indigo-200 opacity-75 flex flex-col items-center">
+                    <div className="flex items-center gap-2 mb-2">
+                      <BarChart3 className="w-5 h-5 text-indigo-600/75" />
+                      <Lock className="w-5 h-5 text-indigo-600/75" />
+                    </div>
+                    <p className="text-indigo-600/75 font-medium">Gráfico de cliques por dia detalhado</p>
+                    <p className="text-indigo-900/75">Disponível só no Ultra</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -268,15 +326,13 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                       <BarChart3 className="w-5 h-5" /> Horário de pico
                     </h3>
                     <p className="text-orange-700 text-base">
-                      {analytics.peakClickTime
-                        ? `${formatDateTime(analytics.peakClickTime)} (${getDayPeriod(analytics.peakClickTime)})`
-                        : peakDay && peakDay.clicks > 0
-                          ? `${formatDateTime(peakDay.date)} (${getDayPeriod(peakDay.date)}) - ${peakDay.clicks} cliques`
-                          : "Ainda não há cliques suficientes para calcular o horário de pico."}
+                      {peakClickTime
+                        ? `${formatDateTime(peakClickTime)} (${getDayPeriod(peakClickTime)})`
+                        : "Ainda não há cliques suficientes para calcular o horário de pico."}
                     </p>
                   </div>
                 </div>
-                {/* Gráfico de barras por dia */}
+                {/* Gráfico de barras por dia detalhado */}
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
                     <BarChart3 className="w-5 h-5" /> Gráfico de cliques por dia
