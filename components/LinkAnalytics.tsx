@@ -83,11 +83,10 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   const hasCountryAccess = isUltra || isAdmin;
 
   // Horário de pico real (timestamp do backend ou dia de maior movimento)
-  // Se vier do backend, use, senão calcule o dia de maior clique
   let peakClickTime = analytics.peakClickTime;
+  let peakDay = null;
   if (!peakClickTime && analytics.dailyData.length > 0) {
-    // Pega o dia com mais cliques
-    const peakDay = analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0]);
+    peakDay = analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0]);
     peakClickTime = peakDay.date;
   }
 
@@ -220,20 +219,25 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                   </div>
                 </div>
               ) : (
-                <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-2xl border border-green-200 opacity-75 flex flex-col items-center">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Globe className="w-6 h-6 text-green-600/75" />
+                <div className="bg-gradient-to-br from-green-50 to-green-100 p-6 rounded-2xl border border-green-200 opacity-75">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="p-3 bg-green-500/50 rounded-xl">
+                      <Globe className="w-6 h-6 text-white/75" />
+                    </div>
                     <Lock className="w-5 h-5 text-green-600/75" />
                   </div>
-                  <p className="text-green-600/75 font-medium">Países</p>
-                  <p className="text-green-900/75">Disponível só no Ultra</p>
+                  <div>
+                    <p className="text-sm font-medium text-green-600/75 mb-1">Países</p>
+                    <p className="text-3xl font-bold text-green-900/75">Atualizar para Ultra</p>
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* PRO: Desempenho diário (atividade dos últimos 30 dias) */}
+            {/* PRO: Desempenho diário liberado, gráficos detalhados bloqueados */}
             {isPro && (
-              <div className="mt-8">
+              <div className="mt-8 flex flex-col gap-6">
+                {/* Desempenho diário */}
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
                   <div className="max-w-7xl mx-auto">
                     <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl shadow-gray-200/50">
@@ -246,49 +250,41 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                           <p className="text-gray-600">Atividade dos últimos 30 dias</p>
                         </div>
                       </div>
-                      <div className="space-y-4">
-                        {analytics.dailyData.slice(0, 10).map((day) => {
-                          const width = maxClicks > 0 ? (day.clicks / maxClicks) * 100 : 0;
+                      <div className="flex gap-2 items-end h-32 overflow-x-auto">
+                        {analytics.dailyData.map((h) => {
+                          const height = maxClicks > 0 ? (h.clicks / maxClicks) * 100 : 0;
                           return (
-                            <div key={day.date} className="flex items-center gap-4">
-                              <div className="w-16 text-sm text-gray-600 font-medium">{formatDate(day.date)}</div>
-                              <div className="flex-1 relative">
-                                <div className="bg-gray-200 rounded-full h-8 relative overflow-hidden">
-                                  <div
-                                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full transition-all duration-700"
-                                    style={{ width: `${width}%`, minWidth: 8 }}
-                                  />
-                                  <div className="absolute inset-0 flex items-center px-3">
-                                    <span className="text-sm font-medium text-white">{day.clicks} cliques</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-4 text-sm text-gray-600">
-                                <div className="flex items-center gap-1">
-                                  <Users className="w-4 h-4" />
-                                  <span>{day.uniqueUsers}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Globe className="w-4 h-4" />
-                                  <span>{day.countries}</span>
-                                </div>
-                              </div>
+                            <div
+                              key={h.date}
+                              className="flex flex-col items-center min-w-[40px] transition-all duration-700"
+                            >
+                              <div
+                                className={`rounded-t w-6 ${h.clicks === maxClicks ? "bg-indigo-700" : "bg-indigo-500"}`}
+                                style={{
+                                  height: `${height}%`,
+                                  minHeight: "8px",
+                                  transition: "height 0.7s cubic-bezier(0.4,0,0.2,1)",
+                                }}
+                              />
+                              <span className="text-xs mt-1">{formatDate(h.date)}</span>
+                              <span className="text-xs text-gray-500">{h.clicks} cliques</span>
                             </div>
                           );
                         })}
                       </div>
-                      {analytics.dailyData.length > 10 && (
-                        <div className="mt-6 text-center">
-                          <p className="text-gray-500 text-sm">
-                            Exibindo os últimos 10 dias • {analytics.dailyData.length} dias total
-                          </p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
-                {/* Gráficos detalhados e horário de pico bloqueados */}
-                <div className="flex flex-col gap-6">
+                {/* Gráficos detalhados bloqueados */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-2xl border border-indigo-200 opacity-75 flex flex-col items-center">
+                    <div className="flex items-center gap-2 mb-2">
+                      <ExternalLink className="w-5 h-5 text-indigo-600/75" />
+                      <Lock className="w-5 h-5 text-indigo-600/75" />
+                    </div>
+                    <p className="text-indigo-600/75 font-medium">Link Mais Clicado</p>
+                    <p className="text-indigo-900/75">Disponível só no Ultra</p>
+                  </div>
                   <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-2xl border border-orange-200 opacity-75 flex flex-col items-center">
                     <div className="flex items-center gap-2 mb-2">
                       <BarChart3 className="w-5 h-5 text-orange-600/75" />
@@ -302,17 +298,17 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                       <BarChart3 className="w-5 h-5 text-indigo-600/75" />
                       <Lock className="w-5 h-5 text-indigo-600/75" />
                     </div>
-                    <p className="text-indigo-600/75 font-medium">Gráfico de cliques por dia detalhado</p>
+                    <p className="text-indigo-600/75 font-medium">Gráfico de cliques por dia</p>
                     <p className="text-indigo-900/75">Disponível só no Ultra</p>
                   </div>
                 </div>
               </div>
             )}
 
-            {/* ULTRA/ADMIN: GRÁFICOS E HORÁRIO DE PICO LIBERADOS */}
+            {/* ULTRA/ADMIN: Tudo liberado */}
             {(isUltra || isAdmin) && (
               <div className="mt-8 flex flex-col gap-6">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                   <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-2xl border border-indigo-200">
                     <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
                       <ExternalLink className="w-5 h-5" /> Link Mais Clicado
@@ -331,40 +327,39 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                         : "Ainda não há cliques suficientes para calcular o horário de pico."}
                     </p>
                   </div>
-                </div>
-                {/* Gráfico de barras por dia detalhado */}
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5" /> Gráfico de cliques por dia
-                  </h3>
-                  {analytics.dailyData.length === 0 ? (
-                    <div className="text-center text-gray-500 py-4">
-                      Nenhum dado de horário disponível ainda.
-                    </div>
-                  ) : (
-                    <div className="flex gap-2 items-end h-32 overflow-x-auto">
-                      {analytics.dailyData.map((h) => {
-                        const height = maxClicks > 0 ? (h.clicks / maxClicks) * 100 : 0;
-                        return (
-                          <div
-                            key={h.date}
-                            className="flex flex-col items-center min-w-[40px] transition-all duration-700"
-                          >
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                      <BarChart3 className="w-5 h-5" /> Gráfico de cliques por dia
+                    </h3>
+                    {analytics.dailyData.length === 0 ? (
+                      <div className="text-center text-gray-500 py-4">
+                        Nenhum dado de horário disponível ainda.
+                      </div>
+                    ) : (
+                      <div className="flex gap-2 items-end h-32 overflow-x-auto">
+                        {analytics.dailyData.map((h) => {
+                          const height = maxClicks > 0 ? (h.clicks / maxClicks) * 100 : 0;
+                          return (
                             <div
-                              className={`rounded-t w-6 ${h.clicks === maxClicks ? "bg-indigo-700" : "bg-indigo-500"}`}
-                              style={{
-                                height: `${height}%`,
-                                minHeight: "8px",
-                                transition: "height 0.7s cubic-bezier(0.4,0,0.2,1)",
-                              }}
-                            />
-                            <span className="text-xs mt-1">{formatDate(h.date)}</span>
-                            <span className="text-xs text-gray-500">{h.clicks} cliques</span>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
+                              key={h.date}
+                              className="flex flex-col items-center min-w-[40px] transition-all duration-700"
+                            >
+                              <div
+                                className={`rounded-t w-6 ${h.clicks === maxClicks ? "bg-indigo-700" : "bg-indigo-500"}`}
+                                style={{
+                                  height: `${height}%`,
+                                  minHeight: "8px",
+                                  transition: "height 0.7s cubic-bezier(0.4,0,0.2,1)",
+                                }}
+                              />
+                              <span className="text-xs mt-1">{formatDate(h.date)}</span>
+                              <span className="text-xs text-gray-500">{h.clicks} cliques</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             )}
