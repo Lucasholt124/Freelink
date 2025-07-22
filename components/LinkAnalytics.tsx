@@ -237,7 +237,7 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
             {/* PRO: Desempenho diário liberado, gráficos detalhados bloqueados */}
             {isPro && (
               <div className="mt-8 flex flex-col gap-6">
-                {/* Desempenho diário */}
+                {/* Desempenho diário (gráfico horizontal, animado) */}
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
                   <div className="max-w-7xl mx-auto">
                     <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl shadow-gray-200/50">
@@ -250,28 +250,44 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                           <p className="text-gray-600">Atividade dos últimos 30 dias</p>
                         </div>
                       </div>
-                      <div className="flex gap-2 items-end h-32 overflow-x-auto">
-                        {analytics.dailyData.map((h) => {
-                          const height = maxClicks > 0 ? (h.clicks / maxClicks) * 100 : 0;
+                      <div className="space-y-4">
+                        {analytics.dailyData.slice(0, 10).map((day) => {
+                          const width = maxClicks > 0 ? (day.clicks / maxClicks) * 100 : 0;
                           return (
-                            <div
-                              key={h.date}
-                              className="flex flex-col items-center min-w-[40px] transition-all duration-700"
-                            >
-                              <div
-                                className={`rounded-t w-6 ${h.clicks === maxClicks ? "bg-indigo-700" : "bg-indigo-500"}`}
-                                style={{
-                                  height: `${height}%`,
-                                  minHeight: "8px",
-                                  transition: "height 0.7s cubic-bezier(0.4,0,0.2,1)",
-                                }}
-                              />
-                              <span className="text-xs mt-1">{formatDate(h.date)}</span>
-                              <span className="text-xs text-gray-500">{h.clicks} cliques</span>
+                            <div key={day.date} className="flex items-center gap-4">
+                              <div className="w-16 text-sm text-gray-600 font-medium">{formatDate(day.date)}</div>
+                              <div className="flex-1 relative">
+                                <div className="bg-gray-200 rounded-full h-8 relative overflow-hidden">
+                                  <div
+                                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${width}%`, minWidth: 8 }}
+                                  />
+                                  <div className="absolute inset-0 flex items-center px-3">
+                                    <span className="text-sm font-medium text-white">{day.clicks} cliques</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-gray-600">
+                                <div className="flex items-center gap-1">
+                                  <Users className="w-4 h-4" />
+                                  <span>{day.uniqueUsers}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Globe className="w-4 h-4" />
+                                  <span>{day.countries}</span>
+                                </div>
+                              </div>
                             </div>
                           );
                         })}
                       </div>
+                      {analytics.dailyData.length > 10 && (
+                        <div className="mt-6 text-center">
+                          <p className="text-gray-500 text-sm">
+                            Exibindo os últimos 10 dias • {analytics.dailyData.length} dias total
+                          </p>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -359,6 +375,60 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                         })}
                       </div>
                     )}
+                  </div>
+                </div>
+                {/* Desempenho diário também aparece para Ultra/Admin */}
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
+                  <div className="max-w-7xl mx-auto">
+                    <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl shadow-gray-200/50">
+                      <div className="flex items-center gap-3 mb-6">
+                        <div className="p-3 bg-slate-500 rounded-xl">
+                          <BarChart3 className="w-6 h-6 text-white" />
+                        </div>
+                        <div>
+                          <h2 className="text-2xl font-bold text-gray-900">Desempenho diário</h2>
+                          <p className="text-gray-600">Atividade dos últimos 30 dias</p>
+                        </div>
+                      </div>
+                      <div className="space-y-4">
+                        {analytics.dailyData.slice(0, 10).map((day) => {
+                          const width = maxClicks > 0 ? (day.clicks / maxClicks) * 100 : 0;
+                          return (
+                            <div key={day.date} className="flex items-center gap-4">
+                              <div className="w-16 text-sm text-gray-600 font-medium">{formatDate(day.date)}</div>
+                              <div className="flex-1 relative">
+                                <div className="bg-gray-200 rounded-full h-8 relative overflow-hidden">
+                                  <div
+                                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full transition-all duration-700"
+                                    style={{ width: `${width}%`, minWidth: 8 }}
+                                  />
+                                  <div className="absolute inset-0 flex items-center px-3">
+                                    <span className="text-sm font-medium text-white">{day.clicks} cliques</span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-4 text-sm text-gray-600">
+                                <div className="flex items-center gap-1">
+                                  <Users className="w-4 h-4" />
+                                  <span>{day.uniqueUsers}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <Globe className="w-4 h-4" />
+                                  <span>{day.countries}</span>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {analytics.dailyData.length > 10 && (
+                        <div className="mt-6 text-center">
+                          <p className="text-gray-500 text-sm">
+                            Exibindo os últimos 10 dias • {analytics.dailyData.length} dias total
+                          </p>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
