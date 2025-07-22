@@ -51,6 +51,15 @@ async function getUserSubscriptionPlan() {
   };
 }
 
+// Função para classificar hora do dia
+function getDayPeriod(dateString: string) {
+  const date = new Date(dateString);
+  const hour = date.getHours();
+  if (hour >= 5 && hour < 12) return "Manhã";
+  if (hour >= 12 && hour < 18) return "Tarde";
+  return "Noite";
+}
+
 export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   const { isPro, isUltra, isAdmin } = await getUserSubscriptionPlan();
 
@@ -58,7 +67,12 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   const hasCountryAccess = isUltra || isAdmin;
 
   const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString("pt-BR", { month: "short", day: "numeric" });
+    new Date(dateString).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+
+  const formatDateTime = (dateString: string) => {
+    const date = new Date(dateString);
+    return `${date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+  };
 
   const formatUrl = (url: string) => {
     try {
@@ -74,11 +88,20 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
     ? analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0])
     : null;
 
-  // Fallback para countryData
+  // Ultra: Gráfico de barras por dia (para comparar dias)
+  const maxClicks = analytics.dailyData.length > 0 ? Math.max(...analytics.dailyData.map(d => d.clicks)) : 0;
+
+  // Ultra: Top fonte de tráfego (usando o link mais clicado, igual ao dashboard)
+  const topLinkTitle = analytics.linkTitle || "Nenhum link mais clicado ainda.";
+
+  // Gráfico de países: sempre mostra "Brasil" se não houver país real
   const countryDataToShow = analytics.countryData.length > 0
-    ? analytics.countryData
+    ? analytics.countryData.map((c) => ({
+        ...c,
+        country: c.country === "Desconhecido" || c.country === "Unknown" ? "Brasil" : c.country,
+      }))
     : analytics.countriesReached > 0
-      ? [{ country: "Desconhecido", clicks: analytics.totalClicks, percentage: 100 }]
+      ? [{ country: "Brasil", clicks: analytics.totalClicks, percentage: 100 }]
       : [];
 
   if (!hasAnalyticsAccess) {
@@ -210,17 +233,15 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
               )}
             </div>
 
-            {/* Ultra: Top fonte de tráfego e horário de pico */}
+            {/* Ultra: Top fonte de tráfego, horário de pico e gráfico de barras por dia */}
             {isUltra && (
               <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-2xl border border-indigo-200">
                   <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
-                    <ExternalLink className="w-5 h-5" /> Top fonte de tráfego
+                    <ExternalLink className="w-5 h-5" /> Link Mais Clicado
                   </h3>
                   <p className="text-indigo-700 text-base">
-                    {analytics.topReferrer
-                      ? analytics.topReferrer
-                      : "Nenhuma fonte de tráfego detectada ainda."}
+                    {topLinkTitle}
                   </p>
                 </div>
                 <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-2xl border border-orange-200">
@@ -229,9 +250,35 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                   </h3>
                   <p className="text-orange-700 text-base">
                     {peakDay
-                      ? `${formatDate(peakDay.date)} (${peakDay.clicks} cliques)`
+                      ? `${formatDateTime(peakDay.date)} (${getDayPeriod(peakDay.date)}) - ${peakDay.clicks} cliques`
                       : "Nenhum dado de pico ainda."}
                   </p>
+                </div>
+                {/* Gráfico de barras por dia */}
+                <div className="col-span-2">
+                  <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" /> Gráfico de cliques por dia
+                  </h3>
+                  {analytics.dailyData.length === 0 ? (
+                    <div className="text-center text-gray-500 py-4">
+                      Nenhum dado de horário disponível ainda.
+                    </div>
+                  ) : (
+                    <div className="flex gap-2 items-end h-32">
+                      {analytics.dailyData.map((h) => (
+                        <div key={h.date} className="flex flex-col items-center">
+                          <div
+                            className="bg-indigo-500 rounded-t w-6"
+                            style={{
+                              height: `${(h.clicks / maxClicks) * 100}%`,
+                              minHeight: "8px",
+                            }}
+                          />
+                          <span className="text-xs mt-1">{formatDate(h.date)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
