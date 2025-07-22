@@ -74,6 +74,13 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
     ? analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0])
     : null;
 
+  // Fallback para countryData
+  const countryDataToShow = analytics.countryData.length > 0
+    ? analytics.countryData
+    : analytics.countriesReached > 0
+      ? [{ country: "Desconhecido", clicks: analytics.totalClicks, percentage: 100 }]
+      : [];
+
   if (!hasAnalyticsAccess) {
     return (
       <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
@@ -308,13 +315,13 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                   <p className="text-gray-600">Distribuição de cliques por país</p>
                 </div>
               </div>
-              {analytics.countryData.length === 0 ? (
+              {countryDataToShow.length === 0 ? (
                 <div className="text-center text-gray-500 py-8">
                   Nenhum dado de país disponível ainda.
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {analytics.countryData.map((country) => {
+                  {countryDataToShow.map((country) => {
                     const width = country.percentage || 0;
                     return (
                       <div key={country.country} className="flex items-center gap-4">
