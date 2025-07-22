@@ -8,7 +8,6 @@ import { useParams } from "next/navigation";
 import { Doc } from "@/convex/_generated/dataModel";
 import { trackLinkClick } from "@/lib/analytics";
 
-
 function Links({
   preloadedLinks,
 }: {
@@ -19,12 +18,20 @@ function Links({
   const username = params.username as string;
 
   const handleLinkClick = async (link: Doc<"links">) => {
+    // Gere ou recupere o visitorId
+    let visitorId = localStorage.getItem("visitorId");
+    if (!visitorId) {
+      visitorId = crypto.randomUUID();
+      localStorage.setItem("visitorId", visitorId);
+    }
+
     // Rastreie o clique antes da navegação
     await trackLinkClick({
       profileUsername: username,
       linkId: link._id,
       linkTitle: link.title,
       linkUrl: link.url,
+      visitorId, // <-- Corrigido!
     });
   };
 
