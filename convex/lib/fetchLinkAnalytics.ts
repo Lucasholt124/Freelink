@@ -16,6 +16,7 @@ export interface LinkAnalyticsData {
     clicks: number;
     percentage: number;
   }>;
+  topReferrer?: string | null; // <-- Adicionado como opcional
 }
 
 interface TinybirdLinkAnalyticsRow {
@@ -25,6 +26,7 @@ interface TinybirdLinkAnalyticsRow {
   total_clicks: number;
   unique_users: number;
   countries_reached: number;
+  top_referrer?: string | null; // <-- Adicionado como opcional
 }
 
 interface TinybirdCountryAnalyticsRow {
@@ -51,6 +53,7 @@ export async function fetchLinkAnalytics(
       countriesReached: 0,
       dailyData: [],
       countryData: [],
+      topReferrer: null, // <-- Adicionado
     };
   }
 
@@ -124,7 +127,7 @@ export async function fetchLinkAnalytics(
               "undefined",
             ];
             if (unknownValues.includes(countryName.toLowerCase())) {
-              countryName = "Brasil";
+              countryName = "Desconhecido"; // Melhor UX do que "Brasil"
             }
 
             return {
@@ -147,6 +150,7 @@ export async function fetchLinkAnalytics(
       countriesReached,
       dailyData: dailyData.reverse(),
       countryData,
+      topReferrer: firstRow.top_referrer || null, // <-- Adicionado
     };
   } catch (err) {
     console.error("Erro geral em fetchLinkAnalytics:", err);

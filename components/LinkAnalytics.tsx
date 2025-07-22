@@ -1,6 +1,6 @@
 import { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
 import clerkClient from "@clerk/clerk-sdk-node";
-import { auth  } from "@clerk/nextjs/server";
+import { auth } from "@clerk/nextjs/server";
 import {
   Users,
   MousePointer,
@@ -18,25 +18,10 @@ interface LinkAnalyticsProps {
   analytics: LinkAnalyticsData;
 }
 
-// Tipos auxiliares baseados no uso do objeto analytics
-type DailyData = {
-  date: string;
-  clicks: number;
-  uniqueUsers: number;
-  countries: number;
-};
-
-type CountryData = {
-  country: string;
-  clicks: number;
-  percentage: number;
-};
-
 const ADMIN_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
 
 async function fetchUserPlanFromDB(userId: string): Promise<"free" | "pro" | "ultra"> {
   if (userId === ADMIN_ID) return "ultra";
-
   try {
     const user = await clerkClient.users.getUser(userId);
     const plan = user.publicMetadata.subscriptionPlan as
@@ -44,11 +29,9 @@ async function fetchUserPlanFromDB(userId: string): Promise<"free" | "pro" | "ul
       | "pro"
       | "ultra"
       | undefined;
-
     if (plan === "free" || plan === "pro" || plan === "ultra") {
       return plan;
     }
-
     return "free";
   } catch (error) {
     console.error("Erro ao buscar plano no Clerk:", error);
@@ -58,12 +41,9 @@ async function fetchUserPlanFromDB(userId: string): Promise<"free" | "pro" | "ul
 
 async function getUserSubscriptionPlan() {
   const { userId } = await auth();
-
   if (!userId) return { isPro: false, isUltra: false, isAdmin: false };
-
   const isAdmin = userId === ADMIN_ID;
   const userPlan = await fetchUserPlanFromDB(userId);
-
   return {
     isPro: userPlan === "pro",
     isUltra: userPlan === "ultra",
@@ -88,6 +68,11 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
       return url;
     }
   };
+
+  // Ultra: Horário de pico (dia com mais cliques)
+  const peakDay = analytics.dailyData && analytics.dailyData.length > 0
+    ? analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0])
+    : null;
 
   if (!hasAnalyticsAccess) {
     return (
@@ -217,6 +202,32 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                 </div>
               )}
             </div>
+
+            {/* Ultra: Top fonte de tráfego e horário de pico */}
+            {isUltra && (
+              <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-6 rounded-2xl border border-indigo-200">
+                  <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
+                    <ExternalLink className="w-5 h-5" /> Top fonte de tráfego
+                  </h3>
+                  <p className="text-indigo-700 text-base">
+                    {analytics.topReferrer
+                      ? analytics.topReferrer
+                      : "Nenhuma fonte de tráfego detectada ainda."}
+                  </p>
+                </div>
+                <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-6 rounded-2xl border border-orange-200">
+                  <h3 className="text-lg font-bold text-orange-900 mb-2 flex items-center gap-2">
+                    <BarChart3 className="w-5 h-5" /> Horário de pico
+                  </h3>
+                  <p className="text-orange-700 text-base">
+                    {peakDay
+                      ? `${formatDate(peakDay.date)} (${peakDay.clicks} cliques)`
+                      : "Nenhum dado de pico ainda."}
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -238,8 +249,8 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
 
               {/* Representação simples de gráfico de barras */}
               <div className="space-y-4">
-                {analytics.dailyData.slice(0, 10).map((day: DailyData) => {
-                  const maxClicks = Math.max(...analytics.dailyData.map((d: DailyData) => d.clicks));
+                {analytics.dailyData.slice(0, 10).map((day) => {
+                  const maxClicks = Math.max(...analytics.dailyData.map((d) => d.clicks));
                   const width = maxClicks > 0 ? (day.clicks / maxClicks) * 100 : 0;
 
                   return (
@@ -283,27 +294,28 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
         </div>
       )}
 
-      {/* Análise de países */}
-      {hasCountryAccess ? (
-        analytics.countryData.length > 0 && (
-          <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
-            <div className="max-w-7xl mx-auto">
-              <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl shadow-gray-200/50">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-green-500 rounded-xl">
-                    <Globe className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-bold text-gray-900">Países</h2>
-                    <p className="text-gray-600">Distribuição de cliques por país</p>
-                  </div>
+      {/* Gráfico de países (sempre visível para Ultra/Admin, mesmo se vazio) */}
+      {hasCountryAccess && (
+        <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
+          <div className="max-w-7xl mx-auto">
+            <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl shadow-gray-200/50">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="p-3 bg-green-500 rounded-xl">
+                  <Globe className="w-6 h-6 text-white" />
                 </div>
-
-                {/* Lista de países */}
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-900">Países</h2>
+                  <p className="text-gray-600">Distribuição de cliques por país</p>
+                </div>
+              </div>
+              {analytics.countryData.length === 0 ? (
+                <div className="text-center text-gray-500 py-8">
+                  Nenhum dado de país disponível ainda.
+                </div>
+              ) : (
                 <div className="space-y-3">
-                  {analytics.countryData.map((country: CountryData) => {
+                  {analytics.countryData.map((country) => {
                     const width = country.percentage || 0;
-
                     return (
                       <div key={country.country} className="flex items-center gap-4">
                         <div className="w-32 text-sm text-gray-900 font-medium truncate">{country.country}</div>
@@ -325,34 +337,7 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                     );
                   })}
                 </div>
-
-                {analytics.countryData.length >= 20 && (
-                  <div className="mt-6 text-center">
-                    <p className="text-gray-500 text-sm">Mostrando os 20 principais países</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )
-      ) : (
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-white/80 backdrop-blur-sm border-2 border-dashed border-gray-300 rounded-2xl p-8 shadow-xl shadow-gray-200/50">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-gray-400 rounded-xl">
-                  <Globe className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Países</h2>
-                  <p className="text-gray-600">🔒 Atualize para Ultra para desbloquear análises de países</p>
-                </div>
-              </div>
-              <div className="mt-4 flex items-center">
-                <div className="bg-gray-100 rounded-lg p-4 text-center w-full">
-                  <p className="text-gray-500">Este recurso está disponível apenas no plano Ultra</p>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </div>
