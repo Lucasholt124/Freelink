@@ -262,13 +262,13 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                       Nenhum dado de horário disponível ainda.
                     </div>
                   ) : (
-                    <div className="flex gap-2 items-end h-32">
+                    <div className="flex gap-2 items-end h-32 overflow-x-auto">
                       {analytics.dailyData.map((h) => (
-                        <div key={h.date} className="flex flex-col items-center">
+                        <div key={h.date} className="flex flex-col items-center min-w-[40px]">
                           <div
                             className="bg-indigo-500 rounded-t w-6"
                             style={{
-                              height: `${(h.clicks / maxClicks) * 100}%`,
+                              height: `${maxClicks > 0 ? (h.clicks / maxClicks) * 100 : 0}%`,
                               minHeight: "8px",
                             }}
                           />

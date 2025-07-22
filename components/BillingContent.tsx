@@ -80,7 +80,7 @@ export default function BillingContent() {
     try {
       const res = await fetch("/api/stripe/cancel", { method: "POST" });
       if (!res.ok) throw new Error("Erro ao cancelar assinatura");
-      toast.success("Assinatura cancelada. Você ainda terá acesso até o fim do período pago.");
+      toast.success("Assinatura cancelada. Você continuará com acesso ao plano até o fim do período já pago.");
       setPlan("free");
     } catch (error) {
       console.error(error);
@@ -114,7 +114,7 @@ export default function BillingContent() {
   return (
     <div className="max-w-5xl mx-auto px-4 py-16">
       <div className="flex flex-col items-center mb-10">
-        <h1 className="text-4xl font-bold mb-2 text-center">Seu plano</h1>
+        <h1 className="text-4xl font-bold mb-2 text-center">Seu plano atual</h1>
         <PlanBadge />
       </div>
 
@@ -137,9 +137,11 @@ export default function BillingContent() {
               R$9,90 <span className="text-base font-normal">/mês</span>
             </p>
             <ul className="text-gray-600 text-sm space-y-2 mt-4">
-              <li>✔ Acesso ao Analytics</li>
-              <li>✔ Veja de onde vêm os visitantes</li>
+              <li>✔ Analytics detalhado de cliques e visitantes</li>
+              <li>✔ Veja de onde vêm seus visitantes</li>
               <li>✔ Adicione até 10 links</li>
+              <li>✔ Personalização de página</li>
+              <li>✔ Cancelamento fácil e sem burocracia</li>
             </ul>
           </div>
           {plan === "pro" ? (
@@ -217,7 +219,11 @@ export default function BillingContent() {
             >
               <li>✔ Tudo do plano Pro</li>
               <li>✔ Links ilimitados</li>
-              <li>✔ Geolocalização dos visitantes</li>
+              <li>✔ Analytics por país e cidade</li>
+              <li>✔ Horário de pico real dos cliques</li>
+              <li>✔ Gráfico de cliques por dia</li>
+              <li>✔ Métricas exclusivas para criadores profissionais</li>
+              <li>✔ Suporte prioritário via WhatsApp</li>
             </ul>
           </div>
           {plan === "ultra" ? (
