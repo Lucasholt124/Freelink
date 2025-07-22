@@ -51,7 +51,6 @@ async function getUserSubscriptionPlan() {
   };
 }
 
-// Função para classificar hora do dia
 function getDayPeriod(dateString: string) {
   const date = new Date(dateString);
   const hour = date.getHours();
@@ -83,8 +82,10 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   const hasAnalyticsAccess = isPro || isUltra || isAdmin;
   const hasCountryAccess = isUltra || isAdmin;
 
-  // Ultra: Horário de pico real (timestamp do backend)
-  const peakClickTime = analytics.peakClickTime || null;
+  // Ultra: Horário de pico real (dia com mais cliques)
+  const peakDay = analytics.dailyData.length > 0
+    ? analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0])
+    : null;
 
   // Ultra: Gráfico de barras por dia (para comparar dias)
   const maxClicks = analytics.dailyData.length > 0 ? Math.max(...analytics.dailyData.map(d => d.clicks)) : 0;
@@ -248,9 +249,11 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                       <BarChart3 className="w-5 h-5" /> Horário de pico
                     </h3>
                     <p className="text-orange-700 text-base">
-                      {peakClickTime
-                        ? `${formatDateTime(peakClickTime)} (${getDayPeriod(peakClickTime)})`
-                        : "Nenhum dado de pico ainda."}
+                    {analytics.peakClickTime
+  ? `${formatDateTime(analytics.peakClickTime)} (${getDayPeriod(analytics.peakClickTime)})`
+  : peakDay && peakDay.clicks > 0
+    ? `${formatDateTime(peakDay.date)} (${getDayPeriod(peakDay.date)}) - ${peakDay.clicks} cliques`
+    : "Ainda não há cliques suficientes para calcular o horário de pico."}
                     </p>
                   </div>
                 </div>
@@ -268,7 +271,7 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                       {analytics.dailyData.map((h) => (
                         <div key={h.date} className="flex flex-col items-center min-w-[40px]">
                           <div
-                            className="bg-indigo-500 rounded-t w-6"
+                            className="bg-indigo-500 rounded-t w-6 transition-all duration-500"
                             style={{
                               height: `${maxClicks > 0 ? (h.clicks / maxClicks) * 100 : 0}%`,
                               minHeight: "8px",
