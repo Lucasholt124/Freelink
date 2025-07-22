@@ -9,7 +9,7 @@ SQL >
         linkTitle,
         linkUrl,
         count() as total_clicks,
-        uniq(profileUserId) as unique_users,
+        uniq(visitorId) as unique_users,         -- CORRIGIDO AQUI
         uniq(location_country) as countries_reached
     FROM link_clicks
     WHERE
@@ -29,5 +29,3 @@ SQL >
         {% end %}
     GROUP BY date, linkTitle, linkUrl
     ORDER BY date DESC, total_clicks DESC
-
-TYPE endpoint

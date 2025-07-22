@@ -14,8 +14,26 @@ SCHEMA >
     `location_region` String `json:$.location.region`,
     `location_city` String `json:$.location.city`,
     `location_latitude` String `json:$.location.latitude`,
-    `location_longitude` String `json:$.location.longitude`
+    `location_longitude` String `json:$.location.longitude`,
+    `visitorId` String `json:$.visitorId`   -- CORRETO AQUI!
 
 ENGINE "MergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(timestamp)"
 ENGINE_SORTING_KEY "timestamp, profileUserId, linkId"
+
+FORWARD_QUERY >
+  SELECT
+    timestamp,
+    profileUsername,
+    profileUserId,
+    linkId,
+    linkTitle,
+    linkUrl,
+    userAgent,
+    referrer,
+    location_country,
+    location_region,
+    location_city,
+    location_latitude,
+    location_longitude,
+    '' AS visitorId

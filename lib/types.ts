@@ -7,6 +7,7 @@ export interface ClientTrackingData {
   linkTitle: string;
   linkUrl: string;
   userAgent?: string;
+   visitorId: string;
   referrer?: string;
 }
 

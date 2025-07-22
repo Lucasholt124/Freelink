@@ -41,22 +41,23 @@ export async function POST(request: NextRequest) {
       try {
         // Envia a localização como objeto aninhado para corresponder aos caminhos do esquema json
         const eventForTinybird = {
-          timestamp: trackingEvent.timestamp,
-          profileUsername: trackingEvent.profileUsername,
-          profileUserId: trackingEvent.profileUserId,
-          linkId: trackingEvent.linkId,
-          linkTitle: trackingEvent.linkTitle,
-          linkUrl: trackingEvent.linkUrl,
-          userAgent: trackingEvent.userAgent,
-          referrer: trackingEvent.referrer,
-          location: {
-            country: trackingEvent.location.country || "",
-            region: trackingEvent.location.region || "",
-            city: trackingEvent.location.city || "",
-            latitude: trackingEvent.location.latitude || "",
-            longitude: trackingEvent.location.longitude || "",
-          },
-        };
+  timestamp: trackingEvent.timestamp,
+  profileUsername: trackingEvent.profileUsername,
+  profileUserId: trackingEvent.profileUserId,
+  linkId: trackingEvent.linkId,
+  linkTitle: trackingEvent.linkTitle,
+  linkUrl: trackingEvent.linkUrl,
+  userAgent: trackingEvent.userAgent,
+  referrer: trackingEvent.referrer,
+  visitorId: trackingEvent.visitorId, // <-- Adicione aqui!
+  location: {
+    country: trackingEvent.location.country || "",
+    region: trackingEvent.location.region || "",
+    city: trackingEvent.location.city || "",
+    latitude: trackingEvent.location.latitude || "",
+    longitude: trackingEvent.location.longitude || "",
+  },
+};
 
         console.log(
           "Enviando evento para o Tinybird:",

@@ -10,7 +10,7 @@ SQL >
             ELSE 'Unknown'
         END as country,
         count() as total_clicks,
-        uniq(profileUserId) as unique_users,
+        uniq(visitorId) as unique_users,         -- CORRIGIDO AQUI
         round(count() * 100.0 / sum(count()) OVER (), 2) as percentage
     FROM link_clicks
     WHERE
@@ -29,5 +29,3 @@ SQL >
     GROUP BY country
     ORDER BY total_clicks DESC
     LIMIT 20
-
-TYPE endpoint
