@@ -13,14 +13,13 @@ SQL >
         uniq(location_country) as countries_reached,
         min(timestamp) as first_click,
         max(timestamp) as last_click,
-        -- Top performing link
+        max(timestamp) as peak_click_time,  -- Horário do último clique (melhor possível em pipes)
         topK(1)(linkTitle) as top_link_title,
-        -- Most common referrer
         topK(1)(referrer) as top_referrer
     FROM link_clicks
     WHERE
         profileUserId = {{String(profileUserId)}}
-        AND visitorId != ''  -- IGNORA eventos antigos sem visitorId
+        AND visitorId != ''
         {% if defined(days_back) %}
         AND timestamp >= now() - INTERVAL {{Int32(days_back)}} DAY
         {% else %}

@@ -60,33 +60,31 @@ function getDayPeriod(dateString: string) {
   return "Noite";
 }
 
+const formatDate = (dateString: string) =>
+  new Date(dateString).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+
+const formatDateTime = (dateString: string) => {
+  const date = new Date(dateString);
+  return `${date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+};
+
+const formatUrl = (url: string) => {
+  try {
+    const urlObj = new URL(url);
+    return urlObj.hostname.replace("www.", "");
+  } catch {
+    return url;
+  }
+};
+
 export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   const { isPro, isUltra, isAdmin } = await getUserSubscriptionPlan();
 
   const hasAnalyticsAccess = isPro || isUltra || isAdmin;
   const hasCountryAccess = isUltra || isAdmin;
 
-  const formatDate = (dateString: string) =>
-    new Date(dateString).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
-
-  const formatDateTime = (dateString: string) => {
-    const date = new Date(dateString);
-    return `${date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
-  };
-
-  const formatUrl = (url: string) => {
-    try {
-      const urlObj = new URL(url);
-      return urlObj.hostname.replace("www.", "");
-    } catch {
-      return url;
-    }
-  };
-
-  // Ultra: Horário de pico (dia com mais cliques)
-  const peakDay = analytics.dailyData && analytics.dailyData.length > 0
-    ? analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0])
-    : null;
+  // Ultra: Horário de pico real (timestamp do backend)
+  const peakClickTime = analytics.peakClickTime || null;
 
   // Ultra: Gráfico de barras por dia (para comparar dias)
   const maxClicks = analytics.dailyData.length > 0 ? Math.max(...analytics.dailyData.map(d => d.clicks)) : 0;
@@ -249,8 +247,8 @@ export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
                     <BarChart3 className="w-5 h-5" /> Horário de pico
                   </h3>
                   <p className="text-orange-700 text-base">
-                    {peakDay
-                      ? `${formatDateTime(peakDay.date)} (${getDayPeriod(peakDay.date)}) - ${peakDay.clicks} cliques`
+                    {peakClickTime
+                      ? `${formatDateTime(peakClickTime)} (${getDayPeriod(peakClickTime)})`
                       : "Nenhum dado de pico ainda."}
                   </p>
                 </div>

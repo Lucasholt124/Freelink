@@ -17,6 +17,7 @@ export interface LinkAnalyticsData {
     percentage: number;
   }>;
   topReferrer?: string | null; // <-- Adicionado como opcional
+   peakClickTime?: string | null;
 }
 
 interface TinybirdLinkAnalyticsRow {
@@ -27,6 +28,7 @@ interface TinybirdLinkAnalyticsRow {
   unique_users: number;
   countries_reached: number;
   top_referrer?: string | null; // <-- Adicionado como opcional
+    peak_click_time?: string | null;
 }
 
 interface TinybirdCountryAnalyticsRow {
@@ -150,7 +152,8 @@ export async function fetchLinkAnalytics(
       countriesReached,
       dailyData: dailyData.reverse(),
       countryData,
-      topReferrer: firstRow.top_referrer || null, // <-- Adicionado
+      topReferrer: firstRow.top_referrer || null,
+      peakClickTime: firstRow.peak_click_time || null,
     };
   } catch (err) {
     console.error("Erro geral em fetchLinkAnalytics:", err);

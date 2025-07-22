@@ -10,7 +10,8 @@ SQL >
         linkUrl,
         count() as total_clicks,
         uniq(visitorId) as unique_users,
-        uniq(location_country) as countries_reached
+        uniq(location_country) as countries_reached,
+        max(timestamp) as peak_click_time  -- NOVO CAMPO: último clique do dia
     FROM link_clicks
     WHERE
         profileUserId = {{String(profileUserId)}}
