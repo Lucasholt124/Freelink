@@ -16,8 +16,8 @@ export interface LinkAnalyticsData {
     clicks: number;
     percentage: number;
   }>;
-  topReferrer?: string | null; // <-- Adicionado como opcional
-   peakClickTime?: string | null;
+  topReferrer?: string | null;
+  peakClickTime?: string | null;
 }
 
 interface TinybirdLinkAnalyticsRow {
@@ -27,8 +27,8 @@ interface TinybirdLinkAnalyticsRow {
   total_clicks: number;
   unique_users: number;
   countries_reached: number;
-  top_referrer?: string | null; // <-- Adicionado como opcional
-    peak_click_time?: string | null;
+  top_referrer?: string | null;
+  peak_click_time?: string | null;
 }
 
 interface TinybirdCountryAnalyticsRow {
@@ -55,7 +55,8 @@ export async function fetchLinkAnalytics(
       countriesReached: 0,
       dailyData: [],
       countryData: [],
-      topReferrer: null, // <-- Adicionado
+      topReferrer: null,
+      peakClickTime: null,
     };
   }
 
@@ -129,7 +130,7 @@ export async function fetchLinkAnalytics(
               "undefined",
             ];
             if (unknownValues.includes(countryName.toLowerCase())) {
-              countryName = "Desconhecido"; // Melhor UX do que "Brasil"
+              countryName = "Desconhecido";
             }
 
             return {
