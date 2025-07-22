@@ -14,7 +14,6 @@ export async function POST(request: NextRequest) {
     // Tente pegar o IP real do visitante
     const ip =
       request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      (request as unknown as { ip?: string }).ip || // Corrigido para evitar 'any'
       "";
 
     // Use o país do geo, ou busque via ipapi.co se não vier
@@ -34,7 +33,7 @@ export async function POST(request: NextRequest) {
         latitude = geoJson.latitude || "";
         longitude = geoJson.longitude || "";
       } catch {
-        country = "";
+        // Se falhar, mantém country vazio
       }
     }
 
