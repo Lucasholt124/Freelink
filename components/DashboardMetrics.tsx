@@ -9,7 +9,7 @@ import {
   TrendingUp,
   ExternalLink,
   Calendar,
-  Link,
+  Link as LinkIcon,
   Clock,
   MapPin,
   Lock,
@@ -45,13 +45,13 @@ function DashboardMetrics({ analytics, plan }: DashboardMetricsProps) {
   return (
     <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl shadow-gray-200/50">
+        <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 sm:p-8 shadow-xl shadow-gray-200/50">
           <div className="mb-8">
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Visão Geral</h2>
             <p className="text-gray-600">Desempenho dos últimos 30 dias</p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
             <Card
               color="blue"
               title="Cliques Totais"
@@ -86,7 +86,7 @@ function DashboardMetrics({ analytics, plan }: DashboardMetricsProps) {
             <Card
               color="indigo"
               title="Links Clicados"
-              icon={Link}
+              icon={LinkIcon}
               trendIcon={ExternalLink}
               value={analytics.totalLinksClicked}
             />
@@ -101,7 +101,7 @@ function DashboardMetrics({ analytics, plan }: DashboardMetricsProps) {
           </div>
 
           {(analytics.topLinkTitle || analytics.topReferrer) && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
               {analytics.topLinkTitle && (
                 <InsightCard
                   title="Link Mais Clicado"
@@ -145,12 +145,15 @@ function Card({
     <div
       className={clsx(
         `bg-gradient-to-br from-${color}-50 to-${color}-100`,
-        `p-6 rounded-2xl border border-${color}-200`
+        `p-4 sm:p-6 rounded-2xl border border-${color}-200 hover:shadow-lg transition-shadow duration-200 focus-within:ring-2 focus-within:ring-purple-400`
       )}
+      tabIndex={0}
+      role="status"
+      aria-label={title}
     >
       <div className="flex items-center justify-between mb-4">
         <div className={clsx(`p-3 rounded-xl`, `bg-${color}-500`)}>
-          <Icon className="w-6 h-6 text-white" />
+          <Icon className="w-6 h-6 text-white" aria-label={title} />
         </div>
         <div className={clsx(`text-${color}-600`)}>
           <Trend className="w-5 h-5" />
@@ -166,6 +169,7 @@ function Card({
             `font-bold truncate`,
             `text-${color}-900`
           )}
+          title={String(value)}
         >
           {isText ? value : Number(value).toLocaleString("pt-BR")}
         </p>
@@ -193,10 +197,12 @@ function CardLocked({
     <div
       className={clsx(
         `bg-gradient-to-br from-${color}-50 to-${color}-100`,
-        `p-6 rounded-2xl border border-${color}-200 opacity-75`
+        `p-4 sm:p-6 rounded-2xl border border-${color}-200 opacity-75 flex flex-col items-center justify-between`
       )}
+      tabIndex={0}
+      aria-label={title}
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between w-full mb-4">
         <div className={clsx(`p-3 bg-${color}-500/50 rounded-xl`)}>
           <Icon className="w-6 h-6 text-white/75" />
         </div>
@@ -204,13 +210,19 @@ function CardLocked({
           <LockIcon className="w-5 h-5" />
         </div>
       </div>
-      <div>
+      <div className="w-full text-center">
         <p className={clsx(`text-sm font-medium mb-1`, `text-${color}-600/75`)}>
           {title}
         </p>
         <p className={clsx(`text-xl font-bold`, `text-${color}-900/75`)}>
           {message}
         </p>
+        <a
+          href="/dashboard/billing"
+          className="inline-block mt-3 px-4 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg text-xs hover:opacity-90 transition-opacity"
+        >
+          Ver planos
+        </a>
       </div>
     </div>
   );
@@ -224,14 +236,16 @@ interface InsightCardProps {
 
 function InsightCard({ title, icon: Icon, value }: InsightCardProps) {
   return (
-    <div className="bg-gradient-to-r from-slate-50 to-slate-100 p-6 rounded-2xl border border-slate-200">
+    <div className="bg-gradient-to-r from-slate-50 to-slate-100 p-4 sm:p-6 rounded-2xl border border-slate-200 hover:shadow-lg transition-shadow duration-200">
       <div className="flex items-center gap-3 mb-3">
         <div className="p-2 bg-slate-500 rounded-lg">
           <Icon className="w-4 h-4 text-white" />
         </div>
         <h3 className="font-semibold text-slate-900">{title}</h3>
       </div>
-      <p className="text-slate-700 font-medium truncate">{value}</p>
+      <p className="text-slate-700 font-medium truncate" title={typeof value === "string" ? value : undefined}>
+        {value}
+      </p>
     </div>
   );
 }

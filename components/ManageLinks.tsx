@@ -74,11 +74,23 @@ function ManageLinks({
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
-          <div className="space-y-2">
-            {items.map((id) => {
-              const link = linkMap[id];
-              return <SortableItem key={id} id={id} link={link} />;
-            })}
+          <div className="space-y-2 overflow-x-auto min-w-0">
+            {items.length === 0 ? (
+              <div className="text-center text-gray-400 py-8">
+                Nenhum link cadastrado ainda.
+              </div>
+            ) : (
+              items.map((id) => {
+                const link = linkMap[id];
+                return (
+                  <SortableItem
+                    key={id}
+                    id={id}
+                    link={link}
+                  />
+                );
+              })
+            )}
           </div>
         </SortableContext>
       </DndContext>
@@ -86,6 +98,8 @@ function ManageLinks({
         variant="outline"
         className="w-full border-purple-600 text-purple-600 hover:border-purple-700 hover:bg-purple-600 hover:text-white transition-all duration-200 mt-4"
         asChild
+        aria-label="Adicionar novo link"
+        title="Adicionar novo link"
       >
         <Link
           href="/dashboard/new-link"

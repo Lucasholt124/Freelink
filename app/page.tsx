@@ -1,6 +1,7 @@
 "use client";
 
 import React, { ReactNode, useEffect } from "react";
+import Head from "next/head";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { useInView } from "react-intersection-observer";
@@ -18,6 +19,9 @@ import {
   Zap,
   Shield,
   Users,
+  Lock,
+  CreditCard,
+  ShieldCheck,
 } from "lucide-react";
 import WhatsappFloatingButton from "@/components/WhatsappFloatingButton";
 
@@ -101,6 +105,10 @@ const faq = [
     question: "Como funciona o analytics?",
     answer: "Você vê cliques, visitantes únicos, países e muito mais em tempo real no painel.",
   },
+  {
+    question: "É seguro? Como meus dados são protegidos?",
+    answer: "Sim! Usamos Stripe para pagamentos e Clerk para autenticação, ambos líderes mundiais em segurança digital. Seus dados são criptografados e nunca compartilhados.",
+  },
 ];
 
 const comparison = [
@@ -156,391 +164,465 @@ export default function Home() {
   }, [isSignedIn, router]);
 
   return (
-    <div
-      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 scroll-smooth"
-      style={{ scrollBehavior: "smooth" }}
-    >
-      <Header isFixed />
+    <>
+      {/* SEO e Open Graph */}
+      <Head>
+        <title>Freelink - Sua página de links com analytics avançado</title>
+        <meta
+          name="description"
+          content="Crie sua página de links na bio com analytics avançado, personalização total e suporte humano. Freelink: a melhor alternativa nacional ao Linktree."
+        />
+        <meta property="og:title" content="Freelink - Sua página de links com analytics avançado" />
+        <meta property="og:description" content="Crie sua página de links na bio com analytics avançado, personalização total e suporte humano. Freelink: a melhor alternativa nacional ao Linktree." />
+        <meta property="og:image" content="/og-freelink.png" />
+        <meta property="og:type" content="website" />
+        <meta name="twitter:card" content="summary_large_image" />
+      </Head>
 
-      {/* Hero Section */}
-      <section className="relative px-4 py-20 lg:px-8 lg:py-32 overflow-hidden">
-        <div className="absolute inset-0 -z-10">
-          <Image
-            src="/hero-bg.jpg"
-            alt="Fundo hero"
-            fill
-            style={{ objectFit: "cover" }}
-            priority
-            className="opacity-20"
-            quality={75}
-          />
-        </div>
+      <div
+        className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 text-gray-900 scroll-smooth"
+        style={{ scrollBehavior: "smooth" }}
+      >
+        <Header isFixed />
 
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <motion.h1
-            initial={{ opacity: 0, y: -10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6 }}
-            className="text-5xl lg:text-7xl font-extrabold leading-tight"
-          >
-            Um Link{" "}
-            <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-              Infinitas Possibilidades
-            </span>
-          </motion.h1>
+        {/* Hero Section */}
+        <section className="relative px-4 py-20 lg:px-8 lg:py-32 overflow-hidden">
+          <div className="absolute inset-0 -z-10">
+            <Image
+              src="/hero-bg.jpg"
+              alt="Fundo hero"
+              fill
+              style={{ objectFit: "cover" }}
+              priority
+              className="opacity-20"
+              quality={75}
+            />
+          </div>
 
-          <motion.p
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.2 }}
-            className="text-lg lg:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed"
-          >
-            Crie uma página de links na bio linda e personalizável, ideal para
-            criadores, empresas e qualquer pessoa que queira compartilhar
-            vários links com facilidade.
-          </motion.p>
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+            <motion.h1
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6 }}
+              className="text-4xl sm:text-5xl lg:text-7xl font-extrabold leading-tight"
+            >
+              A melhor página de links do Brasil, com{" "}
+              <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
+                analytics avançado
+              </span>
+            </motion.h1>
 
-          <motion.div
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.6, delay: 0.4 }}
-            className="inline-flex"
-          >
-            <SignInButton mode="modal">
-              <Button
-                size="lg"
-                className="bg-gradient-to-r from-blue-500 to-purple-600 text-lg px-8 py-5 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition duration-300"
-              >
-                Comece gratuitamente <ArrowRight className="w-5 h-5" />
-              </Button>
-            </SignInButton>
-          </motion.div>
-        </div>
-      </section>
+            <motion.p
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.2 }}
+              className="text-base sm:text-lg lg:text-2xl text-gray-600 max-w-3xl mx-auto leading-relaxed"
+            >
+              Crie uma página de links na bio linda e personalizável, ideal para criadores, empresas e qualquer pessoa que queira compartilhar vários links com facilidade.
+            </motion.p>
 
-      {/* Comparação com concorrentes */}
-      <section className="px-4 lg:px-8 py-12">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-center mb-8">Por que escolher o Freelink?</h2>
-          <div className="overflow-x-auto">
-            <table className="min-w-full border border-gray-200 rounded-xl bg-white shadow">
-              <thead>
-                <tr>
-                  <th className="p-3 text-left font-bold">Plataforma</th>
-                  <th className="p-3 text-left">Analytics</th>
-                  <th className="p-3 text-left">Suporte</th>
-                  <th className="p-3 text-left">Preço</th>
-                  <th className="p-3 text-left">Personalização</th>
-                  <th className="p-3 text-left">Moeda</th>
-                </tr>
-              </thead>
-              <tbody>
-                {comparison.map((row) => (
-                  <tr key={row.name} className="border-t">
-                    <td className="p-3 font-semibold">{row.name}</td>
-                    <td className="p-3">{row.analytics}</td>
-                    <td className="p-3">{row.suporte}</td>
-                    <td className="p-3">{row.preço}</td>
-                    <td className="p-3">{row.personalização}</td>
-                    <td className="p-3">{row.moeda}</td>
+            {/* Video demo opcional */}
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.7, delay: 0.3 }}
+              className="flex justify-center"
+            >
+              {/* Substitua por um vídeo real se quiser */}
+              <video
+                src="/demo-freelink.mp4"
+                poster="/Painel.png"
+                controls
+                className="rounded-xl border shadow-lg w-full max-w-md mx-auto my-4"
+                style={{ background: "#fff" }}
+                aria-label="Demonstração do painel Freelink"
+              />
+            </motion.div>
+
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="inline-flex"
+            >
+              <SignInButton mode="modal">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-lg px-8 py-5 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition duration-300"
+                  aria-label="Comece gratuitamente"
+                >
+                  Comece gratuitamente <ArrowRight className="w-5 h-5" />
+                </Button>
+              </SignInButton>
+            </motion.div>
+
+            {/* Selos de segurança */}
+            <div className="flex flex-wrap justify-center gap-4 mt-6">
+              <div className="flex items-center gap-2 text-gray-600 text-sm">
+                <CreditCard className="w-4 h-4" aria-label="Pagamento seguro" />
+                Pagamento seguro via Stripe
+              </div>
+              <div className="flex items-center gap-2 text-gray-600 text-sm">
+                <ShieldCheck className="w-4 h-4" aria-label="Login seguro" />
+                Login seguro com Clerk
+              </div>
+              <div className="flex items-center gap-2 text-gray-600 text-sm">
+                <Lock className="w-4 h-4" aria-label="Dados criptografados" />
+                Dados criptografados
+              </div>
+            </div>
+          </div>
+
+          {/* CTA fixo mobile */}
+          <div className="fixed bottom-4 left-0 right-0 z-50 flex justify-center sm:hidden pointer-events-none">
+            <div className="pointer-events-auto">
+              <SignInButton mode="modal">
+                <Button
+                  size="lg"
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 text-lg px-8 py-4 font-semibold shadow-lg hover:shadow-xl hover:scale-105 transition duration-300"
+                  aria-label="Comece gratuitamente"
+                >
+                  Comece gratuitamente <ArrowRight className="w-5 h-5" />
+                </Button>
+              </SignInButton>
+            </div>
+          </div>
+        </section>
+
+        {/* Comparação com concorrentes */}
+        <section className="px-4 lg:px-8 py-12">
+          <div className="max-w-5xl mx-auto">
+            <h2 className="text-3xl font-bold text-center mb-8">Por que escolher o Freelink?</h2>
+            <div className="overflow-x-auto">
+              <table className="min-w-full border border-gray-200 rounded-xl bg-white shadow text-sm sm:text-base">
+                <thead>
+                  <tr>
+                    <th className="p-3 text-left font-bold">Plataforma</th>
+                    <th className="p-3 text-left">Analytics</th>
+                    <th className="p-3 text-left">Suporte</th>
+                    <th className="p-3 text-left">Preço</th>
+                    <th className="p-3 text-left">Personalização</th>
+                    <th className="p-3 text-left">Moeda</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="px-4 lg:px-8 py-20">
-        <div className="max-w-7xl mx-auto text-center mb-16 space-y-4">
-          <FadeInSection>
-            <h2 className="text-4xl lg:text-5xl font-bold">
-              Tudo o que você precisa
-            </h2>
-          </FadeInSection>
-
-          <FadeInSection>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Recursos poderosos para você compartilhar seu conteúdo e crescer seu
-              público.
-            </p>
-          </FadeInSection>
-        </div>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => (
-            <FadeInSection key={index}>
-              <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 cursor-default select-none">
-                <div className="text-purple-600 mb-4">{feature.icon}</div>
-                <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
-                <p className="text-gray-600 leading-relaxed text-sm">
-                  {feature.description}
-                </p>
-              </div>
-            </FadeInSection>
-          ))}
-        </div>
-      </section>
-
-      {/* Prints reais do painel */}
-      <section className="px-4 lg:px-8 py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto text-center mb-12">
-          <h2 className="text-3xl font-bold mb-4">Veja o painel na prática</h2>
-          <p className="text-gray-600 mb-8">
-            Interface moderna, fácil de usar e com tudo que você precisa.
-          </p>
-          <div className="flex flex-col md:flex-row gap-8 justify-center items-center">
-            <Image
-              src="/Painel.png"
-              alt="Print do painel Freelink"
-              width={400}
-              height={250}
-              className="rounded-xl border shadow"
-            />
-            <Image
-              src="/Analise.png"
-              alt="Print do analytics Freelink"
-              width={400}
-              height={250}
-              className="rounded-xl border shadow"
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* Bloco Por que Freelink */}
-      <section className="px-4 lg:px-8 py-16">
-        <div className="max-w-4xl mx-auto text-center space-y-8">
-          <h2 className="text-3xl font-bold">Por que Freelink?</h2>
-          <ul className="grid sm:grid-cols-2 gap-6 text-left mt-6">
-            <li className="flex items-center gap-3">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-              Analytics avançado e detalhado
-            </li>
-            <li className="flex items-center gap-3">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-              Suporte humano via WhatsApp
-            </li>
-            <li className="flex items-center gap-3">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-              Preço em reais, sem surpresas
-            </li>
-            <li className="flex items-center gap-3">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-              Personalização total da sua página
-            </li>
-            <li className="flex items-center gap-3">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-              Cancelamento fácil e sem burocracia
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section className="px-4 lg:px-8 py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto text-center mb-16">
-          <FadeInSection>
-            <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
-              Amado pelos criadores
-            </h2>
-          </FadeInSection>
-          <FadeInSection>
-            <p className="text-xl text-gray-600">
-              Veja o que nossos usuários estão dizendo sobre o Freelink
-            </p>
-          </FadeInSection>
-        </div>
-
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {testimonials.map((testimonial, index) => (
-            <FadeInSection key={index}>
-              <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl shadow-gray-200/50 cursor-default select-none">
-                <div className="flex items-center gap-1 mb-4">
-                  {[...Array(testimonial.rating)].map((_, i) => (
-                    <Star
-                      key={i}
-                      className="w-5 h-5 fill-yellow-400 text-yellow-400"
-                    />
+                </thead>
+                <tbody>
+                  {comparison.map((row) => (
+                    <tr key={row.name} className="border-t">
+                      <td className="p-3 font-semibold">{row.name}</td>
+                      <td className="p-3">{row.analytics}</td>
+                      <td className="p-3">{row.suporte}</td>
+                      <td className="p-3">{row.preço}</td>
+                      <td className="p-3">{row.personalização}</td>
+                      <td className="p-3">{row.moeda}</td>
+                    </tr>
                   ))}
-                </div>
-                <p className="text-gray-600 mb-6 leading-relaxed">
-                  &ldquo;{testimonial.content}&rdquo;
-                </p>
-                <div>
-                  <div className="font-semibold text-gray-900">
-                    {testimonial.name}
-                  </div>
-                  <div className="text-sm text-gray-500">{testimonial.role}</div>
-                </div>
-              </div>
-            </FadeInSection>
-          ))}
-        </div>
-      </section>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
 
-      {/* FAQ */}
-      <section className="px-4 lg:px-8 py-20">
-        <div className="max-w-4xl mx-auto">
-          <h2 className="text-3xl font-bold mb-8 text-center">Perguntas frequentes</h2>
-          <div className="space-y-6">
-            {faq.map((item, i) => (
-              <div key={i} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-                <h3 className="text-lg font-semibold mb-2">{item.question}</h3>
-                <p className="text-gray-600">{item.answer}</p>
-              </div>
+        {/* Features Section */}
+        <section id="features" className="px-4 lg:px-8 py-20">
+          <div className="max-w-7xl mx-auto text-center mb-16 space-y-4">
+            <FadeInSection>
+              <h2 className="text-4xl lg:text-5xl font-bold">
+                Tudo o que você precisa
+              </h2>
+            </FadeInSection>
+
+            <FadeInSection>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                Recursos poderosos para você compartilhar seu conteúdo e crescer seu público.
+              </p>
+            </FadeInSection>
+          </div>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-8">
+            {features.map((feature, index) => (
+              <FadeInSection key={index}>
+                <div className="bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl p-8 shadow-sm hover:shadow-xl transition-all duration-300 cursor-default select-none">
+                  <div className="text-purple-600 mb-4">{feature.icon}</div>
+                  <h3 className="text-xl font-semibold mb-2">{feature.title}</h3>
+                  <p className="text-gray-600 leading-relaxed text-sm">
+                    {feature.description}
+                  </p>
+                </div>
+              </FadeInSection>
             ))}
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* CTA Final Section */}
-      <section className="px-4 lg:px-8 py-20">
-        <FadeInSection>
-          <div className="max-w-4xl mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl p-12 lg:p-16 text-center text-white shadow-2xl">
-            <h2 className="text-4xl lg:text-5xl font-bold mb-6">Pronto para começar?</h2>
-            <p className="text-xl mb-8 opacity-90">
-              Crie sua página em minutos e junte-se a milhares de criadores que
-              confiam no Freelink.
+        {/* Prints reais do painel */}
+        <section className="px-4 lg:px-8 py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto text-center mb-12">
+            <h2 className="text-3xl font-bold mb-4">Veja o painel na prática</h2>
+            <p className="text-gray-600 mb-8">
+              Interface moderna, fácil de usar e com tudo que você precisa.
             </p>
+            <div className="flex flex-col md:flex-row gap-8 justify-center items-center">
+              <Image
+                src="/Painel.png"
+                alt="Print do painel Freelink"
+                width={400}
+                height={250}
+                className="rounded-xl border shadow max-w-full h-auto"
+                loading="lazy"
+              />
+              <Image
+                src="/Analise.png"
+                alt="Print do analytics Freelink"
+                width={400}
+                height={250}
+                className="rounded-xl border shadow max-w-full h-auto"
+                loading="lazy"
+              />
+            </div>
+          </div>
+        </section>
 
-            <SignInButton mode="modal">
-              <Button
-                size="lg"
-                className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6 font-semibold shadow-sm hover:scale-105 transition duration-300"
-              >
-                Crie seu Freelink <ArrowRight className="w-5 h-5" />
-              </Button>
-            </SignInButton>
+        {/* Bloco Por que Freelink */}
+        <section className="px-4 lg:px-8 py-16">
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+            <h2 className="text-3xl font-bold">Por que Freelink?</h2>
+            <ul className="grid sm:grid-cols-2 gap-6 text-left mt-6">
+              <li className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-500" />
+                Analytics avançado e detalhado
+              </li>
+              <li className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-500" />
+                Suporte humano via WhatsApp
+              </li>
+              <li className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-500" />
+                Preço em reais, sem surpresas
+              </li>
+              <li className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-500" />
+                Personalização total da sua página
+              </li>
+              <li className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-500" />
+                Cancelamento fácil e sem burocracia
+              </li>
+              <li className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-500" />
+                Pagamento seguro via Stripe
+              </li>
+              <li className="flex items-center gap-3">
+                <CheckCircle className="w-6 h-6 text-green-500" />
+                Login seguro com Clerk
+              </li>
+            </ul>
+          </div>
+        </section>
 
-            <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm opacity-80">
-              {[
-                "Comece grátis",
-                "Não precisa de cartão",
-                "Configuração em 15 segundos",
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 select-none cursor-default">
-                  <CheckCircle className="w-4 h-4" />
-                  {item}
+        {/* Testimonials Section */}
+        <section className="px-4 lg:px-8 py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto text-center mb-16">
+            <FadeInSection>
+              <h2 className="text-4xl lg:text-5xl font-bold text-gray-900 mb-6">
+                Amado pelos criadores
+              </h2>
+            </FadeInSection>
+            <FadeInSection>
+              <p className="text-xl text-gray-600">
+                Veja o que nossos usuários estão dizendo sobre o Freelink
+              </p>
+            </FadeInSection>
+          </div>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {testimonials.map((testimonial, index) => (
+              <FadeInSection key={index}>
+                <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl shadow-gray-200/50 cursor-default select-none">
+                  <div className="flex items-center gap-1 mb-4">
+                    {[...Array(testimonial.rating)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className="w-5 h-5 fill-yellow-400 text-yellow-400"
+                        aria-label="Estrela de avaliação"
+                      />
+                    ))}
+                  </div>
+                  <p className="text-gray-600 mb-6 leading-relaxed">
+                    &ldquo;{testimonial.content}&rdquo;
+                  </p>
+                  <div>
+                    <div className="font-semibold text-gray-900">
+                      {testimonial.name}
+                    </div>
+                    <div className="text-sm text-gray-500">{testimonial.role}</div>
+                  </div>
+                </div>
+              </FadeInSection>
+            ))}
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="px-4 lg:px-8 py-20">
+          <div className="max-w-4xl mx-auto">
+            <h2 className="text-3xl font-bold mb-8 text-center">Perguntas frequentes</h2>
+            <div className="space-y-6">
+              {faq.map((item, i) => (
+                <div key={i} className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+                  <h3 className="text-lg font-semibold mb-2">{item.question}</h3>
+                  <p className="text-gray-600">{item.answer}</p>
                 </div>
               ))}
             </div>
           </div>
-        </FadeInSection>
-      </section>
+        </section>
 
-      {/* Footer */}
-      <footer className="bg-white/90 backdrop-blur-md border-t border-gray-200 px-6 sm:px-12 lg:px-16 py-12">
-        <div className="max-w-7xl mx-auto space-y-12">
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
-            {/* Branding */}
-            <div className="space-y-4">
-              <h3 className="text-3xl font-extrabold tracking-tight text-gray-900">Freelink</h3>
-              <p className="text-gray-600 text-base max-w-xs">
-                A forma mais fácil de reunir e compartilhar todos os seus links em uma página incrível.
+        {/* CTA Final Section */}
+        <section className="px-4 lg:px-8 py-20">
+          <FadeInSection>
+            <div className="max-w-4xl mx-auto bg-gradient-to-r from-blue-500 to-purple-600 rounded-3xl p-8 sm:p-12 lg:p-16 text-center text-white shadow-2xl">
+              <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-6">Pronto para começar?</h2>
+              <p className="text-lg sm:text-xl mb-8 opacity-90">
+                Crie sua página em minutos e junte-se a milhares de criadores que confiam no Freelink.
               </p>
+
+              <SignInButton mode="modal">
+                <Button
+                  size="lg"
+                  className="bg-white text-purple-600 hover:bg-gray-100 text-lg px-8 py-6 font-semibold shadow-sm hover:scale-105 transition duration-300"
+                  aria-label="Crie seu Freelink"
+                >
+                  Crie seu Freelink <ArrowRight className="w-5 h-5" />
+                </Button>
+              </SignInButton>
+
+              <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-6 text-sm opacity-80">
+                {[
+                  "Comece grátis",
+                  "Não precisa de cartão",
+                  "Configuração em 15 segundos",
+                ].map((item, i) => (
+                  <div key={i} className="flex items-center gap-2 select-none cursor-default">
+                    <CheckCircle className="w-4 h-4" />
+                    {item}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </FadeInSection>
+        </section>
+
+        {/* Footer */}
+        <footer className="bg-white/90 backdrop-blur-md border-t border-gray-200 px-6 sm:px-12 lg:px-16 py-12">
+          <div className="max-w-7xl mx-auto space-y-12">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-10">
+              {/* Branding */}
+              <div className="space-y-4">
+                <h3 className="text-3xl font-extrabold tracking-tight text-gray-900">Freelink</h3>
+                <p className="text-gray-600 text-base max-w-xs">
+                  A forma mais fácil de reunir e compartilhar todos os seus links em uma página incrível.
+                </p>
+              </div>
+
+              {/* Produto */}
+              <nav aria-label="Produto" className="space-y-4">
+                <h4 className="text-lg font-semibold text-gray-900">Produto</h4>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li>
+                    <a href="#features" className="hover:text-purple-600 transition-colors">
+                      Características
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#pricing" className="hover:text-purple-600 transition-colors">
+                      Preços
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#analytics" className="hover:text-purple-600 transition-colors">
+                      Análise
+                    </a>
+                  </li>
+                  <li>
+                    <a href="#integrations" className="hover:text-purple-600 transition-colors">
+                      Integrações
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+
+              {/* Empresa */}
+              <nav aria-label="Empresa" className="space-y-4">
+                <h4 className="text-lg font-semibold text-gray-900">Empresa</h4>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li>
+                    <a href="/about" className="hover:text-purple-600 transition-colors">
+                      Sobre
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/blog" className="hover:text-purple-600 transition-colors">
+                      Blog
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/careers" className="hover:text-purple-600 transition-colors">
+                      Carreiras
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/contact" className="hover:text-purple-600 transition-colors">
+                      Contato
+                    </a>
+                  </li>
+                </ul>
+              </nav>
+
+              {/* Suporte */}
+              <nav aria-label="Suporte" className="space-y-4">
+                <h4 className="text-lg font-semibold text-gray-900">Suporte</h4>
+                <ul className="space-y-2 text-sm text-gray-600">
+                  <li>
+                    <a href="/help-center" className="hover:text-purple-600 transition-colors">
+                      Central de Ajuda
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/docs" className="hover:text-purple-600 transition-colors">
+                      Documentação
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/community" className="hover:text-purple-600 transition-colors">
+                      Comunidade
+                    </a>
+                  </li>
+                  <li>
+                    <a href="/status" className="hover:text-purple-600 transition-colors">
+                      Status
+                    </a>
+                  </li>
+                </ul>
+              </nav>
             </div>
 
-            {/* Produto */}
-            <nav aria-label="Produto" className="space-y-4">
-              <h4 className="text-lg font-semibold text-gray-900">Produto</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>
-                  <a href="#features" className="hover:text-purple-600 transition-colors">
-                    Características
-                  </a>
-                </li>
-                <li>
-                  <a href="#pricing" className="hover:text-purple-600 transition-colors">
-                    Preços
-                  </a>
-                </li>
-                <li>
-                  <a href="#analytics" className="hover:text-purple-600 transition-colors">
-                    Análise
-                  </a>
-                </li>
-                <li>
-                  <a href="#integrations" className="hover:text-purple-600 transition-colors">
-                    Integrações
-                  </a>
-                </li>
-              </ul>
-            </nav>
-
-            {/* Empresa */}
-            <nav aria-label="Empresa" className="space-y-4">
-              <h4 className="text-lg font-semibold text-gray-900">Empresa</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>
-                  <a href="/about" className="hover:text-purple-600 transition-colors">
-                    Sobre
-                  </a>
-                </li>
-                <li>
-                  <a href="/blog" className="hover:text-purple-600 transition-colors">
-                    Blog
-                  </a>
-                </li>
-                <li>
-                  <a href="/careers" className="hover:text-purple-600 transition-colors">
-                    Carreiras
-                  </a>
-                </li>
-                <li>
-                  <a href="/contact" className="hover:text-purple-600 transition-colors">
-                    Contato
-                  </a>
-                </li>
-              </ul>
-            </nav>
-
-            {/* Suporte */}
-            <nav aria-label="Suporte" className="space-y-4">
-              <h4 className="text-lg font-semibold text-gray-900">Suporte</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li>
-                  <a href="/help-center" className="hover:text-purple-600 transition-colors">
-                    Central de Ajuda
-                  </a>
-                </li>
-                <li>
-                  <a href="/docs" className="hover:text-purple-600 transition-colors">
-                    Documentação
-                  </a>
-                </li>
-                <li>
-                  <a href="/community" className="hover:text-purple-600 transition-colors">
-                    Comunidade
-                  </a>
-                </li>
-                <li>
-                  <a href="/status" className="hover:text-purple-600 transition-colors">
-                    Status
-                  </a>
-                </li>
-              </ul>
-            </nav>
+            <div className="border-t border-gray-200 pt-6 text-center text-sm text-gray-500 select-none">
+              &copy; 2025{" "}
+              <a
+                href="https://mysite-eog7.vercel.app/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-purple-600 transition-colors"
+              >
+                Impulsioneweb
+              </a>
+              . Todos os direitos reservados.
+            </div>
           </div>
+        </footer>
 
-          <div className="border-t border-gray-200 pt-6 text-center text-sm text-gray-500 select-none">
-            &copy; 2025{" "}
-            <a
-              href="https://mysite-eog7.vercel.app/"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline hover:text-purple-600 transition-colors"
-            >
-              Impulsioneweb
-            </a>
-            . Todos os direitos reservados.
-          </div>
-        </div>
-      </footer>
-
-      {/* Botão flutuante do WhatsApp */}
-      <WhatsappFloatingButton />
-    </div>
+        {/* Botão flutuante do WhatsApp */}
+        <WhatsappFloatingButton />
+      </div>
+    </>
   );
 }
