@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { currentUser } from "@clerk/nextjs/server";
-import { preloadQuery } from "convex/nextjs";
+import { preloadQuery, fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { fetchAnalytics } from "@/lib/analytics-server";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
@@ -21,20 +21,15 @@ export default async function DashboardPage() {
     return null;
   }
 
-  const [preloadedLinks, analytics, rawPlan] = await Promise.all([
+  const [preloadedLinks, analytics, rawPlan, userSlug] = await Promise.all([
     preloadQuery(api.lib.links.getLinksByUserId, { userId: user.id }),
     fetchAnalytics(user.id),
     getUserSubscriptionPlan(user.id),
+    // Busca o slug/username do Convex, igual ao UsernameForm
+    fetchQuery(api.lib.usernames.getUserSlug, { userId: user.id }),
   ]);
 
   const plan = user.id === "user_301NTkVsE3v48SXkoCEp0XOXifI" ? "ultra" : (rawPlan ?? "free");
-
-  // Busca o username único salvo no publicMetadata do Clerk
-  const username =
-    user.publicMetadata?.username ||
-    user.username ||
-    user.firstName ||
-    user.id?.slice(0, 8);
 
   return (
     <div className="pb-16">
@@ -127,7 +122,7 @@ export default async function DashboardPage() {
             {/* Preview da página pública */}
             <div className="mt-6">
               <Link
-                href={`/u/${username}`}
+                href={`/u/${userSlug}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-sm transition"
