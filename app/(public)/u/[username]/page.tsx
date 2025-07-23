@@ -2,7 +2,7 @@ import { preloadQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import PublicPageContent from "@/components/PublicPageContent";
 
-async function PublicLinkInBioPage({
+export default async function PublicLinkInBioPage({
   params,
 }: {
   params: Promise<{ username: string }>;
@@ -25,5 +25,3 @@ async function PublicLinkInBioPage({
     />
   );
 }
-
-export default PublicLinkInBioPage;

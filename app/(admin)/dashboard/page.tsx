@@ -29,8 +29,12 @@ export default async function DashboardPage() {
 
   const plan = user.id === "user_301NTkVsE3v48SXkoCEp0XOXifI" ? "ultra" : (rawPlan ?? "free");
 
-  // Exemplo de username para preview (ajuste conforme seu sistema)
-  const username = user.username || user.firstName || user.id?.slice(0, 8);
+  // Busca o username único salvo no publicMetadata do Clerk
+  const username =
+    user.publicMetadata?.username ||
+    user.username ||
+    user.firstName ||
+    user.id?.slice(0, 8);
 
   return (
     <div className="pb-16">
@@ -122,15 +126,15 @@ export default async function DashboardPage() {
             </ul>
             {/* Preview da página pública */}
             <div className="mt-6">
-          <Link
-  href={`/u/${username}`}
-  target="_blank"
-  rel="noopener noreferrer"
-  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-sm transition"
-  aria-label="Ver minha página pública"
->
-  <Eye className="w-4 h-4" /> Ver minha página pública
-</Link>
+              <Link
+                href={`/u/${username}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-sm transition"
+                aria-label="Ver minha página pública"
+              >
+                <Eye className="w-4 h-4" /> Ver minha página pública
+              </Link>
             </div>
           </aside>
 
