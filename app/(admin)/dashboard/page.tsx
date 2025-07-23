@@ -122,15 +122,15 @@ export default async function DashboardPage() {
             </ul>
             {/* Preview da página pública */}
             <div className="mt-6">
-              <Link
-                href={`/${username}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-sm transition"
-                aria-label="Ver minha página pública"
-              >
-                <Eye className="w-4 h-4" /> Ver minha página pública
-              </Link>
+          <Link
+  href={`/u/${username}`}
+  target="_blank"
+  rel="noopener noreferrer"
+  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-sm transition"
+  aria-label="Ver minha página pública"
+>
+  <Eye className="w-4 h-4" /> Ver minha página pública
+</Link>
             </div>
           </aside>
 

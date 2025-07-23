@@ -8,7 +8,7 @@ import { Plus, Menu } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 
-// Menu mobile hamburguer (abre/fecha)
+// Menu mobile hamburguer (abre/fecha fixo no topo)
 function MobileMenu() {
   const [open, setOpen] = useState(false);
 
@@ -22,28 +22,49 @@ function MobileMenu() {
         <Menu className="w-6 h-6 text-purple-600" />
       </button>
       {open && (
-        <div className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-xl shadow-lg z-50 flex flex-col p-2 gap-2 animate-fade-in">
-          <Link
-            href="/dashboard/new-link"
-            className="flex items-center gap-2 px-3 py-2 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition"
-            aria-label="Adicionar link"
+        <>
+          {/* Overlay escuro para fechar ao clicar fora */}
+          <div
+            className="fixed inset-0 z-[9998] bg-black/30"
             onClick={() => setOpen(false)}
+            aria-label="Fechar menu"
+          />
+          <div
+            className="fixed top-0 left-0 right-0 z-[9999] bg-white border-b border-gray-200 shadow-lg flex flex-col p-4 gap-3 animate-fade-in"
+            style={{ minHeight: 120 }}
           >
-            <Plus className="w-4 h-4" />
-            Adicionar link
-          </Link>
-          <Link
-            href="/dashboard/billing"
-            className="px-3 py-2 rounded-lg font-medium text-purple-600 border border-purple-600 hover:bg-purple-600 hover:text-white transition"
-            aria-label="Cobrança"
-            onClick={() => setOpen(false)}
-          >
-            Cobrança
-          </Link>
-          <div className="px-3 py-2">
-            <UserButton afterSignOutUrl="/" />
+            <div className="flex justify-between items-center mb-2">
+              <span className="text-xl font-bold text-purple-600">Menu</span>
+              <button
+                aria-label="Fechar menu"
+                className="p-2 rounded-lg hover:bg-gray-100 transition"
+                onClick={() => setOpen(false)}
+              >
+                <span className="text-2xl font-bold">&times;</span>
+              </button>
+            </div>
+            <Link
+              href="/dashboard/new-link"
+              className="flex items-center gap-2 px-3 py-2 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition"
+              aria-label="Adicionar link"
+              onClick={() => setOpen(false)}
+            >
+              <Plus className="w-4 h-4" />
+              Adicionar link
+            </Link>
+            <Link
+              href="/dashboard/billing"
+              className="px-3 py-2 rounded-lg font-medium text-purple-600 border border-purple-600 hover:bg-purple-600 hover:text-white transition"
+              aria-label="Cobrança"
+              onClick={() => setOpen(false)}
+            >
+              Cobrança
+            </Link>
+            <div className="px-3 py-2">
+              <UserButton afterSignOutUrl="/" />
+            </div>
           </div>
-        </div>
+        </>
       )}
     </div>
   );

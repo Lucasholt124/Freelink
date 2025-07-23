@@ -230,7 +230,7 @@ export default function Home() {
             >
               {/* Substitua por um vídeo real se quiser */}
               <video
-                src="/demo-freelink.mp4"
+                src="/Explicaçao.mp4"
                 poster="/Painel.png"
                 controls
                 className="rounded-xl border shadow-lg w-full max-w-md mx-auto my-4"
