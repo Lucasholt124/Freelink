@@ -12,25 +12,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { getBaseUrl } from "@/convex/lib/getBaseUrl";
 import { useState } from "react";
+import { trackLinkClick } from "@/lib/analytics";
 import {
-  FaYoutube,
-  FaInstagram,
-  FaFacebook,
-  FaTwitter,
-  FaLinkedin,
-  FaTiktok,
-  FaWhatsapp,
-  FaGithub,
-  FaSpotify,
-  FaTwitch,
-  FaGlobe,
-  FaEnvelope,
-  FaTelegram,
-  FaPinterest,
-  FaDiscord,
-  FaSlack,
-  FaDribbble,
-  FaFigma,
+  FaYoutube, FaInstagram, FaFacebook, FaTwitter, FaLinkedin, FaTiktok, FaWhatsapp, FaGithub, FaSpotify, FaTwitch, FaGlobe, FaEnvelope, FaTelegram, FaPinterest, FaDiscord, FaSlack, FaDribbble, FaFigma,
 } from "react-icons/fa6";
 
 interface PublicPageContentProps {
@@ -47,7 +31,6 @@ type LinkType = {
   url: string;
 };
 
-// SVG verificado estilo Instagram
 function VerifiedBadge() {
   return (
     <span
@@ -148,10 +131,12 @@ function LinkButton({
   title,
   url,
   accentColor,
+  onClick,
 }: {
   title: string;
   url: string;
   accentColor: string;
+  onClick: () => void;
 }) {
   return (
     <a
@@ -162,6 +147,11 @@ function LinkButton({
       style={{
         color: accentColor,
         boxShadow: `0 4px 24px 0 ${accentColor}22`,
+      }}
+      onClick={async (e) => {
+        e.preventDefault();
+        await onClick();
+        window.open(url, "_blank", "noopener,noreferrer");
       }}
     >
       <span className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 group-hover:bg-gray-200 transition">
@@ -202,6 +192,31 @@ export default function PublicPageContent({
   };
 
   const links = usePreloadedQuery(preloadedLinks) as LinkType[];
+
+  // Debug: veja se o componente está sendo renderizado e os links estão corretos
+  console.log("Renderizando Links", links);
+
+  const handleLinkClick = async (link: LinkType) => {
+    console.log("Tracking clique:", {
+      profileUsername: username,
+      linkId: link._id,
+      linkTitle: link.title,
+      linkUrl: link.url,
+    });
+
+    let visitorId = localStorage.getItem("visitorId");
+    if (!visitorId) {
+      visitorId = crypto.randomUUID();
+      localStorage.setItem("visitorId", visitorId);
+    }
+    await trackLinkClick({
+      profileUsername: username,
+      linkId: link._id,
+      linkTitle: link.title,
+      linkUrl: link.url,
+      visitorId,
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white">
@@ -274,7 +289,7 @@ export default function PublicPageContent({
                   <VerifiedBadge />
                 </div>
                 {customizations?.description && (
-                  <p className="text-gray-700 text-base leading-relaxed max-w-md mx-auto lg:mx-0">
+                  <p className="text-gray-700 text-base leading-relaxed max-w-md mx-auto lg:mx-0 text-center">
                     {customizations.description}
                   </p>
                 )}
@@ -316,6 +331,7 @@ export default function PublicPageContent({
                     title={link.title}
                     url={link.url}
                     accentColor={accentColor}
+                    onClick={() => handleLinkClick(link)}
                   />
                 ))
               ) : (
