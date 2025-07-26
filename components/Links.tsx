@@ -2,7 +2,6 @@
 
 import { api } from "@/convex/_generated/api";
 import { Preloaded, usePreloadedQuery } from "convex/react";
-import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { useParams } from "next/navigation";
 import { Doc } from "@/convex/_generated/dataModel";
@@ -18,20 +17,25 @@ function Links({
   const username = params.username as string;
 
   const handleLinkClick = async (link: Doc<"links">) => {
-    // Gere ou recupere o visitorId
+    // Debug: veja se o tracking está sendo chamado
+    console.log("Tracking clique:", {
+      profileUsername: username,
+      linkId: link._id,
+      linkTitle: link.title,
+      linkUrl: link.url,
+    });
+
     let visitorId = localStorage.getItem("visitorId");
     if (!visitorId) {
       visitorId = crypto.randomUUID();
       localStorage.setItem("visitorId", visitorId);
     }
-
-    // Rastreie o clique antes da navegação
     await trackLinkClick({
       profileUsername: username,
       linkId: link._id,
       linkTitle: link.title,
       linkUrl: link.url,
-      visitorId, // <-- Corrigido!
+      visitorId,
     });
   };
 
@@ -52,19 +56,21 @@ function Links({
   return (
     <div className="space-y-4">
       {links.map((link, index) => (
-        <Link
+        <a
           key={link._id}
           href={link.url}
           target="_blank"
           rel="noopener noreferrer"
           className="group block w-full"
           style={{ animationDelay: `${index * 50}ms` }}
-          onClick={() => handleLinkClick(link)}
+          onClick={async (e) => {
+            e.preventDefault();
+            await handleLinkClick(link);
+            window.open(link.url, "_blank", "noopener,noreferrer");
+          }}
         >
           <div className="relative bg-white/70 hover:bg-white/90 border border-slate-200/50 hover:border-slate-300/50 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg hover:shadow-slate-900/5 hover:-translate-y-0.5">
-            {/* Gradiente sutil de foco */}
             <div className="absolute inset-0 bg-gradient-to-r from-blue-50/0 via-purple-50/0 to-blue-50/0 group-hover:from-blue-50/30 group-hover:via-purple-50/20 group-hover:to-blue-50/30 rounded-2xl transition-all duration-300"></div>
-
             <div className="relative flex items-center justify-between">
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-bold text-slate-900 group-hover:text-slate-800 transition-colors duration-200 mb-1">
@@ -79,7 +85,7 @@ function Links({
               </div>
             </div>
           </div>
-        </Link>
+        </a>
       ))}
     </div>
   );
