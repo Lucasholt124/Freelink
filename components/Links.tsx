@@ -74,12 +74,10 @@ function Links({
   return (
     <div className="space-y-4">
       {links.map((link, index) => (
-        <a
+        <button
           key={link._id}
-          href={typeof link.url === "string" ? link.url : "#"}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="group block w-full"
+          type="button"
+          className="group block w-full text-left focus:outline-none"
           style={{ animationDelay: `${index * 50}ms` }}
           onClick={async (e) => {
             e.preventDefault();
@@ -88,6 +86,8 @@ function Links({
               window.open(link.url, "_blank", "noopener,noreferrer");
             }
           }}
+          role="link"
+          tabIndex={0}
         >
           <div className="relative bg-white/70 hover:bg-white/90 border border-slate-200/50 hover:border-slate-300/50 rounded-2xl p-6 transition-all duration-300 hover:shadow-lg hover:shadow-slate-900/5 hover:-translate-y-0.5">
             <div className="absolute inset-0 bg-gradient-to-r from-blue-50/0 via-purple-50/0 to-blue-50/0 group-hover:from-blue-50/30 group-hover:via-purple-50/20 group-hover:to-blue-50/30 rounded-2xl transition-all duration-300"></div>
@@ -107,7 +107,7 @@ function Links({
               </div>
             </div>
           </div>
-        </a>
+        </button>
       ))}
     </div>
   );
