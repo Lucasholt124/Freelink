@@ -139,10 +139,8 @@ function LinkButton({
   onClick: () => void;
 }) {
   return (
-    <a
-      href={url}
-      target="_blank"
-      rel="noopener noreferrer"
+    <button
+      type="button"
       className="group flex items-center gap-3 w-full rounded-2xl py-4 px-6 mb-4 font-bold text-lg shadow-lg bg-white border-2 border-transparent hover:border-blue-400 transition-all duration-200 relative overflow-hidden hover:scale-[1.025] active:scale-95"
       style={{
         color: accentColor,
@@ -158,7 +156,7 @@ function LinkButton({
         {getLinkIcon(url)}
       </span>
       <span className="flex-1 truncate">{title}</span>
-    </a>
+    </button>
   );
 }
 
