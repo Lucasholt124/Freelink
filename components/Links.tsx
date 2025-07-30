@@ -6,7 +6,6 @@ import { ArrowUpRight } from "lucide-react";
 import { useParams } from "next/navigation";
 import { trackLinkClick } from "@/lib/analytics";
 
-// Use o tipo correto do seu link
 type LinkType = {
   _id: string;
   title: string;
@@ -47,7 +46,7 @@ function Links({
     );
   }
 
-  // Função para tracking no Tinybird
+  // Tracking para Tinybird (NÃO usa preventDefault)
   const handleTrack = (link: LinkType) => {
     let visitorId = localStorage.getItem("visitorId");
     if (!visitorId) {

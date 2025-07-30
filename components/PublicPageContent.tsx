@@ -127,39 +127,6 @@ function getLinkIcon(url: string) {
   return <LinkIcon className="w-6 h-6" />;
 }
 
-function LinkButton({
-  title,
-  url,
-  accentColor,
-  onClick,
-}: {
-  title: string;
-  url: string;
-  accentColor: string;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      className="group flex items-center gap-3 w-full rounded-2xl py-4 px-6 mb-4 font-bold text-lg shadow-lg bg-white border-2 border-transparent hover:border-blue-400 transition-all duration-200 relative overflow-hidden hover:scale-[1.025] active:scale-95"
-      style={{
-        color: accentColor,
-        boxShadow: `0 4px 24px 0 ${accentColor}22`,
-      }}
-      onClick={async (e) => {
-        e.preventDefault();
-        await onClick();
-        window.open(url, "_blank", "noopener,noreferrer");
-      }}
-    >
-      <span className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 group-hover:bg-gray-200 transition">
-        {getLinkIcon(url)}
-      </span>
-      <span className="flex-1 truncate">{title}</span>
-    </button>
-  );
-}
-
 export default function PublicPageContent({
   username,
   preloadedLinks,
@@ -191,23 +158,14 @@ export default function PublicPageContent({
 
   const links = usePreloadedQuery(preloadedLinks) as LinkType[];
 
-  // Debug: veja se o componente está sendo renderizado e os links estão corretos
-  console.log("Renderizando Links", links);
-
-  const handleLinkClick = async (link: LinkType) => {
-    console.log("Tracking clique:", {
-      profileUsername: username,
-      linkId: link._id,
-      linkTitle: link.title,
-      linkUrl: link.url,
-    });
-
+  // Tracking para Tinybird (NÃO usa preventDefault)
+  const handleTrack = (link: LinkType) => {
     let visitorId = localStorage.getItem("visitorId");
     if (!visitorId) {
       visitorId = crypto.randomUUID();
       localStorage.setItem("visitorId", visitorId);
     }
-    await trackLinkClick({
+    trackLinkClick({
       profileUsername: username,
       linkId: link._id,
       linkTitle: link.title,
@@ -324,13 +282,23 @@ export default function PublicPageContent({
             <div className="bg-white/95 backdrop-blur-xl border border-gray-100 rounded-3xl p-6 sm:p-8 shadow-2xl animate-fade-in">
               {links && links.length > 0 ? (
                 links.map((link) => (
-                  <LinkButton
+                  <a
                     key={link._id}
-                    title={link.title}
-                    url={link.url}
-                    accentColor={accentColor}
-                    onClick={() => handleLinkClick(link)}
-                  />
+                    href={link.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group flex items-center gap-3 w-full rounded-2xl py-4 px-6 mb-4 font-bold text-lg shadow-lg bg-white border-2 border-transparent hover:border-blue-400 transition-all duration-200 relative overflow-hidden hover:scale-[1.025] active:scale-95"
+                    style={{
+                      color: accentColor,
+                      boxShadow: `0 4px 24px 0 ${accentColor}22`,
+                    }}
+                    onClick={() => handleTrack(link)}
+                  >
+                    <span className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100 group-hover:bg-gray-200 transition">
+                      {getLinkIcon(link.url)}
+                    </span>
+                    <span className="flex-1 truncate">{link.title}</span>
+                  </a>
                 ))
               ) : (
                 <div className="text-center text-gray-400 py-8">
