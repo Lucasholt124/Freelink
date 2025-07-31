@@ -1,0 +1,30 @@
+# link_hourly_analytics.pipe
+
+NODE link_hourly_analytics_node
+DESCRIPTION >
+    Get click count for each hour of the day (0-23) for a specific link.
+
+SQL >
+    %
+    SELECT
+        -- Extrai a hora (0-23) do timestamp
+        toHour(timestamp) as hour_of_day,
+        count() as total_clicks
+    FROM link_clicks
+    WHERE
+        profileUserId = {{String(profileUserId)}}
+        AND linkId = {{String(linkId)}}
+        {% if defined(start_date) %}
+        AND toDate(timestamp) >= {{Date(start_date)}}
+        {% else %}
+        AND toDate(timestamp) >= today() - 30
+        {% end %}
+        {% if defined(end_date) %}
+        AND toDate(timestamp) <= {{Date(end_date)}}
+        {% else %}
+        AND toDate(timestamp) <= today()
+        {% end %}
+    GROUP BY hour_of_day
+    ORDER BY hour_of_day ASC
+
+TYPE endpoint

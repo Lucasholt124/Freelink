@@ -1,505 +1,108 @@
-import { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
-import clerkClient from "@clerk/clerk-sdk-node";
-import { auth } from "@clerk/nextjs/server";
-import {
-  Users,
-  MousePointer,
-  Globe,
-  TrendingUp,
-  ExternalLink,
-  MapPin,
-  ArrowLeft,
-  BarChart3,
-  Lock,
-} from "lucide-react";
-import Link from "next/link";
+// ===================================================================================
+// ARQUIVO FINAL, COMPLETO E CORRIGIDO: components/LinkAnalytics.tsx
+// CORREÇÃO: Removida a chamada redundante ao hook useAuth.
+// ===================================================================================
 
+"use client";
+
+import {  ArrowLeft, BarChart3, Lock } from "lucide-react";
+import Link from "next/link";
+import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
+
+// CORREÇÃO: Importar apenas useUser, que é tudo que precisamos aqui.
+import { useUser } from "@clerk/nextjs";
+import { useEffect, useState } from "react";
+
+// Defina a interface das props que o componente recebe
 interface LinkAnalyticsProps {
   analytics: LinkAnalyticsData;
 }
 
-const ADMIN_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
+// --- FUNÇÕES HELPER ---
+const formatDate = (dateString: string) => new Date(dateString).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" });
+const formatUrl = (url: string) => { try { return new URL(url).hostname.replace("www.", "") } catch { return url } };
 
-async function fetchUserPlanFromDB(userId: string): Promise<"free" | "pro" | "ultra"> {
-  if (userId === ADMIN_ID) return "ultra";
-  try {
-    const user = await clerkClient.users.getUser(userId);
-    const plan = user.publicMetadata.subscriptionPlan as
-      | "free"
-      | "pro"
-      | "ultra"
-      | undefined;
-    if (plan === "free" || plan === "pro" || plan === "ultra") {
-      return plan;
+// --- O COMPONENTE DE EXIBIÇÃO ---
+export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
+  // CORREÇÃO: Usamos apenas useUser, que já nos dá o usuário completo e o estado de carregamento.
+  const { user, isLoaded } = useUser();
+
+  const [plan, setPlan] = useState<"free" | "pro" | "ultra">("free");
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (isLoaded && user) {
+      const userPlan = (user.publicMetadata.subscriptionPlan as "free" | "pro" | "ultra") || "free";
+      setPlan(userPlan);
+      // Defina seu ADMIN_ID aqui
+      setIsAdmin(user.id === "user_301NTkVsE3v48SXkoCEp0XOXifI");
     }
-    return "free";
-  } catch (error) {
-    console.error("Erro ao buscar plano no Clerk:", error);
-    return "free";
-  }
-}
+  }, [isLoaded, user]);
 
-async function getUserSubscriptionPlan() {
-  const { userId } = await auth();
-  if (!userId) return { isPro: false, isUltra: false, isAdmin: false };
-  const isAdmin = userId === ADMIN_ID;
-  const userPlan = await fetchUserPlanFromDB(userId);
-  return {
-    isPro: userPlan === "pro",
-    isUltra: userPlan === "ultra",
-    isAdmin,
-  };
-}
+  const hasAnalyticsAccess = plan === "pro" || plan === "ultra" || isAdmin;
+  const hasUltraFeaturesAccess = plan === "ultra" || isAdmin;
 
-function getDayPeriod(dateString: string) {
-  const date = new Date(dateString);
-  const hour = date.getHours();
-  if (hour >= 5 && hour < 12) return "Manhã";
-  if (hour >= 12 && hour < 18) return "Tarde";
-  return "Noite";
-}
-
-const formatDate = (dateString: string) =>
-  new Date(dateString).toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
-
-const formatDateTime = (dateString: string) => {
-  const date = new Date(dateString);
-  return `${date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" })} ${date.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
-};
-
-const formatUrl = (url: string) => {
-  try {
-    const urlObj = new URL(url);
-    return urlObj.hostname.replace("www.", "");
-  } catch {
-    return url;
-  }
-};
-
-export default async function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
-  const { isPro, isUltra, isAdmin } = await getUserSubscriptionPlan();
-
-  const hasAnalyticsAccess = isPro || isUltra || isAdmin;
-  const hasCountryAccess = isUltra || isAdmin;
-
-  let peakClickTime = analytics.peakClickTime;
-  let peakDay = null;
-  if (!peakClickTime && analytics.dailyData.length > 0) {
-    peakDay = analytics.dailyData.reduce((max, day) => day.clicks > max.clicks ? day : max, analytics.dailyData[0]);
-    peakClickTime = peakDay.date;
-  }
-
-  const maxClicks = analytics.dailyData.length > 0
-    ? Math.max(...analytics.dailyData.map(d => d.clicks))
-    : 0;
-
-  const topLinkTitle = analytics.linkTitle || "Nenhum link mais clicado ainda.";
-
-  const countryDataToShow = analytics.countryData.length > 0
-    ? analytics.countryData.map((c) => ({
-        ...c,
-        country: c.country === "Desconhecido" || c.country === "Unknown" ? "Brasil" : c.country,
-      }))
-    : analytics.countriesReached > 0
-      ? [{ country: "Brasil", clicks: analytics.totalClicks, percentage: 100 }]
-      : [];
-
-  if (!hasAnalyticsAccess) {
+  if (!isLoaded) {
     return (
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white/80 backdrop-blur-sm border-2 border-dashed border-gray-300 rounded-2xl p-8 shadow-xl shadow-gray-200/50">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-gray-400 rounded-xl">
-                <BarChart3 className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">Análise de links</h2>
-                <p className="text-gray-600">🔒 Atualize para desbloquear insights poderosos</p>
-              </div>
-            </div>
-            <div className="mt-6 space-y-6">
-              <div className="flex items-center gap-4 text-gray-600">
-                <MousePointer className="w-5 h-5" />
-                <span>Acompanhe o total de cliques e engajamento</span>
-              </div>
-              <div className="flex items-center gap-4 text-gray-600">
-                <Users className="w-5 h-5" />
-                <span>Monitorar visitantes únicos</span>
-              </div>
-              <div className="flex items-center gap-4 text-gray-600">
-                <Globe className="w-5 h-5" />
-                <span>Veja distribuição geográfica</span>
-              </div>
-            </div>
-            <div className="mt-8 bg-gray-50 rounded-lg p-4 text-center">
-              <p className="text-gray-500">
-                Obtenha insights detalhados sobre o desempenho do seu link com nossos planos Pro e Ultra
-              </p>
-              <Link
-                href="/dashboard/billing"
-                className="inline-block mt-4 px-6 py-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Atualize agora
-              </Link>
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-gray-500">Carregando permissões...</p>
       </div>
     );
   }
 
-  return (
-    <div>
-      {/* Cabeçalho com botão voltar */}
-      <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 sm:p-6 md:p-8 shadow-xl shadow-gray-200/50">
-            <div className="flex items-center gap-4 mb-6">
-              <Link
-                href="/dashboard"
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="font-medium text-base sm:text-lg">Voltar ao painel</span>
-              </Link>
-            </div>
-
-            <div className="mb-8">
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">{analytics.linkTitle}</h1>
-              <Link href={analytics.linkUrl} className="flex items-center gap-2 text-gray-600 break-all">
-                <ExternalLink className="w-4 h-4" />
-                <span className="text-xs sm:text-sm">{formatUrl(analytics.linkUrl)}</span>
-              </Link>
-            </div>
-
-            {/* Métricas resumidas */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-              {/* Total de cliques */}
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-4 sm:p-6 rounded-2xl border border-blue-200">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-2 sm:p-3 bg-blue-500 rounded-xl">
-                    <MousePointer className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                  </div>
-                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-blue-600 mb-1">Total de cliques</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-blue-900">{analytics.totalClicks.toLocaleString()}</p>
-                </div>
-              </div>
-
-              {/* Usuários Únicos */}
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 p-4 sm:p-6 rounded-2xl border border-purple-200">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="p-2 sm:p-3 bg-purple-500 rounded-xl">
-                    <Users className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                  </div>
-                  <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600" />
-                </div>
-                <div>
-                  <p className="text-xs sm:text-sm font-medium text-purple-600 mb-1">Usuários Únicos</p>
-                  <p className="text-2xl sm:text-3xl font-bold text-purple-900">{analytics.uniqueUsers.toLocaleString()}</p>
-                </div>
-              </div>
-
-              {/* Países Alcançados */}
-              {hasCountryAccess ? (
-                <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 sm:p-6 rounded-2xl border border-green-200">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 sm:p-3 bg-green-500 rounded-xl">
-                      <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                    </div>
-                    <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-green-600 mb-1">Países</p>
-                    <p className="text-2xl sm:text-3xl font-bold text-green-900">{analytics.countriesReached.toLocaleString()}</p>
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-gradient-to-br from-green-50 to-green-100 p-4 sm:p-6 rounded-2xl border border-green-200 opacity-75">
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="p-2 sm:p-3 bg-green-500/50 rounded-xl">
-                      <Globe className="w-5 h-5 sm:w-6 sm:h-6 text-white/75" />
-                    </div>
-                    <Lock className="w-4 h-4 sm:w-5 sm:h-5 text-green-600/75" />
-                  </div>
-                  <div>
-                    <p className="text-xs sm:text-sm font-medium text-green-600/75 mb-1">Países</p>
-                    <p className="text-2xl sm:text-3xl font-bold text-green-900/75">Atualizar para Ultra</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* PRO: Desempenho diário liberado, gráficos detalhados bloqueados */}
-            {isPro && (
-              <div className="mt-8 flex flex-col gap-6">
-                {/* Desempenho diário (gráfico horizontal, animado) */}
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8 mb-8 rounded-2xl">
-                  <div className="max-w-7xl mx-auto">
-                    <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 sm:p-8 shadow-xl shadow-gray-200/50">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 sm:p-3 bg-slate-500 rounded-xl">
-                          <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                        </div>
-                        <div>
-                          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Desempenho diário</h2>
-                          <p className="text-gray-600 text-xs sm:text-sm">Atividade dos últimos 30 dias</p>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        {analytics.dailyData.slice(0, 10).map((day) => {
-                          const width = maxClicks > 0 ? (day.clicks / maxClicks) * 100 : 0;
-                          return (
-                            <div key={day.date} className="flex items-center gap-2 sm:gap-4">
-                              <div className="w-12 sm:w-16 text-xs sm:text-sm text-gray-600 font-medium">{formatDate(day.date)}</div>
-                              <div className="flex-1 relative min-w-[40px]">
-                                <div className="bg-gray-200 rounded-full h-6 sm:h-8 relative overflow-hidden">
-                                  <div
-                                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full transition-all duration-700"
-                                    style={{ width: `${width}%`, minWidth: 8 }}
-                                  />
-                                  <div className="absolute inset-0 flex items-center px-2 sm:px-3">
-                                    <span className="text-xs sm:text-sm font-medium text-white">{day.clicks} cliques</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
-                                <div className="flex items-center gap-1">
-                                  <Users className="w-4 h-4" />
-                                  <span>{day.uniqueUsers}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Globe className="w-4 h-4" />
-                                  <span>{day.countries}</span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {analytics.dailyData.length > 10 && (
-                        <div className="mt-6 text-center">
-                          <p className="text-gray-500 text-xs sm:text-sm">
-                            Exibindo os últimos 10 dias • {analytics.dailyData.length} dias total
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                {/* Gráficos detalhados bloqueados */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 sm:p-6 rounded-2xl border border-indigo-200 opacity-75 flex flex-col items-center">
-                    <div className="flex items-center gap-2 mb-2">
-                      <ExternalLink className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600/75" />
-                      <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600/75" />
-                    </div>
-                    <p className="text-indigo-600/75 font-medium">Link Mais Clicado</p>
-                    <p className="text-indigo-900/75">Disponível só no Ultra</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 sm:p-6 rounded-2xl border border-orange-200 opacity-75 flex flex-col items-center">
-                    <div className="flex items-center gap-2 mb-2">
-                      <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600/75" />
-                      <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600/75" />
-                    </div>
-                    <p className="text-orange-600/75 font-medium">Horário de pico</p>
-                    <p className="text-orange-900/75">Disponível só no Ultra</p>
-                  </div>
-                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 sm:p-6 rounded-2xl border border-indigo-200 opacity-75 flex flex-col items-center">
-                    <div className="flex items-center gap-2 mb-2">
-                      <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600/75" />
-                      <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-600/75" />
-                    </div>
-                    <p className="text-indigo-600/75 font-medium">Gráfico de cliques por dia</p>
-                    <p className="text-indigo-900/75">Disponível só no Ultra</p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* ULTRA/ADMIN: Tudo liberado */}
-            {(isUltra || isAdmin) && (
-              <div className="mt-8 flex flex-col gap-6">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-                  <div className="bg-gradient-to-br from-indigo-50 to-indigo-100 p-4 sm:p-6 rounded-2xl border border-indigo-200">
-                    <h3 className="text-lg font-bold text-indigo-900 mb-2 flex items-center gap-2">
-                      <ExternalLink className="w-5 h-5" /> Link Mais Clicado
-                    </h3>
-                    <p className="text-indigo-700 text-base">
-                      {topLinkTitle}
-                    </p>
-                  </div>
-                  <div className="bg-gradient-to-br from-orange-50 to-orange-100 p-4 sm:p-6 rounded-2xl border border-orange-200">
-                    <h3 className="text-lg font-bold text-orange-900 mb-2 flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5" /> Horário de pico
-                    </h3>
-                    <p className="text-orange-700 text-base">
-                      {peakClickTime
-                        ? `${formatDateTime(peakClickTime)} (${getDayPeriod(peakClickTime)})`
-                        : "Ainda não há cliques suficientes para calcular o horário de pico."}
-                    </p>
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-gray-900 mb-2 flex items-center gap-2">
-                      <BarChart3 className="w-5 h-5" /> Gráfico de cliques por dia
-                    </h3>
-                    {analytics.dailyData.length === 0 ? (
-                      <div className="text-center text-gray-500 py-4">
-                        Nenhum dado de horário disponível ainda.
-                      </div>
-                    ) : (
-                      <div className="flex gap-2 items-end h-32 overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300">
-                        {analytics.dailyData.map((h) => {
-                          const height = maxClicks > 0 ? (h.clicks / maxClicks) * 100 : 0;
-                          return (
-                            <div
-                              key={h.date}
-                              className="flex flex-col items-center min-w-[32px] sm:min-w-[40px] transition-all duration-700"
-                            >
-                              <div
-                                className={`rounded-t w-4 sm:w-6 ${h.clicks === maxClicks ? "bg-indigo-700" : "bg-indigo-500"}`}
-                                style={{
-                                  height: `${height}%`,
-                                  minHeight: "8px",
-                                  transition: "height 0.7s cubic-bezier(0.4,0,0.2,1)",
-                                }}
-                              />
-                              <span className="text-[10px] sm:text-xs mt-1">{formatDate(h.date)}</span>
-                              <span className="text-[10px] sm:text-xs text-gray-500">{h.clicks} cliques</span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                </div>
-                {/* Desempenho diário também aparece para Ultra/Admin */}
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 sm:p-6 lg:p-8 mb-8 rounded-2xl">
-                  <div className="max-w-7xl mx-auto">
-                    <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 sm:p-8 shadow-xl shadow-gray-200/50">
-                      <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 sm:p-3 bg-slate-500 rounded-xl">
-                          <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
-                        </div>
-                        <div>
-                          <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Desempenho diário</h2>
-                          <p className="text-gray-600 text-xs sm:text-sm">Atividade dos últimos 30 dias</p>
-                        </div>
-                      </div>
-                      <div className="space-y-4">
-                        {analytics.dailyData.slice(0, 10).map((day) => {
-                          const width = maxClicks > 0 ? (day.clicks / maxClicks) * 100 : 0;
-                          return (
-                            <div key={day.date} className="flex items-center gap-2 sm:gap-4">
-                              <div className="w-12 sm:w-16 text-xs sm:text-sm text-gray-600 font-medium">{formatDate(day.date)}</div>
-                              <div className="flex-1 relative min-w-[40px]">
-                                <div className="bg-gray-200 rounded-full h-6 sm:h-8 relative overflow-hidden">
-                                  <div
-                                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-full rounded-full transition-all duration-700"
-                                    style={{ width: `${width}%`, minWidth: 8 }}
-                                  />
-                                  <div className="absolute inset-0 flex items-center px-2 sm:px-3">
-                                    <span className="text-xs sm:text-sm font-medium text-white">{day.clicks} cliques</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-2 sm:gap-4 text-xs sm:text-sm text-gray-600">
-                                <div className="flex items-center gap-1">
-                                  <Users className="w-4 h-4" />
-                                  <span>{day.uniqueUsers}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <Globe className="w-4 h-4" />
-                                  <span>{day.countries}</span>
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      {analytics.dailyData.length > 10 && (
-                        <div className="mt-6 text-center">
-                          <p className="text-gray-500 text-xs sm:text-sm">
-                            Exibindo os últimos 10 dias • {analytics.dailyData.length} dias total
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+  if (!hasAnalyticsAccess) {
+    return (
+      <div className="bg-white/80 border-2 border-dashed border-gray-300 rounded-2xl p-8 shadow-xl max-w-3xl mx-auto my-8">
+        <div className="flex items-center gap-4 mb-6"><div className="p-3 bg-gray-400 rounded-xl"><Lock className="w-6 h-6 text-white" /></div><div><h2 className="text-2xl font-bold text-gray-900">Análise de links</h2><p className="text-gray-600">🔒 Atualize para desbloquear insights poderosos</p></div></div>
+        <p className="text-center text-gray-700">Obtenha insights detalhados sobre o desempenho do seu link com nossos planos Pro e Ultra.</p>
+        <div className="mt-6 text-center"><Link href="/dashboard/billing" className="inline-block px-8 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold rounded-lg hover:opacity-90 transition-opacity">Fazer Upgrade Agora</Link></div>
       </div>
+    );
+  }
 
-      {/* Gráfico de países (sempre visível para Ultra/Admin, mesmo se vazio) */}
-      {hasCountryAccess && (
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8 mb-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-4 sm:p-8 shadow-xl shadow-gray-200/50">
-              <div className="flex items-center gap-3 mb-6">
-                <div className="p-3 bg-green-500 rounded-xl">
-                  <Globe className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Países</h2>
-                  <p className="text-gray-600">Distribuição de cliques por país</p>
-                </div>
-              </div>
-              {countryDataToShow.length === 0 ? (
-                <div className="text-center text-gray-500 py-8">
-                  Nenhum dado de país disponível ainda.
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {countryDataToShow.map((country) => {
-                    const width = country.percentage || 0;
-                    return (
-                      <div key={country.country} className="flex items-center gap-4">
-                        <div className="w-32 text-xs sm:text-sm text-gray-900 font-medium truncate">{country.country}</div>
-                        <div className="flex-1 relative">
-                          <div className="bg-gray-200 rounded-full h-6 relative overflow-hidden">
-                            <div
-                              className="bg-gradient-to-r from-green-500 to-emerald-600 h-full rounded-full transition-all duration-500"
-                              style={{ width: `${width}%` }}
-                            />
-                            <div className="absolute inset-0 flex items-center px-3">
-                              <span className="text-xs font-medium text-white">{country.clicks} cliques</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="w-16 text-right">
-                          <span className="text-xs sm:text-sm font-medium text-gray-600">{country.percentage.toFixed(1)}%</span>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+  const maxDailyClicks = analytics.dailyData.length > 0 ? Math.max(...analytics.dailyData.map(d => d.clicks)) : 0;
+  const maxHourlyClicks = analytics.hourlyData.length > 0 ? Math.max(...analytics.hourlyData.map(d => d.total_clicks)) : 0;
+  const hourlyDataForChart = Array.from({ length: 24 }, (_, i) => ({
+    hour: i,
+    clicks: analytics.hourlyData.find(d => d.hour_of_day === i)?.total_clicks || 0,
+  }));
+  const totalCityClicks = analytics.cityData.length > 0 ? analytics.cityData.reduce((sum, city) => sum + city.clicks, 0) : 0;
 
-      {/* Nenhum estado de dados */}
-      {analytics.dailyData.length === 0 && (
-        <div className="bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-white/80 backdrop-blur-sm border border-white/20 rounded-2xl p-8 shadow-xl shadow-gray-200/50 text-center">
-              <div className="text-gray-400 mb-4">
-                <BarChart3 className="w-16 h-16 mx-auto" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">Nenhum dado analítico ainda</h3>
-              <p className="text-gray-600">
-                As análises aparecerão aqui assim que este link começar a receber cliques.
-              </p>
-            </div>
-          </div>
-        </div>
+  return (
+    <div className="p-4 md:p-8 space-y-8 bg-gray-50 min-h-screen">
+      <header className="max-w-7xl mx-auto">
+        <Link href="/dashboard" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 mb-6"><ArrowLeft className="w-5 h-5" /><span className="font-medium">Voltar</span></Link>
+        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 truncate">{analytics.linkTitle}</h1>
+        <a href={analytics.linkUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-gray-500 hover:text-blue-600 break-all">{formatUrl(analytics.linkUrl)}</a>
+      </header>
+
+      {analytics.totalClicks === 0 ? (
+        <div className="text-center py-16 text-gray-500 max-w-7xl mx-auto bg-white rounded-2xl shadow-md"><BarChart3 className="w-16 h-16 mx-auto mb-4" /><h3 className="text-xl font-semibold">Nenhum dado analítico ainda</h3><p>As análises aparecerão aqui assim que seu link receber cliques.</p></div>
+      ) : (
+      <main className="max-w-7xl mx-auto space-y-8">
+        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="bg-white p-6 rounded-xl border"><p className="text-sm text-gray-600">Total de cliques</p><p className="text-3xl font-bold">{analytics.totalClicks.toLocaleString()}</p></div>
+          <div className="bg-white p-6 rounded-xl border"><p className="text-sm text-gray-600">Visitantes Únicos</p><p className="text-3xl font-bold">{analytics.uniqueUsers.toLocaleString()}</p></div>
+          <div className="bg-white p-6 rounded-xl border"><p className="text-sm text-gray-600">Países Alcançados</p><p className="text-3xl font-bold">{analytics.countriesReached.toLocaleString()}</p></div>
+        </section>
+
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          <div className="bg-white p-6 rounded-xl border shadow-sm"><h3 className="font-bold mb-4">Desempenho Diário</h3><div className="space-y-3">{analytics.dailyData.map(day => (<div key={day.date} className="flex items-center gap-4"><p className="w-20 text-sm text-gray-500">{formatDate(day.date)}</p><div className="flex-1 bg-gray-200 h-6 rounded-full"><div className="bg-blue-500 h-6 rounded-full" style={{width: `${maxDailyClicks > 0 ? (day.clicks / maxDailyClicks) * 100 : 0}%`}}></div></div></div>))}</div></div>
+          <div className="bg-white p-6 rounded-xl border shadow-sm"><h3 className="font-bold mb-4">Principais Países</h3><div className="space-y-3">{analytics.countryData.map(c => <div key={c.country} className="flex items-center gap-4"><p className="w-28 text-sm truncate">{c.country}</p><div className="flex-1 bg-gray-200 h-6 rounded-full"><div className="bg-green-500 h-6 rounded-full" style={{width: `${c.percentage}%`}}></div></div><p className="text-sm w-12 text-right">{c.percentage.toFixed(1)}%</p></div>)}</div></div>
+
+          {hasUltraFeaturesAccess ? (
+            <>
+              <div className="bg-white p-6 rounded-xl border shadow-sm"><h3 className="font-bold mb-4">Principais Cidades</h3><div className="space-y-3">{analytics.cityData.slice(0, 7).map(city => <div key={city.city} className="flex items-center gap-4"><p className="w-28 text-sm truncate">{city.city}</p><div className="flex-1 bg-gray-200 h-6 rounded-full"><div className="bg-teal-500 h-6 rounded-full" style={{width: `${totalCityClicks > 0 ? (city.clicks / totalCityClicks) * 100 : 0}%`}}></div></div></div>)}</div></div>
+              <div className="bg-white p-6 rounded-xl border shadow-sm"><h3 className="font-bold mb-4">Horários de Pico</h3><div className="flex gap-1.5 items-end h-32">{hourlyDataForChart.map(h => <div key={h.hour} className="flex-1 h-full flex flex-col justify-end items-center"><div className="w-full bg-orange-300 rounded-t" style={{height: `${maxHourlyClicks > 0 ? (h.clicks / maxHourlyClicks) * 100 : 0}%`}}></div><p className="text-[10px] text-gray-500">{String(h.hour).padStart(2, '0')}</p></div>)}</div></div>
+            </>
+          ) : (
+            <>
+              <div className="bg-gray-100 border-dashed border-2 rounded-xl flex flex-col items-center justify-center p-6 text-center"><Lock className="w-8 h-8 text-gray-400 mb-2"/><p className="font-semibold">Análise por Cidade</p><p className="text-sm text-gray-500">Disponível no plano Ultra</p></div>
+              <div className="bg-gray-100 border-dashed border-2 rounded-xl flex flex-col items-center justify-center p-6 text-center"><Lock className="w-8 h-8 text-gray-400 mb-2"/><p className="font-semibold">Gráfico de Horários</p><p className="text-sm text-gray-500">Disponível no plano Ultra</p></div>
+            </>
+          )}
+        </section>
+      </main>
       )}
     </div>
   );

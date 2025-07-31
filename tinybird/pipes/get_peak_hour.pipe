@@ -1,0 +1,29 @@
+# get_peak_hour.pipe
+
+NODE get_peak_hour_node
+DESCRIPTION >
+    Finds the single hour with the most clicks for a specific link.
+
+SQL >
+    %
+    SELECT
+        toHour(timestamp) as peak_hour
+    FROM link_clicks
+    WHERE
+        profileUserId = {{String(profileUserId)}}
+        AND linkId = {{String(linkId)}}
+        {% if defined(start_date) %}
+        AND toDate(timestamp) >= {{Date(start_date)}}
+        {% else %}
+        AND toDate(timestamp) >= today() - 30
+        {% end %}
+        {% if defined(end_date) %}
+        AND toDate(timestamp) <= {{Date(end_date)}}
+        {% else %}
+        AND toDate(timestamp) <= today()
+        {% end %}
+    GROUP BY peak_hour
+    ORDER BY count() DESC
+    LIMIT 1
+
+TYPE endpoint

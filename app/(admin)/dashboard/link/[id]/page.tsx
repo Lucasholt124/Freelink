@@ -1,44 +1,46 @@
+
 import LinkAnalytics from "@/components/LinkAnalytics";
-import { fetchLinkAnalytics } from "@/convex/lib/fetchLinkAnalytics";
+
+// Importe a função de backend com o NOME CORRETO e a tipagem
+import { fetchDetailedAnalyticsForLink, LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
 
 import { currentUser } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
 interface LinkAnalyticsPageProps {
-  params: Promise<{
+  params: {
     id: string;
-  }>;
+  };
 }
 
-async function LinkAnalyticsPage({ params }: LinkAnalyticsPageProps) {
+export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPageProps) {
   const user = await currentUser();
-  const { id } = await params;
+  const { id } = params;
 
   if (!user) {
     notFound();
   }
 
-  // Obter análises para o link específico
-  const analytics = await fetchLinkAnalytics(user.id, id);
+  // CORREÇÃO: Chamando a função com o nome correto
+  const analytics = await fetchDetailedAnalyticsForLink(user.id, id);
 
-  // Se nenhum dado analítico for encontrado, mostrar o componente com estado vazio
-// O componente LinkAnalytics lida com o caso de "nenhum dado" com elegância
+  // Se a busca falhar ou não retornar dados, mostramos um estado vazio/erro
   if (!analytics) {
-    // Retorna um objeto analítico vazio para que o componente possa mostrar o estado "sem dados"
-    const emptyAnalytics = {
+    const emptyAnalytics: LinkAnalyticsData = {
       linkId: id,
-      linkTitle: "Este link não possui análises",
-      linkUrl: "Aguarde a geração da análise ou verifique novamente mais tarde.",
+      linkTitle: "Link não encontrado ou sem dados",
+      linkUrl: "Por favor, verifique o ID do link ou aguarde os primeiros cliques.",
       totalClicks: 0,
       uniqueUsers: 0,
       countriesReached: 0,
       dailyData: [],
       countryData: [],
+      cityData: [],
+      hourlyData: [],
     };
     return <LinkAnalytics analytics={emptyAnalytics} />;
   }
 
+  // Se a busca for bem-sucedida, passamos os dados completos para o componente de exibição
   return <LinkAnalytics analytics={analytics} />;
 }
-
-export default LinkAnalyticsPage;

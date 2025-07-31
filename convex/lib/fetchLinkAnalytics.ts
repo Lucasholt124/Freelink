@@ -1,3 +1,7 @@
+// ===================================================================================
+// ARQUIVO 1: SUA FUNÇÃO DE BUSCA DE DADOS - CORREÇÃO FINAL DE TIPAGEM
+// ===================================================================================
+
 export interface LinkAnalyticsData {
   linkId: string;
   linkTitle: string;
@@ -5,159 +9,99 @@ export interface LinkAnalyticsData {
   totalClicks: number;
   uniqueUsers: number;
   countriesReached: number;
-  dailyData: Array<{
-    date: string;
-    clicks: number;
-    uniqueUsers: number;
-    countries: number;
-  }>;
-  countryData: Array<{
-    country: string;
-    clicks: number;
-    percentage: number;
-  }>;
-  topReferrer?: string | null;
-  peakClickTime?: string | null;
+  dailyData: Array<{ date: string; clicks: number }>;
+  countryData: Array<{ country: string; clicks: number; percentage: number }>;
+  cityData: Array<{ city: string; clicks: number }>;
+  hourlyData: Array<{ hour_of_day: number; total_clicks: number }>;
 }
 
+// Interfaces de retorno do Tinybird (como estão no JSON)
 interface TinybirdLinkAnalyticsRow {
   date: string;
   linkTitle: string;
   linkUrl: string;
   total_clicks: number;
-  unique_users: number;
-  countries_reached: number;
-  top_referrer?: string | null;
-  peak_click_time?: string | null;
 }
-
 interface TinybirdCountryAnalyticsRow {
   country: string;
   total_clicks: number;
-  unique_users: number;
   percentage: number;
 }
+interface TinybirdCityAnalyticsRow {
+  city: string;
+  total_clicks: number;
+}
+interface TinybirdHourlyAnalyticsRow {
+  hour_of_day: number;
+  total_clicks: number;
+}
 
-export async function fetchLinkAnalytics(
+export async function fetchDetailedAnalyticsForLink(
   userId: string,
   linkId: string,
   daysBack: number = 30
 ): Promise<LinkAnalyticsData | null> {
   const { TINYBIRD_TOKEN, TINYBIRD_HOST } = process.env;
+  if (!TINYBIRD_TOKEN || !TINYBIRD_HOST) return null;
 
-  if (!TINYBIRD_TOKEN || !TINYBIRD_HOST) {
-    return {
-      linkId,
-      linkTitle: "Sample Link",
-      linkUrl: "https://example.com",
-      totalClicks: 0,
-      uniqueUsers: 0,
-      countriesReached: 0,
-      dailyData: [],
-      countryData: [],
-      topReferrer: null,
-      peakClickTime: null,
-    };
-  }
-
-  const headers = {
-    Authorization: `Bearer ${TINYBIRD_TOKEN}`,
-  };
+  const headers = { Authorization: `Bearer ${TINYBIRD_TOKEN}` };
+  const baseUrl = `${TINYBIRD_HOST}/v0/pipes`;
 
   try {
-    // Tenta ponto de analytics rápido
-    let response = await fetch(
-      `${TINYBIRD_HOST}/v0/pipes/fast_link_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`,
-      { headers }
-    );
+    const dailyResponse = await fetch(`${baseUrl}/link_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, { headers });
+    if (!dailyResponse.ok) return null;
 
-    // Se falhar, tenta o fallback
-    if (!response.ok) {
-      console.warn("Fallback para endpoint padrão de analytics...");
-      response = await fetch(
-        `${TINYBIRD_HOST}/v0/pipes/link_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`,
-        { headers }
-      );
-    }
+    const dailyJson = await dailyResponse.json();
+    const dailyRows: TinybirdLinkAnalyticsRow[] = dailyJson.data;
+    if (!dailyRows || dailyRows.length === 0) return null;
 
-    if (!response.ok) {
-      console.error("Erro no Tinybird analytics:", await response.text());
-      return null;
-    }
-
-    const json = await response.json();
-    const rows: TinybirdLinkAnalyticsRow[] = json.data;
-
-    if (!rows || rows.length === 0) {
-      return null;
-    }
-
-    const dailyData = rows.map((row) => ({
+    const dailyData = dailyRows.map((row) => ({
       date: row.date,
       clicks: row.total_clicks || 0,
-      uniqueUsers: row.unique_users || 0,
-      countries: row.countries_reached || 0,
     }));
-
     const totalClicks = dailyData.reduce((acc, day) => acc + day.clicks, 0);
-    const uniqueUsers = Math.max(...dailyData.map((d) => d.uniqueUsers), 0);
-    const countriesReached = Math.max(...dailyData.map((d) => d.countries), 0);
 
-    const firstRow = rows[0];
-
-    // Buscar por país
-    let countryData: LinkAnalyticsData["countryData"] = [];
-
-    try {
-      const countryResponse = await fetch(
-        `${TINYBIRD_HOST}/v0/pipes/link_country_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`,
-        { headers }
-      );
-
-      if (countryResponse.ok) {
-        const result = await countryResponse.json();
-
-        // Normaliza os nomes dos países para evitar 'Unknown' e similares
-        countryData =
-          result.data?.map((row: TinybirdCountryAnalyticsRow) => {
-            let countryName = row.country?.trim() || "";
-
-            const unknownValues = [
-              "",
-              "unknown",
-              "unknown country",
-              "null",
-              "undefined",
-            ];
-            if (unknownValues.includes(countryName.toLowerCase())) {
-              countryName = "Desconhecido";
-            }
-
-            return {
-              country: countryName,
-              clicks: row.total_clicks || 0,
-              percentage: row.percentage || 0,
-            };
-          }) || [];
-      }
-    } catch (e) {
-      console.error("Erro ao buscar dados por país:", e);
-    }
+    const [countryData, cityData, hourlyData] = await Promise.all([
+      fetchDataFromPipe<TinybirdCountryAnalyticsRow[]>(`${baseUrl}/link_country_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
+      fetchDataFromPipe<TinybirdCityAnalyticsRow[]>(`${baseUrl}/link_city_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
+      fetchDataFromPipe<TinybirdHourlyAnalyticsRow[]>(`${baseUrl}/link_hourly_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers)
+    ]);
 
     return {
       linkId,
-      linkTitle: firstRow.linkTitle || "Link Desconhecido",
-      linkUrl: firstRow.linkUrl || "",
+      linkTitle: dailyRows[0].linkTitle,
+      linkUrl: dailyRows[0].linkUrl,
       totalClicks,
-      uniqueUsers,
-      countriesReached,
+      uniqueUsers: dailyJson.meta.statistics.rows_read || 0,
+      countriesReached: countryData.length,
       dailyData: dailyData.reverse(),
-      countryData,
-      topReferrer: firstRow.top_referrer || null,
-      peakClickTime: firstRow.peak_click_time || null,
+      // AQUI A CORREÇÃO: Mapeamos de 'total_clicks' para 'clicks'
+      countryData: countryData.map(c => ({
+        country: c.country || "Desconhecido",
+        clicks: c.total_clicks, // <-- CORREÇÃO
+        percentage: c.percentage
+      })),
+      // AQUI A CORREÇÃO: Mapeamos de 'total_clicks' para 'clicks'
+      cityData: cityData.map(c => ({
+        city: c.city || "Desconhecido",
+        clicks: c.total_clicks // <-- CORREÇÃO
+      })),
+      hourlyData,
     };
+
   } catch (err) {
-    console.error("Erro geral em fetchLinkAnalytics:", err);
+    console.error("Erro geral em fetchDetailedAnalyticsForLink:", err);
     return null;
+  }
+}
+
+async function fetchDataFromPipe<T>(url: string, headers: HeadersInit): Promise<T> {
+  try {
+    const res = await fetch(url, { headers });
+    if (!res.ok) return [] as T;
+    const json = await res.json();
+    return json.data || ([] as T);
+  } catch {
+    return [] as T;
   }
 }
