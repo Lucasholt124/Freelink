@@ -7,15 +7,17 @@ import { fetchDetailedAnalyticsForLink, LinkAnalyticsData } from "@/convex/lib/f
 import { currentUser } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 
+
 interface LinkAnalyticsPageProps {
-  params: {
+  params: Promise<{ // <-- APAGUE ESTE PROMISE
     id: string;
-  };
+  }>;
 }
+
 
 export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPageProps) {
   const user = await currentUser();
-  const { id } = params;
+   const { id } = await params;
 
   if (!user) {
     notFound();
