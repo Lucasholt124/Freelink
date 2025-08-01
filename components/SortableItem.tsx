@@ -28,6 +28,8 @@ export function SortableItem({
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
 
+      console.log("DADOS RECEBIDOS PELO SortableItem:", { id_prop: id, link_object: link });
+
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,

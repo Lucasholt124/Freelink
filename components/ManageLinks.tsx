@@ -1,7 +1,10 @@
+
 "use client";
 
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Preloaded, usePreloadedQuery, useMutation } from "convex/react";
+import { useAuth } from "@clerk/nextjs"; // Importe o useAuth para pegar o userId
+
 import {
   closestCenter,
   DndContext,
@@ -11,7 +14,6 @@ import {
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import { useState, useMemo } from "react";
 import {
   arrayMove,
   SortableContext,
@@ -24,17 +26,27 @@ import { Button } from "./ui/button";
 import { Plus } from "lucide-react";
 import Link from "next/link";
 import { SortableItem } from "./SortableItem";
+import { useEffect, useState } from "react";
 
-function ManageLinks({
-  preloadedLinks,
-}: {
-  preloadedLinks: Preloaded<typeof api.lib.links.getLinksByUserId>;
-}) {
-  const links = usePreloadedQuery(preloadedLinks);
+export default function ManageLinks() {
+  const { userId } = useAuth(); // Pegamos o ID do usuário logado
+
+  // CORREÇÃO: Agora passamos os argumentos para a query.
+  // A query só será executada se 'userId' existir, graças à condição "skip".
+  const links = useQuery(
+    api.lib.links.getLinksByUserId,
+    userId ? { userId } : "skip"
+  );
+
   const updateLinkOrder = useMutation(api.lib.links.updateLinkOrder);
 
-  // Armazenamos no estado local para ter uma experiência UX mais rápida
-  const [items, setItems] = useState(links.map((link) => link._id));
+  const [items, setItems] = useState<Id<"links">[]>([]);
+
+  useEffect(() => {
+    if (links) {
+      setItems(links.map((link) => link._id));
+    }
+  }, [links]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -46,25 +58,22 @@ function ManageLinks({
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
 
-    if (active.id !== over?.id) {
-      setItems((items) => {
-        const oldIndex = items.indexOf(active.id as Id<"links">);
-        const newIndex = items.indexOf(over?.id as Id<"links">);
-
-        const newItems = arrayMove(items, oldIndex, newIndex);
-
-        // Atualiza a ordem dos links no banco de dados
-        updateLinkOrder({ linkIds: newItems });
-
-        return newItems;
+    if (active.id !== over?.id && over) {
+      setItems((currentItems) => {
+        const oldIndex = currentItems.indexOf(active.id as Id<"links">);
+        const newIndex = currentItems.indexOf(over.id as Id<"links">);
+        const newOrderedIds = arrayMove(currentItems, oldIndex, newIndex);
+        updateLinkOrder({ linkIds: newOrderedIds });
+        return newOrderedIds;
       });
     }
   }
 
-  // Crie um mapa para consulta rápida de links
-  const linkMap = useMemo(() => {
-    return Object.fromEntries(links.map((link) => [link._id, link]));
-  }, [links]);
+  if (links === undefined) {
+    return <div className="text-center text-gray-400 py-8">Carregando seus links...</div>;
+  }
+
+  const linkMap = new Map(links.map(link => [link._id, link]));
 
   return (
     <>
@@ -76,19 +85,12 @@ function ManageLinks({
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
           <div className="space-y-2 overflow-x-auto min-w-0">
             {items.length === 0 ? (
-              <div className="text-center text-gray-400 py-8">
-                Nenhum link cadastrado ainda.
-              </div>
+              <div className="text-center text-gray-400 py-8">Nenhum link cadastrado ainda.</div>
             ) : (
               items.map((id) => {
-                const link = linkMap[id];
-                return (
-                  <SortableItem
-                    key={id}
-                    id={id}
-                    link={link}
-                  />
-                );
+                const link = linkMap.get(id);
+                if (!link) return null;
+                return <SortableItem key={id} id={id} link={link} />;
               })
             )}
           </div>
@@ -101,10 +103,7 @@ function ManageLinks({
         aria-label="Adicionar novo link"
         title="Adicionar novo link"
       >
-        <Link
-          href="/dashboard/new-link"
-          className="flex items-center justify-center gap-2"
-        >
+        <Link href="/dashboard/new-link" className="flex items-center justify-center gap-2">
           <Plus className="w-4 h-4" />
           Adicionar link
         </Link>
@@ -112,5 +111,3 @@ function ManageLinks({
     </>
   );
 }
-
-export default ManageLinks;

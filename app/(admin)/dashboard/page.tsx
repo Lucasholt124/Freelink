@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import { currentUser } from "@clerk/nextjs/server";
-import { preloadQuery, fetchQuery } from "convex/nextjs";
+// CORREÇÃO: remover preloadQuery, não é mais necessário aqui
+import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { fetchAnalytics } from "@/lib/analytics-server";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
@@ -17,15 +18,14 @@ import Link from "next/link";
 export default async function DashboardPage() {
   const user = await currentUser();
   if (!user) {
-    // Pode trocar por redirecionamento para login se desejar
     return null;
   }
 
-  const [preloadedLinks, analytics, rawPlan, userSlug] = await Promise.all([
-    preloadQuery(api.lib.links.getLinksByUserId, { userId: user.id }),
+  // CORREÇÃO: Removido 'preloadedLinks' do Promise.all
+  const [analytics, rawPlan, userSlug] = await Promise.all([
+    // A linha do preloadQuery foi REMOVIDA
     fetchAnalytics(user.id),
     getUserSubscriptionPlan(user.id),
-    // Busca o slug/username do Convex, igual ao UsernameForm
     fetchQuery(api.lib.usernames.getUserSlug, { userId: user.id }),
   ]);
 
@@ -33,10 +33,8 @@ export default async function DashboardPage() {
 
   return (
     <div className="pb-16">
-      {/* Toast para sucesso da assinatura */}
       <DashboardToast />
 
-      {/* Resumo do plano atual */}
       <div className="max-w-7xl mx-auto mb-4 px-4">
         <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
           <span className="text-sm text-gray-600">
@@ -55,7 +53,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Métricas de Analytics */}
       {(plan === "pro" || plan === "ultra") ? (
         <Suspense fallback={<SkeletonDashboard />}>
           <DashboardMetrics analytics={analytics} plan={plan} />
@@ -85,17 +82,14 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* Configuração do username */}
       <section className="bg-gray-50 py-6 px-4 lg:px-10 max-w-7xl mx-auto rounded-2xl mb-8 shadow-sm">
         <UsernameForm />
       </section>
 
-      {/* Customização da página */}
       <section className="bg-gray-50 py-6 px-4 lg:px-10 max-w-7xl mx-auto rounded-2xl mb-8 shadow-sm">
         <CustomizationForm />
       </section>
 
-      {/* Gerenciar links */}
       <section className="bg-gray-50 py-6 px-4 lg:px-10 max-w-7xl mx-auto rounded-2xl shadow-sm">
         <div className="flex flex-col lg:flex-row gap-10">
           <aside className="lg:w-1/2 space-y-6">
@@ -119,7 +113,6 @@ export default async function DashboardPage() {
                 <span className="w-2 h-2 bg-green-500 rounded-full" /> Análises avançadas (Pro/Ultra)
               </li>
             </ul>
-            {/* Preview da página pública */}
             <div className="mt-6">
               <Link
                 href={`/u/${userSlug}`}
@@ -134,12 +127,12 @@ export default async function DashboardPage() {
           </aside>
 
           <div className="lg:w-1/2">
-            <ManageLinks preloadedLinks={preloadedLinks} />
+            {/* CORREÇÃO: Chamando ManageLinks sem a prop 'preloadedLinks' */}
+            <ManageLinks />
           </div>
         </div>
       </section>
 
-      {/* Botão flutuante do WhatsApp */}
       <WhatsappFloatingButton />
     </div>
   );
