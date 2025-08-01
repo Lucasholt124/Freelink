@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     });
     if (!profileUserId) return NextResponse.json({ error: "Perfil não encontrado" }, { status: 404 });
 
-    // CORREÇÃO: Usando aspas duplas nos nomes das colunas para bater com a nova tabela
+    // Usando aspas duplas nos nomes das colunas para bater com a nova tabela
     await sql`
       INSERT INTO clicks
         ("profileUserId", "linkId", "visitorId", country, region, city, referrer, "userAgent")

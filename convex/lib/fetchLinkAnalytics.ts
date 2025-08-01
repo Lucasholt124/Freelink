@@ -1,4 +1,3 @@
-
 import { sql, QueryResultRow } from '@vercel/postgres';
 
 // A interface de dados que a sua UI espera receber.
@@ -17,14 +16,11 @@ export interface LinkAnalyticsData {
   peakHour: number | null;
 }
 
-// NOTA: Esta função agora é independente do Convex.
-// Ela só precisa do ID do usuário e do ID do link.
 export async function fetchDetailedAnalyticsForLink(
   userId: string,
   linkId: string
 ): Promise<LinkAnalyticsData | null> {
   try {
-    // --- QUERIES NO BANCO DE ANALYTICS (POSTGRES) ---
     const [
       clicksResult,
       uniqueUsersResult,
@@ -47,41 +43,34 @@ export async function fetchDetailedAnalyticsForLink(
 
     const totalClicks = parseInt(clicksResult.rows[0].count as string, 10);
 
-    // Se não há cliques, retornamos um objeto mínimo para a UI lidar com o estado vazio.
-    // O título e a URL serão buscados na página container.
     if (totalClicks === 0) {
       return {
         linkId: linkId,
-        linkTitle: "", // Será preenchido pela página
-        linkUrl: "",   // Será preenchido pela página
+        linkTitle: "",
+        linkUrl: "",
         totalClicks: 0, uniqueUsers: 0, countriesReached: 0,
         dailyData: [], countryData: [], cityData: [], regionData: [], hourlyData: [], peakHour: null,
       };
     }
 
     const totalUniqueUsers = parseInt(uniqueUsersResult.rows[0].count as string, 10);
-
-    // Adicionando tipagem explícita para as linhas dos resultados
     const countryData = countryResult.rows.map((row: QueryResultRow) => ({
       country: row.country,
       clicks: parseInt(row.clicks, 10),
       percentage: (parseInt(row.clicks, 10) / totalClicks) * 100
     }));
 
-    const cityData = cityResult.rows.map((row: QueryResultRow) => ({ city: row.city, clicks: parseInt(row.clicks, 10) }));
-    const regionData = regionResult.rows.map((row: QueryResultRow) => ({ region: row.region, clicks: parseInt(row.clicks, 10) }));
-
     return {
       linkId: linkId,
-      linkTitle: "", // Será preenchido pela página
-      linkUrl: "",   // Será preenchido pela página
+      linkTitle: "", // Será preenchido pela página container
+      linkUrl: "",   // Será preenchido pela página container
       totalClicks,
       uniqueUsers: totalUniqueUsers,
       countriesReached: countryData.length,
       dailyData: dailyResult.rows.map((row: QueryResultRow) => ({ date: row.date.toISOString().split('T')[0], clicks: parseInt(row.clicks, 10) })).reverse(),
       countryData,
-      cityData,
-      regionData,
+      cityData: cityResult.rows.map((row: QueryResultRow) => ({ city: row.city, clicks: parseInt(row.clicks, 10) })),
+      regionData: regionResult.rows.map((row: QueryResultRow) => ({ region: row.region, clicks: parseInt(row.clicks, 10) })),
       hourlyData: hourlyResult.rows.map((row: QueryResultRow) => ({ hour_of_day: parseInt(row.hour_of_day, 10), total_clicks: parseInt(row.total_clicks, 10) })),
       peakHour: peakHourResult.rows.length > 0 ? parseInt(peakHourResult.rows[0].peak_hour, 10) : null,
     };

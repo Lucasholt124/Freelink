@@ -4,8 +4,7 @@ import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { MapPin, BarChart3, Clock, Map, ChevronRight } from "lucide-react";
-import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
-// Importa os sub-componentes (garanta que os caminhos estão corretos)
+import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics"; // Ajuste o caminho se necessário
 import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
 import { CountryChart } from "./CountryChart";
@@ -69,7 +68,6 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
           </section>
 
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* CORREÇÃO: Só renderiza o gráfico se houver dados para ele */}
             {analytics.dailyData && analytics.dailyData.length > 0 && <DailyPerformanceChart data={analytics.dailyData} />}
             {analytics.countryData && analytics.countryData.length > 0 && <CountryChart data={analytics.countryData} />}
 
