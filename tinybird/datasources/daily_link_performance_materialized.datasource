@@ -1,3 +1,4 @@
+
 DESCRIPTION >
     Materialized daily link performance data with pre-aggregated metrics
 
@@ -10,7 +11,10 @@ SCHEMA >
     `linkUrl` String,
     `total_clicks` AggregateFunction(count, UInt64),
     `unique_users` AggregateFunction(uniq, String),
-    `unique_countries` AggregateFunction(uniq, String),
+
+    -- AQUI ESTÁ A CORREÇÃO CRUCIAL --
+    `unique_countries` AggregateFunction(uniq, Nullable(String)),
+
     `unique_referrers` AggregateFunction(uniq, String),
     `first_click_time` AggregateFunction(min, DateTime),
     `last_click_time` AggregateFunction(max, DateTime)

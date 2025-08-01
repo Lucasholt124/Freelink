@@ -1,3 +1,4 @@
+
 DESCRIPTION >
     Track link clicks on user profile pages with full attribution
 
@@ -10,17 +11,21 @@ SCHEMA >
     `linkUrl` String `json:$.linkUrl`,
     `userAgent` String `json:$.userAgent`,
     `referrer` String `json:$.referrer`,
-    `location_country` String `json:$.location.country`,
-    `location_region` String `json:$.location.region`,
-    `location_city` String `json:$.location.city`,
-    `location_latitude` String `json:$.location.latitude`,
-    `location_longitude` String `json:$.location.longitude`,
-    `visitorId` String `json:$.visitorId`   -- CORRETO AQUI!
+
+    -- Colunas agora são NULÁVEIS para evitar quarentena
+    `location_country` Nullable(String) `json:$.location.country`,
+    `location_region` Nullable(String) `json:$.location.region`,
+    `location_city` Nullable(String) `json:$.location.city`,
+    `location_latitude` Nullable(String) `json:$.location.latitude`,
+    `location_longitude` Nullable(String) `json:$.location.longitude`,
+
+    `visitorId` String `json:$.visitorId`
 
 ENGINE "MergeTree"
 ENGINE_PARTITION_KEY "toYYYYMM(timestamp)"
 ENGINE_SORTING_KEY "timestamp, profileUserId, linkId"
 
+# AQUI ESTÁ A SEÇÃO QUE O ERRO PEDIU PARA ADICIONAR
 FORWARD_QUERY >
   SELECT
     timestamp,
@@ -31,9 +36,9 @@ FORWARD_QUERY >
     linkUrl,
     userAgent,
     referrer,
-    location_country,
-    location_region,
-    location_city,
-    location_latitude,
-    location_longitude,
-    '' AS visitorId
+    CAST(location_country, 'Nullable(String)') AS location_country,
+    CAST(location_region, 'Nullable(String)') AS location_region,
+    CAST(location_city, 'Nullable(String)') AS location_city,
+    CAST(location_latitude, 'Nullable(String)') AS location_latitude,
+    CAST(location_longitude, 'Nullable(String)') AS location_longitude,
+    visitorId

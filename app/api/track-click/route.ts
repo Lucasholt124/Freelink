@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { geolocation } from "@vercel/functions";
 import { api } from "@/convex/_generated/api";
@@ -13,8 +14,11 @@ export async function POST(request: NextRequest) {
     let country = geo?.country || "";
     let region = geo?.region || "";
     let city = geo?.city || "";
+    // CORREÇÃO: Garante que latitude e longitude são strings
+    let latitude = geo?.latitude?.toString() || "";
+    let longitude = geo?.longitude?.toString() || "";
 
-    const isVercelGeoInvalid = !country || region === 'dev1' || (country === 'US' && city === 'Washington');
+    const isVercelGeoInvalid = !country || region === 'dev1';
     if (isVercelGeoInvalid && ip && ip !== '::1' && !ip.startsWith('192.168')) {
       try {
         const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
@@ -23,8 +27,10 @@ export async function POST(request: NextRequest) {
             country = geoJson.country_code || country;
             region = geoJson.region_code || region;
             city = geoJson.city || city;
+            latitude = geoJson.latitude?.toString() || latitude;
+            longitude = geoJson.longitude?.toString() || longitude;
         }
-      } catch (e) { console.error("Falha no fallback de geolocalização:", e) }
+      } catch {}
     }
 
     const convex = getClient();
@@ -35,7 +41,7 @@ export async function POST(request: NextRequest) {
       ...data,
       timestamp: new Date().toISOString(),
       profileUserId: userId,
-      location: { country, region, city, latitude: geo.latitude || "", longitude: geo.longitude || "" },
+      location: { country, region, city, latitude, longitude },
       userAgent: data.userAgent || request.headers.get("user-agent") || "unknown",
     };
 
@@ -54,6 +60,9 @@ export async function POST(request: NextRequest) {
           country: trackingEvent.location.country || "",
           region: trackingEvent.location.region || "",
           city: trackingEvent.location.city || "",
+          // CORREÇÃO: ADICIONAMOS LATITUDE E LONGITUDE AQUI
+          latitude: trackingEvent.location.latitude || "",
+          longitude: trackingEvent.location.longitude || "",
         },
       };
       await fetch(`${process.env.TINYBIRD_HOST}/v0/events?name=link_clicks`, {
