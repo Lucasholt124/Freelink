@@ -26,20 +26,41 @@ export async function fetchDetailedAnalyticsForLink(
   linkId: string,
   daysBack: number = 30
 ): Promise<LinkAnalyticsData | null> {
+  console.log(`[DIAGNÓSTICO FETCH] Iniciando para userId: ${userId}, linkId: ${linkId}`);
+
   const { TINYBIRD_TOKEN, TINYBIRD_HOST } = process.env;
-  if (!TINYBIRD_TOKEN || !TINYBIRD_HOST) return null;
+  if (!TINYBIRD_TOKEN || !TINYBIRD_HOST) {
+    console.error("[DIAGNÓSTICO FETCH] ERRO: Variáveis de ambiente do Tinybird não encontradas.");
+    return null;
+  }
 
   const headers = { Authorization: `Bearer ${TINYBIRD_TOKEN}` };
   const baseUrl = `${TINYBIRD_HOST}/v0/pipes`;
 
   try {
     const dailyUrl = `${baseUrl}/fast_link_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`;
+    console.log(`[DIAGNÓSTICO FETCH] 1. Chamando URL de dados diários: ${dailyUrl}`);
+
     const dailyResponse = await fetch(dailyUrl, { headers });
-    if (!dailyResponse.ok) return null;
+
+    console.log(`[DIAGNÓSTICO FETCH] 2. Resposta de dados diários - Status: ${dailyResponse.status}`);
+    if (!dailyResponse.ok) {
+      const errorBody = await dailyResponse.text();
+      console.error(`[DIAGNÓSTICO FETCH] ERRO: Resposta de dados diários não foi OK. Body: ${errorBody}`);
+      return null;
+    }
 
     const dailyJson = await dailyResponse.json();
+    console.log("[DIAGNÓSTICO FETCH] 3. Resposta JSON completa dos dados diários:", JSON.stringify(dailyJson, null, 2));
+
     const dailyRows: TinybirdLinkAnalyticsRow[] = dailyJson.data;
-    if (!dailyRows || dailyRows.length === 0) return null;
+
+    if (!dailyRows || dailyRows.length === 0) {
+      console.log(`[DIAGNÓSTICO FETCH] 4. AVISO: A query de dados diários para o linkId ${linkId} retornou 0 linhas. Saindo.`);
+      return null;
+    }
+
+    console.log(`[DIAGNÓSTICO FETCH] 5. Sucesso! Encontradas ${dailyRows.length} linhas de dados diários. Continuando para os outros pipes...`);
 
     const dailyData = dailyRows.map(row => ({ date: row.date, clicks: row.total_clicks || 0 }));
     const totalClicks = dailyData.reduce((sum, day) => sum + day.clicks, 0);
@@ -60,7 +81,7 @@ export async function fetchDetailedAnalyticsForLink(
     const peakHourData = results[4].status === 'fulfilled' ? results[4].value : [];
     const peakHour = peakHourData.length > 0 ? peakHourData[0].peak_hour : null;
 
-    return {
+    const finalDataObject = {
       linkId,
       linkTitle: dailyRows[0].linkTitle,
       linkUrl: dailyRows[0].linkUrl,
@@ -70,8 +91,13 @@ export async function fetchDetailedAnalyticsForLink(
       dailyData: dailyData.reverse(),
       countryData, cityData, regionData, hourlyData, peakHour,
     };
+
+    console.log("[DIAGNÓSTICO FETCH] 6. Objeto de dados final a ser retornado:", JSON.stringify(finalDataObject, null, 2));
+
+    return finalDataObject;
+
   } catch (err) {
-    console.error("Erro em fetchDetailedAnalyticsForLink:", err);
+    console.error("[DIAGNÓSTICO FETCH] ERRO CRÍTICO: A função quebrou dentro do bloco try/catch.", err);
     return null;
   }
 }
@@ -80,13 +106,13 @@ async function fetchDataFromPipe<T>(url: string, headers: HeadersInit): Promise<
   try {
     const res = await fetch(url, { headers });
     if (!res.ok) {
-      console.warn(`Aviso: Falha na chamada ao pipe ${url.split('/').pop()?.split('?')[0]}. Status: ${res.status}`);
+      console.warn(`[DIAGNÓSTICO FETCH] Aviso: Falha na chamada ao pipe ${url.split('/').pop()?.split('?')[0]}. Status: ${res.status}`);
       return [] as T;
     }
     const json = await res.json();
     return json.data || ([] as T);
   } catch (e){
-    console.error(`Erro crítico no fetch do pipe ${url.split('/').pop()?.split('?')[0]}.`, e);
+    console.error(`[DIAGNÓSTICO FETCH] Erro crítico no fetch do pipe ${url.split('/').pop()?.split('?')[0]}.`, e);
     return [] as T;
   }
 }

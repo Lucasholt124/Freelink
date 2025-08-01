@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -23,7 +22,6 @@ interface LinkAnalyticsProps {
 
 const formatUrl = (url: string) => { try { return new URL(url).hostname.replace("www.", "") } catch { return url } };
 
-// Breadcrumb como um componente simples e funcional
 function Breadcrumb({ linkTitle }: { linkTitle: string }) {
     return (
         <nav className="flex items-center text-sm text-gray-500 mb-4">
@@ -53,9 +51,7 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   if (!isLoaded) { return <div className="p-8 text-center">Carregando dados...</div>; }
   if (!hasAnalyticsAccess) { return <UpgradeCallToAction />; }
 
-  // O componente agora está limpo e não tenta ser uma página inteira
   return (
-    // Removido o container principal com padding. A página que chama este componente deve cuidar disso.
     <div className="space-y-6">
       <Breadcrumb linkTitle={analytics.linkTitle} />
 
@@ -73,6 +69,7 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
           </section>
 
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* CORREÇÃO: Só renderiza o gráfico se houver dados para ele */}
             {analytics.dailyData && analytics.dailyData.length > 0 && <DailyPerformanceChart data={analytics.dailyData} />}
             {analytics.countryData && analytics.countryData.length > 0 && <CountryChart data={analytics.countryData} />}
 

@@ -1,3 +1,4 @@
+
 import LinkAnalytics from "@/components/LinkAnalytics";
 import { fetchDetailedAnalyticsForLink } from "@/convex/lib/fetchLinkAnalytics";
 import { currentUser } from "@clerk/nextjs/server";
@@ -20,10 +21,12 @@ export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPagePro
   const resolvedParams = await params;
   const { id } = resolvedParams;
 
+  console.log(`[DIAGNÓSTICO] Página carregada. Buscando dados para user: ${user.id}, link: ${id}`);
+
   const analytics = await fetchDetailedAnalyticsForLink(user.id, id);
 
-  // Se a busca de analytics falhar ou não encontrar dados, mostramos a tela de erro
   if (!analytics) {
+    console.log("[DIAGNÓSTICO] fetchDetailedAnalyticsForLink retornou null. Renderizando tela de erro.");
     return (
        <div className="p-8 text-center bg-gray-50 min-h-screen">
         <div className="bg-white p-10 rounded-xl shadow-md max-w-lg mx-auto">
@@ -39,5 +42,6 @@ export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPagePro
     );
   }
 
+  console.log("[DIAGNÓSTICO] Dados recebidos com sucesso. Renderizando componente LinkAnalytics.");
   return <LinkAnalytics analytics={analytics} />;
 }
