@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react"; // <-- IMPORTANTE: para guardar o estado
 import { BarChart3 } from "lucide-react";
 
 interface HourlyChartProps {
@@ -7,12 +8,17 @@ interface HourlyChartProps {
 }
 
 export function HourlyChart({ data }: HourlyChartProps) {
-  // Cria um mapa de horas para acesso rápido aos dados de cliques.
-  const clicksByHour = new Map(data.map(item => [item.hour_of_day, item.total_clicks]));
+  // Estado para armazenar qual hora está selecionada (para mobile)
+  const [selectedHour, setSelectedHour] = useState<number | null>(null);
 
-  // Encontra o valor máximo de cliques para normalizar a altura das barras.
-  // Se não houver dados, o máximo é 0.
+  const clicksByHour = new Map(data.map(item => [item.hour_of_day, item.total_clicks]));
   const maxClicks = data.length > 0 ? Math.max(...data.map(d => d.total_clicks)) : 0;
+
+  // Função para lidar com o clique/toque na barra
+  const handleBarClick = (hour: number) => {
+    // Se a barra já estiver selecionada, deselecione. Senão, selecione-a.
+    setSelectedHour(selectedHour === hour ? null : hour);
+  };
 
   return (
     <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200/80 shadow-lg">
@@ -23,43 +29,45 @@ export function HourlyChart({ data }: HourlyChartProps) {
         <h3 className="text-xl font-bold text-gray-800">Distribuição por Hora</h3>
       </div>
 
-      {/* Container do gráfico com altura fixa e padding para espaço */}
       <div className="flex gap-1 sm:gap-1.5 items-end h-48 pt-8">
-        {/* Gera 24 barras, uma para cada hora do dia */}
         {Array.from({ length: 24 }).map((_, hour) => {
           const clicks = clicksByHour.get(hour) || 0;
-          // Calcula a altura da barra em porcentagem, baseada no `maxClicks`
           const height = maxClicks > 0 ? (clicks / maxClicks) * 100 : 0;
-          // Determina se a legenda da hora deve ser mostrada para evitar sobreposição em telas pequenas
           const showHourLabel = hour % 2 === 0;
 
-          return (
-            // **MUDANÇA 1: Adicionado `relative` para posicionar o tooltip e `group` para o hover**
-            <div key={hour} className="relative flex-1 h-full flex flex-col justify-end items-center group">
+          // Verifica se a barra atual está selecionada
+          const isSelected = selectedHour === hour;
 
-              {/* **MUDANÇA 2: Tooltip customizado que aparece no hover** */}
-              {/* Ele só é renderizado se houver cliques para aquela hora */}
+          return (
+            <div
+              key={hour}
+              // **MUDANÇA MOBILE:** Adicionamos o onClick
+              onClick={() => handleBarClick(hour)}
+              className="relative flex-1 h-full flex flex-col justify-end items-center group cursor-pointer"
+            >
               {clicks > 0 && (
                 <div
-                  className="absolute bottom-full mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs font-bold rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none"
+                  // **MUDANÇA MOBILE:** O tooltip agora aparece se a barra estiver selecionada OU no hover
+                  className={`absolute bottom-full mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs font-bold rounded-md shadow-lg transition-opacity duration-200 pointer-events-none ${
+                    isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
+                  }`}
                 >
-                  {/* Lógica para mostrar "clique" ou "cliques" */}
                   {clicks} {clicks === 1 ? 'clique' : 'cliques'}
                 </div>
               )}
 
-              {/* A barra visual do gráfico */}
               <div
-                className="w-full bg-orange-200 group-hover:bg-orange-400 rounded-t-md transition-all duration-200"
-                // Garante que mesmo com 0 cliques, a barra tenha uma altura mínima para ser visível
+                // **MUDANÇA MOBILE:** A barra fica mais escura se estiver selecionada
+                className={`w-full rounded-t-md transition-all duration-200 ${
+                  isSelected ? 'bg-orange-500' : 'bg-orange-200 group-hover:bg-orange-400'
+                }`}
                 style={{ height: `${height}%`, minHeight: '2px' }}
               />
 
-              {/* Legenda da hora (e.g., "00", "01", "02") */}
-              {/* **MUDANÇA 3: Melhoria na responsividade das legendas** */}
               <div
-                // Em telas pequenas (abaixo de `sm`), só mostra as legendas pares. Em telas maiores, mostra todas.
-                className={`text-[10px] text-gray-500 mt-1.5 ${!showHourLabel && 'hidden sm:inline'}`}
+                className={`text-[10px] mt-1.5 ${
+                  isSelected ? 'text-orange-600 font-bold' : 'text-gray-500'
+                } ${!showHourLabel && 'hidden sm:inline'}`}
               >
                 {String(hour).padStart(2, '0')}
               </div>
