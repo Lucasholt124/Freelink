@@ -1,14 +1,10 @@
 
 "use client";
 
-import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import {  MapPin, BarChart3, Clock, Map, ChevronRight } from "lucide-react";
-
+import { MapPin, BarChart3, Clock, Map } from "lucide-react";
 import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
-
-// Importa TODOS os componentes de UI que você criou
 import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
 import { CountryChart } from "./CountryChart";
@@ -41,39 +37,18 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   const hasAnalyticsAccess = plan === "pro" || plan === "ultra" || isAdmin;
   const hasUltraFeaturesAccess = plan === "ultra" || isAdmin;
 
-  // ESTADO DE CARREGAMENTO
-  if (!isLoaded) {
-    // Aqui você pode usar seu componente SkeletonDashboard se quiser
-    return <div className="p-8 text-center">Carregando dados...</div>;
-  }
+  if (!isLoaded) { return <div className="p-8 text-center">Carregando dados...</div>; }
+  if (!hasAnalyticsAccess) { return <UpgradeCallToAction />; }
+  if (analytics.totalClicks === 0) { return <NoDataState />; }
 
-  // ESTADO DE ACESSO NEGADO
-  if (!hasAnalyticsAccess) {
-    return <UpgradeCallToAction />;
-  }
-
-  // ESTADO DE NENHUM DADO ENCONTRADO
-  // Este estado agora é mais robusto e inclui o breadcrumb
-  if (analytics.totalClicks === 0) {
-    return (
-      <div className="p-4 md:p-8 space-y-4 max-w-7xl mx-auto">
-        <Breadcrumb linkTitle={analytics.linkTitle} />
-        <NoDataState />
-      </div>
-    );
-  }
-
-  // ESTADO PRINCIPAL: PÁGINA COM DADOS
   return (
-    <div className="p-4 md:p-8 space-y-6 max-w-7xl mx-auto">
-      {/* HEADER E BREADCRUMB CORRIGIDOS */}
-      <Breadcrumb linkTitle={analytics.linkTitle} />
-      <div className="pt-2">
+    // Removido o header local. O layout principal da sua app deve cuidar disso.
+    <div className="space-y-8">
+      <div>
         <h1 className="text-3xl md:text-4xl font-bold text-gray-900 truncate">{analytics.linkTitle}</h1>
         <a href={analytics.linkUrl} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 break-all">{formatUrl(analytics.linkUrl)}</a>
       </div>
 
-      {/* SEÇÕES DE ANÁLISE */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         <MetricCard title="Total de cliques" value={analytics.totalClicks} />
         <MetricCard title="Visitantes Únicos" value={analytics.uniqueUsers} />
@@ -109,19 +84,4 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
       </section>
     </div>
   );
-}
-
-// NOVO SUB-COMPONENTE PARA O BREADCRUMB
-function Breadcrumb({ linkTitle }: { linkTitle: string }) {
-    return (
-        <nav className="flex items-center text-sm text-gray-500">
-            <Link href="/dashboard" className="hover:text-gray-900">
-                Painel
-            </Link>
-            <ChevronRight className="w-4 h-4 mx-1" />
-            <span className="font-semibold text-gray-800 truncate">
-                Análises: {linkTitle}
-            </span>
-        </nav>
-    );
 }

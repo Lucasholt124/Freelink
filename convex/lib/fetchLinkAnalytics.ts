@@ -1,3 +1,4 @@
+
 export interface LinkAnalyticsData {
   linkId: string;
   linkTitle: string;
@@ -13,12 +14,34 @@ export interface LinkAnalyticsData {
   peakHour: number | null;
 }
 
-interface TinybirdLinkAnalyticsRow { date: string; linkTitle: string; linkUrl: string; total_clicks: number; unique_users: number; }
-interface TinybirdCountryAnalyticsRow { country: string; total_clicks: number; percentage: number; }
-interface TinybirdCityAnalyticsRow { city: string; total_clicks: number; }
-interface TinybirdRegionAnalyticsRow { region: string; total_clicks: number; }
-interface TinybirdHourlyAnalyticsRow { hour_of_day: number; total_clicks: number; }
-interface TinybirdPeakHourRow { peak_hour: number; }
+// Interfaces de retorno do Tinybird
+interface TinybirdLinkAnalyticsRow {
+  date: string;
+  linkTitle: string;
+  linkUrl: string;
+  total_clicks: number;
+  unique_users: number;
+}
+interface TinybirdCountryAnalyticsRow {
+  country: string;
+  total_clicks: number;
+  percentage: number;
+}
+interface TinybirdCityAnalyticsRow {
+  city: string;
+  total_clicks: number;
+}
+interface TinybirdRegionAnalyticsRow {
+  region: string;
+  total_clicks: number;
+}
+interface TinybirdHourlyAnalyticsRow {
+  hour_of_day: number;
+  total_clicks: number;
+}
+interface TinybirdPeakHourRow {
+  peak_hour: number;
+}
 
 export async function fetchDetailedAnalyticsForLink(
   userId: string,
@@ -34,7 +57,10 @@ export async function fetchDetailedAnalyticsForLink(
   try {
     const dailyUrl = `${baseUrl}/fast_link_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`;
     const dailyResponse = await fetch(dailyUrl, { headers });
-    if (!dailyResponse.ok) return null;
+    if (!dailyResponse.ok) {
+      console.error(`Falha ao buscar dados diários: ${dailyResponse.status}`);
+      return null;
+    }
 
     const dailyJson = await dailyResponse.json();
     const dailyRows: TinybirdLinkAnalyticsRow[] = dailyJson.data;
@@ -44,7 +70,8 @@ export async function fetchDetailedAnalyticsForLink(
     const totalClicks = dailyData.reduce((sum, day) => sum + day.clicks, 0);
     const totalUniqueUsers = dailyRows.reduce((sum, row) => sum + (row.unique_users || 0), 0);
 
-    const [countryData, cityData, regionData, hourlyData, peakHourData] = await Promise.all([
+    // CORREÇÃO: Usando Promise.allSettled para que a página não quebre se um pipe falhar.
+    const results = await Promise.allSettled([
       fetchDataFromPipe<TinybirdCountryAnalyticsRow[]>(`${baseUrl}/link_country_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
       fetchDataFromPipe<TinybirdCityAnalyticsRow[]>(`${baseUrl}/link_city_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
       fetchDataFromPipe<TinybirdRegionAnalyticsRow[]>(`${baseUrl}/link_region_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
@@ -52,6 +79,12 @@ export async function fetchDetailedAnalyticsForLink(
       fetchDataFromPipe<TinybirdPeakHourRow[]>(`${baseUrl}/get_peak_hour.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers)
     ]);
 
+    // Extrai os dados com segurança, retornando um array vazio em caso de falha.
+    const countryData = results[0].status === 'fulfilled' ? results[0].value.map(c => ({ country: c.country || "Desconhecido", clicks: c.total_clicks, percentage: c.percentage })) : [];
+    const cityData = results[1].status === 'fulfilled' ? results[1].value.map(c => ({ city: c.city || "Desconhecido", clicks: c.total_clicks })) : [];
+    const regionData = results[2].status === 'fulfilled' ? results[2].value.map(r => ({ region: r.region || "Desconhecido", clicks: r.total_clicks })) : [];
+    const hourlyData = results[3].status === 'fulfilled' ? results[3].value : [];
+    const peakHourData = results[4].status === 'fulfilled' ? results[4].value : [];
     const peakHour = peakHourData.length > 0 ? peakHourData[0].peak_hour : null;
 
     return {
@@ -62,9 +95,9 @@ export async function fetchDetailedAnalyticsForLink(
       uniqueUsers: totalUniqueUsers,
       countriesReached: countryData.length,
       dailyData: dailyData.reverse(),
-      countryData: countryData.map(c => ({ country: c.country || "Desconhecido", clicks: c.total_clicks, percentage: c.percentage })),
-      cityData: cityData.map(c => ({ city: c.city || "Desconhecido", clicks: c.total_clicks })),
-      regionData: regionData.map(r => ({ region: r.region || "Desconhecido", clicks: r.total_clicks })),
+      countryData,
+      cityData,
+      regionData,
       hourlyData,
       peakHour,
     };
@@ -77,10 +110,14 @@ export async function fetchDetailedAnalyticsForLink(
 async function fetchDataFromPipe<T>(url: string, headers: HeadersInit): Promise<T> {
   try {
     const res = await fetch(url, { headers });
-    if (!res.ok) return [] as T;
+    if (!res.ok) {
+      console.warn(`Aviso: Falha na chamada ao pipe ${url.split('/').pop()?.split('?')[0]}. Status: ${res.status}`);
+      return [] as T;
+    }
     const json = await res.json();
     return json.data || ([] as T);
-  } catch {
+  } catch (e){
+    console.error(`Erro crítico no fetch do pipe ${url.split('/').pop()?.split('?')[0]}.`, e);
     return [] as T;
   }
 }
