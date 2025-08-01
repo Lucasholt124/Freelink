@@ -9,17 +9,19 @@ export async function POST(request: NextRequest) {
   try {
     const data: ClientTrackingData = await request.json();
     const geo = geolocation(request);
+
+    // Lógica aprimorada para pegar o IP do visitante, não do servidor
     const ip = request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
 
     let country = geo?.country || "";
     let region = geo?.region || "";
     let city = geo?.city || "";
-    // CORREÇÃO: Garante que latitude e longitude são strings
     let latitude = geo?.latitude?.toString() || "";
     let longitude = geo?.longitude?.toString() || "";
 
-    const isVercelGeoInvalid = !country || region === 'dev1';
-    if (isVercelGeoInvalid && ip && ip !== '::1' && !ip.startsWith('192.168')) {
+    // Se a Vercel retornar dados genéricos ou de servidor, usamos o fallback
+    const isGenericVercelGeo = !country || region === 'dev1' || (country === 'US' && city === 'Washington');
+    if (isGenericVercelGeo && ip && ip !== '::1' && !ip.startsWith('192.168')) {
       try {
         const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
         if (geoRes.ok) {
@@ -30,7 +32,7 @@ export async function POST(request: NextRequest) {
             latitude = geoJson.latitude?.toString() || latitude;
             longitude = geoJson.longitude?.toString() || longitude;
         }
-      } catch {}
+      } catch (e) { console.error("Falha no fallback de geolocalização:", e) }
     }
 
     const convex = getClient();
@@ -60,17 +62,18 @@ export async function POST(request: NextRequest) {
           country: trackingEvent.location.country || "",
           region: trackingEvent.location.region || "",
           city: trackingEvent.location.city || "",
-          // CORREÇÃO: ADICIONAMOS LATITUDE E LONGITUDE AQUI
           latitude: trackingEvent.location.latitude || "",
           longitude: trackingEvent.location.longitude || "",
         },
       };
+      // Usamos await para garantir que o evento seja enviado antes de a função terminar
       await fetch(`${process.env.TINYBIRD_HOST}/v0/events?name=link_clicks`, {
         method: "POST",
         headers: { Authorization: `Bearer ${process.env.TINYBIRD_TOKEN}`, "Content-Type": "application/json" },
         body: JSON.stringify(eventForTinybird),
       });
     }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Erro ao rastrear clique:", error);
