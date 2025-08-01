@@ -2,9 +2,10 @@
 import LinkAnalytics from "@/components/LinkAnalytics";
 
 // Importe a função de backend com o NOME CORRETO e a tipagem
-import { fetchDetailedAnalyticsForLink, LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
+import { fetchDetailedAnalyticsForLink } from "@/convex/lib/fetchLinkAnalytics";
 
 import { currentUser } from "@clerk/nextjs/server";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 
@@ -24,25 +25,28 @@ export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPagePro
   }
 
   // CORREÇÃO: Chamando a função com o nome correto
-  const analytics = await fetchDetailedAnalyticsForLink(user.id, id);
+   const analytics = await fetchDetailedAnalyticsForLink(user.id, id);
 
-  // Se a busca falhar ou não retornar dados, mostramos um estado vazio/erro
+  // CORREÇÃO: Se 'analytics' for nulo (nenhum clique ou erro de fetch),
+  // nós NÃO criamos um objeto falso. Nós passamos `null` para o componente.
+  // O componente de UI vai decidir o que fazer.
   if (!analytics) {
-    const emptyAnalytics: LinkAnalyticsData = {
-      linkId: id,
-      linkTitle: "Link não encontrado ou sem dados",
-      linkUrl: "Por favor, verifique o ID do link ou aguarde os primeiros cliques.",
-      totalClicks: 0,
-      uniqueUsers: 0,
-      countriesReached: 0,
-      dailyData: [],
-      countryData: [],
-      cityData: [],
-      hourlyData: [],
-    };
-    return <LinkAnalytics analytics={emptyAnalytics} />;
+    // Se a busca falhou completamente, podemos mostrar um erro genérico
+    return (
+       <div className="p-8 text-center bg-gray-50 min-h-screen">
+        <div className="bg-white p-10 rounded-xl shadow-md max-w-lg mx-auto">
+            <h2 className="text-xl font-bold text-gray-800">Dados Indisponíveis</h2>
+            <p className="text-gray-600 mt-2">
+              Não foi possível carregar as análises. Verifique se o link já recebeu cliques ou tente novamente.
+            </p>
+            <Link href="/dashboard" className="mt-6 inline-block text-blue-600 font-semibold hover:underline">
+              Voltar ao Painel
+            </Link>
+        </div>
+      </div>
+    );
   }
 
-  // Se a busca for bem-sucedida, passamos os dados completos para o componente de exibição
+  // Se 'analytics' existe, passamos para o componente de UI.
   return <LinkAnalytics analytics={analytics} />;
 }

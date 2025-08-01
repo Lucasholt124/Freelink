@@ -1,33 +1,18 @@
-DESCRIPTION >
-    Get link click analytics for a specific profile owner with time filtering
-
-NODE link_analytics_node
+NODE fast_link_analytics_node
 SQL >
     %
     SELECT
-        toDate(timestamp) as date,
+        date,
         linkTitle,
         linkUrl,
-        count() as total_clicks,
-        uniq(visitorId) as unique_users,
-        uniq(location_country) as countries_reached,
-        max(timestamp) as peak_click_time  -- NOVO CAMPO: último clique do dia
-    FROM link_clicks
+        countMerge(total_clicks) as total_clicks,
+        uniqMerge(unique_users) as unique_users,
+        uniqMerge(unique_countries) as countries_reached
+    FROM daily_link_performance_materialized
     WHERE
         profileUserId = {{String(profileUserId)}}
-        AND visitorId != ''  -- IGNORA eventos antigos sem visitorId
-        {% if defined(start_date) %}
-        AND date >= {{Date(start_date)}}
-        {% else %}
-        AND date >= today() - 30
-        {% end %}
-        {% if defined(end_date) %}
-        AND date <= {{Date(end_date)}}
-        {% else %}
-        AND date <= today()
-        {% end %}
-        {% if defined(linkId) %}
         AND linkId = {{String(linkId)}}
-        {% end %}
-    GROUP BY date, linkTitle, linkUrl
-    ORDER BY date DESC, total_clicks DESC
+    GROUP BY date, linkId, linkTitle, linkUrl
+    ORDER BY date DESC
+
+TYPE endpoint

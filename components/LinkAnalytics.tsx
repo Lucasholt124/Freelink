@@ -1,17 +1,15 @@
-// ===================================================================================
-// ARQUIVO FINAL, COMPLETO E CORRETO: components/LinkAnalytics.tsx
-// CORREÇÃO: AGORA ELE USA OS COMPONENTES QUE VOCÊ CRIOU
-// ===================================================================================
 
 "use client";
 
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { ArrowLeft, MapPin, BarChart3 } from "lucide-react";
+import { ArrowLeft, MapPin, BarChart3, Clock } from "lucide-react"; // Adicionado ícone de relógio
 
+// Importa a tipagem
 import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
 
+// Importa TODOS os componentes de UI que você criou
 import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
 import { CountryChart } from "./CountryChart";
@@ -63,29 +61,42 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
         <NoDataState />
       ) : (
         <main className="max-w-7xl mx-auto space-y-8">
-          {/* USANDO O COMPONENTE METRIC CARD */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <MetricCard title="Total de cliques" value={analytics.totalClicks} />
             <MetricCard title="Visitantes Únicos" value={analytics.uniqueUsers} />
             <MetricCard title="Países Alcançados" value={analytics.countriesReached} />
           </section>
 
-          {/* USANDO OS COMPONENTES DE GRÁFICOS */}
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <DailyPerformanceChart data={analytics.dailyData} />
             <CountryChart data={analytics.countryData} />
 
-            {/* LÓGICA CORRETA PARA MOSTRAR/BLOQUEAR FEATURES ULTRA */}
             {hasUltraFeaturesAccess ? (
-              <CityChart data={analytics.cityData} />
-            ) : (
-              <LockedFeatureCard title="Análise por Cidade" icon={<MapPin className="w-6 h-6 text-gray-600"/>} requiredPlan="Ultra" />
-            )}
+              <>
+                <CityChart data={analytics.cityData} />
+                <HourlyChart data={analytics.hourlyData} />
 
-            {hasUltraFeaturesAccess ? (
-              <HourlyChart data={analytics.hourlyData} />
+                {/* NOVO CARD PARA A HORA DE PICO, OCUPANDO A LARGURA TODA */}
+                <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg flex items-center gap-6">
+                  <div className="p-4 bg-orange-100 rounded-xl">
+                    <Clock className="w-8 h-8 text-orange-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-800">Horário de Pico</h3>
+                    <p className="text-4xl font-bold text-orange-500">
+                      {analytics.peakHour !== null ? `${String(analytics.peakHour).padStart(2, '0')}:00` : "N/A"}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {analytics.peakHour !== null ? "Horário com o maior número de cliques." : "Dados insuficientes para calcular."}
+                    </p>
+                  </div>
+                </div>
+              </>
             ) : (
-              <LockedFeatureCard title="Análise de Horários" icon={<BarChart3 className="w-6 h-6 text-gray-600"/>} requiredPlan="Ultra" />
+              <>
+                <LockedFeatureCard title="Análise por Cidade" icon={<MapPin className="w-6 h-6 text-gray-600"/>} requiredPlan="Ultra" />
+                <LockedFeatureCard title="Análise de Horários" icon={<BarChart3 className="w-6 h-6 text-gray-600"/>} requiredPlan="Ultra" />
+              </>
             )}
           </section>
         </main>
