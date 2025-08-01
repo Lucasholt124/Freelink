@@ -142,10 +142,11 @@ export function SortableItem({
           <div className="flex items-center gap-1 flex-shrink-0">
             {/* Botão de análise */}
             <Button variant="outline" size="icon" className="h-8 w-8" asChild>
-              <Link href={`/dashboard/link/${id}`}>
-                <BarChart3 className="w-3.5 h-3.5 text-green-500" />
-              </Link>
-            </Button>
+  {/* CORREÇÃO: Usar link._id em vez de apenas id */}
+  <Link href={`/dashboard/link/${link._id}`}>
+    <BarChart3 className="w-3.5 h-3.5 text-green-500" />
+  </Link>
+</Button>
 
             {/* Botão Editar */}
             <Button
