@@ -1,3 +1,7 @@
+
+import { sql, QueryResultRow } from '@vercel/postgres';
+
+// A interface de dados que a sua UI espera receber.
 export interface LinkAnalyticsData {
   linkId: string;
   linkTitle: string;
@@ -13,106 +17,77 @@ export interface LinkAnalyticsData {
   peakHour: number | null;
 }
 
-// Interfaces de retorno do Tinybird
-interface TinybirdLinkAnalyticsRow { date: string; linkTitle: string; linkUrl: string; total_clicks: number; unique_users: number; }
-interface TinybirdCountryAnalyticsRow { country: string; total_clicks: number; percentage: number; }
-interface TinybirdCityAnalyticsRow { city: string; total_clicks: number; }
-interface TinybirdRegionAnalyticsRow { region: string; total_clicks: number; }
-interface TinybirdHourlyAnalyticsRow { hour_of_day: number; total_clicks: number; }
-interface TinybirdPeakHourRow { peak_hour: number; }
-
+// NOTA: Esta função agora é independente do Convex.
+// Ela só precisa do ID do usuário e do ID do link.
 export async function fetchDetailedAnalyticsForLink(
   userId: string,
-  linkId: string,
-  daysBack: number = 30
+  linkId: string
 ): Promise<LinkAnalyticsData | null> {
-  console.log(`[DIAGNÓSTICO FETCH] Iniciando para userId: ${userId}, linkId: ${linkId}`);
-
-  const { TINYBIRD_TOKEN, TINYBIRD_HOST } = process.env;
-  if (!TINYBIRD_TOKEN || !TINYBIRD_HOST) {
-    console.error("[DIAGNÓSTICO FETCH] ERRO: Variáveis de ambiente do Tinybird não encontradas.");
-    return null;
-  }
-
-  const headers = { Authorization: `Bearer ${TINYBIRD_TOKEN}` };
-  const baseUrl = `${TINYBIRD_HOST}/v0/pipes`;
-
   try {
-    const dailyUrl = `${baseUrl}/fast_link_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`;
-    console.log(`[DIAGNÓSTICO FETCH] 1. Chamando URL de dados diários: ${dailyUrl}`);
-
-    const dailyResponse = await fetch(dailyUrl, { headers });
-
-    console.log(`[DIAGNÓSTICO FETCH] 2. Resposta de dados diários - Status: ${dailyResponse.status}`);
-    if (!dailyResponse.ok) {
-      const errorBody = await dailyResponse.text();
-      console.error(`[DIAGNÓSTICO FETCH] ERRO: Resposta de dados diários não foi OK. Body: ${errorBody}`);
-      return null;
-    }
-
-    const dailyJson = await dailyResponse.json();
-    console.log("[DIAGNÓSTICO FETCH] 3. Resposta JSON completa dos dados diários:", JSON.stringify(dailyJson, null, 2));
-
-    const dailyRows: TinybirdLinkAnalyticsRow[] = dailyJson.data;
-
-    if (!dailyRows || dailyRows.length === 0) {
-      console.log(`[DIAGNÓSTICO FETCH] 4. AVISO: A query de dados diários para o linkId ${linkId} retornou 0 linhas. Saindo.`);
-      return null;
-    }
-
-    console.log(`[DIAGNÓSTICO FETCH] 5. Sucesso! Encontradas ${dailyRows.length} linhas de dados diários. Continuando para os outros pipes...`);
-
-    const dailyData = dailyRows.map(row => ({ date: row.date, clicks: row.total_clicks || 0 }));
-    const totalClicks = dailyData.reduce((sum, day) => sum + day.clicks, 0);
-    const totalUniqueUsers = dailyRows.reduce((sum, row) => sum + (row.unique_users || 0), 0);
-
-    const results = await Promise.allSettled([
-      fetchDataFromPipe<TinybirdCountryAnalyticsRow[]>(`${baseUrl}/link_country_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
-      fetchDataFromPipe<TinybirdCityAnalyticsRow[]>(`${baseUrl}/link_city_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
-      fetchDataFromPipe<TinybirdRegionAnalyticsRow[]>(`${baseUrl}/link_region_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
-      fetchDataFromPipe<TinybirdHourlyAnalyticsRow[]>(`${baseUrl}/link_hourly_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
-      fetchDataFromPipe<TinybirdPeakHourRow[]>(`${baseUrl}/get_peak_hour.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers)
+    // --- QUERIES NO BANCO DE ANALYTICS (POSTGRES) ---
+    const [
+      clicksResult,
+      uniqueUsersResult,
+      countryResult,
+      cityResult,
+      regionResult,
+      hourlyResult,
+      peakHourResult,
+      dailyResult
+    ] = await Promise.all([
+      sql`SELECT COUNT(*) FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId};`,
+      sql`SELECT COUNT(DISTINCT "visitorId") FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId};`,
+      sql`SELECT country, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} AND country IS NOT NULL AND country != '' GROUP BY country ORDER BY clicks DESC LIMIT 7;`,
+      sql`SELECT city, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} AND city IS NOT NULL AND city != '' GROUP BY city ORDER BY clicks DESC LIMIT 7;`,
+      sql`SELECT region, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} AND region IS NOT NULL AND region != '' GROUP BY region ORDER BY clicks DESC LIMIT 7;`,
+      sql`SELECT EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/Sao_Paulo') as hour_of_day, COUNT(*) as total_clicks FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} GROUP BY hour_of_day ORDER BY hour_of_day;`,
+      sql`SELECT EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/Sao_Paulo') as peak_hour FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} GROUP BY peak_hour ORDER BY COUNT(*) DESC LIMIT 1;`,
+      sql`SELECT DATE_TRUNC('day', timestamp AT TIME ZONE 'America/Sao_Paulo')::DATE as date, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} GROUP BY date ORDER BY date DESC LIMIT 30;`,
     ]);
 
-    const countryData = results[0].status === 'fulfilled' ? results[0].value.map(c => ({ country: c.country || "Desconhecido", clicks: c.total_clicks, percentage: c.percentage })) : [];
-    const cityData = results[1].status === 'fulfilled' ? results[1].value.map(c => ({ city: c.city || "Desconhecido", clicks: c.total_clicks })) : [];
-    const regionData = results[2].status === 'fulfilled' ? results[2].value.map(r => ({ region: r.region || "Desconhecido", clicks: r.total_clicks })) : [];
-    const hourlyData = results[3].status === 'fulfilled' ? results[3].value : [];
-    const peakHourData = results[4].status === 'fulfilled' ? results[4].value : [];
-    const peakHour = peakHourData.length > 0 ? peakHourData[0].peak_hour : null;
+    const totalClicks = parseInt(clicksResult.rows[0].count as string, 10);
 
-    const finalDataObject = {
-      linkId,
-      linkTitle: dailyRows[0].linkTitle,
-      linkUrl: dailyRows[0].linkUrl,
+    // Se não há cliques, retornamos um objeto mínimo para a UI lidar com o estado vazio.
+    // O título e a URL serão buscados na página container.
+    if (totalClicks === 0) {
+      return {
+        linkId: linkId,
+        linkTitle: "", // Será preenchido pela página
+        linkUrl: "",   // Será preenchido pela página
+        totalClicks: 0, uniqueUsers: 0, countriesReached: 0,
+        dailyData: [], countryData: [], cityData: [], regionData: [], hourlyData: [], peakHour: null,
+      };
+    }
+
+    const totalUniqueUsers = parseInt(uniqueUsersResult.rows[0].count as string, 10);
+
+    // Adicionando tipagem explícita para as linhas dos resultados
+    const countryData = countryResult.rows.map((row: QueryResultRow) => ({
+      country: row.country,
+      clicks: parseInt(row.clicks, 10),
+      percentage: (parseInt(row.clicks, 10) / totalClicks) * 100
+    }));
+
+    const cityData = cityResult.rows.map((row: QueryResultRow) => ({ city: row.city, clicks: parseInt(row.clicks, 10) }));
+    const regionData = regionResult.rows.map((row: QueryResultRow) => ({ region: row.region, clicks: parseInt(row.clicks, 10) }));
+
+    return {
+      linkId: linkId,
+      linkTitle: "", // Será preenchido pela página
+      linkUrl: "",   // Será preenchido pela página
       totalClicks,
       uniqueUsers: totalUniqueUsers,
       countriesReached: countryData.length,
-      dailyData: dailyData.reverse(),
-      countryData, cityData, regionData, hourlyData, peakHour,
+      dailyData: dailyResult.rows.map((row: QueryResultRow) => ({ date: row.date.toISOString().split('T')[0], clicks: parseInt(row.clicks, 10) })).reverse(),
+      countryData,
+      cityData,
+      regionData,
+      hourlyData: hourlyResult.rows.map((row: QueryResultRow) => ({ hour_of_day: parseInt(row.hour_of_day, 10), total_clicks: parseInt(row.total_clicks, 10) })),
+      peakHour: peakHourResult.rows.length > 0 ? parseInt(peakHourResult.rows[0].peak_hour, 10) : null,
     };
 
-    console.log("[DIAGNÓSTICO FETCH] 6. Objeto de dados final a ser retornado:", JSON.stringify(finalDataObject, null, 2));
-
-    return finalDataObject;
-
   } catch (err) {
-    console.error("[DIAGNÓSTICO FETCH] ERRO CRÍTICO: A função quebrou dentro do bloco try/catch.", err);
+    console.error("Erro em fetchDetailedAnalyticsForLink:", err);
     return null;
-  }
-}
-
-async function fetchDataFromPipe<T>(url: string, headers: HeadersInit): Promise<T> {
-  try {
-    const res = await fetch(url, { headers });
-    if (!res.ok) {
-      console.warn(`[DIAGNÓSTICO FETCH] Aviso: Falha na chamada ao pipe ${url.split('/').pop()?.split('?')[0]}. Status: ${res.status}`);
-      return [] as T;
-    }
-    const json = await res.json();
-    return json.data || ([] as T);
-  } catch (e){
-    console.error(`[DIAGNÓSTICO FETCH] Erro crítico no fetch do pipe ${url.split('/').pop()?.split('?')[0]}.`, e);
-    return [] as T;
   }
 }

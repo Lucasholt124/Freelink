@@ -1,90 +1,43 @@
+
+import { sql } from '@vercel/postgres';
+
 export interface AnalyticsData {
   totalClicks: number;
   uniqueVisitors: number;
   countriesReached: number;
-  totalLinksClicked: number;
-  topLinkTitle: string | null;
   topReferrer: string | null;
-  firstClick: string | null;
-  lastClick: string | null;
 }
 
-export async function fetchAnalytics(
-  userId: string,
-  daysBack: number = 30,
-): Promise<AnalyticsData> {
-  // Verifique se o Tinybird está configurado
-  if (!process.env.TINYBIRD_TOKEN || !process.env.TINYBIRD_HOST) {
-    // Retorna dados vazios quando o Tinybird não está configurado
-    return {
-      totalClicks: 0,
-      uniqueVisitors: 0,
-      countriesReached: 0,
-      totalLinksClicked: 0,
-      topLinkTitle: null,
-      topReferrer: null,
-      firstClick: null,
-      lastClick: null,
-    };
-  }
-
+export async function fetchAnalytics(userId: string): Promise<AnalyticsData> {
   try {
-   // Use o endpoint profile_summary original para manter a funcionalidade topK
-    const tinybirdResponse = await fetch(
-      `${process.env.TINYBIRD_HOST}/v0/pipes/profile_summary.json?profileUserId=${userId}&days_back=${daysBack}`,
-      {
-        headers: {
-          Authorization: `Bearer ${process.env.TINYBIRD_TOKEN}`,
-        },
-        next: { revalidate: 0 }, // Cache por 0 segundos
-      },
-    );
+    const [
+      clicksResult,
+      uniqueVisitorsResult,
+      countriesResult,
+      referrerResult
+    ] = await Promise.all([
+      // CORREÇÃO: Usando "profileUserId" com aspas
+      sql`SELECT COUNT(*) FROM clicks WHERE "profileUserId" = ${userId};`,
 
-    if (!tinybirdResponse.ok) {
-      console.error("Falha na solicitação do Tinybird:", await tinybirdResponse.text());
-      throw new Error("Falha ao buscar análise");
-    }
+      // CORREÇÃO: Usando "visitorId" e "profileUserId" com aspas
+      sql`SELECT COUNT(DISTINCT "visitorId") FROM clicks WHERE "profileUserId" = ${userId};`,
 
-    const data = await tinybirdResponse.json();
+      // CORREÇÃO: Usando "profileUserId" com aspas
+      sql`SELECT COUNT(DISTINCT country) FROM clicks WHERE "profileUserId" = ${userId} AND country IS NOT NULL AND country != '';`,
 
-    // Handle empty response
-    if (!data.data || data.data.length === 0) {
-      return {
-        totalClicks: 0,
-        uniqueVisitors: 0,
-        countriesReached: 0,
-        totalLinksClicked: 0,
-        topLinkTitle: null,
-        topReferrer: null,
-        firstClick: null,
-        lastClick: null,
-      };
-    }
-
-    const analytics = data.data[0];
+      // CORREÇÃO: Usando "profileUserId" com aspas
+      sql`SELECT referrer, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND referrer IS NOT NULL AND referrer != 'direct' GROUP BY referrer ORDER BY clicks DESC LIMIT 1;`,
+    ]);
 
     return {
-      totalClicks: analytics.total_clicks || 0,
-      uniqueVisitors: analytics.unique_users || 0,
-      countriesReached: analytics.countries_reached || 0,
-      totalLinksClicked: analytics.total_links_clicked || 0,
-      topLinkTitle: analytics.top_link_title?.[0] || null,
-      topReferrer: analytics.top_referrer?.[0] || null,
-      firstClick: analytics.first_click || null,
-      lastClick: analytics.last_click || null,
+      totalClicks: parseInt(clicksResult.rows[0].count, 10) || 0,
+      uniqueVisitors: parseInt(uniqueVisitorsResult.rows[0].count, 10) || 0,
+      countriesReached: parseInt(countriesResult.rows[0].count, 10) || 0,
+      topReferrer: referrerResult.rows.length > 0 ? referrerResult.rows[0].referrer : null,
     };
-  } catch (tinybirdError) {
-    console.error("Erro do Tinybird:", tinybirdError);
-   // Retorna dados vazios se o Tinybird falhar
-    return {
-      totalClicks: 0,
-      uniqueVisitors: 0,
-      countriesReached: 0,
-      totalLinksClicked: 0,
-      topLinkTitle: null,
-      topReferrer: null,
-      firstClick: null,
-      lastClick: null,
-    };
+
+  } catch (error) {
+    console.error("Erro ao buscar dados de análise geral:", error);
+    return { totalClicks: 0, uniqueVisitors: 0, countriesReached: 0, topReferrer: null };
   }
 }

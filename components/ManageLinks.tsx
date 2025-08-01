@@ -31,7 +31,7 @@ import { useEffect, useState } from "react";
 export default function ManageLinks() {
   const { userId } = useAuth(); // Pegamos o ID do usuário logado
 
-  // CORREÇÃO: Agora passamos os argumentos para a query.
+  // A query agora busca os links usando o userId do usuário autenticado.
   // A query só será executada se 'userId' existir, graças à condição "skip".
   const links = useQuery(
     api.lib.links.getLinksByUserId,
@@ -40,13 +40,17 @@ export default function ManageLinks() {
 
   const updateLinkOrder = useMutation(api.lib.links.updateLinkOrder);
 
+  // O estado 'items' armazena a ordem dos IDs para o drag-and-drop
   const [items, setItems] = useState<Id<"links">[]>([]);
 
+  // Este useEffect garante que o estado 'items' esteja sempre sincronizado
+  // com os dados que chegam do banco de dados Convex.
   useEffect(() => {
     if (links) {
       setItems(links.map((link) => link._id));
     }
   }, [links]);
+
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -63,16 +67,25 @@ export default function ManageLinks() {
         const oldIndex = currentItems.indexOf(active.id as Id<"links">);
         const newIndex = currentItems.indexOf(over.id as Id<"links">);
         const newOrderedIds = arrayMove(currentItems, oldIndex, newIndex);
+
+        // Atualiza a ordem no banco de dados de forma otimista
         updateLinkOrder({ linkIds: newOrderedIds });
+
         return newOrderedIds;
       });
     }
   }
 
+  // Se os dados ainda não foram carregados pelo Convex, mostramos um estado de loading.
   if (links === undefined) {
-    return <div className="text-center text-gray-400 py-8">Carregando seus links...</div>;
+    return (
+      <div className="text-center text-gray-400 py-8">
+        Carregando seus links...
+      </div>
+    );
   }
 
+  // Criamos um mapa para acessar os dados completos do link de forma eficiente
   const linkMap = new Map(links.map(link => [link._id, link]));
 
   return (
@@ -85,11 +98,15 @@ export default function ManageLinks() {
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
           <div className="space-y-2 overflow-x-auto min-w-0">
             {items.length === 0 ? (
-              <div className="text-center text-gray-400 py-8">Nenhum link cadastrado ainda.</div>
+              <div className="text-center text-gray-400 py-8">
+                Nenhum link cadastrado ainda.
+              </div>
             ) : (
               items.map((id) => {
                 const link = linkMap.get(id);
+                // Adiciona uma verificação para garantir que o link existe antes de renderizar
                 if (!link) return null;
+
                 return <SortableItem key={id} id={id} link={link} />;
               })
             )}

@@ -183,3 +183,18 @@ export const updateLinkOrder = mutation({
     return null;
   },
 });
+export const getLinkById = query({
+  // Define os argumentos que a função espera receber
+  args: {
+    linkId: v.id("links"), // Espera um 'linkId' que seja um ID válido da tabela "links"
+  },
+
+  // A lógica que será executada
+  handler: async (ctx, args) => {
+    // Busca no banco de dados o documento com o ID fornecido
+    const link = await ctx.db.get(args.linkId);
+
+    // Retorna o link encontrado. Se não encontrar, retorna null.
+    return link;
+  },
+});

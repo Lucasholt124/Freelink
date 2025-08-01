@@ -1,9 +1,14 @@
 
 import LinkAnalytics from "@/components/LinkAnalytics";
-import { fetchDetailedAnalyticsForLink } from "@/convex/lib/fetchLinkAnalytics";
+import { fetchDetailedAnalyticsForLink, LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
 import { currentUser } from "@clerk/nextjs/server";
 import { notFound } from "next/navigation";
 import Link from "next/link";
+
+// Importações necessárias para buscar os detalhes do link no Convex E PARA A TIPAGEM
+import { api } from "@/convex/_generated/api";
+import { fetchQuery } from "convex/nextjs";
+import { Id } from "@/convex/_generated/dataModel"; // <-- IMPORTANTE
 
 // Mantendo a estrutura que a Vercel exige no seu projeto
 interface LinkAnalyticsPageProps {
@@ -21,12 +26,17 @@ export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPagePro
   const resolvedParams = await params;
   const { id } = resolvedParams;
 
-  console.log(`[DIAGNÓSTICO] Página carregada. Buscando dados para user: ${user.id}, link: ${id}`);
+  // CORREÇÃO: Usamos 'as Id<"links">' para dizer ao TypeScript para confiar em nós.
+  const linkId = id as Id<"links">;
 
-  const analytics = await fetchDetailedAnalyticsForLink(user.id, id);
+  // Agora, com o userId e o linkId em mãos, buscamos os dados de analytics
+  // E os detalhes do link (título, url) do Convex, tudo em paralelo.
+  const [analytics, linkDetails] = await Promise.all([
+    fetchDetailedAnalyticsForLink(user.id, linkId),
+    fetchQuery(api.lib.links.getLinkById, { linkId: linkId })
+  ]);
 
   if (!analytics) {
-    console.log("[DIAGNÓSTICO] fetchDetailedAnalyticsForLink retornou null. Renderizando tela de erro.");
     return (
        <div className="p-8 text-center bg-gray-50 min-h-screen">
         <div className="bg-white p-10 rounded-xl shadow-md max-w-lg mx-auto">
@@ -42,6 +52,11 @@ export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPagePro
     );
   }
 
-  console.log("[DIAGNÓSTICO] Dados recebidos com sucesso. Renderizando componente LinkAnalytics.");
-  return <LinkAnalytics analytics={analytics} />;
+  const finalAnalyticsData: LinkAnalyticsData = {
+    ...analytics,
+    linkTitle: linkDetails?.title || analytics.linkTitle,
+    linkUrl: linkDetails?.url || analytics.linkUrl,
+  };
+
+  return <LinkAnalytics analytics={finalAnalyticsData} />;
 }

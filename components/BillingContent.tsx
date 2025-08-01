@@ -1,275 +1,283 @@
+
 "use client";
 
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Loader2, Zap, Rocket, CheckCircle, XCircle } from "lucide-react";
+import { Loader2, Zap, Rocket, Star, CheckCircle, XCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 
-type PlanType = "free" | "pro" | "ultra";
+// Tipos claros para o nosso sistema de planos
+type PlanIdentifier = "free" | "pro" | "ultra";
+interface Plan {
+  name: string;
+  price: string;
+  priceDetails: string;
+  features: string[];
+  icon?: React.ReactNode;
+  color?: string;
+  recommended?: boolean;
+}
+
+// Objeto de configuração dos planos - A ÚNICA FONTE DA VERDADE
+const plans: Record<PlanIdentifier, Plan> = {
+  free: {
+    name: "Free",
+    price: "Grátis",
+    priceDetails: "para sempre",
+    features: [
+      "Links ilimitados",
+      "Personalização de aparência",
+      "Análise de cliques totais",
+    ],
+    icon: <CheckCircle className="w-5 h-5"/>,
+    color: "gray",
+  },
+  pro: {
+    name: "Pro",
+    price: "R$14,90",
+    priceDetails: "/mês",
+    features: [
+      "Tudo do plano Free",
+      "Análise de Visitantes Únicos",
+      "Análise de Fontes de Tráfego (Referrers)",
+      "Análise de Países",
+      "Remoção da marca Freelinnk",
+      "Suporte via e-mail",
+    ],
+    icon: <Zap className="w-5 h-5" />,
+    color: "blue",
+  },
+  ultra: {
+    name: "Ultra",
+    price: "R$39,90",
+    priceDetails: "/mês",
+    features: [
+      "Tudo do plano Pro",
+      "Análise de Cidades e Estados",
+      "Análise de Horários de Pico",
+      "Análise de Dispositivos (Mobile/Desktop)",
+      "Integração com Pixel (Facebook/TikTok)",
+      "Integração com Google Analytics (GA4)",
+      "Suporte prioritário via WhatsApp",
+    ],
+    icon: <Rocket className="w-5 h-5" />,
+    color: "purple",
+    recommended: true,
+  },
+};
 
 export default function BillingContent() {
   const { user } = useUser();
-  const [loading, setLoading] = useState<"pro" | "ultra" | "cancel" | null>(null);
-  const [plan, setPlan] = useState<PlanType>("free");
+  const [loading, setLoading] = useState<PlanIdentifier | "cancel" | "portal" | null>(null);
+  const [currentPlan, setCurrentPlan] = useState<PlanIdentifier>("free");
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Buscar plano do usuário ao carregar
   useEffect(() => {
+    const success = searchParams.get("success");
+    const canceled = searchParams.get("canceled");
+
+    if (success) {
+      toast.success("Assinatura realizada com sucesso! 🎉");
+      router.replace("/dashboard/billing");
+    }
+    if (canceled) {
+      toast.info("O processo de assinatura foi cancelado.");
+      router.replace("/dashboard/billing");
+    }
+
     async function fetchPlan() {
       if (!user?.id) return;
       try {
         const res = await fetch("/api/subscription-plan");
-        if (!res.ok) throw new Error("Erro ao buscar plano");
-        const data = await res.json();
-        setPlan(data.plan || "free");
-      } catch (error) {
-        console.error(error);
-        setPlan("free");
+        if (res.ok) {
+          const data = await res.json();
+          setCurrentPlan(data.plan || "free");
+        }
+      } catch (err) {
+        console.error("Erro ao buscar plano de assinatura:", err);
       }
     }
     fetchPlan();
-  }, [user?.id]);
-
-  // Toast de sucesso na assinatura
-  useEffect(() => {
-    const success = searchParams.get("success");
-    if (success === "true") {
-      toast.success("Assinatura realizada com sucesso! 🎉");
-      router.replace("/dashboard/billing");
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [user?.id, searchParams, router]);
 
   async function handleCheckout(plan: "pro" | "ultra") {
-    if (!user?.id) {
-      toast.error("Você precisa estar logado.");
-      return;
-    }
+    if (!user?.id) return toast.error("Você precisa estar logado.");
+
+    setLoading(plan);
     try {
-      setLoading(plan);
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ plan }),
       });
-      if (!res.ok) {
-        toast.error("Erro no servidor ao iniciar checkout.");
-        setLoading(null);
-        return;
-      }
       const data = await res.json();
-      if (data?.url) {
+      if (data.url) {
         window.location.href = data.url;
       } else {
-        toast.error("Erro ao redirecionar para o Stripe.");
-        setLoading(null);
+        throw new Error("URL de checkout não recebida.");
       }
-    } catch (error) {
-      console.error(error);
-      toast.error("Erro ao iniciar o checkout.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao iniciar o checkout. Tente novamente.");
       setLoading(null);
     }
   }
 
   async function handleCancel() {
+    if (!confirm("Tem certeza que deseja cancelar sua assinatura? Você perderá o acesso aos recursos premium no final do seu ciclo de faturamento.")) return;
+
     setLoading("cancel");
     try {
       const res = await fetch("/api/stripe/cancel", { method: "POST" });
-      if (!res.ok) throw new Error("Erro ao cancelar assinatura");
-      toast.success("Assinatura cancelada. Você continuará com acesso ao plano até o fim do período já pago.");
-      setPlan("free");
-    } catch (error) {
-      console.error(error);
-      toast.error("Erro ao cancelar assinatura.");
+      if (!res.ok) throw new Error("Erro do servidor ao cancelar.");
+
+      toast.success("Assinatura cancelada com sucesso.");
+      setCurrentPlan("free"); // Atualiza a UI otimisticamente
+    } catch (err) {
+      console.error(err);
+      toast.error("Não foi possível cancelar a assinatura. Tente novamente.");
     } finally {
       setLoading(null);
     }
   }
 
-  // Exibe badge do plano ativo
-  function PlanBadge() {
-    if (plan === "ultra")
-      return (
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-purple-600 text-white text-xs font-bold">
-          <Rocket className="w-4 h-4" /> Ultra (ativo)
-        </span>
-      );
-    if (plan === "pro")
-      return (
-        <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-blue-600 text-white text-xs font-bold">
-          <Zap className="w-4 h-4" /> Pro (ativo)
-        </span>
-      );
-    return (
-      <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full bg-gray-300 text-gray-700 text-xs font-bold">
-        Free
-      </span>
-    );
+  async function handleManageSubscription() {
+    setLoading("portal");
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error("URL do portal não recebida.");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Erro ao acessar o portal de assinaturas. Tente novamente.");
+      setLoading(null);
+    }
   }
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-16">
-      <div className="flex flex-col items-center mb-10">
-        <h1 className="text-4xl font-bold mb-2 text-center">Seu plano atual</h1>
-        <PlanBadge />
+    <div className="max-w-6xl mx-auto px-4 py-12">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl md:text-5xl font-bold mb-3">Planos e Faturamento</h1>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">Gerencie sua assinatura e escolha o plano ideal para suas necessidades.</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Plano Pro */}
-        <div
-          className={clsx(
-            "rounded-2xl border bg-white shadow-lg p-6 flex flex-col justify-between transition hover:scale-[1.02] duration-300",
-            plan === "pro" && "border-blue-600",
-            plan === "ultra" && "opacity-60"
-          )}
-        >
-          <div>
-            <div className="flex items-center gap-2 mb-4 text-blue-600">
-              <Zap className="w-5 h-5" />
-              <h2 className="text-xl font-bold">Plano Pro</h2>
-              {plan === "pro" && <CheckCircle className="w-5 h-5 text-blue-600" />}
-            </div>
-            <p className="text-gray-700 text-2xl font-semibold mb-2">
-              R$9,90 <span className="text-base font-normal">/mês</span>
-            </p>
-            <ul className="text-gray-600 text-sm space-y-2 mt-4">
-              <li>✔ Analytics detalhado de cliques e visitantes</li>
-              <li>✔ Veja de onde vêm seus visitantes</li>
-              <li>✔ Adicione até 10 links</li>
-              <li>✔ Personalização de página</li>
-              <li>✔ Cancelamento fácil e sem burocracia</li>
-            </ul>
-          </div>
-          {plan === "pro" ? (
-            <Button
-              variant="destructive"
-              disabled={loading === "cancel"}
-              aria-busy={loading === "cancel"}
-              onClick={handleCancel}
-              className="w-full mt-6"
-            >
-              {loading === "cancel" ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Cancelando...
-                </>
-              ) : (
-                <>
-                  <XCircle className="mr-2 w-4 h-4" />
-                  Cancelar assinatura
-                </>
-              )}
-            </Button>
-          ) : plan === "ultra" ? (
-            <Button disabled className="w-full mt-6 opacity-50 cursor-not-allowed">
-              Incluído no Ultra
-            </Button>
-          ) : (
-            <Button
-              disabled={loading === "pro"}
-              aria-busy={loading === "pro"}
-              onClick={() => handleCheckout("pro")}
-              className="w-full mt-6"
-            >
-              {loading === "pro" ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Redirecionando...
-                </>
-              ) : (
-                "Assinar Pro"
-              )}
-            </Button>
-          )}
-        </div>
-
-        {/* Plano Ultra */}
-        <div
-          className={clsx(
-            "rounded-2xl border shadow-xl p-6 flex flex-col justify-between transition hover:scale-[1.02] duration-300",
-            plan === "ultra"
-              ? "border-purple-600 bg-purple-50"
-              : "bg-white border-gray-200",
-            plan === "pro" && "opacity-60"
-          )}
-        >
-          <div>
-            <div className="flex items-center gap-2 mb-4 text-purple-800">
-              <Rocket className="w-5 h-5" />
-              <h2 className="text-xl font-bold">Plano Ultra</h2>
-              {plan === "ultra" && <CheckCircle className="w-5 h-5 text-purple-800" />}
-            </div>
-            <p
-              className={clsx(
-                "text-2xl font-semibold mb-2",
-                plan === "ultra" ? "text-purple-800" : "text-gray-700"
-              )}
-            >
-              R$19,90 <span className="text-base font-normal">/mês</span>
-            </p>
-            <ul
-              className={clsx(
-                "text-sm space-y-2 mt-4",
-                plan === "ultra" ? "text-purple-900" : "text-gray-600"
-              )}
-            >
-              <li>✔ Tudo do plano Pro</li>
-              <li>✔ Links ilimitados</li>
-              <li>✔ Analytics por país e cidade</li>
-              <li>✔ Horário de pico real dos cliques</li>
-              <li>✔ Gráfico de cliques por dia</li>
-              <li>✔ Métricas exclusivas para criadores profissionais</li>
-              <li>✔ Suporte prioritário via WhatsApp</li>
-            </ul>
-          </div>
-          {plan === "ultra" ? (
-            <Button
-              variant="destructive"
-              disabled={loading === "cancel"}
-              aria-busy={loading === "cancel"}
-              onClick={handleCancel}
-              className="w-full mt-6"
-            >
-              {loading === "cancel" ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Cancelando...
-                </>
-              ) : (
-                <>
-                  <XCircle className="mr-2 w-4 h-4" />
-                  Cancelar assinatura
-                </>
-              )}
-            </Button>
-          ) : (
-            <Button
-              disabled={loading === "ultra" || plan === "pro"}
-              aria-busy={loading === "ultra"}
-              onClick={() => handleCheckout("ultra")}
-              className={clsx(
-                "w-full mt-6 bg-purple-600 hover:bg-purple-700 text-white",
-                { "opacity-50 cursor-not-allowed": loading === "ultra" || plan === "pro" }
-              )}
-            >
-              {loading === "ultra" ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Redirecionando...
-                </>
-              ) : plan === "pro" ? (
-                "Mude para Ultra"
-              ) : (
-                "Assinar Ultra"
-              )}
-            </Button>
-          )}
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-stretch">
+        <PlanCard plan={plans.free} currentPlan={currentPlan} />
+        <PlanCard plan={plans.pro} currentPlan={currentPlan} loading={loading} onCheckout={handleCheckout} onCancel={handleCancel} />
+        <PlanCard plan={plans.ultra} currentPlan={currentPlan} loading={loading} onCheckout={handleCheckout} onCancel={handleCancel} />
       </div>
+
+      {currentPlan !== "free" && (
+        <div className="text-center mt-12">
+          <Button
+            variant="ghost"
+            onClick={handleManageSubscription}
+            disabled={loading === "portal"}
+          >
+            {loading === "portal" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+            Acessar portal do cliente (alterar pagamento)
+          </Button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Tipagem explícita para as props do PlanCard
+interface PlanCardProps {
+    plan: Plan;
+    currentPlan: PlanIdentifier;
+    loading?: PlanIdentifier | "cancel" | "portal" | null;
+    onCheckout?: (plan: "pro" | "ultra") => void;
+    onCancel?: () => void;
+}
+
+function PlanCard({ plan, currentPlan, loading, onCheckout, onCancel }: PlanCardProps) {
+  const isCurrent = plan.name.toLowerCase() === currentPlan;
+  const isFree = plan.name === "Free";
+  const planIdentifier = plan.name.toLowerCase() as PlanIdentifier;
+
+  const colorClasses = {
+    border: `border-${plan.color}-500`,
+    text: `text-${plan.color}-600`,
+    bg: `bg-${plan.color}-600`,
+    hoverBg: `hover:bg-${plan.color}-700`,
+  };
+
+  return (
+    <div className={clsx(
+      "rounded-2xl border bg-white p-8 flex flex-col transition-all duration-300 transform hover:scale-105",
+      isCurrent ? `${colorClasses.border} border-2 shadow-2xl` : "border-gray-200",
+      plan.recommended && "relative"
+    )}>
+      {plan.recommended && <div className="absolute top-0 -translate-y-1/2 left-1/2 -translate-x-1/2 px-4 py-1 bg-purple-600 text-white text-xs font-bold rounded-full flex items-center gap-1"><Star className="w-4 h-4"/> RECOMENDADO</div>}
+
+      <div className="flex-grow">
+        <div className={`flex items-center gap-2 mb-4 ${colorClasses.text}`}>
+          {plan.icon}
+          <h2 className="text-2xl font-bold">{plan.name}</h2>
+        </div>
+        <p className="text-gray-900 text-4xl font-bold mb-1">
+          {plan.price}
+          <span className="text-base font-normal text-gray-500 ml-1">{plan.priceDetails}</span>
+        </p>
+        <ul className="text-gray-600 text-sm space-y-3 mt-6">
+          {plan.features.map((feature) => (
+            <li key={feature} className="flex items-start gap-2">
+              <CheckCircle className="w-5 h-5 text-green-500 flex-shrink-0 mt-0.5" />
+              <span>{feature}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      <div className="mt-8">
+          {isCurrent ? (
+            !isFree && onCancel ? (
+              // SE FOR O PLANO ATIVO, MOSTRA O BOTÃO DE CANCELAR
+              <Button
+                variant="destructive"
+                onClick={onCancel}
+                disabled={loading === "cancel"}
+                className="w-full"
+              >
+                {loading === "cancel" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+                Cancelar Assinatura
+              </Button>
+            ) : (
+              <div className={clsx(
+                "w-full text-center py-2.5 rounded-lg font-semibold",
+                isFree ? 'bg-gray-200 text-gray-700' : `${colorClasses.bg} text-white`
+              )}>
+                Plano Ativo
+              </div>
+            )
+          ) : (
+            // SE NÃO FOR O PLANO ATIVO, MOSTRA O BOTÃO DE ASSINAR/UPGRADE
+            !isFree && onCheckout && (
+                <Button
+                onClick={() => onCheckout(planIdentifier as "pro" | "ultra")}
+                disabled={loading === planIdentifier}
+                className={clsx(
+                    `w-full text-white ${colorClasses.bg} ${colorClasses.hoverBg}`,
+                    // Oculta o botão de downgrade para o plano Pro se o usuário já for Ultra
+                    (currentPlan === 'ultra' && plan.name === 'Pro') && 'hidden'
+                )}
+                >
+                {loading === planIdentifier ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {currentPlan === 'pro' && plan.name === 'Ultra' ? 'Fazer Upgrade para Ultra' : `Assinar ${plan.name}`}
+                </Button>
+            )
+          )}
+        </div>
     </div>
   );
 }

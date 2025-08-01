@@ -1,4 +1,11 @@
-import { Geo } from "@vercel/functions";
+
+export interface LocationData {
+  country?: string;
+  region?: string;
+  city?: string;
+  latitude?: string;
+  longitude?: string;
+}
 
 // Client-side data that gets sent from the browser
 export interface ClientTrackingData {
@@ -7,7 +14,7 @@ export interface ClientTrackingData {
   linkTitle: string;
   linkUrl: string;
   userAgent?: string;
-   visitorId: string;
+  visitorId: string;
   referrer?: string;
 }
 
@@ -15,6 +22,6 @@ export interface ClientTrackingData {
 // Note: Use profileUserId for queries as usernames can change
 export interface ServerTrackingEvent extends ClientTrackingData {
   profileUserId: string;
-  location: Geo;
+  location: LocationData; // Usa nossa nova interface
   timestamp: string;
 }
