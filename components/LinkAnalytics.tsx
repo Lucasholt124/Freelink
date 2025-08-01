@@ -1,14 +1,10 @@
-
 "use client";
 
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { ArrowLeft, MapPin, BarChart3, Clock, Map } from "lucide-react";
-
 import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
-
-// Importa TODOS os componentes de UI
 import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
 import { CountryChart } from "./CountryChart";
@@ -49,7 +45,6 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
     return <UpgradeCallToAction />;
   }
 
-  // Tratamento para o caso de a página container passar um objeto "vazio"
   if (analytics.totalClicks === 0) {
     return (
         <div className="p-4 md:p-8 space-y-8 bg-gray-50 min-h-screen">
