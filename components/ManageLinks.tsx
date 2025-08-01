@@ -3,7 +3,7 @@
 
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useAuth } from "@clerk/nextjs"; // Importe o useAuth para pegar o userId
+import { useAuth } from "@clerk/nextjs";
 
 import {
   closestCenter,
@@ -29,28 +29,19 @@ import { SortableItem } from "./SortableItem";
 import { useEffect, useState } from "react";
 
 export default function ManageLinks() {
-  const { userId } = useAuth(); // Pegamos o ID do usuário logado
-
-  // A query agora busca os links usando o userId do usuário autenticado.
-  // A query só será executada se 'userId' existir, graças à condição "skip".
+  const { userId } = useAuth();
   const links = useQuery(
     api.lib.links.getLinksByUserId,
     userId ? { userId } : "skip"
   );
-
   const updateLinkOrder = useMutation(api.lib.links.updateLinkOrder);
-
-  // O estado 'items' armazena a ordem dos IDs para o drag-and-drop
   const [items, setItems] = useState<Id<"links">[]>([]);
 
-  // Este useEffect garante que o estado 'items' esteja sempre sincronizado
-  // com os dados que chegam do banco de dados Convex.
   useEffect(() => {
     if (links) {
       setItems(links.map((link) => link._id));
     }
   }, [links]);
-
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -61,22 +52,17 @@ export default function ManageLinks() {
 
   function handleDragEnd(event: DragEndEvent) {
     const { active, over } = event;
-
     if (active.id !== over?.id && over) {
       setItems((currentItems) => {
         const oldIndex = currentItems.indexOf(active.id as Id<"links">);
         const newIndex = currentItems.indexOf(over.id as Id<"links">);
         const newOrderedIds = arrayMove(currentItems, oldIndex, newIndex);
-
-        // Atualiza a ordem no banco de dados de forma otimista
         updateLinkOrder({ linkIds: newOrderedIds });
-
         return newOrderedIds;
       });
     }
   }
 
-  // Se os dados ainda não foram carregados pelo Convex, mostramos um estado de loading.
   if (links === undefined) {
     return (
       <div className="text-center text-gray-400 py-8">
@@ -85,7 +71,6 @@ export default function ManageLinks() {
     );
   }
 
-  // Criamos um mapa para acessar os dados completos do link de forma eficiente
   const linkMap = new Map(links.map(link => [link._id, link]));
 
   return (
@@ -104,9 +89,7 @@ export default function ManageLinks() {
             ) : (
               items.map((id) => {
                 const link = linkMap.get(id);
-                // Adiciona uma verificação para garantir que o link existe antes de renderizar
                 if (!link) return null;
-
                 return <SortableItem key={id} id={id} link={link} />;
               })
             )}
