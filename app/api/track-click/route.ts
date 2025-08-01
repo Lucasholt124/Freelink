@@ -9,8 +9,6 @@ export async function POST(request: NextRequest) {
   try {
     const data: ClientTrackingData = await request.json();
     const geo = geolocation(request);
-
-    // Lógica aprimorada para pegar o IP do visitante, não do servidor
     const ip = request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
 
     let country = geo?.country || "";
@@ -19,8 +17,8 @@ export async function POST(request: NextRequest) {
     let latitude = geo?.latitude?.toString() || "";
     let longitude = geo?.longitude?.toString() || "";
 
-    // Se a Vercel retornar dados genéricos ou de servidor, usamos o fallback
-    const isGenericVercelGeo = !country || region === 'dev1' || (country === 'US' && city === 'Washington');
+    // Se a Vercel retornar dados genéricos (ex: do servidor), usamos o fallback com o IP do visitante
+    const isGenericVercelGeo = !country || region === 'dev1' || (country === 'US' && (city === 'Washington' || city === 'Ashburn'));
     if (isGenericVercelGeo && ip && ip !== '::1' && !ip.startsWith('192.168')) {
       try {
         const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
@@ -66,14 +64,13 @@ export async function POST(request: NextRequest) {
           longitude: trackingEvent.location.longitude || "",
         },
       };
-      // Usamos await para garantir que o evento seja enviado antes de a função terminar
+      // Usamos await para garantir que o evento seja enviado
       await fetch(`${process.env.TINYBIRD_HOST}/v0/events?name=link_clicks`, {
         method: "POST",
         headers: { Authorization: `Bearer ${process.env.TINYBIRD_TOKEN}`, "Content-Type": "application/json" },
         body: JSON.stringify(eventForTinybird),
       });
     }
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Erro ao rastrear clique:", error);
