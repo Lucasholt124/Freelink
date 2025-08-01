@@ -3,8 +3,11 @@
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { MapPin, BarChart3, Clock, Map, ChevronRight } from "lucide-react";
-import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics"; // Ajuste o caminho se necessário
+import { useRouter } from "next/navigation"; // <-- IMPORTANTE: para o botão de voltar
+import { MapPin, BarChart3, Clock, Map, ChevronRight, ArrowLeft } from "lucide-react";
+
+// Importações dos seus componentes
+import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
 import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
 import { CountryChart } from "./CountryChart";
@@ -15,23 +18,51 @@ import { LockedFeatureCard } from "./LockedFeatureCard";
 import { UpgradeCallToAction } from "./UpgradeCallToAction";
 import { NoDataState } from "./NoDataState";
 
-interface LinkAnalyticsProps {
-  analytics: LinkAnalyticsData;
-}
-
+// Função auxiliar para formatar a URL (mantida como está)
 const formatUrl = (url: string) => { try { return new URL(url).hostname.replace("www.", "") } catch { return url } };
 
-function Breadcrumb({ linkTitle }: { linkTitle: string }) {
+// --- NOVO COMPONENTE DE CABEÇALHO ---
+// Este componente encapsula toda a lógica do cabeçalho,
+// incluindo o botão de voltar e os detalhes do link.
+function PageHeader({ linkTitle, linkUrl }: { linkTitle: string, linkUrl: string }) {
+    const router = useRouter();
+
     return (
-        <nav className="flex items-center text-sm text-gray-500 mb-4">
-            <Link href="/dashboard" className="hover:text-gray-900">Painel</Link>
-            <ChevronRight className="w-4 h-4 mx-1" />
-            <span className="font-semibold text-gray-800 truncate">Análises: {linkTitle}</span>
-        </nav>
+        <header className="space-y-4">
+            <nav className="flex items-center text-sm text-gray-500">
+                {/* Botão de voltar funcional */}
+                <button
+                    onClick={() => router.back()}
+                    className="flex items-center gap-1 hover:text-gray-900 transition-colors"
+                >
+                    <ArrowLeft className="w-4 h-4" />
+                    Voltar
+                </button>
+                <ChevronRight className="w-4 h-4 mx-2" />
+                <Link href="/dashboard" className="hover:text-gray-900">Painel</Link>
+                <ChevronRight className="w-4 h-4 mx-2" />
+                <span className="font-semibold text-gray-800 truncate">Análises</span>
+            </nav>
+            <div>
+                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 truncate" title={linkTitle}>
+                    {linkTitle}
+                </h1>
+                <a
+                    href={linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-gray-500 hover:text-blue-600 break-all"
+                >
+                    {formatUrl(linkUrl)}
+                </a>
+            </div>
+        </header>
     );
 }
 
-export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
+
+// --- COMPONENTE PRINCIPAL ATUALIZADO ---
+export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsData }) {
   const { user, isLoaded } = useUser();
   const [plan, setPlan] = useState<"free" | "pro" | "ultra">("free");
   const [isAdmin, setIsAdmin] = useState(false);
@@ -40,6 +71,7 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
     if (isLoaded && user) {
       const userPlan = (user.publicMetadata.subscriptionPlan as "free" | "pro" | "ultra") || "free";
       setPlan(userPlan);
+      // Certifique-se de que o seu ID de admin está correto aqui
       setIsAdmin(user.id === "user_301NTkVsE3v48SXkoCEp0XOXifI");
     }
   }, [isLoaded, user]);
@@ -52,12 +84,8 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
 
   return (
     <div className="space-y-6">
-      <Breadcrumb linkTitle={analytics.linkTitle} />
-
-      <div>
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-900 truncate">{analytics.linkTitle}</h1>
-        <a href={analytics.linkUrl} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 break-all">{formatUrl(analytics.linkUrl)}</a>
-      </div>
+      {/* **MUDANÇA PRINCIPAL:** Usando o novo componente PageHeader */}
+      <PageHeader linkTitle={analytics.linkTitle} linkUrl={analytics.linkUrl} />
 
       {analytics.totalClicks === 0 ? <NoDataState /> : (
         <>
