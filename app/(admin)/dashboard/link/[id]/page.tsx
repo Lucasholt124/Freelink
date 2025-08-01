@@ -9,7 +9,7 @@ import { notFound } from "next/navigation";
 
 
 interface LinkAnalyticsPageProps {
-  params: Promise<{ // <-- APAGUE ESTE PROMISE
+  params: Promise<{
     id: string;
   }>;
 }
