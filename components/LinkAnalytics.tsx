@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -5,6 +6,7 @@ import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { MapPin, BarChart3, Clock, Map, ChevronRight } from "lucide-react";
 import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
+// Importa os sub-componentes (garanta que os caminhos estão corretos)
 import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
 import { CountryChart } from "./CountryChart";
@@ -21,6 +23,7 @@ interface LinkAnalyticsProps {
 
 const formatUrl = (url: string) => { try { return new URL(url).hostname.replace("www.", "") } catch { return url } };
 
+// Breadcrumb como um componente simples e funcional
 function Breadcrumb({ linkTitle }: { linkTitle: string }) {
     return (
         <nav className="flex items-center text-sm text-gray-500 mb-4">
@@ -50,7 +53,9 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
   if (!isLoaded) { return <div className="p-8 text-center">Carregando dados...</div>; }
   if (!hasAnalyticsAccess) { return <UpgradeCallToAction />; }
 
+  // O componente agora está limpo e não tenta ser uma página inteira
   return (
+    // Removido o container principal com padding. A página que chama este componente deve cuidar disso.
     <div className="space-y-6">
       <Breadcrumb linkTitle={analytics.linkTitle} />
 
@@ -68,14 +73,14 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
           </section>
 
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {analytics.dailyData && analytics.dailyData.length > 0 ? <DailyPerformanceChart data={analytics.dailyData} /> : <div></div>}
-            {analytics.countryData && analytics.countryData.length > 0 ? <CountryChart data={analytics.countryData} /> : <div></div>}
+            {analytics.dailyData && analytics.dailyData.length > 0 && <DailyPerformanceChart data={analytics.dailyData} />}
+            {analytics.countryData && analytics.countryData.length > 0 && <CountryChart data={analytics.countryData} />}
 
             {hasUltraFeaturesAccess ? (
               <>
-                {analytics.cityData && analytics.cityData.length > 0 ? <CityChart data={analytics.cityData} /> : <div></div>}
-                {analytics.regionData && analytics.regionData.length > 0 ? <RegionChart data={analytics.regionData} /> : <div></div>}
-                {analytics.hourlyData && analytics.hourlyData.length > 0 ? <HourlyChart data={analytics.hourlyData} /> : <div></div>}
+                {analytics.cityData && analytics.cityData.length > 0 && <CityChart data={analytics.cityData} />}
+                {analytics.regionData && analytics.regionData.length > 0 && <RegionChart data={analytics.regionData} />}
+                {analytics.hourlyData && analytics.hourlyData.length > 0 && <HourlyChart data={analytics.hourlyData} />}
 
                 <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg flex items-center gap-6">
                   <div className="p-4 bg-orange-100 rounded-xl"><Clock className="w-8 h-8 text-orange-600" /></div>
