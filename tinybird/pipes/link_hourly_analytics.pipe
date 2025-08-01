@@ -1,28 +1,22 @@
-# link_hourly_analytics.pipe
 
 NODE link_hourly_analytics_node
 DESCRIPTION >
-    Get click count for each hour of the day (0-23) for a specific link.
+    Get click count for each hour of the day (0-23) in São Paulo timezone.
 
 SQL >
     %
     SELECT
-        -- Extrai a hora (0-23) do timestamp
-        toHour(timestamp) as hour_of_day,
+        -- CORREÇÃO: Converte o timestamp para o fuso horário de São Paulo antes de extrair a hora
+        toHour(toTimeZone(timestamp, 'America/Sao_Paulo')) as hour_of_day,
         count() as total_clicks
     FROM link_clicks
     WHERE
-        profileUserId = {{String(profileUserId)}}
-        AND linkId = {{String(linkId)}}
-        {% if defined(start_date) %}
-        AND toDate(timestamp) >= {{Date(start_date)}}
+        profileUserId = {{String(profileUserId, required=True)}}
+        AND linkId = {{String(linkId, required=True)}}
+        {% if defined(days_back) %}
+            AND toDate(timestamp) >= today() - INTERVAL {{Int16(days_back, 30)}} DAY
         {% else %}
-        AND toDate(timestamp) >= today() - 30
-        {% end %}
-        {% if defined(end_date) %}
-        AND toDate(timestamp) <= {{Date(end_date)}}
-        {% else %}
-        AND toDate(timestamp) <= today()
+            AND toDate(timestamp) >= today() - 30
         {% end %}
     GROUP BY hour_of_day
     ORDER BY hour_of_day ASC

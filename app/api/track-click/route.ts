@@ -1,3 +1,4 @@
+
 import { NextRequest, NextResponse } from "next/server";
 import { geolocation } from "@vercel/functions";
 import { api } from "@/convex/_generated/api";
@@ -10,36 +11,38 @@ export async function POST(request: NextRequest) {
 
     // Tente pegar a geolocalização do Vercel
     const geo = geolocation(request);
-
     // Tente pegar o IP real do visitante
-    const ip =
-      request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
-      "";
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "";
 
-    // Use o país do geo, ou busque via ipapi.co se não vier
+    // ADICIONADO: Log de diagnóstico para ver o que a Vercel está fornecendo
+    console.log("[GEOLOCATION DEBUG]", {
+      geoFromVercel: geo,
+      ipFromHeaders: ip
+    });
+
     let country = geo?.country || "";
     let region = geo?.region || "";
     let city = geo?.city || "";
     let latitude = geo?.latitude || "";
     let longitude = geo?.longitude || "";
 
+    // Fallback para ipapi.co se a geolocalização da Vercel falhar
     if (!country && ip) {
       try {
+        console.log(`[GEOLOCATION DEBUG] Vercel geo vazio. Tentando fallback com IP: ${ip}`);
         const geoRes = await fetch(`https://ipapi.co/${ip}/json/`);
         const geoJson: Record<string, string> = await geoRes.json();
-        country = geoJson.country || "";
-        region = geoJson.region || "";
+        country = geoJson.country_code || "";
+        region = geoJson.region_code || "";
         city = geoJson.city || "";
         latitude = geoJson.latitude || "";
         longitude = geoJson.longitude || "";
-      } catch {
-        // Se falhar, mantém country vazio
+      } catch (e) {
+        console.error("[GEOLOCATION DEBUG] Falha no fallback para ipapi.co", e);
       }
     }
 
     const convex = getClient();
-
-    // obter id do usuário a partir do nome de usuário
     const userId = await convex.query(api.lib.usernames.getUserIdBySlug, {
       slug: data.profileUsername,
     });
@@ -48,24 +51,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Perfil não encontrado" }, { status: 404 });
     }
 
-    // Adicionar dados do lado do servidor
     const trackingEvent: ServerTrackingEvent = {
       ...data,
       timestamp: new Date().toISOString(),
       profileUserId: userId,
-      location: {
-        country,
-        region,
-        city,
-        latitude,
-        longitude,
-      },
-      userAgent:
-        data.userAgent || request.headers.get("user-agent") || "unknown",
+      location: { country, region, city, latitude, longitude },
+      userAgent: data.userAgent || request.headers.get("user-agent") || "unknown",
     };
-
-    // Enviar para a API de eventos do Tinybird
-    console.log("Enviando evento para o Tinybird:", trackingEvent);
 
     if (process.env.TINYBIRD_TOKEN && process.env.TINYBIRD_HOST) {
       try {
@@ -88,11 +80,6 @@ export async function POST(request: NextRequest) {
           },
         };
 
-        console.log(
-          "Enviando evento para o Tinybird:",
-          JSON.stringify(eventForTinybird, null, 2),
-        );
-
         const tinybirdResponse = await fetch(
           `${process.env.TINYBIRD_HOST}/v0/events?name=link_clicks`,
           {
@@ -106,29 +93,18 @@ export async function POST(request: NextRequest) {
         );
 
         if (!tinybirdResponse.ok) {
-          const errorText = await tinybirdResponse.text();
-          console.error("Falha ao enviar para o Tinybird:", errorText);
+          console.error("Falha ao enviar para o Tinybird:", await tinybirdResponse.text());
         } else {
-          const responseBody = await tinybirdResponse.json();
-          console.log("Enviado com sucesso para Tinybird:", responseBody);
-
-          if (responseBody.quarantined_rows > 0) {
-            console.warn("Algumas linhas foram colocadas em quarentena:", responseBody);
-          }
+          console.log("Enviado com sucesso para Tinybird:", await tinybirdResponse.json());
         }
       } catch (tinybirdError) {
         console.error("Falha na solicitação do Tinybird:", tinybirdError);
       }
-    } else {
-      console.log("Tinybird não configurado - somente eventos registrados");
     }
 
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Erro ao rastrear clique:", error);
-    return NextResponse.json(
-      { error: "Falha ao rastrear o clique" },
-      { status: 500 },
-    );
+    return NextResponse.json({ error: "Falha ao rastrear o clique" }, { status: 500 });
   }
 }

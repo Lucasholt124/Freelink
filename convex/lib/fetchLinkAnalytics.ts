@@ -1,7 +1,3 @@
-// ===================================================================================
-// ARQUIVO FINAL E CORRIGIDO: convex/lib/fetchLinkAnalytics.ts
-// CORREÇÃO: Adicionada a chamada para o pipe get_peak_hour.
-// ===================================================================================
 
 export interface LinkAnalyticsData {
   linkId: string;
@@ -13,8 +9,9 @@ export interface LinkAnalyticsData {
   dailyData: Array<{ date: string; clicks: number }>;
   countryData: Array<{ country: string; clicks: number; percentage: number }>;
   cityData: Array<{ city: string; clicks: number }>;
+  regionData: Array<{ region: string; clicks: number }>; // <-- NOVO CAMPO PARA ESTADOS
   hourlyData: Array<{ hour_of_day: number; total_clicks: number }>;
-  peakHour: number | null; // <-- NOVO CAMPO PARA GUARDAR A HORA DE PICO
+  peakHour: number | null;
 }
 
 // Interfaces de retorno do Tinybird
@@ -34,11 +31,15 @@ interface TinybirdCityAnalyticsRow {
   city: string;
   total_clicks: number;
 }
+// NOVA INTERFACE PARA ESTADOS
+interface TinybirdRegionAnalyticsRow {
+  region: string;
+  total_clicks: number;
+}
 interface TinybirdHourlyAnalyticsRow {
   hour_of_day: number;
   total_clicks: number;
 }
-// NOVA INTERFACE PARA A RESPOSTA DO get_peak_hour
 interface TinybirdPeakHourRow {
   peak_hour: number;
 }
@@ -67,15 +68,15 @@ export async function fetchDetailedAnalyticsForLink(
     const totalClicks = dailyData.reduce((sum, day) => sum + day.clicks, 0);
     const totalUniqueUsers = dailyRows.reduce((sum, row) => sum + (row.unique_users || 0), 0);
 
-    // CORREÇÃO: Adicionamos a chamada para get_peak_hour aqui
-    const [countryData, cityData, hourlyData, peakHourData] = await Promise.all([
+    // Adicionada a chamada para o novo pipe de regiões
+    const [countryData, cityData, regionData, hourlyData, peakHourData] = await Promise.all([
       fetchDataFromPipe<TinybirdCountryAnalyticsRow[]>(`${baseUrl}/link_country_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
       fetchDataFromPipe<TinybirdCityAnalyticsRow[]>(`${baseUrl}/link_city_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
+      fetchDataFromPipe<TinybirdRegionAnalyticsRow[]>(`${baseUrl}/link_region_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers), // <-- NOVA CHAMADA
       fetchDataFromPipe<TinybirdHourlyAnalyticsRow[]>(`${baseUrl}/link_hourly_analytics.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers),
       fetchDataFromPipe<TinybirdPeakHourRow[]>(`${baseUrl}/get_peak_hour.json?profileUserId=${userId}&linkId=${linkId}&days_back=${daysBack}`, headers)
     ]);
 
-    // Extrai o valor da hora de pico da resposta
     const peakHour = peakHourData.length > 0 ? peakHourData[0].peak_hour : null;
 
     return {
@@ -88,8 +89,9 @@ export async function fetchDetailedAnalyticsForLink(
       dailyData: dailyData.reverse(),
       countryData: countryData.map(c => ({ country: c.country || "Desconhecido", clicks: c.total_clicks, percentage: c.percentage })),
       cityData: cityData.map(c => ({ city: c.city || "Desconhecido", clicks: c.total_clicks })),
+      regionData: regionData.map(r => ({ region: r.region || "Desconhecido", clicks: r.total_clicks })), // <-- NOVO RESULTADO
       hourlyData,
-      peakHour, // <-- ADICIONAMOS O RESULTADO AQUI
+      peakHour,
     };
 
   } catch (err) {

@@ -4,7 +4,7 @@
 import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
-import { ArrowLeft, MapPin, BarChart3, Clock } from "lucide-react"; // Adicionado ícone de relógio
+import { ArrowLeft, MapPin, BarChart3, Clock, Map } from "lucide-react"; // Adicionado ícone Map
 
 // Importa a tipagem
 import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
@@ -14,6 +14,7 @@ import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
 import { CountryChart } from "./CountryChart";
 import { CityChart } from "./CityChart";
+import { RegionChart } from "./RegionChart";
 import { HourlyChart } from "./HourlyChart";
 import { LockedFeatureCard } from "./LockedFeatureCard";
 import { UpgradeCallToAction } from "./UpgradeCallToAction";
@@ -74,21 +75,15 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
             {hasUltraFeaturesAccess ? (
               <>
                 <CityChart data={analytics.cityData} />
+                <RegionChart data={analytics.regionData} /> {/* <-- NOVO GRÁFICO DE ESTADOS */}
                 <HourlyChart data={analytics.hourlyData} />
 
-                {/* NOVO CARD PARA A HORA DE PICO, OCUPANDO A LARGURA TODA */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg flex items-center gap-6">
-                  <div className="p-4 bg-orange-100 rounded-xl">
-                    <Clock className="w-8 h-8 text-orange-600" />
-                  </div>
+                <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg flex items-center gap-6">
+                  <div className="p-4 bg-orange-100 rounded-xl"><Clock className="w-8 h-8 text-orange-600" /></div>
                   <div>
                     <h3 className="text-lg font-bold text-gray-800">Horário de Pico</h3>
-                    <p className="text-4xl font-bold text-orange-500">
-                      {analytics.peakHour !== null ? `${String(analytics.peakHour).padStart(2, '0')}:00` : "N/A"}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {analytics.peakHour !== null ? "Horário com o maior número de cliques." : "Dados insuficientes para calcular."}
-                    </p>
+                    <p className="text-4xl font-bold text-orange-500">{analytics.peakHour !== null ? `${String(analytics.peakHour).padStart(2, '0')}:00` : "N/A"}</p>
+                    <p className="text-sm text-gray-500 mt-1">{analytics.peakHour !== null ? "Horário com o maior número de cliques." : "Dados insuficientes."}</p>
                   </div>
                 </div>
               </>
@@ -96,6 +91,7 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
               <>
                 <LockedFeatureCard title="Análise por Cidade" icon={<MapPin className="w-6 h-6 text-gray-600"/>} requiredPlan="Ultra" />
                 <LockedFeatureCard title="Análise de Horários" icon={<BarChart3 className="w-6 h-6 text-gray-600"/>} requiredPlan="Ultra" />
+                <LockedFeatureCard title="Análise por Estado" icon={<Map className="w-6 h-6 text-gray-600"/>} requiredPlan="Ultra" />
               </>
             )}
           </section>
