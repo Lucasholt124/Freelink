@@ -1,4 +1,3 @@
-
 export interface LinkAnalyticsData {
   linkId: string;
   linkTitle: string;

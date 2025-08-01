@@ -1,4 +1,3 @@
-
 "use client";
 
 import Link from "next/link";
@@ -69,14 +68,14 @@ export default function LinkAnalytics({ analytics }: LinkAnalyticsProps) {
           </section>
 
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            <DailyPerformanceChart data={analytics.dailyData} />
-            <CountryChart data={analytics.countryData} />
+            {analytics.dailyData && analytics.dailyData.length > 0 ? <DailyPerformanceChart data={analytics.dailyData} /> : <div></div>}
+            {analytics.countryData && analytics.countryData.length > 0 ? <CountryChart data={analytics.countryData} /> : <div></div>}
 
             {hasUltraFeaturesAccess ? (
               <>
-                <CityChart data={analytics.cityData} />
-                <RegionChart data={analytics.regionData} />
-                <HourlyChart data={analytics.hourlyData} />
+                {analytics.cityData && analytics.cityData.length > 0 ? <CityChart data={analytics.cityData} /> : <div></div>}
+                {analytics.regionData && analytics.regionData.length > 0 ? <RegionChart data={analytics.regionData} /> : <div></div>}
+                {analytics.hourlyData && analytics.hourlyData.length > 0 ? <HourlyChart data={analytics.hourlyData} /> : <div></div>}
 
                 <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg flex items-center gap-6">
                   <div className="p-4 bg-orange-100 rounded-xl"><Clock className="w-8 h-8 text-orange-600" /></div>

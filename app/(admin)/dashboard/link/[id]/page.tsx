@@ -1,4 +1,3 @@
-
 import LinkAnalytics from "@/components/LinkAnalytics";
 import { fetchDetailedAnalyticsForLink } from "@/convex/lib/fetchLinkAnalytics";
 import { currentUser } from "@clerk/nextjs/server";
@@ -13,17 +12,14 @@ interface LinkAnalyticsPageProps {
 }
 
 export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPageProps) {
-  // Primeiro, buscamos o usuário logado
   const user = await currentUser();
   if (!user) {
     notFound();
   }
 
-  // Em seguida, resolvemos a Promise dos params para obter o 'id'
   const resolvedParams = await params;
   const { id } = resolvedParams;
 
-  // Agora, com o userId e o linkId em mãos, buscamos os dados de analytics
   const analytics = await fetchDetailedAnalyticsForLink(user.id, id);
 
   // Se a busca de analytics falhar ou não encontrar dados, mostramos a tela de erro
@@ -43,6 +39,5 @@ export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPagePro
     );
   }
 
-  // Se tudo deu certo, passamos os dados para o componente de UI
   return <LinkAnalytics analytics={analytics} />;
 }

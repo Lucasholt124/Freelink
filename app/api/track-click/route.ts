@@ -9,6 +9,8 @@ export async function POST(request: NextRequest) {
   try {
     const data: ClientTrackingData = await request.json();
     const geo = geolocation(request);
+
+    // Lógica aprimorada para pegar o IP do visitante, não do servidor da Vercel
     const ip = request.headers.get("x-real-ip") || request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
 
     let country = geo?.country || "";
@@ -17,7 +19,7 @@ export async function POST(request: NextRequest) {
     let latitude = geo?.latitude?.toString() || "";
     let longitude = geo?.longitude?.toString() || "";
 
-    // Se a Vercel retornar dados genéricos (ex: do servidor), usamos o fallback com o IP do visitante
+    // Se a Vercel retornar dados genéricos (ex: do próprio servidor), usamos o fallback com o IP do visitante
     const isGenericVercelGeo = !country || region === 'dev1' || (country === 'US' && (city === 'Washington' || city === 'Ashburn'));
     if (isGenericVercelGeo && ip && ip !== '::1' && !ip.startsWith('192.168')) {
       try {
@@ -71,6 +73,7 @@ export async function POST(request: NextRequest) {
         body: JSON.stringify(eventForTinybird),
       });
     }
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Erro ao rastrear clique:", error);
