@@ -12,7 +12,7 @@ export interface AnalyticsData {
   topCountry: { name: string; clicks: number } | null;
 }
 
-// --- FUNÇÃO PARA O DASHBOARD (NÃO MUDA) ---
+// --- FUNÇÃO PARA O DASHBOARD (Permanece a mesma) ---
 export async function fetchAnalytics(userId: string): Promise<AnalyticsData> {
   const [
     postgresResults,
@@ -52,12 +52,11 @@ export async function fetchAnalytics(userId: string): Promise<AnalyticsData> {
   };
 }
 
-
 // ----------------------------------------------------------------------------------
-// --- FUNÇÃO PARA A PÁGINA DE ANÁLISES DETALHADAS (ATUALIZADA) ---
+// --- FUNÇÃO PARA A PÁGINA DE ANÁLISES DETALHADAS (CORRIGIDA) ---
 // ----------------------------------------------------------------------------------
 
-// --- NOVA INTERFACE DE DADOS DETALHADOS ---
+// --- Interface de Dados Detalhados (com o tipo hourlyData corrigido) ---
 export interface LinkAnalyticsData {
   linkId: string;
   linkTitle: string;
@@ -69,8 +68,7 @@ export interface LinkAnalyticsData {
   countryData: { country: string; clicks: number; percentage: number }[];
   cityData: { city: string; clicks: number }[];
   regionData: { region: string; clicks: number }[];
-  // O tipo de 'hourlyData' foi atualizado
-  hourlyData: { hour_timestamp: string; total_clicks: number }[];
+  hourlyData: { hour_of_day: number; total_clicks: number }[]; // <-- TIPO CORRETO E SIMPLES
   peakHour: number | null;
 }
 
@@ -85,7 +83,7 @@ export async function fetchDetailedAnalyticsForLink(
       countryResult,
       cityResult,
       regionResult,
-      hourlyResult, // <-- ESTA CONSULTA VAI MUDAR
+      hourlyResult,
       peakHourResult,
       dailyResult
     ] = await Promise.all([
@@ -95,15 +93,16 @@ export async function fetchDetailedAnalyticsForLink(
       sql`SELECT city, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} AND city IS NOT NULL AND city != '' GROUP BY city ORDER BY clicks DESC LIMIT 7;`,
       sql`SELECT region, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} AND region IS NOT NULL AND region != '' GROUP BY region ORDER BY clicks DESC LIMIT 7;`,
 
-      // --- CONSULTA ATUALIZADA PARA O GRÁFICO DE HORAS ---
+      // --- CONSULTA CORRIGIDA E FINAL PARA O GRÁFICO DE HORAS ---
       sql`
         SELECT
-          DATE_TRUNC('hour', timestamp AT TIME ZONE 'America/Sao_Paulo') as hour_timestamp,
+          EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/Sao_Paulo') as hour_of_day,
           COUNT(*) as total_clicks
         FROM clicks
-        WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} AND timestamp > NOW() - INTERVAL '48 hours'
-        GROUP BY hour_timestamp
-        ORDER BY hour_timestamp ASC;
+        WHERE "profileUserId" = ${userId}
+          AND "linkId" = ${linkId}
+          AND timestamp > NOW() - INTERVAL '24 hours'
+        GROUP BY hour_of_day;
       `,
 
       sql`SELECT EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/Sao_Paulo') as peak_hour FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} GROUP BY peak_hour ORDER BY COUNT(*) DESC LIMIT 1;`,
@@ -112,7 +111,6 @@ export async function fetchDetailedAnalyticsForLink(
 
     const totalClicks = parseInt(clicksResult.rows[0].count as string, 10);
     if (totalClicks === 0) {
-      // Retorna um objeto vazio se não houver cliques
       return {
         linkId, linkTitle: "", linkUrl: "", totalClicks: 0, uniqueUsers: 0, countriesReached: 0,
         dailyData: [], countryData: [], cityData: [], regionData: [], hourlyData: [], peakHour: null,
@@ -126,19 +124,16 @@ export async function fetchDetailedAnalyticsForLink(
     }));
 
     return {
-      linkId,
-      linkTitle: "", // Será preenchido na página
-      linkUrl: "",   // Será preenchido na página
-      totalClicks,
+      linkId, linkTitle: "", linkUrl: "", totalClicks,
       uniqueUsers: totalUniqueUsers,
       countriesReached: countryData.length,
       dailyData: dailyResult.rows.map((row: QueryResultRow) => ({ date: row.date.toISOString().split('T')[0], clicks: parseInt(row.clicks, 10) })).reverse(),
       countryData,
       cityData: cityResult.rows.map((row: QueryResultRow) => ({ city: row.city, clicks: parseInt(row.clicks, 10) })),
       regionData: regionResult.rows.map((row: QueryResultRow) => ({ region: row.region, clicks: parseInt(row.clicks, 10) })),
-      // O mapeamento de 'hourlyData' foi atualizado
+      // O mapeamento agora retorna o formato simples que o frontend espera
       hourlyData: hourlyResult.rows.map((row: QueryResultRow) => ({
-        hour_timestamp: row.hour_timestamp.toISOString(),
+        hour_of_day: parseInt(row.hour_of_day, 10),
         total_clicks: parseInt(row.total_clicks, 10)
       })),
       peakHour: peakHourResult.rows.length > 0 ? parseInt(peakHourResult.rows[0].peak_hour, 10) : null,

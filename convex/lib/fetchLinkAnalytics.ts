@@ -2,7 +2,7 @@
 
 import { sql, QueryResultRow } from '@vercel/postgres';
 
-// --- CORREÇÃO #1: Atualizamos a interface para ser a fonte da verdade ---
+// --- INTERFACE DE DADOS CORRIGIDA E FINAL ---
 export interface LinkAnalyticsData {
   linkId: string;
   linkTitle: string;
@@ -14,7 +14,7 @@ export interface LinkAnalyticsData {
   countryData: Array<{ country: string; clicks: number; percentage: number }>;
   cityData: Array<{ city: string; clicks: number }>;
   regionData: Array<{ region: string; clicks: number }>;
-  hourlyData: Array<{ hour_timestamp: string; total_clicks: number }>; // <-- TIPO CORRETO
+  hourlyData: Array<{ hour_of_day: number; total_clicks: number }>; // <-- FORMATO SIMPLES E CORRETO
   peakHour: number | null;
 }
 
@@ -39,15 +39,16 @@ export async function fetchDetailedAnalyticsForLink(
       sql`SELECT city, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} AND city IS NOT NULL AND city != '' GROUP BY city ORDER BY clicks DESC LIMIT 7;`,
       sql`SELECT region, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} AND region IS NOT NULL AND region != '' GROUP BY region ORDER BY clicks DESC LIMIT 7;`,
 
-      // --- CORREÇÃO #2: A consulta SQL agora busca os dados por hora das últimas 48h ---
+      // --- CONSULTA SQL CORRIGIDA E FINAL ---
       sql`
         SELECT
-          DATE_TRUNC('hour', timestamp AT TIME ZONE 'America/Sao_Paulo') as hour_timestamp,
+          EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/Sao_Paulo') as hour_of_day,
           COUNT(*) as total_clicks
         FROM clicks
-        WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} AND timestamp > NOW() - INTERVAL '48 hours'
-        GROUP BY hour_timestamp
-        ORDER BY hour_timestamp ASC;
+        WHERE "profileUserId" = ${userId}
+          AND "linkId" = ${linkId}
+          AND timestamp > NOW() - INTERVAL '24 hours'
+        GROUP BY hour_of_day;
       `,
 
       sql`SELECT EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/Sao_Paulo') as peak_hour FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId} GROUP BY peak_hour ORDER BY COUNT(*) DESC LIMIT 1;`,
@@ -77,9 +78,9 @@ export async function fetchDetailedAnalyticsForLink(
       countryData,
       cityData: cityResult.rows.map((row: QueryResultRow) => ({ city: row.city, clicks: parseInt(row.clicks, 10) })),
       regionData: regionResult.rows.map((row: QueryResultRow) => ({ region: row.region, clicks: parseInt(row.clicks, 10) })),
-      // --- CORREÇÃO #3: Mapeamos os novos dados de hora ---
+      // --- MAPEAMENTO DE DADOS CORRIGIDO E FINAL ---
       hourlyData: hourlyResult.rows.map((row: QueryResultRow) => ({
-        hour_timestamp: row.hour_timestamp.toISOString(),
+        hour_of_day: parseInt(row.hour_of_day, 10),
         total_clicks: parseInt(row.total_clicks, 10)
       })),
       peakHour: peakHourResult.rows.length > 0 ? parseInt(peakHourResult.rows[0].peak_hour, 10) : null,

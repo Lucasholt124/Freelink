@@ -6,21 +6,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, BarChart3, Clock, ChevronRight, ArrowLeft } from "lucide-react";
 
-// --- A INTERFACE DE DADOS É DEFINIDA AQUI ---
-export interface LinkAnalyticsData {
-  linkId: string;
-  linkTitle: string;
-  linkUrl: string;
-  totalClicks: number;
-  uniqueUsers: number;
-  countriesReached: number;
-  dailyData: { date: string; clicks: number }[];
-  countryData: { country: string; clicks: number; percentage: number }[];
-  cityData: { city: string; clicks: number }[];
-  regionData: { region: string; clicks: number }[];
-  hourlyData: { hour_timestamp: string; total_clicks: number }[]; // <-- TIPO ATUALIZADO
-  peakHour: number | null;
-}
+// --- CORREÇÃO #1: Importamos a interface da nossa fonte da verdade ---
+import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
 
 import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
@@ -88,7 +75,6 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
   return (
     <div className="space-y-8">
       <PageHeader linkTitle={analytics.linkTitle} linkUrl={analytics.linkUrl} />
-
       {analytics.totalClicks === 0 ? <NoDataState /> : (
         <div className="space-y-8">
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -96,13 +82,9 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
             <MetricCard title="Visitantes Únicos" value={analytics.uniqueUsers} />
             <MetricCard title="Países Alcançados" value={analytics.countriesReached} />
           </section>
-
           {analytics.dailyData?.length > 0 && (
-            <section>
-              <DailyPerformanceChart data={analytics.dailyData} />
-            </section>
+            <section><DailyPerformanceChart data={analytics.dailyData} /></section>
           )}
-
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
             <div className="lg:col-span-2 space-y-8">
               {analytics.countryData?.length > 0 && <CountryChart data={analytics.countryData} />}
@@ -113,20 +95,20 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
                 </>
               ) : (
                 <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-lg">
-                    <LockedFeatureCard title="Análise Geográfica Detalhada" icon={<MapPin className="w-8 h-8 text-gray-400"/>} requiredPlan="Ultra" description="Desbloqueie para ver os cliques por cidade e estado."/>
+                  <LockedFeatureCard title="Análise Geográfica Detalhada" icon={<MapPin className="w-8 h-8 text-gray-400"/>} requiredPlan="Ultra" description="Desbloqueie para ver os cliques por cidade e estado."/>
                 </div>
               )}
             </div>
-
             <div className="space-y-8">
               {hasUltraFeaturesAccess ? (
                 <>
                   <PeakHourCard peakHour={analytics.peakHour} />
+                  {/* Agora o erro de tipo desaparece aqui */}
                   {analytics.hourlyData?.length > 0 && <HourlyChart data={analytics.hourlyData} />}
                 </>
               ) : (
                 <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-lg">
-                    <LockedFeatureCard title="Análise de Horários" icon={<BarChart3 className="w-8 h-8 text-gray-400"/>} requiredPlan="Ultra" description="Descubra os horários de pico de engajamento da sua audiência."/>
+                  <LockedFeatureCard title="Análise de Horários" icon={<BarChart3 className="w-8 h-8 text-gray-400"/>} requiredPlan="Ultra" description="Descubra os horários de pico de engajamento da sua audiência."/>
                 </div>
               )}
             </div>
