@@ -16,13 +16,11 @@ export const metadata: Metadata = {
   },
   description: "Crie uma página de links na bio com analytics, personalização total e suporte em português. A alternativa ao Linktree feita para o mercado brasileiro.",
 
-  // --- CORREÇÃO PRINCIPAL AQUI ---
-  // A linha `icon: "/favicon.ico"` foi REMOVIDA.
-  // O Next.js agora usará o arquivo app/icon.tsx automaticamente para o favicon.
-  // Mantemos o 'apple' para ícones em dispositivos Apple, que é uma boa prática.
+  // --- CORREÇÃO FINAL E DEFINITIVA PARA OS ÍCONES ---
+  // Apontamos diretamente para os arquivos físicos na pasta /public
   icons: {
-      icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png",
+    icon: "/favicon.svg", // <-- Aponta para o novo SVG
+    apple: "/apple-touch-icon.svg", // <-- Aponta para o novo SVG para Apple
   },
 
   openGraph: {

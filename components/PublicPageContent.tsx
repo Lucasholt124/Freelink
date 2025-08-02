@@ -11,7 +11,8 @@ import { trackLinkClick } from "@/lib/analytics";
 import {
   FaYoutube, FaInstagram, FaFacebook, FaTwitter, FaLinkedin, FaTiktok, FaWhatsapp, FaGithub, FaSpotify, FaTwitch, FaGlobe, FaEnvelope, FaTelegram, FaPinterest, FaDiscord, FaSlack, FaDribbble, FaFigma,
 } from "react-icons/fa6";
-import { SubscriptionPlan } from "@/lib/subscription"; // <-- IMPORTANTE: Importando o tipo do plano
+import { SubscriptionPlan } from "@/lib/subscription";
+
 
 // --- Props atualizadas para incluir o plano do usuário ---
 interface PublicPageContentProps {
@@ -32,19 +33,23 @@ type LinkType = {
 function VerifiedBadge() {
   return (
     <span
-      className="inline-flex items-center justify-center rounded-full border-2 border-[#a855f7] bg-white"
-      style={{ width: 28, height: 28 }}
+      className="inline-flex items-center justify-center w-7 h-7 rounded-full border-2 border-purple-500 bg-white group-hover:scale-110 transition-transform duration-200 ease-in-out flex-shrink-0"
       title="Verificado"
+      aria-label="Selo de Verificação"
     >
-      <svg width={18} height={18} viewBox="0 0 20 20" fill="none">
-        <circle cx="10" cy="10" r="9" stroke="#a855f7" strokeWidth="2.5" fill="#fff" />
-        <path
-          d="M6.5 10.5l2.5 2.5 4.5-5"
-          stroke="#22c55e"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        />
+      <svg
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="3"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-green-500"
+        aria-hidden="true"
+      >
+        <path d="M20 6 9 17l-5-5" />
       </svg>
     </span>
   );

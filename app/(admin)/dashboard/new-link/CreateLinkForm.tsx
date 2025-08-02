@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, SubmitHandler } from "react-hook-form";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -18,79 +18,84 @@ import { Input } from "@/components/ui/input";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { ArrowRight, Link as LinkIcon, Loader2 } from "lucide-react";
+import clsx from "clsx";
 
 const formSchema = z.object({
   title: z
     .string()
-    .min(1, "Título é obrigatório")
-    .max(100, "O título deve ter menos de 100 caracteres"),
-  url: z.string().url("Por favor, insira um URL válido"),
+    .min(1, "O título é obrigatório.")
+    .max(50, "O título deve ter no máximo 50 caracteres."),
+  url: z
+    .string()
+    .min(1, "A URL é obrigatória.")
+    .url("Por favor, insira uma URL válida."),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
-interface CreateLinkFormProps {
-  showPreview?: boolean;
-}
-
-export default function CreateLinkForm({ showPreview = false }: CreateLinkFormProps) {
-  const [error, setError] = useState<string | null>(null);
-  const [previewData, setPreviewData] = useState<{ title: string; url: string } | null>(null);
-
+export default function CreateLinkForm() {
   const createLink = useMutation(api.lib.links.createLink);
   const router = useRouter();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: {
-      title: "",
-      url: "",
-    },
+    defaultValues: { title: "", url: "" },
+    mode: "onChange",
   });
 
-  const watchedTitle = form.watch("title");
-  const watchedUrl = form.watch("url");
-
-  useEffect(() => {
-    if (showPreview && watchedTitle && watchedUrl) {
-      setPreviewData({ title: watchedTitle, url: watchedUrl });
-    } else {
-      setPreviewData(null);
+  const normalizeUrl = (url: string): string => {
+    // --- CORREÇÃO APLICADA AQUI ---
+    const formattedUrl = url.trim(); // Trocado 'let' por 'const'
+    if (formattedUrl && !/^(https?:\/\/)/i.test(formattedUrl)) {
+      return `https://${formattedUrl}`;
     }
-  }, [watchedTitle, watchedUrl, showPreview]);
+    return formattedUrl;
+  };
 
-  async function onSubmit(values: FormValues) {
-    setError(null);
+  const onSubmit: SubmitHandler<FormValues> = async (values) => {
+    const formattedUrl = normalizeUrl(values.url);
 
-    let formattedUrl = values.url.trim();
-    if (!formattedUrl.startsWith("https://") && !formattedUrl.startsWith("http://")) {
-      formattedUrl = `https://${formattedUrl}`;
-    }
-
-    try {
-      await createLink({
+    toast.promise(
+      createLink({
         title: values.title.trim(),
         url: formattedUrl,
-      });
-      router.push("/dashboard");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Falha ao criar link");
-    }
-  }
+      }),
+      {
+        loading: "Criando seu link...",
+        success: () => {
+          setTimeout(() => router.push("/dashboard"), 1000);
+          return "Link criado com sucesso! 🎉";
+        },
+        error: (err) => `Falha ao criar o link: ${err instanceof Error ? err.message : 'Erro desconhecido'}`,
+      }
+    );
+  };
+
+  const { isSubmitting } = form.formState;
+  const watchedTitle = form.watch("title");
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <FormField
           control={form.control}
           name="title"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Título do link</FormLabel>
+              <FormLabel className="text-lg">Título do Link</FormLabel>
               <FormControl>
-                <Input placeholder="Meu link incrível" {...field} autoComplete="off" />
+                <Input
+                  placeholder="Meu Portfólio, Instagram, etc."
+                  {...field}
+                  autoComplete="off"
+                  className="text-base py-6"
+                />
               </FormControl>
-              <FormDescription>Texto exibido como botão para o link.</FormDescription>
+              <FormDescription>
+                Este é o texto que aparecerá no botão do seu link.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
@@ -101,39 +106,46 @@ export default function CreateLinkForm({ showPreview = false }: CreateLinkFormPr
           name="url"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>URL</FormLabel>
+              <FormLabel className="text-lg">URL de Destino</FormLabel>
               <FormControl>
-                <Input placeholder="https://exemplo.com" {...field} autoComplete="off" />
+                <Input
+                  placeholder="exemplo.com"
+                  {...field}
+                  autoComplete="off"
+                  type="url"
+                  className="text-base py-6"
+                  onBlur={() => field.onChange(normalizeUrl(field.value))}
+                />
               </FormControl>
-              <FormDescription>Destino para onde o link vai redirecionar.</FormDescription>
+              <FormDescription>
+                Para onde seus visitantes serão redirecionados.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        {error && (
-          <div className="text-red-600 text-sm bg-red-50 p-3 rounded-md">
-            {error}
-          </div>
-        )}
+        <div className="space-y-2">
+            <h3 className="text-sm font-medium text-gray-600">Pré-visualização:</h3>
+            <div className={clsx(
+                "flex items-center gap-3 w-full rounded-xl py-4 px-5 font-bold text-lg shadow-md border-2 border-transparent transition-all duration-200",
+                form.formState.isValid ? "bg-white text-indigo-600 border-indigo-400" : "bg-gray-100 text-gray-400"
+            )}>
+                <LinkIcon className="w-6 h-6" />
+                <span className="flex-1 truncate">
+                    {watchedTitle || "Seu Título Aqui"}
+                </span>
+                <ArrowRight className="w-5 h-5" />
+            </div>
+        </div>
 
-        <Button type="submit" disabled={form.formState.isSubmitting} className="w-full">
-          {form.formState.isSubmitting ? "Criando..." : "Criar Link"}
+        <Button type="submit" disabled={isSubmitting} className="w-full py-6 text-lg">
+          {isSubmitting ? (
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+          ) : (
+            "Criar Link"
+          )}
         </Button>
-
-        {showPreview && previewData && (
-          <div className="mt-6 p-4 border rounded-lg bg-gray-50">
-            <h3 className="font-semibold mb-2 text-gray-800">Pré-visualização do Link:</h3>
-            <a
-              href={previewData.url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-indigo-600 underline break-all"
-            >
-              {previewData.title || previewData.url}
-            </a>
-          </div>
-        )}
       </form>
     </Form>
   );

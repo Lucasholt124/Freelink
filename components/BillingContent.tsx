@@ -2,14 +2,14 @@
 
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Loader2, Zap, Rocket, Star, CheckCircle, HelpCircle, ArrowRight } from "lucide-react";
+import { Loader2, Zap, Rocket, Star, CheckCircle, HelpCircle, ArrowRight, XCircle } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Switch } from "./ui/switch";
 
-// Tipos claros para o nosso sistema de planos
+// Tipos e constante 'plans' (sem alterações)
 type PlanIdentifier = "free" | "pro" | "ultra";
 type BillingCycle = "monthly" | "yearly";
 
@@ -26,36 +26,9 @@ interface Plan {
 }
 
 const plans: Record<PlanIdentifier, Plan> = {
-  free: {
-    name: "Free",
-    tagline: "Para começar e organizar seus links.",
-    monthlyPrice: "Grátis",
-    priceDetails: "para sempre",
-    benefits: ["Links ilimitados na sua página", "URL personalizada (seu_nome.freelinnk.com)", "Personalização de tema e aparência"],
-    icon: <CheckCircle className="w-5 h-5"/>,
-    color: "gray",
-  },
-  pro: {
-    name: "Pro",
-    tagline: "Para criadores que querem entender e crescer sua audiência.",
-    monthlyPrice: "R$14,90",
-    yearlyPrice: "R$149",
-    priceDetails: "/mês",
-    benefits: ["Tudo do plano Free, e mais:", "Sua página, suas regras. Remova nossa marca.", "Painel de Análises Detalhadas", "Descubra de onde vêm seus visitantes (países e fontes)", "Entenda o comportamento dos seus usuários únicos", "Suporte prioritário via e-mail"],
-    icon: <Zap className="w-5 h-5" />,
-    color: "blue",
-    recommended: true,
-  },
-  ultra: {
-    name: "Ultra",
-    tagline: "Para negócios e influenciadores que usam tráfego pago.",
-    monthlyPrice: "R$39,90",
-    yearlyPrice: "R$399",
-    priceDetails: "/mês",
-    benefits: ["Tudo do plano Pro, e mais:", "Análises Geográficas Avançadas (cidades/estados)", "Otimize seus anúncios com rastreamento (Pixel e GA4)", "Identifique os melhores horários com Análise de Pico", "Suporte VIP via WhatsApp"],
-    icon: <Rocket className="w-5 h-5" />,
-    color: "purple",
-  },
+  free: { name: "Free", tagline: "Para começar e organizar seus links.", monthlyPrice: "Grátis", priceDetails: "para sempre", benefits: ["Links ilimitados na sua página", "URL personalizada (seu_nome.freelinnk.com)", "Personalização de tema e aparência" ], icon: <CheckCircle className="w-5 h-5"/>, color: "gray" },
+  pro: { name: "Pro", tagline: "Para criadores que querem entender e crescer sua audiência.", monthlyPrice: "R$14,90", yearlyPrice: "R$149", priceDetails: "/mês", benefits: ["Tudo do plano Free, e mais:", "Sua página, suas regras. Remova nossa marca.", "Painel de Análises Detalhadas", "Descubra de onde vêm seus visitantes (países e fontes)", "Entenda o comportamento dos seus usuários únicos", "Suporte prioritário via e-mail"], icon: <Zap className="w-5 h-5" />, color: "blue", recommended: true },
+  ultra: { name: "Ultra", tagline: "Para negócios e influenciadores que usam tráfego pago.", monthlyPrice: "R$39,90", yearlyPrice: "R$399", priceDetails: "/mês", benefits: ["Tudo do plano Pro, e mais:", "Análises Geográficas Avançadas (cidades/estados)", "Otimize seus anúncios com rastreamento (Pixel e GA4)", "Identifique os melhores horários com Análise de Pico", "Suporte VIP via WhatsApp"], icon: <Rocket className="w-5 h-5" />, color: "purple" },
 };
 
 export default function BillingContent() {
@@ -69,16 +42,8 @@ export default function BillingContent() {
   useEffect(() => {
     const success = searchParams.get("success");
     const canceled = searchParams.get("canceled");
-
-    if (success) {
-      toast.success("Assinatura realizada com sucesso! 🎉");
-      router.replace("/dashboard/billing");
-    }
-    if (canceled) {
-      toast.info("O processo de assinatura foi cancelado.");
-      router.replace("/dashboard/billing");
-    }
-
+    if (success) { toast.success("Assinatura realizada com sucesso! 🎉"); router.replace("/dashboard/billing"); }
+    if (canceled) { toast.info("O processo de assinatura foi cancelado."); router.replace("/dashboard/billing"); }
     async function fetchPlan() {
       if (!user?.id) return;
       try {
@@ -105,17 +70,48 @@ export default function BillingContent() {
       const data = await res.json();
       if (data.url) {
         window.location.href = data.url;
-      } else {
-        throw new Error(data.error || "URL de checkout não recebida.");
-      }
-    } catch (err) { // <-- CORREÇÃO APLICADA AQUI
-      console.error("Erro no checkout:", err);
-      if (err instanceof Error) {
-        toast.error(err.message);
-      } else {
-        toast.error("Erro ao iniciar o checkout. Tente novamente.");
-      }
+      } else { throw new Error(data.error || "URL de checkout não recebida."); }
+    } catch (err) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("Erro ao iniciar o checkout. Tente novamente.");
     } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handleCancel() {
+    if (!confirm("Tem certeza que deseja cancelar sua assinatura? Você manterá o acesso aos recursos premium até o final do seu ciclo de faturamento atual.")) return;
+    setLoading("cancel");
+    try {
+      const res = await fetch("/api/stripe/cancel", { method: "POST" });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Erro do servidor ao cancelar.");
+      }
+      toast.success("Sua assinatura foi agendada para cancelamento. Você pode reativá-la a qualquer momento no portal do cliente.");
+      await user?.reload(); // Força a atualização dos dados do Clerk
+      setCurrentPlan("free"); // Atualização otimista
+    } catch (err) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("Não foi possível cancelar a assinatura. Tente novamente.");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handleManageSubscription() {
+    setLoading("portal");
+    try {
+      const res = await fetch("/api/stripe/portal", { method: "POST" });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || "URL do portal não recebida.");
+      }
+    } catch (err) {
+      if (err instanceof Error) toast.error(err.message);
+      else toast.error("Erro ao acessar o portal de assinaturas. Tente novamente.");
       setLoading(null);
     }
   }
@@ -124,12 +120,8 @@ export default function BillingContent() {
     <div className="bg-gray-50/50">
       <div className="max-w-7xl mx-auto px-4 py-16 sm:py-24">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4">
-            Planos feitos para o seu crescimento
-          </h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">
-            Comece de graça. Evolua com ferramentas de análise e marketing quando estiver pronto para decolar.
-          </p>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4">Planos feitos para o seu crescimento</h1>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">Comece de graça. Evolua com ferramentas de análise e marketing quando estiver pronto para decolar.</p>
         </div>
 
         <div className="flex items-center justify-center gap-4 mb-10">
@@ -141,9 +133,19 @@ export default function BillingContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
           <PlanCard plan={plans.free} currentPlan={currentPlan} billingCycle={billingCycle} />
-          <PlanCard plan={plans.pro} currentPlan={currentPlan} billingCycle={billingCycle} loading={loading} onCheckout={handleCheckout} />
-          <PlanCard plan={plans.ultra} currentPlan={currentPlan} billingCycle={billingCycle} loading={loading} onCheckout={handleCheckout} />
+          <PlanCard plan={plans.pro} currentPlan={currentPlan} billingCycle={billingCycle} loading={loading} onCheckout={handleCheckout} onCancel={handleCancel} />
+          <PlanCard plan={plans.ultra} currentPlan={currentPlan} billingCycle={billingCycle} loading={loading} onCheckout={handleCheckout} onCancel={handleCancel} />
         </div>
+
+        {currentPlan !== "free" && (
+          <div className="text-center mt-16">
+            <p className="text-gray-600 mb-4">Precisa atualizar seu cartão ou ver seu histórico de faturas?</p>
+            <Button variant="outline" onClick={handleManageSubscription} disabled={loading === "portal"}>
+              {loading === "portal" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Gerenciar Minha Assinatura
+            </Button>
+          </div>
+        )}
 
         <FAQ />
       </div>
@@ -157,9 +159,10 @@ interface PlanCardProps {
     billingCycle: BillingCycle;
     loading?: string | null;
     onCheckout?: (plan: "pro" | "ultra") => void;
+    onCancel?: () => void;
 }
 
-function PlanCard({ plan, currentPlan, billingCycle, loading, onCheckout }: PlanCardProps) {
+function PlanCard({ plan, currentPlan, billingCycle, loading, onCheckout, onCancel }: PlanCardProps) {
   const isCurrent = plan.name.toLowerCase() === currentPlan;
   const isFree = plan.name === "Free";
   const planIdentifier = plan.name.toLowerCase() as PlanIdentifier;
@@ -192,7 +195,14 @@ function PlanCard({ plan, currentPlan, billingCycle, loading, onCheckout }: Plan
       </div>
       <div className="mt-8">
         {isCurrent ? (
-          <div className={clsx("w-full text-center py-2.5 rounded-lg font-semibold", isFree ? 'bg-gray-200 text-gray-700' : `${colorClasses.bg} text-white`)}>Seu Plano Atual</div>
+          isFree ? (
+            <div className="w-full text-center py-2.5 rounded-lg font-semibold bg-gray-200 text-gray-700">Seu Plano Atual</div>
+          ) : (
+            <Button variant="destructive" className="w-full" onClick={onCancel} disabled={loading === 'cancel'}>
+              {loading === 'cancel' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <XCircle className="mr-2 h-4 w-4" />}
+              Cancelar Assinatura
+            </Button>
+          )
         ) : (
           !isFree && onCheckout && (
             <Button onClick={() => onCheckout(planIdentifier as "pro" | "ultra")} disabled={loading === loadingId} className={clsx(`w-full text-white ${colorClasses.bg} ${colorClasses.hoverBg}`)}>

@@ -5,14 +5,13 @@ import { SignInButton, UserButton, useUser } from "@clerk/nextjs"; // Importe o 
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "./ui/button";
-import { Plus, LayoutDashboard, BarChart2, Target, CreditCard } from "lucide-react";
+import { Plus, LayoutDashboard, Target, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MobileMenu } from "@/components/MobileMenu";
 
 // A estrutura de navegação centralizada para o MobileMenu continua útil
 const navLinks = [
   { href: "/dashboard", label: "Visão Geral", icon: <LayoutDashboard className="w-5 h-5" /> },
-  { href: "/dashboard/analytics", label: "Análises", icon: <BarChart2 className="w-5 h-5" /> },
   { href: "/dashboard/tracking", label: "Rastreamento", icon: <Target className="w-5 h-5" />, ultra: true },
   { href: "/dashboard/billing", label: "Plano e Cobrança", icon: <CreditCard className="w-5 h-5" /> },
 ];
