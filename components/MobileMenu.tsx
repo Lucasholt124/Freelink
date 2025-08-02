@@ -3,13 +3,25 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
-import { Plus, Menu } from "lucide-react";
+import { Plus, Menu, X } from "lucide-react";
 import { UserButton } from "@clerk/nextjs";
 
-export function MobileMenu() {
+// Tipagem para os links de navegação recebidos do Header
+interface NavLink {
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+  pro?: boolean;
+}
+
+interface MobileMenuProps {
+  navLinks: NavLink[];
+  plan: "free" | "pro" | "ultra";
+}
+
+export function MobileMenu({ navLinks, plan }: MobileMenuProps) {
   const [open, setOpen] = useState(false);
 
-  // Só renderiza o portal no client
   if (typeof window === "undefined") return null;
 
   return (
@@ -21,18 +33,21 @@ export function MobileMenu() {
       >
         <Menu className="w-6 h-6 text-purple-600" />
       </button>
+
       {open &&
         createPortal(
           <>
-            {/* Overlay escuro para fechar ao clicar fora */}
+            {/* Overlay */}
             <div
-              className="fixed inset-0 z-[9998] bg-black/30"
+              className="fixed inset-0 z-[9998] bg-black/30 backdrop-blur-sm"
               onClick={() => setOpen(false)}
               aria-label="Fechar menu"
             />
+
+            {/* --- SEU DESIGN ORIGINAL DO MENU MOBILE RESTAURADO E MELHORADO --- */}
             <div
-              className="fixed top-0 left-0 right-0 z-[9999] bg-white border-b border-gray-200 shadow-lg flex flex-col p-4 gap-3 animate-fade-in"
-              style={{ minHeight: 120 }}
+              className="fixed top-0 left-0 right-0 z-[9999] bg-white border-b border-gray-200 shadow-lg flex flex-col p-4 gap-3"
+              style={{ animation: "fadeInDown 0.3s ease-out" }}
             >
               <div className="flex justify-between items-center mb-2">
                 <span className="text-xl font-bold text-purple-600">Menu</span>
@@ -41,33 +56,51 @@ export function MobileMenu() {
                   className="p-2 rounded-lg hover:bg-gray-100 transition"
                   onClick={() => setOpen(false)}
                 >
-                  <span className="text-2xl font-bold">&times;</span>
+                  <X className="w-6 h-6 text-gray-600" />
                 </button>
               </div>
-              <Link
-                href="/dashboard/new-link"
-                className="flex items-center gap-2 px-3 py-2 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:from-blue-600 hover:to-purple-700 transition"
-                aria-label="Adicionar link"
-                onClick={() => setOpen(false)}
-              >
-                <Plus className="w-4 h-4" />
-                Adicionar link
-              </Link>
-              <Link
-                href="/dashboard/billing"
-                className="px-3 py-2 rounded-lg font-medium text-purple-600 border border-purple-600 hover:bg-purple-600 hover:text-white transition"
-                aria-label="Cobrança"
-                onClick={() => setOpen(false)}
-              >
-                Cobrança
-              </Link>
-              <div className="px-3 py-2">
-                <UserButton afterSignOutUrl="/" />
+
+              {/* Mapeando os links de navegação principais */}
+              {navLinks.map((link) => {
+                if (link.pro && plan !== "ultra") return null;
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    className="flex items-center gap-3 px-3 py-3 rounded-lg font-medium text-gray-700 hover:bg-gray-100 transition"
+                    onClick={() => setOpen(false)}
+                  >
+                    {link.icon}
+                    {link.label}
+                  </Link>
+                );
+              })}
+
+              <div className="border-t border-gray-200 mt-2 pt-4 space-y-3">
+                <Link
+                  href="/dashboard/new-link"
+                  className="flex items-center justify-center gap-2 px-3 py-3 rounded-lg font-medium bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:opacity-90 transition"
+                  onClick={() => setOpen(false)}
+                >
+                  <Plus className="w-5 h-5" />
+                  Adicionar Link
+                </Link>
+                <div className="flex items-center justify-between p-2 rounded-lg bg-gray-50">
+                   <p className="text-sm font-medium text-gray-700">Minha Conta</p>
+                   <UserButton afterSignOutUrl="/" />
+                </div>
               </div>
             </div>
           </>,
           document.body
         )}
+      {/* CSS para a animação */}
+      <style jsx global>{`
+        @keyframes fadeInDown {
+          from { opacity: 0; transform: translateY(-20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+      `}</style>
     </div>
   );
 }
