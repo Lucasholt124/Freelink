@@ -1,27 +1,40 @@
+// convex/schema.ts
+
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // Tabela para mapear usernames únicos para userIds do Clerk
   usernames: defineTable({
-    userId: v.string(), // Clerk user ID
-    username: v.string(), // Custom username (must be unique)
+    userId: v.string(),
+    username: v.string(),
   })
     .index("by_user_id", ["userId"])
     .index("by_username", ["username"]),
 
+  // Tabela para os links criados pelos usuários
   links: defineTable({
-    userId: v.string(), // Clerk user ID
-    title: v.string(), // Display name of the link
-    url: v.string(), // Destination URL
-    order: v.number(), // Sort order
+    userId: v.string(),
+    title: v.string(),
+    url: v.string(),
+    order: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_user_and_order", ["userId", "order"]),
 
+  // Tabela para as customizações de perfil
   userCustomizations: defineTable({
-    userId: v.string(), // Clerk user ID
-    profilePictureStorageId: v.optional(v.id("_storage")), // Convex storage ID for profile picture
-    description: v.optional(v.string()), // Custom description
-    accentColor: v.optional(v.string()), // Hex color for accent (e.g., "#6366f1")
-  }).index("by_user_id", ["userId"]),
+    userId: v.string(),
+    profilePictureStorageId: v.optional(v.id("_storage")),
+    description: v.optional(v.string()),
+    accentColor: v.optional(v.string()),
+  }).index("by_user_id", ["userId"]), // <-- VÍRGULA ADICIONADA AQUI
+
+  // Tabela para os IDs de rastreamento (Pixel, GA4)
+  tracking: defineTable({
+    userId: v.string(),
+    facebookPixelId: v.optional(v.string()),
+    googleAnalyticsId: v.optional(v.string()),
+  }).index("by_userId", ["userId"]),
+
 });

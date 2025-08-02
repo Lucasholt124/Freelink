@@ -19,6 +19,8 @@ import type * as lib_fetchLinkAnalytics from "../lib/fetchLinkAnalytics.js";
 import type * as lib_getBaseUrl from "../lib/getBaseUrl.js";
 import type * as lib_links from "../lib/links.js";
 import type * as lib_usernames from "../lib/usernames.js";
+import type * as tracking from "../tracking.js";
+import type * as users from "../users.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -35,6 +37,8 @@ declare const fullApi: ApiFromModules<{
   "lib/getBaseUrl": typeof lib_getBaseUrl;
   "lib/links": typeof lib_links;
   "lib/usernames": typeof lib_usernames;
+  tracking: typeof tracking;
+  users: typeof users;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,

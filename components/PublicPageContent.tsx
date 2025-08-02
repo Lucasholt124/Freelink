@@ -2,12 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { Preloaded, usePreloadedQuery } from "convex/react";
-import {
-  User,
-  Share2,
-  Link as LinkIcon,
-  Check,
-} from "lucide-react";
+import { User, Share2, Link as LinkIcon, Check } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { getBaseUrl } from "@/convex/lib/getBaseUrl";
@@ -16,13 +11,16 @@ import { trackLinkClick } from "@/lib/analytics";
 import {
   FaYoutube, FaInstagram, FaFacebook, FaTwitter, FaLinkedin, FaTiktok, FaWhatsapp, FaGithub, FaSpotify, FaTwitch, FaGlobe, FaEnvelope, FaTelegram, FaPinterest, FaDiscord, FaSlack, FaDribbble, FaFigma,
 } from "react-icons/fa6";
+import { SubscriptionPlan } from "@/lib/subscription"; // <-- IMPORTANTE: Importando o tipo do plano
 
+// --- Props atualizadas para incluir o plano do usuário ---
 interface PublicPageContentProps {
   username: string;
   preloadedLinks: Preloaded<typeof api.lib.links.getLinksBySlug>;
   preloadedCustomizations: Preloaded<
     typeof api.lib.customizations.getCustomizationsBySlug
   >;
+  plan: SubscriptionPlan; // <-- NOVA PROP: Recebe "free", "pro" ou "ultra"
 }
 
 type LinkType = {
@@ -131,6 +129,7 @@ export default function PublicPageContent({
   username,
   preloadedLinks,
   preloadedCustomizations,
+  plan, // <-- RECEBEMOS O PLANO AQUI
 }: PublicPageContentProps) {
   const customizations = usePreloadedQuery(preloadedCustomizations);
   const accentColor = customizations?.accentColor || "#6366f1";
@@ -141,7 +140,7 @@ export default function PublicPageContent({
     if (navigator.share) {
       try {
         await navigator.share({
-          title: `Perfil de @${username} no Freelink`,
+          title: `Perfil de @${username} no Freelinnk`,
           url: profileUrl,
         });
         setShared(true);
@@ -309,19 +308,22 @@ export default function PublicPageContent({
           </main>
         </div>
 
-        {/* Footer */}
-        <footer className="mt-16 pt-8 border-t border-gray-200/50 text-center">
-          <p className="text-gray-500 text-sm">
-            Distribuído por{" "}
-            <Link
-              href={getBaseUrl() + "/"}
-              className="hover:underline font-semibold"
-              style={{ color: accentColor }}
-            >
-              Freelink
-            </Link>
-          </p>
-        </footer>
+        {/* --- CORREÇÃO PRINCIPAL AQUI --- */}
+        {/* O rodapé agora só é renderizado se o plano do usuário for "free" */}
+        {plan === 'free' && (
+          <footer className="mt-16 pt-8 border-t border-gray-200/50 text-center">
+            <p className="text-gray-500 text-sm">
+              Distribuído por{" "}
+              <Link
+                href={getBaseUrl() + "/"}
+                className="hover:underline font-semibold"
+                style={{ color: accentColor }}
+              >
+                Freelinnk
+              </Link>
+            </p>
+          </footer>
+        )}
       </div>
       {/* Animações */}
       <style jsx global>{`
