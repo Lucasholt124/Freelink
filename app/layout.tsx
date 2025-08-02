@@ -21,6 +21,7 @@ export const metadata: Metadata = {
   // O Next.js agora usará o arquivo app/icon.tsx automaticamente para o favicon.
   // Mantemos o 'apple' para ícones em dispositivos Apple, que é uma boa prática.
   icons: {
+      icon: "/favicon.ico",
     apple: "/apple-touch-icon.png",
   },
 

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { SignInButton, UserButton } from "@clerk/nextjs";
+import { SignInButton, UserButton, useUser } from "@clerk/nextjs"; // Importe o useUser
 import { Authenticated, Unauthenticated, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "./ui/button";
@@ -9,18 +9,21 @@ import { Plus, LayoutDashboard, BarChart2, Target, CreditCard } from "lucide-rea
 import { cn } from "@/lib/utils";
 import { MobileMenu } from "@/components/MobileMenu";
 
-// A estrutura de navegação centralizada para o MobileMenu
+// A estrutura de navegação centralizada para o MobileMenu continua útil
 const navLinks = [
   { href: "/dashboard", label: "Visão Geral", icon: <LayoutDashboard className="w-5 h-5" /> },
   { href: "/dashboard/analytics", label: "Análises", icon: <BarChart2 className="w-5 h-5" /> },
-  { href: "/dashboard/tracking", label: "Rastreamento", icon: <Target className="w-5 h-5" />, pro: true },
+  { href: "/dashboard/tracking", label: "Rastreamento", icon: <Target className="w-5 h-5" />, ultra: true },
   { href: "/dashboard/billing", label: "Plano e Cobrança", icon: <CreditCard className="w-5 h-5" /> },
 ];
 
 function Header({ isFixed = false }: { isFixed?: boolean }) {
-  // Busca o plano para passar para o menu mobile
+  const { user } = useUser(); // Hook para pegar o userId no cliente
   const planQuery = useQuery(api.users.getMyPlan);
-  const plan = planQuery ?? "free";
+
+  // Lógica de plano que funciona com seu ID de admin
+  const isAdmin = user?.id === "user_301NTkVsE3v48SXkoCEp0XOXifI";
+  const plan = isAdmin ? "ultra" : (planQuery ?? "free");
 
   return (
     <header
@@ -30,7 +33,7 @@ function Header({ isFixed = false }: { isFixed?: boolean }) {
       )}
     >
       <div className="max-w-7xl mx-auto px-4 xl:px-2 py-4 flex justify-between items-center">
-        {/* Logo (mantido como estava) */}
+        {/* Logo (exatamente como estava) */}
         <Link
           href="/"
           className="text-2xl font-extrabold tracking-tight flex items-center gap-1 select-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-purple-500 transition"
@@ -42,7 +45,7 @@ function Header({ isFixed = false }: { isFixed?: boolean }) {
           </span>
         </Link>
 
-        {/* --- SEU DESIGN ORIGINAL DO MENU DESKTOP RESTAURADO --- */}
+        {/* --- SEU DESIGN ORIGINAL DO MENU DESKTOP COM A ADIÇÃO NECESSÁRIA --- */}
         <Authenticated>
           <div className="hidden sm:flex gap-2 items-center bg-white/50 backdrop-blur-sm border border-white/20 p-2 rounded-lg">
             <Link
@@ -53,6 +56,19 @@ function Header({ isFixed = false }: { isFixed?: boolean }) {
               <Plus className="w-4 h-4" />
               <span className="hidden xs:inline">Adicionar link</span>
             </Link>
+
+            {/* --- LÓGICA DE EXIBIÇÃO DO NOVO BOTÃO --- */}
+            {plan === 'ultra' && (
+              <Button
+                asChild
+                variant="outline"
+                className="border-purple-600 text-purple-600 hover:border-purple-700 hover:bg-purple-600 hover:text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500"
+                aria-label="Rastreamento"
+              >
+                <Link href="/dashboard/tracking">Rastreamento</Link>
+              </Button>
+            )}
+
             <Button
               asChild
               variant="outline"
@@ -61,6 +77,7 @@ function Header({ isFixed = false }: { isFixed?: boolean }) {
             >
               <Link href="/dashboard/billing">Cobrança</Link>
             </Button>
+
             <UserButton afterSignOutUrl="/" />
           </div>
 
