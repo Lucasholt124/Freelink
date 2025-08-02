@@ -1,79 +1,107 @@
 "use client";
 
-import { useState } from "react"; // <-- IMPORTANTE: para guardar o estado
-import { BarChart3 } from "lucide-react";
+import { useState } from "react";
+import { Clock } from "lucide-react";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
+// Interface de props
 interface HourlyChartProps {
-  data: { hour_of_day: number; total_clicks: number }[];
+  data: { hour_timestamp: string; total_clicks: number }[];
+}
+
+// Sub-componente para o seletor de período (24h / 48h)
+function TimeRangeSelector({ range, setRange }: { range: number; setRange: (r: number) => void }) {
+  return (
+    <div className="flex bg-gray-100 p-1 rounded-lg">
+      <button
+        onClick={() => setRange(24)}
+        className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${
+          range === 24 ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
+        }`}
+      >
+        Últimas 24h
+      </button>
+      <button
+        onClick={() => setRange(48)}
+        className={`px-3 py-1 text-sm font-semibold rounded-md transition-colors ${
+          range === 48 ? "bg-white text-gray-800 shadow-sm" : "text-gray-500 hover:text-gray-700"
+        }`}
+      >
+        Últimas 48h
+      </button>
+    </div>
+  );
 }
 
 export function HourlyChart({ data }: HourlyChartProps) {
-  // Estado para armazenar qual hora está selecionada (para mobile)
-  const [selectedHour, setSelectedHour] = useState<number | null>(null);
+  const [range, setRange] = useState(24);
 
-  const clicksByHour = new Map(data.map(item => [item.hour_of_day, item.total_clicks]));
-  const maxClicks = data.length > 0 ? Math.max(...data.map(d => d.total_clicks)) : 0;
+  const clicksByTimestamp = new Map(data.map(item => [new Date(item.hour_timestamp).getTime(), item.total_clicks]));
 
-  // Função para lidar com o clique/toque na barra
-  const handleBarClick = (hour: number) => {
-    // Se a barra já estiver selecionada, deselecione. Senão, selecione-a.
-    setSelectedHour(selectedHour === hour ? null : hour);
-  };
+  const now = new Date();
+  const hoursToShow = Array.from({ length: range }).map((_, i) => {
+    const date = new Date(now);
+    date.setHours(now.getHours() - i);
+    date.setMinutes(0);
+    date.setSeconds(0);
+    date.setMilliseconds(0);
+    return date;
+  }).reverse();
+
+  const maxClicks = data.length > 0 ? Math.max(...data.map(d => d.total_clicks)) : 1;
 
   return (
     <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200/80 shadow-lg">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-3 bg-orange-500 rounded-xl">
-          <BarChart3 className="w-6 h-6 text-white" />
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div className="flex items-center gap-3">
+          <div className="p-3 bg-orange-500 rounded-xl">
+            <Clock className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-800">Atividade por Hora</h3>
+            <p className="text-sm text-gray-500">Cliques recebidos nas últimas {range} horas.</p>
+          </div>
         </div>
-        <h3 className="text-xl font-bold text-gray-800">Distribuição por Hora</h3>
+        <TimeRangeSelector range={range} setRange={setRange} />
       </div>
 
-      <div className="flex gap-1 sm:gap-1.5 items-end h-48 pt-8">
-        {Array.from({ length: 24 }).map((_, hour) => {
-          const clicks = clicksByHour.get(hour) || 0;
-          const height = maxClicks > 0 ? (clicks / maxClicks) * 100 : 0;
-          const showHourLabel = hour % 2 === 0;
+      <div className="w-full overflow-x-auto pb-4">
+        <div className="flex gap-1 items-end h-48 pt-8" style={{ width: `${range * 2.5}rem` }}>
+          {hoursToShow.map((hourDate) => {
+            const clicks = clicksByTimestamp.get(hourDate.getTime()) || 0;
+            const height = (clicks / maxClicks) * 100;
 
-          // Verifica se a barra atual está selecionada
-          const isSelected = selectedHour === hour;
+            const formattedHour = format(hourDate, "HH'h'");
+            const formattedTooltip = `${clicks} ${clicks === 1 ? 'clique' : 'cliques'} em ${format(hourDate, "dd/MM 'às' HH:mm", { locale: ptBR })}`;
 
-          return (
-            <div
-              key={hour}
-              // **MUDANÇA MOBILE:** Adicionamos o onClick
-              onClick={() => handleBarClick(hour)}
-              className="relative flex-1 h-full flex flex-col justify-end items-center group cursor-pointer"
-            >
-              {clicks > 0 && (
+            const isCurrentHour = hourDate.getHours() === now.getHours() && hourDate.getDate() === now.getDate();
+            const showLabel = hourDate.getHours() % 3 === 0;
+
+            return (
+              <div key={hourDate.toISOString()} className="relative flex-1 h-full flex flex-col justify-end items-center group cursor-pointer" title={formattedTooltip}>
                 <div
-                  // **MUDANÇA MOBILE:** O tooltip agora aparece se a barra estiver selecionada OU no hover
-                  className={`absolute bottom-full mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs font-bold rounded-md shadow-lg transition-opacity duration-200 pointer-events-none ${
-                    isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                  }`}
+                  className={`absolute bottom-full mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs font-bold rounded-md shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-10`}
                 >
-                  {clicks} {clicks === 1 ? 'clique' : 'cliques'}
+                  {formattedTooltip}
                 </div>
-              )}
 
-              <div
-                // **MUDANÇA MOBILE:** A barra fica mais escura se estiver selecionada
-                className={`w-full rounded-t-md transition-all duration-200 ${
-                  isSelected ? 'bg-orange-500' : 'bg-orange-200 group-hover:bg-orange-400'
-                }`}
-                style={{ height: `${height}%`, minHeight: '2px' }}
-              />
+                <div
+                  className={`w-full rounded-t-md transition-colors duration-200 ${
+                    clicks > 0 ? 'bg-orange-300 group-hover:bg-orange-500' : 'bg-gray-100'
+                  }`}
+                  style={{ height: `${height}%`, minHeight: '3px' }}
+                />
 
-              <div
-                className={`text-[10px] mt-1.5 ${
-                  isSelected ? 'text-orange-600 font-bold' : 'text-gray-500'
-                } ${!showHourLabel && 'hidden sm:inline'}`}
-              >
-                {String(hour).padStart(2, '0')}
+                <div
+                  className={`text-[10px] mt-1.5 font-medium ${isCurrentHour ? 'text-orange-600' : 'text-gray-400'} ${showLabel ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
+                >
+                  {formattedHour}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })}
+        </div>
       </div>
     </div>
   );

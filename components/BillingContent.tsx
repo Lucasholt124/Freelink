@@ -26,7 +26,7 @@ interface Plan {
 }
 
 const plans: Record<PlanIdentifier, Plan> = {
-  free: { name: "Free", tagline: "Para começar e organizar seus links.", monthlyPrice: "Grátis", priceDetails: "para sempre", benefits: ["Links ilimitados na sua página", "URL personalizada (seu_nome.freelinnk.com)", "Personalização de tema e aparência" ], icon: <CheckCircle className="w-5 h-5"/>, color: "gray" },
+  free: { name: "Free", tagline: "Para começar e organizar seus links.", monthlyPrice: "Grátis", priceDetails: "para sempre", benefits: ["Links ilimitados na sua página", "URL personalizada (seu_nome.freelinnk.com)", "Personalização de tema e aparência", "Cliques de audiência Total" ], icon: <CheckCircle className="w-5 h-5"/>, color: "gray" },
   pro: { name: "Pro", tagline: "Para criadores que querem entender e crescer sua audiência.", monthlyPrice: "R$14,90", yearlyPrice: "R$149", priceDetails: "/mês", benefits: ["Tudo do plano Free, e mais:", "Sua página, suas regras. Remova nossa marca.", "Painel de Análises Detalhadas", "Descubra de onde vêm seus visitantes (países e fontes)", "Entenda o comportamento dos seus usuários únicos", "Suporte prioritário via e-mail"], icon: <Zap className="w-5 h-5" />, color: "blue", recommended: true },
   ultra: { name: "Ultra", tagline: "Para negócios e influenciadores que usam tráfego pago.", monthlyPrice: "R$39,90", yearlyPrice: "R$399", priceDetails: "/mês", benefits: ["Tudo do plano Pro, e mais:", "Análises Geográficas Avançadas (cidades/estados)", "Otimize seus anúncios com rastreamento (Pixel e GA4)", "Identifique os melhores horários com Análise de Pico", "Suporte VIP via WhatsApp"], icon: <Rocket className="w-5 h-5" />, color: "purple" },
 };
