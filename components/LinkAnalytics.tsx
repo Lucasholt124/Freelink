@@ -6,9 +6,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, BarChart3, Clock, ChevronRight, ArrowLeft } from "lucide-react";
 
-// --- CORREÇÃO #1: Importamos a interface da nossa fonte da verdade ---
+// Importações dos seus componentes
 import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
-
 import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
 import { CountryChart } from "./CountryChart";
@@ -21,6 +20,7 @@ import { NoDataState } from "./NoDataState";
 
 const formatUrl = (url: string) => { try { return new URL(url).hostname.replace("www.", "") } catch { return url } };
 
+// --- Componente de Cabeçalho (Preservado) ---
 function PageHeader({ linkTitle, linkUrl }: { linkTitle: string, linkUrl: string }) {
     const router = useRouter();
     return (
@@ -40,6 +40,7 @@ function PageHeader({ linkTitle, linkUrl }: { linkTitle: string, linkUrl: string
     );
 }
 
+// --- Card dedicado para Horário de Pico ---
 function PeakHourCard({ peakHour }: { peakHour: number | null }) {
     return (
         <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg flex items-center gap-6">
@@ -53,6 +54,7 @@ function PeakHourCard({ peakHour }: { peakHour: number | null }) {
     );
 }
 
+// --- Componente Principal com Layout Aprimorado ---
 export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsData }) {
   const { user, isLoaded } = useUser();
   const [plan, setPlan] = useState<"free" | "pro" | "ultra">("free");
@@ -75,19 +77,31 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
   return (
     <div className="space-y-8">
       <PageHeader linkTitle={analytics.linkTitle} linkUrl={analytics.linkUrl} />
+
       {analytics.totalClicks === 0 ? <NoDataState /> : (
         <div className="space-y-8">
+          {/* --- SEÇÃO 1: MÉTRICAS PRINCIPAIS --- */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <MetricCard title="Total de cliques" value={analytics.totalClicks} />
             <MetricCard title="Visitantes Únicos" value={analytics.uniqueUsers} />
             <MetricCard title="Países Alcançados" value={analytics.countriesReached} />
           </section>
+
+          {/* --- SEÇÃO 2: GRÁFICO PRINCIPAL DE TENDÊNCIA --- */}
           {analytics.dailyData?.length > 0 && (
-            <section><DailyPerformanceChart data={analytics.dailyData} /></section>
+            <section>
+              <DailyPerformanceChart data={analytics.dailyData} />
+            </section>
           )}
+
+          {/* --- SEÇÃO 3: ANÁLISES DETALHADAS EM GRID --- */}
           <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+
+            {/* Coluna da Esquerda (ocupa 2/3 no desktop) */}
             <div className="lg:col-span-2 space-y-8">
               {analytics.countryData?.length > 0 && <CountryChart data={analytics.countryData} />}
+
+              {/* Análises Geográficas Avançadas (Ultra) */}
               {hasUltraFeaturesAccess ? (
                 <>
                   {analytics.regionData?.length > 0 && <RegionChart data={analytics.regionData} />}
@@ -95,20 +109,21 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
                 </>
               ) : (
                 <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-lg">
-                  <LockedFeatureCard title="Análise Geográfica Detalhada" icon={<MapPin className="w-8 h-8 text-gray-400"/>} requiredPlan="Ultra" description="Desbloqueie para ver os cliques por cidade e estado."/>
+                    <LockedFeatureCard title="Análise Geográfica Detalhada" icon={<MapPin className="w-8 h-8 text-gray-400"/>} requiredPlan="Ultra" description="Desbloqueie para ver os cliques por cidade e estado."/>
                 </div>
               )}
             </div>
+
+            {/* Coluna da Direita (ocupa 1/3 no desktop) */}
             <div className="space-y-8">
               {hasUltraFeaturesAccess ? (
                 <>
                   <PeakHourCard peakHour={analytics.peakHour} />
-                  {/* Agora o erro de tipo desaparece aqui */}
                   {analytics.hourlyData?.length > 0 && <HourlyChart data={analytics.hourlyData} />}
                 </>
               ) : (
                 <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-lg">
-                  <LockedFeatureCard title="Análise de Horários" icon={<BarChart3 className="w-8 h-8 text-gray-400"/>} requiredPlan="Ultra" description="Descubra os horários de pico de engajamento da sua audiência."/>
+                    <LockedFeatureCard title="Análise de Horários" icon={<BarChart3 className="w-8 h-8 text-gray-400"/>} requiredPlan="Ultra" description="Descubra os horários de pico de engajamento da sua audiência."/>
                 </div>
               )}
             </div>
