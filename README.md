@@ -1,51 +1,113 @@
-# Welcome to your Convex + Next.js + Clerk app
+# Freelinnk ✨
 
-This is a [Convex](https://convex.dev/) project created with [`npm create convex`](https://www.npmjs.com/package/create-convex).
+Bem-vindo ao Freelinnk, uma plataforma SaaS moderna e completa de "link na bio", construída com as tecnologias mais recentes do ecossistema Next.js. Este projeto vai além de um simples agregador de links, oferecendo um dashboard analítico poderoso, sistema de planos e pagamentos com Stripe, e uma experiência de usuário profissional e personalizável.
 
-After the initial setup (<2 minutes) you'll have a working full-stack app using:
+**Visite a aplicação em produção:** **[www.freelinnk.com](https://www.freelinnk.com)** 🚀
 
-- Convex as your backend (database, server logic)
-- [React](https://react.dev/) as your frontend (web page interactivity)
-- [Next.js](https://nextjs.org/) for optimized web hosting and page routing
-- [Tailwind](https://tailwindcss.com/) for building great looking accessible UI
-- [Clerk](https://clerk.com/) for authentication
+---
 
-## Get started
+## 📸 Screenshots
 
-If you just cloned this codebase and didn't use `npm create convex`, run:
+_**Ação:** Tire screenshots bonitos da sua landing page, do dashboard de links e, principalmente, do painel de análises. Substitua as URLs de placeholder abaixo._
 
-```
-npm install
-npm run dev
-```
+| Landing Page                                                               | Dashboard de Links                                                            | Painel de Análises                                                         |
+| -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
+| ![Landing Page do Freelinnk](https://via.placeholder.com/400x300.png?text=Landing+Page) | ![Dashboard de Links do Freelinnk](https://via.placeholder.com/400x300.png?text=Dashboard+de+Links) | ![Painel de Análises do Freelinnk](https://via.placeholder.com/400x300.png?text=Painel+de+Análises) |
 
-If you're reading this README on GitHub and want to use this template, run:
+---
 
-```
-npm create convex@latest -- -t nextjs-clerk
-```
+## 🎯 Visão Geral do Produto
 
-Then:
+O Freelinnk foi projetado para ser a alternativa definitiva ao Linktree para o mercado brasileiro, focando em três pilares:
 
-1. Open your app. There should be a "Claim your application" button from Clerk in the bottom right of your app.
-2. Follow the steps to claim your application and link it to this app.
-3. Follow step 3 in the [Convex Clerk onboarding guide](https://docs.convex.dev/auth/clerk#get-started) to create a Convex JWT template.
-4. Uncomment the Clerk provider in `convex/auth.config.ts`
-5. Paste the Issuer URL as `CLERK_JWT_ISSUER_DOMAIN` to your dev deployment environment variable settings on the Convex dashboard (see [docs](https://docs.convex.dev/auth/clerk#configuring-dev-and-prod-instances))
+1.  **Simplicidade e Elegância:** Uma interface limpa e intuitiva que permite aos usuários criar e gerenciar sua página de links em minutos, sem complicações.
+2.  **Análises Poderosas:** Um dashboard completo que transforma dados brutos de cliques em insights acionáveis, ajudando criadores e empresas a entenderem sua audiência.
+3.  **Monetização Real:** Uma estrutura de planos (Free, Pro, Ultra) com integração completa ao Stripe, permitindo features premium como remoção de marca e rastreamento via Pixel/GA4.
 
-If you want to sync Clerk user data via webhooks, check out this [example repo](https://github.com/thomasballinger/convex-clerk-users-table/).
+---
 
-## Learn more
+## ✨ Funcionalidades Principais
 
-To learn more about developing your project with Convex, check out:
+*   **Autenticação Segura:** Gerenciamento completo de usuários com **Clerk**, incluindo login social e segurança de nível empresarial.
+*   **Páginas Públicas Dinâmicas:** URLs personalizadas (`freelinnk.com/u/username`) que exibem os links e o perfil do usuário.
+*   **Dashboard Intuitivo:**
+    *   Gerenciamento de links com reordenação por **Drag-and-Drop** (`dnd-kit`).
+    *   Formulários robustos com validação em tempo real (`react-hook-form` + `zod`).
+    *   Personalização de perfil (foto, descrição, cor de destaque).
+*   **Painel de Análises Avançado:**
+    *   **Métricas Gerais:** Cliques totais, visitantes únicos, principais origens, links mais populares e mais.
+    *   **Gráficos Detalhados:** Desempenho diário, distribuição geográfica (países, estados, cidades) e atividade por hora.
+    *   **Lógica de Acesso por Plano:** Usuários Free veem apenas o básico, incentivando o upgrade.
+*   **Sistema de Assinaturas (SaaS):**
+    *   Integração com **Stripe** para checkout de assinaturas (mensal/anual).
+    *   Webhooks para sincronizar o status da assinatura com os metadados do Clerk.
+    *   Portal do cliente para gerenciamento de pagamentos.
+*   **Recursos Premium (Plano Ultra):**
+    *   **Remoção de Marca (White-label):** Usuários Pro/Ultra podem remover a marca "Freelinnk" de suas páginas.
+    *   **Rastreamento de Marketing:** Integração com **Pixel do Facebook (Meta)** e **Google Analytics (GA4)** para otimização de anúncios.
 
-- The [Tour of Convex](https://docs.convex.dev/get-started) for a thorough introduction to Convex principles.
-- The rest of [Convex docs](https://docs.convex.dev/) to learn about all Convex features.
-- [Stack](https://stack.convex.dev/) for in-depth articles on advanced topics.
+---
 
-## Join the community
+## 🛠️ Stack Tecnológica
 
-Join thousands of developers building full-stack apps with Convex:
+Este projeto foi construído com uma stack moderna, focada em performance, escalabilidade e uma excelente experiência de desenvolvimento.
 
-- Join the [Convex Discord community](https://convex.dev/community) to get help in real-time.
-- Follow [Convex on GitHub](https://github.com/get-convex/), star and contribute to the open-source implementation of Convex.
+*   **Framework:** [Next.js](https://nextjs.org/) (App Router)
+*   **Hospedagem:** [Vercel](https://vercel.com/)
+*   **Hospedagem:** [Hostinger](https://Hostinger.com/)
+*   **Banco de Dados Primário:** [PostgreSQL (Vercel Postgres)](https://vercel.com/storage/postgres) - Para dados analíticos.
+*   **Banco de Dados Secundário:** [Convex](https://www.convex.dev/) - Para dados em tempo real (links, customizações).
+*   **Autenticação:** [Clerk](https://clerk.com/)
+*   **Pagamentos:** [Stripe](https://stripe.com/)
+*   **Estilização:** [Tailwind CSS](https://tailwindcss.com/)
+*   **Componentes UI:** [Shadcn/UI](https://ui.shadcn.com/)
+*   **Animações:** [Framer Motion](https://www.framer.com/motion/)
+*   **Drag-and-Drop:** [Dnd-kit](https://dndkit.com/)
+*   **Validação de Formulários:** [React Hook Form](https://react-hook-form.com/) + [Zod](https://zod.dev/)
+*   **Ícones:** [Lucide React](https://lucide.dev/)
+
+---
+
+## 🚀 Como Rodar Localmente
+
+Para configurar e rodar este projeto na sua máquina local, siga os passos abaixo:
+
+1.  **Clone o repositório:**
+    ```bash
+    git clone https://github.com/Lucasholt124/Freelink.git
+    cd Freelink
+    ```
+
+2.  **Instale as dependências:**
+    ```bash
+    npm install
+    ```
+
+3.  **Configure as Variáveis de Ambiente:**
+    *   Crie um arquivo `.env.local` na raiz do projeto.
+    *   Você precisará das chaves de API e URLs dos seguintes serviços:
+        *   **Clerk:** `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY`
+        *   **Convex:** `NEXT_PUBLIC_CONVEX_URL`
+        *   **Stripe:** `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, e os IDs dos preços.
+        *   **Vercel Postgres:** `POSTGRES_URL` (e as outras variáveis relacionadas).
+
+4.  **Sincronize o Schema do Convex:**
+    ```bash
+    npx convex dev
+    ```
+    _Mantenha este comando rodando em um terminal separado._
+
+5.  **Inicie o servidor de desenvolvimento:**
+    ```bash
+    npm run dev
+    ```
+
+Abra [http://localhost:3000](http://localhost:3000) no seu navegador para ver a aplicação.
+
+---
+
+## 🌟 Contato
+
+Lucas Holt - [LinkedIn]([https://www.linkedin.com/in/seu-linkedin/](https://www.linkedin.com/in/lucas-arag%C3%A3o-fullstack/)) - [lucasholt2021@gmail.com](mailto:lucasholt2021@gmail.com)
+
+Link do Projeto: [https://github.com/Lucasholt124/Freelink](https://github.com/Lucasholt124/Freelink)
