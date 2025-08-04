@@ -12,7 +12,7 @@ _**Ação:** Tire screenshots bonitos da sua landing page, do dashboard de links
 
 | Landing Page                                                               | Dashboard de Links                                                            | Painel de Análises                                                         |
 | -------------------------------------------------------------------------- | ----------------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| ![Landing Page do Freelinnk](https://via.placeholder.com/400x300.png?text=Landing+Page) | ![Dashboard de Links do Freelinnk](https://via.placeholder.com/400x300.png?text=Dashboard+de+Links) | ![Painel de Análises do Freelinnk](https://via.placeholder.com/400x300.png?text=Painel+de+Análises) |
+| ![Landing Page do Freelinnk](https://www.freelinnk.com/) | ![Dashboard de Links do Freelinnk](https://www.freelinnk.com/dashboard) | ![Painel de Análises do Freelinnk](https://www.freelinnk.com/dashboard/link/j97c0ae1m8b6khsde7c4nz44mn7m1skw) |
 
 ---
 
