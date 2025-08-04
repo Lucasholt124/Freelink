@@ -1,8 +1,8 @@
 import { sql } from '@vercel/postgres';
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
-import { format } from 'date-fns'; // Usaremos a função 'format'
 import { ptBR } from 'date-fns/locale';
+import { formatInTimeZone } from 'date-fns-tz';
 
 // --- INTERFACE DE DADOS ATUALIZADA ---
 export interface AnalyticsData {
@@ -53,9 +53,13 @@ export async function fetchAnalytics(userId: string): Promise<AnalyticsData> {
   // 4. --- PROCESSAMENTO CORRIGIDO E FINAL PARA 'lastActivity' ---
   const lastClickTimestamp = lastActivityResult.rows[0]?.last_click;
   const lastActivityFormatted = lastClickTimestamp
-    ? format(new Date(lastClickTimestamp), "dd 'de' MMM. yyyy, 'às' HH:mm", { locale: ptBR })
+    ? formatInTimeZone(
+        new Date(lastClickTimestamp),
+        'America/Sao_Paulo', // Define o fuso horário de saída
+        "dd 'de' MMM. yyyy, 'às' HH:mm",
+        { locale: ptBR }
+      )
     : null;
-
   return {
     totalClicks: parseInt(clicksResult.rows[0]?.count || '0', 10),
     uniqueVisitors: parseInt(uniqueUsersResult.rows[0]?.count || '0', 10),

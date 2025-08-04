@@ -15,15 +15,24 @@ function Card({ color, title, icon: Icon, value, subtitle, isText = false }: { c
   return (
     <div className={clsx(`bg-gradient-to-br from-${color}-50 to-${color}-100 p-6 rounded-2xl border border-${color}-200 flex flex-col justify-between h-full`)}>
       <div>
-        <div className="flex items-center gap-4 mb-2">
-          <div className={clsx(`p-3 rounded-xl bg-${color}-500`)}><Icon className="w-6 h-6 text-white" /></div>
-          <div>
+        <div className="flex items-start gap-4 mb-2">
+          <div className={clsx(`p-3 rounded-xl bg-${color}-500 flex-shrink-0`)}>
+            <Icon className="w-6 h-6 text-white" />
+          </div>
+          <div className="min-w-0"> {/* Garante que o texto possa quebrar linha */}
             <p className={clsx(`text-sm font-medium text-${color}-700`)}>{title}</p>
-            <p className={clsx("text-3xl font-bold truncate", `text-${color}-900`)}>{isText ? value : (typeof value === 'number' ? value.toLocaleString("pt-BR") : value)}</p>
+            <p className={clsx(
+              "font-bold",
+              `text-${color}-900`,
+              // Aplica estilos diferentes para texto vs. número
+              isText ? "text-2xl whitespace-normal break-words" : "text-3xl truncate"
+            )}>
+              {isText ? value : (typeof value === 'number' ? value.toLocaleString("pt-BR") : value)}
+            </p>
           </div>
         </div>
       </div>
-      {subtitle && <p className="text-sm text-gray-500 mt-1 truncate">{subtitle}</p>}
+      {subtitle && <p className="text-sm text-gray-500 mt-2 truncate">{subtitle}</p>}
     </div>
   );
 }
