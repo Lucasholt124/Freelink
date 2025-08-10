@@ -1,110 +1,77 @@
 // Em app/dashboard/page.tsx
+// (Substitua o arquivo inteiro)
 
 import { Suspense } from "react";
 import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
-import { fetchQuery } from "convex/nextjs";
-import { api } from "@/convex/_generated/api";
+import { Wand2, BrainCircuit } from "lucide-react";
+
 import { fetchAnalytics } from "@/lib/analytics-server";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
-import { Eye } from "lucide-react";
-import UsernameForm from "@/components/UsernameForm";
-import CustomizationForm from "@/components/CustomizationForm";
-import ManageLinks from "@/components/ManageLinks";
 import DashboardMetrics from "@/components/DashboardMetrics";
 import SkeletonDashboard from "@/components/SkeletonDashboard";
 import DashboardToast from "@/components/DashboardToast";
 import WhatsappFloatingButton from "@/components/WhatsappFloatingButton";
 
-export default async function DashboardPage() {
-  const user = await currentUser();
-  if (!user) {
-    return null;
-  }
-
-  // --- CORREÇÃO PRINCIPAL AQUI ---
-  // A busca do `userSlug` agora é feita pela `userId`, que é sempre confiável.
-  const [analytics, rawPlan, userSlug] = await Promise.all([
-    fetchAnalytics(user.id),
-    getUserSubscriptionPlan(user.id),
-    // Usamos a query `getUserSlug` que busca pelo ID, não pelo username.
-    fetchQuery(api.lib.usernames.getUserSlug, { userId: user.id }),
-  ]);
-
-  const isAdmin = user.id === "user_301NTkVsE3v48SXkoCEp0XOXifI";
-  const determinedPlan = rawPlan ?? "free";
-  const plan = isAdmin ? "ultra" : determinedPlan;
-
+function MentorIaWidget() {
   return (
-    <div className="pb-16">
-      <DashboardToast />
-
-      <div className="max-w-7xl mx-auto mb-8 px-4">
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span className="text-sm text-gray-600">
-            Seu plano atual:{" "}
-            <span className={`font-bold capitalize ${plan === "ultra" ? "text-purple-600" : plan === "pro" ? "text-blue-600" : "text-gray-900"}`}>
-              {plan}
-            </span>
-          </span>
-          <Link
-            href="/dashboard/billing"
-            className="inline-block px-4 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg text-sm hover:opacity-90 transition-opacity"
-          >
-            Ver planos e preços
-          </Link>
+    <div className="bg-gradient-to-tr from-purple-600 to-blue-500 p-8 rounded-2xl shadow-lg text-white transition-all hover:shadow-2xl hover:-translate-y-1 flex flex-col">
+      <div className="flex-grow">
+        <div className="flex items-center gap-4">
+          <div className="bg-white/20 p-3 rounded-full"><Wand2 className="w-7 h-7" /></div>
+          <div><h2 className="text-2xl font-bold">Mentor IA</h2><p className="opacity-80 max-w-sm">Seu estrategista particular para decolar no Instagram.</p></div>
         </div>
       </div>
+      <Link href="/dashboard/mentor-ia" className="mt-6 self-start px-6 py-3 bg-white text-purple-700 font-bold rounded-lg text-sm transition-transform hover:scale-105">Começar Análise</Link>
+    </div>
+  );
+}
 
-      <Suspense fallback={<SkeletonDashboard />}>
-        <DashboardMetrics analytics={analytics} plan={plan} />
-      </Suspense>
-
-      <section className="bg-gray-50 py-6 px-4 lg:px-10 max-w-7xl mx-auto rounded-2xl my-8 shadow-sm">
-        <UsernameForm />
-      </section>
-
-      <section className="bg-gray-50 py-6 px-4 lg:px-10 max-w-7xl mx-auto rounded-2xl mb-8 shadow-sm">
-        <CustomizationForm />
-      </section>
-
-      <section className="bg-gray-50 py-6 px-4 lg:px-10 max-w-7xl mx-auto rounded-2xl shadow-sm">
-        <div className="flex flex-col lg:flex-row gap-10">
-          <aside className="lg:w-1/2 space-y-6">
-            <div>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900">
-                Gerencie seus links
-              </h1>
-              <div className="h-1 w-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mt-3" />
-            </div>
-            <p className="text-gray-600 text-base">
-              Organize e personalize sua página de links.
-            </p>
-            <ul className="space-y-3">
-              <li className="text-gray-500 flex items-center gap-2"><span className="w-2 h-2 bg-blue-500 rounded-full" /> Reordene por drag and drop</li>
-              <li className="text-gray-500 flex items-center gap-2"><span className="w-2 h-2 bg-purple-500 rounded-full" /> Atualizações em tempo real</li>
-              <li className="text-gray-500 flex items-center gap-2"><span className="w-2 h-2 bg-green-500 rounded-full" /> Análises avançadas (Pro/Ultra)</li>
-            </ul>
-            <div className="mt-6">
-              {/* O link agora verifica se 'userSlug' existe antes de montar a URL */}
-              {userSlug && (
-                <Link
-                  href={`/u/${userSlug}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg text-sm transition"
-                >
-                  <Eye className="w-4 h-4" /> Ver minha página pública
-                </Link>
-              )}
-            </div>
-          </aside>
-          <div className="lg:w-1/2">
-            <ManageLinks />
-          </div>
+function FreelinnkBrainWidget() {
+  // CORREÇÃO: O widget do Brain agora leva para a página correta.
+  return (
+    <div className="bg-white border border-gray-200/80 p-8 rounded-2xl shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col">
+      <div className="flex-grow">
+        <div className="flex items-center gap-4">
+          <div className="bg-gray-100 p-3 rounded-full"><BrainCircuit className="w-7 h-7 text-gray-700" /></div>
+          <div><h2 className="text-2xl font-bold text-gray-900">Freelinnk Brain™</h2><p className="text-gray-600 max-w-sm">Gere ideias, roteiros e títulos virais em segundos.</p></div>
         </div>
-      </section>
+      </div>
+      {/* Agora é um link real para a página do Brain */}
+      <Link href="/dashboard/brain" className="mt-6 self-start px-6 py-3 bg-gray-900 text-white font-bold rounded-lg text-sm transition-transform hover:scale-105">Acessar Brain™</Link>
+    </div>
+  );
+}
 
+export default async function DashboardOverviewPage() {
+  const user = await currentUser();
+  if (!user) return null;
+
+  const [analytics, planDetails] = await Promise.all([
+    fetchAnalytics(user.id),
+    getUserSubscriptionPlan(user.id),
+  ]);
+
+  return (
+    <div className="space-y-10">
+      <DashboardToast />
+      <div>
+        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Olá, {user.firstName || user.username}! 👋</h1>
+        <p className="text-lg text-gray-500 mt-2">Vamos construir seu império hoje.</p>
+      </div>
+      <Suspense fallback={<SkeletonDashboard />}>
+        {/*
+          =======================================================
+          A CORREÇÃO ESTÁ AQUI
+          =======================================================
+          Passamos `planDetails.plan` (a string) em vez do objeto `planDetails` inteiro.
+        */}
+        <DashboardMetrics analytics={analytics} plan={planDetails.plan} />
+      </Suspense>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <MentorIaWidget />
+        <FreelinnkBrainWidget />
+      </div>
       <WhatsappFloatingButton />
     </div>
   );

@@ -5,6 +5,8 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Providers } from "@/app/providers/Providers";
+
+import { Toaster } from "@/components/ui/sonner";
 import { getBaseUrl } from "@/convex/lib/getBaseUrl";
 
 
@@ -49,7 +51,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <body className="antialiased bg-gray-50 text-gray-800">
-        <Providers>{children}</Providers>
+        <Providers>{children}
+          <Toaster richColors position="top-right" />
+        </Providers>
       </body>
     </html>
   );

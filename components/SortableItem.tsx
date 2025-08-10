@@ -1,22 +1,27 @@
+// Em /components/SortableItem.tsx
+// (Substitua o arquivo inteiro por esta versão final e 100% responsiva)
+
 "use client";
 
+import { useState } from "react";
+import Link from "next/link";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useMutation } from "convex/react";
 import { Doc, Id } from "@/convex/_generated/dataModel";
+import { api } from "@/convex/_generated/api";
+import { toast } from "sonner";
+
 import { Button } from "./ui/button";
 import { Input } from "./ui/input";
 import {
   Trash2,
   GripVertical,
   Pencil,
-  Check,
-  X,
+
   BarChart3,
+  Loader2,
 } from "lucide-react";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useState } from "react";
-import Link from "next/link";
 
 export function SortableItem({
   id,
@@ -27,8 +32,6 @@ export function SortableItem({
 }) {
   const { attributes, listeners, setNodeRef, transform, transition } =
     useSortable({ id });
-
-      console.log("DADOS RECEBIDOS PELO SortableItem:", { id_prop: id, link_object: link });
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -43,31 +46,34 @@ export function SortableItem({
   const [editUrl, setEditUrl] = useState(link?.url);
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const handleSave = async () => {
+  const handleSave = () => {
     if (!editTitle?.trim() || !editUrl?.trim()) return;
 
-    setIsUpdating(true);
-    try {
-      // Adicione https:// se nenhum protocolo for especificado
-      let processedUrl = editUrl;
-      if (
-        !processedUrl.startsWith("https://") &&
-        !processedUrl.startsWith("http://")
-      ) {
-        processedUrl = `https://${processedUrl}`;
-      }
+    let processedUrl = editUrl.trim();
+    if (!/^(https?:\/\/|mailto:|tel:)/i.test(processedUrl)) {
+      processedUrl = `https://${processedUrl}`;
+    }
 
-      await updateLink({
+    setIsUpdating(true);
+    toast.promise(
+      updateLink({
         linkId: id,
         title: editTitle.trim(),
         url: processedUrl,
-      });
-      setIsEditing(false);
-    } catch (error) {
-      console.error("Falha ao atualizar o link:", error);
-    } finally {
-      setIsUpdating(false);
-    }
+      }),
+      {
+        loading: "Salvando alterações...",
+        success: () => {
+          setIsEditing(false);
+          setIsUpdating(false);
+          return "Link atualizado com sucesso!";
+        },
+        error: (err) => {
+          setIsUpdating(false);
+          return `Falha ao atualizar: ${err instanceof Error ? err.message : "Erro"}`;
+        },
+      }
+    );
   };
 
   const handleCancel = () => {
@@ -76,112 +82,94 @@ export function SortableItem({
     setIsEditing(false);
   };
 
+  const handleDelete = () => {
+    toast(`Tem certeza que deseja excluir "${link.title}"?`, {
+      action: {
+        label: "Excluir",
+        onClick: () =>
+          toast.promise(deleteLink({ linkId: id }), {
+            loading: "Excluindo...",
+            success: "Link excluído!",
+            error: "Falha ao excluir.",
+          }),
+      },
+      cancel: { label: "Cancelar", onClick: () => {} },
+    });
+  };
+
   if (!link) return null;
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="p-4 border border-gray-200 rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow"
+      className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200/80 shadow-sm transition-shadow touch-none"
     >
       {isEditing ? (
-        <div className="space-y-3">
-          <div className="space-y-2">
-            <Input
-              value={editTitle}
-              onChange={(e) => setEditTitle(e.target.value)}
-              placeholder="Título do link"
-              className="font-semibold"
-            />
-            <Input
-              value={editUrl}
-              onChange={(e) => setEditUrl(e.target.value)}
-              placeholder="https://example.com"
-              className="text-sm"
-            />
-          </div>
+        // --- MODO DE EDIÇÃO (já é responsivo) ---
+        <div className="space-y-4">
+          <Input
+            value={editTitle}
+            onChange={(e) => setEditTitle(e.target.value)}
+            placeholder="Título do link"
+          />
+          <Input
+            value={editUrl}
+            onChange={(e) => setEditUrl(e.target.value)}
+            placeholder="https://example.com"
+          />
           <div className="flex gap-2 justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCancel}
-              disabled={isUpdating}
-            >
-              <X className="w-4 h-4" />
+            <Button variant="ghost" size="sm" onClick={handleCancel} disabled={isUpdating}>
+              Cancelar
             </Button>
             <Button
               size="sm"
               onClick={handleSave}
               disabled={isUpdating || !editTitle.trim() || !editUrl.trim()}
             >
-              {isUpdating ? (
-                <span className="w-4 h-4 animate-spin border-2 border-white border-t-transparent rounded-full" />
-              ) : (
-                <Check className="w-4 h-4" />
-              )}
+              {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
             </Button>
           </div>
         </div>
       ) : (
-        <div className="flex items-center gap-3">
-          {/* Alça de arrasto */}
-          <div
-            {...attributes}
-            {...listeners}
-            aria-describedby={`link-${id}`}
-            className="cursor-move p-1 hover:bg-gray-100 rounded flex-shrink-0"
-          >
-            <GripVertical className="w-4 h-4 text-gray-400" />
+        // ========================================================
+        // MODO DE VISUALIZAÇÃO - 100% RESPONSIVO
+        // ========================================================
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+
+          {/* GRUPO 1: Alça de Arrastar e Conteúdo */}
+          <div className="flex items-center gap-3 w-full min-w-0">
+            <div
+              {...attributes}
+              {...listeners}
+              className="cursor-grab p-2 text-gray-400 hover:bg-gray-100 rounded-md flex-shrink-0"
+            >
+              <GripVertical className="w-5 h-5" />
+            </div>
+            <div className="flex-grow min-w-0">
+              <h3 className="font-semibold text-base truncate">{link.title}</h3>
+              <p className="text-gray-500 text-sm truncate">{link.url}</p>
+            </div>
           </div>
 
-          {/* Contente */}
-          <div className="flex-1 min-w-0 pr-3">
-            <h3 className="font-semibold text-lg truncate">{link.title}</h3>
-            <p className="text-gray-600 text-sm truncate">{link.url}</p>
-          </div>
-
-          {/* botões de ação */}
-          <div className="flex items-center gap-1 flex-shrink-0">
-            {/* Botão de análise */}
-            <Button variant="outline" size="icon" className="h-8 w-8" asChild>
-  {/* CORREÇÃO: Usar link._id em vez de apenas id */}
-  <Link href={`/dashboard/link/${link._id}`}>
-    <BarChart3 className="w-3.5 h-3.5 text-green-500" />
-  </Link>
-</Button>
-
+          {/* GRUPO 2: Botões de Ação */}
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 mt-3 sm:mt-0">
+            {/* Botão de Análise */}
+            <Button variant="outline" size="icon" className="h-9 w-9 flex-1 sm:flex-none" asChild>
+              <Link href={`/dashboard/analytics/${link._id}`}>
+                <BarChart3 className="w-4 h-4 text-green-600" />
+              </Link>
+            </Button>
             {/* Botão Editar */}
-            <Button
-              variant="outline"
-              size="icon"
-              className="h-8 w-8"
-              onClick={() => {
-                setIsEditing(true);
-              }}
-            >
-              <Pencil className="w-3.5 h-3.5" />
+            <Button variant="outline" size="icon" className="h-9 w-9 flex-1 sm:flex-none" onClick={() => setIsEditing(true)}>
+              <Pencil className="w-4 h-4" />
             </Button>
-
             {/* Botão Excluir */}
-            <Button
-              variant="destructive"
-              size="icon"
-              className="h-8 w-8"
-              onClick={(e) => {
-                e.stopPropagation();
-
-                const isConfirmed = confirm(
-                  `Tem certeza de que deseja excluir"${link.title}"?\n\nEsta ação não pode ser desfeita.`,
-                );
-
-                if (isConfirmed) {
-                  deleteLink({ linkId: id });
-                }
-              }}
-            >
-              <Trash2 className="w-3.5 h-3.5" />
+            <Button variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 hover:text-red-600 flex-1 sm:flex-none" onClick={handleDelete}>
+              <Trash2 className="w-4 h-4" />
             </Button>
           </div>
+
         </div>
       )}
     </div>

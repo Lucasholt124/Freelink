@@ -2,7 +2,7 @@
 
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
-import { Loader2, Zap, Rocket, Star, CheckCircle, HelpCircle, ArrowRight, XCircle } from "lucide-react";
+import { Loader2, Rocket, Star, CheckCircle, HelpCircle, ArrowRight, XCircle, BrainCircuit } from "lucide-react"; // Adicionei BrainCircuit
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import clsx from "clsx";
@@ -25,10 +25,60 @@ interface Plan {
   recommended?: boolean;
 }
 
+// ====================================================================
+// =================== INÍCIO DAS MUDANÇAS NO TEXTO ===================
+// ====================================================================
+
 const plans: Record<PlanIdentifier, Plan> = {
-  free: { name: "Free", tagline: "Para começar e organizar seus links.", monthlyPrice: "Grátis", priceDetails: "para sempre", benefits: ["Links ilimitados na sua página", "URL personalizada (seu_nome.freelinnk.com)", "Personalização de tema e aparência", "Cliques de audiência Total" ], icon: <CheckCircle className="w-5 h-5"/>, color: "gray" },
-  pro: { name: "Pro", tagline: "Para criadores que querem entender e crescer sua audiência.", monthlyPrice: "R$14,90", yearlyPrice: "R$149", priceDetails: "/mês", benefits: ["Tudo do plano Free, e mais:", "Sua página, suas regras. Remova nossa marca.", "Painel de Análises Detalhadas", "Descubra de onde vêm seus visitantes (países e fontes)", "Entenda o comportamento dos seus usuários únicos", "Suporte prioritário via e-mail"], icon: <Zap className="w-5 h-5" />, color: "blue", recommended: true },
-  ultra: { name: "Ultra", tagline: "Para negócios e influenciadores que usam tráfego pago.", monthlyPrice: "R$39,90", yearlyPrice: "R$399", priceDetails: "/mês", benefits: ["Tudo do plano Pro, e mais:", "Análises Geográficas Avançadas (cidades/estados)", "Otimize seus anúncios com rastreamento (Pixel e GA4)", "Identifique os melhores horários com Análise de Pico", "Suporte VIP via WhatsApp"], icon: <Rocket className="w-5 h-5" />, color: "purple" },
+  free: {
+    name: "Free",
+    tagline: "Para organizar seus links e ter seu primeiro insight com IA.",
+    monthlyPrice: "Grátis",
+    priceDetails: "para sempre",
+    benefits: [
+      "Links e cliques ilimitados",
+      "URL personalizada (seu_nome.freelinnk.com)",
+      "Encurtador de links com analytics básicos",
+      "1 Análise de Bio com IA por mês",
+    ],
+    icon: <CheckCircle className="w-5 h-5"/>,
+    color: "gray"
+  },
+  pro: {
+    name: "Pro",
+    tagline: "Para criadores que querem impulsionar seu engajamento com o poder da IA.",
+    monthlyPrice: "R$14,90", // Sugestão de ajuste de preço pelo valor agregado
+    yearlyPrice: "R$199",
+    priceDetails: "/mês",
+    benefits: [
+      "Tudo do plano Free, e mais:",
+      "Análises de Perfil com IA ilimitadas",
+      "Diagnóstico completo (Bio, Destaques, Feed)",
+      "Gerador de Ideias de Conteúdo com IA",
+      "Painel de Análises Detalhadas (fontes, países e mais)",
+      "Remova nossa marca da sua página",
+    ],
+    icon: <BrainCircuit className="w-5 h-5" />, // Ícone mais alinhado com IA
+    color: "blue",
+    recommended: true
+  },
+  ultra: {
+    name: "Ultra",
+    tagline: "A plataforma completa para automatizar seu conteúdo e monetizar sua audiência.",
+    monthlyPrice: "R$39,90", // Sugestão de ajuste de preço pelo valor agregado
+    yearlyPrice: "R$499",
+    priceDetails: "/mês",
+    benefits: [
+      "Tudo do plano Pro, e mais:",
+      "Plano de Conteúdo Estratégico gerado por IA",
+      "Calendário de Conteúdo e Agendamento Automático",
+      "Ferramenta de Sorteios via comentários",
+      "Otimize anúncios com rastreamento (Pixel e GA4)",
+      "Suporte VIP via WhatsApp",
+    ],
+    icon: <Rocket className="w-5 h-5" />,
+    color: "purple"
+  },
 };
 
 export default function BillingContent() {
@@ -89,8 +139,8 @@ export default function BillingContent() {
         throw new Error(data.error || "Erro do servidor ao cancelar.");
       }
       toast.success("Sua assinatura foi agendada para cancelamento. Você pode reativá-la a qualquer momento no portal do cliente.");
-      await user?.reload(); // Força a atualização dos dados do Clerk
-      setCurrentPlan("free"); // Atualização otimista
+      await user?.reload();
+      setCurrentPlan("free");
     } catch (err) {
       if (err instanceof Error) toast.error(err.message);
       else toast.error("Não foi possível cancelar a assinatura. Tente novamente.");
@@ -120,10 +170,11 @@ export default function BillingContent() {
     <div className="bg-gray-50/50">
       <div className="max-w-7xl mx-auto px-4 py-16 sm:py-24">
         <div className="text-center mb-16">
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4">Planos feitos para o seu crescimento</h1>
-          <p className="text-lg text-gray-600 max-w-3xl mx-auto">Comece de graça. Evolua com ferramentas de análise e marketing quando estiver pronto para decolar.</p>
+          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900 mb-4">Sua plataforma de crescimento com IA</h1>
+          <p className="text-lg text-gray-600 max-w-3xl mx-auto">Do seu link na bio ao seu mentor de crescimento pessoal. Escolha o plano ideal para decolar.</p>
         </div>
 
+        {/* O restante do código permanece o mesmo */}
         <div className="flex items-center justify-center gap-4 mb-10">
           <span className={clsx("font-medium", billingCycle === 'monthly' ? 'text-gray-900' : 'text-gray-500')}>Mensal</span>
           <Switch checked={billingCycle === 'yearly'} onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')} id="billing-cycle" />
@@ -146,12 +197,16 @@ export default function BillingContent() {
             </Button>
           </div>
         )}
-
         <FAQ />
       </div>
     </div>
   );
 }
+
+// ==================================================================
+// =================== FIM DAS MUDANÇAS NO TEXTO ====================
+// ==================================================================
+
 
 interface PlanCardProps {
     plan: Plan;
