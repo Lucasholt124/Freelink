@@ -5,14 +5,13 @@ import { fetchMutation } from 'convex/nextjs';
 import { api } from '@/convex/_generated/api';
 
 // =======================================================
-// CORREÇÃO APLICADA AQUI
+// CORREÇÃO FINAL: A assinatura da função agora corresponde
+// ao que o build da Vercel está exigindo para esta rota.
 // =======================================================
-// Declaramos o segundo parâmetro normalmente e usamos um comentário
-// para instruir o ESLint a ignorar o aviso de "não utilizado".
 export async function GET(
-    req: NextRequest,
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    context: { params?: Record<string, string | string[]> }
+    req: NextRequest
+    // Não precisamos do segundo argumento, pois o 'code' vem do `req.url`.
+    // Vamos omiti-lo completamente para evitar qualquer tipo de conflito.
 ) {
     const { searchParams } = new URL(req.url);
     const code = searchParams.get('code');
