@@ -1,5 +1,5 @@
 // Em app/dashboard/giveaway/page.tsx
-// (Crie este novo arquivo)
+// (Substitua o arquivo inteiro)
 
 import { currentUser } from "@clerk/nextjs/server";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
@@ -34,9 +34,14 @@ export default async function GiveawayPage() {
   const user = await currentUser();
   if (!user) return null;
 
+  // `subscription` é o objeto { plan: '...', ... }
   const subscription = await getUserSubscriptionPlan(user.id);
 
-  if (subscription !== "ultra") {
+  // =======================================================
+  // CORREÇÃO APLICADA AQUI
+  // =======================================================
+  // Comparamos a propriedade `plan` de dentro do objeto.
+  if (subscription.plan !== "ultra") {
     return <LockedGiveawayPage />;
   }
 

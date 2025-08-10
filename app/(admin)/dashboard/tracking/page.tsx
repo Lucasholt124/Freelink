@@ -33,9 +33,14 @@ export default async function TrackingPage() {
   const user = await currentUser();
   if (!user) return null;
 
+  // `subscription` é o objeto { plan: '...', ... }
   const subscription = await getUserSubscriptionPlan(user.id);
 
-  if (subscription !== "ultra") {
+  // =======================================================
+  // CORREÇÃO APLICADA AQUI
+  // =======================================================
+  // Comparamos a propriedade `plan` de dentro do objeto.
+  if (subscription.plan !== "ultra") {
     return <LockedTrackingPage />;
   }
 

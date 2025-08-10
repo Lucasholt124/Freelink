@@ -11,7 +11,8 @@ import { trackLinkClick } from "@/lib/analytics";
 import {
   FaYoutube, FaInstagram, FaFacebook, FaTwitter, FaLinkedin, FaTiktok, FaWhatsapp, FaGithub, FaSpotify, FaTwitch, FaGlobe, FaEnvelope, FaTelegram, FaPinterest, FaDiscord, FaSlack, FaDribbble, FaFigma,
 } from "react-icons/fa6";
-import { SubscriptionPlan } from "@/lib/subscription";
+import { SubscriptionPlan } from "@/app/api/subscription-plan/route";
+
 
 
 // --- Props atualizadas para incluir o plano do usuário ---
