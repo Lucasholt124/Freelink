@@ -76,7 +76,7 @@ export default async function PublicLinkInBioPage({
         username={username}
         preloadedLinks={preloadedLinks}
         preloadedCustomizations={preloadedCustomizations}
-        plan={subscriptionPlan}
+        plan={subscriptionPlan.plan}
       />
     </>
   );
