@@ -1,76 +1,83 @@
-import { NextResponse } from "next/server";
-import { fetchMutation } from "convex/nextjs";
-import { api } from "@/convex/_generated/api";
-import { auth } from "@clerk/nextjs/server";
 
-export async function GET(req: Request, { params }: { params: { provider: string } }) {
-  const { searchParams } = new URL(req.url);
-  const code = searchParams.get("code");
-  const provider = params.provider;
+import { NextRequest, NextResponse } from 'next/server';
+import { getBaseUrl } from '@/lib/utils';
+import { fetchMutation } from 'convex/nextjs';
+import { api } from '@/convex/_generated/api';
 
-  if (!code) {
-    return NextResponse.redirect(new URL("/dashboard/shortener?error=missing_code", req.url));
-  }
+// =======================================================
+// CORREÇÃO APLICADA AQUI
+// =======================================================
+// Declaramos o segundo parâmetro normalmente e usamos um comentário
+// para instruir o ESLint a ignorar o aviso de "não utilizado".
+export async function GET(
+    req: NextRequest,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    context: { params?: Record<string, string | string[]> }
+) {
+    const { searchParams } = new URL(req.url);
+    const code = searchParams.get('code');
+    const baseUrl = getBaseUrl();
+    const errorRedirectUrl = new URL('/dashboard/settings?status=error', baseUrl);
 
-  try {
-    const session = await auth();
-    if (!session.userId) {
-      return NextResponse.redirect(new URL("/sign-in", req.url));
+    // O resto da sua lógica já está correto.
+    const clientId = process.env.INSTAGRAM_CLIENT_ID;
+    const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
+    const redirectUri = process.env.INSTAGRAM_REDIRECT_URI;
+
+    if (!clientId || !clientSecret || !redirectUri) {
+        console.error("ERRO: Variáveis de ambiente do Instagram não configuradas no callback.");
+        return NextResponse.redirect(errorRedirectUrl);
     }
 
-    // trocar code pelo token de acesso
-    const tokenResponse = await fetchAccessToken(provider, code);
+    if (!code) {
+        console.error("Callback do Instagram não retornou um código de autorização.");
+        return NextResponse.redirect(errorRedirectUrl);
+    }
 
-    const accessToken = tokenResponse.access_token;
-    const tokenExpiresAt = tokenResponse.expires_in
-      ? Date.now() + tokenResponse.expires_in * 1000
-      : undefined;  // <-- aqui, não null
+    try {
+        // ETAPA 1: Trocar o 'code' por um access_token de curta duração
+        const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${redirectUri}&code=${code}`;
+        const tokenResponse = await fetch(tokenUrl);
+        const tokenData = await tokenResponse.json();
 
-    const providerAccountId = await fetchProviderAccountId(provider, accessToken);
+        if (!tokenResponse.ok || !tokenData.access_token) {
+            throw new Error(tokenData.error?.message || 'Falha ao obter o token de acesso de curta duração.');
+        }
 
-    await fetchMutation(api.connections.createOrUpdate, {
-      provider,
-      providerAccountId,
-      accessToken,
-      tokenExpiresAt,
-    });
+        // ETAPA 2: Trocar o token de curta duração por um de longa duração
+        const longTokenUrl = `https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${tokenData.access_token}`;
+        const longTokenResponse = await fetch(longTokenUrl);
+        const longTokenData = await longTokenResponse.json();
 
-    return NextResponse.redirect(new URL("/dashboard/shortener", req.url));
-  } catch (error) {
-    console.error("Erro no callback do provider:", error);
-    return NextResponse.redirect(new URL("/dashboard/shortener?error=auth_failed", req.url));
-  }
-}
+        if (!longTokenResponse.ok || !longTokenData.access_token) {
+            throw new Error(longTokenData.error?.message || 'Falha ao obter o token de longa duração.');
+        }
+        const accessToken = longTokenData.access_token;
+        const tokenExpiresIn = longTokenData.expires_in;
 
-async function fetchAccessToken(provider: string, code: string) {
-  if (provider === "instagram") {
-    const response = await fetch("https://api.instagram.com/oauth/access_token", {
-      method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: new URLSearchParams({
-        client_id: process.env.INSTAGRAM_CLIENT_ID!,
-        client_secret: process.env.INSTAGRAM_CLIENT_SECRET!,
-        grant_type: "authorization_code",
-        redirect_uri: `${process.env.NEXT_PUBLIC_BASE_URL}/api/connect/${provider}/callback`,
-        code,
-      }),
-    });
+        // ETAPA 3: Usar o token para buscar o ID do usuário no Instagram
+        const userInfoUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${accessToken}`;
+        const userInfoResponse = await fetch(userInfoUrl);
+        const userInfo = await userInfoResponse.json();
 
-    if (!response.ok) throw new Error("Erro ao obter token do Instagram");
+        if (!userInfoResponse.ok || !userInfo.id) {
+            throw new Error(userInfo.error?.message || 'Falha ao buscar informações do usuário no Instagram.');
+        }
 
-    return response.json();
-  }
+        // ETAPA 4: Salvar a conexão no Convex
+        await fetchMutation(api.connections.createOrUpdate, {
+            provider: 'instagram',
+            providerAccountId: userInfo.id,
+            accessToken: accessToken,
+            tokenExpiresAt: Date.now() + (tokenExpiresIn * 1000),
+        });
 
-  throw new Error(`Provider ${provider} não implementado`);
-}
+        // ETAPA 5: Redirecionar para o dashboard com sucesso
+        const successRedirectUrl = new URL('/dashboard/settings?status=connected', baseUrl);
+        return NextResponse.redirect(successRedirectUrl);
 
-async function fetchProviderAccountId(provider: string, accessToken: string) {
-  if (provider === "instagram") {
-    const response = await fetch(`https://graph.instagram.com/me?fields=id&access_token=${accessToken}`);
-    if (!response.ok) throw new Error("Erro ao buscar dados do Instagram");
-    const data = await response.json();
-    return data.id;
-  }
-
-  throw new Error(`Provider ${provider} não implementado`);
+    } catch (error) {
+        console.error("Erro detalhado no callback de conexão:", error);
+        return NextResponse.redirect(errorRedirectUrl);
+    }
 }
