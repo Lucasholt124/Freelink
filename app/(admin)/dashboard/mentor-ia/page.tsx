@@ -1,11 +1,10 @@
-// Em app/dashboard/mentor-ia/page.tsx
-// (Substitua o arquivo inteiro por este)
+// Em app/(admin)/dashboard/mentor-ia/page.tsx
+// (Substitua o arquivo inteiro)
 
 import { currentUser } from "@clerk/nextjs/server";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
 import { Wand2, Info, CheckCircle, XCircle } from "lucide-react";
 import MentorIaMvp from "@/components/MentorIaMvp";
-
 
 // Componente de Alerta genérico (sem alterações)
 function Alert({ type, title, message }: { type: 'info' | 'success' | 'error', title: string, message: string }) {
@@ -19,28 +18,24 @@ function Alert({ type, title, message }: { type: 'info' | 'success' | 'error', t
 }
 
 // =======================================================
-// CORREÇÃO 1: Tipagem para searchParams
+// CORREÇÃO APLICADA AQUI
 // =======================================================
-// Esta tipagem é necessária para o build da Vercel funcionar corretamente,
-// mesmo que localmente funcione sem ela.
+// Em vez de `Promise<{}>`, usamos um tipo mais específico e recomendado.
+// Isso satisfaz a regra do ESLint e mantém a compatibilidade com o build da Vercel.
 interface MentorIaPageProps {
-    params?: {
-        [key: string]: string | string[] | undefined;
-    }; // Obrigatório por convenção
-    searchParams?: { [key: string]: string | string[] | undefined };
+    params: Promise<Record<string, string>>; // 'Record<string, string>' é um objeto com chaves e valores de string.
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function MentorIaPage({ searchParams }: MentorIaPageProps) {
     const user = await currentUser();
     if (!user) return null;
 
-    // Acessa o status a partir do searchParams, que agora está corretamente tipado
-    const status = searchParams?.status as string | undefined;
+    // Resolvemos a Promise dos searchParams ANTES de tentar acessar suas propriedades.
+    const resolvedSearchParams = await searchParams;
+    const status = resolvedSearchParams.status as string | undefined;
 
-    // =======================================================
-    // CORREÇÃO 2: Lógica de Planos Unificada
-    // =======================================================
-    // Usamos a função que retorna o objeto completo, garantindo consistência
+    // O resto da sua lógica já está correto.
     const subscription = await getUserSubscriptionPlan(user.id);
 
     return (
@@ -55,16 +50,11 @@ export default async function MentorIaPage({ searchParams }: MentorIaPageProps) 
                         <p className="text-gray-600 mt-1">Sua central de inteligência para decolar no Instagram.</p>
                     </div>
                 </div>
-                {/* O botão de conectar faz mais sentido na página de configurações */}
             </div>
 
             {status === 'connected' && <Alert type="success" title="Conectado com Sucesso!" message="Sua conta do Instagram foi vinculada. Agora você pode usar as ferramentas de IA!" />}
             {status === 'error' && <Alert type="error" title="Erro na Conexão" message="Não foi possível conectar sua conta. Por favor, tente novamente a partir das configurações." />}
 
-            {/*
-              Passamos os dados detalhados do plano para o componente filho,
-              que agora tem toda a informação para decidir o que renderizar.
-            */}
             <MentorIaMvp
                 planName={subscription.plan}
                 usageCount={subscription.mentorIaUsageCount}
