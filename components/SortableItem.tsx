@@ -1,5 +1,5 @@
 // Em /components/SortableItem.tsx
-// (Substitua o arquivo inteiro por esta versão final e 100% responsiva)
+// (Substitua o arquivo inteiro por esta versão final, responsiva e com a rota correta)
 
 "use client";
 
@@ -18,7 +18,6 @@ import {
   Trash2,
   GripVertical,
   Pencil,
-
   BarChart3,
   Loader2,
 } from "lucide-react";
@@ -70,7 +69,7 @@ export function SortableItem({
         },
         error: (err) => {
           setIsUpdating(false);
-          return `Falha ao atualizar: ${err instanceof Error ? err.message : "Erro"}`;
+          return `Falha ao atualizar: ${err instanceof Error ? err.message : "Erro desconhecido"}`;
         },
       }
     );
@@ -90,10 +89,11 @@ export function SortableItem({
           toast.promise(deleteLink({ linkId: id }), {
             loading: "Excluindo...",
             success: "Link excluído!",
-            error: "Falha ao excluir.",
+            error: "Falha ao excluir o link.",
           }),
       },
       cancel: { label: "Cancelar", onClick: () => {} },
+      duration: 10000,
     });
   };
 
@@ -106,7 +106,6 @@ export function SortableItem({
       className="bg-white p-3 sm:p-4 rounded-xl border border-gray-200/80 shadow-sm transition-shadow touch-none"
     >
       {isEditing ? (
-        // --- MODO DE EDIÇÃO (já é responsivo) ---
         <div className="space-y-4">
           <Input
             value={editTitle}
@@ -132,12 +131,7 @@ export function SortableItem({
           </div>
         </div>
       ) : (
-        // ========================================================
-        // MODO DE VISUALIZAÇÃO - 100% RESPONSIVO
-        // ========================================================
         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
-
-          {/* GRUPO 1: Alça de Arrastar e Conteúdo */}
           <div className="flex items-center gap-3 w-full min-w-0">
             <div
               {...attributes}
@@ -151,25 +145,20 @@ export function SortableItem({
               <p className="text-gray-500 text-sm truncate">{link.url}</p>
             </div>
           </div>
-
-          {/* GRUPO 2: Botões de Ação */}
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 mt-3 sm:mt-0">
-            {/* Botão de Análise */}
+
             <Button variant="outline" size="icon" className="h-9 w-9 flex-1 sm:flex-none" asChild>
-              <Link href={`/dashboard/analytics/${link._id}`}>
+              <Link href={`/dashboard/link/${link._id}`}>
                 <BarChart3 className="w-4 h-4 text-green-600" />
               </Link>
             </Button>
-            {/* Botão Editar */}
             <Button variant="outline" size="icon" className="h-9 w-9 flex-1 sm:flex-none" onClick={() => setIsEditing(true)}>
               <Pencil className="w-4 h-4" />
             </Button>
-            {/* Botão Excluir */}
             <Button variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 hover:text-red-600 flex-1 sm:flex-none" onClick={handleDelete}>
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>
-
         </div>
       )}
     </div>

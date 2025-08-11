@@ -1,27 +1,26 @@
-// Em /components/FreelinnkBrainTool.tsx
-// (Crie este novo arquivo)
 
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
+// =======================================================
+// CORREÇÃO 1: Importar `useAction` em vez de `useMutation`
+// =======================================================
+import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Sparkles, Copy, Check } from "lucide-react";
+import { Sparkles, Copy, Check, Loader2 } from "lucide-react";
 
-// --- Tipagem para os Resultados ---
+// --- Tipagem para os Resultados (sem alterações) ---
 type ReelScript = { title: string; script: string; };
-type CarouselIdea = { title: string; slides: string[]; };
 type BrainResults = {
   viral_titles?: string[];
   reel_scripts?: ReelScript[];
-  carousel_ideas?: CarouselIdea[];
 };
 
-// --- Sub-componente para copiar texto ---
+// --- Sub-componente para copiar texto (sem alterações) ---
 function CopyButton({ textToCopy }: { textToCopy: string }) {
     const [copied, setCopied] = useState(false);
     const handleCopy = () => {
@@ -37,12 +36,16 @@ function CopyButton({ textToCopy }: { textToCopy: string }) {
     );
 }
 
-
 // --- Componente Principal ---
 export default function FreelinnkBrainTool() {
   const [theme, setTheme] = useState("");
   const [results, setResults] = useState<BrainResults>({});
-  const generateIdeas = useMutation(api.brain.generateContentIdeas);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // =======================================================
+  // CORREÇÃO 2: Usar o hook `useAction`
+  // =======================================================
+  const generateIdeas = useAction(api.brain.generateContentIdeas);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -50,14 +53,21 @@ export default function FreelinnkBrainTool() {
         toast.error("Por favor, insira um tema.");
         return;
     }
+    setIsLoading(true);
     setResults({});
+
+    // A chamada à action já retorna uma Promise, então `toast.promise` funciona perfeitamente.
     toast.promise(generateIdeas({ theme }), {
         loading: "O Brain™ está pensando...",
-        success: (data) => {
+        success: (data: BrainResults) => {
             setResults(data);
+            setIsLoading(false);
             return "Suas ideias de conteúdo estão prontas!";
         },
-        error: (err) => `Erro: ${err instanceof Error ? err.message : 'Tente novamente.'}`
+        error: (err) => {
+            setIsLoading(false);
+            return `Erro: ${err instanceof Error ? err.message : 'Tente novamente.'}`
+        }
     });
   };
 
@@ -73,10 +83,12 @@ export default function FreelinnkBrainTool() {
                 onChange={(e) => setTheme(e.target.value)}
                 placeholder="Ex: Como fazer o café perfeito em casa"
                 className="py-6 text-base"
+                disabled={isLoading}
             />
           </div>
-          <Button type="submit" className="py-6 font-bold">
-            <Sparkles className="w-4 h-4 mr-2" /> Gerar Ideias
+          <Button type="submit" className="py-6 font-bold" disabled={isLoading}>
+            {isLoading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+            {isLoading ? "Gerando..." : "Gerar Ideias"}
           </Button>
         </form>
       </div>
@@ -113,7 +125,6 @@ export default function FreelinnkBrainTool() {
                     </div>
                 </section>
             )}
-            {/* Adicione a seção de carrosséis se desejar */}
         </div>
       )}
     </div>

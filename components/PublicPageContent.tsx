@@ -11,7 +11,8 @@ import { trackLinkClick } from "@/lib/analytics";
 import {
   FaYoutube, FaInstagram, FaFacebook, FaTwitter, FaLinkedin, FaTiktok, FaWhatsapp, FaGithub, FaSpotify, FaTwitch, FaGlobe, FaEnvelope, FaTelegram, FaPinterest, FaDiscord, FaSlack, FaDribbble, FaFigma,
 } from "react-icons/fa6";
-import { SubscriptionPlan } from "@/app/api/subscription-plan/route";
+
+import { SubscriptionPlanDetails } from "@/lib/subscription";
 
 
 
@@ -19,10 +20,8 @@ import { SubscriptionPlan } from "@/app/api/subscription-plan/route";
 interface PublicPageContentProps {
   username: string;
   preloadedLinks: Preloaded<typeof api.lib.links.getLinksBySlug>;
-  preloadedCustomizations: Preloaded<
-    typeof api.lib.customizations.getCustomizationsBySlug
-  >;
-  plan: SubscriptionPlan; // <-- NOVA PROP: Recebe "free", "pro" ou "ultra"
+  preloadedCustomizations: Preloaded<typeof api.lib.customizations.getCustomizationsBySlug>;
+  plan: SubscriptionPlanDetails['plan']; // <-- CORREÇÃO: Usando o tipo do nosso objeto
 }
 
 type LinkType = {

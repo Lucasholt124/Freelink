@@ -1,123 +1,143 @@
-// Crie este novo arquivo em: convex/shortLinks.ts
+// Em convex/shortLinks.ts
+// (Substitua o arquivo inteiro por esta versão)
 
-import { mutation, query } from "./_generated/server";
+import { action, query } from "./_generated/server";
 import { v } from "convex/values";
+import { Prisma, PrismaClient } from '@prisma/client';
 
-/**
- * Função para gerar um slug aleatório e curto.
- * @returns Uma string aleatória de 6 caracteres.
- */
-function generateRandomSlug(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-  let result = "";
-  for (let i = 0; i < 6; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
 
-// --- MUTATION para criar um novo link encurtado ---
-export const createShortLink = mutation({
+// Prisma Client
+const prisma = new PrismaClient({
+  datasources: { db: { url: process.env.DATABASE_URL } },
+});
+
+// --- ACTION para criar link ---
+export const createShortLink = action({
   args: {
     originalUrl: v.string(),
     customSlug: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Usuário não autenticado.");
-    }
-    const userId = identity.subject;
+    if (!identity) throw new Error("Usuário não autenticado.");
 
-    let slugToUse: string;
-
-    // 1. Lida com o slug (personalizado ou aleatório)
-    if (args.customSlug) {
-      // Se o usuário forneceu um slug personalizado
-      slugToUse = args.customSlug;
-      // Verifica se este slug já está em uso
-      const existing = await ctx.db
-        .query("shortLinks")
-        .withIndex("by_slug", (q) => q.eq("slug", slugToUse))
-        .unique();
-
-      if (existing) {
-        // Se o slug já existe, lança um erro que podemos tratar no frontend
-        throw new Error("Este apelido personalizado já está em uso. Por favor, escolha outro.");
+    try {
+      if (args.customSlug) {
+        const existing = await prisma.link.findUnique({ where: { id: args.customSlug } });
+        if (existing) throw new Error("Este apelido personalizado já está em uso.");
       }
-    } else {
-      // Se nenhum slug foi fornecido, gera um aleatório e garante que ele seja único
-      let isUnique = false;
-      let newSlug = "";
-      while (!isUnique) {
-        newSlug = generateRandomSlug();
-        const existing = await ctx.db
-          .query("shortLinks")
-          .withIndex("by_slug", (q) => q.eq("slug", newSlug))
-          .unique();
-        if (!existing) {
-          isUnique = true;
-        }
-      }
-      slugToUse = newSlug;
+
+      const newLink = await prisma.link.create({
+        data: {
+          id: args.customSlug,
+          url: args.originalUrl,
+          userId: identity.subject,
+          title: "Link Encurtado",
+        },
+      });
+      return newLink;
+    } catch (error) {
+        // CORREÇÃO: Removido o console.error para não poluir os logs, o throw já é suficiente.
+        throw new Error(error instanceof Error ? error.message : "Falha ao criar link.");
+    } finally {
+        await prisma.$disconnect();
     }
-
-    // 2. Valida a URL original (simples, mas útil)
-    if (!args.originalUrl.startsWith("http://") && !args.originalUrl.startsWith("https://")) {
-        throw new Error("URL inválida. Por favor, inclua http:// ou https://");
-    }
-
-    // 3. Insere o novo link no banco de dados
-    const newLinkId = await ctx.db.insert("shortLinks", {
-      userId,
-      slug: slugToUse,
-      originalUrl: args.originalUrl,
-      clicks: 0, // Começa com zero cliques
-    });
-
-    return { success: true, linkId: newLinkId, slug: slugToUse };
   },
 });
-export const getAndIncrement = mutation({
+
+// --- ACTION para registrar clique ---
+export const getAndRegisterClick = action({
   args: {
     slug: v.string(),
+    visitorId: v.string(),
+    userAgent: v.optional(v.string()),
+    referrer: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    // 1. Encontra o link pelo slug
-    const link = await ctx.db
-      .query("shortLinks")
-      .withIndex("by_slug", (q) => q.eq("slug", args.slug))
-      .unique();
+  handler: async (_, args) => {
+    try {
+      const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
+        const link = await tx.link.findUnique({ where: { id: args.slug } });
+        if (!link) return null;
 
-    // 2. Se o link não for encontrado, retorna null
-    if (link === null) {
-      return null;
+        await tx.click.create({ data: {
+          linkId: link.id,
+          visitorId: args.visitorId,
+          profileUserId: link.userId,
+          userAgent: args.userAgent,
+          referrer: args.referrer,
+        }});
+        return link.url;
+      });
+      return result;
+    } catch (error) {
+        // CORREÇÃO: Apenas console.error, sem o throw, para não quebrar o redirecionamento
+        console.error("Erro na action getAndRegisterClick:", error);
+        return null;
+    } finally {
+        await prisma.$disconnect();
     }
-
-    // 3. Incrementa o contador de cliques
-    await ctx.db.patch(link._id, {
-      clicks: link.clicks + 1,
-    });
-
-    // 4. Retorna a URL original para o redirecionamento
-    return link.originalUrl;
   },
 });
 
-// --- QUERY para buscar os links de um usuário ---
+// --- QUERY para buscar os links do usuário ---
 export const getLinksForUser = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return []; // Retorna um array vazio se o usuário não estiver logado
-    }
-    const userId = identity.subject;
+    if (!identity) return [];
 
-    // Busca todos os links do usuário, ordenados pelo mais recente primeiro
-    return await ctx.db
-      .query("shortLinks")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
-      .order("desc")
-      .collect();
+    try {
+      const links = await prisma.link.findMany({
+        where: { userId: identity.subject },
+        orderBy: { createdAt: 'desc' },
+        include: { _count: { select: { clicks: true } } }
+      });
+
+      return links.map((link: {
+  id: string;
+  url: string;
+  title: string | null;
+  _count: { clicks: number };
+}) => ({
+        id: link.id,
+        url: link.url,
+        title: link.title,
+        clicks: link._count.clicks
+      }));
+    } catch (error) {
+        console.error("Erro ao buscar links para o usuário:", error);
+        return [];
+    } finally {
+        await prisma.$disconnect();
+    }
   },
+});
+
+// --- QUERY para buscar os detalhes dos cliques de um link ---
+export const getClicksForLink = query({
+    args: { shortLinkId: v.string() },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Não autenticado.");
+
+        try {
+            const link = await prisma.link.findFirst({
+                where: { id: args.shortLinkId, userId: identity.subject },
+            });
+
+            if (!link) throw new Error("Acesso negado ou link não encontrado.");
+
+            const clicks = await prisma.click.findMany({
+                where: { linkId: args.shortLinkId },
+                orderBy: { timestamp: "desc" },
+            });
+
+            // Retornamos os dados brutos. O frontend vai tipá-los.
+            return { link, clicks };
+        } catch (error) {
+            console.error("Erro ao buscar cliques do link:", error);
+            return null;
+        } finally {
+            await prisma.$disconnect();
+        }
+    },
 });

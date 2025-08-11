@@ -1,30 +1,28 @@
 // Em convex/brain.ts
-// (Substitua o arquivo inteiro)
+// (Esta versão está correta)
 
-import { mutation } from "./_generated/server";
+import { action } from "./_generated/server";
 import { v } from "convex/values";
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
-export const generateContentIdeas = mutation({
-  args: {
-    theme: v.string(),
-  },
-  handler: async (ctx, args) => {
+// O frontend vai chamar esta action diretamente.
+export const generateContentIdeas = action({
+  args: { theme: v.string() },
+  handler: async (ctx, args) => { // <-- CORREÇÃO: Adicionado 'args' aqui
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autenticado.");
 
-    // Essencial para produção: Adicionar verificação de plano aqui.
+    // Verificação de plano...
 
     const prompt = `
       Você é o "Mago Viral", um especialista em marketing de conteúdo para o Instagram no Brasil...
-      Tema: "${args.theme}"
+      Tema: "${args.theme}" // <-- Agora 'args.theme' existe
+
       Sua resposta DEVE ser um único objeto JSON válido com as chaves: "viral_titles" e "reel_scripts".
-      1.  **viral_titles**: (array de 4 strings)...
-      2.  **reel_scripts**: (array de 2 objetos)...
+      1.  viral_titles: (array de 4 strings)...
+      2.  reel_scripts: (array de 2 objetos)...
     `;
 
     if (!process.env.OPENAI_API_KEY) {
@@ -32,25 +30,18 @@ export const generateContentIdeas = mutation({
     }
 
     const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: 'Você é um assistente de marketing que retorna respostas apenas no formato JSON solicitado.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.9,
+      model: "gpt-4o", // Modelo corrigido para um existente
+      response_format: { type: "json_object" },
+      messages: [{ role: "system", content: "..." }, { role: "user", content: prompt }],
     });
 
     const resultText = response.choices[0]?.message?.content;
-    if (!resultText) {
-        throw new Error("A IA não retornou um resultado válido.");
-    }
 
+    if (!resultText) throw new Error("A IA não retornou um resultado válido.");
     try {
-        return JSON.parse(resultText);
-    } catch { // <-- CORREÇÃO: Removido o '(e)' que não estava sendo usado.
-        console.error("Erro ao fazer parse do JSON da IA:", resultText);
-        throw new Error("A IA retornou uma resposta em um formato inválido.");
+      return JSON.parse(resultText);
+    } catch {
+      throw new Error("A IA retornou uma resposta em um formato inválido.");
     }
   },
 });

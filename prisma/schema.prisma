@@ -1,0 +1,45 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Modelo de Link
+model Link {
+  id        String   @id @default(cuid())
+  url       String
+  title     String?
+  userId    String   // ID do dono do link (usuário autenticado)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relação com cliques
+  clicks    Click[]
+
+  @@index([userId]) // melhora performance nas consultas por usuário
+}
+
+// Modelo de Cliques
+model Click {
+  id            String   @id @default(cuid())
+  timestamp     DateTime @default(now())
+  profileUserId String   // ID do usuário que recebeu o clique (pode ser o mesmo que userId em Link)
+  linkId        String
+  visitorId     String   // pode ser ID anônimo/único do visitante
+  country       String?
+  region        String?
+  city          String?
+  referrer      String?
+  userAgent     String?
+
+  // Relacionamento com Link
+  link          Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@index([linkId])       // busca rápida por link
+  @@index([profileUserId]) // busca rápida por dono do perfil
+}

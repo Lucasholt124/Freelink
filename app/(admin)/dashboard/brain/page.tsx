@@ -1,5 +1,5 @@
 // Em app/dashboard/brain/page.tsx
-// (Substitua o arquivo inteiro)
+// (Este arquivo já está correto e funcional)
 
 import { currentUser } from "@clerk/nextjs/server";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
@@ -8,10 +8,10 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import FreelinnkBrainTool from "@/components/FreelinnkBrainTool";
 
-
+// Componente de Paywall para quando o usuário é do plano Free
 function LockedBrainPage() {
   return (
-    <div className="flex flex-col items-center justify-center text-center p-8 min-h-[60vh]">
+    <div className="flex flex-col items-center justify-center text-center p-8 min-h-[60vh] bg-gray-50 rounded-2xl">
         <div className="p-4 bg-purple-100 rounded-full mb-4">
             <Lock className="w-10 h-10 text-purple-600" />
         </div>
@@ -34,17 +34,18 @@ export default async function BrainPage() {
   const user = await currentUser();
   if (!user) return null;
 
-  // `subscription` é agora o objeto completo: { plan: 'free' | 'pro' | 'ultra', ... }
+  // Busca o objeto de assinatura completo
   const subscription = await getUserSubscriptionPlan(user.id);
 
   // =======================================================
-  // CORREÇÃO APLICADA AQUI
+  // A LÓGICA DE ACESSO JÁ ESTÁ CORRETA
   // =======================================================
-  // Comparamos a propriedade `plan` de dentro do objeto `subscription`.
+  // Libera o acesso para 'pro' E 'ultra', bloqueando apenas o 'free'.
   if (subscription.plan !== "pro" && subscription.plan !== "ultra") {
     return <LockedBrainPage />;
   }
 
+  // Se o plano for Pro ou Ultra, renderiza a ferramenta.
   return (
     <div className="space-y-8">
       <div className="flex items-center gap-4">

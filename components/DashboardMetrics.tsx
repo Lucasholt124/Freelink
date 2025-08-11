@@ -1,3 +1,6 @@
+// Em /components/DashboardMetrics.tsx
+// (Substitua o arquivo inteiro)
+
 "use client";
 
 import type { AnalyticsData } from "@/lib/analytics-server";
@@ -19,13 +22,13 @@ function Card({ color, title, icon: Icon, value, subtitle, isText = false }: { c
           <div className={clsx(`p-3 rounded-xl bg-${color}-500 flex-shrink-0`)}>
             <Icon className="w-6 h-6 text-white" />
           </div>
-          <div className="min-w-0"> {/* Garante que o texto possa quebrar linha */}
+          <div className="min-w-0">
             <p className={clsx(`text-sm font-medium text-${color}-700`)}>{title}</p>
             <p className={clsx(
               "font-bold",
               `text-${color}-900`,
-              // Aplica estilos diferentes para texto vs. número
-              isText ? "text-2xl whitespace-normal break-words" : "text-3xl truncate"
+              isText ? "text-2xl whitespace-normal break-words" : "text-3xl",
+              "truncate"
             )}>
               {isText ? value : (typeof value === 'number' ? value.toLocaleString("pt-BR") : value)}
             </p>
@@ -56,59 +59,22 @@ export default function DashboardMetrics({ analytics, plan }: DashboardMetricsPr
     if (!referrerSource || referrerSource.toLowerCase() === "direto") {
       return "Direto";
     }
-
     let hostname: string;
     try {
-      const url = new URL(referrerSource);
-      hostname = url.hostname;
+      hostname = new URL(referrerSource).hostname;
     } catch {
       hostname = referrerSource;
     }
-
-    // Limpeza aprimorada de subdomínios
     hostname = hostname.replace(/^(www\.|m\.|l\.|mobile\.|out\.|web\.)/, "");
-
     const friendlyNames: Record<string, string> = {
-      // Redes Sociais
-      "t.co": "Twitter (X)",
-      "twitter.com": "Twitter (X)",
-      "instagram.com": "Instagram",
-      "facebook.com": "Facebook",
-      "youtube.com": "YouTube",
-      "linkedin.com": "LinkedIn",
-      "pinterest.com": "Pinterest",
-      "tiktok.com": "TikTok",
-      "reddit.com": "Reddit",
-
-      // Mensageiros
-      "whatsapp.com": "WhatsApp",
-      "wa.me": "WhatsApp",
-      "t.me": "Telegram",
-      "discord.com": "Discord",
-
-      // Motores de Busca
-      "google.com": "Google",
-      "bing.com": "Bing",
-      "duckduckgo.com": "DuckDuckGo",
-      "yahoo.com": "Yahoo!",
-
-      // Plataformas de Conteúdo e Ferramentas
-      "github.com": "GitHub",
-      "substack.com": "Substack",
-      "medium.com": "Medium",
-      "behance.net": "Behance",
-      "dribbble.com": "Dribbble",
-      "twitch.tv": "Twitch",
-      "notion.so": "Notion",
+      "t.co": "Twitter (X)", "twitter.com": "Twitter (X)", "instagram.com": "Instagram", "facebook.com": "Facebook", "youtube.com": "YouTube",
+      "linkedin.com": "LinkedIn", "pinterest.com": "Pinterest", "tiktok.com": "TikTok", "reddit.com": "Reddit", "whatsapp.com": "WhatsApp",
+      "wa.me": "WhatsApp", "t.me": "Telegram", "discord.com": "Discord", "google.com": "Google", "bing.com": "Bing", "duckduckgo.com": "DuckDuckGo",
+      "yahoo.com": "Yahoo!", "github.com": "GitHub", "substack.com": "Substack", "medium.com": "Medium", "behance.net": "Behance",
+      "dribbble.com": "Dribbble", "twitch.tv": "Twitch", "notion.so": "Notion",
     };
-
-    if (friendlyNames[hostname]) {
-      return friendlyNames[hostname];
-    }
-
-    return hostname.charAt(0).toUpperCase() + hostname.slice(1);
+    return friendlyNames[hostname] || (hostname.charAt(0).toUpperCase() + hostname.slice(1));
   };
-
 
   return (
     <div className="bg-white/80 backdrop-blur-sm border border-gray-200/50 rounded-2xl p-6 md:p-8 shadow-lg max-w-7xl mx-auto mb-8">
@@ -122,6 +88,8 @@ export default function DashboardMetrics({ analytics, plan }: DashboardMetricsPr
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+
+        {/* --- Card disponível para TODOS os planos --- */}
         <Card
           color="blue"
           title="Cliques Totais"
@@ -129,39 +97,35 @@ export default function DashboardMetrics({ analytics, plan }: DashboardMetricsPr
           value={analytics.totalClicks}
         />
 
+        {/* --- Cards disponíveis para PRO e ULTRA --- */}
         {plan === 'pro' || plan === 'ultra' ? (
           <>
-            {/* --- NOVO CARD DE ÚLTIMA ATIVIDADE --- */}
-            <Card
-              color="teal"
-              title="Última Atividade"
-              icon={Activity}
-              value={analytics.lastActivity || "Nenhuma"}
-              subtitle="Último clique registrado"
-              isText
-            />
+            <Card color="teal" title="Última Atividade" icon={Activity} value={analytics.lastActivity || "Nenhuma"} subtitle="Último clique registrado" isText />
             <Card color="purple" title="Visitantes Únicos" icon={Users} value={analytics.uniqueVisitors} />
             <Card color="green" title="Principal Origem" icon={Globe} value={formatReferrer(analytics.topReferrer?.source)} subtitle={`${analytics.topReferrer?.clicks || 0} cliques`} isText />
-
-            {/* O card de Link Mais Popular agora só aparece se for Ultra, para dar mais valor */}
-            {plan === 'ultra' ? (
-              <Card color="orange" title="Link Mais Popular" icon={LinkIcon} value={analytics.topLink?.title || 'N/A'} subtitle={`${analytics.topLink?.clicks || 0} cliques`} isText />
-            ) : (
-              <LockedCard title="Links Mais Populares" requiredPlan="Ultra" />
-            )}
           </>
         ) : (
           <>
-            <LockedCard title="Análise de Visitantes" requiredPlan="Pro" />
-            <LockedCard title="Análise de Origem" requiredPlan="Pro" />
+            {/* Cards bloqueados para o plano FREE */}
             <LockedCard title="Última Atividade" requiredPlan="Pro" />
+            <LockedCard title="Visitantes Únicos" requiredPlan="Pro" />
+            <LockedCard title="Principal Origem" requiredPlan="Pro" />
           </>
         )}
 
-        {plan === 'ultra' && (
+        {/* --- Cards exclusivos para o plano ULTRA --- */}
+        {plan === 'ultra' ? (
           <>
+            <Card color="orange" title="Link Mais Popular" icon={LinkIcon} value={analytics.topLink?.title || 'N/A'} subtitle={`${analytics.topLink?.clicks || 0} cliques`} isText />
             <Card color="red" title="Horário de Pico" icon={Clock} value={analytics.peakHour ? `${String(analytics.peakHour.hour).padStart(2, '0')}:00` : "N/A"} subtitle={`${analytics.peakHour?.clicks || 0} cliques`} isText />
             <Card color="indigo" title="Principal País" icon={MapPin} value={analytics.topCountry?.name || 'N/A'} subtitle={`${analytics.topCountry?.clicks || 0} cliques`} isText />
+          </>
+        ) : (
+          <>
+            {/* Cards bloqueados se NÃO for Ultra (isso vale para o Free e para o Pro) */}
+            <LockedCard title="Link Mais Popular" requiredPlan="Ultra" />
+            <LockedCard title="Horário de Pico" requiredPlan="Ultra" />
+            <LockedCard title="Principal País" requiredPlan="Ultra" />
           </>
         )}
       </div>
