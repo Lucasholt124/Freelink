@@ -3,9 +3,21 @@
 
 "use client";
 
+import { Suspense } from 'react'; // <-- IMPORTAÇÃO NECESSÁRIA
+
 import UsernameForm from "@/components/UsernameForm";
 import CustomizationForm from "@/components/CustomizationForm";
 import { InstagramConnection } from "@/components/InstagramConnection";
+
+// Componente de Skeleton para o fallback do Suspense
+function ConnectionSectionSkeleton() {
+    return (
+        <div className="bg-white p-6 rounded-2xl border shadow-lg animate-pulse">
+            <div className="h-8 w-3/4 bg-gray-200 rounded-md"></div>
+            <div className="h-5 w-1/2 bg-gray-200 rounded-md mt-2"></div>
+        </div>
+    );
+}
 
 export default function SettingsPage() {
   return (
@@ -24,8 +36,17 @@ export default function SettingsPage() {
             Conecte suas contas para habilitar funcionalidades de IA.
           </p>
         </aside>
-        <div className="flex-1 bg-white p-6 rounded-2xl border shadow-lg">
-          <InstagramConnection />
+        <div className="flex-1">
+          {/*
+            =======================================================
+            CORREÇÃO APLICADA AQUI
+            =======================================================
+            Envolvemos o componente que usa `useSearchParams` em um <Suspense>.
+            O `fallback` é o que será mostrado enquanto o componente é carregado no cliente.
+          */}
+          <Suspense fallback={<ConnectionSectionSkeleton />}>
+            <InstagramConnection />
+          </Suspense>
         </div>
       </section>
 
