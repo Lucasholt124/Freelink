@@ -3,20 +3,13 @@
 
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import Link from "next/link";
 import {
-  Link as LinkIcon,
-  Scissors,
-  Copy,
-  Check,
-  Info,
-  Loader2,
-  BarChart2,
-  Lock,
+  Link as LinkIcon, Scissors, Copy, Check, Info, Loader2, BarChart2, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -52,7 +45,7 @@ function LinksSkeleton() {
 function LinkList() {
   const { user, isLoaded } = useUser();
 
-  // A query só é executada QUANDO `isLoaded` for `true`.
+  // A query só é executada QUANDO `isLoaded` for `true`, evitando inconsistências.
   const links = useQuery(api.shortLinks.getLinksForUser, !isLoaded ? "skip" : undefined) as LinkFromQuery[] | undefined;
 
   const plan = (user?.publicMetadata?.subscriptionPlan as "free" | "pro" | "ultra") ?? "free";
@@ -117,6 +110,11 @@ export default function ShortenerPage() {
   const createLink = useAction(api.shortLinks.createShortLink);
   const formRef = useRef<HTMLFormElement>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -171,7 +169,8 @@ export default function ShortenerPage() {
 
       <div>
         <h2 className="text-xl sm:text-2xl font-semibold mb-4">Seus Links Encurtados</h2>
-        <LinkList />
+        {/* A lista só renderiza no cliente para evitar erros de hidratação */}
+        {isClient ? <LinkList /> : <LinksSkeleton />}
       </div>
     </div>
   );

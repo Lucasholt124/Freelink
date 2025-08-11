@@ -1,25 +1,24 @@
 // Em convex/connections.ts
-// (Substitua o conteúdo deste arquivo. Você pode deletar storeInstagramToken.ts e getInstagramData.ts)
+// (Substitua o arquivo inteiro)
 
-import { mutation, query } from "./_generated/server";
+import { action, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { internal } from "./_generated/api";
 
-// Esta mutation faz o papel de "store" e "update" em uma só função.
-export const createOrUpdate = mutation({
+// --- MUTATION INTERNA (Segura, chamada apenas por actions) ---
+export const createOrUpdateInternal = internalMutation({
   args: {
+    userId: v.string(),
     provider: v.string(),
     providerAccountId: v.string(),
     accessToken: v.string(),
     tokenExpiresAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Usuário não autenticado.");
-
     const existing = await ctx.db
       .query("connections")
       .withIndex("by_user_provider", (q) =>
-        q.eq("userId", identity.subject).eq("provider", args.provider)
+        q.eq("userId", args.userId).eq("provider", args.provider)
       )
       .unique();
 
@@ -31,7 +30,7 @@ export const createOrUpdate = mutation({
       });
     } else {
       await ctx.db.insert("connections", {
-        userId: identity.subject,
+        userId: args.userId,
         provider: args.provider,
         providerAccountId: args.providerAccountId,
         accessToken: args.accessToken,
@@ -41,16 +40,66 @@ export const createOrUpdate = mutation({
   },
 });
 
-// Esta query busca os dados da conexão para o usuário logado.
+// --- QUERY (Pública, chamada pelo frontend) ---
 export const get = query({
   args: { provider: v.string() },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
-
     return await ctx.db
       .query("connections")
       .withIndex("by_user_provider", q => q.eq("userId", identity.subject).eq("provider", args.provider))
       .unique();
+  },
+});
+
+// --- ACTION (Pública, chamada pela API do Next.js) ---
+export const exchangeCodeForToken = action({
+  args: {
+    code: v.string(),
+    redirectUri: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Usuário não autenticado para realizar a troca de token.");
+
+    const clientId = process.env.INSTAGRAM_CLIENT_ID;
+    const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
+    if (!clientId || !clientSecret) throw new Error("Variáveis de ambiente do Instagram não configuradas no Convex.");
+
+    // Etapa 1: Trocar code por token de curta duração
+    const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${args.redirectUri}&code=${args.code}`;
+    const tokenResponse = await fetch(tokenUrl);
+    const tokenData = await tokenResponse.json();
+    if (!tokenResponse.ok || !tokenData.access_token) {
+        throw new Error(tokenData.error?.message || 'Falha ao obter token de curta duração.');
+    }
+
+    // Etapa 2: Trocar por token de longa duração
+    const longTokenUrl = `https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${tokenData.access_token}`;
+    const longTokenResponse = await fetch(longTokenUrl);
+    const longTokenData = await longTokenResponse.json();
+    if (!longTokenResponse.ok || !longTokenData.access_token) {
+        throw new Error(longTokenData.error?.message || 'Falha ao obter token de longa duração.');
+    }
+
+    // Etapa 3: Obter informações do usuário
+    const userInfoUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longTokenData.access_token}`;
+    const userInfoResponse = await fetch(userInfoUrl);
+    const userInfo = await userInfoResponse.json();
+    if (!userInfoResponse.ok || !userInfo.id) {
+        throw new Error(userInfo.error?.message || 'Falha ao buscar informações do usuário.');
+    }
+
+    // Etapa 4: Salvar no DB via mutation interna
+    await ctx.runMutation(internal.connections.createOrUpdateInternal, {
+        userId: identity.subject,
+        provider: 'instagram',
+        providerAccountId: userInfo.id,
+        accessToken: longTokenData.access_token,
+        tokenExpiresAt: Date.now() + (longTokenData.expires_in * 1000),
+    });
+
+    return { success: true };
   },
 });
