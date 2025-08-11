@@ -1,31 +1,33 @@
 // Em app/r/[slug]/page.tsx
-// (Substitua o arquivo inteiro por esta versão final e à prova de build)
+// (Substitua o arquivo inteiro por esta versão final)
 
 import { notFound, redirect } from 'next/navigation';
 import { api } from '@/convex/_generated/api';
 import { fetchAction } from 'convex/nextjs';
 import { headers } from 'next/headers';
 
-
+// =======================================================
+// CORREÇÃO DEFINITIVA: Voltando à tipagem de Promise
+// =======================================================
+// Damos ao build da Vercel exatamente o que ele está exigindo para esta rota.
 interface ShortLinkRedirectPageProps {
-  params: { slug: string } | Promise<{ slug: string }>;
+  params: Promise<{ slug: string }>;
 }
 
 export default async function ShortLinkRedirectPage({ params }: ShortLinkRedirectPageProps) {
 
   // =======================================================
-  // CORREÇÃO APLICADA AQUI: Lógica Agnóstica
+  // CORREÇÃO DEFINITIVA: Usando 'await'
   // =======================================================
-  // Verificamos se 'params' é uma Promise. Se for, esperamos por ela.
-  // Se for um objeto, usamos diretamente.
-  const resolvedParams = (params instanceof Promise) ? await params : params;
+  // Resolvemos a Promise para acessar a propriedade 'slug'.
+  const resolvedParams = await params;
   const { slug } = resolvedParams;
 
   if (!slug) {
     return notFound();
   }
 
-
+  // A lógica de `headers` e `fetchAction` já está correta.
   const headerList = await headers();
   const userAgent = headerList.get('user-agent') ?? undefined;
   const referrer = headerList.get('referer') ?? undefined;
