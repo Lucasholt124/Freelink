@@ -1,5 +1,5 @@
-// Em app/r/[slug]/page.tsx
-// (Substitua o arquivo inteiro por esta versão final)
+// Em /app/r/[slug]/page.tsx
+// (Substitua o arquivo inteiro)
 
 import { notFound, redirect } from 'next/navigation';
 import { api } from '@/convex/_generated/api';
@@ -7,27 +7,26 @@ import { fetchAction } from 'convex/nextjs';
 import { headers } from 'next/headers';
 
 // =======================================================
-// CORREÇÃO DEFINITIVA: Voltando à tipagem de Promise
+// CORREÇÃO DEFINITIVA
 // =======================================================
-// Damos ao build da Vercel exatamente o que ele está exigindo para esta rota.
+// Esta linha força a página a ser renderizada dinamicamente a cada requisição.
+// Isso garante que a função `headers()` esteja sempre disponível e resolve os
+// erros de tipo e de build relacionados a ela.
+export const dynamic = 'force-dynamic';
+
+// A tipagem de 'params' como objeto simples é a mais comum e correta
+// quando a página é forçada a ser dinâmica.
 interface ShortLinkRedirectPageProps {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }
 
 export default async function ShortLinkRedirectPage({ params }: ShortLinkRedirectPageProps) {
-
-  // =======================================================
-  // CORREÇÃO DEFINITIVA: Usando 'await'
-  // =======================================================
-  // Resolvemos a Promise para acessar a propriedade 'slug'.
-  const resolvedParams = await params;
-  const { slug } = resolvedParams;
-
+  const { slug } = params;
   if (!slug) {
     return notFound();
   }
 
-  // A lógica de `headers` e `fetchAction` já está correta.
+  // Com `force-dynamic`, a função `headers()` funcionará sem erros de tipo.
   const headerList = await headers();
   const userAgent = headerList.get('user-agent') ?? undefined;
   const referrer = headerList.get('referer') ?? undefined;
@@ -46,7 +45,9 @@ export default async function ShortLinkRedirectPage({ params }: ShortLinkRedirec
       return notFound();
     }
 
-    return redirect(originalUrl);
+    // `redirect` precisa ser a última coisa a ser chamada.
+    redirect(originalUrl);
+
   } catch (error) {
     console.error(`Erro ao redirecionar a slug "${slug}":`, error);
     return notFound();

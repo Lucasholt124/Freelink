@@ -3,11 +3,13 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import Link from "next/link";
+import dynamic from 'next/dynamic'; // <-- IMPORTAÇÃO CHAVE
+
 import {
   Link as LinkIcon, Scissors, Copy, Check, Info, Loader2, BarChart2, Lock
 } from "lucide-react";
@@ -83,10 +85,10 @@ function LinkList() {
             ) : (
               <div className="relative group">
                 <Button variant="outline" size="icon" className="h-9 w-9" disabled><Lock className="w-4 h-4" /></Button>
-                <span className="absolute bottom-full mb-2 -translate-x-1/2 left-1/2 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded-md opacity-0 group-hover:opacity-100">Ver Cliques (Plano Ultra)</span>
+                <span className="absolute bottom-full mb-2 ...">Ver Cliques (Plano Ultra)</span>
               </div>
             )}
-            <span className="text-sm font-medium text-gray-700 bg-gray-100 px-3 py-1 rounded-full">{link.clicks} cliques</span>
+            <span className="text-sm font-medium ...">{link.clicks} cliques</span>
             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleCopy(link.id)}>
               {copiedSlug === link.id ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
             </Button>
@@ -97,10 +99,16 @@ function LinkList() {
   );
 }
 
-export default function ShortenerPage() {
-  const [isClient, setIsClient] = useState(false);
-  useEffect(() => { setIsClient(true); }, []);
+// =======================================================
+// CORREÇÃO DEFINITIVA PARA HIDRATAÇÃO
+// =======================================================
+// Carregamos a LinkList dinamicamente, garantindo que ela NUNCA seja renderizada no servidor.
+const DynamicLinkList = dynamic(() => Promise.resolve(LinkList), {
+  ssr: false,
+  loading: () => <LinksSkeleton />,
+});
 
+export default function ShortenerPage() {
   const createLink = useAction(api.shortLinks.createShortLink);
   const formRef = useRef<HTMLFormElement>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -116,10 +124,7 @@ export default function ShortenerPage() {
       createLink({ originalUrl, customSlug }),
       {
         loading: "Encurtando seu link...",
-        success: () => {
-          formRef.current?.reset();
-          return "Link encurtado com sucesso!";
-        },
+        success: () => { formRef.current?.reset(); return "Link encurtado com sucesso!"; },
         error: (err) => (err instanceof Error ? err.message : "Ocorreu um problema."),
         finally: () => setIsLoading(false),
       }
@@ -150,15 +155,15 @@ export default function ShortenerPage() {
         <div className="mt-4">
           <Label htmlFor="customSlug" className="font-semibold text-sm">Apelido Personalizado (Opcional)</Label>
           <div className="flex flex-col sm:flex-row sm:items-center mt-1">
-            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-3 rounded-t-md sm:rounded-l-md sm:rounded-tr-none border border-gray-300 border-b-0 sm:border-b sm:border-r-0">freelinnk.com/r/</span>
-            <Input id="customSlug" name="customSlug" placeholder="minha-promo" className="rounded-t-none sm:rounded-l-none sm:rounded-r-md" disabled={isLoading} />
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-3 rounded-t-md ...">freelinnk.com/r/</span>
+            <Input id="customSlug" name="customSlug" placeholder="minha-promo" className="rounded-t-none ..." disabled={isLoading} />
           </div>
         </div>
       </div>
 
       <div>
         <h2 className="text-xl sm:text-2xl font-semibold mb-4">Seus Links Encurtados</h2>
-        {isClient ? <LinkList /> : <LinksSkeleton />}
+        <DynamicLinkList />
       </div>
     </div>
   );

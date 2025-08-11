@@ -16,7 +16,6 @@ import type {
 import type * as brain from "../brain.js";
 import type * as client from "../client.js";
 import type * as connections from "../connections.js";
-import type * as getInstagramData from "../getInstagramData.js";
 import type * as giveaways from "../giveaways.js";
 import type * as lib_customizations from "../lib/customizations.js";
 import type * as lib_fetchLinkAnalytics from "../lib/fetchLinkAnalytics.js";
@@ -24,7 +23,6 @@ import type * as lib_getBaseUrl from "../lib/getBaseUrl.js";
 import type * as lib_links from "../lib/links.js";
 import type * as lib_usernames from "../lib/usernames.js";
 import type * as shortLinks from "../shortLinks.js";
-import type * as storeInstagramToken from "../storeInstagramToken.js";
 import type * as tracking from "../tracking.js";
 import type * as users from "../users.js";
 
@@ -40,7 +38,6 @@ declare const fullApi: ApiFromModules<{
   brain: typeof brain;
   client: typeof client;
   connections: typeof connections;
-  getInstagramData: typeof getInstagramData;
   giveaways: typeof giveaways;
   "lib/customizations": typeof lib_customizations;
   "lib/fetchLinkAnalytics": typeof lib_fetchLinkAnalytics;
@@ -48,7 +45,6 @@ declare const fullApi: ApiFromModules<{
   "lib/links": typeof lib_links;
   "lib/usernames": typeof lib_usernames;
   shortLinks: typeof shortLinks;
-  storeInstagramToken: typeof storeInstagramToken;
   tracking: typeof tracking;
   users: typeof users;
 }>;

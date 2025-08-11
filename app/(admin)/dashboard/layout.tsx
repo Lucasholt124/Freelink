@@ -1,4 +1,4 @@
-// Em app/dashboard/layout.tsx
+// Em /app/(admin)/dashboard/layout.tsx
 // (Substitua o arquivo inteiro)
 
 "use client";
@@ -12,8 +12,6 @@ import {
 import clsx from "clsx";
 import { UserButton } from "@clerk/nextjs";
 
-// O componente Sidebar, com a lógica de navegação.
-// Nenhuma mudança de lógica necessária aqui, apenas ajustes de estilo.
 function Sidebar() {
   const pathname = usePathname();
   const navItems = [
@@ -84,9 +82,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   }, [pathname]);
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen w-screen overflow-hidden bg-gray-50">
 
-      {/* Sidebar para Desktop (fixa) */}
       <aside className="w-64 bg-white border-r p-6 flex-col hidden lg:flex flex-shrink-0">
         <div className="mb-8">
           <Link href="/dashboard" className="text-2xl font-bold text-gray-900">Freelinnk<span className="text-purple-600">.</span></Link>
@@ -95,27 +92,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         <div className="mt-auto pt-6 border-t">
             <div className="flex items-center gap-3">
                 <UserButton afterSignOutUrl="/" />
-                <div className="text-sm">
-                    {/* Aqui você pode usar o useUser do Clerk para pegar os dados do usuário */}
-                    <p className="font-semibold">Minha Conta</p>
-                </div>
+                <div className="text-sm"><p className="font-semibold">Minha Conta</p></div>
             </div>
         </div>
       </aside>
 
-      {/* Overlay para o menu mobile */}
-      {isSidebarOpen && (
-          <div
-            className="lg:hidden fixed inset-0 bg-black/40 z-20"
-            onClick={() => setIsSidebarOpen(false)}
-          ></div>
-      )}
+      {isSidebarOpen && <div className="lg:hidden fixed inset-0 bg-black/40 z-20" onClick={() => setIsSidebarOpen(false)}></div>}
 
-      {/* Sidebar para Mobile (deslizante) */}
-      <aside className={clsx(
-          "lg:hidden fixed top-0 left-0 h-full w-64 bg-white p-6 flex flex-col z-30 transition-transform duration-300 ease-in-out",
-          isSidebarOpen ? "translate-x-0" : "-translate-x-full"
-      )}>
+      <aside className={clsx("lg:hidden fixed top-0 left-0 h-full w-64 bg-white p-6 flex flex-col z-30 transition-transform duration-300 ease-in-out", isSidebarOpen ? "translate-x-0" : "-translate-x-full")}>
         <div className="mb-8 flex justify-between items-center">
           <Link href="/dashboard" className="text-2xl font-bold">Freelinnk<span className="text-purple-600">.</span></Link>
           <button onClick={() => setIsSidebarOpen(false)}><X/></button>
@@ -129,24 +113,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </div>
       </aside>
 
-      {/* Conteúdo Principal */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-
-        {/* Header (visível apenas em telas menores que lg) */}
-        <header className="lg:hidden bg-white/80 backdrop-blur-sm border-b p-4 flex justify-between items-center flex-shrink-0">
-          <button onClick={() => setIsSidebarOpen(true)}>
-            <Menu />
-          </button>
-          <div className="lg:hidden">
-              <UserButton afterSignOutUrl="/" />
-          </div>
+      <div className="flex-1 flex flex-col overflow-y-auto">
+        <header className="lg:hidden bg-white/80 backdrop-blur-sm border-b p-4 flex justify-between items-center flex-shrink-0 sticky top-0 z-10">
+          <button onClick={() => setIsSidebarOpen(true)}><Menu /></button>
+          <div><UserButton afterSignOutUrl="/" /></div>
         </header>
 
-        {/* Área de Conteúdo com Scroll */}
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
-          <div className="max-w-7xl mx-auto">
-            {children}
-          </div>
+        <main className="p-4 sm:p-6 lg:p-8">
+            <div className="max-w-7xl mx-auto">
+                {children}
+            </div>
         </main>
       </div>
     </div>
