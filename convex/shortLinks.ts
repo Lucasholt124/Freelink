@@ -1,7 +1,7 @@
 // Em convex/shortLinks.ts
-// (Substitua o arquivo inteiro)
+// (Substitua o arquivo inteiro por esta versão)
 
-import { action, query } from "./_generated/server";
+import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { Prisma, PrismaClient } from '@prisma/client';
 
@@ -74,8 +74,9 @@ export const getAndRegisterClick = action({
   },
 });
 
-// --- QUERY para buscar os links do usuário ---
-export const getLinksForUser = query({
+// --- ACTION para buscar os links do usuário ---
+export const getLinksForUser = action({
+  args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
@@ -92,10 +93,10 @@ export const getLinksForUser = query({
         url: link.url,
         title: link.title,
         clicks: link._count.clicks,
-        createdAt: link.createdAt.getTime(), // Envia como número (timestamp)
+        createdAt: link.createdAt.getTime(),
       }));
-    } catch {
-        console.error("Erro ao buscar links para o usuário.");
+    } catch (error) {
+        console.error("Erro ao buscar links para o usuário:", error);
         return [];
     } finally {
         await prisma.$disconnect();
@@ -103,8 +104,8 @@ export const getLinksForUser = query({
   },
 });
 
-// --- QUERY para buscar os detalhes dos cliques de um link ---
-export const getClicksForLink = query({
+// --- ACTION para buscar os detalhes dos cliques de um link ---
+export const getClicksForLink = action({
     args: { shortLinkId: v.string() },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -123,12 +124,12 @@ export const getClicksForLink = query({
 
             const serializableClicks = clicks.map(click => ({
                 ...click,
-                timestamp: click.timestamp.getTime(), // Envia como número
+                timestamp: click.timestamp.getTime(),
             }));
 
             return { link, clicks: serializableClicks };
-        } catch {
-            console.error("Erro ao buscar cliques do link");
+        } catch(error) {
+            console.error("Erro ao buscar cliques do link:", error);
             return null;
         } finally {
             await prisma.$disconnect();

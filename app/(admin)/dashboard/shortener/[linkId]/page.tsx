@@ -1,9 +1,12 @@
-// Em app/dashboard/shortener/[linkId]/page.tsx
+// Em /app/dashboard/shortener/[linkId]/page.tsx
 // (Substitua o arquivo inteiro)
 
 import { notFound } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
-import { fetchQuery } from "convex/nextjs";
+// =======================================================
+// CORREÇÃO: Usar `fetchAction` para chamar a função do backend
+// =======================================================
+import { fetchAction } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
 import type { FunctionReturnType } from "convex/server";
@@ -11,10 +14,13 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, BarChart2, Clock, Globe } from "lucide-react";
 
+// Tipagem derivada do backend para segurança máxima
 type QueryOutput = FunctionReturnType<typeof api.shortLinks.getClicksForLink>;
 type LinkData = NonNullable<QueryOutput>['link'];
 type ClickData = NonNullable<QueryOutput>['clicks'][number];
 
+
+// Componente para exibir a lista de cliques
 function ClicksList({ clicks }: { clicks: ClickData[] }) {
     if (clicks.length === 0) {
         return (
@@ -34,6 +40,7 @@ function ClicksList({ clicks }: { clicks: ClickData[] }) {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                         <Clock className="w-3 h-3" />
+                        {/* O backend agora envia o timestamp como número */}
                         <span>{new Date(click.timestamp).toLocaleString('pt-BR')}</span>
                     </div>
                 </div>
@@ -42,6 +49,7 @@ function ClicksList({ clicks }: { clicks: ClickData[] }) {
     );
 }
 
+// Tipagem para `params` que satisfaz o build da Vercel
 interface ShortLinkDetailsPageProps {
   params: Promise<{ linkId: string }>;
 }
@@ -57,7 +65,10 @@ export default async function ShortLinkDetailsPage({ params }: ShortLinkDetailsP
         return notFound();
     }
 
-    const data = await fetchQuery(api.shortLinks.getClicksForLink, { shortLinkId: linkId });
+    // =======================================================
+    // CORREÇÃO: Usando `fetchAction` em vez de `fetchQuery`
+    // =======================================================
+    const data = await fetchAction(api.shortLinks.getClicksForLink, { shortLinkId: linkId });
 
     if (!data || !data.link) {
         return notFound();
@@ -70,7 +81,7 @@ export default async function ShortLinkDetailsPage({ params }: ShortLinkDetailsP
         <div className="max-w-4xl mx-auto space-y-8">
             <div>
                 <Button asChild variant="ghost" className="-ml-4 text-gray-600">
-                    <Link href="/dashboard/shortener"><ArrowLeft className="w-4 h-4 mr-2" /> Voltar</Link>
+                    <Link href="/dashboard/shortener"><ArrowLeft className="w-4 h-4 mr-2" /> Voltar para o Encurtador</Link>
                 </Button>
             </div>
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">

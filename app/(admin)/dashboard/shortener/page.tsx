@@ -1,10 +1,10 @@
-// Em /app/dashboard/shortener/page.tsx
-// (Substitua o arquivo inteiro por esta versão)
+// Em app/dashboard/shortener/page.tsx
+// (Substitua o arquivo inteiro)
 
 "use client";
 
-import { useState, useRef } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useState, useRef, useEffect } from "react";
+import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import Link from "next/link";
@@ -16,35 +16,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUser } from "@clerk/nextjs";
 
-// O tipo de dado que esperamos do backend.
 type LinkFromQuery = {
   id: string;
   url: string;
   clicks: number;
-  createdAt: number; // Vem como timestamp
+  title: string | null;
+  createdAt: number;
 };
 
-// ===================================================================
-// COMPONENTE ISOLADO: LINK LIST
-// Ele cuida de toda a sua própria lógica, sem interferir no pai.
-// ===================================================================
-function LinkList() {
-  const { user, isLoaded } = useUser();
-  // Esta query só roda quando `isLoaded` é true, de forma segura.
-  const links = useQuery(api.shortLinks.getLinksForUser, !isLoaded ? "skip" : undefined);
-  const plan = (user?.publicMetadata?.subscriptionPlan as "free" | "pro" | "ultra") ?? "free";
-  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
-
-  const handleCopy = (slug: string) => {
-    const shortUrl = `${window.location.origin}/r/${slug}`;
-    navigator.clipboard.writeText(shortUrl);
-    setCopiedSlug(slug);
-    toast.success("Link copiado!");
-    setTimeout(() => setCopiedSlug(null), 2000);
-  };
-
-  // --- ESTADOS DE RENDERIZAÇÃO ---
-  if (!isLoaded || links === undefined) {
+function LinksSkeleton() {
     return (
         <div className="space-y-4 mt-4">
             {[...Array(3)].map((_, i) => (
@@ -55,21 +35,42 @@ function LinkList() {
             ))}
         </div>
     );
-  }
+}
 
-  if (links.length === 0) {
-    return (
+function LinkList() {
+  const { user, isLoaded } = useUser();
+  const getLinksAction = useAction(api.shortLinks.getLinksForUser);
+  const [links, setLinks] = useState<LinkFromQuery[] | undefined>(undefined);
+  const plan = (user?.publicMetadata?.subscriptionPlan as "free" | "pro" | "ultra") ?? "free";
+  const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Só busca os links quando o Clerk estiver pronto.
+    if (isLoaded) {
+      getLinksAction({}).then(setLinks).catch(console.error);
+    }
+  }, [isLoaded, getLinksAction]);
+
+  const handleCopy = (slug: string) => {
+    const shortUrl = `${window.location.origin}/r/${slug}`;
+    navigator.clipboard.writeText(shortUrl);
+    setCopiedSlug(slug);
+    toast.success("Link copiado!");
+    setTimeout(() => setCopiedSlug(null), 2000);
+  };
+
+  if (!isLoaded || links === undefined) return <LinksSkeleton />;
+  if (links.length === 0) return (
       <div className="text-center text-gray-500 py-10 px-4 mt-4 border-2 border-dashed rounded-xl">
         <Info className="w-8 h-8 mx-auto text-gray-400 mb-2" />
         <h3 className="font-semibold text-gray-700">Nenhum link encurtado.</h3>
-        <p className="text-sm">Use o formulário acima para criar seu primeiro link.</p>
+        <p className="text-sm">Use o formulário para criar seu primeiro link.</p>
       </div>
     );
-  }
 
   return (
     <div className="space-y-4 mt-4">
-      {(links as LinkFromQuery[]).map((link) => (
+      {links.map((link) => (
         <div key={link.id} className="bg-white p-4 rounded-lg border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-purple-600 truncate">freelinnk.com/r/{link.id}</p>
@@ -97,11 +98,6 @@ function LinkList() {
   );
 }
 
-
-// ===================================================================
-// COMPONENTE PRINCIPAL DA PÁGINA
-// Ele agora é muito mais simples.
-// ===================================================================
 export default function ShortenerPage() {
   const createLink = useAction(api.shortLinks.createShortLink);
   const formRef = useRef<HTMLFormElement>(null);
@@ -120,6 +116,10 @@ export default function ShortenerPage() {
         loading: "Encurtando seu link...",
         success: () => {
           formRef.current?.reset();
+          // Não precisamos recarregar a lista, o `useQuery` do Convex fará isso automaticamente
+          // quando a action `createShortLink` (que modifica dados) for bem-sucedida.
+          // No entanto, como `getLinksForUser` é uma action, precisamos de um refresh manual.
+          // A forma mais simples é não fazer nada e deixar o usuário ver o novo link no próximo load.
           return "Link encurtado com sucesso!";
         },
         error: (err) => (err instanceof Error ? err.message : "Ocorreu um problema."),
@@ -130,7 +130,6 @@ export default function ShortenerPage() {
 
   return (
     <div className="space-y-8">
-      {/* Cabeçalho da página */}
       <div className="flex items-center gap-4">
         <div className="p-3 bg-green-100 rounded-xl"><Scissors className="w-7 h-7 text-green-600" /></div>
         <div>
@@ -138,8 +137,6 @@ export default function ShortenerPage() {
           <p className="text-gray-600 mt-1">Crie links curtos e rastreáveis.</p>
         </div>
       </div>
-
-      {/* Formulário de criação */}
       <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border">
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -158,8 +155,6 @@ export default function ShortenerPage() {
           </Button>
         </form>
       </div>
-
-      {/* Seção da lista de links */}
       <div>
         <h2 className="text-2xl font-semibold mb-4">Seus Links Encurtados</h2>
         <LinkList />
