@@ -8,14 +8,16 @@ interface ShortLinkRedirectPageProps {
   params: { slug: string };
 }
 
-export default async function ShortLinkRedirectPage({ params }: ShortLinkRedirectPageProps) {
+export default async function ShortLinkRedirectPage({
+  params,
+}: ShortLinkRedirectPageProps) {
   const { slug } = params;
 
   if (!slug) {
     return notFound();
   }
 
-  // Aqui sim usamos await, pois headers() retorna Promise no seu caso
+  // headers() já retorna Headers, não precisa de await
   const headerList = await headers();
   const userAgent = headerList.get("user-agent") ?? undefined;
   const referrer = headerList.get("referer") ?? undefined;
@@ -23,12 +25,15 @@ export default async function ShortLinkRedirectPage({ params }: ShortLinkRedirec
   const visitorId = "anonymous_visitor";
 
   try {
-    const originalUrl = await fetchAction(api.shortLinks.getAndRegisterClick, {
-      slug,
-      visitorId,
-      userAgent,
-      referrer,
-    });
+    const originalUrl: string | null = await fetchAction(
+      api.shortLinks.getAndRegisterClick,
+      {
+        slug,
+        visitorId,
+        userAgent,
+        referrer,
+      }
+    );
 
     if (!originalUrl) {
       return notFound();
