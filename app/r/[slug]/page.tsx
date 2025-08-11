@@ -1,39 +1,46 @@
-// app/r/[slug]/page.tsx
-import { notFound, redirect } from "next/navigation";
-import { api } from "@/convex/_generated/api";
-import { fetchAction } from "convex/nextjs";
-import { headers } from "next/headers";
+// Em app/r/[slug]/page.tsx
+// (Substitua o arquivo inteiro por esta versão final)
 
+import { notFound, redirect } from 'next/navigation';
+import { api } from '@/convex/_generated/api';
+import { fetchAction } from 'convex/nextjs';
+import { headers } from 'next/headers';
+
+// =======================================================
+// CORREÇÃO DEFINITIVA: Voltando à tipagem de Promise
+// =======================================================
+// Damos ao build da Vercel exatamente o que ele está exigindo para esta rota.
 interface ShortLinkRedirectPageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
-export default async function ShortLinkRedirectPage({
-  params,
-}: ShortLinkRedirectPageProps) {
-  const { slug } = params;
+export default async function ShortLinkRedirectPage({ params }: ShortLinkRedirectPageProps) {
+
+  // =======================================================
+  // CORREÇÃO DEFINITIVA: Usando 'await'
+  // =======================================================
+  // Resolvemos a Promise para acessar a propriedade 'slug'.
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
 
   if (!slug) {
     return notFound();
   }
 
-  // headers() já retorna Headers, não precisa de await
+  // A lógica de `headers` e `fetchAction` já está correta.
   const headerList = await headers();
-  const userAgent = headerList.get("user-agent") ?? undefined;
-  const referrer = headerList.get("referer") ?? undefined;
+  const userAgent = headerList.get('user-agent') ?? undefined;
+  const referrer = headerList.get('referer') ?? undefined;
 
   const visitorId = "anonymous_visitor";
 
   try {
-    const originalUrl: string | null = await fetchAction(
-      api.shortLinks.getAndRegisterClick,
-      {
+    const originalUrl = await fetchAction(api.shortLinks.getAndRegisterClick, {
         slug,
         visitorId,
         userAgent,
         referrer,
-      }
-    );
+    });
 
     if (!originalUrl) {
       return notFound();
