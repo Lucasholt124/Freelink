@@ -1,5 +1,5 @@
 // Em convex/shortLinks.ts
-// (Substitua o arquivo inteiro por esta versão)
+// (Substitua o arquivo inteiro)
 
 import { action, query } from "./_generated/server";
 import { v } from "convex/values";
@@ -87,11 +87,16 @@ export const getLinksForUser = query({
         include: { _count: { select: { clicks: true } } }
       });
 
+      // =======================================================
+      // CORREÇÃO DEFINITIVA DE SERIALIZAÇÃO
+      // =======================================================
       return links.map((link) => ({
         id: link.id,
         url: link.url,
         title: link.title,
         clicks: link._count.clicks,
+        // Converte o objeto Date para um número (timestamp)
+        createdAt: link.createdAt.getTime(),
       }));
     } catch {
         console.error("Erro ao buscar links para o usuário.");
@@ -102,9 +107,7 @@ export const getLinksForUser = query({
   },
 });
 
-// =======================================================
-// A QUERY QUE ESTAVA FALTANDO - ADICIONADA AQUI
-// =======================================================
+// --- QUERY para buscar os detalhes dos cliques de um link ---
 export const getClicksForLink = query({
     args: { shortLinkId: v.string() },
     handler: async (ctx, args) => {
@@ -112,11 +115,9 @@ export const getClicksForLink = query({
         if (!identity) throw new Error("Não autenticado.");
 
         try {
-            // Segurança: Garante que o link pertence ao usuário que está pedindo
             const link = await prisma.link.findFirst({
                 where: { id: args.shortLinkId, userId: identity.subject },
             });
-
             if (!link) throw new Error("Acesso negado ou link não encontrado.");
 
             const clicks = await prisma.click.findMany({
@@ -124,7 +125,13 @@ export const getClicksForLink = query({
                 orderBy: { timestamp: "desc" },
             });
 
-            return { link, clicks };
+            // CORREÇÃO DE SERIALIZAÇÃO TAMBÉM APLICADA AQUI
+            const serializableClicks = clicks.map(click => ({
+                ...click,
+                timestamp: click.timestamp.getTime(),
+            }));
+
+            return { link, clicks: serializableClicks };
         } catch {
             console.error("Erro ao buscar cliques do link");
             return null;
