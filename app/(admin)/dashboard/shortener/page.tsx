@@ -1,4 +1,3 @@
-// app/dashboard/shortener/page.tsx
 "use client";
 
 import { useState, useRef } from "react";
@@ -7,27 +6,17 @@ import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import Link from "next/link";
 import {
-  Link as LinkIcon,
-  Scissors,
-  Copy,
-  Check,
-  Info,
-  Loader2,
-  BarChart2,
-  Lock,
+  Link as LinkIcon, Scissors, Copy, Check, Info, Loader2, BarChart2, Lock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUser } from "@clerk/nextjs";
 
-// --- Tipagem para os dados que vêm da query `getLinksForUser` ---
 type LinkFromQuery = {
   id: string;
   url: string;
   clicks: number;
-  createdAt?: Date;
-  title?: string;
 };
 
 function LinkList() {
@@ -45,44 +34,39 @@ function LinkList() {
   };
 
   if (links === undefined) return <div className="text-center py-10">Carregando...</div>;
-  if (links.length === 0)
-    return (
+  if (links.length === 0) return (
       <div className="text-center text-gray-500 py-10 px-4 border-2 border-dashed rounded-xl">
         <Info className="w-8 h-8 mx-auto text-gray-400 mb-2" />
         <h3 className="font-semibold text-gray-700">Nenhum link encurtado.</h3>
-        <p className="text-sm">Use o formulário acima para criar seu primeiro link.</p>
+        <p className="text-sm">Use o formulário para criar seu primeiro link.</p>
       </div>
     );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-10 pb-10">
       {links.map((link) => (
-        <div
-          key={link.id}
-          className="bg-white p-4 rounded-lg border flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4"
-        >
+        <div key={link.id} className="bg-white p-4 rounded-lg border flex flex-col sm:flex-row ...">
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-purple-600 truncate">freelinnk.com/r/{link.id}</p>
             <p className="text-sm text-gray-500 truncate mt-1">{link.url}</p>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end">
             {plan === "ultra" ? (
+              // =======================================================
+              // CORREÇÃO APLICADA AQUI: Removido o <a> aninhado
+              // =======================================================
               <Button asChild variant="outline" size="icon" className="h-9 w-9">
                 <Link href={`/dashboard/shortener/${link.id}`}>
-                  <a className="inline-flex items-center justify-center"><BarChart2 className="w-4 h-4 text-purple-600" /></a>
+                  <BarChart2 className="w-4 h-4 text-purple-600" />
                 </Link>
               </Button>
             ) : (
               <div className="relative group">
-                <Button variant="outline" size="icon" className="h-9 w-9" disabled>
-                  <Lock className="w-4 h-4" />
-                </Button>
-                <span className="absolute bottom-full mb-2 -translate-x-1/2 left-1/2 w-max px-2 py-1 text-xs bg-gray-800 text-white rounded-md opacity-0 group-hover:opacity-100">
-                  Ver Cliques (Plano Ultra)
-                </span>
+                <Button variant="outline" size="icon" className="h-9 w-9" disabled><Lock className="w-4 h-4" /></Button>
+                <span className="absolute ...">Ver Cliques (Plano Ultra)</span>
               </div>
             )}
-            <span className="text-sm font-medium text-gray-700 bg-gray-100 px-3 py-1 rounded-full">{link.clicks} cliques</span>
+            <span className="text-sm ...">{link.clicks} cliques</span>
             <Button variant="outline" size="icon" className="h-9 w-9" onClick={() => handleCopy(link.id)}>
               {copiedSlug === link.id ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
             </Button>
@@ -95,33 +79,26 @@ function LinkList() {
 
 export default function ShortenerPage() {
   const createLink = useAction(api.shortLinks.createShortLink);
-  const formRef = useRef<HTMLFormElement | null>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-  event.preventDefault();
-  const formData = new FormData(event.currentTarget);
-  const originalUrl = formData.get("originalUrl") as string;
-  const customSlug = (formData.get("customSlug") as string) || undefined;
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const originalUrl = formData.get("originalUrl") as string;
+    const customSlug = (formData.get("customSlug") as string) || undefined;
 
-  setIsLoading(true);
-  createLink({ originalUrl, customSlug })
-    .then(() => {
-      formRef.current?.reset();
-      toast.success("Link encurtado com sucesso!");
-    })
-    .catch((err: unknown) => {
-      // Aqui explicitamente informamos que err é unknown
-      if (err instanceof Error) {
-        toast.error(err.message);
-      } else {
-        toast.error("Ocorreu um problema.");
+    setIsLoading(true);
+    toast.promise(
+      createLink({ originalUrl, customSlug }),
+      {
+        loading: "Encurtando seu link...",
+        success: () => { formRef.current?.reset(); return "Link encurtado com sucesso!"; },
+        error: (err) => (err instanceof Error ? err.message : "Ocorreu um problema."),
+        finally: () => setIsLoading(false),
       }
-    })
-    .finally(() => {
-      setIsLoading(false);
-    });
-};
+    );
+  };
 
   return (
     <div className="space-y-10 pb-10">
