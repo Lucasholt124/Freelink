@@ -1,4 +1,4 @@
-// Em convex/connections.ts
+// Em /convex/connections.ts
 // (Substitua o arquivo inteiro)
 
 import { action, internalMutation, query } from "./_generated/server";
@@ -76,7 +76,7 @@ export const exchangeCodeForToken = action({
     }
 
     // Etapa 2: Trocar por token de longa duração
-    const longTokenUrl = `https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${tokenData.access_token}`;
+    const longTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${tokenData.access_token}`;
     const longTokenResponse = await fetch(longTokenUrl);
     const longTokenData = await longTokenResponse.json();
     if (!longTokenResponse.ok || !longTokenData.access_token) {

@@ -1,3 +1,5 @@
+// Em /app/api/connect/instagram/callback/route.ts
+// (Substitua o arquivo inteiro)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getBaseUrl } from '@/lib/utils';
@@ -13,12 +15,11 @@ export async function GET(req: NextRequest) {
     const errorRedirectUrl = new URL('/dashboard/settings?status=error', baseUrl);
 
     if (!code) {
-        console.error("Callback não retornou um código.");
+        console.error("Callback do Instagram não retornou um código.");
         return NextResponse.redirect(errorRedirectUrl);
     }
 
     try {
-        // CORREÇÃO: A action agora está em `api.connections`
         await fetchAction(api.connections.exchangeCodeForToken, {
             code,
             redirectUri: process.env.INSTAGRAM_REDIRECT_URI!,

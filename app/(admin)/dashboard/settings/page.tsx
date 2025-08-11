@@ -1,17 +1,13 @@
 // Em app/dashboard/settings/page.tsx
 // (Substitua o arquivo inteiro)
 
-// Não precisamos mais de `currentUser` ou `fetchQuery` aqui.
-// import { currentUser } from "@clerk/nextjs/server";
-// import { fetchQuery } from "convex/nextjs";
-// import { api } from "@/convex/_generated/api";
+"use client";
 
 import UsernameForm from "@/components/UsernameForm";
 import CustomizationForm from "@/components/CustomizationForm";
 import { InstagramConnection } from "@/components/InstagramConnection";
 
 export default function SettingsPage() {
-  // A página agora é um Server Component simples, sem busca de dados.
   return (
     <div className="max-w-5xl mx-auto space-y-12">
       <div>
@@ -21,7 +17,6 @@ export default function SettingsPage() {
         </p>
       </div>
 
-      {/* --- Seção de Conexões de API --- */}
       <section className="flex flex-col lg:flex-row gap-8 lg:gap-12">
         <aside className="lg:w-1/3">
           <h2 className="text-xl font-semibold text-gray-800">Conexões de Apps</h2>
@@ -30,14 +25,12 @@ export default function SettingsPage() {
           </p>
         </aside>
         <div className="flex-1 bg-white p-6 rounded-2xl border shadow-lg">
-          {/* O componente agora é independente e busca seus próprios dados */}
           <InstagramConnection />
         </div>
       </section>
 
       <div className="w-full h-px bg-gray-200/80"></div>
 
-      {/* --- Seção de URL Personalizada --- */}
       <section className="flex flex-col lg:flex-row gap-8 lg:gap-12">
         <aside className="lg:w-1/3">
           <h2 className="text-xl font-semibold text-gray-800">URL Personalizada</h2>
@@ -52,7 +45,6 @@ export default function SettingsPage() {
 
       <div className="w-full h-px bg-gray-200/80"></div>
 
-      {/* --- Seção de Aparência da Página --- */}
       <section className="flex flex-col lg:flex-row gap-8 lg:gap-12">
         <aside className="lg:w-1/3">
           <h2 className="text-xl font-semibold text-gray-800">Aparência da Página</h2>

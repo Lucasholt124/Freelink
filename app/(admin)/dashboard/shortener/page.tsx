@@ -1,5 +1,5 @@
 // Em app/dashboard/shortener/page.tsx
-// (Substitua o arquivo inteiro por esta versão)
+// (Substitua o arquivo inteiro)
 
 "use client";
 
@@ -44,10 +44,7 @@ function LinksSkeleton() {
 
 function LinkList() {
   const { user, isLoaded } = useUser();
-
-  // A query só é executada QUANDO `isLoaded` for `true`, evitando inconsistências.
   const links = useQuery(api.shortLinks.getLinksForUser, !isLoaded ? "skip" : undefined) as LinkFromQuery[] | undefined;
-
   const plan = (user?.publicMetadata?.subscriptionPlan as "free" | "pro" | "ultra") ?? "free";
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
@@ -59,20 +56,14 @@ function LinkList() {
     setTimeout(() => setCopiedSlug(null), 2000);
   };
 
-  // Mostra o esqueleto enquanto o Clerk OU o Convex estão carregando.
-  if (!isLoaded || links === undefined) {
-    return <LinksSkeleton />;
-  }
-
-  if (links.length === 0) {
-    return (
+  if (!isLoaded || links === undefined) return <LinksSkeleton />;
+  if (links.length === 0) return (
       <div className="text-center text-gray-500 py-10 px-4 border-2 border-dashed rounded-xl">
         <Info className="w-8 h-8 mx-auto text-gray-400 mb-2" />
         <h3 className="font-semibold text-gray-700">Nenhum link encurtado.</h3>
         <p className="text-sm">Use o formulário para criar seu primeiro link.</p>
       </div>
     );
-  }
 
   return (
     <div className="space-y-4">
@@ -107,14 +98,12 @@ function LinkList() {
 }
 
 export default function ShortenerPage() {
+  const [isClient, setIsClient] = useState(false);
+  useEffect(() => { setIsClient(true); }, []);
+
   const createLink = useAction(api.shortLinks.createShortLink);
   const formRef = useRef<HTMLFormElement>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [isClient, setIsClient] = useState(false);
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -169,7 +158,6 @@ export default function ShortenerPage() {
 
       <div>
         <h2 className="text-xl sm:text-2xl font-semibold mb-4">Seus Links Encurtados</h2>
-        {/* A lista só renderiza no cliente para evitar erros de hidratação */}
         {isClient ? <LinkList /> : <LinksSkeleton />}
       </div>
     </div>
