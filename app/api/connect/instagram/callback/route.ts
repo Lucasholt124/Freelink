@@ -1,5 +1,5 @@
 // Em app/api/connect/instagram/callback/route.ts
-// (Substitua o arquivo inteiro)
+// (Substitua o arquivo inteiro por esta versão)
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getBaseUrl } from '@/lib/utils';
@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
     }
 
     try {
+        // --- ETAPA 1: Trocar o 'code' por um access_token de curta duração ---
         const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${redirectUri}&code=${code}`;
         const tokenResponse = await fetch(tokenUrl);
         const tokenData = await tokenResponse.json();
@@ -36,9 +37,28 @@ export async function GET(req: NextRequest) {
         if (!tokenResponse.ok || !tokenData.access_token) {
             throw new Error(tokenData.error?.message || 'Falha ao obter o token de acesso de curta duração.');
         }
+        const shortLivedToken = tokenData.access_token;
 
-        const longTokenUrl = `https://graph.facebook.com/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${tokenData.access_token}`;
-        const longTokenResponse = await fetch(longTokenUrl);
+        // =======================================================
+        // CORREÇÃO DEFINITIVA: Usando POST para a troca de token
+        // =======================================================
+        // --- ETAPA 2: Trocar o token de curta duração por um de longa duração ---
+        const longTokenUrl = 'https://graph.facebook.com/v19.0/oauth/access_token';
+        const params = new URLSearchParams({
+            grant_type: 'fb_exchange_token',
+            client_id: clientId,
+            client_secret: clientSecret,
+            fb_exchange_token: shortLivedToken
+        });
+
+        const longTokenResponse = await fetch(longTokenUrl, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: params
+        });
+
         const longTokenData = await longTokenResponse.json();
 
         if (!longTokenResponse.ok || !longTokenData.access_token) {
@@ -47,6 +67,7 @@ export async function GET(req: NextRequest) {
         const accessToken = longTokenData.access_token;
         const tokenExpiresIn = longTokenData.expires_in; // Tempo em segundos
 
+        // --- ETAPA 3: Usar o token para buscar o ID do usuário no Instagram ---
         const userInfoUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${accessToken}`;
         const userInfoResponse = await fetch(userInfoUrl);
         const userInfo = await userInfoResponse.json();
@@ -55,10 +76,7 @@ export async function GET(req: NextRequest) {
             throw new Error(userInfo.error?.message || 'Falha ao buscar informações do usuário no Instagram.');
         }
 
-        // =======================================================
-        // CORREÇÃO APLICADA AQUI
-        // =======================================================
-        // O nome do campo foi corrigido de `tokenExpiresIn` para `tokenExpiresAt`.
+        // --- ETAPA 4: Salvar a conexão no Convex ---
         await fetchMutation(api.connections.createOrUpdate, {
             provider: 'instagram',
             providerAccountId: userInfo.id,
@@ -66,6 +84,7 @@ export async function GET(req: NextRequest) {
             tokenExpiresAt: Date.now() + (tokenExpiresIn * 1000), // Converte para timestamp em milissegundos
         });
 
+        // --- ETAPA 5: Redirecionar para o dashboard com sucesso ---
         const successRedirectUrl = new URL('/dashboard/settings?status=connected', baseUrl);
         return NextResponse.redirect(successRedirectUrl);
 
