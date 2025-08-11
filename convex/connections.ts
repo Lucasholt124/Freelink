@@ -40,7 +40,7 @@ export const createOrUpdateInternal = internalMutation({
   },
 });
 
-// --- QUERY (Pública, chamada pelo frontend) ---
+// --- QUERY (Pública, chamada pelo frontend para ver o status) ---
 export const get = query({
   args: { provider: v.string() },
   handler: async (ctx, args) => {
@@ -53,7 +53,7 @@ export const get = query({
   },
 });
 
-// --- ACTION (Pública, chamada pela API do Next.js) ---
+// --- ACTION (Pública, chamada pela API de callback do Next.js) ---
 export const exchangeCodeForToken = action({
   args: {
     code: v.string(),
@@ -67,7 +67,6 @@ export const exchangeCodeForToken = action({
     const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
     if (!clientId || !clientSecret) throw new Error("Variáveis de ambiente do Instagram não configuradas no Convex.");
 
-    // Etapa 1: Trocar code por token de curta duração
     const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${args.redirectUri}&code=${args.code}`;
     const tokenResponse = await fetch(tokenUrl);
     const tokenData = await tokenResponse.json();
@@ -75,7 +74,6 @@ export const exchangeCodeForToken = action({
         throw new Error(tokenData.error?.message || 'Falha ao obter token de curta duração.');
     }
 
-    // Etapa 2: Trocar por token de longa duração
     const longTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${tokenData.access_token}`;
     const longTokenResponse = await fetch(longTokenUrl);
     const longTokenData = await longTokenResponse.json();
@@ -83,7 +81,6 @@ export const exchangeCodeForToken = action({
         throw new Error(longTokenData.error?.message || 'Falha ao obter token de longa duração.');
     }
 
-    // Etapa 3: Obter informações do usuário
     const userInfoUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longTokenData.access_token}`;
     const userInfoResponse = await fetch(userInfoUrl);
     const userInfo = await userInfoResponse.json();
@@ -91,7 +88,6 @@ export const exchangeCodeForToken = action({
         throw new Error(userInfo.error?.message || 'Falha ao buscar informações do usuário.');
     }
 
-    // Etapa 4: Salvar no DB via mutation interna
     await ctx.runMutation(internal.connections.createOrUpdateInternal, {
         userId: identity.subject,
         provider: 'instagram',

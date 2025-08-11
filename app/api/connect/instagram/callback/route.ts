@@ -1,34 +1,21 @@
-// Em /app/api/connect/instagram/callback/route.ts
-// (Substitua o arquivo inteiro)
-
 import { NextRequest, NextResponse } from 'next/server';
 import { getBaseUrl } from '@/lib/utils';
 import { fetchAction } from 'convex/nextjs';
 import { api } from '@/convex/_generated/api';
-
 export const runtime = 'nodejs';
-
 export async function GET(req: NextRequest) {
-    const { searchParams } = new URL(req.url);
-    const code = searchParams.get('code');
+    const code = new URL(req.url).searchParams.get('code');
     const baseUrl = getBaseUrl();
     const errorRedirectUrl = new URL('/dashboard/settings?status=error', baseUrl);
-
-    if (!code) {
-        console.error("Callback do Instagram não retornou um código.");
-        return NextResponse.redirect(errorRedirectUrl);
-    }
-
+    if (!code) return NextResponse.redirect(errorRedirectUrl);
     try {
         await fetchAction(api.connections.exchangeCodeForToken, {
             code,
             redirectUri: process.env.INSTAGRAM_REDIRECT_URI!,
         });
-
-        const successRedirectUrl = new URL('/dashboard/settings?status=connected', baseUrl);
-        return NextResponse.redirect(successRedirectUrl);
+        return NextResponse.redirect(new URL('/dashboard/settings?status=connected', baseUrl));
     } catch (error) {
-        console.error("Erro ao chamar a action do Convex para troca de token:", error);
+        console.error("Erro ao chamar a action do Convex:", error);
         return NextResponse.redirect(errorRedirectUrl);
     }
 }

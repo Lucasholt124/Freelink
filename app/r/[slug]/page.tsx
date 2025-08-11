@@ -1,45 +1,33 @@
-// Em app/r/[slug]/page.tsx
-// (Substitua o arquivo inteiro por esta versão final)
+// app/r/[slug]/page.tsx
+import { notFound, redirect } from "next/navigation";
+import { api } from "@/convex/_generated/api";
+import { fetchAction } from "convex/nextjs";
+import { headers } from "next/headers";
 
-import { notFound, redirect } from 'next/navigation';
-import { api } from '@/convex/_generated/api';
-import { fetchAction } from 'convex/nextjs';
-import { headers } from 'next/headers';
-
-// =======================================================
-// CORREÇÃO DEFINITIVA: Voltando à tipagem de Promise
-// =======================================================
-// Damos ao build da Vercel exatamente o que ele está exigindo para esta rota.
 interface ShortLinkRedirectPageProps {
-  params: Promise<{ slug: string }>;
+  params: { slug: string };
 }
 
 export default async function ShortLinkRedirectPage({ params }: ShortLinkRedirectPageProps) {
-
-  // =======================================================
-  // CORREÇÃO DEFINITIVA: Usando 'await'
-  // =======================================================
-  // Resolvemos a Promise para acessar a propriedade 'slug'.
-  const resolvedParams = await params;
-  const { slug } = resolvedParams;
+  const { slug } = params;
 
   if (!slug) {
     return notFound();
   }
 
-  // A lógica de `headers` e `fetchAction` já está correta.
+  // Aqui sim usamos await, pois headers() retorna Promise no seu caso
   const headerList = await headers();
-  const userAgent = headerList.get('user-agent') ?? undefined;
-  const referrer = headerList.get('referer') ?? undefined;
+  const userAgent = headerList.get("user-agent") ?? undefined;
+  const referrer = headerList.get("referer") ?? undefined;
 
   const visitorId = "anonymous_visitor";
 
   try {
     const originalUrl = await fetchAction(api.shortLinks.getAndRegisterClick, {
-        slug,
-        visitorId,
-        userAgent,
-        referrer,
+      slug,
+      visitorId,
+      userAgent,
+      referrer,
     });
 
     if (!originalUrl) {
