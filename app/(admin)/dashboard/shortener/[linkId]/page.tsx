@@ -1,5 +1,5 @@
 // Em app/dashboard/shortener/[linkId]/page.tsx
-// (Substitua o arquivo inteiro por esta versão final)
+// (Substitua o arquivo inteiro por esta versão)
 
 import { notFound } from "next/navigation";
 import { currentUser } from "@clerk/nextjs/server";
@@ -12,7 +12,7 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, BarChart2, Clock, Globe } from "lucide-react";
 
-// Tipagem correta e definitiva, derivada do backend
+// Tipagem derivada do backend para segurança máxima
 type QueryOutput = FunctionReturnType<typeof api.shortLinks.getClicksForLink>;
 type LinkData = NonNullable<QueryOutput>['link'];
 type ClickData = NonNullable<QueryOutput>['clicks'][number];
@@ -40,7 +40,6 @@ function ClicksList({ clicks }: { clicks: ClickData[] }) {
                     </div>
                     <div className="flex items-center gap-2 text-xs text-gray-500">
                         <Clock className="w-3 h-3" />
-                        {/* O Prisma retorna o timestamp como um objeto Date, então podemos formatá-lo diretamente */}
                         <span>{new Date(click.timestamp).toLocaleString('pt-BR')}</span>
                     </div>
                 </div>
@@ -49,16 +48,28 @@ function ClicksList({ clicks }: { clicks: ClickData[] }) {
     );
 }
 
-export default async function ShortLinkDetailsPage({ params }: { params: { linkId: string } }) {
+// =======================================================
+// CORREÇÃO APLICADA AQUI: Tipagem da página
+// =======================================================
+interface ShortLinkDetailsPageProps {
+  params: Promise<{ linkId: string }>;
+}
+
+export default async function ShortLinkDetailsPage({ params }: ShortLinkDetailsPageProps) {
     const user = await currentUser();
     if (!user) return notFound();
+
+    // Resolvemos a Promise ANTES de acessar 'linkId'.
+    const resolvedParams = await params;
+    const { linkId } = resolvedParams;
 
     const subscription = await getUserSubscriptionPlan(user.id);
     if (subscription.plan !== 'ultra') {
         return notFound();
     }
 
-    const data = await fetchQuery(api.shortLinks.getClicksForLink, { shortLinkId: params.linkId });
+    // Passamos o `linkId` resolvido para a query.
+    const data = await fetchQuery(api.shortLinks.getClicksForLink, { shortLinkId: linkId });
 
     if (!data || !data.link) {
         return notFound();
@@ -75,12 +86,6 @@ export default async function ShortLinkDetailsPage({ params }: { params: { linkI
                 </Button>
             </div>
 
-            {/*
-              =======================================================
-              CORREÇÃO APLICADA AQUI: O JSX do cabeçalho foi preenchido
-              =======================================================
-              Agora estamos usando a variável `link` para exibir o slug e a URL.
-            */}
             <div className="flex flex-col sm:flex-row gap-4 justify-between items-start">
                 <div className="flex items-center gap-4 min-w-0">
                     <div className="p-3 bg-purple-100 rounded-xl">
