@@ -1,5 +1,5 @@
 // Em convex/shortLinks.ts
-// (Substitua o arquivo inteiro por esta versão)
+// (Substitua o arquivo inteiro)
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";

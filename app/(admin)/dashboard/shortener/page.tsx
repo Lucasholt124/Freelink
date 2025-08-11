@@ -45,7 +45,6 @@ function LinkList() {
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
   useEffect(() => {
-    // Só busca os links quando o Clerk estiver pronto.
     if (isLoaded) {
       getLinksAction({}).then(setLinks).catch(console.error);
     }
@@ -116,10 +115,8 @@ export default function ShortenerPage() {
         loading: "Encurtando seu link...",
         success: () => {
           formRef.current?.reset();
-          // Não precisamos recarregar a lista, o `useQuery` do Convex fará isso automaticamente
-          // quando a action `createShortLink` (que modifica dados) for bem-sucedida.
-          // No entanto, como `getLinksForUser` é uma action, precisamos de um refresh manual.
-          // A forma mais simples é não fazer nada e deixar o usuário ver o novo link no próximo load.
+          // Idealmente, você precisaria de uma forma de "refrescar" a lista de links aqui.
+          // Por enquanto, o usuário precisará recarregar a página para ver o novo link.
           return "Link encurtado com sucesso!";
         },
         error: (err) => (err instanceof Error ? err.message : "Ocorreu um problema."),
