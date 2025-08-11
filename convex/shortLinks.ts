@@ -87,16 +87,12 @@ export const getLinksForUser = query({
         include: { _count: { select: { clicks: true } } }
       });
 
-      // =======================================================
-      // CORREÇÃO DEFINITIVA DE SERIALIZAÇÃO
-      // =======================================================
       return links.map((link) => ({
         id: link.id,
         url: link.url,
         title: link.title,
         clicks: link._count.clicks,
-        // Converte o objeto Date para um número (timestamp)
-        createdAt: link.createdAt.getTime(),
+        createdAt: link.createdAt.getTime(), // Envia como número (timestamp)
       }));
     } catch {
         console.error("Erro ao buscar links para o usuário.");
@@ -125,10 +121,9 @@ export const getClicksForLink = query({
                 orderBy: { timestamp: "desc" },
             });
 
-            // CORREÇÃO DE SERIALIZAÇÃO TAMBÉM APLICADA AQUI
             const serializableClicks = clicks.map(click => ({
                 ...click,
-                timestamp: click.timestamp.getTime(),
+                timestamp: click.timestamp.getTime(), // Envia como número
             }));
 
             return { link, clicks: serializableClicks };

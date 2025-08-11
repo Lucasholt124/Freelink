@@ -1,5 +1,5 @@
-// Em app/dashboard/shortener/page.tsx
-// (Substitua o arquivo inteiro por esta versão)
+// Em /app/dashboard/shortener/page.tsx
+// (Substitua o arquivo inteiro)
 
 "use client";
 
@@ -18,11 +18,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUser } from "@clerk/nextjs";
 
-// Este tipo é apenas para o frontend, simples e direto.
+// O tipo agora espera `createdAt` como um número (timestamp).
 type LinkFromQuery = {
   id: string;
   url: string;
   clicks: number;
+  createdAt?: number;
+  title?: string | null;
 };
 
 function LinksSkeleton() {
@@ -30,15 +32,21 @@ function LinksSkeleton() {
         <div className="space-y-4">
             {[...Array(3)].map((_, i) => (
                 <div key={i} className="bg-white p-4 rounded-lg border flex items-center gap-4 animate-pulse">
-                    <div className="flex-1 space-y-2"><div className="h-4 bg-gray-200 rounded w-3/4"></div><div className="h-3 bg-gray-200 rounded w-1/2"></div></div>
-                    <div className="flex items-center gap-2"><div className="h-8 w-20 bg-gray-200 rounded-full"></div><div className="h-9 w-9 bg-gray-200 rounded-md"></div><div className="h-9 w-9 bg-gray-200 rounded-md"></div></div>
+                    <div className="flex-1 space-y-2">
+                        <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                        <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <div className="h-8 w-20 bg-gray-200 rounded-full"></div>
+                        <div className="h-9 w-9 bg-gray-200 rounded-md"></div>
+                        <div className="h-9 w-9 bg-gray-200 rounded-md"></div>
+                    </div>
                 </div>
             ))}
         </div>
     );
 }
 
-// Este componente agora é importado dinamicamente
 function LinkList() {
   const { user, isLoaded } = useUser();
   const links = useQuery(api.shortLinks.getLinksForUser, !isLoaded ? "skip" : undefined) as LinkFromQuery[] | undefined;
@@ -92,16 +100,10 @@ function LinkList() {
   );
 }
 
-// =======================================================
-// A SOLUÇÃO DEFINITIVA
-// =======================================================
-// Criamos uma "casca" para a LinkList que é importada dinamicamente.
-// `ssr: false` é a instrução mais importante aqui.
 const DynamicLinkList = dynamic(() => Promise.resolve(LinkList as ComponentType), {
   ssr: false,
   loading: () => <LinksSkeleton />,
 });
-
 
 export default function ShortenerPage() {
   const createLink = useAction(api.shortLinks.createShortLink);
@@ -135,7 +137,6 @@ export default function ShortenerPage() {
           <p className="text-gray-600 mt-1 text-sm sm:text-base">Crie links curtos e rastreáveis.</p>
         </div>
       </div>
-
       <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border">
         <form ref={formRef} onSubmit={handleSubmit} className="flex flex-col md:grid md:grid-cols-[2fr_1fr] gap-4 items-end">
           <div className="w-full">
@@ -146,19 +147,16 @@ export default function ShortenerPage() {
             {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <><LinkIcon className="w-4 h-4 mr-2" /> Encurtar Link</>}
           </Button>
         </form>
-
         <div className="mt-4">
           <Label htmlFor="customSlug" className="font-semibold text-sm">Apelido Personalizado (Opcional)</Label>
           <div className="flex flex-col sm:flex-row sm:items-center mt-1">
-            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-3 rounded-t-md sm:rounded-l-md sm:rounded-tr-none border">freelinnk.com/r/</span>
+            <span className="text-sm text-gray-500 bg-gray-100 px-3 py-3 rounded-t-md sm:rounded-l-md sm:rounded-tr-none border border-gray-300 border-b-0 sm:border-b sm:border-r-0">freelinnk.com/r/</span>
             <Input id="customSlug" name="customSlug" placeholder="minha-promo" className="rounded-t-none sm:rounded-l-none sm:rounded-r-md" disabled={isLoading} />
           </div>
         </div>
       </div>
-
       <div>
         <h2 className="text-xl sm:text-2xl font-semibold mb-4">Seus Links Encurtados</h2>
-        {/* Usamos o componente dinâmico aqui */}
         <DynamicLinkList />
       </div>
     </div>
