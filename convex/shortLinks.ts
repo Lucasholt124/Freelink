@@ -1,17 +1,16 @@
 // Em convex/shortLinks.ts
-// (Substitua o arquivo inteiro por esta versão)
+// (Substitua o arquivo inteiro)
 
 import { action, query } from "./_generated/server";
 import { v } from "convex/values";
 import { Prisma, PrismaClient } from '@prisma/client';
-
 
 // Prisma Client
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DATABASE_URL } },
 });
 
-// --- ACTION para criar link ---
+// --- ACTION para criar link no Prisma ---
 export const createShortLink = action({
   args: {
     originalUrl: v.string(),
@@ -32,12 +31,11 @@ export const createShortLink = action({
           id: args.customSlug,
           url: args.originalUrl,
           userId: identity.subject,
-          title: "Link Encurtado",
+          title: "Link Encurtado", // Título padrão
         },
       });
       return newLink;
     } catch (error) {
-        // CORREÇÃO: Removido o console.error para não poluir os logs, o throw já é suficiente.
         throw new Error(error instanceof Error ? error.message : "Falha ao criar link.");
     } finally {
         await prisma.$disconnect();
@@ -45,7 +43,7 @@ export const createShortLink = action({
   },
 });
 
-// --- ACTION para registrar clique ---
+// --- ACTION para registrar clique no Prisma ---
 export const getAndRegisterClick = action({
   args: {
     slug: v.string(),
@@ -70,7 +68,6 @@ export const getAndRegisterClick = action({
       });
       return result;
     } catch (error) {
-        // CORREÇÃO: Apenas console.error, sem o throw, para não quebrar o redirecionamento
         console.error("Erro na action getAndRegisterClick:", error);
         return null;
     } finally {
@@ -79,7 +76,7 @@ export const getAndRegisterClick = action({
   },
 });
 
-// --- QUERY para buscar os links do usuário ---
+// --- QUERY para buscar links do usuário DO PRISMA ---
 export const getLinksForUser = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -92,16 +89,11 @@ export const getLinksForUser = query({
         include: { _count: { select: { clicks: true } } }
       });
 
-      return links.map((link: {
-  id: string;
-  url: string;
-  title: string | null;
-  _count: { clicks: number };
-}) => ({
+      return links.map((link) => ({
         id: link.id,
         url: link.url,
         title: link.title,
-        clicks: link._count.clicks
+        clicks: link._count.clicks,
       }));
     } catch (error) {
         console.error("Erro ao buscar links para o usuário:", error);
@@ -110,34 +102,4 @@ export const getLinksForUser = query({
         await prisma.$disconnect();
     }
   },
-});
-
-// --- QUERY para buscar os detalhes dos cliques de um link ---
-export const getClicksForLink = query({
-    args: { shortLinkId: v.string() },
-    handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Não autenticado.");
-
-        try {
-            const link = await prisma.link.findFirst({
-                where: { id: args.shortLinkId, userId: identity.subject },
-            });
-
-            if (!link) throw new Error("Acesso negado ou link não encontrado.");
-
-            const clicks = await prisma.click.findMany({
-                where: { linkId: args.shortLinkId },
-                orderBy: { timestamp: "desc" },
-            });
-
-            // Retornamos os dados brutos. O frontend vai tipá-los.
-            return { link, clicks };
-        } catch (error) {
-            console.error("Erro ao buscar cliques do link:", error);
-            return null;
-        } finally {
-            await prisma.$disconnect();
-        }
-    },
 });

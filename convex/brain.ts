@@ -1,47 +1,59 @@
 // Em convex/brain.ts
-// (Esta versão está correta)
+// (Substitua o arquivo inteiro)
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import OpenAI from 'openai';
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+// =======================================================
+// CORREÇÃO: Usando a API da Groq
+// =======================================================
 
-// O frontend vai chamar esta action diretamente.
+// A biblioteca da OpenAI funciona com a Groq, só precisamos mudar a URL base.
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY, // <-- Usando a nova chave
+  baseURL: 'https://api.groq.com/openai/v1', // <-- Apontando para os servidores da Groq
+});
+
 export const generateContentIdeas = action({
   args: { theme: v.string() },
-  handler: async (ctx, args) => { // <-- CORREÇÃO: Adicionado 'args' aqui
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autenticado.");
 
-    // Verificação de plano...
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error("Chave da API da Groq não configurada no ambiente Convex.");
+    }
 
     const prompt = `
       Você é o "Mago Viral", um especialista em marketing de conteúdo para o Instagram no Brasil...
-      Tema: "${args.theme}" // <-- Agora 'args.theme' existe
-
+      Tema: "${args.theme}"
       Sua resposta DEVE ser um único objeto JSON válido com as chaves: "viral_titles" e "reel_scripts".
       1.  viral_titles: (array de 4 strings)...
       2.  reel_scripts: (array de 2 objetos)...
     `;
 
-    if (!process.env.OPENAI_API_KEY) {
-      throw new Error("Chave da API da OpenAI não configurada.");
-    }
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o", // Modelo corrigido para um existente
-      response_format: { type: "json_object" },
-      messages: [{ role: "system", content: "..." }, { role: "user", content: prompt }],
+    const response = await groq.chat.completions.create({
+      // Usamos um modelo disponível na Groq. Llama3 é excelente.
+      model: 'llama3-8b-8192',
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: 'Você é um assistente de marketing que retorna respostas apenas no formato JSON solicitado.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.9,
     });
 
     const resultText = response.choices[0]?.message?.content;
+    if (!resultText) {
+        throw new Error("A IA não retornou um resultado válido.");
+    }
 
-    if (!resultText) throw new Error("A IA não retornou um resultado válido.");
     try {
-      return JSON.parse(resultText);
+        return JSON.parse(resultText);
     } catch {
-      throw new Error("A IA retornou uma resposta em um formato inválido.");
+        console.error("Erro ao fazer parse do JSON da IA:", resultText);
+        throw new Error("A IA retornou uma resposta em um formato inválido.");
     }
   },
 });

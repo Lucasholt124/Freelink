@@ -7,12 +7,18 @@ import { fetchQuery } from 'convex/nextjs';
 import { api } from '@/convex/_generated/api';
 import OpenAI from 'openai';
 
-// Força a rota a rodar no ambiente Node.js da Vercel para ter acesso a `process.env`.
+// Força a rota a rodar no ambiente Node.js da Vercel
 export const runtime = 'nodejs';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+// =======================================================
+// CORREÇÃO: Usando a API da Groq
+// =======================================================
+// A biblioteca da OpenAI funciona com a Groq, só precisamos mudar a URL base.
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY, // <-- Usando a chave da Groq
+  baseURL: 'https://api.groq.com/openai/v1', // <-- Apontando para os servidores da Groq
 });
+
 
 async function generateAnalysis(username: string, bio: string, offer: string, audience: string) {
     const prompt = `
@@ -27,14 +33,15 @@ async function generateAnalysis(username: string, bio: string, offer: string, au
       Sua tarefa é criar uma análise estratégica completa e um plano de conteúdo para uma semana.
       Sua resposta DEVE ser um único objeto JSON com as chaves: "suggestions", "strategy", "grid", e "weekly_plan".
 
-      1.  **suggestions**: (array de 3 strings) Gere 3 novas opções de BIO otimizadas com no máximo 150 caracteres, CTA claro e emojis estratégicos.
-      2.  **strategy**: (string) Escreva uma análise de estratégia de conteúdo. Sugira 3 "pilares de conteúdo" e 3 nomes de Destaques. Use \\n para quebra de linha.
-      3.  **grid**: (array de 9 strings) Crie 9 ideias curtas para um "feed ideal" visualmente equilibrado.
-      4.  **weekly_plan**: (array de objetos) Crie um plano de conteúdo detalhado para os próximos 7 dias com 7 objetos, cada um com as chaves "day", "time", "format", e "content_idea". Varie os formatos e horários.
+      1.  **suggestions**: (array de 3 strings) Gere 3 novas opções de BIO otimizadas...
+      2.  **strategy**: (string) Escreva uma análise de estratégia de conteúdo...
+      3.  **grid**: (array de 9 strings) Crie 9 ideias curtas para um "feed ideal"...
+      4.  **weekly_plan**: (array de objetos) Crie um plano de conteúdo detalhado para os próximos 7 dias...
     `;
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
+    // Usamos o cliente da Groq para fazer a chamada
+    const response = await groq.chat.completions.create({
+      model: 'llama3-8b-8192', // Usamos um modelo disponível na Groq
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: 'Você é um assistente de marketing que retorna respostas apenas no formato JSON estruturado solicitado.' },
@@ -50,8 +57,9 @@ async function generateAnalysis(username: string, bio: string, offer: string, au
 
 
 export async function POST(req: Request) {
-  if (!process.env.OPENAI_API_KEY) {
-    return new NextResponse(JSON.stringify({ error: 'Chave da API OpenAI não configurada.' }), { status: 500 });
+  // Agora verificamos a chave da Groq
+  if (!process.env.GROQ_API_KEY) {
+    return new NextResponse(JSON.stringify({ error: 'Chave da API da Groq não configurada.' }), { status: 500 });
   }
 
   try {
@@ -75,15 +83,14 @@ export async function POST(req: Request) {
         const userInfo = await userInfoResponse.json();
 
         if (!userInfoResponse.ok) {
-            throw new Error(userInfo.error?.message || "Falha ao buscar dados do perfil no Instagram. Tente reconectar sua conta.");
+            throw new Error(userInfo.error?.message || "Falha ao buscar dados do perfil no Instagram.");
         }
         const { username, biography: bio } = userInfo;
         return generateAnalysis(username, bio, offer, audience);
     } else {
-        // Fallback para dados manuais (caso do plano Free, ou se a conexão não existir)
         const { username, bio } = body;
         if (!username || !bio) {
-            return new NextResponse(JSON.stringify({ error: 'Conexão com o Instagram não encontrada e dados manuais não fornecidos.' }), { status: 403 });
+            return new NextResponse(JSON.stringify({ error: 'Conexão com Instagram não encontrada e dados manuais não fornecidos.' }), { status: 403 });
         }
         return generateAnalysis(username, bio, offer, audience);
     }

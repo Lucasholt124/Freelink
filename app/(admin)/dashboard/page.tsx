@@ -11,7 +11,7 @@ import { getUserSubscriptionPlan } from "@/lib/subscription";
 import DashboardMetrics from "@/components/DashboardMetrics";
 import SkeletonDashboard from "@/components/SkeletonDashboard";
 import DashboardToast from "@/components/DashboardToast";
-import WhatsappFloatingButton from "@/components/WhatsappFloatingButton";
+// O WhatsappFloatingButton pode ser adicionado no layout se for global
 
 function MentorIaWidget() {
   return (
@@ -28,7 +28,6 @@ function MentorIaWidget() {
 }
 
 function FreelinnkBrainWidget() {
-  // CORREÇÃO: O widget do Brain agora leva para a página correta.
   return (
     <div className="bg-white border border-gray-200/80 p-8 rounded-2xl shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col">
       <div className="flex-grow">
@@ -37,7 +36,6 @@ function FreelinnkBrainWidget() {
           <div><h2 className="text-2xl font-bold text-gray-900">Freelinnk Brain™</h2><p className="text-gray-600 max-w-sm">Gere ideias, roteiros e títulos virais em segundos.</p></div>
         </div>
       </div>
-      {/* Agora é um link real para a página do Brain */}
       <Link href="/dashboard/brain" className="mt-6 self-start px-6 py-3 bg-gray-900 text-white font-bold rounded-lg text-sm transition-transform hover:scale-105">Acessar Brain™</Link>
     </div>
   );
@@ -53,26 +51,19 @@ export default async function DashboardOverviewPage() {
   ]);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <DashboardToast />
       <div>
-        <h1 className="text-4xl font-extrabold text-gray-900 tracking-tight">Olá, {user.firstName || user.username}! 👋</h1>
-        <p className="text-lg text-gray-500 mt-2">Vamos construir seu império hoje.</p>
+        <h1 className="text-3xl lg:text-4xl font-bold text-gray-900">Olá, {user.firstName || user.username}! 👋</h1>
+        <p className="text-lg text-gray-600 mt-1">Bem-vindo(a) ao seu centro de comando.</p>
       </div>
       <Suspense fallback={<SkeletonDashboard />}>
-        {/*
-          =======================================================
-          A CORREÇÃO ESTÁ AQUI
-          =======================================================
-          Passamos `planDetails.plan` (a string) em vez do objeto `planDetails` inteiro.
-        */}
         <DashboardMetrics analytics={analytics} plan={planDetails.plan} />
       </Suspense>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <MentorIaWidget />
         <FreelinnkBrainWidget />
       </div>
-      <WhatsappFloatingButton />
     </div>
   );
 }

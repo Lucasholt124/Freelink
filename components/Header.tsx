@@ -1,105 +1,80 @@
+// Em /components/Header.tsx
+// (Substitua o arquivo inteiro)
+
 "use client";
 
 import Link from "next/link";
-import { SignInButton, UserButton, useUser } from "@clerk/nextjs"; // Importe o useUser
-import { Authenticated, Unauthenticated, useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { SignInButton, UserButton } from "@clerk/nextjs";
+import { Authenticated, Unauthenticated } from "convex/react";
 import { Button } from "./ui/button";
-import { Plus, LayoutDashboard, Target, CreditCard } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { MobileMenu } from "@/components/MobileMenu";
+// =======================================================
+// CORREÇÃO: Importando os ícones necessários
+// =======================================================
+import { LayoutDashboard, Link as LinkIcon, CreditCard, Zap } from "lucide-react";
 
-// A estrutura de navegação centralizada para o MobileMenu continua útil
-const navLinks = [
-  { href: "/dashboard", label: "Visão Geral", icon: <LayoutDashboard className="w-5 h-5" /> },
-  { href: "/dashboard/tracking", label: "Rastreamento", icon: <Target className="w-5 h-5" />, ultra: true },
-  { href: "/dashboard/billing", label: "Plano e Cobrança", icon: <CreditCard className="w-5 h-5" /> },
+// =======================================================
+// CORREÇÃO: Adicionando a propriedade 'icon' a cada link
+// =======================================================
+const loggedInNavLinks = [
+  { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard className="w-5 h-5" /> },
+  { href: "/dashboard/links", label: "Meus Links", icon: <LinkIcon className="w-5 h-5" /> },
+  { href: "/dashboard/billing", label: "Meu Plano", icon: <CreditCard className="w-5 h-5" /> },
 ];
 
-function Header({ isFixed = false }: { isFixed?: boolean }) {
-  const { user } = useUser(); // Hook para pegar o userId no cliente
-  const planQuery = useQuery(api.users.getMyPlan);
+const loggedOutNavLinks = [
+  { href: "/#features", label: "Recursos", icon: <Zap className="w-5 h-5" /> },
+  { href: "/#pricing", label: "Preços", icon: <CreditCard className="w-5 h-5" /> },
+];
 
-  // Lógica de plano que funciona com seu ID de admin
-  const isAdmin = user?.id === "user_301NTkVsE3v48SXkoCEp0XOXifI";
-  const plan = isAdmin ? "ultra" : (planQuery ?? "free");
-
+export function Header({ isFixed = false }: { isFixed?: boolean }) {
   return (
-    <header
-      className={cn(
-        "bg-white/80 backdrop-blur-sm border-b border-white/20 shadow-sm",
-        isFixed && "sticky top-0 z-50"
-      )}
-    >
-      <div className="max-w-7xl mx-auto px-4 xl:px-2 py-4 flex justify-between items-center">
-        {/* Logo (exatamente como estava) */}
-        <Link
-          href="/"
-          className="text-2xl font-extrabold tracking-tight flex items-center gap-1 select-none hover:opacity-90 focus-visible:ring-2 focus-visible:ring-purple-500 transition"
-          aria-label="Ir para a página inicial"
-        >
-          Free
-          <span className="bg-gradient-to-r from-blue-500 to-purple-600 bg-clip-text text-transparent">
-            linnk
-          </span>
+    <header className={cn("bg-white/80 backdrop-blur-sm border-b", isFixed && "sticky top-0 z-50")}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex justify-between items-center">
+        {/* Logo */}
+        <Link href="/" className="text-2xl font-bold tracking-tight text-gray-900 flex-shrink-0">
+          Freelinnk<span className="text-purple-600">.</span>
         </Link>
 
-        {/* --- SEU DESIGN ORIGINAL DO MENU DESKTOP COM A ADIÇÃO NECESSÁRIA --- */}
+        <Unauthenticated>
+          {/* Menu Desktop para Deslogados */}
+          <nav className="hidden md:flex items-center gap-6">
+            {loggedOutNavLinks.map(link => (
+              <Link key={link.href} href={link.href} className="text-sm font-medium text-gray-600 hover:text-purple-600 transition-colors">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="hidden md:flex items-center">
+            <SignInButton mode="modal">
+              <Button>Comece Grátis</Button>
+            </SignInButton>
+          </div>
+          {/* Menu Mobile para Deslogados */}
+          <div className="md:hidden">
+            <MobileMenu navLinks={loggedOutNavLinks} />
+          </div>
+        </Unauthenticated>
+
         <Authenticated>
-          <div className="hidden sm:flex gap-2 items-center bg-white/50 backdrop-blur-sm border border-white/20 p-2 rounded-lg">
-            <Link
-              href="/dashboard/new-link"
-              className="inline-flex items-center gap-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white px-3 py-2 rounded-lg font-medium hover:from-blue-600 hover:to-purple-700 transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500"
-              aria-label="Adicionar link"
-            >
-              <Plus className="w-4 h-4" />
-              <span className="hidden xs:inline">Adicionar link</span>
-            </Link>
-
-            {/* --- LÓGICA DE EXIBIÇÃO DO NOVO BOTÃO --- */}
-            {plan === 'ultra' && (
-              <Button
-                asChild
-                variant="outline"
-                className="border-purple-600 text-purple-600 hover:border-purple-700 hover:bg-purple-600 hover:text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500"
-                aria-label="Rastreamento"
-              >
-                <Link href="/dashboard/tracking">Rastreamento</Link>
-              </Button>
-            )}
-
-            <Button
-              asChild
-              variant="outline"
-              className="border-purple-600 text-purple-600 hover:border-purple-700 hover:bg-purple-600 hover:text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500"
-              aria-label="Cobrança"
-            >
-              <Link href="/dashboard/billing">Cobrança</Link>
-            </Button>
-
+          {/* Menu Desktop para Logados */}
+          <nav className="hidden md:flex items-center gap-6">
+            {loggedInNavLinks.map(link => (
+              <Link key={link.href} href={link.href} className="text-sm font-medium text-gray-600 hover:text-purple-600 transition-colors">
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          <div className="hidden md:flex items-center gap-4">
             <UserButton afterSignOutUrl="/" />
           </div>
-
-          {/* Mobile menu (agora recebe os links e o plano) */}
-          <div className="sm:hidden">
-            <MobileMenu navLinks={navLinks} plan={plan} />
+          {/* Menu Mobile para Logados */}
+          <div className="md:hidden">
+            <MobileMenu navLinks={loggedInNavLinks} />
           </div>
         </Authenticated>
-
-        <Unauthenticated>
-          <SignInButton mode="modal">
-            <Button
-              variant="outline"
-              className="border-purple-600 text-purple-600 hover:border-purple-700 hover:bg-purple-600 hover:text-white transition-all duration-200 focus-visible:ring-2 focus-visible:ring-purple-500"
-              aria-label="Comece gratuitamente"
-            >
-              Comece gratuitamente
-            </Button>
-          </SignInButton>
-        </Unauthenticated>
       </div>
     </header>
   );
 }
-
-export default Header;
