@@ -3,7 +3,7 @@
 
 import { action, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api"; // <-- Importação crucial
+import { internal } from "./_generated/api";
 
 // --- MUTATION INTERNA (Segura, chamada apenas por actions) ---
 export const createOrUpdateInternal = internalMutation({
@@ -53,20 +53,25 @@ export const get = query({
   },
 });
 
-// --- ACTION (Pública, chamada pela API do Next.js) ---
+// =======================================================
+// CORREÇÃO DEFINITIVA APLICADA AQUI
+// =======================================================
+// A action agora recebe o `userId` como um argumento explícito.
 export const exchangeCodeForToken = action({
   args: {
     code: v.string(),
     redirectUri: v.string(),
+    userId: v.string(), // O ID do usuário que foi autenticado pela API Route
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Usuário não autenticado para realizar a troca de token.");
+    // Não precisamos mais de `ctx.auth.getUserIdentity()` aqui para o ID,
+    // pois a autenticação já foi validada na API Route que nos chamou.
 
     const clientId = process.env.INSTAGRAM_CLIENT_ID;
     const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
     if (!clientId || !clientSecret) throw new Error("Variáveis de ambiente do Instagram não configuradas no Convex.");
 
+    // Etapa 1: Trocar code por token de curta duração
     const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${args.redirectUri}&code=${args.code}`;
     const tokenResponse = await fetch(tokenUrl);
     const tokenData = await tokenResponse.json();
@@ -74,6 +79,7 @@ export const exchangeCodeForToken = action({
         throw new Error(tokenData.error?.message || 'Falha ao obter token de curta duração.');
     }
 
+    // Etapa 2: Trocar por token de longa duração
     const longTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${tokenData.access_token}`;
     const longTokenResponse = await fetch(longTokenUrl);
     const longTokenData = await longTokenResponse.json();
@@ -81,6 +87,7 @@ export const exchangeCodeForToken = action({
         throw new Error(longTokenData.error?.message || 'Falha ao obter token de longa duração.');
     }
 
+    // Etapa 3: Obter informações do usuário
     const userInfoUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longTokenData.access_token}`;
     const userInfoResponse = await fetch(userInfoUrl);
     const userInfo = await userInfoResponse.json();
@@ -88,13 +95,9 @@ export const exchangeCodeForToken = action({
         throw new Error(userInfo.error?.message || 'Falha ao buscar informações do usuário.');
     }
 
-    // =======================================================
-    // CORREÇÃO APLICADA AQUI
-    // =======================================================
-    // Usamos a referência `internal.connections.createOrUpdateInternal`
-    // em vez da função importada diretamente.
+    // Etapa 4: Salvar no DB, usando o `userId` recebido nos argumentos
     await ctx.runMutation(internal.connections.createOrUpdateInternal, {
-        userId: identity.subject,
+        userId: args.userId, // <-- Usando o userId passado como argumento
         provider: 'instagram',
         providerAccountId: userInfo.id,
         accessToken: longTokenData.access_token,
