@@ -55,48 +55,60 @@ export const get = query({
 
 // --- ACTION (Pública, chamada pela API do Next.js) ---
 export const exchangeCodeForToken = action({
-  // =======================================================
-  // CORREÇÃO APLICADA AQUI
-  // =======================================================
-  // Adicionamos `userId` à lista de argumentos esperados.
   args: {
     code: v.string(),
     redirectUri: v.string(),
-    userId: v.string(), // <-- A linha que estava faltando
+    userId: v.string(),
   },
   handler: async (ctx, args) => {
-    // Agora podemos usar `args.userId` com segurança.
     const clientId = process.env.INSTAGRAM_CLIENT_ID;
     const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
     if (!clientId || !clientSecret) throw new Error("Variáveis de ambiente do Instagram não configuradas no Convex.");
 
+    // =======================================================
+    // CORREÇÃO: Construindo as URLs com `new URL()` para mais robustez
+    // =======================================================
+
     // Etapa 1: Trocar code por token de curta duração
-    const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${args.redirectUri}&code=${args.code}`;
-    const tokenResponse = await fetch(tokenUrl);
+    const tokenUrl = new URL('https://graph.facebook.com/v19.0/oauth/access_token');
+    tokenUrl.searchParams.set('client_id', clientId);
+    tokenUrl.searchParams.set('client_secret', clientSecret);
+    tokenUrl.searchParams.set('redirect_uri', args.redirectUri);
+    tokenUrl.searchParams.set('code', args.code);
+
+    const tokenResponse = await fetch(tokenUrl.toString()); // Usamos .toString()
     const tokenData = await tokenResponse.json();
     if (!tokenResponse.ok || !tokenData.access_token) {
         throw new Error(tokenData.error?.message || 'Falha ao obter token de curta duração.');
     }
 
     // Etapa 2: Trocar por token de longa duração
-    const longTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${tokenData.access_token}`;
-    const longTokenResponse = await fetch(longTokenUrl);
+    const longTokenUrl = new URL('https://graph.facebook.com/v19.0/oauth/access_token');
+    longTokenUrl.searchParams.set('grant_type', 'fb_exchange_token');
+    longTokenUrl.searchParams.set('client_id', clientId);
+    longTokenUrl.searchParams.set('client_secret', clientSecret);
+    longTokenUrl.searchParams.set('fb_exchange_token', tokenData.access_token);
+
+    const longTokenResponse = await fetch(longTokenUrl.toString());
     const longTokenData = await longTokenResponse.json();
     if (!longTokenResponse.ok || !longTokenData.access_token) {
         throw new Error(longTokenData.error?.message || 'Falha ao obter token de longa duração.');
     }
 
     // Etapa 3: Obter informações do usuário
-    const userInfoUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longTokenData.access_token}`;
-    const userInfoResponse = await fetch(userInfoUrl);
+    const userInfoUrl = new URL('https://graph.instagram.com/me');
+    userInfoUrl.searchParams.set('fields', 'id,username');
+    userInfoUrl.searchParams.set('access_token', longTokenData.access_token);
+
+    const userInfoResponse = await fetch(userInfoUrl.toString());
     const userInfo = await userInfoResponse.json();
     if (!userInfoResponse.ok || !userInfo.id) {
         throw new Error(userInfo.error?.message || 'Falha ao buscar informações do usuário.');
     }
 
-    // Etapa 4: Salvar no DB, usando o `userId` recebido nos argumentos
+    // Etapa 4: Salvar no DB via mutation interna
     await ctx.runMutation(internal.connections.createOrUpdateInternal, {
-        userId: args.userId, // <-- Usando o userId validado
+        userId: args.userId,
         provider: 'instagram',
         providerAccountId: userInfo.id,
         accessToken: longTokenData.access_token,
