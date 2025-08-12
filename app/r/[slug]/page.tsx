@@ -1,52 +1,43 @@
 // Em /app/r/[slug]/page.tsx
-// (Substitua o arquivo inteiro por esta versão definitiva)
+// (Substitua o arquivo inteiro)
 
-import { notFound, redirect } from 'next/navigation';
-import { api } from '@/convex/_generated/api';
-import { fetchAction } from 'convex/nextjs';
-import { headers } from 'next/headers';
+"use client";
 
-// =======================================================
-// CORREÇÃO DEFINITIVA: Usando a tipagem que a Vercel exige
-// =======================================================
-interface ShortLinkRedirectPageProps {
-  params: Promise<{ slug: string }>;
-}
+import { useEffect } from 'react';
+import { useParams } from 'next/navigation';
 
-export default async function ShortLinkRedirectPage({ params }: ShortLinkRedirectPageProps) {
+export default function ShortLinkRedirectPage() {
+  const params = useParams();
+  // `params.slug` pode ser um array, então pegamos o primeiro elemento
+  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
-  // 1. Resolvemos a Promise dos params primeiro
-  const resolvedParams = await params;
-  const { slug } = resolvedParams;
-
-  if (!slug) {
-    return notFound();
-  }
-
-  // 2. Acessamos os headers de forma síncrona
-  const headerList = await headers();
-  const userAgent = headerList.get('user-agent') ?? undefined;
-  const referrer = headerList.get('referer') ?? undefined;
-
-  const visitorId = "anonymous_visitor";
-
-  try {
-    const originalUrl = await fetchAction(api.shortLinks.getAndRegisterClick, {
-        slug,
-        visitorId,
-        userAgent,
-        referrer,
-    });
-
-    if (!originalUrl) {
-      return notFound();
+  useEffect(() => {
+    if (slug) {
+      // Redireciona o navegador do cliente para a nossa API.
+      // Isso acontece instantaneamente no lado do cliente.
+      window.location.href = `/api/redirect?slug=${encodeURIComponent(slug)}`;
     }
+  }, [slug]);
 
-    // `redirect` deve ser a última instrução a ser executada.
-    redirect(originalUrl);
-
-  } catch (error) {
-    console.error(`Erro ao redirecionar a slug "${slug}":`, error);
-    return notFound();
-  }
+  return (
+    // Página de carregamento simples enquanto o redirecionamento acontece.
+    <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: '1rem',
+        height: '100vh',
+        fontFamily: 'sans-serif',
+        backgroundColor: '#f9fafb',
+        color: '#4b5563'
+    }}>
+      <p>Redirecionando...</p>
+      {/* Spinner SVG para um feedback visual melhor */}
+      <svg className="animate-spin h-5 w-5 text-gray-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+      </svg>
+    </div>
+  );
 }

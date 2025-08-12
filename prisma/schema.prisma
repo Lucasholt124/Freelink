@@ -1,4 +1,5 @@
-// prisma/schema.prisma
+// Em prisma/schema.prisma
+// (Substitua o arquivo inteiro por esta versão)
 
 generator client {
   provider = "prisma-client-js"
@@ -9,37 +10,35 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Modelo de Link
 model Link {
   id        String   @id @default(cuid())
   url       String
   title     String?
-  userId    String   // ID do dono do link (usuário autenticado)
+  userId    String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // Relação com cliques
   clicks    Click[]
 
-  @@index([userId]) // melhora performance nas consultas por usuário
+  @@map("Links")
 }
 
-// Modelo de Cliques
 model Click {
   id            String   @id @default(cuid())
   timestamp     DateTime @default(now())
-  profileUserId String   // ID do usuário que recebeu o clique (pode ser o mesmo que userId em Link)
+  profileUserId String
+
+  // A chave estrangeira que está causando o problema
   linkId        String
-  visitorId     String   // pode ser ID anônimo/único do visitante
+
+  visitorId     String
   country       String?
   region        String?
   city          String?
   referrer      String?
   userAgent     String?
 
-  // Relacionamento com Link
   link          Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
 
-  @@index([linkId])       // busca rápida por link
-  @@index([profileUserId]) // busca rápida por dono do perfil
+  @@map("clicks")
 }

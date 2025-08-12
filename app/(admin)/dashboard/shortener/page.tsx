@@ -3,9 +3,7 @@
 
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useAction } from "convex/react";
-import { api } from "@/convex/_generated/api";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import Link from "next/link";
 import {
@@ -16,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useUser } from "@clerk/nextjs";
 
-type LinkFromQuery = {
+type LinkFromAPI = {
   id: string;
   url: string;
   clicks: number;
@@ -37,18 +35,10 @@ function LinksSkeleton() {
     );
 }
 
-function LinkList() {
+function LinkList({ links }: { links: LinkFromAPI[] | undefined, onLinkCreated: () => void }) {
   const { user, isLoaded } = useUser();
-  const getLinksAction = useAction(api.shortLinks.getLinksForUser);
-  const [links, setLinks] = useState<LinkFromQuery[] | undefined>(undefined);
   const plan = (user?.publicMetadata?.subscriptionPlan as "free" | "pro" | "ultra") ?? "free";
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (isLoaded) {
-      getLinksAction({}).then(setLinks).catch(console.error);
-    }
-  }, [isLoaded, getLinksAction]);
 
   const handleCopy = (slug: string) => {
     const shortUrl = `${window.location.origin}/r/${slug}`;
@@ -63,7 +53,7 @@ function LinkList() {
       <div className="text-center text-gray-500 py-10 px-4 mt-4 border-2 border-dashed rounded-xl">
         <Info className="w-8 h-8 mx-auto text-gray-400 mb-2" />
         <h3 className="font-semibold text-gray-700">Nenhum link encurtado.</h3>
-        <p className="text-sm">Use o formulário para criar seu primeiro link.</p>
+        <p className="text-sm">Use o formulário acima para criar seu primeiro link.</p>
       </div>
     );
 
@@ -98,31 +88,51 @@ function LinkList() {
 }
 
 export default function ShortenerPage() {
-  const createLink = useAction(api.shortLinks.createShortLink);
   const formRef = useRef<HTMLFormElement>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [links, setLinks] = useState<LinkFromAPI[] | undefined>(undefined);
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  const fetchLinks = useCallback(async () => {
+    try {
+        const response = await fetch('/api/shortener');
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Falha ao buscar links");
+        setLinks(data);
+    } catch (err) {
+        console.error(err);
+        toast.error("Não foi possível carregar seus links.");
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLinks();
+  }, [fetchLinks]);
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    setIsLoading(true);
+
     const formData = new FormData(event.currentTarget);
     const originalUrl = formData.get("originalUrl") as string;
     const customSlug = (formData.get("customSlug") as string) || undefined;
 
-    setIsLoading(true);
-    toast.promise(
-      createLink({ originalUrl, customSlug }),
-      {
-        loading: "Encurtando seu link...",
-        success: () => {
-          formRef.current?.reset();
-          // Idealmente, você precisaria de uma forma de "refrescar" a lista de links aqui.
-          // Por enquanto, o usuário precisará recarregar a página para ver o novo link.
-          return "Link encurtado com sucesso!";
-        },
-        error: (err) => (err instanceof Error ? err.message : "Ocorreu um problema."),
-        finally: () => setIsLoading(false),
-      }
-    );
+    try {
+      const response = await fetch('/api/shortener', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ originalUrl, customSlug }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || "Erro desconhecido");
+
+      toast.success("Link encurtado com sucesso!");
+      formRef.current?.reset();
+      fetchLinks(); // Re-busca a lista de links para mostrar o novo
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Ocorreu um problema.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -154,7 +164,7 @@ export default function ShortenerPage() {
       </div>
       <div>
         <h2 className="text-2xl font-semibold mb-4">Seus Links Encurtados</h2>
-        <LinkList />
+        <LinkList links={links} onLinkCreated={fetchLinks} />
       </div>
     </div>
   );
