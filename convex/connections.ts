@@ -1,8 +1,9 @@
-// Em convex/connections.ts
+// Em /convex/connections.ts
+// (Substitua o arquivo inteiro)
 
 import { action, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import { internal } from "./_generated/api"; // IMPORTANTE: importação do objeto interno gerado pelo Convex
+import { internal } from "./_generated/api"; // <-- Importação crucial
 
 // --- MUTATION INTERNA (Segura, chamada apenas por actions) ---
 export const createOrUpdateInternal = internalMutation({
@@ -39,7 +40,7 @@ export const createOrUpdateInternal = internalMutation({
   },
 });
 
-// --- QUERY (Pública, chamada pelo frontend para ver o status) ---
+// --- QUERY (Pública, chamada pelo frontend) ---
 export const get = query({
   args: { provider: v.string() },
   handler: async (ctx, args) => {
@@ -47,14 +48,12 @@ export const get = query({
     if (!identity) return null;
     return await ctx.db
       .query("connections")
-      .withIndex("by_user_provider", (q) =>
-        q.eq("userId", identity.subject).eq("provider", args.provider)
-      )
+      .withIndex("by_user_provider", q => q.eq("userId", identity.subject).eq("provider", args.provider))
       .unique();
   },
 });
 
-// --- ACTION (Pública, chamada pela API de callback do Next.js) ---
+// --- ACTION (Pública, chamada pela API do Next.js) ---
 export const exchangeCodeForToken = action({
   args: {
     code: v.string(),
@@ -66,37 +65,40 @@ export const exchangeCodeForToken = action({
 
     const clientId = process.env.INSTAGRAM_CLIENT_ID;
     const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
-    if (!clientId || !clientSecret)
-      throw new Error("Variáveis de ambiente do Instagram não configuradas no Convex.");
+    if (!clientId || !clientSecret) throw new Error("Variáveis de ambiente do Instagram não configuradas no Convex.");
 
     const tokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?client_id=${clientId}&client_secret=${clientSecret}&redirect_uri=${args.redirectUri}&code=${args.code}`;
     const tokenResponse = await fetch(tokenUrl);
     const tokenData = await tokenResponse.json();
     if (!tokenResponse.ok || !tokenData.access_token) {
-      throw new Error(tokenData.error?.message || "Falha ao obter token de curta duração.");
+        throw new Error(tokenData.error?.message || 'Falha ao obter token de curta duração.');
     }
 
     const longTokenUrl = `https://graph.facebook.com/v19.0/oauth/access_token?grant_type=fb_exchange_token&client_id=${clientId}&client_secret=${clientSecret}&fb_exchange_token=${tokenData.access_token}`;
     const longTokenResponse = await fetch(longTokenUrl);
     const longTokenData = await longTokenResponse.json();
     if (!longTokenResponse.ok || !longTokenData.access_token) {
-      throw new Error(longTokenData.error?.message || "Falha ao obter token de longa duração.");
+        throw new Error(longTokenData.error?.message || 'Falha ao obter token de longa duração.');
     }
 
     const userInfoUrl = `https://graph.instagram.com/me?fields=id,username&access_token=${longTokenData.access_token}`;
     const userInfoResponse = await fetch(userInfoUrl);
     const userInfo = await userInfoResponse.json();
     if (!userInfoResponse.ok || !userInfo.id) {
-      throw new Error(userInfo.error?.message || "Falha ao buscar informações do usuário.");
+        throw new Error(userInfo.error?.message || 'Falha ao buscar informações do usuário.');
     }
 
-    // CHAMADA CORRETA AO ctx.runMutation USANDO internal.connections.createOrUpdateInternal
+    // =======================================================
+    // CORREÇÃO APLICADA AQUI
+    // =======================================================
+    // Usamos a referência `internal.connections.createOrUpdateInternal`
+    // em vez da função importada diretamente.
     await ctx.runMutation(internal.connections.createOrUpdateInternal, {
-      userId: identity.subject,
-      provider: "instagram",
-      providerAccountId: userInfo.id,
-      accessToken: longTokenData.access_token,
-      tokenExpiresAt: Date.now() + (longTokenData.expires_in * 1000),
+        userId: identity.subject,
+        provider: 'instagram',
+        providerAccountId: userInfo.id,
+        accessToken: longTokenData.access_token,
+        tokenExpiresAt: Date.now() + (longTokenData.expires_in * 1000),
     });
 
     return { success: true };
