@@ -1,29 +1,39 @@
-// app/providers/Providers.tsx
+// Em /app/providers/Providers.tsx
+// (Substitua o arquivo inteiro)
+
 "use client";
 
-import ConvexClientProvider from "@/components/ConvexClientProvider";
-import { ClerkProvider } from "@clerk/nextjs";
-import { ptBR } from "@clerk/localizations"; // Importação para a localização em português
-import { Toaster } from "sonner";
+import { ReactNode } from "react";
+import { ConvexReactClient } from "convex/react";
+import { ClerkProvider, useAuth } from "@clerk/nextjs";
+import { ConvexProviderWithClerk } from "convex/react-clerk";
+import { ptBR } from "@clerk/localizations";
 
-export function Providers({ children }: { children: React.ReactNode }) {
+const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
+
+export function Providers({ children }: { children: ReactNode }) {
   return (
+    // =======================================================
+    // A FONTE DA VERDADE ESTÁ AQUI
+    // =======================================================
+    // 1. O ÚNICO ClerkProvider, com a configuração de redirecionamento.
     <ClerkProvider
-      signInFallbackRedirectUrl="/dashboard"
-      localization={ptBR} // Use o objeto de localização pré-definido, é mais completo
+      publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
+      localization={ptBR}
+      // Caminhos relativos para funcionar em todos os ambientes
+      afterSignInUrl="/dashboard"
+      afterSignUpUrl="/dashboard"
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
       appearance={{
-        variables: {
-          colorPrimary: "#6366f1", // Cor primária (índigo, para combinar com o gradiente)
-          colorText: "#1f2937", // Cinza escuro para o texto
-        },
-        elements: {
-          formButtonPrimary: "bg-gradient-to-r from-blue-500 to-purple-600 hover:opacity-90",
-          card: "shadow-2xl border-gray-200/80",
-        }
+        variables: { colorPrimary: "#6366f1" },
+        elements: { formButtonPrimary: "bg-gradient-to-r from-blue-500 to-purple-600" },
       }}
     >
-      <ConvexClientProvider>{children}</ConvexClientProvider>
-      <Toaster richColors position="top-center" />
+      {/* 2. O ConvexProvider vive DENTRO do ClerkProvider. */}
+      <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
+        {children}
+      </ConvexProviderWithClerk>
     </ClerkProvider>
   );
 }
