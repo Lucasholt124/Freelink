@@ -53,20 +53,19 @@ export const get = query({
   },
 });
 
-// =======================================================
-// CORREÇÃO DEFINITIVA APLICADA AQUI
-// =======================================================
-// A action agora recebe o `userId` como um argumento explícito.
+// --- ACTION (Pública, chamada pela API do Next.js) ---
 export const exchangeCodeForToken = action({
+  // =======================================================
+  // CORREÇÃO APLICADA AQUI
+  // =======================================================
+  // Adicionamos `userId` à lista de argumentos esperados.
   args: {
     code: v.string(),
     redirectUri: v.string(),
-    userId: v.string(), // O ID do usuário que foi autenticado pela API Route
+    userId: v.string(), // <-- A linha que estava faltando
   },
   handler: async (ctx, args) => {
-    // Não precisamos mais de `ctx.auth.getUserIdentity()` aqui para o ID,
-    // pois a autenticação já foi validada na API Route que nos chamou.
-
+    // Agora podemos usar `args.userId` com segurança.
     const clientId = process.env.INSTAGRAM_CLIENT_ID;
     const clientSecret = process.env.INSTAGRAM_CLIENT_SECRET;
     if (!clientId || !clientSecret) throw new Error("Variáveis de ambiente do Instagram não configuradas no Convex.");
@@ -97,7 +96,7 @@ export const exchangeCodeForToken = action({
 
     // Etapa 4: Salvar no DB, usando o `userId` recebido nos argumentos
     await ctx.runMutation(internal.connections.createOrUpdateInternal, {
-        userId: args.userId, // <-- Usando o userId passado como argumento
+        userId: args.userId, // <-- Usando o userId validado
         provider: 'instagram',
         providerAccountId: userInfo.id,
         accessToken: longTokenData.access_token,
