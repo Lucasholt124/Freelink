@@ -25,15 +25,15 @@ export function InstagramConnection() {
   const router = useRouter();
 
   useEffect(() => {
-    const status = searchParams.get("status");
+    const status = searchParams.get('status');
 
-    if (status === "connected") {
+    if (status === 'connected') {
       toast.success("Instagram conectado com sucesso!");
-      router.replace("/dashboard/settings", { scroll: false });
+      router.replace('/dashboard/settings', { scroll: false });
       router.refresh();
-    } else if (status === "error") {
+    } else if (status === 'error') {
       toast.error("Falha ao conectar com o Instagram. Tente novamente.");
-      router.replace("/dashboard/settings", { scroll: false });
+      router.replace('/dashboard/settings', { scroll: false });
     }
   }, [searchParams, router]);
 
@@ -53,14 +53,11 @@ export function InstagramConnection() {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" disabled>
-          Desconectar (em breve)
-        </Button>
+        <Button variant="outline" size="sm" disabled>Desconectar (em breve)</Button>
       </div>
     );
   }
 
-  // Link simples para redirecionar (não fetch)
   return (
     <div className="bg-gray-50 border-2 border-dashed border-gray-200 p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <div>
@@ -69,11 +66,10 @@ export function InstagramConnection() {
           Autorize o Freelinnk para análises automáticas e sorteios.
         </p>
       </div>
+      {/* Link com prefetch DESABILITADO para evitar CORS */}
       <Button asChild>
-        <Link href="/api/connect/instagram" legacyBehavior>
-          <a>
-            <Instagram className="w-4 h-4 mr-2" /> Conectar Agora
-          </a>
+        <Link href="/api/connect/instagram" prefetch={false}>
+          <Instagram className="w-4 h-4 mr-2" /> Conectar Agora
         </Link>
       </Button>
     </div>
