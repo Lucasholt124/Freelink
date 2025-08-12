@@ -3,7 +3,7 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { Prisma, PrismaClient } from '@prisma/client';
+import {  PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DATABASE_URL } },
@@ -42,37 +42,9 @@ export const createShortLink = action({
   },
 });
 
-// --- ACTION para registrar clique ---
-export const getAndRegisterClick = action({
-  args: {
-    slug: v.string(),
-    visitorId: v.string(),
-    userAgent: v.optional(v.string()),
-    referrer: v.optional(v.string()),
-  },
-  handler: async (_, args) => {
-    try {
-      const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-        const link = await tx.link.findUnique({ where: { id: args.slug } });
-        if (!link) return null;
-        await tx.click.create({ data: {
-          linkId: link.id,
-          visitorId: args.visitorId,
-          profileUserId: link.userId,
-          userAgent: args.userAgent,
-          referrer: args.referrer,
-        }});
-        return link.url;
-      });
-      return result;
-    } catch (error) {
-        console.error("Erro na action getAndRegisterClick:", error);
-        return null;
-    } finally {
-        await prisma.$disconnect();
-    }
-  },
-});
+// --- ACTION para registrar clique (movida para a API do Next.js) ---
+// É mais seguro manter a lógica de redirecionamento fora do Convex para evitar
+// problemas de build. Se precisar dela aqui por outro motivo, podemos recriá-la.
 
 // --- ACTION para buscar os links do usuário ---
 export const getLinksForUser = action({
@@ -88,12 +60,21 @@ export const getLinksForUser = action({
         include: { _count: { select: { clicks: true } } }
       });
 
-      return links.map((link) => ({
+      // =======================================================
+      // CORREÇÃO DEFINITIVA: Tipagem Inline Explícita
+      // =======================================================
+      return links.map((link: {
+        id: string;
+        url: string;
+        title: string | null;
+        createdAt: Date;
+        _count: { clicks: number };
+      }) => ({
         id: link.id,
         url: link.url,
         title: link.title,
         clicks: link._count.clicks,
-        createdAt: link.createdAt.getTime(),
+        createdAt: link.createdAt.getTime(), // Serializa para timestamp
       }));
     } catch (error) {
         console.error("Erro ao buscar links para o usuário:", error);
@@ -122,9 +103,16 @@ export const getClicksForLink = action({
                 orderBy: { timestamp: "desc" },
             });
 
-            const serializableClicks = clicks.map(click => ({
-                ...click,
-                timestamp: click.timestamp.getTime(),
+            // CORREÇÃO: Tipagem Inline Explícita para 'click'
+            const serializableClicks = clicks.map((click: {
+                id: string;
+                timestamp: Date;
+                country: string | null;
+                // Adicione outros campos se precisar deles no frontend
+            }) => ({
+                id: click.id,
+                timestamp: click.timestamp.getTime(), // Serializa para timestamp
+                country: click.country,
             }));
 
             return { link, clicks: serializableClicks };

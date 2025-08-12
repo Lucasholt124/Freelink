@@ -1,5 +1,5 @@
 // Em prisma/schema.prisma
-// (Substitua o arquivo inteiro por esta versão)
+// (Substitua o arquivo inteiro)
 
 generator client {
   provider = "prisma-client-js"
@@ -27,10 +27,7 @@ model Click {
   id            String   @id @default(cuid())
   timestamp     DateTime @default(now())
   profileUserId String
-
-  // A chave estrangeira que está causando o problema
   linkId        String
-
   visitorId     String
   country       String?
   region        String?

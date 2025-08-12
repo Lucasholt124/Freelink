@@ -1,14 +1,12 @@
 // Em /app/api/shortener/route.ts
-// (Crie esta pasta e arquivo)
+// (Substitua o arquivo inteiro)
 
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Link as PrismaLink } from '@prisma/client';
 
-// É seguro inicializar o Prisma aqui, pois as rotas de API são ambientes de servidor.
 const prisma = new PrismaClient();
 
-// --- Rota para buscar os links do usuário (método GET) ---
 export async function GET() {
     try {
         const { userId } = await auth();
@@ -22,13 +20,16 @@ export async function GET() {
             include: { _count: { select: { clicks: true } } }
         });
 
-        // Garantimos que os dados enviados são seguros para JSON
-        const formattedLinks = links.map(link => ({
+        type LinkWithCount = PrismaLink & {
+            _count: { clicks: number };
+        };
+
+        const formattedLinks = (links as LinkWithCount[]).map((link) => ({
             id: link.id,
             url: link.url,
             title: link.title,
             clicks: link._count.clicks,
-            createdAt: link.createdAt.getTime(), // Enviamos como timestamp
+            createdAt: link.createdAt.getTime(),
         }));
 
         return NextResponse.json(formattedLinks);
@@ -40,10 +41,9 @@ export async function GET() {
     }
 }
 
-// --- Rota para criar um novo link (método POST) ---
 export async function POST(req: Request) {
     try {
-        const { userId } = await auth();
+        const { userId } =  await auth();
         if (!userId) {
             return new NextResponse(JSON.stringify({ error: "Não autenticado" }), { status: 401 });
         }
@@ -57,13 +57,13 @@ export async function POST(req: Request) {
         if (customSlug) {
             const existing = await prisma.link.findUnique({ where: { id: customSlug } });
             if (existing) {
-                return new NextResponse(JSON.stringify({ error: "Este apelido personalizado já está em uso." }), { status: 409 }); // 409 Conflict
+                return new NextResponse(JSON.stringify({ error: "Este apelido personalizado já está em uso." }), { status: 409 });
             }
         }
 
         const newLink = await prisma.link.create({
             data: {
-                id: customSlug || undefined, // Deixa o Prisma/CUID gerar se for undefined
+                id: customSlug || undefined,
                 url: originalUrl,
                 userId: userId,
                 title: "Link Encurtado",

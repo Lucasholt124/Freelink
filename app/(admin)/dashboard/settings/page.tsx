@@ -1,29 +1,27 @@
-// Em app/dashboard/settings/page.tsx
-// (Substitua o arquivo inteiro)
-
 "use client";
 
-import { Suspense } from 'react'; // <-- IMPORTAÇÃO NECESSÁRIA
+import { Suspense } from "react";
 
 import UsernameForm from "@/components/UsernameForm";
 import CustomizationForm from "@/components/CustomizationForm";
 import { InstagramConnection } from "@/components/InstagramConnection";
 
-// Componente de Skeleton para o fallback do Suspense
 function ConnectionSectionSkeleton() {
-    return (
-        <div className="bg-white p-6 rounded-2xl border shadow-lg animate-pulse">
-            <div className="h-8 w-3/4 bg-gray-200 rounded-md"></div>
-            <div className="h-5 w-1/2 bg-gray-200 rounded-md mt-2"></div>
-        </div>
-    );
+  return (
+    <div className="bg-white p-6 rounded-2xl border shadow-lg animate-pulse">
+      <div className="h-8 w-3/4 bg-gray-200 rounded-md"></div>
+      <div className="h-5 w-1/2 bg-gray-200 rounded-md mt-2"></div>
+    </div>
+  );
 }
 
 export default function SettingsPage() {
   return (
-    <div className="max-w-5xl mx-auto space-y-12">
+    <div className="max-w-5xl mx-auto space-y-12 px-4 sm:px-0">
       <div>
-        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">Configurações</h1>
+        <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-gray-900">
+          Configurações
+        </h1>
         <p className="text-lg text-gray-600 mt-2">
           Gerencie suas conexões, URL e a aparência da sua página pública.
         </p>
@@ -37,13 +35,6 @@ export default function SettingsPage() {
           </p>
         </aside>
         <div className="flex-1">
-          {/*
-            =======================================================
-            CORREÇÃO APLICADA AQUI
-            =======================================================
-            Envolvemos o componente que usa `useSearchParams` em um <Suspense>.
-            O `fallback` é o que será mostrado enquanto o componente é carregado no cliente.
-          */}
           <Suspense fallback={<ConnectionSectionSkeleton />}>
             <InstagramConnection />
           </Suspense>

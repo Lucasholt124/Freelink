@@ -1,6 +1,3 @@
-// Em /components/InstagramConnection.tsx
-// (Substitua o arquivo inteiro)
-
 "use client";
 
 import Link from "next/link";
@@ -12,7 +9,6 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { toast } from "sonner";
 
-// Componente para o estado de carregamento
 function ConnectionSkeleton() {
   return (
     <div className="bg-gray-100 p-4 rounded-lg animate-pulse">
@@ -23,36 +19,28 @@ function ConnectionSkeleton() {
 }
 
 export function InstagramConnection() {
-  // 1. Busca os dados da conexão em tempo real.
   const connection = useQuery(api.connections.get, { provider: "instagram" });
 
-  // 2. Acessa os parâmetros da URL e o roteador.
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // 3. Efeito que reage às mudanças na URL (após o redirecionamento).
   useEffect(() => {
-    const status = searchParams.get('status');
+    const status = searchParams.get("status");
 
-    if (status === 'connected') {
+    if (status === "connected") {
       toast.success("Instagram conectado com sucesso!");
-      // Limpa os parâmetros da URL para evitar que o toast apareça em cada refresh.
-      router.replace('/dashboard/settings', { scroll: false });
-      // Força o Next.js a revalidar os dados para esta rota, fazendo com que `useQuery` busque novamente.
+      router.replace("/dashboard/settings", { scroll: false });
       router.refresh();
-    } else if (status === 'error') {
+    } else if (status === "error") {
       toast.error("Falha ao conectar com o Instagram. Tente novamente.");
-      // Também limpa a URL em caso de erro.
-      router.replace('/dashboard/settings', { scroll: false });
+      router.replace("/dashboard/settings", { scroll: false });
     }
   }, [searchParams, router]);
 
-  // `connection` será `undefined` durante o carregamento inicial.
   if (connection === undefined) {
     return <ConnectionSkeleton />;
   }
 
-  // Se a conexão existir, mostra o card de sucesso.
   if (connection) {
     return (
       <div className="bg-green-50 border-2 border-green-200 p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -65,12 +53,14 @@ export function InstagramConnection() {
             </p>
           </div>
         </div>
-        <Button variant="outline" size="sm" disabled>Desconectar (em breve)</Button>
+        <Button variant="outline" size="sm" disabled>
+          Desconectar (em breve)
+        </Button>
       </div>
     );
   }
 
-  // Se a conexão não existir, mostra o card com o botão para conectar.
+  // Link simples para redirecionar (não fetch)
   return (
     <div className="bg-gray-50 border-2 border-dashed border-gray-200 p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
       <div>
@@ -80,8 +70,10 @@ export function InstagramConnection() {
         </p>
       </div>
       <Button asChild>
-        <Link href="/api/connect/instagram">
-          <Instagram className="w-4 h-4 mr-2" /> Conectar Agora
+        <Link href="/api/connect/instagram" legacyBehavior>
+          <a>
+            <Instagram className="w-4 h-4 mr-2" /> Conectar Agora
+          </a>
         </Link>
       </Button>
     </div>
