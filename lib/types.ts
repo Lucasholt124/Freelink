@@ -29,27 +29,21 @@ export interface ServerTrackingEvent extends ClientTrackingData {
 export type PlanFormat = "Reels" | "Carrossel" | "Story" | "Live";
 
 export type PlanItem = {
+  title: string;
   day: string;
   time: string;
   format: PlanFormat;
-  title: string;
   content_idea: string;
-  status: string;
+  status: "Pendente" | "Concluído";
 };
 
 export type AnalysisResults = {
-  _id: string;
-  _creationTime: number;
-  createdAt?: number;
-  updatedAt?: number;
-  userId: string;
-  suggestions: string[];
+  username: string;
+  offer?: string;
+  updatedAt?: string;
+  _creationTime?: string;
   strategy: string;
+  suggestions: string[];
   grid: string[];
   content_plan: PlanItem[];
-  username?: string;
-  bio?: string;
-  offer?: string;
-  audience?: string;
-  planDuration?: "week" | "month";
 };

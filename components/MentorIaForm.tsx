@@ -3,28 +3,31 @@
 import { useState } from "react";
 
 export type FormData = {
-  username: string; // Agora obrigatório para manter igual nos dois arquivos
-  topic: string;
-  goal: string;
+  username: string;
+  bio: string;
+  offer: string;
+  audience: string;
+  planDuration: "week" | "month";
 };
 
-export type ConversationalFormProps = {
+type Props = {
   onSubmit: (data: FormData) => void;
+  defaults?: Partial<FormData>;
+  isLoading?: boolean;
 };
 
-export default function ConversationalForm({ onSubmit }: ConversationalFormProps) {
+export default function ConversationalForm({ onSubmit, defaults, isLoading }: Props) {
   const [formData, setFormData] = useState<FormData>({
-    username: "",
-    topic: "",
-    goal: "",
+    username: defaults?.username ?? "",
+    bio: defaults?.bio ?? "",
+    offer: defaults?.offer ?? "",
+    audience: defaults?.audience ?? "",
+    planDuration: (defaults?.planDuration as "week" | "month") ?? "week",
   });
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
+  const handleChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>
+  ) => setFormData(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,42 +35,76 @@ export default function ConversationalForm({ onSubmit }: ConversationalFormProps
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-4 border rounded-lg shadow-md">
-      <div>
-        <label className="block text-sm font-medium">Username</label>
-        <input
-          name="username"
-          value={formData.username}
-          onChange={handleChange}
-          className="w-full border rounded px-2 py-1"
-          required
-        />
+    <form onSubmit={handleSubmit} className="space-y-4 p-6 border rounded-2xl shadow-sm bg-white">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium">Username</label>
+          <input
+            name="username"
+            value={formData.username}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2"
+            placeholder="@seunome"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Duração do plano</label>
+          <select
+            name="planDuration"
+            value={formData.planDuration}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2"
+          >
+            <option value="week">7 dias</option>
+            <option value="month">30 dias</option>
+          </select>
+        </div>
       </div>
 
       <div>
-        <label className="block text-sm font-medium">Topic</label>
-        <input
-          name="topic"
-          value={formData.topic}
-          onChange={handleChange}
-          className="w-full border rounded px-2 py-1"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium">Goal</label>
+        <label className="block text-sm font-medium">Bio atual</label>
         <textarea
-          name="goal"
-          value={formData.goal}
+          name="bio"
+          value={formData.bio}
           onChange={handleChange}
-          className="w-full border rounded px-2 py-1"
-          required
+          className="w-full border rounded px-3 py-2"
+          rows={3}
+          placeholder="Quem é você e o que você faz?"
         />
       </div>
 
-      <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded">
-        Enviar
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label className="block text-sm font-medium">Oferta</label>
+          <input
+            name="offer"
+            value={formData.offer}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2"
+            placeholder="Ex: Mentoria em tráfego orgânico"
+            required
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium">Público</label>
+          <input
+            name="audience"
+            value={formData.audience}
+            onChange={handleChange}
+            className="w-full border rounded px-3 py-2"
+            placeholder="Ex: infoprodutores iniciantes"
+            required
+          />
+        </div>
+      </div>
+
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-60"
+      >
+        {isLoading ? "Gerando plano..." : "Gerar plano com Athena"}
       </button>
     </form>
   );
