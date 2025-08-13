@@ -21,6 +21,7 @@ export type PlanItem = {
   title: string;
   content_idea: string;
   status: "planejado" | "concluido";
+  details?: Record<string, string>;
 };
 
 const locales = { "pt-BR": ptBR };
@@ -72,20 +73,26 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
     setEditMode(true);
   };
 
-  const onSubmitEdit = (data: FormData) => {
+  const onSubmitEdit = (data: FormData & { status?: string; format?: PlanFormat; time?: string }) => {
     if (!selectedEvent) return;
-    setLocalPlan((prev) =>
-      prev.map((p) =>
-        p === selectedEvent
-          ? {
-              ...p,
-              title: data.username || p.title,
-              content_idea: data.bio || p.content_idea,
-              format: data.planDuration || p.format,
-            }
-          : p
-      )
+
+    const toStatus = (s: string | undefined): "planejado" | "concluido" =>
+      s === "concluido" ? "concluido" : "planejado";
+
+    const updatedPosts = localPlan.map((p) =>
+      p === selectedEvent
+        ? {
+            ...p,
+            title: data.username || p.title,
+            content_idea: data.bio || p.content_idea,
+            format: data.format || p.format,
+            time: data.time || p.time,
+            status: toStatus(data.status) || p.status,
+          }
+        : p
     );
+
+    setLocalPlan(updatedPosts);
     toast.success("Evento atualizado!");
     setEditMode(false);
     setSelectedEvent(null);
@@ -166,17 +173,17 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
                 )}
               </>
             ) : (
-             <ConversationalForm
-  defaults={{
-    username: selectedEvent?.title || "",
-    bio: selectedEvent?.content_idea || "",
-    offer: "",
-    audience: "",
-    planDuration: "week", // ✅ ou "month", um valor válido
-  }}
-  onSubmit={onSubmitEdit}
-  isLoading={false}
-/>
+              <ConversationalForm
+                defaults={{
+                  username: selectedEvent?.title || "",
+                  bio: selectedEvent?.content_idea || "",
+                  format: selectedEvent?.format || "Story",
+                  time: selectedEvent?.time || "09:00",
+                  status: selectedEvent?.status || "planejado",
+                }}
+                onSubmit={onSubmitEdit}
+                isLoading={false}
+              />
             )}
           </div>
         </DialogContent>

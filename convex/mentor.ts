@@ -17,12 +17,13 @@ type RawPlanItem = {
   title?: string;
   content_idea?: string;
   status?: string;
+  details?: string; // instruções detalhadas de cada post
 };
 
 type RawAnalysisData = {
   suggestions?: Array<string | { bio?: string }>;
-  strategy?: string;
-  grid?: string[]; // agora grid é string[]
+  strategy?: string | object;
+  grid?: Array<string | object>;
   content_plan?: RawPlanItem[];
 };
 
@@ -40,7 +41,7 @@ export const generateAnalysis = action({
     if (!identity) throw new Error("Não autenticado.");
 
     const prompt = `
-Você é Athena, estrategista de conteúdo de marketing digital.
+Você é Athena, estrategista de conteúdo digital.
 Gere plano para ${args.planDuration === "week" ? "7" : "30"} dias.
 Inclua horários de pico, passo a passo detalhado, instruções para Canva/CapCut, textos e ideias visuais.
 
@@ -50,11 +51,13 @@ Dados:
 - Oferta: "${args.offer}"
 - Público: "${args.audience}"
 
-Retorne APENAS um JSON:
+Retorne um JSON com:
 - suggestions: 3 bios otimizadas
-- strategy: análise detalhada
+- strategy: análise detalhada (JSON estruturado)
 - grid: 9 ideias curtas como strings
-- content_plan: ${args.planDuration === "week" ? 7 : 30} itens com { day, time, format, title, content_idea, status }
+- content_plan: ${args.planDuration === "week" ? 7 : 30} itens com { day, time, format, title, content_idea, status, details }
+Cada post deve ter:
+- details: instruções detalhadas de edição para imagem, vídeo ou story (onde escrever texto, editor, thumbnail, call-to-action, hashtags)
 `;
 
     const response = await groq.chat.completions.create({
@@ -69,31 +72,50 @@ Retorne APENAS um JSON:
     const resultText = response.choices[0]?.message?.content;
     if (!resultText) throw new Error("IA não retornou resultado.");
 
-    const rawData: RawAnalysisData = JSON.parse(resultText);
+    let rawData: RawAnalysisData = {};
+    try {
+      rawData = JSON.parse(resultText);
+    } catch {
+      throw new Error(`Erro ao parsear JSON da IA: ${resultText}`);
+    }
 
-    // Normaliza o plano
-    const normalizedPlan = (rawData.content_plan || []).map((item, idx) => ({
-      day: String(item.day ?? idx + 1),
-      time: String(item.time ?? "09:00"),
-      format: String(item.format ?? "Story"),
-      title: String(item.title ?? `Post ${idx + 1}`),
-      content_idea: String(item.content_idea ?? ""),
-      status: String(item.status ?? "planejado"),
-    }));
+    // Normaliza o plano com datas reais
+    const today = new Date();
+    const normalizedPlan = (rawData.content_plan || []).map((item, idx) => {
+      const planDate = new Date(today);
+      planDate.setDate(today.getDate() + idx); // adiciona idx dias
+      return {
+        day: planDate.toISOString().split("T")[0], // YYYY-MM-DD
+        time: String(item.time ?? "09:00"),
+        format: String(item.format ?? "Story"),
+        title: String(item.title ?? `Post ${idx + 1}`),
+        content_idea: String(item.content_idea ?? ""),
+        status: String(item.status ?? "planejado"),
+        details: item.details ?? {},
+      };
+    });
 
-    // Normaliza as sugestões
+    // Normaliza sugestões
     const normalizedSuggestions: string[] = (rawData.suggestions || []).map((s) =>
       typeof s === "string" ? s : s.bio ?? ""
     );
 
-    // Normaliza o grid como array de strings
-    const normalizedGrid: string[] = (rawData.grid || []).map((g) => (typeof g === "string" ? g : String(g)));
+    // Normaliza grid como strings
+    const normalizedGrid: string[] = (rawData.grid || []).map((g) =>
+      typeof g === "string" ? g : JSON.stringify(g)
+    );
+
+    // Normaliza strategy como string JSON
+    const normalizedStrategy =
+      typeof rawData.strategy === "string"
+        ? rawData.strategy
+        : JSON.stringify(rawData.strategy, null, 2);
 
     const analysisDataToSave = {
       userId: identity.subject,
       content_plan: normalizedPlan,
       grid: normalizedGrid,
-      strategy: rawData.strategy ?? "",
+      strategy: normalizedStrategy,
       suggestions: normalizedSuggestions,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -118,9 +140,10 @@ export const saveAnalysis = internalMutation({
           status: v.string(),
           time: v.string(),
           title: v.string(),
+          details: v.optional(v.object({})),
         })
       ),
-      grid: v.array(v.string()), // <-- aqui respeitamos o schema atual
+      grid: v.array(v.string()),
       strategy: v.string(),
       suggestions: v.array(v.string()),
       createdAt: v.float64(),

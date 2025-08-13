@@ -8,6 +8,9 @@ export type FormData = {
   offer: string;
   audience: string;
   planDuration: "week" | "month";
+  format?: string;     // <-- adicionado
+  time?: string;       // <-- adicionado
+  status?: "planejado" | "concluido"; // <-- adicionado
 };
 
 type Props = {
