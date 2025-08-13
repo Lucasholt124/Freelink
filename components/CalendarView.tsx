@@ -1,108 +1,88 @@
-// Em components/CalendarView.tsx
+// Em /components/CalendarView.tsx
+// (Substitua o arquivo inteiro)
 
 "use client";
 
-import { useMemo, useState } from 'react';
-import { Calendar, dateFnsLocalizer, Event as BigCalendarEvent } from 'react-big-calendar';
+import { useMemo, useState, ReactNode } from 'react';
+import { Calendar, dateFnsLocalizer, Event as BigCalendarEvent, Views } from 'react-big-calendar';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
-
-import { format, parse, startOfWeek, getDay } from 'date-fns';
+import { format, parse, startOfWeek, getDay, addDays, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-
-// Importando componentes do Dialog do ShadCN/UI
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Video, Image as ImageIcon, MessageSquare, Podcast, CheckSquare, Edit } from 'lucide-react';
+import clsx from 'clsx';
+import { Button } from './ui/button';
 
 const locales = { 'pt-BR': ptBR };
-const localizer = dateFnsLocalizer({
-  format, parse, startOfWeek: () => startOfWeek(new Date(), { locale: ptBR }), getDay, locales,
-});
+const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
-type WeeklyPlanItem = { day: string; time: string; format: string; content_idea: string; };
-interface CalendarViewProps { plan: WeeklyPlanItem[]; }
+type PlanItem = { day: string; time: string; format: string; title: string; content_idea: string; status: string; };
 
-export default function CalendarView({ plan }: CalendarViewProps) {
-    // Estado para controlar o evento selecionado e a visibilidade do modal
+const formatIcons: Record<string, ReactNode> = {
+    "Reels": <Video className="w-4 h-4 mr-2" />, "Carrossel": <ImageIcon className="w-4 h-4 mr-2" />, "Story": <MessageSquare className="w-4 h-4 mr-2" />, "Live": <Podcast className="w-4 h-4 mr-2" />,
+};
+const formatColors: Record<string, string> = {
+    "Reels": "bg-red-100 text-red-800 border-red-200", "Carrossel": "bg-blue-100 text-blue-800 border-blue-200", "Story": "bg-yellow-100 text-yellow-800 border-yellow-200", "Live": "bg-purple-100 text-purple-800 border-purple-200",
+};
+
+export default function CalendarView({ plan }: { plan: PlanItem[] }) {
     const [selectedEvent, setSelectedEvent] = useState<BigCalendarEvent | null>(null);
 
     const events = useMemo(() => {
         if (!plan) return [];
-
-        const dayMap: { [key: string]: number } = {
-            "Domingo": 0, "Segunda-feira": 1, "Terça-feira": 2, "Quarta-feira": 3,
-            "Quinta-feira": 4, "Sexta-feira": 5, "Sábado": 6
-        };
-
-        const today = new Date();
-        const currentDayOfWeek = today.getDay();
-
+        const monthStart = startOfMonth(new Date());
         return plan.map(item => {
-            const targetDay = dayMap[item.day];
-            if (targetDay === undefined) return null;
-
-            let dayDifference = targetDay - currentDayOfWeek;
-            if (dayDifference < 0) { dayDifference += 7; }
-
-            const eventDate = new Date();
-            eventDate.setDate(today.getDate() + dayDifference);
+            const dayNumber = parseInt(item.day.replace(/Dia /i, ''), 10);
+            if (isNaN(dayNumber)) return null;
+            const eventDate = addDays(monthStart, dayNumber - 1);
             const [hours, minutes] = item.time.split(':').map(Number);
             eventDate.setHours(hours, minutes, 0, 0);
-            const endDate = new Date(eventDate);
-            endDate.setHours(eventDate.getHours() + 1);
+            return { title: item.title, start: eventDate, end: eventDate, allDay: false, resource: item, };
+        }).filter(Boolean) as BigCalendarEvent[];
+    }, [plan]);
 
-            return {
-                title: `${item.format}: ${item.content_idea.substring(0, 40)}...`,
-                start: eventDate,
-                end: endDate,
-                allDay: false,
-                resource: item,
-            };
-        }).filter(Boolean);
-
-    }, [plan]) as BigCalendarEvent[];
-
-    const handleSelectEvent = (event: BigCalendarEvent) => {
-        setSelectedEvent(event);
+    const eventStyleGetter = (event: BigCalendarEvent) => {
+        const format = event.resource.format;
+        const colorClass = formatColors[format] || "bg-gray-100 text-gray-800";
+        return { className: `${colorClass} p-1 border rounded-md text-xs font-medium focus:outline-none focus:ring-2 focus:ring-purple-500` };
     };
 
     return (
         <>
-            <div className="bg-white p-4 rounded-lg shadow-sm border h-[600px]">
+            <div className="bg-white p-2 sm:p-4 rounded-2xl shadow-lg border h-[80vh] min-h-[700px]">
                 <Calendar
                     localizer={localizer}
                     events={events}
                     startAccessor="start"
                     endAccessor="end"
                     culture="pt-BR"
-                    defaultView="week"
-                    onSelectEvent={handleSelectEvent} // <-- Ação ao clicar no evento
-                    messages={{
-                        next: "Próximo", previous: "Anterior", today: "Hoje",
-                        month: "Mês", week: "Semana", day: "Dia",
-                        agenda: "Agenda", noEventsInRange: "Nenhum post planejado neste período.",
+                    views={[Views.MONTH, Views.WEEK, Views.AGENDA]}
+                    defaultView={Views.MONTH}
+                    onSelectEvent={(event) => setSelectedEvent(event)}
+                    eventPropGetter={eventStyleGetter}
+                    components={{
+                        event: ({ event }) => ( <div className="flex items-center overflow-hidden">{formatIcons[event.resource.format]}<span className="truncate">{event.title}</span></div> )
                     }}
+                    messages={{ next: "Próximo", previous: "Anterior", today: "Hoje", month: "Mês", week: "Semana", day: "Dia", agenda: "Agenda", noEventsInRange: "Nenhum post planejado." }}
                 />
             </div>
-
-            {/* Modal de Detalhes do Evento */}
             <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
-                <DialogContent>
+                <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>
-                            <span className="bg-purple-100 text-purple-800 text-sm font-medium mr-2 px-2.5 py-0.5 rounded">
+                        <DialogTitle className="flex items-center gap-2">
+                           <span className={clsx("px-2.5 py-1 rounded-full text-xs font-bold", formatColors[selectedEvent?.resource.format])}>
                                 {selectedEvent?.resource.format}
                             </span>
-                             - {selectedEvent?.resource.day} às {selectedEvent?.resource.time}
+                            {selectedEvent?.title}
                         </DialogTitle>
-                        <DialogDescription className="pt-4 text-base text-gray-700 whitespace-pre-line">
+                        <DialogDescription className="pt-4 text-base text-gray-800 whitespace-pre-line prose max-w-none">
                             {selectedEvent?.resource.content_idea}
                         </DialogDescription>
                     </DialogHeader>
+                    <div className="pt-4 flex justify-end gap-2">
+                        <Button variant="outline"><Edit className="w-4 h-4 mr-2"/>Editar Post</Button>
+                        <Button><CheckSquare className="w-4 h-4 mr-2"/>Marcar como Concluído</Button>
+                    </div>
                 </DialogContent>
             </Dialog>
         </>

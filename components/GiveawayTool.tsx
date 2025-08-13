@@ -4,27 +4,21 @@
 "use client";
 
 import { useState } from "react";
-import { useAction, useQuery } from "convex/react";
+import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import Image from "next/image";
-import Link from "next/link";
-
-import { Loader2, Star, RefreshCw, Instagram, List, Users } from "lucide-react";
+import { Loader2, Star, RefreshCw, Instagram, List, Users, ExternalLink } from "lucide-react";
 import clsx from "clsx";
 import { FunctionReturnType } from "convex/server";
 import { Button } from "./ui/button";
 import { Label } from "./ui/label";
-import { Checkbox } from "./ui/checkbox";
 import { Textarea } from "./ui/textarea";
+import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 
-// --- Tipos ---
-type InstagramWinner = FunctionReturnType<typeof api.giveaways.runInstagramGiveaway>;
-type ListWinner = FunctionReturnType<typeof api.giveaways.runListGiveaway>;
-type Winner = InstagramWinner | ListWinner | null;
+type Winner = FunctionReturnType<typeof api.giveaways.runInstagramGiveaway> | null;
 
-// --- Sub-componente WinnerCard ---
 function WinnerCard({ winner, onRedraw }: { winner: NonNullable<Winner>; onRedraw: () => void }) {
   return (
     <div className="mt-8 bg-gradient-to-br from-amber-50 to-orange-100 p-6 rounded-2xl border-2 border-amber-300 text-center animate-in fade-in-50 zoom-in-95">
@@ -41,59 +35,69 @@ function WinnerCard({ winner, onRedraw }: { winner: NonNullable<Winner>; onRedra
   );
 }
 
-// --- Componente de Sorteio por Instagram ---
-function InstagramGiveaway({ setWinner, onRedraw }: { setWinner: (w: Winner) => void; onRedraw: (p: { postUrl: string; unique: boolean; mentions: number; }) => Promise<InstagramWinner> }) {
-    const [postUrl, setPostUrl] = useState("");
+function InstagramGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
+    const [comments, setComments] = useState("");
     const [filters, setFilters] = useState({ unique: true, mentions: 1 });
-    const connection = useQuery(api.connections.get, { provider: "instagram" });
+    const runGiveaway = useAction(api.giveaways.runInstagramGiveaway);
     const [isLoading, setIsLoading] = useState(false);
 
     const handleRun = () => {
-        if (!postUrl) return toast.error("Por favor, insira a URL do post.");
+        const commentList = comments.split('\n').filter(Boolean);
+        if (commentList.length === 0) return toast.error("Por favor, cole os comentários.");
         setIsLoading(true);
         setWinner(null);
-        toast.promise(onRedraw({ postUrl, ...filters }), {
-            loading: "Buscando comentários e sorteando...",
+        toast.promise(runGiveaway({ comments: commentList, ...filters }), {
+            loading: "Analisando comentários e sorteando...",
             success: (result) => { setWinner(result); return `Parabéns para @${result.username}! 🎉`; },
             error: (err) => err instanceof Error ? err.message : 'Tente novamente.',
             finally: () => setIsLoading(false),
         });
     };
 
-    if (connection === undefined) return <div className="p-8 text-center text-gray-500">Carregando status da conexão...</div>;
-    if (!connection) return (
-      <div className="text-center p-8 border-2 border-dashed rounded-xl bg-gray-50">
-        <Instagram className="w-10 h-10 mx-auto text-gray-400 mb-3" />
-        <h3 className="font-semibold text-lg">Conecte seu Instagram</h3>
-        <p className="text-sm text-gray-500 mt-1">É necessário conectar sua conta para sortear pelos comentários.</p>
-        <Button asChild className="mt-4"><Link href="/dashboard/settings">Conectar agora</Link></Button>
-      </div>
-    );
-
     return (
         <div className="space-y-6">
-            <div><Label htmlFor="postUrl" className="font-semibold">URL do Post do Instagram</Label><Input id="postUrl" value={postUrl} onChange={(e) => setPostUrl(e.target.value)} placeholder="https://www.instagram.com/p/C..." disabled={isLoading} /></div>
+            <div className="p-4 bg-blue-50 border-l-4 border-blue-400 rounded-r-lg">
+                <h3 className="font-semibold text-blue-800">Como funciona?</h3>
+                <p className="text-sm text-blue-700 mt-1">
+                    Use uma ferramenta gratuita para exportar os comentários do seu post e cole a lista abaixo para sortear.
+                </p>
+                <a href="https://commentpicker.com/instagram.php" target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-blue-800 mt-2 inline-flex items-center hover:underline">
+                    Usar o Comment Picker <ExternalLink className="w-3 h-3 ml-1.5" />
+                </a>
+            </div>
+            <div>
+                <Label htmlFor="comments">Cole os comentários aqui (um por linha)</Label>
+                <Textarea id="comments" value={comments} onChange={(e) => setComments(e.target.value)} placeholder="@usuario1 marcou @amigo1&#10;@usuario2 marcou @amigo2&#10;..." rows={8} disabled={isLoading} />
+            </div>
             <div className="space-y-4 rounded-lg border bg-gray-50 p-4">
-                <div className="flex items-center space-x-2"><Checkbox id="ig_unique" checked={filters.unique} onCheckedChange={(c) => setFilters(p => ({...p, unique: !!c}))} disabled={isLoading} /><Label htmlFor="ig_unique">1 comentário por pessoa.</Label></div>
+                <div className="flex items-center space-x-2"><Checkbox id="ig_unique" checked={filters.unique} onCheckedChange={(c) => setFilters(p => ({...p, unique: !!c}))} disabled={isLoading} /><Label htmlFor="ig_unique">Considerar apenas um comentário por pessoa.</Label></div>
                 <div className="flex items-center gap-2"><Label htmlFor="mentions-input">Exigir</Label><Input id="mentions-input" type="number" value={filters.mentions} onChange={e => setFilters(p => ({...p, mentions: Number(e.target.value)}))} className="w-16 text-center" min="0" disabled={isLoading} /><Label htmlFor="mentions-input">menção(ões).</Label></div>
             </div>
-            <Button onClick={handleRun} className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Star className="mr-2 h-4 w-4" />} {isLoading ? "Sorteando..." : "Sortear Vencedor do Instagram"}</Button>
+            <Button onClick={handleRun} className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin mr-2"/> : <Star className="mr-2"/>} {isLoading ? "Sorteando..." : "Sortear Vencedor do Instagram"}</Button>
         </div>
     );
 }
 
-// --- Componente de Sorteio por Lista ---
-function ListGiveaway({ setWinner, onRedraw }: { setWinner: (w: Winner) => void; onRedraw: (p: { participants: string[]; unique: boolean; }) => Promise<ListWinner> }) {
+/*************  ✨ Windsurf Command ⭐  *************/
+    /**
+     * Sorteia um vencedor a partir de uma lista de participantes.
+     *
+     * @param {{ setWinner: (w: Winner) => void }} props
+     * @param {Winner} props.setWinner Função que recebe o vencedor sorteado e o renderiza na tela.
+     */
+/*******  e1e02b5c-06a0-4d65-9e27-909a88b7b1be  *******/
+function ListGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
     const [participants, setParticipants] = useState("");
     const [unique, setUnique] = useState(true);
     const [isLoading, setIsLoading] = useState(false);
+    const runGiveaway = useAction(api.giveaways.runListGiveaway);
 
     const handleRun = () => {
         const list = participants.split('\n').map(p => p.trim()).filter(Boolean);
         if (list.length === 0) return toast.error("A lista está vazia.");
         setIsLoading(true);
         setWinner(null);
-        toast.promise(onRedraw({ participants: list, unique }), {
+        toast.promise(runGiveaway({ participants: list, unique }), {
             loading: "Sorteando participante...",
             success: (result) => { setWinner(result); return `Parabéns para ${result.username}! 🎉`; },
             error: (err) => err instanceof Error ? err.message : 'Tente novamente.',
@@ -105,18 +109,14 @@ function ListGiveaway({ setWinner, onRedraw }: { setWinner: (w: Winner) => void;
         <div className="space-y-6">
             <div><Label htmlFor="participants">Lista de Participantes (um por linha)</Label><Textarea id="participants" value={participants} onChange={(e) => setParticipants(e.target.value)} placeholder="Lucas Aragão&#10;Luiza Coura&#10;..." rows={8} disabled={isLoading} /></div>
             <div className="rounded-lg border bg-gray-50 p-4"><div className="flex items-center space-x-2"><Checkbox id="list_unique" checked={unique} onCheckedChange={(c) => setUnique(!!c)} disabled={isLoading} /><Label htmlFor="list_unique">Remover participantes duplicados.</Label></div></div>
-            <Button onClick={handleRun} className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Users className="mr-2 h-4 w-4" />} {isLoading ? "Sorteando..." : "Sortear Vencedor da Lista"}</Button>
+            <Button onClick={handleRun} className="w-full" disabled={isLoading}>{isLoading ? <Loader2 className="animate-spin mr-2"/> : <Users className="mr-2"/>} {isLoading ? "Sorteando..." : "Sortear Vencedor da Lista"}</Button>
         </div>
     );
 }
 
-// --- Componente Principal com Abas ---
 export default function GiveawayTool() {
   const [activeTab, setActiveTab] = useState<'instagram' | 'list'>('instagram');
   const [winner, setWinner] = useState<Winner>(null);
-
-  const runInstagramAction = useAction(api.giveaways.runInstagramGiveaway);
-  const runListAction = useAction(api.giveaways.runListGiveaway);
 
   const handleRedraw = () => {
       toast.info("Para sortear novamente, ajuste as opções e clique no botão principal.");
@@ -134,8 +134,8 @@ export default function GiveawayTool() {
       </div>
 
       <div>
-        {activeTab === 'instagram' && <InstagramGiveaway setWinner={setWinner} onRedraw={runInstagramAction} />}
-        {activeTab === 'list' && <ListGiveaway setWinner={setWinner} onRedraw={runListAction} />}
+        {activeTab === 'instagram' && <InstagramGiveaway setWinner={setWinner} />}
+        {activeTab === 'list' && <ListGiveaway setWinner={setWinner} />}
       </div>
 
       {winner && <WinnerCard winner={winner} onRedraw={handleRedraw} />}
