@@ -53,14 +53,21 @@ export default defineSchema({
     suggestions: v.array(v.string()),
     strategy: v.string(),
     grid: v.array(v.string()),
-    content_plan: v.array(v.object({
-        day: v.string(),
-        time: v.string(),
-        format: v.string(),
-        title: v.string(),
-        content_idea: v.string(),
-        status: v.string(),
-    })),
+   content_plan: v.array(
+  v.object({
+    day: v.string(),
+    time: v.string(),
+    format: v.string(),
+    title: v.string(),
+    content_idea: v.string(),
+    status: v.string(), // opcionalmente pode validar "planejado" | "concluido"
+    details: v.optional(
+      v.object({
+        passo_a_passo: v.string()
+      })
+    ),
+  })
+),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
   }).index("by_user", ["userId"]), // <-- O índice que estava faltando
