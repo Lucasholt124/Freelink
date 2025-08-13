@@ -78,7 +78,7 @@ export default defineSchema({
             tool_suggestion: v.string(),
             step_by_step: v.string(),
             script_or_copy: v.string(),
-            hashtags: v.string(),
+              hashtags: v.array(v.string()),
             creative_guidance: v.object({
                 type: v.string(), // 'image' ou 'video'
                 description: v.string(),

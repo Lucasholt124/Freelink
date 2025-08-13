@@ -36,7 +36,7 @@ type PlanItemFromDB = {
     tool_suggestion: string;
     step_by_step: string;
     script_or_copy: string;
-    hashtags: string;
+     hashtags: string[];
     creative_guidance: {
         type: string;
         description: string;
