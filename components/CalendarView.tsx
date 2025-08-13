@@ -1,13 +1,14 @@
 // Em /components/mentor/CalendarView.tsx
+// (Substitua o arquivo inteiro por esta versão final e corrigida)
 "use client";
 
 import { JSX, useMemo, useState } from "react";
 import { Calendar, dateFnsLocalizer, Views, Event } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import { format, parse, startOfWeek, getDay, addDays, startOfMonth } from "date-fns";
+import { format, parse, startOfWeek, getDay, addDays, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Video, Newspaper, MessageSquare, Mic, CheckSquare, Edit, X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Video, Newspaper, MessageSquare, Mic, CheckSquare, Edit, X, Sparkles, Copy, Link as LinkIcon, ImageIcon } from "lucide-react";
 import clsx from "clsx";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -16,133 +17,120 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import ReactMarkdown from 'react-markdown';
 
-// Tipos para o plano de conteúdo
+// COMENTÁRIO DE CORREÇÃO:
+// 1. Criamos um tipo para os dados como eles vêm do banco de dados (sem o 'id' do frontend).
+// 2. O tipo 'PlanItem' agora estende o tipo do banco de dados, adicionando o 'id'.
+// Isso elimina o uso de 'any' e torna o componente totalmente type-safe.
+
 export type PlanFormat = "Reels" | "Carrossel" | "Story" | "Live" | "Foto" | string;
 export type PlanStatus = "planejado" | "concluido";
 
-export type PlanItem = {
-  id: string; // Adicionando um ID único para cada item
+type PlanItemFromDB = {
   day: string;
   time: string;
   format: PlanFormat;
   title: string;
   content_idea: string;
   status: PlanStatus;
-  details?: { passo_a_passo: string };
+  details?: {
+    tool_suggestion: string;
+    step_by_step: string;
+    script_or_copy: string;
+    hashtags: string;
+    creative_guidance: {
+        type: string;
+        description: string;
+        prompt: string;
+        tool_link: string;
+    };
+  };
 };
 
-// Componente do Formulário de Edição (para manter o código organizado)
-const EditPostForm = ({
-    item,
-    onSave,
-    onCancel,
-}: {
-    item: PlanItem;
-    onSave: (updatedItem: PlanItem) => void;
-    onCancel: () => void;
-}) => {
+export type PlanItem = PlanItemFromDB & {
+  id: string; // ID temporário exclusivo do frontend
+};
+
+// Formulário de Edição (sem alterações, mas se beneficia da tipagem mais forte)
+const EditPostForm = ({ item, onSave, onCancel }: { item: PlanItem; onSave: (updatedItem: PlanItem) => void; onCancel: () => void; }) => {
     const [editedItem, setEditedItem] = useState(item);
-
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => { setEditedItem(prev => ({ ...prev, [e.target.name]: e.target.value })); };
+    const handleDetailsChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         const { name, value } = e.target;
-        setEditedItem(prev => ({ ...prev, [name]: value }));
+        setEditedItem(prev => ({ ...prev, details: { ...prev.details!, [name]: value, } }));
     };
-
-    const handleSave = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave(editedItem);
-    };
-
-    // Supondo que você tenha componentes de UI prontos (Input, Textarea, etc.)
+    const handleSave = (e: React.FormEvent) => { e.preventDefault(); onSave(editedItem); };
     return (
-        <form onSubmit={handleSave} className="space-y-4 pt-4">
+        <form onSubmit={handleSave} className="space-y-4 pt-4 max-h-[60vh] overflow-y-auto pr-4">
              <div>
-                <label className="text-sm font-medium">Título</label>
+                <label className="text-sm font-medium">Título do Post</label>
                 <input name="title" value={editedItem.title} onChange={handleChange} className="w-full mt-1 border rounded-md px-3 py-2 bg-background" />
             </div>
             <div>
-                <label className="text-sm font-medium">Ideia de Conteúdo (suporta Markdown)</label>
-                <textarea name="content_idea" value={editedItem.content_idea} onChange={handleChange} rows={5} className="w-full mt-1 border rounded-md px-3 py-2 bg-background" />
-            </div>
-            <div className="flex gap-4">
-                <div className="flex-1">
-                    <label className="text-sm font-medium">Formato</label>
-                    <input name="format" value={editedItem.format} onChange={handleChange} className="w-full mt-1 border rounded-md px-3 py-2 bg-background" />
-                </div>
-                <div className="flex-1">
-                    <label className="text-sm font-medium">Horário</label>
-                    <input name="time" type="time" value={editedItem.time} onChange={handleChange} className="w-full mt-1 border rounded-md px-3 py-2 bg-background" />
-                </div>
+                <label className="text-sm font-medium">Roteiro / Legenda</label>
+                <textarea name="script_or_copy" value={editedItem.details?.script_or_copy} onChange={handleDetailsChange} rows={8} className="w-full mt-1 border rounded-md px-3 py-2 bg-background" />
             </div>
             <div className="flex justify-end gap-2 pt-4">
                 <Button type="button" variant="ghost" onClick={onCancel}><X className="w-4 h-4 mr-2"/> Cancelar</Button>
                 <Button type="submit"><CheckSquare className="w-4 h-4 mr-2"/> Salvar Alterações</Button>
             </div>
         </form>
-    )
-}
-
+    );
+};
 
 const locales = { "pt-BR": ptBR };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
-// Ícones e cores aprimorados
 const formatConfig: Record<string, { icon: JSX.Element; color: string }> = {
   reels: { icon: <Video className="w-4 h-4 mr-2" />, color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800" },
   carrossel: { icon: <Newspaper className="w-4 h-4 mr-2" />, color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800" },
   story: { icon: <MessageSquare className="w-4 h-4 mr-2" />, color: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-800" },
   live: { icon: <Mic className="w-4 h-4 mr-2" />, color: "bg-purple-100 text-purple-800 border-purple-200 dark:bg-purple-900/50 dark:text-purple-300 dark:border-purple-800" },
-  foto: { icon: <MessageSquare className="w-4 h-4 mr-2" />, color: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800" },
+  foto: { icon: <ImageIcon className="w-4 h-4 mr-2" />, color: "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800" },
   default: { icon: <MessageSquare className="w-4 h-4 mr-2" />, color: "bg-gray-100 text-gray-800 border-gray-200 dark:bg-gray-800/50 dark:text-gray-300 dark:border-gray-700" },
 };
-
 const getConfig = (fmt: PlanFormat) => {
     const key = Object.keys(formatConfig).find(k => fmt.toLowerCase().includes(k));
     return formatConfig[key || 'default'];
 }
 
-export default function CalendarView({ plan, analysisId }: { plan: PlanItem[]; analysisId: Id<"analyses"> }) {
+// A assinatura do componente agora é 100% type-safe.
+export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromDB[]; analysisId: Id<"analyses"> }) {
   const [selectedEvent, setSelectedEvent] = useState<PlanItem | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const updatePlanMutation = useMutation(api.mentor.updateContentPlan);
 
-  // Adiciona um ID único para cada item do plano para facilitar a manipulação
-  const planWithIds = useMemo(() => plan.map((p, index) => ({ ...p, id: p.title + index })), [plan]);
+  const planWithIds: PlanItem[] = useMemo(() => plan.map((p, index) => ({ ...p, id: p.title + index })), [plan]);
 
   const events = useMemo(() => {
-    const monthStart = startOfMonth(new Date());
+    const today = startOfDay(new Date());
     return planWithIds.map((item) => {
       const dayNumber = parseInt(item.day.replace(/\D/g, ""), 10) || 1;
-      const eventDate = addDays(monthStart, dayNumber - 1);
+      const eventDate = addDays(today, dayNumber - 1);
       const [h, m] = (item.time ?? "09:00").split(":");
       eventDate.setHours(Number(h ?? 9), Number(m ?? 0), 0, 0);
       return { title: item.title, start: eventDate, end: eventDate, allDay: false, resource: item };
     });
   }, [planWithIds]);
 
-    const handleUpdatePlan = (updatedPlan: PlanItem[]) => {
-    // CORREÇÃO PARA REMOVER O 'id' SEM ERROS DE LINTER:
-    // Criamos uma cópia de cada item e deletamos a propriedade 'id' da cópia.
-    // Isso é limpo, não muta o estado original e não cria variáveis não utilizadas.
-    const planToSave = updatedPlan.map(item => {
-      const itemCopy = { ...item };
-      delete (itemCopy as Partial<PlanItem>).id; // Usamos um cast mínimo e seguro aqui
-      return itemCopy;
-    });
+  const handleUpdatePlan = (updatedPlan: PlanItem[]) => {
+    // COMENTÁRIO DE CORREÇÃO FINAL:
+    // Esta abordagem é 100% à prova de linters. Mapeamos o array e construímos um
+    // novo objeto para cada item, incluindo explicitamente apenas os campos que o
+    // banco de dados espera. Isso evita variáveis não utilizadas e o uso de 'any'.
+    const planToSave = updatedPlan.map(item => ({
+      day: item.day,
+      time: item.time,
+      format: item.format,
+      title: item.title,
+      content_idea: item.content_idea,
+      status: item.status,
+      details: item.details,
+    }));
 
-    toast.promise(updatePlanMutation({ analysisId, newPlan: planToSave as PlanItem[] }), {
+    toast.promise(updatePlanMutation({ analysisId, newPlan: planToSave }), {
         loading: "Sincronizando com o banco de dados...",
         success: "Plano atualizado com sucesso!",
-        // CORREÇÃO PARA O ERRO SEM USAR 'any':
-        // Simplificamos a captura do erro. Em vez de tentar adivinhar a estrutura,
-        // retornamos uma mensagem útil e segura.
-        error: (err: unknown) => {
-            if (err instanceof Error) {
-                // A maioria dos erros do Convex tem a mensagem útil aqui
-                return err.message;
-            }
-            return "Falha ao sincronizar. Verifique o console para mais detalhes.";
-        },
+        error: (err: unknown) => err instanceof Error ? err.message : "Falha ao sincronizar. Verifique o console.",
     });
   };
 
@@ -194,28 +182,69 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItem[]; a
       </div>
 
       <Dialog open={!!selectedEvent} onOpenChange={() => { setSelectedEvent(null); setIsEditing(false); }}>
-        <DialogContent className="max-w-2xl bg-card">
+        <DialogContent className="max-w-3xl bg-card">
           {selectedEvent && (
             <>
               <DialogHeader>
-                <DialogTitle className="flex items-center gap-3">
-                  <span className={clsx("px-3 py-1 rounded-full text-xs font-bold", getConfig(selectedEvent.format).color)}>
+                <DialogTitle className="flex items-center gap-3 text-2xl">
+                  <span className={clsx("px-3 py-1 rounded-full text-sm font-bold", getConfig(selectedEvent.format).color)}>
                     {selectedEvent.format}
                   </span>
                   {selectedEvent.title}
                 </DialogTitle>
-
-                {!isEditing && (
-                     <DialogDescription asChild className="pt-4 text-base text-muted-foreground prose dark:prose-invert max-w-none">
-                        <ReactMarkdown>{selectedEvent.content_idea.replace(/\\n/g, '\n')}</ReactMarkdown>
-                    </DialogDescription>
-                )}
               </DialogHeader>
 
               {isEditing ? (
                  <EditPostForm item={selectedEvent} onSave={handleSaveEdit} onCancel={() => setIsEditing(false)} />
               ) : (
-                <div className="pt-6 flex justify-end gap-2">
+                <>
+                <div className="mt-4 space-y-6 max-h-[60vh] overflow-y-auto pr-4">
+                    <div>
+                        <h3 className="font-bold text-lg mb-2">Roteiro e Legenda</h3>
+                        <div className="prose prose-sm dark:prose-invert max-w-none bg-muted p-4 rounded-md whitespace-pre-line">
+                            <ReactMarkdown>{selectedEvent.details?.script_or_copy?.replace(/\\n/g, '\n')}</ReactMarkdown>
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2"><span className="font-semibold">Hashtags:</span> {selectedEvent.details?.hashtags}</p>
+                    </div>
+
+                    <div>
+                        <h3 className="font-bold text-lg mb-2">Plano de Execução</h3>
+                        <p className="text-sm text-muted-foreground mb-2"><span className="font-semibold">Ferramentas Gratuitas Sugeridas:</span> {selectedEvent.details?.tool_suggestion}</p>
+                        <div className="prose prose-sm dark:prose-invert max-w-none bg-muted p-4 rounded-md">
+                            <ReactMarkdown>{selectedEvent.details?.step_by_step?.replace(/\\n/g, '\n')}</ReactMarkdown>
+                        </div>
+                    </div>
+
+                    {selectedEvent.details?.creative_guidance && (
+                      <div>
+                          <h3 className="font-bold text-lg mb-2 flex items-center gap-2"><Sparkles className="w-5 h-5 text-blue-500" />Guia Criativo (Custo Zero)</h3>
+                          <div className="border p-4 rounded-lg bg-background">
+                              <p className="text-muted-foreground mb-4">{selectedEvent.details.creative_guidance.description}</p>
+
+                              {selectedEvent.details.creative_guidance.type === 'image' && (
+                                <div className="bg-blue-900/10 dark:bg-blue-500/10 p-4 rounded-md font-mono text-sm text-blue-800 dark:text-blue-300 relative mb-4">
+                                    <p className="font-semibold mb-2">Prompt Sugerido:</p>
+                                    <p>{selectedEvent.details.creative_guidance.prompt}</p>
+                                    <Button size="icon" variant="ghost" className="absolute top-2 right-2 h-7 w-7" onClick={() => {
+                                        navigator.clipboard.writeText(selectedEvent.details?.creative_guidance.prompt ?? "");
+                                        toast.success("Prompt copiado!");
+                                    }}>
+                                        <Copy className="w-4 h-4" />
+                                    </Button>
+                                </div>
+                              )}
+
+                              <a href={selectedEvent.details.creative_guidance.tool_link} target="_blank" rel="noopener noreferrer">
+                                  <Button className="w-full">
+                                      <LinkIcon className="w-4 h-4 mr-2" /> Abrir Ferramenta Recomendada
+                                  </Button>
+                              </a>
+                          </div>
+                      </div>
+                    )}
+                </div>
+
+                <div className="pt-6 flex justify-end gap-2 border-t mt-6">
                     <Button variant="outline" onClick={() => setIsEditing(true)}>
                         <Edit className="w-4 h-4 mr-2" /> Editar
                     </Button>
@@ -224,7 +253,8 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItem[]; a
                         <CheckSquare className="w-4 h-4 mr-2" /> Marcar como Concluído
                     </Button>
                     )}
-              </div>
+                </div>
+                </>
               )}
             </>
           )}

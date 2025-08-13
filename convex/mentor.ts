@@ -3,7 +3,7 @@
 
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
-import {  internal } from "./_generated/api";
+import { internal } from "./_generated/api";
 import OpenAI from "openai";
 
 // Configuração do Groq
@@ -12,7 +12,7 @@ const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
 });
 
-// --- ACTION para GERAR uma nova análise ---
+// --- ACTION para GERAR uma nova análise (COM O NOVO PROMPT) ---
 export const generateAnalysis = action({
   args: {
     username: v.string(),
@@ -25,7 +25,6 @@ export const generateAnalysis = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autenticado.");
 
-    // Armazena os inputs do usuário junto com a análise
     const userData = {
         username: args.username,
         bio: args.bio || "",
@@ -34,47 +33,63 @@ export const generateAnalysis = action({
         planDuration: args.planDuration,
     }
 
+    // <<< O PROMPT FOI COMPLETAMENTE REFEITO PARA A ESTRATÉGIA CUSTO ZERO >>>
     const prompt = `
-      Você é "Athena", a estrategista de conteúdo digital mais avançada do mundo, com foco em viralização e crescimento orgânico para o mercado brasileiro no Instagram. Sua tarefa é criar um plano de batalha de conteúdo completo, detalhado e acionável.
+      Você é "Athena", a Diretora de Criação e Estrategista de Conteúdo mais avançada do mundo, com foco em crescimento orgânico para criadores com orçamento ZERO. Sua missão é criar um plano de batalha TATICAMENTE ACIONÁVEL, recomendando apenas ferramentas e métodos gratuitos.
 
       Dados do Cliente:
       - Username: "@${args.username}"
-      - Bio Atual: "${args.bio || 'Não informada.'}"
       - Vende/Oferece: "${args.offer}"
       - Audiência-Alvo: "${args.audience}"
-      - Duração da Missão: ${args.planDuration === "week" ? "7 dias (Sprint)" : "30 dias (Campanha Completa)"}
+      - Duração da Missão: ${args.planDuration === "week" ? "7 dias" : "30 dias"}
 
-      ⚠️ SUA RESPOSTA DEVE SER UM ÚNICO OBJETO JSON VÁLIDO, SEM NENHUM TEXTO OU EXPLICAÇÃO FORA DELE.
-      O plano de conteúdo ('content_plan') deve conter exatamente ${args.planDuration === "week" ? "7" : "30"} itens, um para cada dia.
-      Use o seguinte formato:
+      ⚠️ SUA RESPOSTA DEVE SER UM ÚNICO OBJETO JSON VÁLIDO.
+      Para cada item no "content_plan", você DEVE fornecer todos os campos a seguir, de forma detalhada e pronta para uso. Seja extremamente específico nas instruções.
 
       {
-        "suggestions": [
-          "Opção de bio 1, focada em autoridade e com um CTA claro.",
-          "Opção de bio 2, mais pessoal e focada em conexão emocional.",
-          "Opção de bio 3, direta ao ponto, ideal para quem já tem prova social."
-        ],
-        "strategy": "### Análise Estratégica Rápida\\n**Forças:** ...\\n**Fraquezas:** ...\\n**Oportunidades:** ...\\n**Ameaças:** ...\\n\\n### Pilares de Conteúdo\\n1. **Pilar 1 (Educação):** Título do pilar. Ex: 'Desmistificando X'.\\n2. **Pilar 2 (Conexão):** Título do pilar. Ex: 'Bastidores da Jornada'.\\n3. **Pilar 3 (Venda):** Título do pilar. Ex: 'A Solução Definitiva'.\\n\\n### Linha Editorial\\n**Tom de Voz:** ... (ex: Especialista e acessível, bem-humorado e direto, inspirador e calmo)\\n**Identidade Visual:** ... (ex: Cores vibrantes como laranja e roxo, fontes limpas e modernas, uso de templates específicos no Canva para consistência)",
-        "grid": [
-          "Reels: Gancho viral sobre [dor do público]",
-          "Carrossel: 5 mitos sobre [seu nicho]",
-          "Foto: Frase de impacto em fundo limpo",
-          "Carrossel: Tutorial passo a passo de [tópico]",
-          "Reels: Bastidores do seu processo",
-          "Foto: Depoimento de cliente com foto",
-          "Carrossel: Antes e Depois de [solução]",
-          "Reels: Respondendo a uma pergunta comum",
-          "Foto: CTA direto para seu produto/serviço"
-        ],
+        "suggestions": ["Bio focada em autoridade...", "Bio focada em conexão...", "Bio com CTA direto..."],
+        "strategy": "### Análise Estratégica\\n**Forças:**...\\n...",
+        "grid": ["Reels: ...", "Carrossel: ...", "Foto: ..."],
         "content_plan": [
           {
             "day": "Dia 1",
             "time": "19:05",
-            "format": "Reels",
-            "title": "O Erro #1 que Todos Cometem em [Seu Nicho]",
-            "content_idea": "Um roteiro detalhado para um Reels de 15 segundos.\\n**Gancho (3s):** Mostre o erro de forma visual e exagerada.\\n**Desenvolvimento (9s):** Explique rapidamente por que é um erro e mostre a forma certa.\\n**CTA (3s):** 'Se você quer evitar esse erro, comente EU QUERO'.",
+            "format": "Carrossel",
+            "title": "Os 3 Pilares de um E-commerce de Sucesso",
+            "content_idea": "Um resumo conciso do post.",
             "status": "planejado",
-            "details": { "passo_a_passo": "1. Grave a cena do erro. 2. Grave a cena da solução. 3. Use o áudio em alta [nome do áudio]. 4. Legendas grandes e amarelas." }
+            "details": {
+              "tool_suggestion": "Canva (para design), ChatGPT/Groq (para refinar copy)",
+              "step_by_step": "1. Abra o Canva.com e procure por 'Post para Instagram Carrossel'. 2. Escolha um template gratuito que combine com sua marca. 3. Crie 5 slides seguindo o roteiro abaixo. 4. Use as cores da sua identidade visual. 5. Exporte como PNG ou PDF.",
+              "script_or_copy": "LEGENDA PARA O POST:\\nTransforme sua loja virtual numa máquina de vendas! 🚀 Descubra os 3 pilares essenciais que sustentam todo e-commerce de sucesso. Arrasta pro lado e salva pra não esquecer!\\n\\nROTEIRO DO CARROSSEL:\\nSlide 1 (Capa): Os 3 Pilares que TODO E-commerce de Sucesso Precisa Dominar.\\nSlide 2: Pilar 1: A PLATAFORMA. ...\\nSlide 5 (CTA): Sentindo-se perdido? Comente 'EU QUERO'...",
+              "hashtags": "#ecommerce #lojavirtual #marketingdigital #sucesso online #dicasdeempreendedorismo",
+              "creative_guidance": {
+                "type": "image",
+                "description": "Para a capa e fundo dos slides, use a IA gratuita do Canva ou o 'Microsoft Designer / Image Creator' (baseado em DALL-E 3 e gratuito).",
+                "prompt": "Um infográfico limpo e minimalista para um post de Instagram, com o tema 'Pilares do Sucesso'. Use uma paleta de cores azul corporativo e branco. Ícones representando 'carrinho de compras', 'caminhão de entrega' e 'gráfico de crescimento'. Estilo flat design. --ar 1:1",
+                "tool_link": "https://www.bing.com/images/create"
+              }
+            }
+          },
+          {
+            "day": "Dia 2",
+            "time": "18:30",
+            "format": "Reels",
+            "title": "O Erro #1 em Anúncios",
+            "content_idea": "Um vídeo curto e dinâmico.",
+            "status": "planejado",
+            "details": {
+              "tool_suggestion": "CapCut (para edição), Biblioteca de áudios do Instagram",
+              "step_by_step": "1. Grave 3 clipes curtos com seu celular. 2. Importe no CapCut. 3. Adicione legendas automáticas e edite o estilo (fonte grande, cor amarela). 4. Encontre um áudio em alta no Instagram Reels e salve-o. 5. No CapCut, sincronize os cortes do vídeo com a batida da música. 6. Exporte em 1080p.",
+              "script_or_copy": "TEXTO NA TELA (Legendas):\\n(Cena 1) O maior erro que você comete nos seus anúncios...\\n(Cena 2) ...é não ter uma OFERTA IRRESISTÍVEL.\\n(Cena 3) Foque em transformar seu produto na única solução óbvia!\\n\\nLEGENDA DO POST:\\nSeus anúncios não convertem? O problema pode não ser o botão, mas a oferta. Me conta, qual sua maior dificuldade com anúncios? 👇",
+              "hashtags": "#reelsbrasil #trafegopago #marketingdeconteudo #anunciosonline #dicadevideo",
+              "creative_guidance": {
+                "type": "video",
+                "description": "Para vídeos, o segredo é a edição dinâmica. Use o CapCut para cortes rápidos (a cada 1-2 segundos) e legendas que prendem a atenção. Use a biblioteca gratuita de vídeos do Pexels ou Canva se não quiser aparecer.",
+                "prompt": "Não aplicável para vídeo, foque na edição e roteiro.",
+                "tool_link": "https://www.capcut.com/"
+              }
+            }
           }
         ]
       }
@@ -102,10 +117,10 @@ export const generateAnalysis = action({
   },
 });
 
-// --- MUTATION INTERNA para SALVAR a análise ---
+// --- MUTATION INTERNA para SALVAR a análise (sem alterações) ---
 export const saveAnalysis = internalMutation({
     args: {
-      analysisData: v.any(), // Inclui os dados do usuário agora
+      analysisData: v.any(),
     },
     handler: async (ctx, args) => {
         const identity = await ctx.auth.getUserIdentity();
@@ -128,7 +143,7 @@ export const saveAnalysis = internalMutation({
     }
 });
 
-// --- QUERY para BUSCAR a análise salva ---
+// --- QUERY para BUSCAR a análise salva (sem alterações) ---
 export const getSavedAnalysis = query({
     args: {},
     handler: async (ctx) => {
@@ -138,10 +153,11 @@ export const getSavedAnalysis = query({
     }
 });
 
-// --- [NOVO] MUTATION para ATUALIZAR o plano de conteúdo (marcar como feito, editar, etc.) ---
+// --- MUTATION para ATUALIZAR o plano de conteúdo (COM NOVA ESTRUTURA DE DADOS) ---
 export const updateContentPlan = mutation({
     args: {
         analysisId: v.id("analyses"),
+        // <<< OS ARGUMENTOS AQUI DEVEM CORRESPONDER AO NOVO SCHEMA >>>
         newPlan: v.array(v.object({
             day: v.string(),
             time: v.string(),
@@ -149,7 +165,18 @@ export const updateContentPlan = mutation({
             title: v.string(),
             content_idea: v.string(),
             status: v.union(v.literal("planejado"), v.literal("concluido")),
-            details: v.optional(v.object({ passo_a_passo: v.string() })),
+            details: v.optional(v.object({
+                tool_suggestion: v.string(),
+                step_by_step: v.string(),
+                script_or_copy: v.string(),
+                hashtags: v.string(),
+                creative_guidance: v.object({
+                    type: v.string(),
+                    description: v.string(),
+                    prompt: v.string(),
+                    tool_link: v.string(),
+                }),
+            })),
         }))
     },
     handler: async (ctx, { analysisId, newPlan }) => {

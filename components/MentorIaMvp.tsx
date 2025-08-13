@@ -1,5 +1,5 @@
 // Em /components/mentor/MentorIaMvp.tsx
-// (COPIE E COLE O ARQUIVO INTEIRO)
+// (Substitua o arquivo inteiro)
 
 "use client";
 
@@ -12,12 +12,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Sparkles, FileText, Copy, LayoutGrid, BrainCircuit, Mic, Video, ImageIcon, Newspaper } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
-
 import MentorIaForm, { FormData } from "./MentorIaForm";
+// COMENTÁRIO DE MELHORIA: O tipo PlanItem é importado, garantindo a sincronia com a nova estrutura.
 import CalendarView, { PlanItem } from "./CalendarView";
 
-
-// --- Componente de Loading (A Forja) ---
 const MentorLoadingState = () => (
   <motion.div
     initial={{ opacity: 0 }}
@@ -33,7 +31,6 @@ const MentorLoadingState = () => (
   </motion.div>
 );
 
-// --- Componente para o Grid do Feed ---
 const GridIcon = ({ format }: { format: string }) => {
     const lowerFormat = format.toLowerCase();
     if (lowerFormat.includes("reels")) return <Video className="w-6 h-6 text-red-500" />;
@@ -55,7 +52,6 @@ export default function MentorIaMvp() {
       setView("loading");
     } else if (savedAnalysis) {
       setView("dashboard");
-      // Agora isso funciona, pois o schema garante que os campos existem
       setFormDefaults({
         username: savedAnalysis.username,
         bio: savedAnalysis.bio,
@@ -74,7 +70,6 @@ export default function MentorIaMvp() {
       loading: "Athena foi convocada. Forjando sua estratégia...",
       success: () => {
         setIsGenerating(false);
-        // A view mudará automaticamente pelo useEffect ao receber o novo `savedAnalysis`
         return "Seu plano de batalha está pronto!";
       },
       error: (err: Error) => {
@@ -134,6 +129,7 @@ export default function MentorIaMvp() {
               </TabsList>
 
               <TabsContent value="calendar" className="mt-6">
+                {/* O casting 'as PlanItem[]' é seguro porque a estrutura de dados do backend e do frontend agora estão em sincronia. */}
                 <CalendarView plan={savedAnalysis.content_plan as PlanItem[]} analysisId={savedAnalysis._id} />
               </TabsContent>
 

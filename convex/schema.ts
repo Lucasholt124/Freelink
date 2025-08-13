@@ -5,7 +5,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  // Suas tabelas existentes
+  // Suas tabelas existentes (sem alterações)
   usernames: defineTable({
     userId: v.string(),
     username: v.string(),
@@ -47,14 +47,23 @@ export default defineSchema({
   }).index("by_slug", ["slug"]).index("by_user", ["userId"]),
 
   // =======================================================
-  // TABELA 'analyses' ATUALIZADA COM OS NOVOS CAMPOS
+  // TABELA 'analyses' ATUALIZADA
   // =======================================================
   analyses: defineTable({
-    // Campos que você já tinha
+    // Campos que já existiam e permanecem
     userId: v.string(),
     suggestions: v.array(v.string()),
     strategy: v.string(),
     grid: v.array(v.string()),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+    username: v.string(),
+    bio: v.string(),
+    offer: v.string(),
+    audience: v.string(),
+    planDuration: v.union(v.literal("week"), v.literal("month")),
+
+    // <<< A GRANDE MUDANÇA ESTÁ AQUI DENTRO DO content_plan >>>
     content_plan: v.array(
       v.object({
         day: v.string(),
@@ -62,24 +71,22 @@ export default defineSchema({
         format: v.string(),
         title: v.string(),
         content_idea: v.string(),
-        // Tipo melhorado para consistência
         status: v.union(v.literal("planejado"), v.literal("concluido")),
-        details: v.optional(
-          v.object({
-            passo_a_passo: v.string()
-          })
-        ),
+
+        // A ESTRUTURA DE 'details' FOI COMPLETAMENTE REVISADA
+        details: v.optional(v.object({
+            tool_suggestion: v.string(),
+            step_by_step: v.string(),
+            script_or_copy: v.string(),
+            hashtags: v.string(),
+            creative_guidance: v.object({
+                type: v.string(), // 'image' ou 'video'
+                description: v.string(),
+                prompt: v.string(),
+                tool_link: v.string(), // Link direto para a ferramenta gratuita
+            }),
+        })),
       })
     ),
-    createdAt: v.optional(v.number()),
-    updatedAt: v.optional(v.number()),
-
-    // --- NOVOS CAMPOS ADICIONADOS AQUI ---
-    username: v.string(),
-    bio: v.string(),
-    offer: v.string(),
-    audience: v.string(),
-    planDuration: v.union(v.literal("week"), v.literal("month")),
-
   }).index("by_user", ["userId"]),
 });

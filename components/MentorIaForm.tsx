@@ -1,4 +1,5 @@
 // Em /components/mentor/MentorIaForm.tsx
+// (Substitua o arquivo inteiro)
 "use client";
 
 import { useState } from "react";
@@ -7,7 +8,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Loader2, Sparkles } from "lucide-react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "./ui/card";
+// COMENTÁRIO DE MELHORIA: Corrigido o caminho de importação para seguir o padrão shadcn.
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 
 export type FormData = {
   username: string;
@@ -71,19 +73,10 @@ export default function MentorIaForm({ onSubmit, defaults, isLoading }: Props) {
                 </Select>
             </div>
           </div>
-
           <div className="space-y-2">
             <label htmlFor="bio" className="font-medium">Sua Bio Atual (opcional)</label>
-            <Textarea
-              id="bio"
-              name="bio"
-              value={formData.bio}
-              onChange={handleChange}
-              rows={3}
-              placeholder="Ex: Ajudo criadores a monetizar com links inteligentes ✨ | Fundador da @freelink"
-            />
+            <Textarea id="bio" name="bio" value={formData.bio} onChange={handleChange} rows={3} placeholder="Ex: Ajudo criadores a monetizar com links inteligentes ✨ | Fundador da @freelink" />
           </div>
-
           <div className="grid gap-6 sm:grid-cols-2">
              <div className="space-y-2">
               <label htmlFor="offer" className="font-medium">O que você vende/oferece?</label>
@@ -94,13 +87,8 @@ export default function MentorIaForm({ onSubmit, defaults, isLoading }: Props) {
               <Input id="audience" name="audience" value={formData.audience} onChange={handleChange} placeholder="Ex: Infoprodutores, freelancers, agências" required />
             </div>
           </div>
-
           <Button type="submit" disabled={isLoading} className="w-full text-lg py-6">
-            {isLoading ? (
-              <Loader2 className="w-6 h-6 mr-2 animate-spin" />
-            ) : (
-              <Sparkles className="w-6 h-6 mr-2" />
-            )}
+            {isLoading ? <Loader2 className="w-6 h-6 mr-2 animate-spin" /> : <Sparkles className="w-6 h-6 mr-2" />}
             {isLoading ? "Analisando..." : "Convocar Athena e Gerar Plano"}
           </Button>
         </form>
