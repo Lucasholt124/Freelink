@@ -8,9 +8,9 @@ export type FormData = {
   offer: string;
   audience: string;
   planDuration: "week" | "month";
-  format?: string;     // <-- adicionado
-  time?: string;       // <-- adicionado
-  status?: "planejado" | "concluido"; // <-- adicionado
+  format?: string;
+  time?: string;
+  status?: "planejado" | "concluido";
 };
 
 type Props = {
@@ -26,6 +26,9 @@ export default function ConversationalForm({ onSubmit, defaults, isLoading }: Pr
     offer: defaults?.offer ?? "",
     audience: defaults?.audience ?? "",
     planDuration: defaults?.planDuration ?? "week",
+    format: defaults?.format,
+    time: defaults?.time,
+    status: defaults?.status,
   });
 
   const handleChange = (
@@ -112,5 +115,3 @@ export default function ConversationalForm({ onSubmit, defaults, isLoading }: Pr
     </form>
   );
 }
-
-

@@ -1,7 +1,7 @@
 "use client";
 
 import { JSX, useMemo, useState } from "react";
-import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar";
+import { Calendar, dateFnsLocalizer, Views, EventProps } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import { format, parse, startOfWeek, getDay, addDays, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -11,6 +11,7 @@ import clsx from "clsx";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import ConversationalForm, { FormData } from "./MentorIaForm";
+import { motion } from "framer-motion";
 
 export type PlanFormat = "Reels" | "Carrossel" | "Story" | "Live" | string;
 
@@ -21,7 +22,7 @@ export type PlanItem = {
   title: string;
   content_idea: string;
   status: "planejado" | "concluido";
-  details?: Record<string, string>;
+  details?: { passo_a_passo: string };
 };
 
 const locales = { "pt-BR": ptBR };
@@ -41,7 +42,10 @@ const formatColors: Record<"Reels" | "Carrossel" | "Story" | "Live", string> = {
   Live: "bg-purple-50 text-purple-800 border-purple-200",
 };
 
-const colorFor = (fmt: PlanFormat) => (formatColors as Record<string, string>)[fmt] || "bg-gray-50 text-gray-800 border-gray-200";
+const colorFor = (fmt: PlanFormat, status?: "planejado" | "concluido") => {
+  const base = (formatColors as Record<string, string>)[fmt] || "bg-gray-50 text-gray-800 border-gray-200";
+  return status === "concluido" ? base + " opacity-60 line-through" : base;
+};
 const iconFor = (fmt: PlanFormat) => (formatIcons as Record<string, JSX.Element>)[fmt] || <MessageSquare className="w-4 h-4 mr-2" />;
 
 export default function CalendarView({ plan }: { plan: PlanItem[] }) {
@@ -61,9 +65,7 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
   }, [localPlan]);
 
   const markCompleted = (item: PlanItem) => {
-    setLocalPlan((prev) =>
-      prev.map((p) => (p === item ? { ...p, status: "concluido" } : p))
-    );
+    setLocalPlan((prev) => prev.map((p) => (p === item ? { ...p, status: "concluido" } : p)));
     toast.success(`"${item.title}" marcado como concluído!`);
     setSelectedEvent(null);
   };
@@ -76,8 +78,7 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
   const onSubmitEdit = (data: FormData & { status?: string; format?: PlanFormat; time?: string }) => {
     if (!selectedEvent) return;
 
-    const toStatus = (s: string | undefined): "planejado" | "concluido" =>
-      s === "concluido" ? "concluido" : "planejado";
+    const toStatus = (s: string | undefined): "planejado" | "concluido" => (s === "concluido" ? "concluido" : "planejado");
 
     const updatedPosts = localPlan.map((p) =>
       p === selectedEvent
@@ -111,18 +112,16 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
           defaultView={Views.MONTH}
           onSelectEvent={(ev: { resource: PlanItem }) => setSelectedEvent(ev.resource)}
           eventPropGetter={(ev) => ({
-            className: `${colorFor((ev.resource as PlanItem).format)} p-1 border rounded-md text-xs font-semibold cursor-pointer hover:scale-105 transition-transform shadow-sm ${
-              (ev.resource as PlanItem).status === "concluido" ? "opacity-60 line-through" : ""
-            }`,
+            className: `${colorFor((ev.resource as PlanItem).format, (ev.resource as PlanItem).status)} p-1 border rounded-md text-xs font-semibold cursor-pointer hover:scale-105 transition-transform shadow-sm`,
           })}
           components={{
-            event: ({ event }) => {
+            event: ({ event }: EventProps) => {
               const res = event.resource as PlanItem;
               return (
-                <div className="flex items-center overflow-hidden">
+                <motion.div whileHover={{ scale: 1.05 }} className="flex items-center overflow-hidden">
                   {iconFor(res.format)}
                   <span className="truncate">{event.title}</span>
-                </div>
+                </motion.div>
               );
             },
           }}
@@ -143,12 +142,7 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <span
-                className={clsx(
-                  "px-2.5 py-1 rounded-full text-xs font-bold",
-                  selectedEvent ? colorFor(selectedEvent.format) : ""
-                )}
-              >
+              <span className={clsx("px-2.5 py-1 rounded-full text-xs font-bold", selectedEvent ? colorFor(selectedEvent.format, selectedEvent.status) : "")}>
                 {selectedEvent?.format}
               </span>
               {selectedEvent?.title}

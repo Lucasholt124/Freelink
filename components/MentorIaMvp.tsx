@@ -56,16 +56,17 @@ export default function MentorIaMvp() {
   }, [savedAnalysis]);
 
   const normalizedPlan: PlanItem[] = useMemo(() => {
-  const plan = savedAnalysis?.content_plan ?? [];
-  return plan.map((p, idx) => ({
-    title: p.title ?? "",
-    day: String(p.day ?? idx + 1),
-    time: String(p.time ?? "09:00"),
-    format: String(p.format ?? "Story") as PlanFormat,
-    content_idea: String(p.content_idea ?? ""),
-    status: p.status === "concluido" ? "concluido" : "planejado", // ✅ aqui
-  }));
-}, [savedAnalysis]);
+    const plan = savedAnalysis?.content_plan ?? [];
+    return plan.map((p, idx) => ({
+      title: p.title ?? "",
+      day: String(p.day ?? idx + 1),
+      time: String(p.time ?? "09:00"),
+      format: String(p.format ?? "Story") as PlanFormat,
+      content_idea: String(p.content_idea ?? ""),
+      status: p.status === "concluido" ? "concluido" : "planejado",
+      details: p.details,
+    }));
+  }, [savedAnalysis]);
 
   const onSubmit = (data: FormData) => {
     setIsLoading(true);

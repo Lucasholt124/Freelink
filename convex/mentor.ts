@@ -17,7 +17,7 @@ type RawPlanItem = {
   title?: string;
   content_idea?: string;
   status?: string;
-  details?: string; // instruções detalhadas de cada post
+  details?: string | { passo_a_passo?: string };
 };
 
 type RawAnalysisData = {
@@ -26,6 +26,13 @@ type RawAnalysisData = {
   grid?: Array<string | object>;
   content_plan?: RawPlanItem[];
 };
+
+// Utilitário para limpar a resposta e garantir que seja JSON válido
+function extractJson(text: string): string {
+  const match = text.match(/\{[\s\S]*\}$/); // pega de "{" até o último "}"
+  if (!match) throw new Error("Resposta não contém JSON válido.");
+  return match[0].trim();
+}
 
 // Gera análise completa
 export const generateAnalysis = action({
@@ -45,26 +52,33 @@ Você é Athena, estrategista de conteúdo digital.
 Gere plano para ${args.planDuration === "week" ? "7" : "30"} dias.
 Inclua horários de pico, passo a passo detalhado, instruções para Canva/CapCut, textos e ideias visuais.
 
-Dados:
-- Username: "@${args.username}"
-- Bio: "${args.bio || "Não informada."}"
-- Oferta: "${args.offer}"
-- Público: "${args.audience}"
+⚠️ IMPORTANTE:
+- Responda APENAS com JSON válido, sem explicações fora do JSON.
+- Use o seguinte formato:
 
-Retorne um JSON com:
-- suggestions: 3 bios otimizadas
-- strategy: análise detalhada (JSON estruturado)
-- grid: 9 ideias curtas como strings
-- content_plan: ${args.planDuration === "week" ? 7 : 30} itens com { day, time, format, title, content_idea, status, details }
-Cada post deve ter:
-- details: instruções detalhadas de edição para imagem, vídeo ou story (onde escrever texto, editor, thumbnail, call-to-action, hashtags)
+{
+  "suggestions": ["bio 1", "bio 2", "bio 3"],
+  "strategy": { "objective": "...", "target_audience": "...", "analysis": { "strengths": [], "weaknesses": [], "opportunities": [], "threats": [] } },
+  "grid": ["ideia 1", "ideia 2", "..."],
+  "content_plan": [
+    {
+      "day": "YYYY-MM-DD",
+      "time": "HH:MM",
+      "format": "Story" | "Reels" | "Post",
+      "title": "Título",
+      "content_idea": "Ideia",
+      "status": "planejado" | "concluido",
+      "details": { "passo_a_passo": "..." }
+    }
+  ]
+}
 `;
 
     const response = await groq.chat.completions.create({
       model: "llama3-70b-8192",
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: "Responda apenas em JSON." },
+        { role: "system", content: "Responda apenas em JSON válido." },
         { role: "user", content: prompt },
       ],
     });
@@ -74,7 +88,8 @@ Cada post deve ter:
 
     let rawData: RawAnalysisData = {};
     try {
-      rawData = JSON.parse(resultText);
+      const cleanJson = extractJson(resultText);
+      rawData = JSON.parse(cleanJson);
     } catch {
       throw new Error(`Erro ao parsear JSON da IA: ${resultText}`);
     }
@@ -83,29 +98,40 @@ Cada post deve ter:
     const today = new Date();
     const normalizedPlan = (rawData.content_plan || []).map((item, idx) => {
       const planDate = new Date(today);
-      planDate.setDate(today.getDate() + idx); // adiciona idx dias
+      planDate.setDate(today.getDate() + idx);
+
+      const statusLiteral: "planejado" | "concluido" =
+        item.status === "concluido" ? "concluido" : "planejado";
+
+      let detailsObj: { passo_a_passo: string } | undefined;
+
+      if (item.details) {
+        if (typeof item.details === "string") {
+          detailsObj = { passo_a_passo: item.details };
+        } else if ("passo_a_passo" in item.details && typeof item.details.passo_a_passo === "string") {
+          detailsObj = { passo_a_passo: item.details.passo_a_passo };
+        }
+      }
+
       return {
-        day: planDate.toISOString().split("T")[0], // YYYY-MM-DD
+        day: planDate.toISOString().split("T")[0],
         time: String(item.time ?? "09:00"),
         format: String(item.format ?? "Story"),
         title: String(item.title ?? `Post ${idx + 1}`),
         content_idea: String(item.content_idea ?? ""),
-        status: String(item.status ?? "planejado"),
-        details: item.details ?? {},
+        status: statusLiteral,
+        ...(detailsObj ? { details: detailsObj } : {}),
       };
     });
 
-    // Normaliza sugestões
     const normalizedSuggestions: string[] = (rawData.suggestions || []).map((s) =>
       typeof s === "string" ? s : s.bio ?? ""
     );
 
-    // Normaliza grid como strings
     const normalizedGrid: string[] = (rawData.grid || []).map((g) =>
       typeof g === "string" ? g : JSON.stringify(g)
     );
 
-    // Normaliza strategy como string JSON
     const normalizedStrategy =
       typeof rawData.strategy === "string"
         ? rawData.strategy
@@ -121,7 +147,9 @@ Cada post deve ter:
       updatedAt: Date.now(),
     };
 
-    await ctx.runMutation(internal.mentor.saveAnalysis, { analysisData: analysisDataToSave });
+    await ctx.runMutation(internal.mentor.saveAnalysis, {
+      analysisData: analysisDataToSave,
+    });
 
     return analysisDataToSave;
   },
@@ -137,10 +165,14 @@ export const saveAnalysis = internalMutation({
           content_idea: v.string(),
           day: v.string(),
           format: v.string(),
-          status: v.string(),
+          status: v.union(v.literal("planejado"), v.literal("concluido")),
           time: v.string(),
           title: v.string(),
-          details: v.optional(v.object({})),
+          details: v.optional(
+            v.object({
+              passo_a_passo: v.string(),
+            })
+          ),
         })
       ),
       grid: v.array(v.string()),
@@ -157,7 +189,10 @@ export const saveAnalysis = internalMutation({
       .first();
 
     if (existing) {
-      await ctx.db.patch(existing._id, { ...args.analysisData, updatedAt: Date.now() });
+      await ctx.db.patch(existing._id, {
+        ...args.analysisData,
+        updatedAt: Date.now(),
+      });
     } else {
       await ctx.db.insert("analyses", args.analysisData);
     }
