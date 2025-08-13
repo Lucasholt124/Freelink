@@ -24,7 +24,11 @@ model Link {
 }
 
 model Click {
-  id            String   @id @default(cuid())
+  // =======================================================
+  // A CORREÇÃO DEFINITIVA ESTÁ AQUI
+  // =======================================================
+  // Alinhamos o tipo do 'id' com o que seu banco de dados espera (SERIAL -> Int)
+  id            Int      @id @default(autoincrement())
   timestamp     DateTime @default(now())
   profileUserId String
   linkId        String

@@ -1,3 +1,6 @@
+// Em /components/ManageLinks.tsx
+// (Substitua o arquivo inteiro)
+
 "use client";
 
 import { useQuery, useMutation } from "convex/react";
@@ -23,15 +26,15 @@ import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "./ui/button";
 import { Plus, Link2 } from "lucide-react";
 import Link from "next/link";
-import { SortableItem } from "./SortableItem";
+import { SortableItem } from "./SortableItem"; // Certifique-se que este componente está correto
 import { useEffect, useState } from "react";
 
 // Skeleton enquanto carrega
 function LinksSkeleton() {
   return (
-    <div className="space-y-3 animate-pulse">
+    <div className="space-y-4 animate-pulse">
       {[...Array(3)].map((_, i) => (
-        <div key={i} className="h-16 bg-gray-200 rounded-lg" />
+        <div key={i} className="h-20 bg-gray-200 rounded-xl" />
       ))}
     </div>
   );
@@ -63,7 +66,6 @@ export default function ManageLinks() {
   const updateLinkOrder = useMutation(api.lib.links.updateLinkOrder);
   const [items, setItems] = useState<Id<"links">[] | null>(null);
 
-  // Inicializa os itens quando links são carregados
   useEffect(() => {
     if (links) {
       setItems(links.map((link) => link._id));
@@ -84,10 +86,9 @@ export default function ManageLinks() {
         const newIndex = currentItems.indexOf(over.id as Id<"links">);
         const newOrderedIds = arrayMove(currentItems, oldIndex, newIndex);
 
-        // Atualização otimista
         updateLinkOrder({ linkIds: newOrderedIds }).catch((err) => {
           console.error("Falha ao atualizar a ordem dos links:", err);
-          setItems(currentItems); // Reverte se falhar
+          setItems(currentItems);
         });
 
         return newOrderedIds;
@@ -111,7 +112,7 @@ export default function ManageLinks() {
         onDragEnd={handleDragEnd}
       >
         <SortableContext items={items} strategy={verticalListSortingStrategy}>
-          <div className="space-y-3">
+          <div className="space-y-4">
             {items.map((id) => {
               const link = linkMap.get(id);
               if (!link) return null;
@@ -124,22 +125,27 @@ export default function ManageLinks() {
   };
 
   return (
-    <>
-      <div className="min-h-[250px]">{renderContent()}</div>
+    // =======================================================
+    // CORREÇÃO: Usando um layout flexível para garantir que o
+    // botão fique no final, mesmo com poucos links.
+    // =======================================================
+    <div className="flex flex-col min-h-[400px]">
+      <div className="flex-grow">{renderContent()}</div>
 
+      {/* Botão com espaçamento e tamanho de fonte responsivos */}
       <Button
         asChild
-        className="w-full mt-6 py-5 sm:py-6 text-base sm:text-lg bg-gradient-to-r from-blue-500 to-purple-600 text-white font-semibold hover:opacity-90 transition-opacity"
+        className="w-full mt-8 py-4 sm:py-5 text-base font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:opacity-90 transition-opacity"
         aria-label="Adicionar novo link"
       >
         <Link
           href="/dashboard/new-link"
           className="flex items-center justify-center gap-2"
         >
-          <Plus className="w-5 h-5 sm:w-6 sm:h-6" />
+          <Plus className="w-5 h-5" />
           Adicionar Novo Link
         </Link>
       </Button>
-    </>
+    </div>
   );
 }

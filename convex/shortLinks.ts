@@ -3,7 +3,7 @@
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import {  PrismaClient } from '@prisma/client';
+import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DATABASE_URL } },
@@ -42,10 +42,6 @@ export const createShortLink = action({
   },
 });
 
-// --- ACTION para registrar clique (movida para a API do Next.js) ---
-// É mais seguro manter a lógica de redirecionamento fora do Convex para evitar
-// problemas de build. Se precisar dela aqui por outro motivo, podemos recriá-la.
-
 // --- ACTION para buscar os links do usuário ---
 export const getLinksForUser = action({
   args: {},
@@ -60,9 +56,6 @@ export const getLinksForUser = action({
         include: { _count: { select: { clicks: true } } }
       });
 
-      // =======================================================
-      // CORREÇÃO DEFINITIVA: Tipagem Inline Explícita
-      // =======================================================
       return links.map((link: {
         id: string;
         url: string;
@@ -74,7 +67,7 @@ export const getLinksForUser = action({
         url: link.url,
         title: link.title,
         clicks: link._count.clicks,
-        createdAt: link.createdAt.getTime(), // Serializa para timestamp
+        createdAt: link.createdAt.getTime(),
       }));
     } catch (error) {
         console.error("Erro ao buscar links para o usuário:", error);
@@ -103,15 +96,17 @@ export const getClicksForLink = action({
                 orderBy: { timestamp: "desc" },
             });
 
-            // CORREÇÃO: Tipagem Inline Explícita para 'click'
+            // =======================================================
+            // CORREÇÃO DEFINITIVA DO TIPO APLICADA AQUI
+            // =======================================================
             const serializableClicks = clicks.map((click: {
-                id: string;
+                id: number; // <-- O ID agora é um NÚMERO
                 timestamp: Date;
                 country: string | null;
                 // Adicione outros campos se precisar deles no frontend
             }) => ({
                 id: click.id,
-                timestamp: click.timestamp.getTime(), // Serializa para timestamp
+                timestamp: click.timestamp.getTime(),
                 country: click.country,
             }));
 

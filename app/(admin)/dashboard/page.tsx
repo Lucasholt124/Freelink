@@ -17,7 +17,7 @@ function MentorIaWidget() {
     <div className="bg-gradient-to-tr from-purple-600 to-blue-500 p-6 sm:p-8 rounded-2xl shadow-lg text-white transition-all hover:shadow-2xl hover:-translate-y-1 flex flex-col">
       <div className="flex-grow">
         <div className="flex items-center gap-4">
-          <div className="bg-white/20 p-3 rounded-full"><Wand2 className="w-6 h-6 sm:w-7 sm:h-7" /></div>
+          <div className="bg-white/20 p-3 rounded-full"><Wand2 className="w-6 h-6 sm:w-7 sm-h-7" /></div>
           <div>
             <h2 className="text-xl sm:text-2xl font-bold">Mentor IA</h2>
             <p className="opacity-80 max-w-sm text-sm sm:text-base">Seu estrategista para decolar no Instagram.</p>
@@ -34,7 +34,7 @@ function FreelinnkBrainWidget() {
     <div className="bg-white border border-gray-200/80 p-6 sm:p-8 rounded-2xl shadow-sm transition-all hover:shadow-xl hover:-translate-y-1 flex flex-col">
       <div className="flex-grow">
         <div className="flex items-center gap-4">
-          <div className="bg-gray-100 p-3 rounded-full"><BrainCircuit className="w-6 h-6 sm:w-7 sm:h-7 text-gray-700" /></div>
+          <div className="bg-gray-100 p-3 rounded-full"><BrainCircuit className="w-6 h-6 sm:w-7 sm-h-7 text-gray-700" /></div>
           <div>
             <h2 className="text-xl sm:text-2xl font-bold text-gray-900">Freelinnk Brain™</h2>
             <p className="text-gray-600 max-w-sm text-sm sm:text-base">Gere ideias, roteiros e títulos virais.</p>

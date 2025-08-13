@@ -1,3 +1,6 @@
+// Em /app/dashboard/links/page.tsx
+// (Substitua o arquivo inteiro)
+
 import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
 import { fetchQuery } from "convex/nextjs";
@@ -11,12 +14,18 @@ export default async function LinksPage() {
   const user = await currentUser();
   if (!user) return null;
 
+  // Busca o slug do usuário para montar o link da página pública
   const userSlug = await fetchQuery(api.lib.usernames.getUserSlug, {
     userId: user.id,
   });
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 min-h-full flex flex-col">
+    // =======================================================
+    // CORREÇÃO: Removida a lógica de altura e scroll.
+    // A página agora é um container de conteúdo simples.
+    // O `DashboardLayout` cuidará do scroll.
+    // =======================================================
+    <div className="space-y-6 sm:space-y-8">
       {/* Cabeçalho */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {/* Título */}
@@ -45,8 +54,8 @@ export default async function LinksPage() {
         )}
       </div>
 
-      {/* Container principal */}
-      <div className="bg-white p-4 sm:p-8 rounded-2xl border border-gray-200 shadow-lg flex-grow min-h-0 overflow-auto">
+      {/* Container de Gerenciamento */}
+      <div className="bg-white p-4 sm:p-8 rounded-2xl border border-gray-200 shadow-lg">
         <ManageLinks />
       </div>
 

@@ -9,12 +9,11 @@ import { useParams } from 'next/navigation';
 export default function ShortLinkRedirectPage() {
   const params = useParams();
   // `params.slug` pode ser um array, então pegamos o primeiro elemento
-  const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
-  useEffect(() => {
+   useEffect(() => {
     if (slug) {
-      // Redireciona o navegador do cliente para a nossa API.
-      // Isso acontece instantaneamente no lado do cliente.
+      // Esta URL agora corresponde ao que a nossa API espera
       window.location.href = `/api/redirect?slug=${encodeURIComponent(slug)}`;
     }
   }, [slug]);

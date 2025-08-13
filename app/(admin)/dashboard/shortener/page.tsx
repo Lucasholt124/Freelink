@@ -1,3 +1,6 @@
+// Em app/dashboard/shortener/page.tsx
+// (Substitua o arquivo inteiro)
+
 "use client";
 
 import { useState, useRef, useEffect, useCallback, ComponentType } from "react";
@@ -52,9 +55,14 @@ function LinksSkeleton() {
 
 function LinkList({ links }: { links: LinkFromAPI[] | undefined }) {
   const { user, isLoaded } = useUser();
-  const plan =
+
+  // CORREÇÃO: Adicionando a lógica de isAdmin
+  const isAdmin = user?.id === "user_301NTkVsE3v48SXkoCEp0XOXifI";
+  const userPlan =
     (user?.publicMetadata?.subscriptionPlan as "free" | "pro" | "ultra") ??
     "free";
+  const plan = isAdmin ? "ultra" : userPlan;
+
   const [copiedSlug, setCopiedSlug] = useState<string | null>(null);
 
   const handleCopy = (slug: string) => {
@@ -221,7 +229,6 @@ export default function ShortenerPage() {
           </p>
         </div>
       </div>
-
       <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-lg border">
         <form
           ref={formRef}
@@ -242,7 +249,6 @@ export default function ShortenerPage() {
               disabled={isLoading}
             />
           </div>
-
           <div>
             <Label
               htmlFor="customSlug"
@@ -251,7 +257,7 @@ export default function ShortenerPage() {
               Apelido Personalizado (Opcional)
             </Label>
             <div className="mt-1 flex flex-col sm:flex-row items-stretch">
-              <span className="flex items-center justify-center text-sm text-gray-500 bg-gray-100 px-3 py-2.5 rounded-t-md sm:rounded-l-md sm:rounded-tr-none border border-b-0 sm:border-b sm:border-r-0 break-all">
+              <span className="flex items-center justify-center text-sm text-gray-500 bg-gray-100 px-3 py-2.5 rounded-t-md sm:rounded-l-md sm:rounded-tr-none border border-b-0 sm:border-b sm:border-r-0">
                 freelinnk.com/r/
               </span>
               <Input
@@ -263,7 +269,6 @@ export default function ShortenerPage() {
               />
             </div>
           </div>
-
           <Button
             type="submit"
             disabled={isLoading}
@@ -279,7 +284,6 @@ export default function ShortenerPage() {
           </Button>
         </form>
       </div>
-
       <div>
         <h2 className="text-2xl font-semibold mb-4">
           Seus Links Encurtados
