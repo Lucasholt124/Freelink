@@ -8,7 +8,7 @@ const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
 });
 
-// --- Tipo seguro para o que vem da IA ---
+// --- Tipos seguros para o que vem da IA ---
 type RawPlanItem = {
   day?: string | number;
   time?: string;
@@ -19,7 +19,7 @@ type RawPlanItem = {
 };
 
 type RawAnalysisData = {
-  suggestions?: string[];
+  suggestions?: Array<string | { bio?: string }>;
   strategy?: string;
   grid?: string[];
   content_plan?: RawPlanItem[];
@@ -69,7 +69,7 @@ export const generateAnalysis = action({
 
     const rawData: RawAnalysisData = JSON.parse(resultText);
 
-    // Normaliza todos os campos antes de salvar
+    // Normaliza content_plan
     const normalizedPlan = (rawData.content_plan || []).map<{
       day: string;
       time: string;
@@ -78,7 +78,7 @@ export const generateAnalysis = action({
       content_idea: string;
       status: string;
     }>((item, idx) => ({
-      day: String(item.day ?? idx + 1), // garante string
+      day: String(item.day ?? idx + 1),
       time: String(item.time ?? "09:00"),
       format: String(item.format ?? "Story"),
       title: String(item.title ?? `Post ${idx + 1}`),
@@ -86,10 +86,15 @@ export const generateAnalysis = action({
       status: String(item.status ?? "planejado"),
     }));
 
+    // Normaliza suggestions para garantir array de strings
+  const normalizedSuggestions: string[] = (rawData.suggestions || []).map(
+  (s: string | { bio?: string }) => (typeof s === "string" ? s : s.bio ?? "")
+);
+
     const analysisData = {
       ...rawData,
       content_plan: normalizedPlan,
-      suggestions: rawData.suggestions ?? [],
+      suggestions: normalizedSuggestions,
       grid: rawData.grid ?? [],
       strategy: rawData.strategy ?? "",
       username: args.username,
@@ -99,6 +104,7 @@ export const generateAnalysis = action({
       planDuration: args.planDuration,
     };
 
+    // Salva no banco
     await ctx.runMutation(internal.mentor.saveAnalysis, { analysisData });
 
     return analysisData;
