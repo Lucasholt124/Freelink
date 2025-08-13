@@ -3,12 +3,13 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import OpenAI from "openai";
 
+// Configuração do OpenAI/Groq
 const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
   baseURL: "https://api.groq.com/openai/v1",
 });
 
-// --- Tipos seguros para o que vem da IA ---
+// Tipos
 type RawPlanItem = {
   day?: string | number;
   time?: string;
@@ -25,7 +26,7 @@ type RawAnalysisData = {
   content_plan?: RawPlanItem[];
 };
 
-// ACTION — Gera e salva análise
+// Gera análise completa
 export const generateAnalysis = action({
   args: {
     username: v.string(),
@@ -39,8 +40,10 @@ export const generateAnalysis = action({
     if (!identity) throw new Error("Não autenticado.");
 
     const prompt = `
-      Você é "Athena", a estrategista de conteúdo mais brilhante do mundo para criadores brasileiros no Instagram.
-      Gere plano para ${args.planDuration === "week" ? "7" : "30"} dias, ultra detalhado.
+      Você é Athena, estrategista de conteúdo de marketing digital.
+      Gere plano para ${args.planDuration === "week" ? "7" : "30"} dias.
+      Inclua horários de pico para postagens, passo a passo detalhado para criação de conteúdo,
+      instruções para Canva ou CapCut, textos e ideias visuais.
 
       Dados:
       - Username: "@${args.username}"
@@ -48,28 +51,27 @@ export const generateAnalysis = action({
       - Oferta: "${args.offer}"
       - Público: "${args.audience}"
 
-      Responda APENAS com um objeto JSON com:
-      - suggestions: array de 3 bios otimizadas
-      - strategy: string com análise e plano estratégico
-      - grid: array de 9 ideias curtas
-      - content_plan: array de ${args.planDuration === "week" ? 7 : 30} objetos { day, time, format, title, content_idea, status }
+      Retorne APENAS um JSON:
+      - suggestions: 3 bios otimizadas
+      - strategy: análise detalhada
+      - grid: 9 ideias curtas para o feed
+      - content_plan: ${args.planDuration === "week" ? 7 : 30} itens com { day, time, format, title, content_idea, status }
     `;
 
     const response = await groq.chat.completions.create({
       model: "llama3-70b-8192",
       response_format: { type: "json_object" },
       messages: [
-        { role: "system", content: "Responda somente no JSON solicitado." },
+        { role: "system", content: "Responda apenas em JSON." },
         { role: "user", content: prompt },
       ],
     });
 
     const resultText = response.choices[0]?.message?.content;
-    if (!resultText) throw new Error("A IA não retornou um resultado.");
+    if (!resultText) throw new Error("IA não retornou resultado.");
 
     const rawData: RawAnalysisData = JSON.parse(resultText);
 
-    // Normaliza content_plan
     const normalizedPlan = (rawData.content_plan || []).map<{
       day: string;
       time: string;
@@ -86,41 +88,50 @@ export const generateAnalysis = action({
       status: String(item.status ?? "planejado"),
     }));
 
-    // Normaliza suggestions para garantir array de strings
-  const normalizedSuggestions: string[] = (rawData.suggestions || []).map(
-  (s: string | { bio?: string }) => (typeof s === "string" ? s : s.bio ?? "")
-);
+    const normalizedSuggestions: string[] = (rawData.suggestions || []).map((s) =>
+      typeof s === "string" ? s : s.bio ?? ""
+    );
 
-    const analysisData = {
-      ...rawData,
+    const analysisDataToSave = {
+      userId: identity.subject,
       content_plan: normalizedPlan,
-      suggestions: normalizedSuggestions,
       grid: rawData.grid ?? [],
       strategy: rawData.strategy ?? "",
-      username: args.username,
-      bio: args.bio || "",
-      offer: args.offer,
-      audience: args.audience,
-      planDuration: args.planDuration,
+      suggestions: normalizedSuggestions,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     };
 
-    // Salva no banco
-    await ctx.runMutation(internal.mentor.saveAnalysis, { analysisData });
+    await ctx.runMutation(internal.mentor.saveAnalysis, { analysisData: analysisDataToSave });
 
-    return analysisData;
+    return analysisDataToSave;
   },
 });
 
-// MUTATION — Salva/atualiza
+// Salva análise no Convex
 export const saveAnalysis = internalMutation({
-  args: { analysisData: v.any() },
+  args: {
+    analysisData: v.object({
+      userId: v.string(),
+      content_plan: v.array(v.object({
+        content_idea: v.string(),
+        day: v.string(),
+        format: v.string(),
+        status: v.string(),
+        time: v.string(),
+        title: v.string(),
+      })),
+      grid: v.array(v.string()),
+      strategy: v.string(),
+      suggestions: v.array(v.string()),
+      createdAt: v.float64(),
+      updatedAt: v.float64(),
+    })
+  },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado.");
-
     const existing = await ctx.db
       .query("analyses")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", args.analysisData.userId))
       .first();
 
     if (existing) {
@@ -129,16 +140,12 @@ export const saveAnalysis = internalMutation({
         updatedAt: Date.now(),
       });
     } else {
-      await ctx.db.insert("analyses", {
-        userId: identity.subject,
-        ...args.analysisData,
-        createdAt: Date.now(),
-      });
+      await ctx.db.insert("analyses", args.analysisData);
     }
   },
 });
 
-// QUERY — Busca a última análise
+// Busca última análise
 export const getSavedAnalysis = query({
   args: {},
   handler: async (ctx) => {

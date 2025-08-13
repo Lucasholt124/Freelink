@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Video, Image as ImageIcon, MessageSquare, Podcast, CheckSquare, Edit } from "lucide-react";
 import clsx from "clsx";
 import { Button } from "@/components/ui/button";
+import { toast } from "sonner";
 
 export type PlanFormat = "Reels" | "Carrossel" | "Story" | "Live" | string;
 
@@ -25,20 +26,20 @@ const locales = { "pt-BR": ptBR };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
 
 const formatIcons: Record<"Reels" | "Carrossel" | "Story" | "Live", JSX.Element> = {
-  Reels: <Video className="w-4 h-4 mr-2" />,
-  Carrossel: <ImageIcon className="w-4 h-4 mr-2" />,
-  Story: <MessageSquare className="w-4 h-4 mr-2" />,
-  Live: <Podcast className="w-4 h-4 mr-2" />,
+  Reels: <Video className="w-4 h-4 mr-2 text-red-500" />,
+  Carrossel: <ImageIcon className="w-4 h-4 mr-2 text-blue-500" />,
+  Story: <MessageSquare className="w-4 h-4 mr-2 text-yellow-500" />,
+  Live: <Podcast className="w-4 h-4 mr-2 text-purple-500" />,
 };
 
 const formatColors: Record<"Reels" | "Carrossel" | "Story" | "Live", string> = {
-  Reels: "bg-red-100 text-red-800 border-red-200",
-  Carrossel: "bg-blue-100 text-blue-800 border-blue-200",
-  Story: "bg-yellow-100 text-yellow-800 border-yellow-200",
-  Live: "bg-purple-100 text-purple-800 border-purple-200",
+  Reels: "bg-red-50 text-red-800 border-red-200",
+  Carrossel: "bg-blue-50 text-blue-800 border-blue-200",
+  Story: "bg-yellow-50 text-yellow-800 border-yellow-200",
+  Live: "bg-purple-50 text-purple-800 border-purple-200",
 };
 
-const colorFor = (fmt: PlanFormat) => (formatColors as Record<string, string>)[fmt] || "bg-gray-100 text-gray-800 border-gray-200";
+const colorFor = (fmt: PlanFormat) => (formatColors as Record<string, string>)[fmt] || "bg-gray-50 text-gray-800 border-gray-200";
 const iconFor = (fmt: PlanFormat) => (formatIcons as Record<string, JSX.Element>)[fmt] || <MessageSquare className="w-4 h-4 mr-2" />;
 
 export default function CalendarView({ plan }: { plan: PlanItem[] }) {
@@ -47,27 +48,18 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
   const events = useMemo(() => {
     if (!plan) return [];
     const monthStart = startOfMonth(new Date());
-
     return plan.map((item) => {
       const dayNumber = parseInt(item.day.replace(/\D/g, ""), 10) || 1;
       const eventDate = addDays(monthStart, dayNumber - 1);
-
       const [h, m] = (item.time ?? "09:00").split(":");
       eventDate.setHours(Number(h ?? 9), Number(m ?? 0), 0, 0);
-
-      return {
-        title: item.title,
-        start: eventDate,
-        end: eventDate,
-        allDay: false,
-        resource: item,
-      };
+      return { title: item.title, start: eventDate, end: eventDate, allDay: false, resource: item };
     });
   }, [plan]);
 
   return (
     <>
-      <div className="bg-white p-4 rounded-2xl shadow-lg border h-[70vh] min-h-[420px]">
+      <div className="bg-white p-4 rounded-2xl shadow-lg border h-[70vh] min-h-[420px] overflow-hidden">
         <Calendar
           localizer={localizer}
           events={events}
@@ -78,7 +70,7 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
           defaultView={Views.MONTH}
           onSelectEvent={(ev: { resource: PlanItem }) => setSelectedEvent(ev.resource)}
           eventPropGetter={(ev) => ({
-            className: `${colorFor((ev.resource as PlanItem).format)} p-1 border rounded-md text-xs font-medium cursor-pointer hover:scale-105 transition-transform`,
+            className: `${colorFor((ev.resource as PlanItem).format)} p-1 border rounded-md text-xs font-semibold cursor-pointer hover:scale-105 transition-transform shadow-sm`,
           })}
           components={{
             event: ({ event }) => {
@@ -123,8 +115,12 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
             </DialogDescription>
           </DialogHeader>
           <div className="pt-4 flex justify-end gap-2">
-            <Button variant="outline"><Edit className="w-4 h-4 mr-2" /> Editar</Button>
-            <Button><CheckSquare className="w-4 h-4 mr-2" /> Concluído</Button>
+            <Button variant="outline" onClick={() => toast("Função editar em breve")}>
+              <Edit className="w-4 h-4 mr-2" /> Editar
+            </Button>
+            <Button onClick={() => toast("Marcado como concluído!")}>
+              <CheckSquare className="w-4 h-4 mr-2" /> Concluído
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

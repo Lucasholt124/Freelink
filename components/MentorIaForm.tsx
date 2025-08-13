@@ -35,7 +35,7 @@ export default function ConversationalForm({ onSubmit, defaults, isLoading }: Pr
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 p-6 border rounded-2xl shadow-sm bg-white">
+    <form onSubmit={handleSubmit} className="space-y-6 p-6 border rounded-2xl shadow-lg bg-white">
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label className="block text-sm font-medium">Username</label>
@@ -76,7 +76,7 @@ export default function ConversationalForm({ onSubmit, defaults, isLoading }: Pr
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
-          <label className="block text-sm font-medium">Oferta</label>
+          <label className="block text-sm font-medium">Oferta (o que você oferece)</label>
           <input
             name="offer"
             value={formData.offer}
@@ -102,10 +102,12 @@ export default function ConversationalForm({ onSubmit, defaults, isLoading }: Pr
       <button
         type="submit"
         disabled={isLoading}
-        className="bg-blue-600 text-white px-4 py-2 rounded-lg disabled:opacity-60"
+        className="bg-blue-600 text-white px-4 py-2 rounded-lg w-full disabled:opacity-60"
       >
         {isLoading ? "Gerando plano..." : "Gerar plano com Athena"}
       </button>
     </form>
   );
 }
+
+
