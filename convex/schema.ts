@@ -5,6 +5,7 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // Suas tabelas existentes
   usernames: defineTable({
     userId: v.string(),
     username: v.string(),
@@ -46,29 +47,39 @@ export default defineSchema({
   }).index("by_slug", ["slug"]).index("by_user", ["userId"]),
 
   // =======================================================
-  // NOVA TABELA ADICIONADA AQUI
+  // TABELA 'analyses' ATUALIZADA COM OS NOVOS CAMPOS
   // =======================================================
   analyses: defineTable({
+    // Campos que você já tinha
     userId: v.string(),
     suggestions: v.array(v.string()),
     strategy: v.string(),
     grid: v.array(v.string()),
-   content_plan: v.array(
-  v.object({
-    day: v.string(),
-    time: v.string(),
-    format: v.string(),
-    title: v.string(),
-    content_idea: v.string(),
-    status: v.string(), // opcionalmente pode validar "planejado" | "concluido"
-    details: v.optional(
+    content_plan: v.array(
       v.object({
-        passo_a_passo: v.string()
+        day: v.string(),
+        time: v.string(),
+        format: v.string(),
+        title: v.string(),
+        content_idea: v.string(),
+        // Tipo melhorado para consistência
+        status: v.union(v.literal("planejado"), v.literal("concluido")),
+        details: v.optional(
+          v.object({
+            passo_a_passo: v.string()
+          })
+        ),
       })
     ),
-  })
-),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
-  }).index("by_user", ["userId"]), // <-- O índice que estava faltando
+
+    // --- NOVOS CAMPOS ADICIONADOS AQUI ---
+    username: v.string(),
+    bio: v.string(),
+    offer: v.string(),
+    audience: v.string(),
+    planDuration: v.union(v.literal("week"), v.literal("month")),
+
+  }).index("by_user", ["userId"]),
 });
