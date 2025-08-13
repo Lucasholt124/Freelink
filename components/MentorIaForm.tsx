@@ -22,7 +22,7 @@ export default function ConversationalForm({ onSubmit, defaults, isLoading }: Pr
     bio: defaults?.bio ?? "",
     offer: defaults?.offer ?? "",
     audience: defaults?.audience ?? "",
-    planDuration: (defaults?.planDuration as "week" | "month") ?? "week",
+    planDuration: defaults?.planDuration ?? "week",
   });
 
   const handleChange = (

@@ -3,14 +3,7 @@
 import { JSX, useMemo, useState } from "react";
 import { Calendar, dateFnsLocalizer, Views } from "react-big-calendar";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import {
-  format,
-  parse,
-  startOfWeek,
-  getDay,
-  addDays,
-  startOfMonth,
-} from "date-fns";
+import { format, parse, startOfWeek, getDay, addDays, startOfMonth } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Video, Image as ImageIcon, MessageSquare, Podcast, CheckSquare, Edit } from "lucide-react";
@@ -20,9 +13,9 @@ import { Button } from "@/components/ui/button";
 export type PlanFormat = "Reels" | "Carrossel" | "Story" | "Live" | string;
 
 export type PlanItem = {
-  day: string;           // "Dia 1" ou "1"
-  time: string;          // "19:00"
-  format: PlanFormat;    // aceita string, mas mapeia ícones/cores para os 4 conhecidos
+  day: string;
+  time: string;
+  format: PlanFormat;
   title: string;
   content_idea: string;
   status: string;
@@ -45,11 +38,8 @@ const formatColors: Record<"Reels" | "Carrossel" | "Story" | "Live", string> = {
   Live: "bg-purple-100 text-purple-800 border-purple-200",
 };
 
-const colorFor = (fmt: PlanFormat) =>
-  (formatColors as Record<string, string>)[fmt] || "bg-gray-100 text-gray-800 border-gray-200";
-
-const iconFor = (fmt: PlanFormat) =>
-  (formatIcons as Record<string, JSX.Element>)[fmt] || <MessageSquare className="w-4 h-4 mr-2" />;
+const colorFor = (fmt: PlanFormat) => (formatColors as Record<string, string>)[fmt] || "bg-gray-100 text-gray-800 border-gray-200";
+const iconFor = (fmt: PlanFormat) => (formatIcons as Record<string, JSX.Element>)[fmt] || <MessageSquare className="w-4 h-4 mr-2" />;
 
 export default function CalendarView({ plan }: { plan: PlanItem[] }) {
   const [selectedEvent, setSelectedEvent] = useState<PlanItem | null>(null);
@@ -58,30 +48,21 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
     if (!plan) return [];
     const monthStart = startOfMonth(new Date());
 
-    return plan
-      .map((item) => {
-        // extrai número do dia com fallback para 1
-        const dayNumber = (() => {
-          const n = parseInt(String(item.day).replace(/\D/g, ""), 10);
-          return Number.isFinite(n) && n > 0 ? n : 1;
-        })();
+    return plan.map((item) => {
+      const dayNumber = parseInt(item.day.replace(/\D/g, ""), 10) || 1;
+      const eventDate = addDays(monthStart, dayNumber - 1);
 
-        const eventDate = addDays(monthStart, dayNumber - 1);
+      const [h, m] = (item.time ?? "09:00").split(":");
+      eventDate.setHours(Number(h ?? 9), Number(m ?? 0), 0, 0);
 
-        // protege split de time
-        const [h, m] = (item.time ?? "09:00").split(":");
-        const hours = Number(h ?? 9) || 9;
-        const minutes = Number(m ?? 0) || 0;
-        eventDate.setHours(hours, minutes, 0, 0);
-
-        return {
-          title: item.title,
-          start: eventDate,
-          end: eventDate,
-          allDay: false,
-          resource: item,
-        };
-      });
+      return {
+        title: item.title,
+        start: eventDate,
+        end: eventDate,
+        allDay: false,
+        resource: item,
+      };
+    });
   }, [plan]);
 
   return (
@@ -95,7 +76,7 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
           culture="pt-BR"
           views={[Views.MONTH, Views.WEEK, Views.AGENDA]}
           defaultView={Views.MONTH}
-          onSelectEvent={(ev) => setSelectedEvent(ev.resource as PlanItem)}
+          onSelectEvent={(ev: { resource: PlanItem }) => setSelectedEvent(ev.resource)}
           eventPropGetter={(ev) => ({
             className: `${colorFor((ev.resource as PlanItem).format)} p-1 border rounded-md text-xs font-medium cursor-pointer hover:scale-105 transition-transform`,
           })}

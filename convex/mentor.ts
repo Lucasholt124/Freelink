@@ -8,6 +8,23 @@ const groq = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1",
 });
 
+// --- Tipo seguro para o que vem da IA ---
+type RawPlanItem = {
+  day?: string | number;
+  time?: string;
+  format?: string;
+  title?: string;
+  content_idea?: string;
+  status?: string;
+};
+
+type RawAnalysisData = {
+  suggestions?: string[];
+  strategy?: string;
+  grid?: string[];
+  content_plan?: RawPlanItem[];
+};
+
 // ACTION — Gera e salva análise
 export const generateAnalysis = action({
   args: {
@@ -50,18 +67,39 @@ export const generateAnalysis = action({
     const resultText = response.choices[0]?.message?.content;
     if (!resultText) throw new Error("A IA não retornou um resultado.");
 
-    const analysisData = JSON.parse(resultText);
+    const rawData: RawAnalysisData = JSON.parse(resultText);
 
-    await ctx.runMutation(internal.mentor.saveAnalysis, {
-      analysisData: {
-        ...analysisData,
-        username: args.username,
-        bio: args.bio || "",
-        offer: args.offer,
-        audience: args.audience,
-        planDuration: args.planDuration,
-      },
-    });
+    // Normaliza todos os campos antes de salvar
+    const normalizedPlan = (rawData.content_plan || []).map<{
+      day: string;
+      time: string;
+      format: string;
+      title: string;
+      content_idea: string;
+      status: string;
+    }>((item, idx) => ({
+      day: String(item.day ?? idx + 1), // garante string
+      time: String(item.time ?? "09:00"),
+      format: String(item.format ?? "Story"),
+      title: String(item.title ?? `Post ${idx + 1}`),
+      content_idea: String(item.content_idea ?? ""),
+      status: String(item.status ?? "planejado"),
+    }));
+
+    const analysisData = {
+      ...rawData,
+      content_plan: normalizedPlan,
+      suggestions: rawData.suggestions ?? [],
+      grid: rawData.grid ?? [],
+      strategy: rawData.strategy ?? "",
+      username: args.username,
+      bio: args.bio || "",
+      offer: args.offer,
+      audience: args.audience,
+      planDuration: args.planDuration,
+    };
+
+    await ctx.runMutation(internal.mentor.saveAnalysis, { analysisData });
 
     return analysisData;
   },
@@ -100,6 +138,7 @@ export const getSavedAnalysis = query({
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
+
     return await ctx.db
       .query("analyses")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))

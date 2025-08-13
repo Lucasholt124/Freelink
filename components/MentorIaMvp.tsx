@@ -12,20 +12,18 @@ import { RefreshCw } from "lucide-react";
 import ConversationalForm, { FormData } from "./MentorIaForm";
 import CalendarView, { PlanItem } from "./CalendarView";
 
-type AnalysisDoc = {
+export type AnalysisDoc = {
   _id: string;
   _creationTime: number;
   userId: string;
   createdAt?: number;
   updatedAt?: number;
 
-  // camadas geradas pela IA
   suggestions: string[];
   strategy: string;
   grid: string[];
   content_plan: PlanItem[];
 
-  // campos extras que você salva
   username?: string;
   bio?: string;
   offer?: string;
@@ -42,7 +40,7 @@ export default function MentorIaMvp() {
   const [defaults, setDefaults] = useState<Partial<FormData> | undefined>(undefined);
 
   useEffect(() => {
-    if (savedAnalysis === undefined) return; // ainda carregando
+    if (savedAnalysis === undefined) return;
     if (savedAnalysis) {
       setView("dashboard");
       setDefaults({
@@ -59,10 +57,9 @@ export default function MentorIaMvp() {
 
   const normalizedPlan: PlanItem[] = useMemo(() => {
     const plan = savedAnalysis?.content_plan ?? [];
-    // garante que format seja string e dia/hora tenham fallback
-    return plan.map((p) => ({
+    return plan.map((p, idx) => ({
       title: p.title ?? "",
-      day: String(p.day ?? "1"),
+      day: String(p.day ?? idx + 1),
       time: String(p.time ?? "09:00"),
       format: String(p.format ?? "Story"),
       content_idea: String(p.content_idea ?? ""),
