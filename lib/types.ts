@@ -25,3 +25,31 @@ export interface ServerTrackingEvent extends ClientTrackingData {
   location: LocationData; // Usa nossa nova interface
   timestamp: string;
 }
+
+export type PlanFormat = "Reels" | "Carrossel" | "Story" | "Live";
+
+export type PlanItem = {
+  day: string;
+  time: string;
+  format: PlanFormat;
+  title: string;
+  content_idea: string;
+  status: string;
+};
+
+export type AnalysisResults = {
+  _id: string;
+  _creationTime: number;
+  createdAt?: number;
+  updatedAt?: number;
+  userId: string;
+  suggestions: string[];
+  strategy: string;
+  grid: string[];
+  content_plan: PlanItem[];
+  username?: string;
+  bio?: string;
+  offer?: string;
+  audience?: string;
+  planDuration?: "week" | "month";
+};

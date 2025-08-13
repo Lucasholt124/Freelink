@@ -78,14 +78,6 @@ function InstagramGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
     );
 }
 
-/*************  ✨ Windsurf Command ⭐  *************/
-    /**
-     * Sorteia um vencedor a partir de uma lista de participantes.
-     *
-     * @param {{ setWinner: (w: Winner) => void }} props
-     * @param {Winner} props.setWinner Função que recebe o vencedor sorteado e o renderiza na tela.
-     */
-/*******  e1e02b5c-06a0-4d65-9e27-909a88b7b1be  *******/
 function ListGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
     const [participants, setParticipants] = useState("");
     const [unique, setUnique] = useState(true);
