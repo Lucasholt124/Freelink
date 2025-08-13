@@ -22,7 +22,7 @@ type RawPlanItem = {
 type RawAnalysisData = {
   suggestions?: Array<string | { bio?: string }>;
   strategy?: string;
-  grid?: string[];
+  grid?: string[]; // agora grid é string[]
   content_plan?: RawPlanItem[];
 };
 
@@ -40,23 +40,22 @@ export const generateAnalysis = action({
     if (!identity) throw new Error("Não autenticado.");
 
     const prompt = `
-      Você é Athena, estrategista de conteúdo de marketing digital.
-      Gere plano para ${args.planDuration === "week" ? "7" : "30"} dias.
-      Inclua horários de pico para postagens, passo a passo detalhado para criação de conteúdo,
-      instruções para Canva ou CapCut, textos e ideias visuais.
+Você é Athena, estrategista de conteúdo de marketing digital.
+Gere plano para ${args.planDuration === "week" ? "7" : "30"} dias.
+Inclua horários de pico, passo a passo detalhado, instruções para Canva/CapCut, textos e ideias visuais.
 
-      Dados:
-      - Username: "@${args.username}"
-      - Bio: "${args.bio || "Não informada."}"
-      - Oferta: "${args.offer}"
-      - Público: "${args.audience}"
+Dados:
+- Username: "@${args.username}"
+- Bio: "${args.bio || "Não informada."}"
+- Oferta: "${args.offer}"
+- Público: "${args.audience}"
 
-      Retorne APENAS um JSON:
-      - suggestions: 3 bios otimizadas
-      - strategy: análise detalhada
-      - grid: 9 ideias curtas para o feed
-      - content_plan: ${args.planDuration === "week" ? 7 : 30} itens com { day, time, format, title, content_idea, status }
-    `;
+Retorne APENAS um JSON:
+- suggestions: 3 bios otimizadas
+- strategy: análise detalhada
+- grid: 9 ideias curtas como strings
+- content_plan: ${args.planDuration === "week" ? 7 : 30} itens com { day, time, format, title, content_idea, status }
+`;
 
     const response = await groq.chat.completions.create({
       model: "llama3-70b-8192",
@@ -72,14 +71,8 @@ export const generateAnalysis = action({
 
     const rawData: RawAnalysisData = JSON.parse(resultText);
 
-    const normalizedPlan = (rawData.content_plan || []).map<{
-      day: string;
-      time: string;
-      format: string;
-      title: string;
-      content_idea: string;
-      status: string;
-    }>((item, idx) => ({
+    // Normaliza o plano
+    const normalizedPlan = (rawData.content_plan || []).map((item, idx) => ({
       day: String(item.day ?? idx + 1),
       time: String(item.time ?? "09:00"),
       format: String(item.format ?? "Story"),
@@ -88,14 +81,18 @@ export const generateAnalysis = action({
       status: String(item.status ?? "planejado"),
     }));
 
+    // Normaliza as sugestões
     const normalizedSuggestions: string[] = (rawData.suggestions || []).map((s) =>
       typeof s === "string" ? s : s.bio ?? ""
     );
 
+    // Normaliza o grid como array de strings
+    const normalizedGrid: string[] = (rawData.grid || []).map((g) => (typeof g === "string" ? g : String(g)));
+
     const analysisDataToSave = {
       userId: identity.subject,
       content_plan: normalizedPlan,
-      grid: rawData.grid ?? [],
+      grid: normalizedGrid,
       strategy: rawData.strategy ?? "",
       suggestions: normalizedSuggestions,
       createdAt: Date.now(),
@@ -113,20 +110,22 @@ export const saveAnalysis = internalMutation({
   args: {
     analysisData: v.object({
       userId: v.string(),
-      content_plan: v.array(v.object({
-        content_idea: v.string(),
-        day: v.string(),
-        format: v.string(),
-        status: v.string(),
-        time: v.string(),
-        title: v.string(),
-      })),
-      grid: v.array(v.string()),
+      content_plan: v.array(
+        v.object({
+          content_idea: v.string(),
+          day: v.string(),
+          format: v.string(),
+          status: v.string(),
+          time: v.string(),
+          title: v.string(),
+        })
+      ),
+      grid: v.array(v.string()), // <-- aqui respeitamos o schema atual
       strategy: v.string(),
       suggestions: v.array(v.string()),
       createdAt: v.float64(),
       updatedAt: v.float64(),
-    })
+    }),
   },
   handler: async (ctx, args) => {
     const existing = await ctx.db
@@ -135,10 +134,7 @@ export const saveAnalysis = internalMutation({
       .first();
 
     if (existing) {
-      await ctx.db.patch(existing._id, {
-        ...args.analysisData,
-        updatedAt: Date.now(),
-      });
+      await ctx.db.patch(existing._id, { ...args.analysisData, updatedAt: Date.now() });
     } else {
       await ctx.db.insert("analyses", args.analysisData);
     }

@@ -10,6 +10,7 @@ import { Video, Image as ImageIcon, MessageSquare, Podcast, CheckSquare, Edit } 
 import clsx from "clsx";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
+import ConversationalForm, { FormData } from "./MentorIaForm";
 
 export type PlanFormat = "Reels" | "Carrossel" | "Story" | "Live" | string;
 
@@ -19,7 +20,7 @@ export type PlanItem = {
   format: PlanFormat;
   title: string;
   content_idea: string;
-  status: string;
+  status: "planejado" | "concluido";
 };
 
 const locales = { "pt-BR": ptBR };
@@ -44,18 +45,51 @@ const iconFor = (fmt: PlanFormat) => (formatIcons as Record<string, JSX.Element>
 
 export default function CalendarView({ plan }: { plan: PlanItem[] }) {
   const [selectedEvent, setSelectedEvent] = useState<PlanItem | null>(null);
+  const [localPlan, setLocalPlan] = useState<PlanItem[]>(plan);
+  const [editMode, setEditMode] = useState(false);
 
   const events = useMemo(() => {
-    if (!plan) return [];
     const monthStart = startOfMonth(new Date());
-    return plan.map((item) => {
+    return localPlan.map((item) => {
       const dayNumber = parseInt(item.day.replace(/\D/g, ""), 10) || 1;
       const eventDate = addDays(monthStart, dayNumber - 1);
       const [h, m] = (item.time ?? "09:00").split(":");
       eventDate.setHours(Number(h ?? 9), Number(m ?? 0), 0, 0);
       return { title: item.title, start: eventDate, end: eventDate, allDay: false, resource: item };
     });
-  }, [plan]);
+  }, [localPlan]);
+
+  const markCompleted = (item: PlanItem) => {
+    setLocalPlan((prev) =>
+      prev.map((p) => (p === item ? { ...p, status: "concluido" } : p))
+    );
+    toast.success(`"${item.title}" marcado como concluído!`);
+    setSelectedEvent(null);
+  };
+
+  const startEditing = (item: PlanItem) => {
+    setSelectedEvent(item);
+    setEditMode(true);
+  };
+
+  const onSubmitEdit = (data: FormData) => {
+    if (!selectedEvent) return;
+    setLocalPlan((prev) =>
+      prev.map((p) =>
+        p === selectedEvent
+          ? {
+              ...p,
+              title: data.username || p.title,
+              content_idea: data.bio || p.content_idea,
+              format: data.planDuration || p.format,
+            }
+          : p
+      )
+    );
+    toast.success("Evento atualizado!");
+    setEditMode(false);
+    setSelectedEvent(null);
+  };
 
   return (
     <>
@@ -70,7 +104,9 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
           defaultView={Views.MONTH}
           onSelectEvent={(ev: { resource: PlanItem }) => setSelectedEvent(ev.resource)}
           eventPropGetter={(ev) => ({
-            className: `${colorFor((ev.resource as PlanItem).format)} p-1 border rounded-md text-xs font-semibold cursor-pointer hover:scale-105 transition-transform shadow-sm`,
+            className: `${colorFor((ev.resource as PlanItem).format)} p-1 border rounded-md text-xs font-semibold cursor-pointer hover:scale-105 transition-transform shadow-sm ${
+              (ev.resource as PlanItem).status === "concluido" ? "opacity-60 line-through" : ""
+            }`,
           })}
           components={{
             event: ({ event }) => {
@@ -96,7 +132,7 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
         />
       </div>
 
-      <Dialog open={!!selectedEvent} onOpenChange={() => setSelectedEvent(null)}>
+      <Dialog open={!!selectedEvent} onOpenChange={() => { setSelectedEvent(null); setEditMode(false); }}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -110,17 +146,38 @@ export default function CalendarView({ plan }: { plan: PlanItem[] }) {
               </span>
               {selectedEvent?.title}
             </DialogTitle>
-            <DialogDescription className="pt-4 text-base text-gray-800 whitespace-pre-line">
-              {selectedEvent?.content_idea}
-            </DialogDescription>
+            {!editMode && (
+              <DialogDescription className="pt-4 text-base text-gray-800 whitespace-pre-line">
+                {selectedEvent?.content_idea}
+              </DialogDescription>
+            )}
           </DialogHeader>
+
           <div className="pt-4 flex justify-end gap-2">
-            <Button variant="outline" onClick={() => toast("Função editar em breve")}>
-              <Edit className="w-4 h-4 mr-2" /> Editar
-            </Button>
-            <Button onClick={() => toast("Marcado como concluído!")}>
-              <CheckSquare className="w-4 h-4 mr-2" /> Concluído
-            </Button>
+            {!editMode ? (
+              <>
+                <Button variant="outline" onClick={() => selectedEvent && startEditing(selectedEvent)}>
+                  <Edit className="w-4 h-4 mr-2" /> Editar
+                </Button>
+                {selectedEvent?.status !== "concluido" && (
+                  <Button onClick={() => selectedEvent && markCompleted(selectedEvent)}>
+                    <CheckSquare className="w-4 h-4 mr-2" /> Concluído
+                  </Button>
+                )}
+              </>
+            ) : (
+             <ConversationalForm
+  defaults={{
+    username: selectedEvent?.title || "",
+    bio: selectedEvent?.content_idea || "",
+    offer: "",
+    audience: "",
+    planDuration: "week", // ✅ ou "month", um valor válido
+  }}
+  onSubmit={onSubmitEdit}
+  isLoading={false}
+/>
+            )}
           </div>
         </DialogContent>
       </Dialog>

@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw } from "lucide-react";
 
 import ConversationalForm, { FormData } from "./MentorIaForm";
-import CalendarView, { PlanItem } from "./CalendarView";
+import CalendarView, { PlanFormat, PlanItem } from "./CalendarView";
 
 export type AnalysisDoc = {
   _id: string;
@@ -56,16 +56,16 @@ export default function MentorIaMvp() {
   }, [savedAnalysis]);
 
   const normalizedPlan: PlanItem[] = useMemo(() => {
-    const plan = savedAnalysis?.content_plan ?? [];
-    return plan.map((p, idx) => ({
-      title: p.title ?? "",
-      day: String(p.day ?? idx + 1),
-      time: String(p.time ?? "09:00"),
-      format: String(p.format ?? "Story"),
-      content_idea: String(p.content_idea ?? ""),
-      status: String(p.status ?? "planejado"),
-    }));
-  }, [savedAnalysis]);
+  const plan = savedAnalysis?.content_plan ?? [];
+  return plan.map((p, idx) => ({
+    title: p.title ?? "",
+    day: String(p.day ?? idx + 1),
+    time: String(p.time ?? "09:00"),
+    format: String(p.format ?? "Story") as PlanFormat,
+    content_idea: String(p.content_idea ?? ""),
+    status: p.status === "concluido" ? "concluido" : "planejado", // ✅ aqui
+  }));
+}, [savedAnalysis]);
 
   const onSubmit = (data: FormData) => {
     setIsLoading(true);
