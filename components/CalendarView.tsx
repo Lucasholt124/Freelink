@@ -38,19 +38,14 @@ type PlanItemFromDB = {
       tool_link: string;
   };
 };
+export type PlanItem = PlanItemFromDB & { id: string; };
 
-export type PlanItem = PlanItemFromDB & {
-  id: string; // ID do frontend
-};
-
-// Formulário de Edição
+// FORMULÁRIO DE EDIÇÃO
 const EditPostForm = ({ item, onSave, onCancel }: { item: PlanItem; onSave: (updatedItem: PlanItem) => void; onCancel: () => void; }) => {
     const [editedItem, setEditedItem] = useState(item);
-
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setEditedItem(prev => ({ ...prev, [e.target.name]: e.target.value }));
     };
-
     const handleSave = (e: React.FormEvent) => { e.preventDefault(); onSave(editedItem); };
 
     return (
@@ -73,7 +68,6 @@ const EditPostForm = ({ item, onSave, onCancel }: { item: PlanItem; onSave: (upd
 
 const locales = { "pt-BR": ptBR };
 const localizer = dateFnsLocalizer({ format, parse, startOfWeek, getDay, locales });
-
 const formatConfig: Record<string, { icon: JSX.Element; color: string }> = {
   reels: { icon: <Video className="w-4 h-4 mr-2" />, color: "bg-red-100 text-red-800 border-red-200 dark:bg-red-900/50 dark:text-red-300 dark:border-red-800" },
   carrossel: { icon: <Newspaper className="w-4 h-4 mr-2" />, color: "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/50 dark:text-blue-300 dark:border-blue-800" },
@@ -88,7 +82,7 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
   const [selectedEvent, setSelectedEvent] = useState<PlanItem | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const updatePlanMutation = useMutation(api.mentor.updateContentPlan);
-  const planWithIds: PlanItem[] = useMemo(() => plan.map((p, index) => ({ ...p, id: p.title + index })), [plan]);
+  const planWithIds: PlanItem[] = useMemo(() => plan.map((p, index) => ({ ...p, id: `${p.title}-${index}` })), [plan]);
   const events = useMemo(() => {
     const today = startOfDay(new Date());
     return planWithIds.map((item) => {
