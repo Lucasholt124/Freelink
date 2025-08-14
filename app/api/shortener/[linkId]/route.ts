@@ -1,5 +1,5 @@
 // Em /app/api/shortener/[linkId]/route.ts
-// (CRIE ESTE NOVO ARQUIVO)
+// (Substitua o arquivo inteiro por esta versão corrigida)
 
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
@@ -8,8 +8,8 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 export async function GET(
-  req: Request, // req é necessário mas não usado
-  { params }: { params: { linkId: string } }
+  req: Request,
+  context: { params: { linkId: string } } // <<< A CORREÇÃO ESTÁ AQUI
 ) {
   try {
     const { userId } = await auth();
@@ -18,33 +18,28 @@ export async function GET(
       return new NextResponse(JSON.stringify({ error: "Não autenticado" }), { status: 401 });
     }
 
-    const { linkId } = params;
+    const { linkId } = context.params; // <<< E AQUI
 
     if (!linkId) {
       return new NextResponse(JSON.stringify({ error: "ID do link é obrigatório" }), { status: 400 });
     }
 
-    // Busca o link e VERIFICA se ele pertence ao usuário logado
     const link = await prisma.link.findFirst({
       where: {
         id: linkId,
-        userId: userId, // <<< A VERIFICAÇÃO DE SEGURANÇA CRUCIAL
+        userId: userId,
       },
     });
 
     if (!link) {
-      // Se não encontrar, ou o link não existe ou não pertence ao usuário.
-      // Em ambos os casos, negamos o acesso.
       return new NextResponse(JSON.stringify({ error: "Link não encontrado ou acesso negado" }), { status: 404 });
     }
 
-    // Se o link foi encontrado, busca os cliques associados
     const clicks = await prisma.click.findMany({
       where: { linkId: linkId },
       orderBy: { timestamp: 'desc' },
     });
 
-    // Formata os dados no formato que o seu frontend espera
     const formattedData = {
       link: {
         id: link.id,
@@ -64,8 +59,6 @@ export async function GET(
     console.error(`[SHORTENER_LINKID_GET_ERROR]`, error);
     return new NextResponse(JSON.stringify({ error: "Erro interno do servidor" }), { status: 500 });
   } finally {
-    // A desconexão do Prisma é tratada automaticamente em ambientes serverless como Vercel,
-    // mas mantê-la aqui é uma boa prática se você rodar em outros lugares.
     await prisma.$disconnect();
   }
 }
