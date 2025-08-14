@@ -1,5 +1,5 @@
 // Em /app/api/shortener/[linkId]/route.ts
-// (Substitua o arquivo inteiro por esta versão corrigida)
+// (Substitua o arquivo inteiro por esta versão final e com tipagem explícita)
 
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
@@ -7,9 +7,16 @@ import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
+// <<< A CORREÇÃO DEFINITIVA: CRIAMOS UM TIPO EXPLÍCITO PARA O CONTEXTO >>>
+type RouteContext = {
+  params: {
+    linkId: string;
+  };
+};
+
 export async function GET(
   req: Request,
-  context: { params: { linkId: string } } // <<< A CORREÇÃO ESTÁ AQUI
+  context: RouteContext // <<< USAMOS O NOSSO TIPO EXPLÍCITO AQUI >>>
 ) {
   try {
     const { userId } = await auth();
@@ -18,7 +25,7 @@ export async function GET(
       return new NextResponse(JSON.stringify({ error: "Não autenticado" }), { status: 401 });
     }
 
-    const { linkId } = context.params; // <<< E AQUI
+    const { linkId } = context.params;
 
     if (!linkId) {
       return new NextResponse(JSON.stringify({ error: "ID do link é obrigatório" }), { status: 400 });
