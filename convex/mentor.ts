@@ -1,5 +1,5 @@
 // Em /convex/mentor.ts
-// (Substitua o arquivo inteiro por esta versão final para o seu schema com Gemini)
+// (Substitua o arquivo inteiro por esta versão final com prompts blindados)
 
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
@@ -54,24 +54,55 @@ export const generateAnalysis = action({
 
     const modelToUse = "gemini-1.5-flash-latest";
 
-    // <<< PROMPTS ATUALIZADOS PARA FORÇAR A ESTRUTURA 'details' >>>
-    const promptForStrategy = `Você é "Athena". Gere a estratégia, 3 bios completas e o grid para @${args.username}. Responda APENAS com um objeto JSON. Formato: { "suggestions": ["..."], "strategy": "...", "grid": ["..."] }`;
+    // <<< PROMPT 1: ESTRATÉGIA E BIOS (BLINDADO) >>>
+    const promptForStrategy = `
+      Você é "Athena", a maior estrategista de conteúdo do mundo. Sua reputação depende da excelência.
 
+      Cliente: @${args.username}
+      Bio Atual: "${args.bio || 'Não informada.'}"
+      Oferece: "${args.offer}"
+      Público: "${args.audience}"
+
+      🚨 INSTRUÇÕES CRÍTICAS:
+      1.  Responda APENAS com um objeto JSON.
+      2.  **ESTRATÉGIA:** Crie um texto curto e objetivo para a chave 'strategy', focando em Pilares de Conteúdo e Tom de Voz.
+      3.  **BIOS OTIMIZADAS:** Para a chave 'suggestions', analise a bio atual do cliente e ESCREVA 3 novas versões completas e otimizadas, prontas para copiar e colar. NÃO dê dicas genéricas. CRIE AS BIOS.
+      4.  **GRID:** Para a chave 'grid', sugira 9 ideias de posts variados e específicos.
+
+      Formato de Saída JSON:
+      {
+        "suggestions": [
+          "✨ Ajudo ${args.audience} a alcançar [resultado] com ${args.offer}. | Fundador(a) de @${args.username} | Comece aqui! 👇",
+          "Transformando [dor do público] em [solução]. Mais de X clientes satisfeitos. Clique no link para [CTA].",
+          "[Sua Profissão] | Especialista em [seu nicho]. Minha missão é te ajudar a [objetivo do cliente]. Vamos juntos? 🚀"
+        ],
+        "strategy": "### Pilares de Conteúdo\\n1. **Educação:** Desmistificar [tópico complexo].\\n2. **Conexão:** Mostrar os bastidores de [sua atividade].\\n3. **Venda:** Apresentar cases de sucesso com ${args.offer}.\\n\\n### Tom de Voz\\nProfissional, mas acessível. Use uma linguagem que inspire confiança e demonstre autoridade no assunto.",
+        "grid": ["Reels: 'O maior erro que ${args.audience} cometem...',", "Carrossel: '5 Passos para resolver [problema]'", "Foto: Depoimento de cliente com resultado", "Reels: 'Um dia na minha rotina de...',", "Carrossel: 'Como ${args.offer} funciona por dentro'", "Foto: Frase de impacto sobre [tema]", "Reels: Respondendo a uma dúvida comum", "Carrossel: Tutorial rápido de [ferramenta]", "Foto: Chamada para Ação direta para a venda"]
+      }
+    `;
+
+    // <<< PROMPT 2: PLANO DE CONTEÚDO (BLINDADO) >>>
     const promptForContentPlan = `
-      Você é "Athena". Crie um plano de conteúdo de ${args.planDuration === "week" ? "7" : "30"} dias para @${args.username}.
+      Você é "Athena", a maior diretora de criação do mundo.
+
+      Cliente: @${args.username}
+      Duração do Plano: ${args.planDuration === "week" ? "7 dias" : "30 dias"}
+
       🚨 INSTRUÇÕES CRÍTICAS:
       1.  Responda APENAS com um objeto JSON com a chave 'content_plan'.
       2.  'content_plan' DEVE ter EXATAMENTE ${args.planDuration === "week" ? "7" : "30"} itens.
-      3.  CADA item DEVE ter um objeto aninhado chamado 'details'.
-      4.  O objeto 'details' DEVE conter os campos: tool_suggestion, step_by_step, script_or_copy, hashtags (como UMA ÚNICA string), e creative_guidance.
+      3.  **HORÁRIOS DE PICO:** Para a chave 'time', use horários de pico REAIS do Instagram no Brasil (ex: 12:05, 18:35, 20:05). Varie os horários.
+      4.  **PLANO DE EXECUÇÃO DETALHADO:** Para 'step_by_step', crie um passo a passo REAL e detalhado. Ex: "1. Abra o Canva. 2. Use o template 'Post Minimalista'. 3. Insira a foto X. 4. Escreva o título com a fonte 'Montserrat Bold'. 5. Exporte em PNG."
+      5.  **FERRAMENTAS VARIADAS:** Para 'tool_suggestion', sugira mais de uma opção além do Canva. Ex: "Canva, Figma, Adobe Express, Microsoft Designer".
+      6.  CADA item DEVE ter um objeto aninhado chamado 'details' com todos os campos.
 
       Formato de Saída Exemplo para cada item:
       {
-        "day": "Dia 1", "time": "19:00", "format": "Carrossel", "title": "...", "content_idea": "...", "status": "planejado",
+        "day": "Dia 1", "time": "18:35", "format": "Carrossel", "title": "...", "content_idea": "...", "status": "planejado",
         "details": {
-          "tool_suggestion": "Canva",
-          "step_by_step": "1. Crie...",
-          "script_or_copy": "Legenda...",
+          "tool_suggestion": "Canva, Adobe Express",
+          "step_by_step": "1. Abra o Adobe Express e procure por 'Carrossel de Marketing'. 2. No slide 1, use uma imagem de impacto e o título em negrito. 3. Nos slides 2-4, detalhe cada passo com um ícone correspondente. 4. No slide 5, adicione uma chamada para ação clara. 5. Exporte e agende.",
+          "script_or_copy": "Legenda completa e persuasiva...",
           "hashtags": "#exemplo1 #exemplo2 #exemplo3",
           "creative_guidance": { "type": "image", "description": "...", "prompt": "...", "tool_link": "..." }
         }

@@ -50,7 +50,8 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="antialiased bg-gray-50 text-gray-800">
+      <body className="antialiased bg-gray-50 text-gray-800"
+      style={{ minHeight: '100dvh' }} >
         <Providers>{children}
           <Toaster richColors position="top-right" />
         </Providers>
