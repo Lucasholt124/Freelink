@@ -1,6 +1,4 @@
 // Em /convex/schema.ts
-// (Substitua o arquivo inteiro)
-
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -37,6 +35,7 @@ export default defineSchema({
     providerAccountId: v.string(),
     tokenExpiresAt: v.optional(v.number()),
     accessToken: v.string(),
+    refreshToken: v.optional(v.string()), // Adicionado para refresh tokens
   }).index("by_user_provider", ["userId", "provider"]),
 
   shortLinks: defineTable({
@@ -44,13 +43,11 @@ export default defineSchema({
     slug: v.string(),
     originalUrl: v.string(),
     clicks: v.number(),
+    createdAt: v.optional(v.number()), // Adicionado para tracking
   }).index("by_slug", ["slug"]).index("by_user", ["userId"]),
 
-  // =======================================================
-  // TABELA 'analyses' ATUALIZADA
-  // =======================================================
+  // Tabela 'analyses' com melhorias
   analyses: defineTable({
-    // Campos que já existiam e permanecem
     userId: v.string(),
     suggestions: v.array(v.string()),
     strategy: v.string(),
@@ -63,7 +60,9 @@ export default defineSchema({
     audience: v.string(),
     planDuration: v.union(v.literal("week"), v.literal("month")),
 
-    // <<< A GRANDE MUDANÇA ESTÁ AQUI DENTRO DO content_plan >>>
+    // Adicionado campo para rastrear o modelo usado
+    aiModel: v.optional(v.string()),
+
     content_plan: v.array(
       v.object({
         day: v.string(),
@@ -73,20 +72,22 @@ export default defineSchema({
         content_idea: v.string(),
         status: v.union(v.literal("planejado"), v.literal("concluido")),
 
-        // A ESTRUTURA DE 'details' FOI COMPLETAMENTE REVISADA
+        // Adicionado campo para data de conclusão
+        completedAt: v.optional(v.number()),
+
         details: v.optional(v.object({
-            tool_suggestion: v.string(),
-            step_by_step: v.string(),
-            script_or_copy: v.string(),
-            hashtags: v.string(),
-            creative_guidance: v.object({
-                type: v.string(), // 'image' ou 'video'
-                description: v.string(),
-                prompt: v.string(),
-                tool_link: v.string(), // Link direto para a ferramenta gratuita
-            }),
+          tool_suggestion: v.string(),
+          step_by_step: v.string(),
+          script_or_copy: v.string(),
+          hashtags: v.string(),
+          creative_guidance: v.object({
+            type: v.string(),
+            description: v.string(),
+            prompt: v.string(),
+            tool_link: v.string(),
+          }),
         })),
       })
     ),
-  }).index("by_user", ["userId"]),
+  }).index("by_user", ["userId"]).index("by_created", ["createdAt"]),
 });
