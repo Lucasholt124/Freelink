@@ -1,73 +1,37 @@
 // Em /convex/mentor.ts
-// (Substitua o arquivo inteiro por esta versão final, definitiva e correta)
+// (Substitua o arquivo inteiro por esta versão final para o seu schema com Gemini)
 
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
-// <<< FUNÇÃO HELPER PARA CHAMADAS AO HUGGING FACE (COM LÓGICA BLINDADA) >>>
-async function callHuggingFace(prompt: string, model: string): Promise<string> {
-  const apiKey = process.env.HUGGINGFACE_API_KEY;
-  if (!apiKey) {
-    throw new Error("A variável de ambiente HUGGINGFACE_API_KEY não está definida.");
-  }
+// Configuração do Gemini
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-  const response = await fetch(
-    `https://api-inference.huggingface.co/models/${model}`,
-    {
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      method: "POST",
-      body: JSON.stringify({
-        "inputs": prompt,
-        "parameters": {
-          "return_full_text": false,
-          "max_new_tokens": 8192, // Limite máximo para respostas longas
-        }
-      }),
-    }
-  );
+// Função Helper para chamar o Gemini
+async function callGemini(prompt: string, modelName: string): Promise<string> {
+  const model = genAI.getGenerativeModel({
+    model: modelName,
+    safetySettings: [ // Configurações de segurança
+      { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+      { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+      { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+      { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+    ],
+  });
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    console.error(`Erro da API Hugging Face (status ${response.status}):`, errorText);
+  const result = await model.generateContent({
+    contents: [{ role: "user", parts: [{ text: prompt }] }],
+    generationConfig: {
+      responseMimeType: "application/json",
+    },
+  });
 
-    if (errorText.includes("is currently loading")) {
-      const timeMatch = errorText.match(/estimated_time":\s*(\d+\.?\d*)/);
-      const estimatedTime = timeMatch ? Math.round(parseFloat(timeMatch[1])) : 30;
-      throw new Error(`O modelo de IA está sendo iniciado. Por favor, tente novamente em ${estimatedTime} segundos.`);
-    }
-
-    throw new Error(`A API do Hugging Face retornou um erro ${response.status}: ${errorText}`);
-  }
-
-  const result = await response.json();
-
-  if (Array.isArray(result) && result[0] && result[0].generated_text) {
-    return result[0].generated_text;
-  }
-
-  throw new Error("A resposta da IA do Hugging Face veio em um formato inesperado.");
+  return result.response.text();
 }
 
-// <<< FUNÇÃO HELPER À PROVA DE BALAS PARA EXTRAIR JSON (TYPE-SAFE) >>>
-function extractJson(text: string): unknown {
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match || !match[0]) {
-        throw new Error("Não foi possível encontrar um objeto JSON na resposta da IA. Resposta recebida: " + text);
-    }
-    try {
-        return JSON.parse(match[0]);
-    } catch (e) {
-        console.error("Erro ao parsear JSON da resposta:", e, "Texto Bruto Tentado:", match[0]);
-        throw new Error("A IA retornou um JSON com sintaxe inválida.");
-    }
-}
-
-
-// --- ACTION para GERAR uma nova análise (COM MODELO CORRETO E TYPE-SAFE) ---
+// --- ACTION para GERAR uma nova análise ---
 export const generateAnalysis = action({
   args: {
     username: v.string(),
@@ -88,47 +52,57 @@ export const generateAnalysis = action({
       planDuration: args.planDuration,
     };
 
-    // <<< MODELO FINAL, CORRETO E VERIFICADO >>>
-    const model = "mistralai/Mistral-7B-Instruct-v0.2";
+    const modelToUse = "gemini-1.5-flash-latest";
 
-    // O formato de instrução do Mistral é [INST]...[/INST]
-    const promptForStrategy = `[INST] Você é "Athena", uma estrategista de conteúdo. Sua tarefa é gerar a estratégia, 3 bios completas e o grid para: @${args.username}, que oferece '${args.offer}' para '${args.audience}'. Responda APENAS com o objeto JSON solicitado, sem nenhum texto adicional. Formato JSON: { "suggestions": ["..."], "strategy": "...", "grid": ["..."] } [/INST]`;
-    const promptForContentPlan = `[INST] Você é "Athena", uma diretora de criação. Crie um plano de conteúdo de ${args.planDuration === "week" ? "7" : "30"} dias para @${args.username}. Responda APENAS com um objeto JSON com a chave 'content_plan' contendo EXATAMENTE ${args.planDuration === "week" ? "7" : "30"} itens. Cada item deve ter todos os campos (day, time, format, title, content_idea, status, tool_suggestion, step_by_step, script_or_copy, hashtags, creative_guidance). [/INST]`;
+    // <<< PROMPTS ATUALIZADOS PARA FORÇAR A ESTRUTURA 'details' >>>
+    const promptForStrategy = `Você é "Athena". Gere a estratégia, 3 bios completas e o grid para @${args.username}. Responda APENAS com um objeto JSON. Formato: { "suggestions": ["..."], "strategy": "...", "grid": ["..."] }`;
+
+    const promptForContentPlan = `
+      Você é "Athena". Crie um plano de conteúdo de ${args.planDuration === "week" ? "7" : "30"} dias para @${args.username}.
+      🚨 INSTRUÇÕES CRÍTICAS:
+      1.  Responda APENAS com um objeto JSON com a chave 'content_plan'.
+      2.  'content_plan' DEVE ter EXATAMENTE ${args.planDuration === "week" ? "7" : "30"} itens.
+      3.  CADA item DEVE ter um objeto aninhado chamado 'details'.
+      4.  O objeto 'details' DEVE conter os campos: tool_suggestion, step_by_step, script_or_copy, hashtags (como UMA ÚNICA string), e creative_guidance.
+
+      Formato de Saída Exemplo para cada item:
+      {
+        "day": "Dia 1", "time": "19:00", "format": "Carrossel", "title": "...", "content_idea": "...", "status": "planejado",
+        "details": {
+          "tool_suggestion": "Canva",
+          "step_by_step": "1. Crie...",
+          "script_or_copy": "Legenda...",
+          "hashtags": "#exemplo1 #exemplo2 #exemplo3",
+          "creative_guidance": { "type": "image", "description": "...", "prompt": "...", "tool_link": "..." }
+        }
+      }
+    `;
 
     try {
-      console.log(`Gerando estratégia com ${model}...`);
-      const strategyText = await callHuggingFace(promptForStrategy, model);
-      const strategyResult = extractJson(strategyText);
+      console.log(`Gerando estratégia com ${modelToUse}...`);
+      const strategyText = await callGemini(promptForStrategy, modelToUse);
+      const strategyResult = JSON.parse(strategyText);
 
-      if (typeof strategyResult !== 'object' || strategyResult === null || !('suggestions' in strategyResult)) {
-        throw new Error("Resposta de estratégia da IA está em um formato inválido.");
-      }
+      console.log(`Gerando plano de conteúdo com ${modelToUse}...`);
+      const contentPlanText = await callGemini(promptForContentPlan, modelToUse);
+      const contentPlanResult = JSON.parse(contentPlanText);
 
-      console.log(`Gerando plano de conteúdo com ${model}...`);
-      const contentPlanText = await callHuggingFace(promptForContentPlan, model);
-      const contentPlanResult = extractJson(contentPlanText);
-
-      if (typeof contentPlanResult !== 'object' || contentPlanResult === null || !('content_plan' in contentPlanResult)) {
-        throw new Error("Resposta do plano de conteúdo da IA está em um formato inválido.");
-      }
-
-      const finalAnalysisData = { ...(strategyResult as object), ...(contentPlanResult as object) };
+      const finalAnalysisData = { ...strategyResult, ...contentPlanResult };
 
       await ctx.runMutation(internal.mentor.saveAnalysis, {
         analysisData: { ...finalAnalysisData, ...userData }
       });
 
-      return { ...finalAnalysisData, ...userData };
+      return { ...(finalAnalysisData as object), ...userData };
 
     } catch (error: unknown) {
-      console.error("Erro no processo de geração com Hugging Face:", error);
-      if (error instanceof Error) { throw error; }
-      throw new Error("A IA falhou em gerar uma resposta válida. Por favor, tente novamente.");
+      console.error("Erro no processo de geração com Gemini:", error);
+      if (error instanceof Error) { throw new Error(`A IA falhou. Detalhes: ${error.message}`); }
+      throw new Error("A IA falhou em gerar uma resposta válida. Tente novamente.");
     }
   },
 });
 
-// --- DEMAIS FUNÇÕES (saveAnalysis, getSavedAnalysis, updateContentPlan) ---
 export const saveAnalysis = internalMutation({
     args: { analysisData: v.any() },
     handler: async (ctx, args) => {
@@ -153,8 +127,10 @@ export const updateContentPlan = mutation({
         analysisId: v.id("analyses"),
         newPlan: v.array(v.object({
             day: v.string(), time: v.string(), format: v.string(), title: v.string(), content_idea: v.string(), status: v.union(v.literal("planejado"), v.literal("concluido")),
-            tool_suggestion: v.string(), step_by_step: v.string(), script_or_copy: v.string(), hashtags: v.array(v.string()),
-            creative_guidance: v.object({ type: v.string(), description: v.string(), prompt: v.string(), tool_link: v.string() }),
+            details: v.optional(v.object({
+                tool_suggestion: v.string(), step_by_step: v.string(), script_or_copy: v.string(), hashtags: v.string(),
+                creative_guidance: v.object({ type: v.string(), description: v.string(), prompt: v.string(), tool_link: v.string() }),
+            })),
         }))
     },
     handler: async (ctx, { analysisId, newPlan }) => {
