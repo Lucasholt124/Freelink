@@ -1,14 +1,10 @@
 // Em /app/api/shortener/[linkId]/route.ts
-// (Substitua o arquivo inteiro por esta versão final com o workaround do bug do Next.js 15)
+// (Substitua o arquivo inteiro)
 
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { PrismaClient } from '@prisma/client';
+import prisma from '@/lib/prisma'; // <<< A MUDANÇA CRUCIAL ESTÁ AQUI
 
-const prisma = new PrismaClient();
-
-// A assinatura da função foi simplificada para contornar o bug de tipo.
-// Extraímos o linkId diretamente da URL da requisição, ignorando o segundo argumento problemático.
 export async function GET(req: Request) {
   try {
     const { userId } = await auth();
@@ -17,16 +13,14 @@ export async function GET(req: Request) {
       return new NextResponse("Não autenticado", { status: 401 });
     }
 
-    // <<< WORKAROUND DEFINITIVO: Extração manual do ID da URL >>>
     const url = new URL(req.url);
     const pathSegments = url.pathname.split('/');
-    const linkId = pathSegments.pop() || ''; // Pega o último segmento da URL, que é o [linkId]
+    const linkId = pathSegments.pop() || '';
 
     if (!linkId) {
       return new NextResponse("ID do link é obrigatório", { status: 400 });
     }
 
-    // O resto do código permanece o mesmo, usando o linkId que extraímos manualmente.
     const link = await prisma.link.findFirst({
       where: {
         id: linkId,
@@ -61,7 +55,5 @@ export async function GET(req: Request) {
   } catch (error) {
     console.error(`[SHORTENER_LINKID_GET_ERROR]`, error);
     return new NextResponse("Erro interno do servidor", { status: 500 });
-  } finally {
-    await prisma.$disconnect();
   }
 }

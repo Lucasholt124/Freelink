@@ -3,9 +3,8 @@
 
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { PrismaClient, Link as PrismaLink } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { Link as PrismaLink } from '@prisma/client';
+import prisma from '@/lib/prisma'; // <<< A MUDANÇA CRUCIAL ESTÁ AQUI
 
 export async function GET() {
     try {
@@ -36,14 +35,12 @@ export async function GET() {
     } catch (error) {
         console.error("[SHORTENER_GET_ERROR]", error);
         return new NextResponse(JSON.stringify({ error: "Erro interno do servidor ao buscar links" }), { status: 500 });
-    } finally {
-        await prisma.$disconnect();
     }
 }
 
 export async function POST(req: Request) {
     try {
-        const { userId } =  await auth();
+        const { userId } = await auth();
         if (!userId) {
             return new NextResponse(JSON.stringify({ error: "Não autenticado" }), { status: 401 });
         }
@@ -75,7 +72,5 @@ export async function POST(req: Request) {
     } catch (error) {
         console.error("[SHORTENER_POST_ERROR]", error);
         return new NextResponse(JSON.stringify({ error: "Erro interno do servidor ao criar link" }), { status: 500 });
-    } finally {
-        await prisma.$disconnect();
     }
 }
