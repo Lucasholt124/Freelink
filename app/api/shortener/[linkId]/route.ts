@@ -1,34 +1,27 @@
 // Em /app/api/shortener/[linkId]/route.ts
-// (Substitua o arquivo inteiro por esta versão final e com tipagem explícita)
+// (Substitua o arquivo inteiro por esta versão final, definitiva e correta)
 
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server'; // <<< A IMPORTAÇÃO CHAVE
 import { auth } from '@clerk/nextjs/server';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
 
-// <<< A CORREÇÃO DEFINITIVA: CRIAMOS UM TIPO EXPLÍCITO PARA O CONTEXTO >>>
-type RouteContext = {
-  params: {
-    linkId: string;
-  };
-};
-
 export async function GET(
-  req: Request,
-  context: RouteContext // <<< USAMOS O NOSSO TIPO EXPLÍCITO AQUI >>>
+  req: NextRequest, // <<< USAMOS O TIPO OFICIAL 'NextRequest'
+  { params }: { params: { linkId: string } } // <<< VOLTAMOS À DESESTRUTURAÇÃO, QUE FUNCIONA COM OS TIPOS CERTOS
 ) {
   try {
     const { userId } = await auth();
 
     if (!userId) {
-      return new NextResponse(JSON.stringify({ error: "Não autenticado" }), { status: 401 });
+      return new NextResponse("Não autenticado", { status: 401 });
     }
 
-    const { linkId } = context.params;
+    const { linkId } = params;
 
     if (!linkId) {
-      return new NextResponse(JSON.stringify({ error: "ID do link é obrigatório" }), { status: 400 });
+      return new NextResponse("ID do link é obrigatório", { status: 400 });
     }
 
     const link = await prisma.link.findFirst({
@@ -39,7 +32,7 @@ export async function GET(
     });
 
     if (!link) {
-      return new NextResponse(JSON.stringify({ error: "Link não encontrado ou acesso negado" }), { status: 404 });
+      return new NextResponse("Link não encontrado ou acesso negado", { status: 404 });
     }
 
     const clicks = await prisma.click.findMany({
@@ -64,7 +57,7 @@ export async function GET(
 
   } catch (error) {
     console.error(`[SHORTENER_LINKID_GET_ERROR]`, error);
-    return new NextResponse(JSON.stringify({ error: "Erro interno do servidor" }), { status: 500 });
+    return new NextResponse("Erro interno do servidor", { status: 500 });
   } finally {
     await prisma.$disconnect();
   }
