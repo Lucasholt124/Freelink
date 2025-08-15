@@ -1,4 +1,3 @@
-// Em app/share/[code]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,20 +6,25 @@ import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Flame, Share, Copy, Globe } from "lucide-react";
 import Link from "next/link";
-import { toast } from "sonner"; // Assumindo que você usa o pacote sonner
+import { toast } from "sonner";
 
-export default function SharePage({ params }: { params: { code: string } }) {
+// Corrija a tipagem para corresponder ao App Router do Next.js
+interface SharePageProps {
+  params: {
+    code: string;
+  };
+}
+
+export default function SharePage({ params }: SharePageProps) {
   const { code } = params;
   const [isRegistered, setIsRegistered] = useState(false);
 
-  // Para compatibilidade, vamos usar a API correta
-  // Substitua mentor.getSharedStreak pelo endpoint correto no seu caso
+  // Verificar se o endpoint existe no seu arquivo api
    const achievementData = useQuery(api.shareAchievements.getSharedAchievement, {
     shareCode: code
   });
 
-  // Substitua mentor.registerStreakView pelo endpoint correto no seu caso
- const registerView = useMutation(api.shareAchievements.registerAchievementView);
+  const registerView = useMutation(api.shareAchievements.registerAchievementView);
 
   useEffect(() => {
     if (achievementData && !isRegistered) {
@@ -140,12 +144,7 @@ export default function SharePage({ params }: { params: { code: string } }) {
                 const shareText = `🔥 Sequência de ${streakDays} dias criando conteúdo! Já concluí ${completedPosts} posts com o Mentor.IA da @freelink`;
                 navigator.clipboard.writeText(shareText);
 
-                // Use toast se disponível, caso contrário use alert
-                if (typeof toast !== 'undefined') {
-                  toast.success("Texto copiado para compartilhamento!");
-                } else {
-                  alert("Texto copiado para compartilhamento!");
-                }
+                toast.success("Texto copiado para compartilhamento!");
               }}
             >
               <Copy className="w-4 h-4 mr-2" />
