@@ -6,7 +6,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, BarChart3, Clock, ChevronRight, ArrowLeft } from "lucide-react";
 
-// Importações dos seus componentes
 import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
 import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
@@ -18,51 +17,95 @@ import { LockedFeatureCard } from "./LockedFeatureCard";
 import { UpgradeCallToAction } from "./UpgradeCallToAction";
 import { NoDataState } from "./NoDataState";
 
-const formatUrl = (url: string) => { try { return new URL(url).hostname.replace("www.", "") } catch { return url } };
+const formatUrl = (url: string) => {
+  try {
+    return new URL(url).hostname.replace("www.", "");
+  } catch {
+    return url;
+  }
+};
 
-// --- Componente de Cabeçalho (Preservado) ---
-function PageHeader({ linkTitle, linkUrl }: { linkTitle: string, linkUrl: string }) {
-    const router = useRouter();
-    return (
-        <header className="space-y-4">
-            <nav className="flex items-center text-sm text-gray-500">
-                <button onClick={() => router.back()} className="flex items-center gap-1 hover:text-gray-900 transition-colors"><ArrowLeft className="w-4 h-4" /> Voltar</button>
-                <ChevronRight className="w-4 h-4 mx-2" />
-                <Link href="/dashboard" className="hover:text-gray-900">Painel</Link>
-                <ChevronRight className="w-4 h-4 mx-2" />
-                <span className="font-semibold text-gray-800 truncate">Análises</span>
-            </nav>
-            <div>
-                <h1 className="text-3xl md:text-4xl font-bold text-gray-900 truncate" title={linkTitle}>{linkTitle}</h1>
-                <a href={linkUrl} target="_blank" rel="noopener noreferrer" className="text-gray-500 hover:text-blue-600 break-all">{formatUrl(linkUrl)}</a>
-            </div>
-        </header>
-    );
+// --- Cabeçalho da Página ---
+function PageHeader({ linkTitle, linkUrl }: { linkTitle: string; linkUrl: string }) {
+  const router = useRouter();
+  return (
+    <header className="space-y-4">
+      <nav className="flex items-center text-sm text-gray-500 select-none">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1 hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 rounded"
+          aria-label="Voltar"
+        >
+          <ArrowLeft className="w-4 h-4" /> Voltar
+        </button>
+        <ChevronRight className="w-4 h-4 mx-2" aria-hidden="true" />
+        <Link
+          href="/dashboard"
+          className="hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded"
+        >
+          Painel
+        </Link>
+        <ChevronRight className="w-4 h-4 mx-2" aria-hidden="true" />
+        <span className="font-semibold text-gray-800 truncate">{`Análises`}</span>
+      </nav>
+      <div>
+        <h1
+          className="text-3xl md:text-4xl font-bold text-gray-900 truncate"
+          title={linkTitle}
+        >
+          {linkTitle}
+        </h1>
+        <a
+          href={linkUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-gray-500 hover:text-blue-600 break-all transition-colors"
+          aria-label={`Abrir link ${formatUrl(linkUrl)} em nova aba`}
+        >
+          {formatUrl(linkUrl)}
+        </a>
+      </div>
+    </header>
+  );
 }
 
-// --- Card dedicado para Horário de Pico ---
+// --- Card Horário de Pico ---
 function PeakHourCard({ peakHour }: { peakHour: number | null }) {
-    return (
-        <div className="bg-white p-6 rounded-2xl border border-gray-200/80 shadow-lg flex items-center gap-6">
-            <div className="p-4 bg-orange-100 rounded-xl"><Clock className="w-8 h-8 text-orange-600" /></div>
-            <div>
-                <h3 className="text-lg font-bold text-gray-800">Horário de Pico</h3>
-                <p className="text-4xl font-bold text-orange-500">{peakHour !== null ? `${String(peakHour).padStart(2, '0')}:00` : "N/A"}</p>
-                <p className="text-sm text-gray-500 mt-1">{peakHour !== null ? "Horário com o maior número de cliques." : "Dados insuficientes."}</p>
-            </div>
-        </div>
-    );
+  return (
+    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md flex items-center gap-6">
+      <div className="p-4 bg-orange-100 rounded-xl">
+        <Clock className="w-8 h-8 text-orange-600" />
+      </div>
+      <div>
+        <h3 className="text-lg font-bold text-gray-800">Horário de Pico</h3>
+        <p className="text-4xl font-extrabold text-orange-500">
+          {peakHour !== null ? `${String(peakHour).padStart(2, "0")}:00` : "N/A"}
+        </p>
+        <p className="text-sm text-gray-500 mt-1">
+          {peakHour !== null
+            ? "Horário com o maior número de cliques."
+            : "Dados insuficientes."}
+        </p>
+      </div>
+    </div>
+  );
 }
 
-// --- Componente Principal com Layout Aprimorado ---
-export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsData }) {
+// --- Componente Principal ---
+export default function LinkAnalytics({
+  analytics,
+}: {
+  analytics: LinkAnalyticsData;
+}) {
   const { user, isLoaded } = useUser();
   const [plan, setPlan] = useState<"free" | "pro" | "ultra">("free");
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (isLoaded && user) {
-      const userPlan = (user.publicMetadata.subscriptionPlan as "free" | "pro" | "ultra") || "free";
+      const userPlan =
+        (user.publicMetadata.subscriptionPlan as "free" | "pro" | "ultra") ||
+        "free";
       setPlan(userPlan);
       setIsAdmin(user.id === "user_301NTkVsE3v48SXkoCEp0XOXifI");
     }
@@ -71,59 +114,85 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
   const hasAnalyticsAccess = plan === "pro" || plan === "ultra" || isAdmin;
   const hasUltraFeaturesAccess = plan === "ultra" || isAdmin;
 
-  if (!isLoaded) { return <div className="p-8 text-center">Carregando dados...</div>; }
-  if (!hasAnalyticsAccess) { return <UpgradeCallToAction />; }
+  if (!isLoaded) {
+    return (
+      <div className="p-8 text-center text-gray-600 animate-pulse">
+        Carregando dados...
+      </div>
+    );
+  }
+  if (!hasAnalyticsAccess) {
+    return <UpgradeCallToAction />;
+  }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
       <PageHeader linkTitle={analytics.linkTitle} linkUrl={analytics.linkUrl} />
 
-      {analytics.totalClicks === 0 ? <NoDataState /> : (
-        <div className="space-y-8">
-          {/* --- SEÇÃO 1: MÉTRICAS PRINCIPAIS --- */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {analytics.totalClicks === 0 ? (
+        <NoDataState />
+      ) : (
+        <div className="space-y-10">
+          {/* Métricas principais */}
+          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             <MetricCard title="Total de cliques" value={analytics.totalClicks} />
             <MetricCard title="Visitantes Únicos" value={analytics.uniqueUsers} />
             <MetricCard title="Países Alcançados" value={analytics.countriesReached} />
           </section>
 
-          {/* --- SEÇÃO 2: GRÁFICO PRINCIPAL DE TENDÊNCIA --- */}
+          {/* Gráfico de tendência diária */}
           {analytics.dailyData?.length > 0 && (
             <section>
               <DailyPerformanceChart data={analytics.dailyData} />
             </section>
           )}
 
-          {/* --- SEÇÃO 3: ANÁLISES DETALHADAS EM GRID --- */}
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* Análises detalhadas */}
+          <section className="grid grid-cols-1 lg:grid-cols-3 gap-10 items-start">
+            {/* Coluna esquerda (2/3) */}
+            <div className="lg:col-span-2 space-y-10">
+              {analytics.countryData?.length > 0 && (
+                <CountryChart data={analytics.countryData} />
+              )}
 
-            {/* Coluna da Esquerda (ocupa 2/3 no desktop) */}
-            <div className="lg:col-span-2 space-y-8">
-              {analytics.countryData?.length > 0 && <CountryChart data={analytics.countryData} />}
-
-              {/* Análises Geográficas Avançadas (Ultra) */}
               {hasUltraFeaturesAccess ? (
                 <>
-                  {analytics.regionData?.length > 0 && <RegionChart data={analytics.regionData} />}
-                  {analytics.cityData?.length > 0 && <CityChart data={analytics.cityData} />}
+                  {analytics.regionData?.length > 0 && (
+                    <RegionChart data={analytics.regionData} />
+                  )}
+                  {analytics.cityData?.length > 0 && (
+                    <CityChart data={analytics.cityData} />
+                  )}
                 </>
               ) : (
-                <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-lg">
-                    <LockedFeatureCard title="Análise Geográfica Detalhada" icon={<MapPin className="w-8 h-8 text-gray-400"/>} requiredPlan="Ultra" description="Desbloqueie para ver os cliques por cidade e estado."/>
+                <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-md">
+                  <LockedFeatureCard
+                    title="Análise Geográfica Detalhada"
+                    icon={<MapPin className="w-8 h-8 text-gray-400" />}
+                    requiredPlan="Ultra"
+                    description="Desbloqueie para ver os cliques por cidade e estado."
+                  />
                 </div>
               )}
             </div>
 
-            {/* Coluna da Direita (ocupa 1/3 no desktop) */}
-            <div className="space-y-8">
+            {/* Coluna direita (1/3) */}
+            <div className="space-y-10">
               {hasUltraFeaturesAccess ? (
                 <>
                   <PeakHourCard peakHour={analytics.peakHour} />
-                  {analytics.hourlyData?.length > 0 && <HourlyChart data={analytics.hourlyData} />}
+                  {analytics.hourlyData?.length > 0 && (
+                    <HourlyChart data={analytics.hourlyData} />
+                  )}
                 </>
               ) : (
-                <div className="p-6 bg-white rounded-2xl border border-gray-200/80 shadow-lg">
-                    <LockedFeatureCard title="Análise de Horários" icon={<BarChart3 className="w-8 h-8 text-gray-400"/>} requiredPlan="Ultra" description="Descubra os horários de pico de engajamento da sua audiência."/>
+                <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-md">
+                  <LockedFeatureCard
+                    title="Análise de Horários"
+                    icon={<BarChart3 className="w-8 h-8 text-gray-400" />}
+                    requiredPlan="Ultra"
+                    description="Descubra os horários de pico de engajamento da sua audiência."
+                  />
                 </div>
               )}
             </div>

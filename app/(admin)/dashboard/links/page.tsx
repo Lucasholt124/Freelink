@@ -1,6 +1,3 @@
-// Em /app/dashboard/links/page.tsx
-// (Substitua o arquivo inteiro)
-
 import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
 import { fetchQuery } from "convex/nextjs";
@@ -20,51 +17,55 @@ export default async function LinksPage() {
   });
 
   return (
-    // =======================================================
-    // CORREÇÃO: Removida a lógica de altura e scroll.
-    // A página agora é um container de conteúdo simples.
-    // O `DashboardLayout` cuidará do scroll.
-    // =======================================================
-    <div className="space-y-6 sm:space-y-8">
+    <div className="space-y-8 sm:space-y-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
       {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <header className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6">
         {/* Título */}
-        <div className="flex items-center gap-4">
-          <div className="p-3 bg-purple-100 rounded-xl flex-shrink-0">
-            <LayoutGrid className="w-6 h-6 sm:w-7 sm:h-7 text-purple-600" />
+        <div className="flex items-center gap-5">
+          <div className="p-3 bg-purple-100 rounded-2xl flex-shrink-0 shadow-inner">
+            <LayoutGrid className="w-7 h-7 sm:w-8 sm:h-8 text-purple-600" />
           </div>
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Meus Links</h1>
-            <p className="text-gray-600 mt-1 text-sm sm:text-base">Arraste para reordenar sua página.</p>
+            <h1 className="text-3xl font-extrabold text-gray-900 leading-tight">
+              Meus Links
+            </h1>
+            <p className="text-gray-600 mt-1 text-sm sm:text-base">
+              Arraste para reordenar sua página.
+            </p>
           </div>
         </div>
 
         {/* Botão Página Pública */}
         {userSlug && (
-          <Button asChild variant="outline" className="w-full sm:w-auto flex-shrink-0">
+          <Button
+            asChild
+            variant="outline"
+            className="w-full sm:w-auto flex-shrink-0 transition-colors duration-200 hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-1"
+          >
             <Link
               href={`/u/${userSlug}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 justify-center"
+              aria-label="Ver Página Pública em nova aba"
             >
-              <Eye className="w-4 h-4" /> Ver Página Pública
+              <Eye className="w-5 h-5" /> Ver Página Pública
             </Link>
           </Button>
         )}
-      </div>
+      </header>
 
       {/* Container de Gerenciamento */}
-      <div className="bg-white p-4 sm:p-8 rounded-2xl border border-gray-200 shadow-lg">
+      <section className="bg-white p-6 sm:p-10 rounded-3xl border border-gray-200 shadow-lg">
         <ManageLinks />
-      </div>
+      </section>
 
       {/* Dica */}
-      <div className="text-center text-sm text-gray-500">
+      <footer className="text-center text-sm text-gray-500 select-none">
         <p>
-          ✨ <span className="font-medium">Dica:</span> As alterações são salvas automaticamente.
+          ✨ <span className="font-semibold">Dica:</span> As alterações são salvas automaticamente.
         </p>
-      </div>
+      </footer>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Home, Settings, Wand2, Menu, X, Scissors, Target, LayoutGrid, Gift,
   BrainCircuit, CreditCard, LucideProps, LogOut, Bell, ChevronDown,
-  ExternalLink, BarChart3, HelpCircle, Sparkles, Star, Rocket
+  ExternalLink, HelpCircle, Sparkles, Star, Rocket
 } from "lucide-react";
 import clsx from "clsx";
 import { UserButton } from "@clerk/nextjs";
@@ -110,7 +110,6 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
         { href: "/dashboard/shortener", icon: Scissors, label: "Encurtador" },
         { href: "/dashboard/giveaway", icon: Gift, label: "Sorteios", ultra: userPlan !== "ultra" },
         { href: "/dashboard/tracking", icon: Target, label: "Rastreamento", ultra: userPlan !== "ultra" },
-        { href: "/dashboard/analytics", icon: BarChart3, label: "Analytics", pro: userPlan === "free" },
       ]
     },
     {
@@ -437,7 +436,7 @@ export default function DashboardLayout({
               </Link>
             </div>
             <div className="hidden md:flex items-center ml-4 lg:ml-0">
-              <Link href="/dashboard/links/new">
+              <Link href="/dashboard/links">
                 <Button size="sm" className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white">
                   <ExternalLink className="w-4 h-4 mr-1.5" />
                   Novo Link

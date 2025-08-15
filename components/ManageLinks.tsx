@@ -1,7 +1,3 @@
-// Em /components/ManageLinks.tsx
-// (Substitua o arquivo inteiro)
-
-
 "use client";
 
 import { useQuery, useMutation } from "convex/react";
@@ -27,15 +23,18 @@ import { Id } from "@/convex/_generated/dataModel";
 import { Button } from "./ui/button";
 import { Plus, Link2 } from "lucide-react";
 import Link from "next/link";
-import { SortableItem } from "./SortableItem"; // Certifique-se que este componente está correto
+import { SortableItem } from "./SortableItem";
 import { useEffect, useState } from "react";
 
 // Skeleton enquanto carrega
 function LinksSkeleton() {
   return (
-    <div className="space-y-4 animate-pulse">
+    <div className="space-y-5 animate-pulse mt-4">
       {[...Array(3)].map((_, i) => (
-        <div key={i} className="h-20 bg-gray-200 rounded-xl" />
+        <div
+          key={i}
+          className="h-20 bg-gray-200 rounded-2xl border border-gray-300"
+        />
       ))}
     </div>
   );
@@ -44,14 +43,14 @@ function LinksSkeleton() {
 // Estado vazio
 function EmptyState() {
   return (
-    <div className="text-center p-6 sm:p-8 border-2 border-dashed border-gray-200 rounded-xl">
-      <div className="mx-auto w-fit bg-gray-100 p-4 rounded-full mb-4">
-        <Link2 className="w-7 h-7 sm:w-8 sm:h-8 text-gray-400" />
+    <div className="text-center p-8 sm:p-12 border-2 border-dashed border-gray-300 rounded-2xl bg-gray-50">
+      <div className="mx-auto w-fit bg-gray-100 p-5 rounded-full mb-6">
+        <Link2 className="w-10 h-10 sm:w-12 sm:h-12 text-gray-400" />
       </div>
-      <h3 className="font-semibold text-gray-800">
+      <h3 className="font-semibold text-gray-800 text-lg sm:text-xl">
         Sua lista de links está vazia
       </h3>
-      <p className="text-sm text-gray-500 mt-1">
+      <p className="text-sm text-gray-500 mt-2 max-w-xs mx-auto">
         Clique no botão abaixo para adicionar seu primeiro link!
       </p>
     </div>
@@ -112,8 +111,11 @@ export default function ManageLinks() {
         collisionDetection={closestCenter}
         onDragEnd={handleDragEnd}
       >
-        <SortableContext items={items} strategy={verticalListSortingStrategy}>
-          <div className="space-y-4">
+        <SortableContext
+          items={items}
+          strategy={verticalListSortingStrategy}
+        >
+          <div className="space-y-4 transition-all duration-300">
             {items.map((id) => {
               const link = linkMap.get(id);
               if (!link) return null;
@@ -126,24 +128,19 @@ export default function ManageLinks() {
   };
 
   return (
-    // =======================================================
-    // CORREÇÃO: Usando um layout flexível para garantir que o
-    // botão fique no final, mesmo com poucos links.
-    // =======================================================
     <div className="flex flex-col min-h-[400px]">
       <div className="flex-grow">{renderContent()}</div>
 
-      {/* Botão com espaçamento e tamanho de fonte responsivos */}
       <Button
         asChild
-        className="w-full mt-8 py-4 sm:py-5 text-base font-bold bg-gradient-to-r from-blue-500 to-purple-600 text-white hover:opacity-90 transition-opacity"
+        className="w-full mt-8 py-4 sm:py-5 text-base font-bold bg-gradient-to-r from-blue-600 to-purple-700 text-white hover:opacity-90 transition-opacity rounded-xl shadow-md"
         aria-label="Adicionar novo link"
       >
         <Link
           href="/dashboard/new-link"
-          className="flex items-center justify-center gap-2"
+          className="flex items-center justify-center gap-3"
         >
-          <Plus className="w-5 h-5" />
+          <Plus className="w-6 h-6" />
           Adicionar Novo Link
         </Link>
       </Button>
