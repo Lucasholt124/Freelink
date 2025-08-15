@@ -1,9 +1,10 @@
 import ShareClient from "@/components/ShareClient";
 
 interface PageProps {
-  params: { code: string };
+  params: Promise<{ code: string }>;
 }
 
-export default function Page({ params }: PageProps) {
-  return <ShareClient code={params.code} />;
+export default async function Page({ params }: PageProps) {
+  const { code } = await params;
+  return <ShareClient code={code} />;
 }

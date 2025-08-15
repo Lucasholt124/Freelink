@@ -12,6 +12,8 @@ interface ShareClientProps {
   code: string;
 }
 
+
+
 export default function ShareClient({ code }: ShareClientProps) {
   const [isRegistered, setIsRegistered] = useState(false);
 
