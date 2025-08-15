@@ -416,8 +416,10 @@ export default function DashboardLayout({
       </motion.aside>
 
       {/* Container Principal do Conteúdo */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 py-2 px-4 flex justify-between items-center flex-shrink-0 sticky top-0 z-10">
+      <div className="flex-1 flex flex-col overflow-visible">
+        <header
+  className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 py-2 px-4 flex justify-between items-center flex-shrink-0 sticky top-0 z-50 will-change-transform"
+>
           <div className="flex items-center">
             <Button
               variant="ghost"

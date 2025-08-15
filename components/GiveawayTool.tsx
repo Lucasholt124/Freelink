@@ -7,7 +7,6 @@ import { toast } from "sonner";
 import Image from "next/image";
 import {
   Loader2,
-  Star,
   RefreshCw,
   Instagram,
   List,
@@ -41,7 +40,13 @@ type Winner =
   | FunctionReturnType<typeof api.giveaways.runWeightedListGiveaway>
   | null;
 
-function WinnerCard({ winner, onRedraw }: { winner: NonNullable<Winner>; onRedraw: () => void }) {
+function WinnerCard({
+  winner,
+  onRedraw,
+}: {
+  winner: NonNullable<Winner>;
+  onRedraw: () => void;
+}) {
   const [showConfetti, setShowConfetti] = useState(false);
   useEffect(() => {
     setShowConfetti(true);
@@ -60,10 +65,12 @@ function WinnerCard({ winner, onRedraw }: { winner: NonNullable<Winner>; onRedra
   })();
 
   return (
-    <div className="mt-8 bg-gradient-to-br from-amber-50 to-orange-100 p-8 rounded-3xl border-4 border-amber-400 text-center shadow-lg animate-fadeIn zoom-in-110 relative overflow-hidden">
+    <div className="mt-8 bg-gradient-to-br from-amber-50 to-orange-100 p-8 rounded-3xl border-4 border-amber-400 text-center shadow-lg animate-fadeIn zoom-in-110 relative overflow-hidden max-w-full">
       {showConfetti && <Confetti />}
-      <h3 className="text-lg font-extrabold uppercase tracking-widest text-amber-700 drop-shadow-md">🎉 E o vencedor é... 🎉</h3>
-      <div className="mt-6 flex flex-col items-center gap-5">
+      <h3 className="text-lg font-extrabold uppercase tracking-widest text-amber-700 drop-shadow-md">
+        🎉 E o vencedor é... 🎉
+      </h3>
+      <div className="mt-6 flex flex-col items-center gap-5 max-w-full">
         {"profilePicUrl" in winner && winner.profilePicUrl && (
           <Image
             src={winner.profilePicUrl}
@@ -74,9 +81,11 @@ function WinnerCard({ winner, onRedraw }: { winner: NonNullable<Winner>; onRedra
             priority
           />
         )}
-        <p className="text-3xl font-extrabold text-gray-900 truncate max-w-xs">{displayName}</p>
+        <p className="text-3xl font-extrabold text-gray-900 truncate max-w-xs">
+          {displayName}
+        </p>
         {"commentText" in winner && (
-          <p className="text-gray-700 mt-2 bg-white/80 px-5 py-3 rounded-xl text-lg font-medium shadow-inner max-w-md">
+          <p className="text-gray-700 mt-2 bg-white/80 px-5 py-3 rounded-xl text-lg font-medium shadow-inner max-w-md break-words">
             {winner.commentText}
           </p>
         )}
@@ -101,7 +110,8 @@ function InstagramGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
 
   const handleRun = () => {
     const commentList = comments.split("\n").filter(Boolean);
-    if (commentList.length === 0) return toast.error("Por favor, cole os comentários.");
+    if (commentList.length === 0)
+      return toast.error("Por favor, cole os comentários.");
     if (filters.mentions < 0) return toast.error("Menções não podem ser negativas.");
     setIsLoading(true);
     setWinner(null);
@@ -120,7 +130,7 @@ function InstagramGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full">
       <div className="p-5 bg-blue-50 border-l-8 border-blue-500 rounded-r-xl shadow-sm">
         <h3 className="font-semibold text-blue-900 text-lg">Como funciona?</h3>
         <p className="text-sm text-blue-800 mt-1 leading-relaxed">
@@ -137,7 +147,9 @@ function InstagramGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
       </div>
 
       <div>
-        <Label htmlFor="comments" className="font-semibold">Cole os comentários aqui (um por linha)</Label>
+        <Label htmlFor="comments" className="font-semibold">
+          Cole os comentários aqui (um por linha)
+        </Label>
         <Textarea
           id="comments"
           value={comments}
@@ -145,11 +157,11 @@ function InstagramGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
           placeholder="@usuario1 marcou @amigo1&#10;@usuario2 marcou @amigo2&#10;..."
           rows={8}
           disabled={isLoading}
-          className="resize-none"
+          className="resize-none max-w-full"
         />
       </div>
 
-      <div className="space-y-4 rounded-xl border border-gray-300 bg-gray-50 p-5 shadow-inner">
+      <div className="space-y-4 rounded-xl border border-gray-300 bg-gray-50 p-5 shadow-inner max-w-full">
         <div className="flex items-center space-x-3">
           <Checkbox
             id="ig_unique"
@@ -157,10 +169,14 @@ function InstagramGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
             onCheckedChange={(c) => setFilters((p) => ({ ...p, unique: !!c }))}
             disabled={isLoading}
           />
-          <Label htmlFor="ig_unique" className="select-none">Considerar apenas um comentário por pessoa.</Label>
+          <Label htmlFor="ig_unique" className="select-none">
+            Considerar apenas um comentário por pessoa.
+          </Label>
         </div>
         <div className="flex items-center gap-3">
-          <Label htmlFor="mentions-input" className="select-none">Exigir</Label>
+          <Label htmlFor="mentions-input" className="select-none">
+            Exigir
+          </Label>
           <Input
             id="mentions-input"
             type="number"
@@ -170,23 +186,29 @@ function InstagramGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
             min={0}
             disabled={isLoading}
           />
-          <Label htmlFor="mentions-input" className="select-none">menção(ões).</Label>
+          <Label htmlFor="mentions-input" className="select-none">
+            menção(ões).
+          </Label>
         </div>
       </div>
 
-      <Button
-        onClick={handleRun}
-        className={clsx("w-full flex justify-center items-center font-bold text-white", {
-          "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700": !isLoading,
-          "bg-gray-400 cursor-not-allowed": isLoading,
-          "animate-pulse": isLoading,
-        })}
-        disabled={isLoading}
-        aria-live="polite"
-      >
-        {isLoading ? <Loader2 className="animate-spin mr-3" /> : <Star className="mr-3" />}
-        {isLoading ? "Sorteando..." : "Sortear Vencedor do Instagram"}
-      </Button>
+     <Button
+  onClick={handleRun}
+  className={clsx(
+    "w-full flex justify-center items-center font-bold text-white",
+    {
+      "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700":
+        !isLoading,
+      "bg-gray-400 cursor-not-allowed": isLoading,
+      "animate-pulse": isLoading,
+    }
+  )}
+  disabled={isLoading}
+  aria-live="polite"
+>
+  {isLoading ? <Loader2 className="animate-spin mr-3" /> : <Users className="mr-3" />}
+  {isLoading ? "Sorteando..." : "Sortear Vencedor da Lista"}
+</Button>
     </div>
   );
 }
@@ -217,9 +239,11 @@ function ListGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full">
       <div>
-        <Label htmlFor="participants" className="font-semibold">Lista de Participantes (um por linha)</Label>
+        <Label htmlFor="participants" className="font-semibold">
+          Lista de Participantes (um por linha)
+        </Label>
         <Textarea
           id="participants"
           value={participants}
@@ -227,11 +251,11 @@ function ListGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
           placeholder="Lucas Aragão&#10;Luiza Coura&#10;..."
           rows={8}
           disabled={isLoading}
-          className="resize-none"
+          className="resize-none max-w-full"
         />
       </div>
 
-      <div className="rounded-xl border border-gray-300 bg-gray-50 p-5 shadow-inner">
+      <div className="rounded-xl border border-gray-300 bg-gray-50 p-5 shadow-inner max-w-full">
         <div className="flex items-center space-x-3">
           <Checkbox
             id="list_unique"
@@ -239,23 +263,29 @@ function ListGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
             onCheckedChange={(c) => setUnique(!!c)}
             disabled={isLoading}
           />
-          <Label htmlFor="list_unique" className="select-none">Remover participantes duplicados.</Label>
+          <Label htmlFor="list_unique" className="select-none">
+            Remover participantes duplicados.
+          </Label>
         </div>
       </div>
 
       <Button
-        onClick={handleRun}
-        className={clsx("w-full flex justify-center items-center font-bold text-white", {
-          "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700": !isLoading,
-          "bg-gray-400 cursor-not-allowed": isLoading,
-          "animate-pulse": isLoading,
-        })}
-        disabled={isLoading}
-        aria-live="polite"
-      >
-        {isLoading ? <Loader2 className="animate-spin mr-3" /> : <Users className="mr-3" />}
-        {isLoading ? "Sorteando..." : "Sortear Vencedor da Lista"}
-      </Button>
+  onClick={handleRun}
+  className={clsx(
+    "w-full flex justify-center items-center font-bold text-white",
+    {
+      "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700":
+        !isLoading,
+      "bg-gray-400 cursor-not-allowed": isLoading,
+      "animate-pulse": isLoading,
+    }
+  )}
+  disabled={isLoading}
+  aria-live="polite"
+>
+  {isLoading ? <Loader2 className="animate-spin mr-3" /> : <Hash className="mr-3" />}
+  {isLoading ? "Sorteando..." : "Sortear Número"}
+</Button>
     </div>
   );
 }
@@ -275,7 +305,7 @@ function NumberGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
       {
         loading: "Sorteando número...",
         success: (result) => {
-          setWinner({ username: result.number.toString() } as Winner );
+          setWinner({ username: result.number.toString() } as Winner);
           return `Número sorteado: ${result.number}! 🎉`;
         },
         error: (err) => (err instanceof Error ? err.message : "Tente novamente."),
@@ -285,9 +315,11 @@ function NumberGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Label htmlFor="min" className="font-semibold">Mínimo</Label>
+    <div className="space-y-6 max-w-full">
+      <div className="flex flex-wrap items-center gap-4">
+        <Label htmlFor="min" className="font-semibold">
+          Mínimo
+        </Label>
         <Input
           id="min"
           type="number"
@@ -297,7 +329,9 @@ function NumberGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
           className="w-24"
           min={1}
         />
-        <Label htmlFor="max" className="font-semibold">Máximo</Label>
+        <Label htmlFor="max" className="font-semibold">
+          Máximo
+        </Label>
         <Input
           id="max"
           type="number"
@@ -308,19 +342,23 @@ function NumberGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
           min={min}
         />
       </div>
-      <Button
-        onClick={handleRun}
-        className={clsx("w-full flex justify-center items-center font-bold text-white", {
-          "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700": !isLoading,
-          "bg-gray-400 cursor-not-allowed": isLoading,
-          "animate-pulse": isLoading,
-        })}
-        disabled={isLoading}
-        aria-live="polite"
-      >
-        {isLoading ? <Loader2 className="animate-spin mr-3" /> : <Hash className="mr-3" />}
-        {isLoading ? "Sorteando..." : "Sortear Número"}
-      </Button>
+     <Button
+  onClick={handleRun}
+  className={clsx(
+    "w-full flex justify-center items-center font-bold text-white",
+    {
+      "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700":
+        !isLoading,
+      "bg-gray-400 cursor-not-allowed": isLoading,
+      "animate-pulse": isLoading,
+    }
+  )}
+  disabled={isLoading}
+  aria-live="polite"
+>
+  {isLoading ? <Loader2 className="animate-spin mr-3" /> : <Percent className="mr-3" />}
+  {isLoading ? "Sorteando..." : "Sortear Ponderado"}
+</Button>
     </div>
   );
 }
@@ -331,7 +369,10 @@ function WeightedListGiveaway({ setWinner }: { setWinner: (w: Winner) => void })
   const runGiveaway = useAction(api.giveaways.runWeightedListGiveaway);
 
   const handleRun = () => {
-    const lines = participants.split("\n").map((line) => line.trim()).filter(Boolean);
+    const lines = participants
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean);
     if (lines.length === 0) return toast.error("A lista está vazia.");
     // Expected format: "username,weight" e.g. "Lucas,5"
     const parsed = lines.map((line) => {
@@ -360,7 +401,7 @@ function WeightedListGiveaway({ setWinner }: { setWinner: (w: Winner) => void })
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-full">
       <div>
         <Label htmlFor="weighted-participants" className="font-semibold">
           Lista de Participantes com Peso (nome,peso)
@@ -372,22 +413,26 @@ function WeightedListGiveaway({ setWinner }: { setWinner: (w: Winner) => void })
           placeholder={`Lucas,5\nMaria,3\nJoão,1`}
           rows={8}
           disabled={isLoading}
-          className="resize-none font-mono"
+          className="resize-none font-mono max-w-full"
         />
       </div>
       <Button
-        onClick={handleRun}
-        className={clsx("w-full flex justify-center items-center font-bold text-white", {
-          "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700": !isLoading,
-          "bg-gray-400 cursor-not-allowed": isLoading,
-          "animate-pulse": isLoading,
-        })}
-        disabled={isLoading}
-        aria-live="polite"
-      >
-        {isLoading ? <Loader2 className="animate-spin mr-3" /> : <Percent className="mr-3" />}
-        {isLoading ? "Sorteando..." : "Sortear Ponderado"}
-      </Button>
+  onClick={handleRun}
+  className={clsx(
+    "w-full flex justify-center items-center font-bold text-white",
+    {
+      "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700":
+        !isLoading,
+      "bg-gray-400 cursor-not-allowed": isLoading,
+      "animate-pulse": isLoading,
+    }
+  )}
+  disabled={isLoading}
+  aria-live="polite"
+>
+  {isLoading ? <Loader2 className="animate-spin mr-3" /> : <Percent className="mr-3" />}
+  {isLoading ? "Sorteando..." : "Sortear Ponderado"}
+</Button>
     </div>
   );
 }
@@ -422,15 +467,15 @@ export default function GiveawayTool() {
   };
 
   return (
-    <div className="space-y-6 max-w-3xl mx-auto p-4">
-      <div className="flex border-b border-gray-300">
+    <div className="space-y-6 max-w-3xl mx-auto p-4 overflow-x-hidden">
+      <div className="flex border-b border-gray-300 overflow-x-auto">
         <button
           onClick={() => {
             setWinner(null);
             setActiveTab("instagram");
           }}
           className={clsx(
-            "flex items-center gap-2 px-6 py-4 font-semibold transition-colors",
+            "flex items-center gap-2 px-6 py-4 font-semibold whitespace-nowrap transition-colors",
             activeTab === "instagram"
               ? "border-b-4 border-purple-700 text-purple-700"
               : "text-gray-500 hover:text-purple-600"
@@ -446,7 +491,7 @@ export default function GiveawayTool() {
             setActiveTab("list");
           }}
           className={clsx(
-            "flex items-center gap-2 px-6 py-4 font-semibold transition-colors",
+            "flex items-center gap-2 px-6 py-4 font-semibold whitespace-nowrap transition-colors",
             activeTab === "list"
               ? "border-b-4 border-purple-700 text-purple-700"
               : "text-gray-500 hover:text-purple-600"
@@ -462,7 +507,7 @@ export default function GiveawayTool() {
             setActiveTab("number");
           }}
           className={clsx(
-            "flex items-center gap-2 px-6 py-4 font-semibold transition-colors",
+            "flex items-center gap-2 px-6 py-4 font-semibold whitespace-nowrap transition-colors",
             activeTab === "number"
               ? "border-b-4 border-purple-700 text-purple-700"
               : "text-gray-500 hover:text-purple-600"
@@ -478,7 +523,7 @@ export default function GiveawayTool() {
             setActiveTab("weighted");
           }}
           className={clsx(
-            "flex items-center gap-2 px-6 py-4 font-semibold transition-colors",
+            "flex items-center gap-2 px-6 py-4 font-semibold whitespace-nowrap transition-colors",
             activeTab === "weighted"
               ? "border-b-4 border-purple-700 text-purple-700"
               : "text-gray-500 hover:text-purple-600"
