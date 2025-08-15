@@ -116,8 +116,11 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-       @apply bg-background text-foreground flex flex-col min-h-screen;
-       overscroll-behavior-y: contain;
+  html, body {
+    @apply bg-background text-foreground flex flex-col min-h-screen overflow-x-hidden;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    margin: 0;
+    padding: 0;
   }
 }
