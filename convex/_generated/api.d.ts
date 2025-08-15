@@ -24,6 +24,7 @@ import type * as lib_getBaseUrl from "../lib/getBaseUrl.js";
 import type * as lib_links from "../lib/links.js";
 import type * as lib_usernames from "../lib/usernames.js";
 import type * as mentor from "../mentor.js";
+import type * as shareAchievements from "../shareAchievements.js";
 import type * as shortLinks from "../shortLinks.js";
 import type * as tracking from "../tracking.js";
 import type * as users from "../users.js";
@@ -48,6 +49,7 @@ declare const fullApi: ApiFromModules<{
   "lib/links": typeof lib_links;
   "lib/usernames": typeof lib_usernames;
   mentor: typeof mentor;
+  shareAchievements: typeof shareAchievements;
   shortLinks: typeof shortLinks;
   tracking: typeof tracking;
   users: typeof users;

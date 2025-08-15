@@ -42,14 +42,25 @@ if (!process.env.GEMINI_API_KEY) {
   throw new Error("GEMINI_API_KEY não está configurada nas variáveis de ambiente");
 }
 
-if (!process.env.GROQ_API_KEY) {
-  throw new Error("GROQ_API_KEY não está configurada nas variáveis de ambiente");
+if (!process.env.GROQ_API_KEY_1) {
+  throw new Error("GROQ_API_KEY_1 não está configurada nas variáveis de ambiente");
+}
+
+if (!process.env.GROQ_API_KEY_2) {
+  throw new Error("GROQ_API_KEY_2 não está configurada nas variáveis de ambiente");
 }
 
 // Configuração dos motores de IA
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-const groq = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
+
+// Configuração dos dois clientes Groq com chaves diferentes
+const groq1 = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY_1,
+  baseURL: "https://api.groq.com/openai/v1"
+});
+
+const groq2 = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY_2,
   baseURL: "https://api.groq.com/openai/v1"
 });
 
@@ -133,10 +144,10 @@ async function callGeminiWithRetry(
   throw lastError;
 }
 
-// Função helper para chamar o Groq
-async function callGroq(prompt: string, modelName: string = "llama3-8b-8192"): Promise<string> {
+// Função helper para chamar o Groq com a primeira chave (para estratégia)
+async function callGroq1(prompt: string, modelName: string = "llama3-8b-8192"): Promise<string> {
   try {
-    const response = await groq.chat.completions.create({
+    const response = await groq1.chat.completions.create({
       model: modelName,
       messages: [
         {
@@ -156,7 +167,35 @@ async function callGroq(prompt: string, modelName: string = "llama3-8b-8192"): P
 
     return responseText;
   } catch (error) {
-    console.error("Erro ao chamar Groq:", error);
+    console.error("Erro ao chamar Groq1:", error);
+    throw error;
+  }
+}
+
+// Função helper para chamar o Groq com a segunda chave (para plano de conteúdo)
+async function callGroq2(prompt: string, modelName: string = "llama3-8b-8192"): Promise<string> {
+  try {
+    const response = await groq2.chat.completions.create({
+      model: modelName,
+      messages: [
+        {
+          role: "system",
+          content: "Você é um assistente especializado em criação de planos de conteúdo detalhados. Responda APENAS com objetos JSON válidos, sem texto adicional."
+        },
+        { role: "user", content: prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 8192, // Aumentei o limite para o plano detalhado
+    });
+
+    const responseText = response.choices[0]?.message?.content;
+    if (!responseText) {
+      throw new Error("Groq não retornou nenhum conteúdo.");
+    }
+
+    return responseText;
+  } catch (error) {
+    console.error("Erro ao chamar Groq2:", error);
     throw error;
   }
 }
@@ -316,18 +355,18 @@ export const generateAnalysis = action({
     let contentPlanResult: ContentPlanResult;
     let usedModel = "";
 
-    // Gerar estratégia (com fallback)
+    // Gerar estratégia usando Groq1 (primeira chave)
     try {
-      console.log("Gerando estratégia com Groq...");
-      const strategyText = await callGroq(strategyPrompt);
+      console.log("Gerando estratégia com Groq (primeira chave)...");
+      const strategyText = await callGroq1(strategyPrompt);
       try {
         strategyResult = JSON.parse(strategyText) as StrategyResult;
       } catch {
         strategyResult = extractJson<StrategyResult>(strategyText);
       }
-      usedModel = "groq-llama3";
-    } catch (groqError) {
-      console.warn("Groq falhou, tentando com Gemini...", groqError);
+      usedModel = "groq1-llama3";
+    } catch (groq1Error) {
+      console.warn("Groq1 falhou, tentando com Gemini...", groq1Error);
       try {
         const strategyText = await callGeminiWithRetry(strategyPrompt);
         try {
@@ -337,7 +376,7 @@ export const generateAnalysis = action({
         }
         usedModel = "gemini-1.5-flash";
       } catch {
-        console.error("Ambos os modelos falharam, usando estratégia de fallback...");
+        console.error("Todos os modelos falharam, usando estratégia de fallback...");
         strategyResult = generateFallbackStrategy(
           args.username,
           args.offer,
@@ -347,30 +386,29 @@ export const generateAnalysis = action({
       }
     }
 
-    // Gerar plano de conteúdo (com fallback)
+    // Gerar plano de conteúdo usando Groq2 (segunda chave)
     let contentModel = "";
     try {
-      console.log("Gerando plano de conteúdo com Gemini...");
-      const contentPlanText = await callGeminiWithRetry(contentPlanPrompt);
+      console.log("Gerando plano de conteúdo com Groq (segunda chave)...");
+      const contentPlanText = await callGroq2(contentPlanPrompt);
       try {
         contentPlanResult = JSON.parse(contentPlanText) as ContentPlanResult;
       } catch {
         contentPlanResult = extractJson<ContentPlanResult>(contentPlanText);
       }
-      contentModel = "gemini";
-    } catch {
-      console.error("Gemini falhou para plano de conteúdo, tentando Groq...");
+      contentModel = "groq2";
+    } catch (groq2Error) {
+      console.error("Groq2 falhou para plano de conteúdo, tentando Gemini...", groq2Error);
       try {
-        console.log("Tentando plano de conteúdo com Groq...");
-        const contentPlanText = await callGroq(contentPlanPrompt);
+        const contentPlanText = await callGeminiWithRetry(contentPlanPrompt);
         try {
           contentPlanResult = JSON.parse(contentPlanText) as ContentPlanResult;
         } catch {
           contentPlanResult = extractJson<ContentPlanResult>(contentPlanText);
         }
-        contentModel = "groq";
+        contentModel = "gemini";
       } catch {
-        console.error("Ambos os modelos falharam, usando plano de fallback...");
+        console.error("Todos os modelos falharam, usando plano de fallback...");
         contentPlanResult = generateFallbackPlan(
           args.username,
           args.offer,
@@ -382,8 +420,12 @@ export const generateAnalysis = action({
     }
 
     // Atualizar o modelo usado
-    if (contentModel === "fallback") {
-      usedModel = usedModel === "fallback" ? "total-fallback" : `${usedModel}+content-fallback`;
+    if (contentModel !== "groq2") {
+      usedModel = usedModel === "fallback" ?
+        "total-fallback" :
+        `${usedModel}+${contentModel === "fallback" ? "content-fallback" : contentModel}`;
+    } else if (usedModel === "groq1-llama3") {
+      usedModel = "groq-dual"; // Indica que ambas as chaves Groq foram usadas com sucesso
     }
 
     // Sanitizar o plano de conteúdo para evitar nulls
@@ -428,7 +470,7 @@ export const generateAnalysis = action({
   },
 });
 
-// Mutation interna para salvar análise
+// Resto do código permanece inalterado...
 export const saveAnalysis = internalMutation({
   args: {
     analysisData: v.object({
@@ -493,7 +535,6 @@ export const saveAnalysis = internalMutation({
   }
 });
 
-// Query para buscar análise salva
 export const getSavedAnalysis = query({
   args: {},
   handler: async (ctx) => {
@@ -508,7 +549,6 @@ export const getSavedAnalysis = query({
   }
 });
 
-// Mutation para atualizar plano de conteúdo
 export const updateContentPlan = mutation({
   args: {
     analysisId: v.id("analyses"),
@@ -552,7 +592,6 @@ export const updateContentPlan = mutation({
   }
 });
 
-// Mutation para marcar item como concluído
 export const markContentItemComplete = mutation({
   args: {
     analysisId: v.id("analyses"),

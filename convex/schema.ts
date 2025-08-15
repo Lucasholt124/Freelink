@@ -2,6 +2,8 @@
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
+// Adicione a definição do storage
+
 export default defineSchema({
   // Suas tabelas existentes (sem alterações)
   usernames: defineTable({
@@ -90,4 +92,33 @@ export default defineSchema({
       })
     ),
   }).index("by_user", ["userId"]).index("by_created", ["createdAt"]),
+
+  // Nova tabela para compartilhamentos de conquistas
+sharedAchievements: defineTable({
+  userId: v.string(),
+  // Remover a linha imageStorageId: v.id("_storage"),
+  streakDays: v.number(),
+  completedPosts: v.number(),
+  totalPosts: v.number(),
+  shareCode: v.string(), // Código curto para compartilhamento
+  createdAt: v.number(),
+  expiresAt: v.number(), // Data de expiração da imagem
+  views: v.number(), // Contador de visualizações
+  platform: v.optional(v.string()), // Plataforma de compartilhamento
+}).index("by_user", ["userId"])
+  .index("by_shareCode", ["shareCode"])
+  .index("by_expiration", ["expiresAt"]),
+
+  // Tabela para registrar streak dos usuários
+  userStreaks: defineTable({
+    userId: v.string(),
+    currentStreak: v.number(),
+    bestStreak: v.number(),
+    lastActivityDate: v.number(),
+    milestones: v.array(v.object({
+      streakDays: v.number(),
+      achievedAt: v.number(),
+      shared: v.boolean(),
+    })),
+  }).index("by_user", ["userId"]),
 });
