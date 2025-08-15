@@ -1,4 +1,3 @@
-// Em app/(admin)/dashboard/share/[code]/ShareClient.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -18,15 +17,15 @@ export default function ShareClient({ code }: ShareClientProps) {
   const [isRegistered, setIsRegistered] = useState(false);
 
   // Uso da API do Convex
-   const achievementData = useQuery(api.shareAchievements.getSharedAchievement, {
-    shareCode: code
+  const achievementData = useQuery(api.shareAchievements.getSharedAchievement, {
+    shareCode: code,
   });
 
   const registerView = useMutation(api.shareAchievements.registerAchievementView);
 
   useEffect(() => {
     if (achievementData && !isRegistered) {
-      registerView({ shareCode: code }).catch(err =>
+      registerView({ shareCode: code }).catch((err) =>
         console.error("Erro ao registrar visualização:", err)
       );
       setIsRegistered(true);
@@ -46,12 +45,16 @@ export default function ShareClient({ code }: ShareClientProps) {
   }
 
   // Verificação para expirado
-  if ('expired' in achievementData && achievementData.expired) {
+  if ("expired" in achievementData && achievementData.expired) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:to-blue-900 p-4">
         <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 text-center">
-          <h1 className="text-xl font-bold mb-3 text-slate-800 dark:text-white">Link Expirado</h1>
-          <p className="text-slate-600 dark:text-slate-300 mb-6">Este compartilhamento não está mais disponível.</p>
+          <h1 className="text-xl font-bold mb-3 text-slate-800 dark:text-white">
+            Link Expirado
+          </h1>
+          <p className="text-slate-600 dark:text-slate-300 mb-6">
+            Este compartilhamento não está mais disponível.
+          </p>
           <Link href="/">
             <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
               Conhecer o Mentor.IA
@@ -69,9 +72,10 @@ export default function ShareClient({ code }: ShareClientProps) {
   const views = achievementData.views ?? 0;
 
   // Cálculo seguro de porcentagem
-  const percentComplete = totalPosts > 0
-    ? Math.round((completedPosts / totalPosts) * 100)
-    : 0;
+  const percentComplete =
+    totalPosts > 0
+      ? Math.round((completedPosts / totalPosts) * 100)
+      : 0;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:to-blue-900 p-4">
@@ -81,7 +85,7 @@ export default function ShareClient({ code }: ShareClientProps) {
             Conquista Desbloqueada! 🏆
           </h1>
 
-          {/* Card da conquista (gerado no servidor em vez de usar imagem) */}
+          {/* Card da conquista */}
           <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-blue-600 to-purple-700 p-6 text-white shadow-xl mb-4">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
@@ -127,9 +131,7 @@ export default function ShareClient({ code }: ShareClientProps) {
 
           <div className="flex flex-col gap-3">
             <Link href="/">
-              <Button
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-              >
+              <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white">
                 <Share className="w-4 h-4 mr-2" />
                 Criar minha sequência
               </Button>
