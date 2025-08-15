@@ -8,7 +8,6 @@ import { Flame, Share, Copy, Globe } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
-// Tipagem correta para o componente cliente
 interface ShareClientProps {
   code: string;
 }
@@ -16,7 +15,6 @@ interface ShareClientProps {
 export default function ShareClient({ code }: ShareClientProps) {
   const [isRegistered, setIsRegistered] = useState(false);
 
-  // Uso da API do Convex
   const achievementData = useQuery(api.shareAchievements.getSharedAchievement, {
     shareCode: code,
   });
@@ -44,7 +42,6 @@ export default function ShareClient({ code }: ShareClientProps) {
     );
   }
 
-  // Verificação para expirado
   if ("expired" in achievementData && achievementData.expired) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:to-blue-900 p-4">
@@ -65,17 +62,13 @@ export default function ShareClient({ code }: ShareClientProps) {
     );
   }
 
-  // Valores padrão caso algum dado esteja ausente
   const streakDays = achievementData.streakDays ?? 0;
   const completedPosts = achievementData.completedPosts ?? 0;
-  const totalPosts = achievementData.totalPosts ?? 1; // Evitar divisão por zero
+  const totalPosts = achievementData.totalPosts ?? 1;
   const views = achievementData.views ?? 0;
 
-  // Cálculo seguro de porcentagem
   const percentComplete =
-    totalPosts > 0
-      ? Math.round((completedPosts / totalPosts) * 100)
-      : 0;
+    totalPosts > 0 ? Math.round((completedPosts / totalPosts) * 100) : 0;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:to-blue-900 p-4">
@@ -85,7 +78,6 @@ export default function ShareClient({ code }: ShareClientProps) {
             Conquista Desbloqueada! 🏆
           </h1>
 
-          {/* Card da conquista */}
           <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-blue-600 to-purple-700 p-6 text-white shadow-xl mb-4">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
             <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
