@@ -184,12 +184,12 @@ const EditPostForm = ({ item, onSave, onCancel }: EditPostFormProps) => {
         </TabsContent>
       </Tabs>
 
-      <DialogFooter className="pt-4 flex justify-end gap-2 border-t mt-6">
-        <Button type="button" variant="outline" onClick={onCancel}>
+      <DialogFooter className="pt-4 flex flex-col sm:flex-row justify-end gap-2 border-t mt-6">
+        <Button type="button" variant="outline" onClick={onCancel} className="w-full sm:w-auto">
           <X className="w-4 h-4 mr-2" />
           Cancelar
         </Button>
-        <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+        <Button type="submit" className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
           <CheckCircle className="w-4 h-4 mr-2" />
           Salvar Alterações
         </Button>
@@ -351,7 +351,7 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
               Progresso do Plano
             </h4>
             <div className="flex items-center gap-2 mt-1">
-              <Progress value={progressStats.percent} className="h-2 w-40" />
+                            <Progress value={progressStats.percent} className="h-2 w-40" />
               <span className="text-sm text-muted-foreground">
                 {progressStats.completed}/{progressStats.total} ({progressStats.percent}%)
               </span>
@@ -475,33 +475,34 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
         />
       </div>
 
-      {/* Modal de detalhes do evento */}
+      {/* Modal de detalhes do evento - CORRIGIDO PARA MOBILE */}
       <Dialog open={!!selectedEvent} onOpenChange={() => { setSelectedEvent(null); setIsEditing(false); }}>
-        <DialogContent className="max-w-3xl bg-card">
+        <DialogContent className="max-w-3xl w-[95vw] sm:w-full max-h-[90vh] overflow-hidden bg-card">
           <AnimatePresence mode="wait">
             {selectedEvent && (
               <>
-                <DialogHeader>
-                  <div className="flex items-center justify-between">
-                    <DialogTitle className="flex items-center gap-3 text-2xl">
-                      <span className={clsx("px-3 py-1 rounded-full text-sm font-bold", getConfig(selectedEvent.format).color)}>
+                <DialogHeader className="pb-2">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                    <DialogTitle className="flex flex-wrap items-center gap-2 text-lg sm:text-2xl">
+                      <span className={clsx("px-2 sm:px-3 py-1 rounded-full text-xs sm:text-sm font-bold", getConfig(selectedEvent.format).color)}>
                         {selectedEvent.format}
                       </span>
-                      {selectedEvent.title}
+                      <span className="break-words">{selectedEvent.title}</span>
                     </DialogTitle>
-                    <Badge className={
+                    <Badge className={cn(
+                      "w-fit",
                       selectedEvent.status === "concluido"
                         ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800"
                         : "bg-blue-100 text-blue-800 border-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:border-blue-800"
-                    }>
+                    )}>
                       {selectedEvent.status === "concluido" ? "Concluído" : "Pendente"}
                     </Badge>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                    <CalendarIcon className="w-4 h-4" />
+                  <div className="flex items-center gap-2 text-xs sm:text-sm text-muted-foreground mt-1">
+                    <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>{selectedEvent.day}</span>
                     <span>•</span>
-                    <Clock className="w-4 h-4" />
+                    <Clock className="w-3 h-3 sm:w-4 sm:h-4" />
                     <span>{selectedEvent.time}</span>
                   </div>
                 </DialogHeader>
@@ -512,6 +513,7 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
+                    className="overflow-y-auto max-h-[calc(90vh-200px)]"
                   >
                     <EditPostForm
                       item={selectedEvent}
@@ -525,43 +527,44 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -10 }}
+                    className="overflow-hidden"
                   >
-                    <Tabs defaultValue="content">
+                    <Tabs defaultValue="content" className="h-full">
                       <TabsList className="w-full grid grid-cols-2">
                         <TabsTrigger value="content">Conteúdo</TabsTrigger>
                         <TabsTrigger value="execution">Execução</TabsTrigger>
                       </TabsList>
 
-                      <TabsContent value="content" className="mt-4 space-y-6 max-h-[60vh] overflow-y-auto pr-4">
+                      <TabsContent value="content" className="mt-4 space-y-4 sm:space-y-6 max-h-[calc(90vh-280px)] overflow-y-auto pr-2 sm:pr-4">
                         <div>
-                          <h3 className="font-bold text-lg flex items-center gap-2">
-                            <MessageSquare className="w-5 h-5 text-blue-500" />
+                          <h3 className="font-bold text-base sm:text-lg flex items-center gap-2">
+                            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                             Ideia de Conteúdo
                           </h3>
-                          <div className="prose prose-sm dark:prose-invert max-w-none bg-muted p-4 rounded-md whitespace-pre-line mt-2">
+                          <div className="prose prose-sm dark:prose-invert max-w-none bg-muted p-3 sm:p-4 rounded-md whitespace-pre-line mt-2 text-sm">
                             <ReactMarkdown>{selectedEvent.content_idea?.replace(/\\n/g, '\n')}</ReactMarkdown>
                           </div>
                         </div>
 
                         {selectedEvent.details && (
                           <div>
-                            <h3 className="font-bold text-lg mt-4 mb-2 flex items-center gap-2">
-                              <Newspaper className="w-5 h-5 text-blue-500" />
+                            <h3 className="font-bold text-base sm:text-lg mt-4 mb-2 flex items-center gap-2">
+                              <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                               Roteiro e Legenda
                             </h3>
-                            <div className="prose prose-sm dark:prose-invert max-w-none bg-muted p-4 rounded-md whitespace-pre-line">
+                            <div className="prose prose-sm dark:prose-invert max-w-none bg-muted p-3 sm:p-4 rounded-md whitespace-pre-line text-sm">
                               <ReactMarkdown>{selectedEvent.details.script_or_copy?.replace(/\\n/g, '\n')}</ReactMarkdown>
                             </div>
 
                             <div className="mt-4 p-3 border rounded-md bg-muted/50">
-                              <p className="text-sm flex items-start gap-2">
-                                <span className="font-semibold text-muted-foreground mt-0.5">Hashtags:</span>
-                                <span className="text-blue-500">{selectedEvent.details.hashtags}</span>
+                              <p className="text-xs sm:text-sm flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                                <span className="font-semibold text-muted-foreground">Hashtags:</span>
+                                <span className="text-blue-500 break-words">{selectedEvent.details.hashtags}</span>
                               </p>
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="mt-2"
+                                className="mt-2 w-full sm:w-auto"
                                 onClick={() => {
                                   navigator.clipboard.writeText(selectedEvent.details?.script_or_copy + "\n\n" + selectedEvent.details?.hashtags);
                                   toast.success("Legenda com hashtags copiada!");
@@ -575,46 +578,46 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
                         )}
                       </TabsContent>
 
-                      <TabsContent value="execution" className="mt-4 space-y-6 max-h-[60vh] overflow-y-auto pr-4">
+                      <TabsContent value="execution" className="mt-4 space-y-4 sm:space-y-6 max-h-[calc(90vh-280px)] overflow-y-auto pr-2 sm:pr-4">
                         {selectedEvent.details && (
                           <>
                             <div>
-                              <h3 className="font-bold text-lg flex items-center gap-2">
-                                <CheckCircle className="w-5 h-5 text-green-500" />
+                              <h3 className="font-bold text-base sm:text-lg flex items-center gap-2">
+                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
                                 Plano de Execução
                               </h3>
-                              <p className="text-sm text-muted-foreground mb-2 flex items-center gap-2 mt-2">
+                              <p className="text-xs sm:text-sm text-muted-foreground mb-2 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 mt-2">
                                 <span className="font-semibold">Ferramenta Recomendada:</span>
                                 {selectedEvent.details.tool_suggestion}
                               </p>
-                              <div className="prose prose-sm dark:prose-invert max-w-none bg-muted p-4 rounded-md">
+                              <div className="prose prose-sm dark:prose-invert max-w-none bg-muted p-3 sm:p-4 rounded-md text-sm">
                                 <ReactMarkdown>{selectedEvent.details.step_by_step?.replace(/\\n/g, '\n')}</ReactMarkdown>
                               </div>
                             </div>
 
                             {selectedEvent.details.creative_guidance && (
                               <div>
-                                <h3 className="font-bold text-lg mt-4 mb-2 flex items-center gap-2">
-                                  <Sparkles className="w-5 h-5 text-blue-500" />
+                                <h3 className="font-bold text-base sm:text-lg mt-4 mb-2 flex items-center gap-2">
+                                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
                                   Guia Criativo
                                 </h3>
-                                <div className="border p-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30">
-                                  <p className="text-muted-foreground mb-4">{selectedEvent.details.creative_guidance.description}</p>
+                                <div className="border p-3 sm:p-4 rounded-lg bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30">
+                                  <p className="text-xs sm:text-sm text-muted-foreground mb-4">{selectedEvent.details.creative_guidance.description}</p>
 
                                   {selectedEvent.details.creative_guidance.type === 'image' && (
-                                    <div className="bg-blue-900/10 dark:bg-blue-500/10 p-4 rounded-md font-mono text-sm text-blue-800 dark:text-blue-300 relative mb-4">
+                                    <div className="bg-blue-900/10 dark:bg-blue-500/10 p-3 sm:p-4 rounded-md font-mono text-xs sm:text-sm text-blue-800 dark:text-blue-300 relative mb-4">
                                       <p className="font-semibold mb-2">Prompt Sugerido:</p>
-                                      <p>{selectedEvent.details.creative_guidance.prompt}</p>
+                                      <p className="pr-8">{selectedEvent.details.creative_guidance.prompt}</p>
                                       <Button
                                         size="icon"
                                         variant="ghost"
-                                        className="absolute top-2 right-2 h-7 w-7"
+                                        className="absolute top-2 right-2 h-6 w-6 sm:h-7 sm:w-7"
                                         onClick={() => {
                                           navigator.clipboard.writeText(selectedEvent.details?.creative_guidance.prompt ?? "");
                                           toast.success("Prompt copiado!");
                                         }}
                                       >
-                                        <Copy className="w-4 h-4" />
+                                        <Copy className="w-3 h-3 sm:w-4 sm:h-4" />
                                       </Button>
                                     </div>
                                   )}
@@ -624,8 +627,8 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
                                     target="_blank"
                                     rel="noopener noreferrer"
                                   >
-                                    <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                                      <LinkIcon className="w-4 h-4 mr-2" />
+                                    <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-sm">
+                                                                            <LinkIcon className="w-4 h-4 mr-2" />
                                       Abrir Ferramenta Recomendada
                                     </Button>
                                   </a>
@@ -637,13 +640,13 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
                       </TabsContent>
                     </Tabs>
 
-                    <div className="pt-6 flex justify-end gap-2 border-t mt-6">
-                      <Button variant="outline" onClick={handleShareItem}>
+                    <div className="pt-4 sm:pt-6 flex flex-col sm:flex-row justify-end gap-2 border-t mt-4 sm:mt-6">
+                      <Button variant="outline" onClick={handleShareItem} className="w-full sm:w-auto">
                         <Share2 className="w-4 h-4 mr-2" />
                         Compartilhar
                       </Button>
 
-                      <Button variant="outline" onClick={() => setIsEditing(true)}>
+                      <Button variant="outline" onClick={() => setIsEditing(true)} className="w-full sm:w-auto">
                         <Edit className="w-4 h-4 mr-2" />
                         Editar
                       </Button>
@@ -651,7 +654,7 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
                       {selectedEvent.status !== "concluido" ? (
                         <Button
                           onClick={() => handleMarkCompleted(selectedEvent)}
-                          className="bg-green-600 hover:bg-green-700 text-white"
+                          className="bg-green-600 hover:bg-green-700 text-white w-full sm:w-auto"
                         >
                           <CheckCircle className="w-4 h-4 mr-2" />
                           Marcar como Concluído
@@ -659,7 +662,7 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
                       ) : (
                         <Button
                           variant="outline"
-                          className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 dark:hover:bg-amber-900/50"
+                          className="bg-amber-100 text-amber-800 border-amber-200 hover:bg-amber-200 dark:bg-amber-900/30 dark:text-amber-300 dark:border-amber-800 dark:hover:bg-amber-900/50 w-full sm:w-auto"
                           onClick={() => {
                             const updatedPlan = planWithIds.map((p) => (
                               p.id === selectedEvent.id
