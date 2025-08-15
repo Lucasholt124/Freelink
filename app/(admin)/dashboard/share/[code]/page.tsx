@@ -1,3 +1,4 @@
+// Em app/(admin)/dashboard/share/[code]/ShareClient.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,18 +9,15 @@ import { Flame, Share, Copy, Globe } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
-// Corrija a tipagem para corresponder ao App Router do Next.js
-interface SharePageProps {
-  params: {
-    code: string;
-  };
+// Tipagem correta para o componente cliente
+interface ShareClientProps {
+  code: string;
 }
 
-export default function SharePage({ params }: SharePageProps) {
-  const { code } = params;
+export default function ShareClient({ code }: ShareClientProps) {
   const [isRegistered, setIsRegistered] = useState(false);
 
-  // Verificar se o endpoint existe no seu arquivo api
+  // Uso da API do Convex
    const achievementData = useQuery(api.shareAchievements.getSharedAchievement, {
     shareCode: code
   });
@@ -143,7 +141,6 @@ export default function SharePage({ params }: SharePageProps) {
               onClick={() => {
                 const shareText = `🔥 Sequência de ${streakDays} dias criando conteúdo! Já concluí ${completedPosts} posts com o Mentor.IA da @freelink`;
                 navigator.clipboard.writeText(shareText);
-
                 toast.success("Texto copiado para compartilhamento!");
               }}
             >
