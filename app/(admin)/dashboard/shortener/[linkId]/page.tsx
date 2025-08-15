@@ -33,16 +33,16 @@ function ClicksList({ clicks }: { clicks: ClickData[] }) {
           key={click.id}
           className="bg-gray-50 p-3 rounded-md border flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2"
         >
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 min-w-0">
             <Globe className="w-4 h-4 text-gray-400 flex-shrink-0" />
-            <p className="text-sm text-foreground">
+            <p className="text-sm text-foreground truncate break-words max-w-full">
               Clique de{" "}
               <span className="font-semibold">
                 {click.country || "local desconhecido"}
               </span>
             </p>
           </div>
-          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground whitespace-nowrap">
             <Clock className="w-3 h-3" />
             <time dateTime={new Date(click.timestamp).toISOString()}>
               {new Date(click.timestamp).toLocaleString("pt-BR")}
@@ -100,7 +100,7 @@ function AnalyticsMetrics({
         <Icon className={clsx("w-7 h-7", `text-${color}-500`)} />
         <div>
           <p className="text-sm text-muted-foreground">{title}</p>
-          <p className="text-3xl font-extrabold">{value}</p>
+          <p className="text-3xl font-extrabold truncate max-w-full">{value}</p>
         </div>
       </div>
     </div>
@@ -133,7 +133,12 @@ function AnalyticsMetrics({
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-      <Card color="blue" title="Cliques Totais" icon={BarChart2} value={clicks.length} />
+      <Card
+        color="blue"
+        title="Cliques Totais"
+        icon={BarChart2}
+        value={clicks.length}
+      />
       {plan === "pro" || plan === "ultra" ? (
         <Card
           color="purple"
@@ -145,7 +150,12 @@ function AnalyticsMetrics({
         <LockedCard title="Visitantes Únicos" requiredPlan="Pro" icon={Users} />
       )}
       {plan === "ultra" ? (
-        <Card color="green" title="Principal País" icon={Globe} value={topCountryName} />
+        <Card
+          color="green"
+          title="Principal País"
+          icon={Globe}
+          value={topCountryName}
+        />
       ) : (
         <LockedCard title="Principal País" requiredPlan="Ultra" icon={Globe} />
       )}
@@ -172,7 +182,9 @@ export default function ShortLinkDetailsPage() {
         })
         .then(setData)
         .catch((err) => {
-          toast.error(err.message || "Não foi possível carregar os detalhes do link.");
+          toast.error(
+            err.message || "Não foi possível carregar os detalhes do link."
+          );
           setData(null);
         });
     }
@@ -194,10 +206,10 @@ export default function ShortLinkDetailsPage() {
       <div className="text-center mt-12 px-4 max-w-md mx-auto">
         <h2 className="text-2xl font-semibold mb-2">Link não encontrado</h2>
         <p className="text-muted-foreground mb-6">
-          O link que você está procurando não existe ou você não tem permissão para
-          vê-lo.
+          O link que você está procurando não existe ou você não tem permissão
+          para vê-lo.
         </p>
-        <Button asChild variant="link" className="inline-flex items-center" >
+        <Button asChild variant="link" className="inline-flex items-center">
           <Link href="/dashboard/shortener">
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para a lista
           </Link>
@@ -209,7 +221,7 @@ export default function ShortLinkDetailsPage() {
   const { link, clicks } = data;
 
   return (
-    <main className="max-w-4xl mx-auto w-full px-4 space-y-10 py-8">
+    <main className="max-w-4xl mx-auto w-full px-4 space-y-10 py-8 overflow-x-hidden">
       <Button
         asChild
         variant="ghost"
@@ -221,19 +233,22 @@ export default function ShortLinkDetailsPage() {
         </Link>
       </Button>
 
-      <header className="flex flex-col sm:flex-row gap-6 justify-between items-start sm:items-center">
-        <div className="flex items-center gap-5 min-w-0">
+      <header className="flex flex-col sm:flex-row gap-6 justify-between items-start sm:items-center max-w-full">
+        <div className="flex items-center gap-5 min-w-0 max-w-full">
           <div className="p-4 bg-purple-100 rounded-xl flex-shrink-0">
             <BarChart2 className="w-8 h-8 text-purple-600" />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 max-w-full">
             <h1
-              className="text-3xl font-extrabold truncate break-all"
+              className="text-3xl font-extrabold truncate break-words"
               title={link.id}
             >
               freelinnk.com/r/{link.id}
             </h1>
-            <p className="text-muted-foreground truncate break-all" title={link.url}>
+            <p
+              className="text-muted-foreground truncate break-words"
+              title={link.url}
+            >
               {link.url}
             </p>
           </div>
@@ -244,7 +259,7 @@ export default function ShortLinkDetailsPage() {
         <AnalyticsMetrics clicks={clicks} plan={plan} />
       </section>
 
-      <section className="bg-card p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200">
+      <section className="bg-card p-6 sm:p-8 rounded-2xl shadow-lg border border-gray-200 overflow-x-auto">
         <h2 className="text-xl font-semibold mb-6">Registro de Cliques Recentes</h2>
         <ClicksList clicks={clicks} />
       </section>

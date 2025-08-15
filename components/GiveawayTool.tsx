@@ -5,7 +5,17 @@ import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import Image from "next/image";
-import { Loader2, Star, RefreshCw, Instagram, List, Users, ExternalLink } from "lucide-react";
+import {
+  Loader2,
+  Star,
+  RefreshCw,
+  Instagram,
+  List,
+  Users,
+  ExternalLink,
+  Hash,
+  Percent,
+} from "lucide-react";
 import clsx from "clsx";
 import { FunctionReturnType } from "convex/server";
 import { Button } from "./ui/button";
@@ -14,7 +24,7 @@ import { Textarea } from "./ui/textarea";
 import { Checkbox } from "./ui/checkbox";
 import { Input } from "./ui/input";
 
-// Confetti animation component
+// Confetti animation component (placeholder)
 function Confetti() {
   return (
     <div className="fixed inset-0 pointer-events-none z-50">
@@ -24,10 +34,14 @@ function Confetti() {
   );
 }
 
-type Winner = FunctionReturnType<typeof api.giveaways.runInstagramGiveaway> | null;
+type Winner =
+  | FunctionReturnType<typeof api.giveaways.runInstagramGiveaway>
+  | FunctionReturnType<typeof api.giveaways.runListGiveaway>
+  | FunctionReturnType<typeof api.giveaways.runNumberGiveaway>
+  | FunctionReturnType<typeof api.giveaways.runWeightedListGiveaway>
+  | null;
 
 function WinnerCard({ winner, onRedraw }: { winner: NonNullable<Winner>; onRedraw: () => void }) {
-  // Trigger confetti on mount
   const [showConfetti, setShowConfetti] = useState(false);
   useEffect(() => {
     setShowConfetti(true);
@@ -35,21 +49,37 @@ function WinnerCard({ winner, onRedraw }: { winner: NonNullable<Winner>; onRedra
     return () => clearTimeout(timer);
   }, []);
 
+  const displayName = (() => {
+    if ("username" in winner && typeof winner.username === "string") {
+      return `@${winner.username}`;
+    }
+    if ("number" in winner && typeof winner.number === "number") {
+      return winner.number.toString();
+    }
+    return "Vencedor";
+  })();
+
   return (
     <div className="mt-8 bg-gradient-to-br from-amber-50 to-orange-100 p-8 rounded-3xl border-4 border-amber-400 text-center shadow-lg animate-fadeIn zoom-in-110 relative overflow-hidden">
       {showConfetti && <Confetti />}
       <h3 className="text-lg font-extrabold uppercase tracking-widest text-amber-700 drop-shadow-md">🎉 E o vencedor é... 🎉</h3>
       <div className="mt-6 flex flex-col items-center gap-5">
-        <Image
-          src={winner.profilePicUrl}
-          alt={`Foto de ${winner.username}`}
-          width={100}
-          height={100}
-          className="rounded-full border-8 border-white shadow-xl"
-          priority
-        />
-        <p className="text-3xl font-extrabold text-gray-900 truncate max-w-xs">@{winner.username}</p>
-        <p className="text-gray-700 mt-2 bg-white/80 px-5 py-3 rounded-xl text-lg font-medium shadow-inner max-w-md">{winner.commentText}</p>
+        {"profilePicUrl" in winner && winner.profilePicUrl && (
+          <Image
+            src={winner.profilePicUrl}
+            alt={`Foto de ${displayName}`}
+            width={100}
+            height={100}
+            className="rounded-full border-8 border-white shadow-xl"
+            priority
+          />
+        )}
+        <p className="text-3xl font-extrabold text-gray-900 truncate max-w-xs">{displayName}</p>
+        {"commentText" in winner && (
+          <p className="text-gray-700 mt-2 bg-white/80 px-5 py-3 rounded-xl text-lg font-medium shadow-inner max-w-md">
+            {winner.commentText}
+          </p>
+        )}
       </div>
       <Button
         onClick={onRedraw}
@@ -230,35 +260,169 @@ function ListGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
   );
 }
 
+function NumberGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
+  const [min, setMin] = useState(1);
+  const [max, setMax] = useState(100);
+  const [isLoading, setIsLoading] = useState(false);
+  const runGiveaway = useAction(api.giveaways.runNumberGiveaway);
+
+  const handleRun = () => {
+    if (min > max) return toast.error("O valor mínimo não pode ser maior que o máximo.");
+    setIsLoading(true);
+    setWinner(null);
+    toast.promise(
+      runGiveaway({ min, max }),
+      {
+        loading: "Sorteando número...",
+        success: (result) => {
+          setWinner({ username: result.number.toString() } as Winner );
+          return `Número sorteado: ${result.number}! 🎉`;
+        },
+        error: (err) => (err instanceof Error ? err.message : "Tente novamente."),
+        finally: () => setIsLoading(false),
+      }
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center gap-4">
+        <Label htmlFor="min" className="font-semibold">Mínimo</Label>
+        <Input
+          id="min"
+          type="number"
+          value={min}
+          onChange={(e) => setMin(Number(e.target.value))}
+          disabled={isLoading}
+          className="w-24"
+          min={1}
+        />
+        <Label htmlFor="max" className="font-semibold">Máximo</Label>
+        <Input
+          id="max"
+          type="number"
+          value={max}
+          onChange={(e) => setMax(Number(e.target.value))}
+          disabled={isLoading}
+          className="w-24"
+          min={min}
+        />
+      </div>
+      <Button
+        onClick={handleRun}
+        className={clsx("w-full flex justify-center items-center font-bold text-white", {
+          "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700": !isLoading,
+          "bg-gray-400 cursor-not-allowed": isLoading,
+          "animate-pulse": isLoading,
+        })}
+        disabled={isLoading}
+        aria-live="polite"
+      >
+        {isLoading ? <Loader2 className="animate-spin mr-3" /> : <Hash className="mr-3" />}
+        {isLoading ? "Sorteando..." : "Sortear Número"}
+      </Button>
+    </div>
+  );
+}
+
+function WeightedListGiveaway({ setWinner }: { setWinner: (w: Winner) => void }) {
+  const [participants, setParticipants] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const runGiveaway = useAction(api.giveaways.runWeightedListGiveaway);
+
+  const handleRun = () => {
+    const lines = participants.split("\n").map((line) => line.trim()).filter(Boolean);
+    if (lines.length === 0) return toast.error("A lista está vazia.");
+    // Expected format: "username,weight" e.g. "Lucas,5"
+    const parsed = lines.map((line) => {
+      const [username, weightStr] = line.split(",");
+      const weight = Number(weightStr);
+      if (!username || isNaN(weight) || weight <= 0) {
+        throw new Error("Formato inválido. Use: nome,peso (ex: Lucas,5)");
+      }
+      return { username: username.trim(), weight };
+    });
+
+    setIsLoading(true);
+    setWinner(null);
+    toast.promise(
+      runGiveaway({ participants: parsed }),
+      {
+        loading: "Sorteando participante ponderado...",
+        success: (result) => {
+          setWinner(result);
+          return `Parabéns para ${result.username}! 🎉`;
+        },
+        error: (err) => (err instanceof Error ? err.message : "Tente novamente."),
+        finally: () => setIsLoading(false),
+      }
+    );
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <Label htmlFor="weighted-participants" className="font-semibold">
+          Lista de Participantes com Peso (nome,peso)
+        </Label>
+        <Textarea
+          id="weighted-participants"
+          value={participants}
+          onChange={(e) => setParticipants(e.target.value)}
+          placeholder={`Lucas,5\nMaria,3\nJoão,1`}
+          rows={8}
+          disabled={isLoading}
+          className="resize-none font-mono"
+        />
+      </div>
+      <Button
+        onClick={handleRun}
+        className={clsx("w-full flex justify-center items-center font-bold text-white", {
+          "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700": !isLoading,
+          "bg-gray-400 cursor-not-allowed": isLoading,
+          "animate-pulse": isLoading,
+        })}
+        disabled={isLoading}
+        aria-live="polite"
+      >
+        {isLoading ? <Loader2 className="animate-spin mr-3" /> : <Percent className="mr-3" />}
+        {isLoading ? "Sorteando..." : "Sortear Ponderado"}
+      </Button>
+    </div>
+  );
+}
+
 export default function GiveawayTool() {
-  const [activeTab, setActiveTab] = useState<"instagram" | "list">("instagram");
+  const [activeTab, setActiveTab] = useState<
+    "instagram" | "list" | "number" | "weighted"
+  >("instagram");
   const [winner, setWinner] = useState<Winner>(null);
 
   const handleRedraw = () => {
-toast(
-  <div className="p-4 bg-white rounded shadow-lg flex flex-col items-center space-y-3">
-    <p className="font-semibold text-gray-900">Quer sortear novamente?</p>
-    <div className="flex space-x-4">
-      <Button
-        onClick={() => {
-          setWinner(null);
-          toast.dismiss();
-        }}
-        variant="default"
-      >
-        Sim, sortear de novo
-      </Button>
-      <Button onClick={() => toast.dismiss()} variant="outline">
-        Cancelar
-      </Button>
-    </div>
-  </div>,
-  { duration: 8000 }
-);
-};
+    toast(
+      <div className="p-4 bg-white rounded shadow-lg flex flex-col items-center space-y-3">
+        <p className="font-semibold text-gray-900">Quer sortear novamente?</p>
+        <div className="flex space-x-4">
+          <Button
+            onClick={() => {
+              setWinner(null);
+              toast.dismiss();
+            }}
+            variant="default"
+          >
+            Sim, sortear de novo
+          </Button>
+          <Button onClick={() => toast.dismiss()} variant="outline">
+            Cancelar
+          </Button>
+        </div>
+      </div>,
+      { duration: 8000 }
+    );
+  };
 
   return (
-    <div className="space-y-8 max-w-3xl mx-auto p-4">
+    <div className="space-y-6 max-w-3xl mx-auto p-4">
       <div className="flex border-b border-gray-300">
         <button
           onClick={() => {
@@ -292,6 +456,38 @@ toast(
         >
           <List className="w-6 h-6" /> Lista de Nomes
         </button>
+        <button
+          onClick={() => {
+            setWinner(null);
+            setActiveTab("number");
+          }}
+          className={clsx(
+            "flex items-center gap-2 px-6 py-4 font-semibold transition-colors",
+            activeTab === "number"
+              ? "border-b-4 border-purple-700 text-purple-700"
+              : "text-gray-500 hover:text-purple-600"
+          )}
+          aria-selected={activeTab === "number"}
+          role="tab"
+        >
+          <Hash className="w-6 h-6" /> Número
+        </button>
+        <button
+          onClick={() => {
+            setWinner(null);
+            setActiveTab("weighted");
+          }}
+          className={clsx(
+            "flex items-center gap-2 px-6 py-4 font-semibold transition-colors",
+            activeTab === "weighted"
+              ? "border-b-4 border-purple-700 text-purple-700"
+              : "text-gray-500 hover:text-purple-600"
+          )}
+          aria-selected={activeTab === "weighted"}
+          role="tab"
+        >
+          <Percent className="w-6 h-6" /> Ponderado
+        </button>
       </div>
 
       <div role="tabpanel" aria-hidden={activeTab !== "instagram"}>
@@ -299,6 +495,12 @@ toast(
       </div>
       <div role="tabpanel" aria-hidden={activeTab !== "list"}>
         {activeTab === "list" && <ListGiveaway setWinner={setWinner} />}
+      </div>
+      <div role="tabpanel" aria-hidden={activeTab !== "number"}>
+        {activeTab === "number" && <NumberGiveaway setWinner={setWinner} />}
+      </div>
+      <div role="tabpanel" aria-hidden={activeTab !== "weighted"}>
+        {activeTab === "weighted" && <WeightedListGiveaway setWinner={setWinner} />}
       </div>
 
       {winner && <WinnerCard winner={winner} onRedraw={handleRedraw} />}
