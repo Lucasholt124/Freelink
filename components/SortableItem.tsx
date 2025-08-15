@@ -1,6 +1,3 @@
-// Em /components/SortableItem.tsx
-// (Substitua o arquivo inteiro por esta versão final, responsiva e com a rota correta)
-
 "use client";
 
 import { useState } from "react";
@@ -69,7 +66,9 @@ export function SortableItem({
         },
         error: (err) => {
           setIsUpdating(false);
-          return `Falha ao atualizar: ${err instanceof Error ? err.message : "Erro desconhecido"}`;
+          return `Falha ao atualizar: ${
+            err instanceof Error ? err.message : "Erro desconhecido"
+          }`;
         },
       }
     );
@@ -111,14 +110,23 @@ export function SortableItem({
             value={editTitle}
             onChange={(e) => setEditTitle(e.target.value)}
             placeholder="Título do link"
+            aria-label="Editar título do link"
+            disabled={isUpdating}
           />
           <Input
             value={editUrl}
             onChange={(e) => setEditUrl(e.target.value)}
             placeholder="https://example.com"
+            aria-label="Editar URL do link"
+            disabled={isUpdating}
           />
           <div className="flex gap-2 justify-end">
-            <Button variant="ghost" size="sm" onClick={handleCancel} disabled={isUpdating}>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleCancel}
+              disabled={isUpdating}
+            >
               Cancelar
             </Button>
             <Button
@@ -126,7 +134,11 @@ export function SortableItem({
               onClick={handleSave}
               disabled={isUpdating || !editTitle.trim() || !editUrl.trim()}
             >
-              {isUpdating ? <Loader2 className="w-4 h-4 animate-spin" /> : "Salvar"}
+              {isUpdating ? (
+                <Loader2 className="w-4 h-4 animate-spin" aria-label="Salvando..." />
+              ) : (
+                "Salvar"
+              )}
             </Button>
           </div>
         </div>
@@ -137,25 +149,52 @@ export function SortableItem({
               {...attributes}
               {...listeners}
               className="cursor-grab p-2 text-gray-400 hover:bg-gray-100 rounded-md flex-shrink-0"
+              aria-label="Arrastar para reordenar"
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") e.preventDefault();
+              }}
             >
               <GripVertical className="w-5 h-5" />
             </div>
             <div className="flex-grow min-w-0">
-              <h3 className="font-semibold text-base truncate">{link.title}</h3>
-              <p className="text-gray-500 text-sm truncate">{link.url}</p>
+              <h3 className="font-semibold text-base truncate" title={link.title}>
+                {link.title}
+              </h3>
+              <p className="text-gray-500 text-sm truncate" title={link.url}>
+                {link.url}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-shrink-0 border-t sm:border-t-0 pt-3 sm:pt-0 mt-3 sm:mt-0">
-
-            <Button variant="outline" size="icon" className="h-9 w-9 flex-1 sm:flex-none" asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 flex-1 sm:flex-none"
+              asChild
+              aria-label={`Ver estatísticas do link ${link.title}`}
+            >
               <Link href={`/dashboard/link/${link._id}`}>
                 <BarChart3 className="w-4 h-4 text-green-600" />
               </Link>
             </Button>
-            <Button variant="outline" size="icon" className="h-9 w-9 flex-1 sm:flex-none" onClick={() => setIsEditing(true)}>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-9 w-9 flex-1 sm:flex-none"
+              onClick={() => setIsEditing(true)}
+              aria-label={`Editar link ${link.title}`}
+            >
               <Pencil className="w-4 h-4" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-9 w-9 text-red-500 hover:bg-red-50 hover:text-red-600 flex-1 sm:flex-none" onClick={handleDelete}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-9 w-9 text-red-500 hover:bg-red-50 hover:text-red-600 flex-1 sm:flex-none"
+              onClick={handleDelete}
+              aria-label={`Excluir link ${link.title}`}
+            >
               <Trash2 className="w-4 h-4" />
             </Button>
           </div>

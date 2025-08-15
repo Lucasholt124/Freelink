@@ -1,10 +1,16 @@
-// Em /components/DashboardMetrics.tsx
-// (Substitua o arquivo inteiro)
-
 "use client";
 
 import type { AnalyticsData } from "@/lib/analytics-server";
-import { Users, MousePointerClick, Globe, Link as LinkIcon, Clock, MapPin, Lock, Activity } from "lucide-react";
+import {
+  Users,
+  MousePointerClick,
+  Globe,
+  Link as LinkIcon,
+  Clock,
+  MapPin,
+  Lock,
+  Activity,
+} from "lucide-react";
 import clsx from "clsx";
 import type { ElementType } from "react";
 import NextLink from "next/link";
@@ -14,48 +20,162 @@ interface DashboardMetricsProps {
   plan: "free" | "pro" | "ultra";
 }
 
-function Card({ color, title, icon: Icon, value, subtitle, isText = false }: { color: string; title: string; icon: ElementType; value: string | number; subtitle?: string; isText?: boolean; }) {
+const colorClasses = {
+  blue: {
+    bg: "from-blue-50 to-blue-100",
+    border: "border-blue-200",
+    iconBg: "bg-blue-500",
+    iconColor: "text-white",
+    textPrimary: "text-blue-900",
+    textSecondary: "text-blue-700",
+  },
+  teal: {
+    bg: "from-teal-50 to-teal-100",
+    border: "border-teal-200",
+    iconBg: "bg-teal-500",
+    iconColor: "text-white",
+    textPrimary: "text-teal-900",
+    textSecondary: "text-teal-700",
+  },
+  purple: {
+    bg: "from-purple-50 to-purple-100",
+    border: "border-purple-200",
+    iconBg: "bg-purple-500",
+    iconColor: "text-white",
+    textPrimary: "text-purple-900",
+    textSecondary: "text-purple-700",
+  },
+  green: {
+    bg: "from-green-50 to-green-100",
+    border: "border-green-200",
+    iconBg: "bg-green-500",
+    iconColor: "text-white",
+    textPrimary: "text-green-900",
+    textSecondary: "text-green-700",
+  },
+  orange: {
+    bg: "from-orange-50 to-orange-100",
+    border: "border-orange-200",
+    iconBg: "bg-orange-500",
+    iconColor: "text-white",
+    textPrimary: "text-orange-900",
+    textSecondary: "text-orange-700",
+  },
+  red: {
+    bg: "from-red-50 to-red-100",
+    border: "border-red-200",
+    iconBg: "bg-red-500",
+    iconColor: "text-white",
+    textPrimary: "text-red-900",
+    textSecondary: "text-red-700",
+  },
+  indigo: {
+    bg: "from-indigo-50 to-indigo-100",
+    border: "border-indigo-200",
+    iconBg: "bg-indigo-500",
+    iconColor: "text-white",
+    textPrimary: "text-indigo-900",
+    textSecondary: "text-indigo-700",
+  },
+};
+
+function Card({
+  color,
+  title,
+  icon: Icon,
+  value,
+  subtitle,
+  isText = false,
+}: {
+  color: keyof typeof colorClasses;
+  title: string;
+  icon: ElementType;
+  value: string | number;
+  subtitle?: string;
+  isText?: boolean;
+}) {
+  const colors = colorClasses[color];
   return (
-    <div className={clsx(`bg-gradient-to-br from-${color}-50 to-${color}-100 p-6 rounded-2xl border border-${color}-200 flex flex-col justify-between h-full`)}>
+    <div
+      className={clsx(
+        "p-6 rounded-2xl border flex flex-col justify-between h-full",
+        `bg-gradient-to-br ${colors.bg}`,
+        colors.border
+      )}
+    >
       <div>
         <div className="flex items-start gap-4 mb-2">
-          <div className={clsx(`p-3 rounded-xl bg-${color}-500 flex-shrink-0`)}>
-            <Icon className="w-6 h-6 text-white" />
+          <div
+            className={clsx(
+              "p-3 rounded-xl flex-shrink-0",
+              colors.iconBg,
+              colors.iconColor
+            )}
+          >
+            <Icon className="w-6 h-6" />
           </div>
           <div className="min-w-0">
-            <p className={clsx(`text-sm font-medium text-${color}-700`)}>{title}</p>
-            <p className={clsx(
-              "font-bold",
-              `text-${color}-900`,
-              isText ? "text-2xl whitespace-normal break-words" : "text-3xl",
-              "truncate"
-            )}>
-              {isText ? value : (typeof value === 'number' ? value.toLocaleString("pt-BR") : value)}
+            <p className={clsx("text-sm font-medium", colors.textSecondary)}>
+              {title}
+            </p>
+            <p
+              className={clsx(
+                "font-bold truncate",
+                colors.textPrimary,
+                isText
+                  ? "text-2xl whitespace-normal break-words"
+                  : "text-3xl"
+              )}
+            >
+              {isText
+                ? value
+                : typeof value === "number"
+                ? value.toLocaleString("pt-BR")
+                : value}
             </p>
           </div>
         </div>
       </div>
-      {subtitle && <p className="text-sm text-gray-500 mt-2 truncate">{subtitle}</p>}
+      {subtitle && (
+        <p className="text-sm text-gray-500 mt-2 truncate" title={subtitle}>
+          {subtitle}
+        </p>
+      )}
     </div>
   );
 }
 
-function LockedCard({ title, requiredPlan }: { title: string, requiredPlan: string }) {
+function LockedCard({
+  title,
+  requiredPlan,
+}: {
+  title: string;
+  requiredPlan: string;
+}) {
   return (
     <div className="bg-gray-100 p-6 rounded-2xl border-2 border-dashed border-gray-300 flex flex-col items-center justify-center text-center h-full min-h-[150px]">
-      <div className="p-3 bg-gray-300 rounded-xl mb-3"><Lock className="w-6 h-6 text-gray-600" /></div>
+      <div className="p-3 bg-gray-300 rounded-xl mb-3">
+        <Lock className="w-6 h-6 text-gray-600" />
+      </div>
       <h3 className="font-bold text-gray-800">{title}</h3>
       <p className="text-sm text-gray-500 mb-4">Disponível no plano {requiredPlan}.</p>
-      <NextLink href="/dashboard/billing" className="px-4 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg text-xs hover:opacity-90 transition-opacity">
+      <NextLink
+        href="/dashboard/billing"
+        className="px-4 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white font-medium rounded-lg text-xs hover:opacity-90 transition-opacity"
+      >
         Fazer upgrade
       </NextLink>
     </div>
   );
 }
 
-export default function DashboardMetrics({ analytics, plan }: DashboardMetricsProps) {
-
-  const formatReferrer = (referrerSource: string | null | undefined): string => {
+export default function DashboardMetrics({
+  analytics,
+  plan,
+}: DashboardMetricsProps) {
+  const formatReferrer = (
+    referrerSource: string | null | undefined
+  ): string => {
     if (!referrerSource || referrerSource.toLowerCase() === "direto") {
       return "Direto";
     }
@@ -67,13 +187,34 @@ export default function DashboardMetrics({ analytics, plan }: DashboardMetricsPr
     }
     hostname = hostname.replace(/^(www\.|m\.|l\.|mobile\.|out\.|web\.)/, "");
     const friendlyNames: Record<string, string> = {
-      "t.co": "Twitter (X)", "twitter.com": "Twitter (X)", "instagram.com": "Instagram", "facebook.com": "Facebook", "youtube.com": "YouTube",
-      "linkedin.com": "LinkedIn", "pinterest.com": "Pinterest", "tiktok.com": "TikTok", "reddit.com": "Reddit", "whatsapp.com": "WhatsApp",
-      "wa.me": "WhatsApp", "t.me": "Telegram", "discord.com": "Discord", "google.com": "Google", "bing.com": "Bing", "duckduckgo.com": "DuckDuckGo",
-      "yahoo.com": "Yahoo!", "github.com": "GitHub", "substack.com": "Substack", "medium.com": "Medium", "behance.net": "Behance",
-      "dribbble.com": "Dribbble", "twitch.tv": "Twitch", "notion.so": "Notion",
+      "t.co": "Twitter (X)",
+      "twitter.com": "Twitter (X)",
+      "instagram.com": "Instagram",
+      "facebook.com": "Facebook",
+      "youtube.com": "YouTube",
+      "linkedin.com": "LinkedIn",
+      "pinterest.com": "Pinterest",
+      "tiktok.com": "TikTok",
+      "reddit.com": "Reddit",
+      "whatsapp.com": "WhatsApp",
+      "wa.me": "WhatsApp",
+      "t.me": "Telegram",
+      "discord.com": "Discord",
+      "google.com": "Google",
+      "bing.com": "Bing",
+      "duckduckgo.com": "DuckDuckGo",
+      "yahoo.com": "Yahoo!",
+      "github.com": "GitHub",
+      "substack.com": "Substack",
+      "medium.com": "Medium",
+      "behance.net": "Behance",
+      "dribbble.com": "Dribbble",
+      "twitch.tv": "Twitch",
+      "notion.so": "Notion",
     };
-    return friendlyNames[hostname] || (hostname.charAt(0).toUpperCase() + hostname.slice(1));
+    return (
+      friendlyNames[hostname] || hostname.charAt(0).toUpperCase() + hostname.slice(1)
+    );
   };
 
   return (
@@ -81,15 +222,14 @@ export default function DashboardMetrics({ analytics, plan }: DashboardMetricsPr
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-gray-900">Visão Geral</h2>
         <p className="text-gray-600">
-          {plan === 'free'
-            ? 'Veja o total de cliques nos seus links e libere mais análises com um upgrade.'
-            : 'Desempenho geral dos seus links.'}
+          {plan === "free"
+            ? "Veja o total de cliques nos seus links e libere mais análises com um upgrade."
+            : "Desempenho geral dos seus links."}
         </p>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-
-        {/* --- Card disponível para TODOS os planos --- */}
+        {/* Card disponível para TODOS os planos */}
         <Card
           color="blue"
           title="Cliques Totais"
@@ -97,32 +237,74 @@ export default function DashboardMetrics({ analytics, plan }: DashboardMetricsPr
           value={analytics.totalClicks}
         />
 
-        {/* --- Cards disponíveis para PRO e ULTRA --- */}
-        {plan === 'pro' || plan === 'ultra' ? (
+        {/* Cards disponíveis para PRO e ULTRA */}
+        {plan === "pro" || plan === "ultra" ? (
           <>
-            <Card color="teal" title="Última Atividade" icon={Activity} value={analytics.lastActivity || "Nenhuma"} subtitle="Último clique registrado" isText />
-            <Card color="purple" title="Visitantes Únicos" icon={Users} value={analytics.uniqueVisitors} />
-            <Card color="green" title="Principal Origem" icon={Globe} value={formatReferrer(analytics.topReferrer?.source)} subtitle={`${analytics.topReferrer?.clicks || 0} cliques`} isText />
+            <Card
+              color="teal"
+              title="Última Atividade"
+              icon={Activity}
+              value={analytics.lastActivity || "Nenhuma"}
+              subtitle="Último clique registrado"
+              isText
+            />
+            <Card
+              color="purple"
+              title="Visitantes Únicos"
+              icon={Users}
+              value={analytics.uniqueVisitors}
+            />
+            <Card
+              color="green"
+              title="Principal Origem"
+              icon={Globe}
+              value={formatReferrer(analytics.topReferrer?.source)}
+              subtitle={`${analytics.topReferrer?.clicks || 0} cliques`}
+              isText
+            />
           </>
         ) : (
           <>
-            {/* Cards bloqueados para o plano FREE */}
             <LockedCard title="Última Atividade" requiredPlan="Pro" />
             <LockedCard title="Visitantes Únicos" requiredPlan="Pro" />
             <LockedCard title="Principal Origem" requiredPlan="Pro" />
           </>
         )}
 
-        {/* --- Cards exclusivos para o plano ULTRA --- */}
-        {plan === 'ultra' ? (
+        {/* Cards exclusivos para o plano ULTRA */}
+        {plan === "ultra" ? (
           <>
-            <Card color="orange" title="Link Mais Popular" icon={LinkIcon} value={analytics.topLink?.title || 'N/A'} subtitle={`${analytics.topLink?.clicks || 0} cliques`} isText />
-            <Card color="red" title="Horário de Pico" icon={Clock} value={analytics.peakHour ? `${String(analytics.peakHour.hour).padStart(2, '0')}:00` : "N/A"} subtitle={`${analytics.peakHour?.clicks || 0} cliques`} isText />
-            <Card color="indigo" title="Principal País" icon={MapPin} value={analytics.topCountry?.name || 'N/A'} subtitle={`${analytics.topCountry?.clicks || 0} cliques`} isText />
+            <Card
+              color="orange"
+              title="Link Mais Popular"
+              icon={LinkIcon}
+              value={analytics.topLink?.title || "N/A"}
+              subtitle={`${analytics.topLink?.clicks || 0} cliques`}
+              isText
+            />
+            <Card
+              color="red"
+              title="Horário de Pico"
+              icon={Clock}
+              value={
+                analytics.peakHour
+                  ? `${String(analytics.peakHour.hour).padStart(2, "0")}:00`
+                  : "N/A"
+              }
+              subtitle={`${analytics.peakHour?.clicks || 0} cliques`}
+              isText
+            />
+            <Card
+              color="indigo"
+              title="Principal País"
+              icon={MapPin}
+              value={analytics.topCountry?.name || "N/A"}
+              subtitle={`${analytics.topCountry?.clicks || 0} cliques`}
+              isText
+            />
           </>
         ) : (
           <>
-            {/* Cards bloqueados se NÃO for Ultra (isso vale para o Free e para o Pro) */}
             <LockedCard title="Link Mais Popular" requiredPlan="Ultra" />
             <LockedCard title="Horário de Pico" requiredPlan="Ultra" />
             <LockedCard title="Principal País" requiredPlan="Ultra" />
