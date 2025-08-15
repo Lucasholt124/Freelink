@@ -1,12 +1,35 @@
 "use client";
 
-import { ReactNode, useState, useEffect, ForwardRefExoticComponent, RefAttributes } from "react";
+import {
+  ReactNode,
+  useState,
+  useEffect,
+  ForwardRefExoticComponent,
+  RefAttributes,
+} from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Settings, Wand2, Menu, X, Scissors, Target, LayoutGrid, Gift,
-  BrainCircuit, CreditCard, LucideProps, LogOut, Bell, ChevronDown,
-  ExternalLink, HelpCircle, Sparkles, Star, Rocket
+  Home,
+  Settings,
+  Wand2,
+  Menu,
+  X,
+  Scissors,
+  Target,
+  LayoutGrid,
+  Gift,
+  BrainCircuit,
+  CreditCard,
+  LucideProps,
+  LogOut,
+  Bell,
+  ChevronDown,
+  ExternalLink,
+  HelpCircle,
+  Sparkles,
+  Star,
+  Rocket,
 } from "lucide-react";
 import clsx from "clsx";
 import { UserButton } from "@clerk/nextjs";
@@ -20,7 +43,9 @@ type PlanType = "free" | "pro" | "ultra";
 interface NavSubItem {
   href: string;
   label: string;
-  icon: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
+  icon: ForwardRefExoticComponent<
+    Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
+  >;
   new?: boolean;
   pro?: boolean;
   ultra?: boolean;
@@ -29,12 +54,13 @@ interface NavSubItem {
 interface NavItem {
   href?: string;
   label: string;
-  icon?: ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
+  icon?: ForwardRefExoticComponent<
+    Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>
+  >;
   new?: boolean;
   subItems?: NavSubItem[];
 }
 
-// Componente de notificações
 function NotificationsMenu() {
   const [unread, setUnread] = useState(2);
 
@@ -55,33 +81,15 @@ function NotificationsMenu() {
           <h3 className="font-medium">Notificações</h3>
         </div>
         <div className="max-h-[300px] overflow-y-auto">
-          <div className="p-3 border-b hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
-            <div className="flex gap-3">
-              <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full p-2 h-min mt-0.5">
-                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Novo recurso: FreelinkBrain</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Gere ideias virais de conteúdo em segundos!</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Agora mesmo</p>
-              </div>
-            </div>
-          </div>
-          <div className="p-3 border-b hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
-            <div className="flex gap-3">
-              <div className="bg-green-100 dark:bg-green-900/30 rounded-full p-2 h-min mt-0.5">
-                <Star className="w-4 h-4 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Seu link ultrapassou 1000 cliques!</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Seu link Instagram Bio está com ótimo desempenho</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">1 hora atrás</p>
-              </div>
-            </div>
-          </div>
+          {/* Notificações aqui */}
         </div>
         <div className="p-2 border-t">
-          <Button variant="ghost" size="sm" className="w-full justify-center text-sm" onClick={() => setUnread(0)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="w-full justify-center text-sm"
+            onClick={() => setUnread(0)}
+          >
             Marcar todas como lidas
           </Button>
         </div>
@@ -90,7 +98,6 @@ function NotificationsMenu() {
   );
 }
 
-// Sidebar aprimorada
 function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
   const pathname = usePathname();
 
@@ -100,17 +107,38 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
     {
       label: "Ferramentas de IA",
       subItems: [
-        { href: "/dashboard/mentor-ia", icon: Wand2, label: "Mentor.IA", pro: userPlan === "free" },
-        { href: "/dashboard/brain", icon: BrainCircuit, label: "FreelinkBrain", new: true, pro: userPlan === "free" },
-      ]
+        {
+          href: "/dashboard/mentor-ia",
+          icon: Wand2,
+          label: "Mentor.IA",
+          pro: userPlan === "free",
+        },
+        {
+          href: "/dashboard/brain",
+          icon: BrainCircuit,
+          label: "FreelinkBrain",
+
+          pro: userPlan === "free",
+        },
+      ],
     },
     {
       label: "Marketing",
       subItems: [
         { href: "/dashboard/shortener", icon: Scissors, label: "Encurtador" },
-        { href: "/dashboard/giveaway", icon: Gift, label: "Sorteios", ultra: userPlan !== "ultra" },
-        { href: "/dashboard/tracking", icon: Target, label: "Rastreamento", ultra: userPlan !== "ultra" },
-      ]
+        {
+          href: "/dashboard/giveaway",
+          icon: Gift,
+          label: "Sorteios",
+          ultra: userPlan !== "ultra",
+        },
+        {
+          href: "/dashboard/tracking",
+          icon: Target,
+          label: "Rastreamento",
+          ultra: userPlan !== "ultra",
+        },
+      ],
     },
     {
       label: "Conta",
@@ -118,7 +146,7 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
         { href: "/dashboard/settings", icon: Settings, label: "Configurações" },
         { href: "/dashboard/billing", icon: CreditCard, label: "Plano e Cobrança" },
         { href: "/dashboard/help", icon: HelpCircle, label: "Suporte" },
-      ]
+      ],
     },
   ];
 
@@ -131,17 +159,19 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
 
   return (
     <nav className="flex flex-col h-full">
-      <ul className="flex-grow space-y-1 py-2">
+      <ul className="flex-grow space-y-1 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-700">
         {navItems.map((item, index) => (
           <li key={index}>
             {item.href && item.icon ? (
               <Link href={item.href}>
-                <div className={clsx(
-                  "flex items-center gap-3 p-2.5 rounded-lg font-medium transition-all mx-2",
-                  isActive(item.href)
-                    ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md shadow-blue-500/10"
-                    : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                )}>
+                <div
+                  className={clsx(
+                    "flex items-center gap-3 p-2.5 rounded-lg font-medium transition-all mx-2",
+                    isActive(item.href)
+                      ? "bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-md shadow-blue-500/10"
+                      : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                  )}
+                >
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
                   {item.new && (
@@ -153,23 +183,31 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
               </Link>
             ) : (
               <div className="pt-4 pb-1">
-                <h3 className="px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">{item.label}</h3>
+                <h3 className="px-4 text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wider">
+                  {item.label}
+                </h3>
                 <ul className="mt-1 space-y-1">
-                  {item.subItems?.map(subItem => {
+                  {item.subItems?.map((subItem) => {
                     const isItemActive = isActive(subItem.href);
                     return (
                       <li key={subItem.href}>
                         <Link href={subItem.href}>
-                          <div className={clsx(
-                            "flex items-center gap-3 py-2 px-4 rounded-lg font-medium text-sm transition-all mx-2",
-                            isItemActive
-                              ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
-                              : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
-                          )}>
-                            <subItem.icon className={clsx(
-                              "w-4 h-4",
-                              isItemActive ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-500"
-                            )} />
+                          <div
+                            className={clsx(
+                              "flex items-center gap-3 py-2 px-4 rounded-lg font-medium text-sm transition-all mx-2",
+                              isItemActive
+                                ? "bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
+                                : "text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                            )}
+                          >
+                            <subItem.icon
+                              className={clsx(
+                                "w-4 h-4",
+                                isItemActive
+                                  ? "text-blue-600 dark:text-blue-400"
+                                  : "text-slate-500 dark:text-slate-500"
+                              )}
+                            />
                             <span>{subItem.label}</span>
                             {subItem.new && (
                               <Badge className="ml-auto bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-[10px]">
@@ -204,10 +242,16 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-900/20">
             <div className="flex items-center gap-3 mb-2">
               <div className="bg-gradient-to-r from-purple-500 to-pink-500 p-2 rounded-full">
-                {userPlan === "free" ? <Sparkles className="w-4 h-4 text-white" /> : <Rocket className="w-4 h-4 text-white" />}
+                {userPlan === "free" ? (
+                  <Sparkles className="w-4 h-4 text-white" />
+                ) : (
+                  <Rocket className="w-4 h-4 text-white" />
+                )}
               </div>
               <h3 className="font-semibold text-slate-800 dark:text-slate-200">
-                {userPlan === "free" ? "Desbloqueie recursos PRO" : "Evolua para ULTRA"}
+                {userPlan === "free"
+                  ? "Desbloqueie recursos PRO"
+                  : "Evolua para ULTRA"}
               </h3>
             </div>
             <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">
@@ -217,7 +261,9 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
             </p>
             <Link href="/dashboard/billing">
               <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white text-sm">
-                {userPlan === "free" ? "Conhecer Plano PRO" : "Conhecer Plano ULTRA"}
+                {userPlan === "free"
+                  ? "Conhecer Plano PRO"
+                  : "Conhecer Plano ULTRA"}
               </Button>
             </Link>
           </div>
@@ -227,26 +273,36 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
   );
 }
 
-// Logo Component
 function FreelinkLogo({ size = 32 }: { size?: number }) {
   return (
     <div
       className="relative flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 shadow-md"
       style={{ width: size, height: size }}
     >
-      <span className="text-white font-bold" style={{ fontSize: size * 0.6 }}>F</span>
+      <span className="text-white font-bold" style={{ fontSize: size * 0.6 }}>
+        F
+      </span>
     </div>
   );
 }
 
 export default function DashboardLayout({
-  children
+  children,
 }: {
   children: ReactNode;
 }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
   const [userPlan, setUserPlan] = useState<PlanType>("free");
+
+  // Bloqueia scroll do body quando sidebar móvel está aberta
+  useEffect(() => {
+    if (isSidebarOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [isSidebarOpen]);
 
   // Verificação de plano do usuário
   useEffect(() => {
@@ -291,7 +347,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="flex h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
       {/* Sidebar para Desktop */}
       <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 p-4 hidden lg:flex flex-col flex-shrink-0 transition-all">
         <div className="mb-6 px-2">
@@ -301,16 +357,14 @@ export default function DashboardLayout({
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Freelink
               </span>
-              {userPlan !== "free" && (
-                <div className="mt-0.5">{getPlanBadge()}</div>
-              )}
+              {userPlan !== "free" && <div className="mt-0.5">{getPlanBadge()}</div>}
             </div>
           </Link>
         </div>
         <div className="flex-grow overflow-y-auto -mr-4 pr-4 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
           <Sidebar userPlan={userPlan} />
         </div>
-                <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
+        <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
           <div className="flex justify-between items-center px-2">
             <div className="flex items-center gap-3">
               <UserButton afterSignOutUrl="/" />
@@ -380,9 +434,7 @@ export default function DashboardLayout({
               <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
                 Freelink
               </span>
-              {userPlan !== "free" && (
-                <div className="mt-0.5">{getPlanBadge()}</div>
-              )}
+              {userPlan !== "free" && <div className="mt-0.5">{getPlanBadge()}</div>}
             </div>
           </Link>
           <Button
@@ -418,14 +470,15 @@ export default function DashboardLayout({
       {/* Container Principal do Conteúdo */}
       <div className="flex-1 flex flex-col overflow-hidden">
         <header
-  className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 py-2 px-4 flex justify-between items-center flex-shrink-0 sticky top-0 z-50 will-change-transform"
->
+          className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 py-2 px-4 flex justify-between items-center flex-shrink-0 sticky top-0 z-50 will-change-transform"
+        >
           <div className="flex items-center">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsSidebarOpen(true)}
               className="lg:hidden"
+              aria-label="Abrir menu lateral"
             >
               <Menu className="w-5 h-5" />
             </Button>
@@ -452,7 +505,7 @@ export default function DashboardLayout({
 
             <div className="hidden sm:block">
               <Link href="/dashboard/help">
-                <Button variant="ghost" size="icon">
+                <Button variant="ghost" size="icon" aria-label="Ajuda e suporte">
                   <HelpCircle className="w-5 h-5" />
                 </Button>
               </Link>

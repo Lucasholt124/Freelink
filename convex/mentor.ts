@@ -179,6 +179,19 @@ function extractJson<T>(text: string): T {
   }
 }
 
+// Sanitização para evitar nulls em campos obrigatórios
+function sanitizeContentPlan(plan: ContentPlanItem[]): ContentPlanItem[] {
+  return plan.map(item => {
+    if (item.details?.creative_guidance) {
+      item.details.creative_guidance.prompt = item.details.creative_guidance.prompt ?? "";
+      item.details.creative_guidance.description = item.details.creative_guidance.description ?? "";
+      item.details.creative_guidance.tool_link = item.details.creative_guidance.tool_link ?? "";
+      item.details.creative_guidance.type = item.details.creative_guidance.type ?? "";
+    }
+    return item;
+  });
+}
+
 // Função para gerar estratégia de fallback
 function generateFallbackStrategy(username: string, offer: string, audience: string): StrategyResult {
   return {
@@ -372,6 +385,9 @@ export const generateAnalysis = action({
     if (contentModel === "fallback") {
       usedModel = usedModel === "fallback" ? "total-fallback" : `${usedModel}+content-fallback`;
     }
+
+    // Sanitizar o plano de conteúdo para evitar nulls
+    contentPlanResult.content_plan = sanitizeContentPlan(contentPlanResult.content_plan);
 
     // Validações e correções para garantir formato correto
     if (!strategyResult.suggestions || !Array.isArray(strategyResult.suggestions)) {
