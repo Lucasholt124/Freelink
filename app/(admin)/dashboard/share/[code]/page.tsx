@@ -64,7 +64,7 @@ export default function ShareClient({ code }: ShareClientProps) {
 
   const streakDays = achievementData.streakDays ?? 0;
   const completedPosts = achievementData.completedPosts ?? 0;
-  const totalPosts = achievementData.totalPosts ?? 1;
+  const totalPosts = achievementData.totalPosts ?? 1; // Evitar divisão por zero
   const views = achievementData.views ?? 0;
 
   const percentComplete =
