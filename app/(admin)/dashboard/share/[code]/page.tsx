@@ -42,7 +42,7 @@ export default function ShareClient({ code }: ShareClientProps) {
     );
   }
 
-  if ("expired" in achievementData && achievementData.expired) {
+  if (achievementData?.expired) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:to-blue-900 p-4">
         <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 text-center">
@@ -62,13 +62,12 @@ export default function ShareClient({ code }: ShareClientProps) {
     );
   }
 
-  const streakDays = achievementData.streakDays ?? 0;
-  const completedPosts = achievementData.completedPosts ?? 0;
-  const totalPosts = achievementData.totalPosts ?? 1; // Evitar divisão por zero
-  const views = achievementData.views ?? 0;
+  const streakDays = achievementData?.streakDays ?? 0;
+  const completedPosts = achievementData?.completedPosts ?? 0;
+  const totalPosts = achievementData?.totalPosts ?? 1; // evitar divisão por zero
+  const views = achievementData?.views ?? 0;
 
-  const percentComplete =
-    totalPosts > 0 ? Math.round((completedPosts / totalPosts) * 100) : 0;
+  const percentComplete = Math.round((completedPosts / totalPosts) * 100);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-slate-900 dark:to-blue-900 p-4">

@@ -585,11 +585,21 @@ const getConfig = (fmt: string) => {
 };
 
 // Componente principal do calendário
-export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromDB[]; analysisId: Id<"analyses"> }) {
+export default function CalendarView({
+  plan,
+  analysisId,
+}: {
+  plan: PlanItemFromDB[];
+  analysisId: Id<"analyses">;
+}) {
   const [selectedEvent, setSelectedEvent] = useState<PlanItem | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [currentView, setCurrentView] = useState<View>(Views.MONTH);
-  const [progressStats, setProgressStats] = useState({ total: 0, completed: 0, percent: 0 });
+  const [progressStats, setProgressStats] = useState({
+    total: 0,
+    completed: 0,
+    percent: 0,
+  });
   const [todaysEvents, setTodaysEvents] = useState<PlanItem[]>([]);
   const [isUpdating, setIsUpdating] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
@@ -601,8 +611,8 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
   const updatePlanMutation = useMutation(api.mentor.updateContentPlan);
 
   // Preparar dados para o calendário
-  const planWithIds: PlanItem[] = useMemo(() =>
-    plan.map((p, index) => ({ ...p, id: `${p.title}-${index}` })),
+  const planWithIds: PlanItem[] = useMemo(
+    () => plan.map((p, index) => ({ ...p, id: `${p.title}-${index}` })),
     [plan]
   );
 
@@ -619,7 +629,7 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
         start: eventDate,
         end: eventDate,
         allDay: false,
-        resource: item
+        resource: item,
       };
     });
   }, [planWithIds]);
@@ -627,38 +637,35 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
   // Atualizar estatísticas de progresso e streak
   useEffect(() => {
     const total = planWithIds.length;
-    const completed = planWithIds.filter(item => item.status === "concluido").length;
+    const completed = planWithIds.filter(
+      (item) => item.status === "concluido"
+    ).length;
     const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
     setProgressStats({ total, completed, percent });
 
-    // Encontrar eventos de hoje
     const today = new Date();
     const todaysItems = events
-      .filter(event => isSameDay(event.start, today))
-      .map(event => event.resource as PlanItem);
+      .filter((event) => isSameDay(event.start, today))
+      .map((event) => event.resource as PlanItem);
 
     setTodaysEvents(todaysItems);
 
-    // Calcular streak de dias
     const completedPosts = planWithIds
-      .filter(item => item.status === "concluido" && item.completedAt)
+      .filter((item) => item.status === "concluido" && item.completedAt)
       .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
 
     if (completedPosts.length > 0) {
-      // Verificar se há posts concluídos hoje
       const lastCompletionDate = new Date(completedPosts[0].completedAt || 0);
       const hasCompletedToday = isSameDay(lastCompletionDate, today);
 
-      // Se há post concluído hoje, calcular streak
       if (hasCompletedToday) {
         let currentStreak = 1;
         let currentDate = today;
 
-        // Percorrer os dias anteriores
-        for (let i = 1; i <= 90; i++) { // Limite de 90 dias para evitar loop infinito
+        for (let i = 1; i <= 90; i++) {
           const previousDate = addDays(currentDate, -1);
-          const hasPostOnPreviousDay = completedPosts.some(post => {
+          const hasPostOnPreviousDay = completedPosts.some((post) => {
             const postDate = new Date(post.completedAt || 0);
             return isSameDay(postDate, previousDate);
           });
@@ -671,12 +678,12 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
           }
         }
 
-        // Verificar se alcançou novo marco de streak
         if (currentStreak > streakDays) {
-          // Verificar se atingiu um milestone (7, 14, 30 dias)
-          if ((streakDays < 7 && currentStreak >= 7) ||
-              (streakDays < 14 && currentStreak >= 14) ||
-              (streakDays < 30 && currentStreak >= 30)) {
+          if (
+            (streakDays < 7 && currentStreak >= 7) ||
+            (streakDays < 14 && currentStreak >= 14) ||
+            (streakDays < 30 && currentStreak >= 30)
+          ) {
             setStreakAchievement(true);
           }
         }
@@ -684,15 +691,19 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
         setStreakDays(currentStreak);
       }
     }
-  }, [planWithIds, events]);
+  }, [planWithIds, events, streakDays]); // ✅ streakDays adicionado
 
   // Effect para mostrar parabéns quando atinge marco de streak
   useEffect(() => {
     if (streakAchievement) {
       toast.success(
         <div className="flex flex-col items-center">
-          <div className="text-lg font-bold mb-1">🔥 Sequência: {streakDays} dias!</div>
-          <div className="text-sm">Você manteve sua consistência! Compartilhe essa conquista!</div>
+          <div className="text-lg font-bold mb-1">
+            🔥 Sequência: {streakDays} dias!
+          </div>
+          <div className="text-sm">
+            Você manteve sua consistência! Compartilhe essa conquista!
+          </div>
           <Button
             className="mt-2 bg-gradient-to-r from-amber-500 to-orange-600 text-white"
             size="sm"
@@ -708,16 +719,15 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
         {
           duration: 8000,
           position: "top-center",
-          icon: <Flame  className="w-6 h-6 text-amber-500" />
+          icon: <Flame className="w-6 h-6 text-amber-500" />,
         }
       );
     }
-  }, [streakAchievement]);
+  }, [streakAchievement, streakDays]); // ✅ streakDays adicionado
 
-  // Função para atualizar o plano
   const handleUpdatePlan = async (updatedPlan: PlanItem[]) => {
     setIsUpdating(true);
-    const planToSave = updatedPlan.map(item => ({
+    const planToSave = updatedPlan.map((item) => ({
       day: item.day,
       time: item.time,
       format: item.format,
@@ -734,33 +744,32 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
       setTimeout(() => setShowSuccess(false), 1500);
       toast.success("Plano atualizado com sucesso!");
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Falha ao sincronizar. Tente novamente.");
+      toast.error(
+        err instanceof Error
+          ? err.message
+          : "Falha ao sincronizar. Tente novamente."
+      );
     } finally {
       setIsUpdating(false);
     }
   };
 
-  // Marcar item como concluído
   const handleMarkCompleted = async (item: PlanItem) => {
     setIsUpdating(true);
 
-    const updatedPlan = planWithIds.map((p) => (
+    const updatedPlan = planWithIds.map((p) =>
       p.id === item.id
         ? { ...p, status: "concluido" as const, completedAt: Date.now() }
         : p
-    ));
+    );
 
     await handleUpdatePlan(updatedPlan);
-
-    // Gerar confetes após marcação
     generateConfetti();
-
     setSelectedEvent(null);
   };
 
-  // Salvar item editado
   const handleSaveEdit = async (editedItem: PlanItem) => {
-    const updatedPlan = planWithIds.map(p =>
+    const updatedPlan = planWithIds.map((p) =>
       p.id === editedItem.id ? editedItem : p
     );
 
@@ -769,7 +778,6 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
     setIsEditing(false);
   };
 
-  // Compartilhar item
   const handleShareItem = () => {
     if (!selectedEvent) return;
 
@@ -783,12 +791,15 @@ export default function CalendarView({ plan, analysisId }: { plan: PlanItemFromD
     });
   };
 
-  // Efeito para rolagem automática ao mudar abas
   useEffect(() => {
     if (contentRef.current) {
       contentRef.current.scrollTop = 0;
     }
   }, [selectedEvent, isEditing]);
+
+
+
+
 
   return (
     <MotionConfig transition={{ duration: 0.2 }}>
