@@ -668,38 +668,61 @@ export default function CalendarView({
 
     setTodaysEvents(todaysItems);
 
-    const completedPosts = planWithIds
-      .filter((item) => item.status === "concluido" && item.completedAt)
-      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+    const completedPostsTimestamps = planWithIds
+        .filter((item) => item.status === "concluido" && item.completedAt)
+        .map((item) => startOfDay(new Date(item.completedAt!)).getTime()); // Get timestamps of start of day
 
-    if (completedPosts.length > 0) {
-      // Verifica a sequência de dias contínuos
-      let currentStreak = 0;
-      const uniqueCompletedDates = Array.from(new Set(
-        completedPosts.map(p => format(new Date(p.completedAt!), 'yyyy-MM-dd'))
-      )).map(dateStr => parse(dateStr, 'yyyy-MM-dd', new Date())).sort((a,b) => b.getTime() - a.getTime());
+    const uniqueCompletedDays = Array.from(new Set(completedPostsTimestamps))
+        .map(ts => new Date(ts))
+        .sort((a, b) => a.getTime() - b.getTime()); // Sort oldest to newest
 
+    let calculatedStreak = 0;
+    const todayStartOfDay = startOfDay(new Date());
 
-      for (let i = 0; i < uniqueCompletedDates.length + 2; i++) { // Verifica o dia atual, ontem, e para trás
-        const targetDate = addDays(new Date(), -i);
-        const hasCompletedOnTargetDate = uniqueCompletedDates.some(d => isSameDay(d, targetDate));
-
-        if (hasCompletedOnTargetDate) {
-          currentStreak++;
-        } else if (i === 0) {
-          // Se não tem post hoje, a streak é 0 (ou a streak continua de ontem se for o caso)
-          // Isso precisa ser mais robusto para considerar "ontem" como parte da streak se não houver hoje
-          currentStreak = 0; // Se o post mais recente não é hoje, a streak "ativa" é 0
-          break;
-        } else {
-          break; // Quebra a sequência se um dia não tem post
-        }
-      }
-      setStreakDays(currentStreak);
+    if (uniqueCompletedDays.length === 0) {
+        calculatedStreak = 0;
     } else {
-      setStreakDays(0); // Se não há posts concluídos, a streak é 0
+        let lastDayChecked = uniqueCompletedDays[uniqueCompletedDays.length - 1]; // Most recent completed day
+
+        // Check if the most recent completed day is today or yesterday
+        if (isSameDay(lastDayChecked, todayStartOfDay)) {
+            calculatedStreak = 1;
+        } else if (isSameDay(lastDayChecked, addDays(todayStartOfDay, -1))) {
+            // If the last completed day was yesterday, and no post today yet, streak continues from yesterday
+            calculatedStreak = 1;
+        } else {
+            // Last completed post was before yesterday, streak is 0
+            calculatedStreak = 0;
+        }
+
+        // Count backwards for full streak
+        if (calculatedStreak > 0) {
+            for (let i = uniqueCompletedDays.length - 2; i >= 0; i--) {
+                const prevDay = uniqueCompletedDays[i];
+                if (isSameDay(prevDay, addDays(lastDayChecked, -1))) {
+                    calculatedStreak++;
+                    lastDayChecked = prevDay;
+                } else {
+                    break; // Streak broken
+                }
+            }
+        }
     }
-  }, [planWithIds, events]); // Removi streakDays da dependência para evitar loop e garantir que recalcule a cada mudança de plano
+
+    // Only trigger achievement if the calculated streak is a new milestone AND greater than previous streakDays
+    // This comparison uses the `streakDays` from the *previous* render
+    if (calculatedStreak > streakDays) {
+        if (
+            (streakDays < 7 && calculatedStreak >= 7) ||
+            (streakDays < 14 && calculatedStreak >= 14) ||
+            (streakDays < 30 && calculatedStreak >= 30)
+        ) {
+            setStreakAchievement(true);
+        }
+    }
+
+    setStreakDays(calculatedStreak); // Update the state
+  }, [planWithIds , events, streakDays]);
 
   // Effect para mostrar parabéns quando atinge marco de streak
   useEffect(() => {
@@ -1231,7 +1254,7 @@ export default function CalendarView({
                 </DialogHeader>
 
                 {/* Conteúdo do Modal */}
-                {/* ✅ CORREÇÃO AQUI: Removido `overflow-hidden` do container flex-grow */}
+                {/* ✅ CORRIGIDO: Removido `overflow-hidden` daqui */}
                 <div className="flex-grow">
                   {isEditing ? (
                     <motion.div
@@ -1274,7 +1297,7 @@ export default function CalendarView({
                         <div ref={contentScrollRef} className="flex-grow overflow-y-auto px-4 sm:px-6 pb-24 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
                           <TabsContent
                             value="content"
-                            className="h-full data-[state=active]:flex flex-col" // Removido flex-grow aqui, pois já está no pai
+                            className="h-full data-[state=active]:flex flex-col"
                           >
                               <div className="pt-4 space-y-5 sm:space-y-6">
                                 <motion.div
@@ -1335,7 +1358,7 @@ export default function CalendarView({
 
                           <TabsContent
                             value="execution"
-                            className="h-full data-[state=active]:flex flex-col" // Removido flex-grow aqui, pois já está no pai
+                            className="h-full data-[state=active]:flex flex-col"
                           >
                               <div className="pt-4 space-y-5 sm:space-y-6">
                                 {selectedEvent.details && (
