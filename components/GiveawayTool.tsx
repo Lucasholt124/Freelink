@@ -59,11 +59,6 @@ import {
   TabsList,
   TabsTrigger,
 } from "./ui/tabs";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "./ui/popover";
 import { Badge } from "./ui/badge";
 import { Switch } from "./ui/switch";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
@@ -89,14 +84,51 @@ type GiveawayHistory = {
 
 // Confetti animation component with real implementation
 function launchConfetti() {
-  // Usando apenas CSS para o efeito
-  const confettiContainer = document.getElementById('confetti-container');
-  if (confettiContainer) {
-    confettiContainer.classList.add('active');
-    setTimeout(() => {
-      confettiContainer.classList.remove('active');
-    }, 5000);
+  // Verificar se já existe o confetti-container
+  let confettiContainer = document.getElementById('confetti-container');
+
+  if (!confettiContainer) {
+    confettiContainer = document.createElement('div');
+    confettiContainer.id = 'confetti-container';
+    confettiContainer.className = 'fixed inset-0 pointer-events-none z-50';
+    document.body.appendChild(confettiContainer);
   }
+
+  // Adicionando estilo para confetti se não existir
+  if (!document.getElementById('confetti-style')) {
+    const style = document.createElement('style');
+    style.id = 'confetti-style';
+    style.innerHTML = `
+      #confetti-container.active::before {
+        content: '';
+        position: absolute;
+        top: -10%;
+        left: 0;
+        right: 0;
+        height: 120%;
+        background-image:
+          radial-gradient(circle, #ff0000 1px, transparent 1px),
+          radial-gradient(circle, #ffff00 1px, transparent 1px),
+          radial-gradient(circle, #00ff00 1px, transparent 1px),
+          radial-gradient(circle, #0000ff 1px, transparent 1px);
+        background-size: 5px 5px;
+        background-position: 0 0, 2.5px 2.5px, 1.25px 1.25px, 3.75px 3.75px;
+        animation: confetti-fall 5s linear forwards;
+        opacity: 0;
+      }
+
+      @keyframes confetti-fall {
+        0% { transform: translateY(-100%); opacity: 1; }
+        100% { transform: translateY(100%); opacity: 0; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  confettiContainer.classList.add('active');
+  setTimeout(() => {
+    confettiContainer.classList.remove('active');
+  }, 5000);
 }
 
 // Animated counter for statistics
@@ -129,27 +161,19 @@ function AnimatedCounter({ value, duration = 1000 }: { value: number, duration?:
   return <span>{count}</span>;
 }
 
-// Screenshot functionality
+// Screenshot functionality - corrigido para usar uma abordagem mais simples
 function captureScreenshot(elementId: string, filename: string = 'sorteio-resultado') {
-   const link = document.createElement('a');
-  link.href = document.getElementById(elementId)!.innerHTML;
-  link.download = `${filename}.png`;
-  link.click();
-  toast.info('Recurso de captura não disponível. Use a função PrintScreen do seu navegador.', {
-    duration: 5000,
-    id: 'screenshot-tip',
-  });
-
-  const element = document.getElementById(elementId);
-  if (element) {
-    // Adicionar uma classe temporária para destacar o elemento
-    element.classList.add('screenshot-highlight');
-    setTimeout(() => {
-      element.classList.remove('screenshot-highlight');
-    }, 2000);
+  try {
+    // ...
+    toast.info(`Use a função de captura de tela do seu dispositivo para salvar este resultado como ${filename}.`, {
+      duration: 5000,
+      id: 'screenshot-tip',
+    });
+    // ...
+  } catch (e) {
+    console.error("Erro ao capturar tela:", e);
   }
 }
-
 // Dramatic random selection visualization
 function DramaticSelection({
   items,
@@ -168,6 +192,12 @@ function DramaticSelection({
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef<number>(0);
 
+  // Garantir que selectedIndex seja válido
+  const safeSelectedIndex = useMemo(() => {
+    if (items.length === 0) return 0;
+    return Math.max(0, Math.min(items.length - 1, selectedIndex));
+  }, [items.length, selectedIndex]);
+
   useEffect(() => {
     startTimeRef.current = Date.now();
     setProgress(0);
@@ -180,7 +210,7 @@ function DramaticSelection({
       setProgress(currentProgress);
 
       if (currentProgress >= 1) {
-        setCurrentIndex(selectedIndex);
+        setCurrentIndex(safeSelectedIndex);
         setCompleted(true);
         if (intervalRef.current) {
           clearInterval(intervalRef.current);
@@ -192,7 +222,7 @@ function DramaticSelection({
 
       // Increase chance of showing selected index near the end
       if (currentProgress > 0.8 && Math.random() < Math.pow(currentProgress, 3)) {
-        setCurrentIndex(selectedIndex);
+        setCurrentIndex(safeSelectedIndex);
       } else {
         setCurrentIndex(Math.floor(Math.random() * items.length));
       }
@@ -207,7 +237,7 @@ function DramaticSelection({
         intervalRef.current = null;
       }
     };
-  }, [duration, items.length, onComplete, selectedIndex]);
+  }, [duration, items.length, onComplete, safeSelectedIndex]);
 
   return (
     <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-violet-900/90 to-purple-800/90 p-8 shadow-xl border-4 border-amber-300">
@@ -272,28 +302,29 @@ function WinnerCard({
     if ("number" in winner && typeof winner.number === "number") {
       return winner.number.toString();
     }
+    if ("name" in winner && typeof winner.name === "string") {
+      return winner.name;
+    }
     return "Vencedor";
   })();
 
   // Get items for dramatic selection
- const selectionItems = useMemo(() => {
-  if (giveawayType === "number") {
-    const min = 1;
-    const max = 1000;
-    return Array.from({ length: 50 }, () =>
-      Math.floor(Math.random() * (max - min + 1) + min).toString()
-    );
-  }
+  const selectionItems = useMemo(() => {
+    if (giveawayType === "number") {
+      const min = 1;
+      const max = 1000;
+      return Array.from({ length: 50 }, () =>
+        Math.floor(Math.random() * (max - min + 1) + min).toString()
+      );
+    }
 
     // For other types, create fake names or use placeholders
-      return Array.from({ length: 50 }, (_, i) =>
-    giveawayType === "instagram"
-      ? `@usuario_${Math.floor(Math.random() * 10000)}`
-      : `Participante ${i+1}`
-  );
-}, [giveawayType]);
-
-
+    return Array.from({ length: 50 }, (_, i) =>
+      giveawayType === "instagram"
+        ? `@usuario_${Math.floor(Math.random() * 10000)}`
+        : `Participante ${i+1}`
+    );
+  }, [giveawayType]);
 
   useEffect(() => {
     if (!showSelectionAnimation) {
@@ -316,18 +347,18 @@ function WinnerCard({
     ? ((winnersCount / totalParticipants) * 100).toFixed(2)
     : "N/A";
 
-if (showSelectionAnimation && selectionItems.length > 0) {
-  return (
-    <div className="mt-4 sm:mt-8 max-w-2xl mx-auto w-full">
-      <DramaticSelection
-        items={selectionItems}
-        duration={3000}
-        selectedIndex={Math.min(selectionItems.length - 1, 0)}
-        onComplete={() => setShowSelectionAnimation(false)}
-      />
-    </div>
-  );
-}
+  if (showSelectionAnimation && selectionItems.length > 0) {
+    return (
+      <div className="mt-4 sm:mt-8 max-w-2xl mx-auto w-full">
+        <DramaticSelection
+          items={selectionItems}
+          duration={3000}
+          selectedIndex={0} // Aqui usamos o índice 0 de propósito para animação
+          onComplete={() => setShowSelectionAnimation(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="mt-4 sm:mt-8 max-w-2xl mx-auto w-full">
@@ -504,7 +535,14 @@ if (showSelectionAnimation && selectionItems.length > 0) {
 }
 
 function GiveawayHistory({ history }: { history: GiveawayHistory[] }) {
-  if (history.length === 0) {
+  // Adicionamos um estado local para garantir renderização do histórico mesmo vazio
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted || history.length === 0) {
     return (
       <div className="text-center py-8 px-4">
         <History className="w-12 h-12 mx-auto text-gray-300 dark:text-gray-600 mb-3" />
@@ -576,7 +614,7 @@ function GiveawayHistory({ history }: { history: GiveawayHistory[] }) {
 
 function InstagramGiveaway({
   setWinner,
-  setTotalParticipants
+  setTotalParticipants,
 }: {
   setWinner: (w: Winner) => void;
   winnersCount: number;
@@ -658,7 +696,8 @@ function InstagramGiveaway({
     toast.promise(
       runGiveaway({
         comments: commentList,
-        ...filters,
+        ...filters
+        // winnersCount removido pois não é aceito pelo backend
       }),
       {
         loading: "Analisando comentários e sorteando...",
@@ -936,8 +975,13 @@ function ListGiveaway({
 
     // Apply filters
     if (filters.excludePattern) {
-      const pattern = new RegExp(filters.excludePattern, 'i');
-      list = list.filter(p => !pattern.test(p));
+      try {
+        const pattern = new RegExp(filters.excludePattern, 'i');
+        list = list.filter(p => !pattern.test(p));
+      } catch (e) {
+        console.error("Erro na regex:", e);
+        // Continue sem aplicar o filtro de regex se tiver erro
+      }
     }
 
     if (filters.minLength > 0) {
@@ -950,15 +994,15 @@ function ListGiveaway({
 
     setParticipantsPreview(list.slice(0, 100));
     setTotalParticipants(list.length);
-    if (list.length === 0) {
+    if (list.length === 0 && participants.trim() !== '') {
       toast.error("Nenhum participante válido encontrado com os filtros aplicados.");
     }
   }, [participants, unique, filters, setTotalParticipants]);
 
-useEffect(() => {
-  if (participants) {
-    updatePreview();
-  }
+  useEffect(() => {
+    if (participants) {
+      updatePreview();
+    }
   }, [participants, unique, filters, updatePreview]);
 
   const handleRun = () => {
@@ -967,13 +1011,16 @@ useEffect(() => {
 
     setIsLoading(true);
     setWinner(null);
+
+    // Remover o cast problemático e passar os parâmetros explicitamente
     toast.promise(
-  runGiveaway({
-    participants: list,
-    unique,
-    ...filters,
-    winnersCount
-  } as Parameters<typeof runGiveaway>[0]),
+      runGiveaway({
+        participants: list,
+        unique,
+        excludePattern: filters.excludePattern,
+        minLength: filters.minLength,
+        winnersCount
+      }),
       {
         loading: "Sorteando participante...",
         success: (result) => {
@@ -1169,8 +1216,14 @@ function NumberGiveaway({
 
     setIsLoading(true);
     setWinner(null);
+
+    // Passando os parâmetros explicitamente sem cast
     toast.promise(
-  runGiveaway({ min, max, exclude: excludedArray } as { min: number; max: number; exclude: number[] }),
+      runGiveaway({
+        min,
+        max,
+        exclude: excludedArray
+      }),
       {
         loading: "Sorteando número...",
         success: (result) => {
@@ -1285,38 +1338,71 @@ function WeightedListGiveaway({
   const [isLoading, setIsLoading] = useState(false);
   const [visualMode, setVisualMode] = useState(false);
   const [visualWeights, setVisualWeights] = useState<{name: string, weight: number}[]>([]);
+  const [parseError, setParseError] = useState<string | null>(null);
   const runGiveaway = useAction(api.giveaways.runWeightedListGiveaway);
 
+  // Melhorar a função parseParticipants para melhor tratamento de erros
   const parseParticipants = useCallback(() => {
+    setParseError(null);
     const lines = participants
       .split("\n")
       .map((line) => line.trim())
       .filter(Boolean);
 
-    const parsed = lines.map((line) => {
-      const [username, weightStr] = line.split(",");
-      const weight = Number(weightStr);
-      if (!username || isNaN(weight) || weight <= 0) {
-        return null;
+    if (lines.length === 0) {
+      return [];
+    }
+
+    const parsed: {username: string, weight: number}[] = [];
+    let hasError = false;
+
+    lines.forEach((line, index) => {
+      const parts = line.split(",");
+      if (parts.length < 2) {
+        if (!hasError) {
+          setParseError(`Erro na linha ${index + 1}: formato inválido. Use "nome,peso"`);
+          hasError = true;
+        }
+        return;
       }
-      return { username: username.trim(), weight };
-    }).filter(Boolean) as {username: string, weight: number}[];
+
+      const username = parts[0].trim();
+      const weightStr = parts[1].trim();
+      const weight = Number(weightStr);
+
+      if (!username) {
+        if (!hasError) {
+          setParseError(`Erro na linha ${index + 1}: nome não pode ser vazio`);
+          hasError = true;
+        }
+        return;
+      }
+
+      if (isNaN(weight) || weight <= 0) {
+        if (!hasError) {
+          setParseError(`Erro na linha ${index + 1}: peso deve ser um número positivo`);
+          hasError = true;
+        }
+        return;
+      }
+
+      parsed.push({ username, weight });
+    });
 
     return parsed;
   }, [participants]);
 
- useEffect(() => {
-  const parsed = parseParticipants();
-  setVisualWeights(parsed.map(p => ({ name: p.username, weight: p.weight })));
+  useEffect(() => {
+    const parsed = parseParticipants();
+    setVisualWeights(parsed.map(p => ({ name: p.username, weight: p.weight })));
 
-  if (parsed.length === 0) {
-    setTotalParticipants(0);
-  } else {
-    const totalWeight = parsed.reduce((sum, p) => sum + p.weight, 0);
-    setTotalParticipants(totalWeight);
-  }
-}, [participants, parseParticipants, setTotalParticipants]);
-
+    if (parsed.length === 0) {
+      setTotalParticipants(0);
+    } else {
+      const totalWeight = parsed.reduce((sum, p) => sum + p.weight, 0);
+      setTotalParticipants(totalWeight);
+    }
+  }, [participants, parseParticipants, setTotalParticipants]);
 
   const handleRun = () => {
     const parsed = parseParticipants();
@@ -1335,7 +1421,10 @@ function WeightedListGiveaway({
           setWinner(result);
           return `Pronto! Vencedor encontrado.`;
         },
-        error: (err) => (err instanceof Error ? err.message : "Tente novamente."),
+        error: (err) => {
+          console.error("Erro no sorteio ponderado:", err);
+          return err instanceof Error ? err.message : "Tente novamente.";
+        },
         finally: () => setIsLoading(false),
       }
     );
@@ -1398,7 +1487,7 @@ function WeightedListGiveaway({
                       <div className="h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                         <div
                           className="h-full bg-gradient-to-r from-green-500 to-emerald-600 rounded-full"
-                          style={{ width: `${(participant.weight / Math.max(...visualWeights.map(p => p.weight))) * 100}%` }}
+                          style={{ width: `${(participant.weight / Math.max(...visualWeights.map(p => p.weight), 1)) * 100}%` }}
                         ></div>
                       </div>
                     </div>
@@ -1415,13 +1504,22 @@ function WeightedListGiveaway({
                     size="sm"
                     onClick={() => {
                       const name = prompt("Nome do participante:");
-                      const weight = parseInt(prompt("Peso (número):", "1") || "1");
+                      const weightStr = prompt("Peso (número):", "1");
 
-                      if (name && !isNaN(weight) && weight > 0) {
-                        const newList = [...visualWeights, { name, weight }];
-                        setVisualWeights(newList);
-                        setParticipants(newList.map(p => `${p.name},${p.weight}`).join('\n'));
+                      if (!name || !name.trim()) {
+                        toast.error("O nome não pode ser vazio");
+                        return;
                       }
+
+                      const weight = parseInt(weightStr || "1");
+                      if (isNaN(weight) || weight <= 0) {
+                        toast.error("O peso deve ser um número positivo");
+                        return;
+                      }
+
+                      const newList = [...visualWeights, { name, weight }];
+                      setVisualWeights(newList);
+                      setParticipants(newList.map(p => `${p.name},${p.weight}`).join('\n'));
                     }}
                     className="w-full mt-2"
                   >
@@ -1430,15 +1528,20 @@ function WeightedListGiveaway({
                 </div>
               </div>
             ) : (
-              <Textarea
-                id="weighted-participants"
-                value={participants}
-                onChange={(e) => setParticipants(e.target.value)}
-                placeholder={`Lucas,5\nMaria,3\nJoão,1`}
-                rows={8}
-                disabled={isLoading}
-                className="resize-none font-mono"
-              />
+              <>
+                <Textarea
+                  id="weighted-participants"
+                  value={participants}
+                  onChange={(e) => setParticipants(e.target.value)}
+                  placeholder={`Lucas,5\nMaria,3\nJoão,1`}
+                  rows={8}
+                  disabled={isLoading}
+                  className="resize-none font-mono"
+                />
+                {parseError && (
+                  <p className="text-red-500 text-xs mt-1">{parseError}</p>
+                )}
+              </>
             )}
 
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center">
@@ -1520,6 +1623,7 @@ export default function GiveawayTool() {
   const [giveawayHistory, setGiveawayHistory] = useState<GiveawayHistory[]>([]);
   const [totalParticipants, setTotalParticipants] = useState(0);
   const [winnersCount, setWinnersCount] = useState(1);
+  const [historyVisible, setHistoryVisible] = useState(false);
 
   const handleRedraw = () => {
     toast(
@@ -1544,7 +1648,7 @@ export default function GiveawayTool() {
     );
   };
 
-  const saveToHistory = () => {
+  const saveToHistory = useCallback(() => {
     if (!winner) return;
 
     const displayName = (() => {
@@ -1553,6 +1657,9 @@ export default function GiveawayTool() {
       }
       if ("number" in winner && typeof winner.number === "number") {
         return winner.number.toString();
+      }
+      if ("name" in winner && typeof winner.name === "string") {
+        return winner.name;
       }
       return "Vencedor";
     })();
@@ -1565,8 +1672,15 @@ export default function GiveawayTool() {
       totalParticipants
     };
 
-    setGiveawayHistory([newHistoryItem, ...giveawayHistory]);
-  };
+    setGiveawayHistory(prev => [newHistoryItem, ...prev]);
+  }, [winner, activeTab, totalParticipants]);
+
+  // Assegurar que o histórico seja salvo quando um vencedor é definido
+  useEffect(() => {
+    if (winner) {
+      saveToHistory();
+    }
+  }, [winner, saveToHistory]);
 
   return (
     <div className="mx-auto p-2 sm:p-4 overflow-x-hidden">
@@ -1707,26 +1821,15 @@ export default function GiveawayTool() {
                   </DialogContent>
                 </Dialog>
 
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="bg-white/10 hover:bg-white/20 border-white/20 text-white"
-                    >
-                      <History className="w-4 h-4 mr-0 sm:mr-2" />
-                      <span className="hidden sm:inline">Histórico</span>
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-80 p-4 max-w-[calc(100vw-1rem)]" align="end">
-                    <div className="space-y-2">
-                      <h3 className="font-semibold">Histórico de Sorteios</h3>
-                      <div className="max-h-80 overflow-y-auto">
-                        <GiveawayHistory history={giveawayHistory} />
-                      </div>
-                    </div>
-                  </PopoverContent>
-                </Popover>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 hover:bg-white/20 border-white/20 text-white"
+                  onClick={() => setHistoryVisible(!historyVisible)}
+                >
+                  <History className="w-4 h-4 mr-0 sm:mr-2" />
+                  <span className="hidden sm:inline">Histórico</span>
+                </Button>
               </div>
             </div>
           </div>
@@ -1771,80 +1874,97 @@ export default function GiveawayTool() {
             </div>
           </div>
 
-          {/* Card de recursos responsivo */}
+          {/* Card de recursos ou histórico */}
           <div className="lg:row-span-2">
-            <Card>
-              <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
-                <CardTitle className="text-base sm:text-lg flex items-center">
-                  <BrainCircuit className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 mr-2" />
-                  Recursos Inteligentes
-                </CardTitle>
-                <CardDescription className="text-xs sm:text-sm">
-                  Nossos sorteios oferecem recursos avançados para resultados justos
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
-                <div className="flex items-start gap-2 sm:gap-3">
-                  <div className="bg-purple-100 dark:bg-purple-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
-                    <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+            {historyVisible ? (
+              <Card>
+                <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+                  <CardTitle className="text-base sm:text-lg flex items-center">
+                    <History className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 mr-2" />
+                    Histórico de Sorteios
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Registro dos últimos sorteios realizados
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="px-4 sm:px-6 pb-6">
+                  <GiveawayHistory history={giveawayHistory} />
+                </CardContent>
+              </Card>
+            ) : (
+              <Card>
+                <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+                  <CardTitle className="text-base sm:text-lg flex items-center">
+                    <BrainCircuit className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 mr-2" />
+                    Recursos Inteligentes
+                  </CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
+                    Nossos sorteios oferecem recursos avançados para resultados justos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="bg-purple-100 dark:bg-purple-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                      <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm sm:text-base">Sorteios Transparentes</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        Algoritmo verificável que garante resultados justos
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-sm sm:text-base">Sorteios Transparentes</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Algoritmo verificável que garante resultados justos
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-start gap-2 sm:gap-3">
-                  <div className="bg-blue-100 dark:bg-blue-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
-                    <Star className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="bg-blue-100 dark:bg-blue-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                      <Star className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm sm:text-base">Múltiplos Formatos</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        Compatível com Instagram, listas, números e sorteios ponderados
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-sm sm:text-base">Múltiplos Formatos</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Compatível com Instagram, listas, números e sorteios ponderados
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-start gap-2 sm:gap-3">
-                  <div className="bg-amber-100 dark:bg-amber-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
-                    <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="bg-amber-100 dark:bg-amber-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                      <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm sm:text-base">Filtros Avançados</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        Defina critérios específicos como menções e palavras-chave
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-sm sm:text-base">Filtros Avançados</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Defina critérios específicos como menções e palavras-chave
-                    </p>
-                  </div>
-                </div>
 
-                <div className="flex items-start gap-2 sm:gap-3">
-                  <div className="bg-green-100 dark:bg-green-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
-                    <Stars className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="bg-green-100 dark:bg-green-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                      <Stars className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm sm:text-base">Experiência Visual</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        Animações e efeitos visuais para um sorteio emocionante
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h3 className="font-semibold text-sm sm:text-base">Experiência Visual</h3>
-                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
-                      Animações e efeitos visuais para um sorteio emocionante
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-              <CardFooter className="px-4 sm:px-6 pb-4 sm:pb-6">
-                <Button
-                  variant="outline"
-                  className="w-full text-xs sm:text-sm"
-                  onClick={() => {
-                    window.open('/help/giveaways', '_blank');
-                  }}
-                >
-                  <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
-                  Ver Tutorial Completo
-                </Button>
-              </CardFooter>
-            </Card>
+                </CardContent>
+                <CardFooter className="px-4 sm:px-6 pb-4 sm:pb-6">
+                  <Button
+                    variant="outline"
+                    className="w-full text-xs sm:text-sm"
+                    onClick={() => {
+                      setHistoryVisible(true);
+                    }}
+                  >
+                    <History className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
+                    Ver Histórico de Sorteios
+                  </Button>
+                </CardFooter>
+              </Card>
+            )}
           </div>
         </div>
 

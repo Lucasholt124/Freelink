@@ -627,7 +627,7 @@ export default function CalendarView({
 
   // Criar eventos para o calendário
   const events = useMemo(() => {
-    const today = startOfDay(new Date());
+     const startDate = startOfDay(new Date());
     return planWithIds.map((item) => {
       // Ajuste para garantir que a data seja sempre no futuro ou hoje, com base no "dia" do plano.
       // O `item.day` é uma string como "Dia 1", "Dia 2".
@@ -635,33 +635,34 @@ export default function CalendarView({
       // Uma abordagem comum é basear no _primeiro_ dia do plano (se existir)
       // ou assumir que o "Dia 1" é sempre a data atual quando o plano é gerado.
       // Por enquanto, o código atual `addDays(today, dayNumber - 1)` funciona se o plano sempre começa do "Dia 1" hoje.
-      const dayNumber = parseInt(item.day.replace(/\D/g, ""), 10) || 1;
-      const eventDate = addDays(today, dayNumber - 1); // Isso pode fazer com que eventos de "Dia 1" a "Dia N" sempre apareçam a partir da data atual
+        const dayNumber = parseInt(item.day.replace(/\D/g, ""), 10) || 1;
+        const eventDate = addDays(startDate, dayNumber - 1); // Isso pode fazer com que eventos de "Dia 1" a "Dia N" sempre apareçam a partir da data atual
                                                      // O ideal é que o `day` do item já venha do backend como uma data específica (timestamp ou string YYYY-MM-DD)
                                                      // ou que você tenha uma `startDate` no `analysisId`
-      const [h, m] = (item.time ?? "09:00").split(":");
-      eventDate.setHours(Number(h ?? 9), Number(m ?? 0), 0, 0);
-      return {
-        title: item.title,
-        start: eventDate,
-        end: eventDate,
-        allDay: false,
-        resource: item,
-      };
-    });
-  }, [planWithIds]);
+       const [h, m] = (item.time ?? "09:00").split(":");
+    eventDate.setHours(Number(h ?? 9), Number(m ?? 0), 0, 0);
+        return {
+      title: item.title,
+      start: eventDate,
+      end: eventDate,
+      allDay: false,
+      resource: item,
+    };
+  });
+}, [planWithIds]);
 
   // Atualizar estatísticas de progresso e streak
   useEffect(() => {
-    const total = planWithIds.length;
-    const completed = planWithIds.filter(
-      (item) => item.status === "concluido"
-    ).length;
-    const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
+  // Cálculos de progresso...
+  const total = planWithIds.length;
+  const completed = planWithIds.filter(
+    (item) => item.status === "concluido"
+  ).length;
+  const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
-    setProgressStats({ total, completed, percent });
+      setProgressStats({ total, completed, percent });
 
-    const today = new Date();
+     const today = startOfDay(new Date());
     const todaysItems = events
       .filter((event) => isSameDay(event.start, today))
       .map((event) => event.resource as PlanItem);
