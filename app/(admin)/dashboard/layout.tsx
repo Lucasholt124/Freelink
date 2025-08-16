@@ -4,7 +4,7 @@ import { ReactNode, useState, useEffect, ForwardRefExoticComponent, RefAttribute
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Settings, Wand2, Menu, X, Scissors, Target, LayoutGrid, Gift,
+  Home, Settings, Wand2, Menu, Scissors, Target, LayoutGrid, Gift,
   BrainCircuit, CreditCard, LucideProps, LogOut, Bell, ChevronDown,
   ExternalLink, HelpCircle, Sparkles, Star, Rocket
 } from "lucide-react";
@@ -101,7 +101,7 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
       label: "Ferramentas de IA",
       subItems: [
         { href: "/dashboard/mentor-ia", icon: Wand2, label: "Mentor.IA", pro: userPlan === "free" },
-        { href: "/dashboard/brain", icon: BrainCircuit, label: "FreelinkBrain",  pro: userPlan === "free" },
+        { href: "/dashboard/brain", icon: BrainCircuit, label: "FreelinkBrain", pro: userPlan === "free" },
       ]
     },
     {
@@ -130,7 +130,7 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
   };
 
   return (
-      <nav className="flex flex-col h-full">
+    <nav className="flex flex-col h-full">
       <ul className="flex-grow space-y-1 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
         {navItems.map((item, idx) => (
           <li key={idx}>
@@ -216,8 +216,6 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
   );
 }
 
-
-// Logo Component
 function FreelinkLogo({ size = 32 }: { size?: number }) {
   return (
     <div
@@ -350,65 +348,47 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       {/* Sidebar mobile */}
       <AnimatePresence>
         {isSidebarOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-            onClick={() => setIsSidebarOpen(false)}
-          />
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
+              onClick={() => setIsSidebarOpen(false)}
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
+              className="lg:hidden fixed top-0 left-0 h-full w-[85vw] max-w-[320px] bg-white dark:bg-slate-800 z-50 shadow-2xl flex flex-col"
+            >
+              {/* Conteúdo do sidebar com scroll próprio */}
+              <div className="flex-1 overflow-y-auto p-4">
+                <Sidebar userPlan={userPlan} />
+              </div>
+
+              {/* Rodapé com conta e logout */}
+              <div className="p-4 border-t border-slate-200 dark:border-slate-700">
+                <div className="flex items-center gap-3">
+                  <UserButton afterSignOutUrl="/" />
+                  <div className="text-sm flex-grow">
+                    <p className="font-medium text-slate-800 dark:text-slate-200">Minha Conta</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                      Freelink {userPlan === "ultra" ? "ULTRA" : userPlan === "pro" ? "PRO" : "Free"}
+                    </p>
+                  </div>
+                  <Link href="/signout">
+                    <Button variant="ghost" size="icon" className="text-slate-500">
+                      <LogOut className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            </motion.aside>
+          </>
         )}
       </AnimatePresence>
-
-      <motion.aside
-        initial={{ x: "-100%" }}
-        animate={{ x: isSidebarOpen ? 0 : "-100%" }}
-        transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-        className="lg:hidden fixed top-0 left-0 h-full w-[85vw] max-w-[320px] bg-white dark:bg-slate-800 z-50 shadow-2xl flex flex-col"
-      >
-        <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
-          <Link href="/dashboard" className="flex items-center">
-            <FreelinkLogo size={32} />
-            <div className="ml-3">
-              <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Freelink
-              </span>
-              {userPlan !== "free" && (
-                <div className="mt-0.5">{getPlanBadge()}</div>
-              )}
-            </div>
-          </Link>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsSidebarOpen(false)}
-            className="hover:bg-slate-100 dark:hover:bg-slate-700"
-          >
-            <X className="w-5 h-5" />
-          </Button>
-        </div>
-
-        <div className="flex-1 overflow-y-auto p-4">
-          <Sidebar userPlan={userPlan} />
-        </div>
-
-        <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-          <div className="flex items-center gap-3">
-            <UserButton afterSignOutUrl="/" />
-            <div className="text-sm flex-grow">
-              <p className="font-medium text-slate-800 dark:text-slate-200">Minha Conta</p>
-              <p className="text-xs text-slate-500 dark:text-slate-400">
-                Freelink {userPlan === "ultra" ? "ULTRA" : userPlan === "pro" ? "PRO" : "Free"}
-              </p>
-            </div>
-            <Link href="/signout">
-              <Button variant="ghost" size="icon" className="text-slate-500">
-                <LogOut className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </motion.aside>
 
       {/* Container principal */}
       <div className="flex-1 flex flex-col overflow-hidden">
@@ -473,7 +453,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pt-[56px]">
           {children}
         </main>
       </div>

@@ -129,3 +129,30 @@
     overflow-y: hidden;
   }
 }
+
+/* Scrollbar customizada para sidebar */
+.scrollbar-thin {
+  scrollbar-width: thin;
+}
+
+.scrollbar-thumb-slate-200 {
+  scrollbar-color: #e2e8f0 transparent;
+}
+
+.dark .scrollbar-thumb-slate-700 {
+  scrollbar-color: #374151 transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #e2e8f0;
+  border-radius: 3px;
+}
+
+.dark .scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #374151;
+}
