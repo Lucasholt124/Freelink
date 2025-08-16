@@ -1,86 +1,86 @@
-"use-client";
-
+import { Clock, Zap } from "lucide-react";
 import { useState } from "react";
-import { Clock } from "lucide-react"; // Ícone mais apropriado
 
 interface HourlyChartProps {
   data: { hour_of_day: number; total_clicks: number }[];
 }
 
 export function HourlyChart({ data }: HourlyChartProps) {
-  const [selectedHour, setSelectedHour] = useState<number | null>(null);
+  const [hoveredHour, setHoveredHour] = useState<number | null>(null);
 
-  // A sua lógica de dados original, que já funciona perfeitamente
   const clicksByHour = new Map(data.map(item => [item.hour_of_day, item.total_clicks]));
   const maxClicks = data.length > 0 ? Math.max(...data.map(d => d.total_clicks)) : 1;
-
-  // Gera as 24 horas do dia para o eixo X
   const hoursOfDay = Array.from({ length: 24 }, (_, i) => i);
 
-  const handleBarClick = (hour: number) => {
-    // A interatividade para mobile, que você já tinha
-    setSelectedHour(selectedHour === hour ? null : hour);
-  };
 
   return (
-    <div className="bg-white p-4 sm:p-6 rounded-2xl border border-gray-200/80 shadow-lg">
-      {/* --- CABEÇALHO APRIMORADO --- */}
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-orange-500 rounded-xl">
-          <Clock className="w-6 h-6 text-white" />
+    <div className="bg-white/90 backdrop-blur-sm rounded-3xl p-8 shadow-2xl border border-gray-100">
+      <div className="flex items-center gap-4 mb-6">
+        <div className="p-3 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl">
+          <Zap className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h3 className="text-xl font-bold text-gray-800">Atividade nas Últimas 24 Horas</h3>
-          <p className="text-sm text-gray-500">Distribuição de cliques ao longo do dia.</p>
+          <h3 className="text-xl font-bold text-gray-900">Atividade por Hora</h3>
+          <p className="text-sm text-gray-600">Padrão de engajamento diário</p>
         </div>
       </div>
 
-      {/* --- CONTÊINER COM BARRA DE ROLAGEM --- */}
-      <div className="w-full overflow-x-auto pb-4">
-        {/* O conteúdo interno tem uma largura mínima para forçar o scroll em telas pequenas */}
-        <div className="flex gap-1.5 items-end h-48 pt-8" style={{ minWidth: "40rem" /* 640px */ }}>
+      {/* Gráfico circular de 24 horas */}
+      <div className="relative aspect-square max-w-sm mx-auto">
+        <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
           {hoursOfDay.map((hour) => {
             const clicks = clicksByHour.get(hour) || 0;
-            const height = (clicks / maxClicks) * 100;
-            const isSelected = selectedHour === hour;
+            const angle = (hour / 24) * 360;
 
-            // Mostra a legenda a cada 3 horas para um visual mais limpo
-            const showHourLabel = hour % 3 === 0;
-            const formattedTooltip = `${clicks} ${clicks === 1 ? 'clique' : 'cliques'} às ${String(hour).padStart(2, '0')}h`;
+            const innerRadius = 50;
+            const outerRadius = innerRadius + (clicks / maxClicks) * 30;
+
+            const x1 = 100 + innerRadius * Math.cos((angle * Math.PI) / 180);
+            const y1 = 100 + innerRadius * Math.sin((angle * Math.PI) / 180);
+            const x2 = 100 + outerRadius * Math.cos((angle * Math.PI) / 180);
+            const y2 = 100 + outerRadius * Math.sin((angle * Math.PI) / 180);
 
             return (
-              <div
-                key={hour}
-                onClick={() => handleBarClick(hour)}
-                className="relative flex-1 h-full flex flex-col justify-end items-center group cursor-pointer"
-              >
-                {/* Tooltip profissional que funciona no hover e no clique */}
-                {clicks > 0 && (
-                  <div className={`absolute bottom-full mb-2 w-max px-2 py-1 bg-gray-800 text-white text-xs font-bold rounded-md shadow-lg transition-opacity duration-200 pointer-events-none z-10 ${
-                    isSelected ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'
-                  }`}>
-                    {formattedTooltip}
-                  </div>
-                )}
-
-                {/* Barra do Gráfico com design refinado */}
-                <div
-                  className={`w-full rounded-t-md transition-colors duration-200 ${
-                    isSelected ? 'bg-orange-500' : (clicks > 0 ? 'bg-orange-300 group-hover:bg-orange-400' : 'bg-gray-100')
-                  }`}
-                  style={{ height: `${height}%`, minHeight: '3px' }}
+              <g key={hour}>
+                <line
+                  x1={x1}
+                  y1={y1}
+                  x2={x2}
+                  y2={y2}
+                  stroke={hoveredHour === hour ? "#8B5CF6" : "#E5E7EB"}
+                  strokeWidth="8"
+                  strokeLinecap="round"
+                  className="transition-all duration-300 cursor-pointer"
+                  onMouseEnter={() => setHoveredHour(hour)}
+                  onMouseLeave={() => setHoveredHour(null)}
                 />
-
-                {/* Legenda de Hora Inteligente */}
-                <div className={`text-center text-[10px] w-full mt-1.5 font-medium transition-colors ${
-                  isSelected ? 'text-orange-600 font-bold' : 'text-gray-400'
-                } ${showHourLabel ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
-                  {String(hour).padStart(2, '0')}
-                </div>
-              </div>
+              </g>
             );
           })}
+        </svg>
+
+        {/* Centro do relógio */}
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="text-center">
+            <Clock className="w-8 h-8 text-purple-500 mx-auto mb-2" />
+            {hoveredHour !== null && (
+              <>
+                <p className="text-2xl font-bold text-gray-900">{hoveredHour}:00</p>
+                <p className="text-sm text-gray-600">{clicksByHour.get(hoveredHour) || 0} cliques</p>
+              </>
+            )}
+          </div>
         </div>
+      </div>
+
+      {/* Legenda de horários */}
+      <div className="grid grid-cols-6 gap-2 mt-6">
+        {[0, 4, 8, 12, 16, 20].map(hour => (
+          <div key={hour} className="text-center">
+            <p className="text-xs font-semibold text-gray-700">{hour}:00</p>
+            <p className="text-xs text-gray-500">{clicksByHour.get(hour) || 0} cliques</p>
+          </div>
+        ))}
       </div>
     </div>
   );
