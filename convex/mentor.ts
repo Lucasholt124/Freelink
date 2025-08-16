@@ -1,16 +1,9 @@
 import { action, internalMutation, mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 import OpenAI from "openai";
 
 // Tipos TypeScript
-interface StrategyResult {
-  suggestions: string[];
-  strategy: string;
-  grid: string[];
-}
-
 interface ContentPlanItem {
   day: string;
   time: string;
@@ -38,10 +31,6 @@ interface ContentPlanResult {
 }
 
 // Verificação de variáveis de ambiente
-if (!process.env.GEMINI_API_KEY) {
-  throw new Error("GEMINI_API_KEY não está configurada nas variáveis de ambiente");
-}
-
 if (!process.env.GROQ_API_KEY_1) {
   throw new Error("GROQ_API_KEY_1 não está configurada nas variáveis de ambiente");
 }
@@ -50,10 +39,7 @@ if (!process.env.GROQ_API_KEY_2) {
   throw new Error("GROQ_API_KEY_2 não está configurada nas variáveis de ambiente");
 }
 
-// Configuração dos motores de IA
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-
-// Configuração dos dois clientes Groq com chaves diferentes
+// Configuração dos dois clientes Groq
 const groq1 = new OpenAI({
   apiKey: process.env.GROQ_API_KEY_1,
   baseURL: "https://api.groq.com/openai/v1"
@@ -64,89 +50,68 @@ const groq2 = new OpenAI({
   baseURL: "https://api.groq.com/openai/v1"
 });
 
-// Função helper para chamar o Gemini com resiliência
-async function callGeminiWithRetry(
-  prompt: string,
-  modelName: string = "gemini-1.5-flash",
-  retries = 3
-): Promise<string> {
-  const model = genAI.getGenerativeModel({
-    model: modelName,
-    safetySettings: [
-      {
-        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
-        threshold: HarmBlockThreshold.BLOCK_NONE
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
-        threshold: HarmBlockThreshold.BLOCK_NONE
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
-        threshold: HarmBlockThreshold.BLOCK_NONE
-      },
-      {
-        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-        threshold: HarmBlockThreshold.BLOCK_NONE
-      },
-    ],
-  });
+// Função para limpar e extrair apenas o JSON válido
+function extractJsonFromText(text: string): string {
+  // Remover texto markdown
+  let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '');
 
-  let lastError: Error = new Error("Falha ao chamar a IA após todas as tentativas.");
+  // Encontrar o início do array JSON
+  const arrayStart = cleaned.indexOf('[');
+  const objectStart = cleaned.indexOf('{');
 
-  for (let i = 0; i < retries; i++) {
-    try {
-      const result = await model.generateContent({
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192,
-          responseMimeType: "application/json",
-        },
-      });
+  // Determinar qual tipo de JSON estamos procurando
+  if (arrayStart === -1 && objectStart === -1) {
+    throw new Error("Não foi possível encontrar JSON válido na resposta");
+  }
 
-      const response = result.response;
-      const text = response.text();
+  let start = -1;
+  let isArray = false;
 
-      if (!text) {
-        throw new Error("Gemini retornou uma resposta vazia");
-      }
+  if (arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart)) {
+    start = arrayStart;
+    isArray = true;
+  } else {
+    start = objectStart;
+    isArray = false;
+  }
 
-      return text;
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        lastError = error;
-        console.error(`Tentativa ${i + 1} falhou:`, error.message);
+  // Extrair apenas o JSON
+  if (start !== -1) {
+    cleaned = cleaned.substring(start);
 
-        if (error.message.includes("503") ||
-            error.message.includes("overloaded") ||
-            error.message.includes("429")) {
-          const waitTime = Math.min(1000 * Math.pow(2, i), 10000);
-          console.warn(`Aguardando ${waitTime}ms antes da próxima tentativa...`);
-          await new Promise(res => setTimeout(res, waitTime));
-          continue;
-        }
+    // Encontrar o final correspondente
+    let openBrackets = 0;
+    let closeBracketIndex = -1;
+    const openChar = isArray ? '[' : '{';
+    const closeChar = isArray ? ']' : '}';
 
-        if (error.message.includes("quota") ||
-            error.message.includes("API key")) {
-          throw error;
+    for (let i = 0; i < cleaned.length; i++) {
+      if (cleaned[i] === openChar) {
+        openBrackets++;
+      } else if (cleaned[i] === closeChar) {
+        openBrackets--;
+        if (openBrackets === 0) {
+          closeBracketIndex = i;
+          break;
         }
       }
+    }
 
-      if (i < retries - 1) {
-        await new Promise(res => setTimeout(res, 1000));
-      }
+    if (closeBracketIndex !== -1) {
+      cleaned = cleaned.substring(0, closeBracketIndex + 1);
     }
   }
 
-  throw lastError;
+  return cleaned;
 }
 
+// Função para limpar problemas comuns em JSON
 function cleanAndFixJson(text: string): string {
-  // Remove caracteres invisíveis e espaços extras
-  let cleaned = text
+  // Primeiro, extrair apenas o JSON da resposta
+  const extracted = extractJsonFromText(text);
+
+  // Remover caracteres invisíveis e espaços extras
+  let cleaned = extracted
     .replace(/[\u0000-\u001F\u007F-\u009F]/g, '') // Remove caracteres de controle
     .replace(/\r\n/g, '\n') // Normaliza quebras de linha
     .replace(/\r/g, '\n')
@@ -162,26 +127,114 @@ function cleanAndFixJson(text: string): string {
     .replace(/"\s+"/g, '","') // Corrige espaços entre propriedades
     .replace(/:\s*"([^"]*)"([^,}])/g, ':"$1"$2'); // Garante formatação correta de valores
 
+  // Normaliza tipos de aspas
+  cleaned = cleaned
+    .replace(/'/g, '"') // Converte aspas simples para duplas
+    .replace(/([a-zA-Z0-9_]+):/g, '"$1":') // Adiciona aspas em nomes de propriedades sem aspas
+    .replace(/:\s*"([^"]*)'/g, ':"$1"') // Fecha aspas duplas abertas
+    .replace(/([^\```)"([a-zA-Z0-9_]+)":/g, '$1"$2":'); // Evita aspas duplicadas em nomes de propriedades
+
   return cleaned;
 }
 
-// Função helper para chamar o Groq com a primeira chave (para estratégia)
-async function callGroq1(prompt: string, modelName: string = "llama3-8b-8192"): Promise<string> {
-  try {
-    // Adicionando log para debug
-    console.log("Enviando prompt para estratégia:", prompt.substring(0, 200) + "...");
+// Função helper para extrair JSON
+function extractJson<T>(text: string): T {
+  console.log("extractJson - Texto inicial:", text.substring(0, 100) + "...");
 
+  try {
+    // Limpar e extrair apenas o JSON válido
+    const cleanedText = cleanAndFixJson(text);
+
+    // Logar o JSON limpo para debug
+    console.log("JSON limpo:", cleanedText.substring(0, 100) + "...");
+
+    // Verificar se é um array direto
+    if (cleanedText.startsWith('[')) {
+      console.log("Detectado array direto");
+
+      try {
+        const arrayData = JSON.parse(cleanedText);
+        return { content_plan: arrayData } as T;
+      } catch (parseError) {
+        console.error("Erro ao parsear array:", parseError);
+        // Tentativa de último recurso: extrair manualmente os itens
+        return { content_plan: fallbackParsing(cleanedText) } as T;
+      }
+    }
+
+    // Tentar como objeto
+    try {
+      return JSON.parse(cleanedText) as T;
+    } catch (parseError) {
+      console.error("Erro ao parsear objeto:", parseError);
+      throw new Error("Não foi possível parsear o JSON mesmo após limpeza");
+    }
+  } catch (error) {
+    console.error("Erro no processo de extração:", error);
+    throw new Error("Falha ao extrair JSON da resposta");
+  }
+}
+
+// Função para parsing de fallback (último recurso)
+function fallbackParsing(text: string): ContentPlanItem[] {
+  // Implementação simplificada para casos extremos
+  const items: ContentPlanItem[] = [];
+
+  // Procurar por padrões como "day": "Dia X"
+  const dayMatches = text.match(/"day"\s*:\s*"Dia \d+"/g) || [];
+
+  if (dayMatches.length > 0) {
+    // Temos pelo menos alguns dias que podemos extrair
+    for (let i = 0; i < dayMatches.length; i++) {
+      const dayMatch = dayMatches[i];
+      const dayNumber = dayMatch.match(/\d+/)?.[0] || String(i + 1);
+
+      items.push({
+        day: `Dia ${dayNumber}`,
+        time: "12:00",
+        format: "reels",
+        title: `Conteúdo do dia ${dayNumber}`,
+        content_idea: "Extraído manualmente devido a erro de parsing",
+        status: "planejado", // Status padrão válido
+        details: {
+          tool_suggestion: "Canva",
+          step_by_step: "1. Criar 2. Publicar",
+          script_or_copy: "Texto do post",
+          hashtags: "#instagram #marketing #socialmedia #digital #conteudo #estrategia",
+          creative_guidance: {
+            type: "imagem",
+            description: "Visual do post",
+            prompt: "Criar imagem para Instagram",
+            tool_link: "https://canva.com"
+          }
+        }
+      });
+    }
+  }
+
+  return items;
+}
+
+// Função helper para chamar o Groq1
+async function callGroq1(prompt: string): Promise<string> {
+  try {
     const response = await groq1.chat.completions.create({
-      model: modelName,
+      model: "llama3-70b-8192",
       messages: [
         {
           role: "system",
-          content: `Você é um especialista em estratégia de Instagram.
-          Gere OBRIGATORIAMENTE os três campos: suggestions, strategy e grid.
-          Mantenha o formato JSON válido sem exceções.
-          Cada sugestão de bio deve ter até 150 caracteres.
-          A estratégia deve ter pelo menos 300 caracteres.
-          O grid deve ter EXATAMENTE 9 ideias variadas.`
+          content: `Você é um especialista em marketing digital para Instagram.
+          REGRAS CRÍTICAS:
+          1. Responda APENAS com JSON válido, sem texto introdutório
+          2. Comece sua resposta diretamente com o caractere "[" (array JSON)
+          3. NÃO inclua explicações, textos ou comentários, APENAS o array JSON
+          4. NÃO inclua campos extras não especificados no exemplo abaixo
+          5. O campo "status" deve ser SEMPRE "planejado" (nunca outro valor)
+          6. Postagens apenas em dias úteis e sábado (NUNCA domingo)
+          7. Use horários de pico reais: manhã (8h-10h), almoço (12h-14h) ou noite (18h-21h)
+          8. Inclua 5-7 hashtags relevantes para cada post
+          9. Escreva legendas específicas e persuasivas, não genéricas
+          10. No guia criativo, forneça passos detalhados mas resumidos`
         },
         { role: "user", content: prompt },
       ],
@@ -191,368 +244,473 @@ async function callGroq1(prompt: string, modelName: string = "llama3-8b-8192"): 
 
     const responseText = response.choices[0]?.message?.content;
     if (!responseText) {
-      throw new Error("Groq não retornou nenhum conteúdo.");
+      throw new Error("Groq1 não retornou conteúdo.");
     }
-
-    // Verificação para garantir que o resultado tem os campos necessários
-    try {
-      const parsed = JSON.parse(responseText);
-      if (!parsed.suggestions || !parsed.strategy || !parsed.grid) {
-        console.error("Resposta da IA não contém todos os campos necessários:", responseText);
-        throw new Error("Resposta incompleta");
-      }
-
-      return responseText;
-    } catch (e) {
-      console.error("Erro ao verificar resposta da IA:", e);
-      throw e;
-    }
-
+    return responseText;
   } catch (error) {
     console.error("Erro ao chamar Groq1:", error);
-    // Simplesmente propagamos o erro, em vez de criar um fallback aqui
     throw error;
   }
 }
 
-
-
-
-// Função helper para chamar o Groq com a segunda chave (para plano de conteúdo)
-async function callGroq2(prompt: string, modelName: string = "llama3-70b-8192"): Promise<string> {
+// Função helper para chamar o Groq2
+async function callGroq2(prompt: string): Promise<string> {
   try {
     const response = await groq2.chat.completions.create({
-      model: modelName, // Modelo mais poderoso
+      model: "llama3-70b-8192",
       messages: [
         {
           role: "system",
           content: `Você é um especialista em marketing digital para Instagram.
-          REGRAS:
-          1. Responda APENAS com array JSON válido
-          2. Máximo 25 palavras por campo
-          3. Conteúdo ESPECÍFICO para o nicho e audiência
-          4. Cada post deve entregar VALOR REAL
-          5. Foque em resultados e benefícios, não recursos`
+          REGRAS CRÍTICAS:
+          1. Responda APENAS com JSON válido, sem texto introdutório
+          2. Comece sua resposta diretamente com o caractere "[" (array JSON)
+          3. NÃO inclua explicações, textos ou comentários, APENAS o array JSON
+          4. NÃO inclua campos extras não especificados no exemplo abaixo
+          5. O campo "status" deve ser SEMPRE "planejado" (nunca outro valor)
+          6. Postagens apenas em dias úteis e sábado (NUNCA domingo)
+          7. Use horários de pico reais: manhã (8h-10h), almoço (12h-14h) ou noite (18h-21h)
+          8. Inclua 5-7 hashtags relevantes para cada post
+          9. Escreva legendas específicas e persuasivas, não genéricas
+          10. No guia criativo, forneça passos detalhados mas resumidos`
         },
         { role: "user", content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 6000,
+      max_tokens: 4000,
     });
 
     const responseText = response.choices[0]?.message?.content;
     if (!responseText) {
-      throw new Error("Groq não retornou nenhum conteúdo.");
+      throw new Error("Groq2 não retornou conteúdo.");
     }
-
     return responseText;
   } catch (error) {
     console.error("Erro ao chamar Groq2:", error);
     throw error;
   }
 }
-// Função helper para extrair JSON com tipagem
-// Função extractJson usando cleanAndFixJson
-function extractJson<T>(text: string): T {
-  console.log("extractJson - Texto inicial:", text.substring(0, 100) + "...");
 
-  // Usar cleanAndFixJson aqui
-  let cleanedText = cleanAndFixJson(
-    text.replace(/```json\n?/g, '').replace(/```\n?/g, '')
-  );
+// Função para melhorar textos genéricos
+function improveContentItem(item: ContentPlanItem, offer: string, audience: string): ContentPlanItem {
+  // Se for um dia de postagem (não atividade)
+  if (item.format !== "atividade") {
+    // Melhorar hashtags se estiver muito genérico
+    if (item.details?.hashtags === "#instagram" ||
+        item.details?.hashtags === "#marketing" ||
+        item.details && item.details.hashtags.split(" ").length < 4) {
 
-  // Primeiro, verificar se é um array direto
-  if (cleanedText.startsWith('[')) {
-    console.log("Detectado array direto, envolvendo em objeto content_plan");
+      const hashtags = `#${offer.replace(/\s+/g, '')} #${audience.replace(/\s+/g, '')} #marketing #socialmedia #contentcreator #estrategiadigital #growth`;
 
-    try {
-      // Aplicar limpeza adicional específica para arrays
-      cleanedText = cleanedText
-        .replace(/'/g, "'") // Normalizar aspas
-        .replace(/(\w)'s/g, "$1s") // Remover apóstrofos problemáticos
-        .replace(/\\'/g, "'"); // Corrigir escapes
+      if (item.details) {
+        item.details.hashtags = hashtags;
+      }
+    }
 
-      const arrayData = JSON.parse(cleanedText);
-      return { content_plan: arrayData } as T;
-    } catch (error) {
-      console.error("Erro ao parsear array direto:", error);
+    // Melhorar roteiro/legenda se estiver genérico
+    if (item.details &&
+        (item.details.script_or_copy === "Texto do post" ||
+         item.details.script_or_copy === "Legenda do post" ||
+         item.details.script_or_copy.length < 30)) {
 
-      // Tentar uma limpeza mais agressiva
-      try {
-        const arrayData = JSON.parse(cleanedText);
-        return { content_plan: arrayData } as T;
-      } catch (secondError) {
-        console.error("Segunda tentativa de parse do array falhou:", secondError);
+      item.details.script_or_copy = `🔥 ${item.title}\n\nVocê sabia que ${offer} pode transformar a maneira como ${audience} alcança resultados?\n\nNeste post compartilhamos exatamente como implementar isso no seu negócio.\n\nComente 👇 se você já testou essa estratégia!\n\n#${offer.replace(/\s+/g, '')} #dicas`;
+    }
+
+    // Melhorar guia criativo se estiver muito básico
+    if (item.details?.creative_guidance) {
+      if (item.details.creative_guidance.description === "Visual do post" ||
+          item.details.creative_guidance.description.length < 20) {
+
+        item.details.creative_guidance.description = `${item.format === "reels" ? "Vídeo curto" : "Imagem profissional"} mostrando os benefícios de ${offer} para ${audience} com texto destacado e elementos visuais claros`;
+      }
+
+      if (item.details.creative_guidance.prompt === "Criar imagem para Instagram" ||
+          item.details.creative_guidance.prompt.length < 20) {
+
+        item.details.creative_guidance.prompt = `Criar ${item.format === "reels" ? "vídeo" : "imagem"} sobre ${offer} com foco em ${item.title}, estilo profissional e cores da marca`;
+      }
+    }
+
+    // Melhorar passo a passo se estiver genérico
+    if (item.details &&
+        (item.details.step_by_step === "1. Criar 2. Publicar" ||
+         item.details.step_by_step.length < 20)) {
+
+      if (item.format === "reels") {
+        item.details.step_by_step = "1. Gravar introdução com hook forte 2. Mostrar 3 pontos principais 3. Adicionar texto e música 4. Finalizar com CTA claro";
+      } else if (item.format === "carrossel") {
+        item.details.step_by_step = "1. Criar capa chamativa 2. Desenvolver 5-7 slides com dicas 3. Usar mesma identidade visual 4. Terminar com slide de CTA";
+      } else {
+        item.details.step_by_step = "1. Selecionar imagem de alta qualidade 2. Adicionar texto principal 3. Garantir contraste e legibilidade 4. Incluir elementos da marca";
       }
     }
   }
 
-  // Se não for array, tentar como objeto
-  const jsonMatch = cleanedText.match(/\{[\s\S]*\}/);
-
-  if (!jsonMatch || !jsonMatch[0]) {
-    throw new Error("Não foi possível encontrar um objeto JSON ou array na resposta da IA.");
-  }
-
-  try {
-    return JSON.parse(jsonMatch[0]) as T;
-  } catch (error) {
-    console.error("Erro ao fazer parse do JSON:", error);
-    throw new Error("A IA retornou um JSON com sintaxe inválida.");
-  }
+  return item;
 }
 
-
-// Sanitização para evitar nulls em campos obrigatórios
-function sanitizeContentPlan(plan: ContentPlanItem[]): ContentPlanItem[] {
+// Sanitização para remover campos não esperados e garantir valores padrão
+function sanitizeContentPlan(plan: ContentPlanItem[], offer?: string, audience?: string): ContentPlanItem[] {
   return plan.map(item => {
-    if (item.details?.creative_guidance) {
-      item.details.creative_guidance.prompt = item.details.creative_guidance.prompt ?? "";
-      item.details.creative_guidance.description = item.details.creative_guidance.description ?? "";
-      item.details.creative_guidance.tool_link = item.details.creative_guidance.tool_link ?? "";
-      item.details.creative_guidance.type = item.details.creative_guidance.type ?? "";
+    // Garantir que status seja um valor válido
+    let validStatus: "planejado" | "concluido" = "planejado";
+    if (item.status === "planejado" || item.status === "concluido") {
+      validStatus = item.status;
     }
-    return item;
+
+    // Corrigir horários para horários de pico reais
+    let time = item.time || "12:00";
+    if (time !== "Flexível") {
+      // Converter para horário de pico mais próximo
+      const hour = parseInt(time.split(":")[0]);
+      if (hour < 8) time = "09:00";
+      else if (hour >= 8 && hour < 11) time = "09:00";
+      else if (hour >= 11 && hour < 15) time = "12:30";
+      else if (hour >= 15 && hour < 18) time = "18:30";
+      else time = "19:30";
+    }
+
+    const sanitizedDetails = item.details ? {
+      // Incluir APENAS os campos esperados pelo schema
+      tool_suggestion: item.details.tool_suggestion || "Canva",
+      step_by_step: item.details.step_by_step || "1. Criar 2. Revisar 3. Publicar",
+      script_or_copy: item.details.script_or_copy || "Texto do post",
+      hashtags: item.details.hashtags || "#instagram #marketing #socialmedia #digital #conteudo #estrategia",
+      creative_guidance: {
+        type: item.details.creative_guidance?.type || "imagem",
+        description: item.details.creative_guidance?.description || "Visual do post",
+        prompt: item.details.creative_guidance?.prompt || "Criar imagem para Instagram",
+        tool_link: item.details.creative_guidance?.tool_link || "https://canva.com"
+      }
+    } : {
+      // Valores padrão se details não existir
+      tool_suggestion: "Canva",
+      step_by_step: "1. Criar 2. Revisar 3. Publicar",
+      script_or_copy: "Texto do post",
+      hashtags: "#instagram #marketing #socialmedia #digital #conteudo #estrategia",
+      creative_guidance: {
+        type: "imagem",
+        description: "Visual do post",
+        prompt: "Criar imagem para Instagram",
+        tool_link: "https://canva.com"
+      }
+    };
+
+    // Retornar objeto com apenas os campos esperados
+    const sanitizedItem = {
+      day: item.day,
+      time: time,
+      format: item.format || "reels",
+      title: item.title || "Título do post",
+      content_idea: item.content_idea || "Conteúdo do post",
+      status: validStatus, // Garante que status é válido
+      completedAt: item.completedAt,
+      details: sanitizedDetails
+    };
+
+    // Melhorar conteúdo se tiver parâmetros offer e audience
+    if (offer && audience) {
+      return improveContentItem(sanitizedItem, offer, audience);
+    }
+
+    return sanitizedItem;
   });
 }
 
-// Função para gerar estratégia de fallback
-function generateFallbackStrategy(username: string, offer: string, audience: string): StrategyResult {
-  return {
-    suggestions: [
-      `✨ Especialista em ${offer} | Ajudando ${audience} a alcançar resultados | Criador de conteúdo digital | DM para consultoria`,
-      `Transformando ${audience} através de ${offer} | 🚀 Estratégias que funcionam | Conteúdo exclusivo toda semana | Link na bio`,
-      `${offer.charAt(0).toUpperCase() + offer.slice(1)} para ${audience} | 💡 Dicas práticas | 🔥 Resultados comprovados | Entre em contato para mais informações`
-    ],
-    strategy: `# Estratégia de Conteúdo para @${username}\n\n## Análise de Público\nSeu público-alvo (${audience}) está buscando soluções práticas relacionadas a ${offer}. Eles valorizam conteúdo que entrega valor imediato e demonstra sua expertise.\n\n## Pilares de Conteúdo\n1. **Educação**: Compartilhe conhecimentos sobre ${offer} que ajudem seu público a resolver problemas\n2. **Autoridade**: Mostre resultados e cases de sucesso para estabelecer credibilidade\n3. **Engajamento**: Crie conteúdo que gere interação e construa relacionamento\n\n## Recomendações\n- Poste pelo menos 3-4 vezes por semana para manter consistência\n- Alterne entre formatos (carrossel, reels, stories) para variedade\n- Use storytelling para criar conexão emocional com ${audience}\n- Inclua chamadas para ação claras direcionando para sua oferta\n\n## Estratégia de Crescimento\nFoque em hashtags relevantes, parcerias com criadores complementares, e responda ativamente nos comentários para aumentar seu alcance orgânico.`,
-    grid: [
-      "Carrossel: 5 mitos sobre " + offer,
-      "Reels: Como implementar " + offer + " em 60 segundos",
-      "Foto: Resultado de cliente usando " + offer,
-      "Carrossel: Guia passo-a-passo de " + offer,
-      "Reels: Erros comuns que " + audience + " comete",
-      "Foto: Bastidores do trabalho",
-      "Carrossel: Comparação antes/depois",
-      "Reels: Perguntas frequentes sobre " + offer,
-      "Foto: Testemunho de cliente"
-    ]
-  };
-}
+// Função para determinar dias estratégicos de postagem (sem domingos)
+function getPostingDays(totalDays: number): number[] {
+  if (totalDays === 7) {
+    // Segunda, Quarta, Quinta, Sexta (sem domingo)
+    return [1, 3, 4, 6];
+  } else {
+    const postingDays: number[] = [];
+    // Aproximadamente 3-4 posts por semana para um mês
+    const postsPerWeek = 3.5;
+    const totalPosts = Math.floor((totalDays / 7) * postsPerWeek);
 
-// Função para gerar plano de conteúdo de fallback
-function generateFallbackPlan(username: string, offer: string, audience: string, planDuration: "week" | "month"): ContentPlanResult {
-  const days = planDuration === "week" ? 7 : 30;
-  const formats = ["reels", "story", "foto", "carrossel"];
-  const times = ["09:00", "12:00", "15:00", "18:00", "20:00"];
+    // Distribuir uniformemente pelos dias disponíveis
+    for (let week = 0; week < Math.ceil(totalDays / 7); week++) {
+      // Segunda, Terça, Quarta, Quinta, Sexta, Sábado (sem domingo)
+      const weekdays = [1, 2, 3, 4, 5, 6];
 
-  const content_plan = Array.from({ length: days }, (_, i) => ({
-    day: `Dia ${i + 1}`,
-    time: times[i % times.length],
-    format: formats[i % formats.length],
-    title: `${offer} #${i + 1}`,
-    content_idea: `Dica ${offer} para ${audience}`,
-    status: "planejado" as const,
-    details: {
-      tool_suggestion: "Canva",
-      step_by_step: "1.Planejar 2.Criar 3.Publicar",
-      script_or_copy: `${offer} transforma negócios! 🚀`,
-      hashtags: `#${offer.replace(/\s+/g, '')} #dia${i + 1}`,
-      creative_guidance: {
-        type: "imagem",
-        description: `Visual ${offer}`,
-        prompt: `${offer} profissional`,
-        tool_link: "https://canva.com"
+      // Selecionar 3-4 dias aleatoriamente dessa semana
+      const shuffled = [...weekdays].sort(() => 0.5 - Math.random());
+      const selected = shuffled.slice(0, week % 2 === 0 ? 4 : 3); // Alternar entre 3 e 4 posts
+
+      for (const day of selected.sort((a, b) => a - b)) { // Ordenar dias
+        const actualDay = week * 7 + day;
+        if (actualDay <= totalDays) {
+          postingDays.push(actualDay);
+        }
       }
     }
-  }));
 
-  return { content_plan };
+    return postingDays.slice(0, totalPosts);
+  }
 }
 
-// Função para gerar plano de conteúdo em lotes
-async function generateContentPlanInBatches(
+// Função para gerar plano de conteúdo
+async function generateContentPlan(
   username: string,
   offer: string,
   audience: string,
-  planDuration: "week" | "month",
-  aiFunction: (prompt: string) => Promise<string>
+  planDuration: "week" | "month"
 ): Promise<ContentPlanResult> {
   const totalDays = planDuration === "week" ? 7 : 30;
-  const batchSize = planDuration === "week" ? 7 : 10;
-  const batches = Math.ceil(totalDays / batchSize);
-  let allContentPlan: ContentPlanItem[] = [];
+  const postingDays = getPostingDays(totalDays);
+  const midPoint = Math.ceil(totalDays / 2);
 
-  for (let i = 0; i < batches; i++) {
-    const startDay = i * batchSize + 1;
-    const endDay = Math.min((i + 1) * batchSize, totalDays);
-    const daysInBatch = endDay - startDay + 1;
+  const firstHalfDays = postingDays.filter(d => d <= midPoint);
+  const secondHalfDays = postingDays.filter(d => d > midPoint);
 
-    // Prompt específico para conteúdo de valor
-    const batchPrompt = `
-Crie ${daysInBatch} posts Instagram de alta conversão sobre ${offer} para ${audience}.
+  // Prompt para primeira metade - com Groq1
+  const prompt1 = `
+Crie calendário Instagram para ${username} sobre ${offer} para ${audience}.
+Dias 1 a ${midPoint} (total ${midPoint} dias).
 
-REQUISITOS:
-- Cada post deve focar em um BENEFÍCIO ou SOLUÇÃO ESPECÍFICA de ${offer}
-- Títulos que capturam atenção e geram cliques
-- Conteúdo que realmente ajuda ${audience}
-- Calls-to-action claros em cada post
-- Máximo 25 palavras por campo para manter concisão
+IMPORTANTE:
+1. Postar apenas nos dias ${firstHalfDays.join(', ')} (nunca domingo)
+2. Nos outros dias, sugira atividades como análise, pesquisa ou engajamento
+3. Use horários de pico reais: manhã (9h), almoço (12:30) ou noite (19:30)
+4. Inclua 5-7 hashtags relevantes e específicas em cada post
+5. Escreva legendas específicas e persuasivas (não genéricas), com emoção e CTA
+6. O campo "status" DEVE SER SEMPRE exatamente "planejado" (valor obrigatório)
+7. No guia criativo, forneça um passo a passo detalhado mas resumido
 
-Retorne apenas JSON array:
+Formato exato para cada dia:
 [
   {
-    "day": "Dia ${startDay}",
+    "day": "Dia 1",
     "time": "09:00",
     "format": "reels",
-    "title": "Título específico sobre benefício de ${offer}",
-    "content_idea": "Ideia prática e útil para ${audience}",
+    "title": "Título atrativo e específico",
+    "content_idea": "Descrição clara e detalhada",
     "status": "planejado",
     "details": {
-      "tool_suggestion": "Ferramenta específica",
-      "step_by_step": "3 passos práticos e acionáveis",
-      "script_or_copy": "Legenda persuasiva com CTA claro",
-      "hashtags": "Hashtags estratégicas para ${offer}",
+      "tool_suggestion": "Ferramenta específica para este tipo de conteúdo",
+      "step_by_step": "1. Primeiro passo detalhado 2. Segundo passo detalhado 3. Terceiro passo detalhado 4. CTA final",
+      "script_or_copy": "Legenda persuasiva e específica para este conteúdo, com emojis, quebras de linha e call-to-action claro no final",
+      "hashtags": "#hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5 #hashtag6",
       "creative_guidance": {
-        "type": "Tipo de visual",
-        "description": "Descrição específica do visual",
-        "prompt": "Prompt para IA gerar visual",
+        "type": "tipo de conteúdo",
+        "description": "Descrição detalhada do visual com elementos específicos",
+        "prompt": "Prompt detalhado para gerar este visual específico",
         "tool_link": "https://canva.com"
       }
     }
   }
-]
+]`;
 
-TEMAS PARA DISTRIBUIR ENTRE OS POSTS:
-- Benefícios específicos de ${offer}
-- Problemas que ${offer} resolve para ${audience}
-- Resultados que ${audience} pode alcançar
-- Comparativo com concorrentes/alternativas
-- Provas sociais/depoimentos
-- Tutorial passo-a-passo
-- Mitos e verdades sobre ${offer}
-- Perguntas frequentes de ${audience}
-- Histórias de sucesso com ${offer}`;
+  // Prompt para segunda metade - com Groq2
+  const prompt2 = `
+Crie calendário Instagram para ${username} sobre ${offer} para ${audience}.
+Dias ${midPoint + 1} a ${totalDays} (total ${totalDays - midPoint} dias).
 
-    try {
-      console.log(`Gerando lote ${i + 1}/${batches} (dias ${startDay}-${endDay})...`);
-      const batchText = await aiFunction(batchPrompt);
+IMPORTANTE:
+1. Postar apenas nos dias ${secondHalfDays.join(', ')} (nunca domingo)
+2. Nos outros dias, sugira atividades como análise, pesquisa ou engajamento
+3. Use horários de pico reais: manhã (9h), almoço (12:30) ou noite (19:30)
+4. Inclua 5-7 hashtags relevantes e específicas em cada post
+5. Escreva legendas específicas e persuasivas (não genéricas), com emoção e CTA
+6. O campo "status" DEVE SER SEMPRE exatamente "planejado" (valor obrigatório)
+7. No guia criativo, forneça um passo a passo detalhado mas resumido
 
-      console.log(`Resposta bruta do lote ${i + 1}:`, batchText.substring(0, 200) + "...");
-
-      let batchResult: ContentPlanResult;
-
-      // Tentar parse direto primeiro
-      try {
-        const parsed = JSON.parse(batchText);
-
-        // Se for um array, criar a estrutura esperada
-        if (Array.isArray(parsed)) {
-          console.log("Array parseado diretamente, criando estrutura content_plan");
-          batchResult = { content_plan: parsed };
-        } else if (parsed.content_plan) {
-          batchResult = parsed;
-        } else {
-          throw new Error("Estrutura inesperada");
-        }
-      } catch {
-        console.log("Parse direto falhou, tentando extractJson...");
-        batchResult = extractJson<ContentPlanResult>(batchText);
+Formato exato para cada dia:
+[
+  {
+    "day": "Dia 16",
+    "time": "09:00",
+    "format": "reels",
+    "title": "Título atrativo e específico",
+    "content_idea": "Descrição clara e detalhada",
+    "status": "planejado",
+    "details": {
+      "tool_suggestion": "Ferramenta específica para este tipo de conteúdo",
+      "step_by_step": "1. Primeiro passo detalhado 2. Segundo passo detalhado 3. Terceiro passo detalhado 4. CTA final",
+      "script_or_copy": "Legenda persuasiva e específica para este conteúdo, com emojis, quebras de linha e call-to-action claro no final",
+      "hashtags": "#hashtag1 #hashtag2 #hashtag3 #hashtag4 #hashtag5 #hashtag6",
+      "creative_guidance": {
+        "type": "tipo de conteúdo",
+        "description": "Descrição detalhada do visual com elementos específicos",
+        "prompt": "Prompt detalhado para gerar este visual específico",
+        "tool_link": "https://canva.com"
       }
-
-      // Debug da estrutura
-      console.log(`Estrutura do resultado:`, {
-        hasContentPlan: !!batchResult.content_plan,
-        isArray: Array.isArray(batchResult.content_plan),
-        length: batchResult.content_plan?.length || 0,
-        keys: Object.keys(batchResult)
-      });
-
-      // Validar e processar o content_plan
-      if (!batchResult.content_plan || !Array.isArray(batchResult.content_plan)) {
-        throw new Error("content_plan não é um array válido");
-      }
-
-      // Limitar tamanho dos textos - equilibrado
-       batchResult.content_plan = batchResult.content_plan.slice(0, daysInBatch).map((item, idx) => ({
-        day: item.day || `Dia ${startDay + idx}`,
-        time: item.time || "09:00",
-        format: item.format || "reels",
-        title: (item.title || "Post").substring(0, 80), // Aumentado para títulos mais descritivos
-        content_idea: (item.content_idea || "Conteúdo").substring(0, 120), // Aumentado para ideias mais completas
-        status: "planejado" as const,
-        details: {
-          tool_suggestion: (item.details?.tool_suggestion || "Canva").substring(0, 40),
-          step_by_step: (item.details?.step_by_step || "1.Criar 2.Postar").substring(0, 120),
-          script_or_copy: (item.details?.script_or_copy || "Legenda").substring(0, 200),
-          hashtags: (item.details?.hashtags || "#instagram").substring(0, 80),
-          creative_guidance: {
-            type: (item.details?.creative_guidance?.type || "video").substring(0, 30),
-            description: (item.details?.creative_guidance?.description || "Visual").substring(0, 120),
-            prompt: (item.details?.creative_guidance?.prompt || "Prompt").substring(0, 120),
-            tool_link: item.details?.creative_guidance?.tool_link || "https://canva.com"
-          }
-        }
-      }));
-      allContentPlan = [...allContentPlan, ...batchResult.content_plan];
-
-    } catch (error) {
-      console.error(`Erro no lote ${i + 1}:`, error);
-
-      // Fallback específico mas conciso
-      const fallbackItems = Array.from({ length: daysInBatch }, (_, idx) => {
-        const dayNum = startDay + idx;
-        const formats = ["reels", "carrossel", "foto", "story"];
-        const times = ["09:00", "12:00", "15:00", "18:00", "20:00"];
-
-        // Temas específicos mas curtos
-        const themes = [
-          `Benefícios de ${offer}`,
-          `${offer} para ${audience}`,
-          `Erros ao usar ${offer}`,
-          `Resultados com ${offer}`,
-          `Depoimento sobre ${offer}`,
-          `Antes/depois com ${offer}`,
-          `Dicas sobre ${offer}`,
-          `Tutorial de ${offer}`,
-          `FAQ sobre ${offer}`,
-          `Novidades em ${offer}`
-        ];
-
-        const theme = themes[dayNum % themes.length];
-
-        return {
-          day: `Dia ${dayNum}`,
-          time: times[dayNum % times.length],
-          format: formats[dayNum % formats.length],
-          title: theme,
-          content_idea: `${theme} específico para ${audience}`,
-          status: "planejado" as const,
-          details: {
-            tool_suggestion: "Canva",
-            step_by_step: `1. Preparar ${theme} 2. Criar visual 3. Publicar`,
-            script_or_copy: `${theme}! Descubra como ${offer} ajuda ${audience}. Comente abaixo!`,
-            hashtags: `#${offer.replace(/\s+/g, '')} #${audience.replace(/\s+/g, '')} #dicas`,
-            creative_guidance: {
-              type: formats[dayNum % formats.length] === "reels" ? "vídeo" : "imagem",
-              description: `Visual sobre ${theme} para ${audience}`,
-              prompt: `Imagem profissional de ${theme} para ${audience}`,
-              tool_link: "https://canva.com"
-            }
-          }
-        };
-      });
-
-      allContentPlan = [...allContentPlan, ...fallbackItems];
-    }
-
-    if (i < batches - 1) {
-      await new Promise(resolve => setTimeout(resolve, 300));
     }
   }
+]`;
 
-  return { content_plan: allContentPlan };
+  try {
+    // Chamar as duas APIs em paralelo
+    const [response1, response2] = await Promise.all([
+      callGroq1(prompt1),
+      callGroq2(prompt2)
+    ]);
+
+    // Processar resultados
+    let part1 = [], part2 = [];
+
+    try {
+      // Tentar parse direto primeiro
+      try {
+        const parsed1 = JSON.parse(response1);
+        part1 = Array.isArray(parsed1) ? parsed1 : parsed1.content_plan || [];
+      } catch {
+        console.log("Erro ao parsear resposta 1, tentando extractJson");
+        const extracted = extractJson<ContentPlanResult>(response1);
+        part1 = extracted.content_plan || [];
+      }
+
+      try {
+        const parsed2 = JSON.parse(response2);
+        part2 = Array.isArray(parsed2) ? parsed2 : parsed2.content_plan || [];
+      } catch  {
+        console.log("Erro ao parsear resposta 2, tentando extractJson");
+        const extracted = extractJson<ContentPlanResult>(response2);
+        part2 = extracted.content_plan || [];
+      }
+
+      // Combinar os resultados
+      const fullPlan = [...part1, ...part2];
+
+      // Sanitizar o plano para remover campos extras e garantir valores válidos
+      // Passar offer e audience para melhorar conteúdo genérico
+      return { content_plan: sanitizeContentPlan(fullPlan, offer, audience) };
+    } catch (parseError) {
+      console.error("Erro ao processar respostas:", parseError);
+      throw new Error("Falha ao processar respostas da IA");
+    }
+
+  } catch (error) {
+    console.error("Erro ao gerar plano:", error);
+
+    // Fallback: gerar plano simples mas com conteúdo melhorado
+    const content_plan: ContentPlanItem[] = [];
+    const formats = ["reels", "carrossel", "foto", "reels", "carrossel"];
+    const times = ["09:00", "12:30", "19:30"];
+
+    const topics = [
+      `5 maneiras que ${offer} pode transformar os resultados de ${audience}`,
+      `3 erros comuns que ${audience} comete ao implementar ${offer}`,
+      `Case de sucesso: como ${offer} aumentou em 300% os resultados para ${audience}`,
+      `Tutorial passo a passo: implementando ${offer} sem complicação`,
+      `${offer} vs. métodos tradicionais: qual traz mais resultados para ${audience}`,
+      `O segredo de ${offer} que ninguém conta para ${audience}`,
+      `Como implementar ${offer} mesmo com orçamento limitado`,
+      `Por que ${audience} precisa investir em ${offer} agora`,
+      `${offer}: antes e depois real com resultados comprováveis`,
+      `Prova social: depoimento de cliente satisfeito com ${offer}`
+    ];
+
+    for (let i = 1; i <= totalDays; i++) {
+      // Pular domingos (dia 7, 14, 21, 28)
+      if (i % 7 === 0) {
+        continue;
+      }
+
+      // Verificar se é dia de post
+      if (postingDays.includes(i)) {
+        const postIndex = postingDays.indexOf(i);
+        const topic = topics[postIndex % topics.length];
+        const format = formats[postIndex % formats.length];
+        const time = times[postIndex % times.length];
+
+        let stepByStep = "";
+        let scriptCopy = "";
+
+        if (format === "reels") {
+          stepByStep = "1. Gravar hook forte (5s) 2. Apresentar problema (10s) 3. Mostrar solução com ${offer} (20s) 4. Incluir resultados comprovados (15s) 5. Finalizar com CTA";
+          scriptCopy = `🔥 ${topic}\n\nVocê sabia que 78% de ${audience} está perdendo oportunidades por não aproveitar ${offer} corretamente?\n\nNeste vídeo mostro exatamente como implementar para ver resultados em 30 dias.\n\n✅ Economia de tempo\n✅ Aumento de conversão\n✅ Crescimento sustentável\n\nSalve este post para não perder! 👇\nComente "QUERO" para mais conteúdos assim.`;
+        } else if (format === "carrossel") {
+          stepByStep = "1. Criar capa chamativa com título e problema 2. Slide 2-3: explicar desafios 3. Slides 4-6: apresentar soluções com ${offer} 4. Slide 7: mostrar resultados 5. Slide final: CTA para próximos passos";
+          scriptCopy = `📊 ${topic}\n\nSwipe ➡️ para descobrir como ${offer} está revolucionando o mercado para ${audience}.\n\nNa última semana ajudamos 3 clientes a implementar esta estratégia e os resultados foram impressionantes!\n\nVocê está pronto para transformar seu negócio também?\n\nSalve este guia completo e marque um amigo que precisa ver isso! 👇`;
+        } else {
+          stepByStep = "1. Selecionar imagem impactante relacionada a ${offer} 2. Adicionar texto principal destacando benefícios-chave 3. Incluir elementos visuais da marca 4. Garantir alta qualidade e legibilidade";
+          scriptCopy = `👀 ${topic}\n\nÉ isso que faz a diferença entre ${audience} que apenas sobrevive e os que prosperam no mercado atual.\n\nImplementando ${offer} corretamente, você pode:\n- Aumentar conversões\n- Reduzir custos\n- Escalar resultados\n\nQuer saber como? Deixe seu "SIM" nos comentários que te envio mais informações!`;
+        }
+
+        content_plan.push({
+          day: `Dia ${i}`,
+          time: time,
+          format: format,
+          title: topic,
+          content_idea: `Conteúdo mostrando como ${offer} resolve problemas específicos de ${audience}, com foco em resultados práticos e implementação rápida.`,
+          status: "planejado",
+          details: {
+            tool_suggestion: format === "reels" ? "CapCut" : "Canva",
+            step_by_step: stepByStep,
+            script_or_copy: scriptCopy,
+            hashtags: `#${offer.replace(/\s+/g, '')} #${audience.replace(/\s+/g, '')} #marketingdigital #estrategia #resultados #crescimento #socialmedia`,
+            creative_guidance: {
+              type: format === "reels" ? "vídeo" : "imagem",
+              description: `${format === "reels" ? "Vídeo curto" : format === "carrossel" ? "Sequência de slides" : "Imagem única"} profissional mostrando ${topic} com elementos visuais atraentes, cores da marca e texto destacado em pontos-chave.`,
+              prompt: `Criar ${format} profissional sobre ${topic} para Instagram, com estética moderna, alta qualidade e elementos que destacam os benefícios de ${offer} para ${audience}.`,
+              tool_link: format === "reels" ? "https://www.capcut.com" : "https://canva.com"
+            }
+          }
+        });
+      } else {
+        // Dia sem postagem - atividade alternativa
+        const activities = [
+          {
+            title: "📊 Análise de Métricas",
+            idea: "Revisar engajamento, alcance e conversões dos posts anteriores",
+            steps: "1. Analisar métricas de alcance e engajamento 2. Identificar padrões de sucesso 3. Documentar aprendizados 4. Ajustar estratégia"
+          },
+          {
+            title: "🔍 Pesquisa de Concorrência",
+            idea: `Estudar estratégias de outros perfis no nicho de ${offer}`,
+            steps: "1. Identificar 5 concorrentes principais 2. Analisar posts mais engajados 3. Listar diferenciais competitivos 4. Identificar oportunidades"
+          },
+          {
+            title: "💬 Engajamento com Audiência",
+            idea: "Responder comentários e DMs, interagir com seguidores",
+            steps: "1. Responder todos os comentários pendentes 2. Verificar e responder DMs 3. Engajar em perfis relevantes 4. Salvar perguntas frequentes para conteúdo"
+          },
+          {
+            title: "📝 Planejamento de Conteúdo",
+            idea: `Preparar roteiros e ideias sobre ${offer} para próxima semana`,
+            steps: "1. Revisar calendário 2. Brainstorming de novos tópicos 3. Criar roteiros para próximos posts 4. Organizar banco de ideias"
+          },
+          {
+            title: "🎨 Criação em Lote",
+            idea: "Preparar imagens, templates e edições para próximos posts",
+            steps: "1. Selecionar elementos visuais 2. Criar templates consistentes 3. Editar em lote materiais visuais 4. Organizar banco de mídia"
+          }
+        ];
+
+        const activity = activities[i % activities.length];
+
+        content_plan.push({
+          day: `Dia ${i}`,
+          time: "Flexível",
+          format: "atividade",
+          title: activity.title,
+          content_idea: activity.idea,
+          status: "planejado",
+          details: {
+            tool_suggestion: activity.title.includes("Métricas") ? "Instagram Insights" :
+                            activity.title.includes("Pesquisa") ? "Instagram Explore" :
+                            activity.title.includes("Engajamento") ? "Instagram App" :
+                            activity.title.includes("Criação") ? "Canva" : "Notion",
+            step_by_step: activity.steps,
+            script_or_copy: "Atividade interna - sem conteúdo publicado",
+            hashtags: "-",
+            creative_guidance: {
+              type: "atividade",
+              description: activity.idea,
+              prompt: "-",
+              tool_link: activity.title.includes("Métricas") ? "https://business.instagram.com" : "https://instagram.com"
+            }
+          }
+        });
+      }
+    }
+
+    return { content_plan: sanitizeContentPlan(content_plan) };
+  }
 }
-// Action principal para gerar análise
+
+// Action principal para gerar plano
 export const generateAnalysis = action({
   args: {
     username: v.string(),
@@ -567,174 +725,45 @@ export const generateAnalysis = action({
       throw new Error("Usuário não autenticado.");
     }
 
-    // Prompt específico para a estratégia
-    const strategyPrompt = `
-    Crie uma estratégia de conteúdo para Instagram para @${args.username}.
+    // Gerar plano de conteúdo
+    const contentPlanResult = await generateContentPlan(
+      args.username,
+      args.offer,
+      args.audience,
+      args.planDuration
+    );
 
-    Oferta: ${args.offer}
-    Público: ${args.audience}
-    Bio atual: ${args.bio || "Não fornecida"}
+    // Sanitizar novamente para garantir que não há campos extras e valores inválidos
+    // Passar offer e audience para melhorar conteúdo genérico
+    const sanitizedPlan = sanitizeContentPlan(
+      contentPlanResult.content_plan,
+      args.offer,
+      args.audience
+    );
 
-    IMPORTANTE: Você DEVE retornar EXATAMENTE este formato JSON sem alterações:
-    {
-      "suggestions": [
-        "Sugestão de bio 1 específica para ${args.offer}",
-        "Sugestão de bio 2 específica para ${args.audience}",
-        "Sugestão de bio 3 combinando ${args.offer} e ${args.audience}"
-      ],
-      "strategy": "Estratégia detalhada sobre como criar conteúdo para ${args.audience} sobre ${args.offer}. Inclua frequência de postagem, tipos de conteúdo e abordagens específicas.",
-      "grid": [
-        "Reels: Dica específica sobre ${args.offer}",
-        "Carrossel: Tutorial de ${args.offer} para ${args.audience}",
-        "Foto: Depoimento de cliente sobre ${args.offer}",
-        "Reels: Erro comum que ${args.audience} comete",
-        "Carrossel: 5 benefícios de ${args.offer}",
-        "Foto: Bastidores do trabalho com ${args.offer}",
-        "Reels: Comparativo antes/depois de ${args.offer}",
-        "Carrossel: Perguntas frequentes sobre ${args.offer}",
-        "Foto: Resultado específico alcançado por ${args.audience}"
-      ]
-    }
+    // Verificação adicional de segurança - mostrar valores do campo status no log
+    console.log("Status values check:", sanitizedPlan.map(item => item.status));
 
-    NÃO modifique a estrutura do JSON. Mantenha EXATAMENTE os três campos principais acima.
-    `;
-
-    let strategyResult: StrategyResult;
-    let contentPlanResult: ContentPlanResult;
-    let usedModel = "";
-
-    // Gerar estratégia usando Groq1 (primeira chave)
-    try {
-      console.log("Gerando estratégia com Groq (primeira chave)...");
-      const strategyText = await callGroq1(strategyPrompt);
-      try {
-        strategyResult = JSON.parse(strategyText) as StrategyResult;
-      } catch {
-        strategyResult = extractJson<StrategyResult>(strategyText);
-      }
-      usedModel = "groq1-llama3";
-    } catch (groq1Error) {
-      console.warn("Groq1 falhou, tentando com Gemini...", groq1Error);
-      try {
-        const strategyText = await callGeminiWithRetry(strategyPrompt);
-        try {
-          strategyResult = JSON.parse(strategyText) as StrategyResult;
-        } catch {
-          strategyResult = extractJson<StrategyResult>(strategyText);
-        }
-        usedModel = "gemini-1.5-flash";
-      } catch {
-        console.error("Todos os modelos falharam, usando estratégia de fallback...");
-        // Aqui usamos os argumentos corretos
-        strategyResult = generateFallbackStrategy(
-          args.username,
-          args.offer,
-          args.audience
-        );
-        usedModel = "fallback";
-      }
-    }
-
-    // Verificação extra para garantir que todas as seções estão preenchidas com dados corretos
-    console.log("Verificando e corrigindo dados da estratégia se necessário...");
-
-    // Sempre substituir se falhar ou tiver conteúdo padrão
-    if (!strategyResult.suggestions ||
-        !Array.isArray(strategyResult.suggestions) ||
-        strategyResult.suggestions.length === 0 ||
-        strategyResult.suggestions[0].includes("oferta") || // Detecta fallback incorreto
-        strategyResult.suggestions[0].includes("público")) { // Detecta fallback incorreto
-      console.log("Gerando sugestões de fallback personalizadas");
-      strategyResult.suggestions = generateFallbackStrategy(args.username, args.offer, args.audience).suggestions;
-    }
-
-    if (!strategyResult.strategy ||
-        typeof strategyResult.strategy !== 'string' ||
-        strategyResult.strategy.length < 50 ||
-        strategyResult.strategy.includes("público")) { // Detecta fallback incorreto
-      console.log("Gerando estratégia de fallback personalizada");
-      strategyResult.strategy = generateFallbackStrategy(args.username, args.offer, args.audience).strategy;
-    }
-
-    if (!strategyResult.grid ||
-        !Array.isArray(strategyResult.grid) ||
-        strategyResult.grid.length < 9 ||
-        strategyResult.grid[0].includes("oferta")) { // Detecta fallback incorreto
-      console.log("Gerando grid de fallback personalizado");
-      strategyResult.grid = generateFallbackStrategy(args.username, args.offer, args.audience).grid;
-    }
-
-    // Gerar plano de conteúdo usando Groq2 (segunda chave) com sistema de lotes
-    let contentModel = "";
-    try {
-      console.log("Gerando plano de conteúdo com Groq (segunda chave)...");
-      contentPlanResult = await generateContentPlanInBatches(
-        args.username,
-        args.offer,
-        args.audience,
-        args.planDuration,
-        callGroq2
-      );
-      contentModel = "groq2";
-    } catch (groq2Error) {
-      console.error("Groq2 falhou para plano de conteúdo, tentando Gemini...", groq2Error);
-      try {
-        contentPlanResult = await generateContentPlanInBatches(
-          args.username,
-          args.offer,
-          args.audience,
-          args.planDuration,
-          callGeminiWithRetry
-        );
-        contentModel = "gemini";
-      } catch {
-        console.error("Todos os modelos falharam, usando plano de fallback...");
-        contentPlanResult = generateFallbackPlan(
-          args.username,
-          args.offer,
-          args.audience,
-          args.planDuration
-        );
-        contentModel = "fallback";
-      }
-    }
-
-    // Atualizar o modelo usado
-    if (contentModel !== "groq2") {
-      usedModel = usedModel === "fallback" ?
-        "total-fallback" :
-        `${usedModel}+${contentModel === "fallback" ? "content-fallback" : contentModel}`;
-    } else if (usedModel === "groq1-llama3") {
-      usedModel = "groq-dual"; // Indica que ambas as chaves Groq foram usadas com sucesso
-    }
-
-    // Sanitizar o plano de conteúdo para evitar nulls
-    contentPlanResult.content_plan = sanitizeContentPlan(contentPlanResult.content_plan);
-
-    // Verificações finais para garantir que todos os dados estão corretos
-    if (!contentPlanResult.content_plan || !Array.isArray(contentPlanResult.content_plan) ||
-        contentPlanResult.content_plan.length !== (args.planDuration === "week" ? 7 : 30)) {
-      contentPlanResult = generateFallbackPlan(args.username, args.offer, args.audience, args.planDuration);
-    }
-
-    // Combinar resultados
-    const finalAnalysisData = {
-      ...strategyResult,
-      ...contentPlanResult,
+    // Montar dados finais
+    const analysisData = {
+      content_plan: sanitizedPlan,
       username: args.username,
       bio: args.bio || "",
       offer: args.offer,
       audience: args.audience,
       planDuration: args.planDuration,
-      aiModel: usedModel
+      suggestions: [],
+      strategy: "",
+      grid: [],
+      aiModel: "groq-dual"
     };
 
     // Salvar no banco
     await ctx.runMutation(internal.mentor.saveAnalysis, {
-      analysisData: finalAnalysisData
+      analysisData
     });
 
-    return finalAnalysisData;
+    return analysisData;
   },
 });
 
@@ -780,6 +809,13 @@ export const saveAnalysis = internalMutation({
       throw new Error("Não autenticado.");
     }
 
+    // Sanitizar novamente para garantir que não há valores inválidos
+    const sanitizedPlan = sanitizeContentPlan(
+      args.analysisData.content_plan,
+      args.analysisData.offer,
+      args.analysisData.audience
+    );
+
     const existingAnalysis = await ctx.db
       .query("analyses")
       .withIndex("by_user", q => q.eq("userId", identity.subject))
@@ -787,6 +823,7 @@ export const saveAnalysis = internalMutation({
 
     const dataToSave = {
       ...args.analysisData,
+      content_plan: sanitizedPlan, // Usar o plano sanitizado
       userId: identity.subject,
       updatedAt: Date.now()
     };
@@ -853,8 +890,11 @@ export const updateContentPlan = mutation({
       throw new Error("Análise não encontrada ou você não tem permissão para modificá-la.");
     }
 
+    // Sanitizar para garantir que não há campos extras e valores inválidos
+    const sanitizedPlan = sanitizeContentPlan(newPlan, analysis.offer, analysis.audience);
+
     await ctx.db.patch(analysisId, {
-      content_plan: newPlan,
+      content_plan: sanitizedPlan,
       updatedAt: Date.now()
     });
 
@@ -885,12 +925,15 @@ export const markContentItemComplete = mutation({
 
     contentPlan[dayIndex] = {
       ...contentPlan[dayIndex],
-      status,
+      status, // Este status é validado pelos argumentos da função
       completedAt: status === "concluido" ? Date.now() : undefined
     };
 
+    // Sanitizar para garantir que não há campos extras
+    const sanitizedPlan = sanitizeContentPlan(contentPlan, analysis.offer, analysis.audience);
+
     await ctx.db.patch(analysisId, {
-      content_plan: contentPlan,
+      content_plan: sanitizedPlan,
       updatedAt: Date.now()
     });
 

@@ -1,6 +1,3 @@
-// Em /components/Header.tsx
-// (Substitua o arquivo inteiro)
-
 "use client";
 
 import Link from "next/link";
@@ -39,10 +36,9 @@ export function Header() {
           </nav>
           <div className="flex items-center gap-4">
             <div className="hidden md:flex">
-                {/* CORREÇÃO: Removidas as props inválidas */}
-                <SignInButton mode="modal">
-                  <Button>Comece Grátis</Button>
-                </SignInButton>
+              <SignInButton mode="modal">
+                <Button>Comece Grátis</Button>
+              </SignInButton>
             </div>
             <div className="md:hidden"><MobileMenu navLinks={loggedOutNavLinks} /></div>
           </div>

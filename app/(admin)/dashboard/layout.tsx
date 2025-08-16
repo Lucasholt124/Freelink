@@ -130,10 +130,10 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
   };
 
   return (
-    <nav className="flex flex-col h-full">
-      <ul className="flex-grow space-y-1 py-2">
-        {navItems.map((item, index) => (
-          <li key={index}>
+      <nav className="flex flex-col h-full">
+      <ul className="flex-grow space-y-1 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+        {navItems.map((item, idx) => (
+          <li key={idx}>
             {item.href && item.icon ? (
               <Link href={item.href}>
                 <div className={clsx(
@@ -144,11 +144,6 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
                 )}>
                   <item.icon className="w-5 h-5" />
                   <span>{item.label}</span>
-                  {item.new && (
-                    <Badge className="ml-auto bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-[10px]">
-                      NOVO
-                    </Badge>
-                  )}
                 </div>
               </Link>
             ) : (
@@ -171,11 +166,6 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
                               isItemActive ? "text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-500"
                             )} />
                             <span>{subItem.label}</span>
-                            {subItem.new && (
-                              <Badge className="ml-auto bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300 text-[10px]">
-                                NOVO
-                              </Badge>
-                            )}
                             {subItem.pro && (
                               <Badge className="ml-auto bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-[10px] font-semibold">
                                 PRO
@@ -198,7 +188,6 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
         ))}
       </ul>
 
-      {/* CTA para upgrade baseado no plano atual */}
       {userPlan !== "ultra" && (
         <div className="px-3 mb-4">
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4 border border-blue-100 dark:border-blue-900/20">
@@ -227,6 +216,7 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
   );
 }
 
+
 // Logo Component
 function FreelinkLogo({ size = 32 }: { size?: number }) {
   return (
@@ -239,16 +229,11 @@ function FreelinkLogo({ size = 32 }: { size?: number }) {
   );
 }
 
-export default function DashboardLayout({
-  children
-}: {
-  children: ReactNode;
-}) {
+export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const pathname = usePathname();
   const [userPlan, setUserPlan] = useState<PlanType>("free");
 
-  // Verificação de plano do usuário
   useEffect(() => {
     const checkSubscription = async () => {
       try {
@@ -261,7 +246,6 @@ export default function DashboardLayout({
         console.error("Erro ao verificar plano:", error);
       }
     };
-
     checkSubscription();
   }, []);
 
@@ -269,14 +253,12 @@ export default function DashboardLayout({
     setIsSidebarOpen(false);
   }, [pathname]);
 
-  // Prevenir scroll do body quando sidebar estiver aberta
   useEffect(() => {
     if (isSidebarOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = 'unset';
     }
-
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -305,8 +287,8 @@ export default function DashboardLayout({
 
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
-      {/* Sidebar para Desktop */}
-      <aside className="w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 p-4 hidden lg:flex flex-col flex-shrink-0">
+      {/* Sidebar desktop */}
+      <aside className="hidden lg:flex w-64 bg-white dark:bg-slate-800 border-r border-slate-200 dark:border-slate-700 p-4 flex-col flex-shrink-0">
         <div className="mb-6 px-2">
           <Link href="/dashboard" className="flex items-center">
             <FreelinkLogo size={32} />
@@ -320,9 +302,7 @@ export default function DashboardLayout({
             </div>
           </Link>
         </div>
-                <div className="flex-grow overflow-y-auto h-full scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
-          <Sidebar userPlan={userPlan} />
-        </div>
+        <Sidebar userPlan={userPlan} />
         <div className="mt-auto pt-4 border-t border-slate-200 dark:border-slate-700 flex-shrink-0">
           <div className="flex justify-between items-center px-2">
             <div className="flex items-center gap-3">
@@ -367,7 +347,7 @@ export default function DashboardLayout({
         </div>
       </aside>
 
-      {/* Overlay e Sidebar para Mobile - CORRIGIDO */}
+      {/* Sidebar mobile */}
       <AnimatePresence>
         {isSidebarOpen && (
           <motion.div
@@ -408,7 +388,6 @@ export default function DashboardLayout({
           </Button>
         </div>
 
-        {/* Conteúdo do sidebar com scroll próprio */}
         <div className="flex-1 overflow-y-auto p-4">
           <Sidebar userPlan={userPlan} />
         </div>
@@ -431,9 +410,10 @@ export default function DashboardLayout({
         </div>
       </motion.aside>
 
-      {/* Container Principal do Conteúdo - CORRIGIDO */}
+      {/* Container principal */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 py-2 px-4 flex justify-between items-center flex-shrink-0 sticky top-0 z-30">
+        {/* Header fixo fora do container com overflow */}
+        <header className="sticky top-0 z-50 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 py-2 px-4 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center">
             <Button
               variant="ghost"
