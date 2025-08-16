@@ -7,11 +7,11 @@ import { motion, AnimatePresence, useInView } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import {
-  RefreshCw, Sparkles, Copy,
-  LayoutGrid, BrainCircuit, Mic, Video,
-  ImageIcon, Newspaper, Share2, Download,
-  TrendingUp, Calendar, Target, Lightbulb,
-  Award, Zap
+  RefreshCw, Sparkles, Copy, AlertCircle,
+  LayoutGrid, BrainCircuit, Mic, Video, Eye,
+  ImageIcon, Newspaper, Share2, Download, Heart,
+  TrendingUp, Calendar, Target, Lightbulb, Trophy,
+  Award, Zap, ArrowRight, CheckCircle, Star
 } from "lucide-react";
 import ReactMarkdown from 'react-markdown';
 import MentorIaForm, { FormData } from "./MentorIaForm";
@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import confetti from 'canvas-confetti';
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 // Animação de confete quando o plano é gerado
 const triggerSuccessConfetti = () => {
@@ -55,6 +56,16 @@ const triggerSuccessConfetti = () => {
 const MentorLoadingState = () => {
   const [progress, setProgress] = useState(0);
   const [statusText, setStatusText] = useState("Inicializando IA...");
+  const [quote, setQuote] = useState("Grande estratégia é quando você antecipa o que vai acontecer, não quando você reage ao que já aconteceu.");
+  const [quoteAuthor, setQuoteAuthor] = useState("Sun Tzu, A Arte da Guerra");
+
+  const quotes = [
+    { text: "Grande estratégia é quando você antecipa o que vai acontecer, não quando você reage ao que já aconteceu.", author: "Sun Tzu, A Arte da Guerra" },
+    { text: "O conteúdo é o rei, mas o engajamento é a rainha, e ela governa a casa.", author: "Mari Smith" },
+    { text: "Não construa links. Construa relacionamentos.", author: "Rand Fishkin" },
+    { text: "Marketing é contar histórias tão bem que as pessoas vivenciam o valor do que você oferece.", author: "Seth Godin" },
+    { text: "O melhor marketing não parece marketing.", author: "Tom Fishburne" }
+  ];
 
   useEffect(() => {
     const texts = [
@@ -64,8 +75,17 @@ const MentorLoadingState = () => {
       "Calibrando estratégia...",
       "Otimizando plano de conteúdo...",
       "Gerando calendário de posts...",
+      "Polindo sugestões de bio...",
+      "Harmonizando grid visual...",
       "Finalizando..."
     ];
+
+    // Mudar citação a cada 5 segundos
+    const quoteInterval = setInterval(() => {
+      const randomQuote = quotes[Math.floor(Math.random() * quotes.length)];
+      setQuote(randomQuote.text);
+      setQuoteAuthor(randomQuote.author);
+    }, 5000);
 
     let interval: NodeJS.Timeout;
 
@@ -86,7 +106,10 @@ const MentorLoadingState = () => {
       }, 300);
     }
 
-    return () => clearInterval(interval);
+    return () => {
+      clearInterval(interval);
+      clearInterval(quoteInterval);
+    };
   }, [progress]);
 
   return (
@@ -119,25 +142,69 @@ const MentorLoadingState = () => {
         </motion.div>
       </div>
 
-      <h2 className="text-3xl font-bold mt-8 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
+      <motion.h2
+        initial={{ y: 10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.3 }}
+        className="text-3xl font-bold mt-8 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text"
+      >
         Athena está trabalhando
-      </h2>
+      </motion.h2>
 
-      <p className="mt-3 text-muted-foreground max-w-md text-lg">
+      <motion.p
+        initial={{ y: 10, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="mt-3 text-muted-foreground max-w-md text-lg flex items-center justify-center gap-2"
+      >
+        <span className="inline-block w-3 h-3 bg-blue-500 rounded-full animate-pulse" />
         {statusText}
-      </p>
+      </motion.p>
 
-      <div className="w-full max-w-md mt-8">
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.7 }}
+        className="w-full max-w-md mt-8"
+      >
         <Progress value={progress} className="h-2" />
-        <p className="text-sm text-muted-foreground mt-2 text-right">{progress}%</p>
-      </div>
+        <div className="flex justify-between items-center mt-2">
+          <span className="text-xs text-muted-foreground">Executando IA avançada</span>
+          <p className="text-sm text-muted-foreground font-semibold">{progress}%</p>
+        </div>
+      </motion.div>
 
-      <div className="mt-8 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg max-w-md">
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.9 }}
+        className="mt-8 p-4 bg-slate-100 dark:bg-slate-800 rounded-lg max-w-md shadow-inner"
+      >
         <p className="text-sm italic text-muted-foreground">
-          Grande estratégia é quando você antecipa o que vai acontecer, não quando você reage ao que já aconteceu.
+          {quote}
         </p>
-        <p className="text-sm font-medium mt-2 text-right">— Sun Tzu, A Arte da Guerra</p>
-      </div>
+        <p className="text-sm font-medium mt-2 text-right">— {quoteAuthor}</p>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.2 }}
+        className="mt-6 flex gap-2"
+      >
+        {Array(3).fill(0).map((_, i) => (
+          <span
+            key={i}
+            className="inline-block w-2 h-2 rounded-full bg-blue-400 dark:bg-blue-600 opacity-70"
+            style={{
+              animationName: "pulse",
+              animationDuration: "1.5s",
+              animationIterationCount: "infinite",
+              animationDelay: `${i * 0.3}s`
+            }}
+          />
+        ))}
+      </motion.div>
     </motion.div>
   );
 };
@@ -167,6 +234,13 @@ const GridIcon = ({ format }: { format: string }) => {
       </div>
     );
 
+  if (lowerFormat.includes("story"))
+    return (
+      <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-lg">
+        <Eye className="w-6 h-6 text-amber-500" />
+      </div>
+    );
+
   return (
     <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg">
       <Mic className="w-6 h-6 text-purple-500" />
@@ -177,7 +251,7 @@ const GridIcon = ({ format }: { format: string }) => {
 // Estatísticas de impacto para adicionar valor percebido
 const ImpactStats = () => (
   <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-    <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 shadow-md">
+    <Card className="bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950 dark:to-blue-900 border-blue-200 dark:border-blue-800 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105">
       <CardContent className="pt-6 text-center">
         <TrendingUp className="w-8 h-8 text-blue-500 mx-auto mb-2" />
         <h3 className="text-2xl font-bold">+327%</h3>
@@ -185,7 +259,7 @@ const ImpactStats = () => (
       </CardContent>
     </Card>
 
-    <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 shadow-md">
+    <Card className="bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950 dark:to-purple-900 border-purple-200 dark:border-purple-800 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105">
       <CardContent className="pt-6 text-center">
         <Target className="w-8 h-8 text-purple-500 mx-auto mb-2" />
         <h3 className="text-2xl font-bold">98.3%</h3>
@@ -193,7 +267,7 @@ const ImpactStats = () => (
       </CardContent>
     </Card>
 
-    <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 shadow-md">
+    <Card className="bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950 dark:to-green-900 border-green-200 dark:border-green-800 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105">
       <CardContent className="pt-6 text-center">
         <Calendar className="w-8 h-8 text-green-500 mx-auto mb-2" />
         <h3 className="text-2xl font-bold">2.4x</h3>
@@ -201,7 +275,7 @@ const ImpactStats = () => (
       </CardContent>
     </Card>
 
-    <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800 shadow-md">
+    <Card className="bg-gradient-to-br from-amber-50 to-amber-100 dark:from-amber-950 dark:to-amber-900 border-amber-200 dark:border-amber-800 shadow-md transition-all duration-300 hover:shadow-lg hover:scale-105">
       <CardContent className="pt-6 text-center">
         <Lightbulb className="w-8 h-8 text-amber-500 mx-auto mb-2" />
         <h3 className="text-2xl font-bold">10x</h3>
@@ -209,6 +283,141 @@ const ImpactStats = () => (
       </CardContent>
     </Card>
   </div>
+);
+
+// Componente para mostrar testemunhos
+const Testimonials = () => (
+  <div className="mt-16 grid gap-6 md:grid-cols-3">
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.2 }}
+      className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-100 dark:border-gray-700"
+    >
+      <div className="flex items-center gap-2 mb-4">
+        {Array(5).fill(0).map((_, i) => (
+          <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+        ))}
+      </div>
+      <p className="italic text-gray-600 dark:text-gray-300 mb-4">
+        O Mentor.IA revolucionou minha estratégia de conteúdo. Em 30 dias, ganhei mais de 10k seguidores e tripliquei minhas conversões. Vale cada centavo!
+      </p>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold">
+          M
+        </div>
+        <div>
+          <p className="font-medium">Marcos Silva</p>
+          <p className="text-xs text-muted-foreground">@marketingcommarcos</p>
+        </div>
+      </div>
+    </motion.div>
+
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.4 }}
+      className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-100 dark:border-gray-700"
+    >
+      <div className="flex items-center gap-2 mb-4">
+        {Array(5).fill(0).map((_, i) => (
+          <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+        ))}
+      </div>
+      <p className="italic text-gray-600 dark:text-gray-300 mb-4">
+        A estratégia gerada pela IA me deu ideias que eu jamais teria pensado. Minha taxa de engajamento subiu 215% em apenas duas semanas. Incrível!
+      </p>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-400 to-teal-500 flex items-center justify-center text-white font-bold">
+          C
+        </div>
+        <div>
+          <p className="font-medium">Camila Ferreira</p>
+          <p className="text-xs text-muted-foreground">@camilaempreende</p>
+        </div>
+      </div>
+    </motion.div>
+
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.6 }}
+      className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-md border border-gray-100 dark:border-gray-700"
+    >
+      <div className="flex items-center gap-2 mb-4">
+        {Array(5).fill(0).map((_, i) => (
+          <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+        ))}
+      </div>
+      <p className="italic text-gray-600 dark:text-gray-300 mb-4">
+        Economizei mais de 20 horas por mês no planejamento de conteúdo. O calendário automático e as sugestões de bio são simplesmente fantásticos!
+      </p>
+      <div className="flex items-center gap-3">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-red-500 flex items-center justify-center text-white font-bold">
+          R
+        </div>
+        <div>
+          <p className="font-medium">Rafael Costa</p>
+          <p className="text-xs text-muted-foreground">@rafaelvendasb2b</p>
+        </div>
+      </div>
+    </motion.div>
+  </div>
+);
+
+// Fallbacks para quando os dados estão vazios
+const getFallbackStrategy = (username: string, offer: string, audience: string) => {
+  return `# Estratégia de Conteúdo para @${username}
+
+## Análise de Público
+Seu público-alvo (${audience}) está buscando soluções práticas relacionadas a ${offer}. Eles valorizam conteúdo que entrega valor imediato e demonstra sua expertise.
+
+## Pilares de Conteúdo
+1. **Educação**: Compartilhe conhecimentos sobre ${offer} que ajudem seu público a resolver problemas
+2. **Autoridade**: Mostre resultados e cases de sucesso para estabelecer credibilidade
+3. **Engajamento**: Crie conteúdo que gere interação e construa relacionamento
+
+## Recomendações
+- Poste pelo menos 3-4 vezes por semana para manter consistência
+- Alterne entre formatos (carrossel, reels, stories) para variedade
+- Use storytelling para criar conexão emocional com ${audience}
+- Inclua chamadas para ação claras direcionando para sua oferta
+
+## Estratégia de Crescimento
+Foque em hashtags relevantes, parcerias com criadores complementares, e responda ativamente nos comentários para aumentar seu alcance orgânico.`;
+};
+
+const getFallbackSuggestions = (offer: string, audience: string) => [
+  `✨ Especialista em ${offer} | Ajudando ${audience} a alcançar resultados | Criador de conteúdo digital | DM para consultoria`,
+  `Transformando ${audience} através de ${offer} | 🚀 Estratégias que funcionam | Conteúdo exclusivo toda semana | Link na bio`,
+  `${offer.charAt(0).toUpperCase() + offer.slice(1)} para ${audience} | 💡 Dicas práticas | 🔥 Resultados comprovados | Entre em contato para mais informações`
+];
+
+const getFallbackGrid = (offer: string, audience: string) => [
+  `Carrossel: 5 mitos sobre ${offer}`,
+  `Reels: Como implementar ${offer} em 60 segundos`,
+  `Foto: Resultado de cliente usando ${offer}`,
+  `Carrossel: Guia passo-a-passo de ${offer}`,
+  `Reels: Erros comuns que ${audience} comete`,
+  `Foto: Bastidores do trabalho com ${offer}`,
+  `Carrossel: Comparação antes/depois com ${offer}`,
+  `Reels: Perguntas frequentes sobre ${offer}`,
+  `Foto: Testemunho de cliente sobre ${offer}`
+];
+
+// Componente de dica de estratégia
+const StrategyTip = ({ tip }: { tip: string }) => (
+  <motion.div
+    initial={{ opacity: 0, x: -20 }}
+    animate={{ opacity: 1, x: 0 }}
+    className="flex items-start gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg my-4"
+  >
+    <Lightbulb className="w-5 h-5 text-blue-500 mt-0.5" />
+    <div>
+      <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Dica de Crescimento</p>
+      <p className="text-sm text-muted-foreground">{tip}</p>
+    </div>
+  </motion.div>
 );
 
 // Componente principal aprimorado
@@ -221,6 +430,7 @@ export default function MentorIaMvp() {
   const [formDefaults, setFormDefaults] = useState<Partial<FormData> | undefined>(undefined);
   const [activeTab, setActiveTab] = useState("calendar");
   const [showShareOptions, setShowShareOptions] = useState(false);
+  const [hasShownConfetti, setHasShownConfetti] = useState(false);
 
   // Refs para elementos de animação
   const strategyRef = useRef(null);
@@ -230,10 +440,23 @@ export default function MentorIaMvp() {
   const gridRef = useRef(null);
   const isGridInView = useInView(gridRef, { once: true });
 
+  // Dicas de estratégia para exibir
+  const strategyTips = [
+    "Sempre responda a TODOS os comentários nas primeiras 24h para impulsionar seu engajamento e alcance orgânico.",
+    "Posts que fazem perguntas geram 2x mais comentários do que posts puramente informativos.",
+    "O algoritmo do Instagram favorece conteúdo que mantém as pessoas no app - priorize carrosséis e vídeos mais longos."
+  ];
+
   useEffect(() => {
     if (savedAnalysis === undefined) {
       setView("loading");
     } else if (savedAnalysis) {
+      // Se acabou de gerar e não mostrou o confetti ainda
+      if (Date.now() - (savedAnalysis.updatedAt || savedAnalysis._creationTime) < 10000 && !hasShownConfetti) {
+        triggerSuccessConfetti();
+        setHasShownConfetti(true);
+      }
+
       setView("dashboard");
       setFormDefaults({
         username: savedAnalysis.username,
@@ -245,16 +468,33 @@ export default function MentorIaMvp() {
     } else {
       setView("form");
     }
+  }, [savedAnalysis, hasShownConfetti]);
+
+  // Log de debug para verificar os dados recebidos
+  useEffect(() => {
+    if (savedAnalysis) {
+      console.log("Dados recebidos do backend:", {
+        hasStrategy: !!savedAnalysis.strategy,
+        strategyLength: savedAnalysis.strategy?.length || 0,
+        hasSuggestions: !!savedAnalysis.suggestions,
+        suggestionsLength: savedAnalysis.suggestions?.length || 0,
+        hasGrid: !!savedAnalysis.grid,
+        gridLength: savedAnalysis.grid?.length || 0,
+        contentPlanLength: savedAnalysis.content_plan?.length || 0
+      });
+    }
   }, [savedAnalysis]);
 
   const handleGenerate = (data: FormData) => {
     setIsGenerating(true);
+    setHasShownConfetti(false);
     toast.promise(generateAnalysis(data), {
       loading: "Athena foi convocada. Forjando sua estratégia de elite...",
       success: () => {
         setIsGenerating(false);
         // Dispara o confete ao completar com sucesso
         triggerSuccessConfetti();
+        setHasShownConfetti(true);
         return "Sua estratégia de dominação está pronta!";
       },
       error: (err: Error) => {
@@ -266,7 +506,9 @@ export default function MentorIaMvp() {
 
   const handleCopyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
-    toast.success(`${label} copiada para a área de transferência!`);
+    toast.success(`${label} copiada para a área de transferência!`, {
+      icon: <Copy className="w-4 h-4 text-green-500" />
+    });
   };
 
   const handleSharePlan = () => {
@@ -279,12 +521,16 @@ export default function MentorIaMvp() {
           text: shareText,
           url: 'https://freelinnk.com/mentor-ia'
         })
-          .then(() => toast.success('Plano compartilhado com sucesso!'))
+          .then(() => toast.success('Plano compartilhado com sucesso!', {
+            icon: <Share2 className="w-4 h-4 text-green-500" />
+          }))
           .catch(() => setShowShareOptions(true));
       } else {
         setShowShareOptions(true);
         navigator.clipboard.writeText(shareText);
-        toast.success('Texto copiado! Compartilhe nas suas redes.');
+        toast.success('Texto copiado! Compartilhe nas suas redes.', {
+          icon: <Copy className="w-4 h-4 text-green-500" />
+        });
       }
     }
   };
@@ -299,13 +545,19 @@ export default function MentorIaMvp() {
 Data de geração: ${new Date(savedAnalysis.updatedAt ?? savedAnalysis._creationTime).toLocaleString("pt-BR")}
 
 ## ESTRATÉGIA
-${savedAnalysis.strategy}
+${savedAnalysis.strategy || getFallbackStrategy(savedAnalysis.username, savedAnalysis.offer, savedAnalysis.audience)}
 
 ## SUGESTÕES DE BIO
-${savedAnalysis.suggestions.map((s, i) => `${i + 1}. ${s}`).join('\n')}
+${(savedAnalysis.suggestions?.length > 0
+  ? savedAnalysis.suggestions
+  : getFallbackSuggestions(savedAnalysis.offer, savedAnalysis.audience)
+).map((s, i) => `${i + 1}. ${s}`).join('\n')}
 
 ## GRID HARMÔNICO
-${savedAnalysis.grid.map((g, i) => `${i + 1}. ${g}`).join('\n')}
+${(savedAnalysis.grid?.length > 0
+  ? savedAnalysis.grid
+  : getFallbackGrid(savedAnalysis.offer, savedAnalysis.audience)
+).map((g, i) => `${i + 1}. ${g}`).join('\n')}
 
 ## PLANO DE CONTEÚDO
 ${savedAnalysis.content_plan.map((item, i) => `
@@ -334,7 +586,9 @@ https://freelinnk.com
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast.success('Plano de conteúdo baixado com sucesso!');
+    toast.success('Plano de conteúdo baixado com sucesso!', {
+      icon: <Download className="w-4 h-4 text-green-500" />
+    });
   };
 
   if (view === "loading" || (isGenerating && view !== 'dashboard')) {
@@ -408,30 +662,58 @@ https://freelinnk.com
               <ImpactStats />
 
               <div className="mt-16 grid grid-cols-1 md:grid-cols-3 gap-8">
-                <div className="flex flex-col items-center text-center p-6 bg-gradient-to-b from-blue-50 to-transparent dark:from-blue-950/50 dark:to-transparent rounded-xl">
-                  <div className="bg-blue-100 dark:bg-blue-900/50 p-4 rounded-full mb-4">
+                <div className="flex flex-col items-center text-center p-6 bg-gradient-to-b from-blue-50 to-transparent dark:from-blue-950/50 dark:to-transparent rounded-xl border border-blue-100/50 dark:border-blue-800/30 shadow-md hover:shadow-lg transition-all duration-300">
+                  <div className="bg-blue-100 dark:bg-blue-900/50 p-4 rounded-full mb-4 shadow-inner">
                     <Award className="w-8 h-8 text-blue-600" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">Estratégia de Elite</h3>
                   <p className="text-muted-foreground">Análise profunda do seu nicho com foco em conversão e crescimento acelerado.</p>
                 </div>
 
-                <div className="flex flex-col items-center text-center p-6 bg-gradient-to-b from-purple-50 to-transparent dark:from-purple-950/50 dark:to-transparent rounded-xl">
-                  <div className="bg-purple-100 dark:bg-purple-900/50 p-4 rounded-full mb-4">
+                <div className="flex flex-col items-center text-center p-6 bg-gradient-to-b from-purple-50 to-transparent dark:from-purple-950/50 dark:to-transparent rounded-xl border border-purple-100/50 dark:border-purple-800/30 shadow-md hover:shadow-lg transition-all duration-300">
+                  <div className="bg-purple-100 dark:bg-purple-900/50 p-4 rounded-full mb-4 shadow-inner">
                     <Calendar className="w-8 h-8 text-purple-600" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">Calendário Completo</h3>
                   <p className="text-muted-foreground">Plano de 7 ou 30 dias com todos os detalhes, roteiros e recursos necessários.</p>
                 </div>
 
-                <div className="flex flex-col items-center text-center p-6 bg-gradient-to-b from-indigo-50 to-transparent dark:from-indigo-950/50 dark:to-transparent rounded-xl">
-                  <div className="bg-indigo-100 dark:bg-indigo-900/50 p-4 rounded-full mb-4">
+                <div className="flex flex-col items-center text-center p-6 bg-gradient-to-b from-indigo-50 to-transparent dark:from-indigo-950/50 dark:to-transparent rounded-xl border border-indigo-100/50 dark:border-indigo-800/30 shadow-md hover:shadow-lg transition-all duration-300">
+                  <div className="bg-indigo-100 dark:bg-indigo-900/50 p-4 rounded-full mb-4 shadow-inner">
                     <Zap className="w-8 h-8 text-indigo-600" />
                   </div>
                   <h3 className="text-xl font-bold mb-2">Viralização Garantida</h3>
                   <p className="text-muted-foreground">Fórmulas testadas e aprovadas para maximizar seu alcance e engajamento.</p>
                 </div>
               </div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 1.2 }}
+                className="mt-12 p-6 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl text-white shadow-xl"
+              >
+                <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+                  <div>
+                    <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                      <Trophy className="w-6 h-6 text-yellow-300" />
+                      Resultados Comprovados
+                    </h2>
+                    <p>Nossos usuários relatam em média 300% mais engajamento e 2x mais conversões.</p>
+                  </div>
+                  <Button
+                    variant="secondary"
+                    size="lg"
+                    className="bg-white text-blue-700 hover:bg-blue-50 font-medium"
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                  >
+                    Experimente Agora
+                    <ArrowRight className="ml-2 w-4 h-4" />
+                  </Button>
+                </div>
+              </motion.div>
+
+              <Testimonials />
 
               <div className="mt-16 text-center">
                 <p className="text-sm text-muted-foreground">
@@ -472,7 +754,8 @@ https://freelinnk.com
                   Para <span className="font-bold">@{savedAnalysis.username}</span> | {savedAnalysis.planDuration === "week" ? "7 dias" : "30 dias"}
                 </p>
                 <div className="flex items-center gap-3 mt-2">
-                  <Badge variant="outline" className="text-blue-200 border-blue-400/30">
+                  <Badge variant="outline" className="text-blue-200 border-blue-400/30 px-2 py-0.5 flex items-center gap-1">
+                    <BrainCircuit className="w-3 h-3" />
                     {savedAnalysis.aiModel?.includes("fallback")
                       ? "IA Avançada"
                       : savedAnalysis.aiModel?.includes("gemini")
@@ -486,23 +769,41 @@ https://freelinnk.com
               </div>
 
               <div className="flex flex-wrap gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleSharePlan}
-                  className="bg-white/10 border-white/20 hover:bg-white/20 text-white"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Compartilhar
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        onClick={handleSharePlan}
+                        className="bg-white/10 border-white/20 hover:bg-white/20 text-white"
+                      >
+                        <Share2 className="w-4 h-4 mr-2" />
+                        Compartilhar
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="w-40">Compartilhe sua estratégia nas redes sociais</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
-                <Button
-                  variant="outline"
-                  onClick={handleDownloadPlan}
-                  className="bg-white/10 border-white/20 hover:bg-white/20 text-white"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Baixar
-                </Button>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        onClick={handleDownloadPlan}
+                        className="bg-white/10 border-white/20 hover:bg-white/20 text-white"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Baixar
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="w-40">Baixe sua estratégia completa em formato texto</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
 
                 <Button
                   variant="secondary"
@@ -515,14 +816,54 @@ https://freelinnk.com
               </div>
             </motion.div>
 
+            {/* Ações rápidas */}
+            <motion.div
+              initial={{ y: 20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              transition={{ delay: 0.3 }}
+              className="mt-4 p-4 rounded-xl border bg-card shadow-sm flex flex-wrap gap-2 items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <Badge variant="outline" className="bg-green-100 text-green-800 border-green-200 dark:bg-green-900/30 dark:text-green-300 dark:border-green-800 flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  Plano Gerado
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  Explore as seções abaixo para ver sua estratégia completa
+                </span>
+              </div>
+
+              <div className="flex gap-2">
+                <Button variant="ghost" size="sm" className="text-xs" onClick={() => setActiveTab("calendar")}>
+                  <Calendar className="w-3 h-3 mr-1" />
+                  Calendário
+                </Button>
+                <Button variant="ghost" size="sm" className="text-xs" onClick={() => setActiveTab("strategy")}>
+                  <Target className="w-3 h-3 mr-1" />
+                  Estratégia
+                </Button>
+                <Button variant="ghost" size="sm" className="text-xs" onClick={() => setActiveTab("suggestions")}>
+                  <Lightbulb className="w-3 h-3 mr-1" />
+                  Bios
+                </Button>
+                <Button variant="ghost" size="sm" className="text-xs" onClick={() => setActiveTab("grid")}>
+                  <LayoutGrid className="w-3 h-3 mr-1" />
+                  Grid
+                </Button>
+              </div>
+            </motion.div>
+
             {showShareOptions && (
               <motion.div
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-4 p-4 bg-card rounded-xl border shadow-md"
               >
-                <h3 className="font-medium mb-2">Compartilhar nas redes sociais</h3>
-                <div className="flex gap-2">
+                <h3 className="font-medium mb-2 flex items-center gap-2">
+                  <Share2 className="w-4 h-4 text-blue-500" />
+                  Compartilhar nas redes sociais
+                </h3>
+                <div className="flex gap-2 flex-wrap">
                   <Button variant="outline" size="sm" className="gap-2" onClick={() => window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(`Acabei de criar uma estratégia de conteúdo poderosa com o Mentor.IA do @freelink! Transformando meu perfil em uma máquina de crescimento orgânico. 🚀 #FreelinkMentorIA`)}&url=${encodeURIComponent('https://freelink.io/mentor-ia')}`, '_blank')}>
                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-twitter"><path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z" /></svg>
                     Twitter
@@ -538,7 +879,11 @@ https://freelinnk.com
                   <Button variant="outline" size="sm" onClick={() => setShowShareOptions(false)}>
                     Fechar
                   </Button>
+                </div>
 
+                <div className="mt-4 flex items-center gap-2 text-xs text-muted-foreground">
+                  <Heart className="w-3 h-3 text-red-400" />
+                  <span>Compartilhe e ajude outros criadores a potencializarem seus resultados!</span>
                 </div>
               </motion.div>
             )}
@@ -599,6 +944,16 @@ https://freelinnk.com
                   <div className="bg-gradient-to-b from-blue-50 to-transparent dark:from-blue-950/20 dark:to-transparent p-6 rounded-2xl shadow-lg border border-blue-200 dark:border-blue-800/50">
                     <CalendarView plan={savedAnalysis.content_plan as PlanItem[]} analysisId={savedAnalysis._id} />
                   </div>
+
+                  <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/10 rounded-lg border border-blue-100 dark:border-blue-800/30 shadow-sm">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
+                      <div>
+                        <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Dica de produtividade</p>
+                        <p className="text-sm text-muted-foreground">Marque os itens como concluídos para acompanhar seu progresso. Reserve um tempo fixo semanalmente para produzir seu conteúdo em lotes.</p>
+                      </div>
+                    </div>
+                  </div>
                 </motion.div>
               </TabsContent>
 
@@ -616,13 +971,35 @@ https://freelinnk.com
                   </h3>
 
                   <div className="prose prose-lg dark:prose-invert max-w-none prose-headings:text-foreground prose-headings:font-bold prose-h2:text-xl prose-p:text-muted-foreground prose-a:text-blue-500">
-                    <ReactMarkdown>{savedAnalysis.strategy.replace(/\\n/g, '\n')}</ReactMarkdown>
+                    {savedAnalysis.strategy && savedAnalysis.strategy.length > 50 ? (
+                      <ReactMarkdown>{savedAnalysis.strategy.replace(/\\n/g, '\n')}</ReactMarkdown>
+                    ) : (
+                      <ReactMarkdown>
+                        {getFallbackStrategy(savedAnalysis.username, savedAnalysis.offer, savedAnalysis.audience)}
+                      </ReactMarkdown>
+                    )}
+                  </div>
+
+                  {/* Dicas de estratégia */}
+                  <div className="mt-8 space-y-4">
+                    <h4 className="font-semibold text-purple-800 dark:text-purple-300 flex items-center gap-2">
+                      <Zap className="w-4 h-4" />
+                      Dicas de Crescimento Premium
+                    </h4>
+                    {strategyTips.map((tip, i) => (
+                      <StrategyTip key={i} tip={tip} />
+                    ))}
                   </div>
 
                   <div className="mt-8 flex justify-end">
                     <Button
                       variant="outline"
-                      onClick={() => handleCopyToClipboard(savedAnalysis.strategy, "Estratégia")}
+                      onClick={() => handleCopyToClipboard(
+                        savedAnalysis.strategy && savedAnalysis.strategy.length > 50
+                          ? savedAnalysis.strategy
+                          : getFallbackStrategy(savedAnalysis.username, savedAnalysis.offer, savedAnalysis.audience),
+                        "Estratégia"
+                      )}
                       className="gap-2"
                     >
                       <Copy className="w-4 h-4" />
@@ -645,7 +1022,10 @@ https://freelinnk.com
                   </h3>
 
                   <div className="grid md:grid-cols-3 gap-6">
-                    {(savedAnalysis.suggestions ?? []).map((suggestion, i) => (
+                    {(savedAnalysis.suggestions?.length > 0
+                      ? savedAnalysis.suggestions
+                      : getFallbackSuggestions(savedAnalysis.offer, savedAnalysis.audience)
+                    ).map((suggestion, i) => (
                       <motion.div
                         key={i}
                         initial={{ opacity: 0, y: 20 }}
@@ -697,13 +1077,17 @@ https://freelinnk.com
 
                   <div className="bg-gradient-to-b from-green-50 to-transparent dark:from-green-950/20 dark:to-transparent p-6 rounded-2xl border border-green-200 dark:border-green-800/50 shadow-lg">
                     <div className="grid grid-cols-3 gap-3 max-w-md mx-auto">
-                      {(savedAnalysis.grid.length > 0 ? savedAnalysis.grid : Array(9).fill("Ideia de Post")).map((idea, i) => (
+                      {(savedAnalysis.grid?.length > 0
+                        ? savedAnalysis.grid
+                        : getFallbackGrid(savedAnalysis.offer, savedAnalysis.audience)
+                      ).map((idea, i) => (
                         <motion.div
                           key={i}
                           initial={{ opacity: 0, scale: 0.8 }}
                           animate={{ opacity: 1, scale: 1 }}
                           transition={{ duration: 0.3, delay: i * 0.05 }}
-                          className="aspect-square bg-white dark:bg-gray-800 rounded-xl flex flex-col items-center justify-center p-3 text-center text-sm font-medium border shadow-sm hover:shadow-md transition-shadow gap-3"
+                          className="aspect-square bg-white dark:bg-gray-800 rounded-xl flex flex-col items-center justify-center p-3 text-center text-sm font-medium border shadow-sm hover:shadow-md transition-shadow gap-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50"
+                          onClick={() => handleCopyToClipboard(idea, `Ideia ${i+1}`)}
                         >
                           <GridIcon format={idea} />
                           <span className="text-muted-foreground line-clamp-3">{idea}</span>
@@ -719,6 +1103,12 @@ https://freelinnk.com
                     </h4>
                     <p className="text-sm text-muted-foreground">
                       Mantenha a harmonia visual do seu feed alternando formatos. Use esta configuração de grid para criar uma estética profissional que impressiona novos visitantes.
+                    </p>
+                  </div>
+
+                  <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-950/30 rounded-lg border border-blue-200 dark:border-blue-800/30 shadow-inner">
+                    <p className="text-sm text-center text-blue-600 dark:text-blue-300 font-medium">
+                      Clique em qualquer ideia para copiá-la para a área de transferência
                     </p>
                   </div>
                 </motion.div>
@@ -755,6 +1145,22 @@ https://freelinnk.com
                   </Button>
                 </div>
               </div>
+
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.7 }}
+                className="mt-8 p-6 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-950/30 dark:to-purple-950/30 rounded-lg border border-indigo-200 dark:border-indigo-800/30 shadow-sm"
+              >
+                <div className="flex items-center gap-3 text-sm text-center justify-center">
+                  <span className="font-medium text-indigo-700 dark:text-indigo-300">
+                    O Mentor.IA é atualizado constantemente com novas estratégias e recursos.
+                  </span>
+                  <span className="text-muted-foreground">
+                    Visite novamente para gerar novos planos otimizados.
+                  </span>
+                </div>
+              </motion.div>
             </motion.div>
           </motion.div>
         )}
