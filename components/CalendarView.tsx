@@ -11,7 +11,7 @@ import {
   Copy, Link as LinkIcon, ImageIcon, CheckCircle,
   Clock, Calendar as CalendarIcon, X, Edit, Share2,
   TrendingUp, Camera, Award, Trophy,
-   Zap , Instagram, Twitter, Linkedin, Flame
+   Zap , Instagram, Twitter, Linkedin, Flame,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -668,67 +668,61 @@ export default function CalendarView({
 
     setTodaysEvents(todaysItems);
 
-    const completedPosts = planWithIds
-      .filter((item) => item.status === "concluido" && item.completedAt)
-      .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
+    const completedPostsTimestamps = planWithIds
+        .filter((item) => item.status === "concluido" && item.completedAt)
+        .map((item) => startOfDay(new Date(item.completedAt!)).getTime()); // Get timestamps of start of day
 
-    if (completedPosts.length > 0) {
-      // Verifica a sequência de dias contínuos
-      let currentStreak = 0;
+    const uniqueCompletedDays = Array.from(new Set(completedPostsTimestamps))
+        .map(ts => new Date(ts))
+        .sort((a, b) => a.getTime() - b.getTime()); // Sort oldest to newest
 
-      const sortedByDate = completedPosts.sort((a, b) => (a.completedAt || 0) - (b.completedAt || 0));
+    let calculatedStreak = 0;
+    const todayStartOfDay = startOfDay(new Date());
 
-      let tempStreak = 0;
-      let currentDate = new Date(); // Começa com a data atual para verificar se há posts de hoje/ontem
-
-      // Verifica se houve alguma conclusão hoje ou ontem
-      const uniqueCompletedDates = Array.from(new Set(
-        sortedByDate.map(p => format(new Date(p.completedAt!), 'yyyy-MM-dd'))
-      )).map(dateStr => parse(dateStr, 'yyyy-MM-dd', new Date())).sort((a,b) => b.getTime() - a.getTime());
-
-      if (uniqueCompletedDates.length > 0) {
-        if (isSameDay(uniqueCompletedDates[0], currentDate)) {
-          tempStreak = 1;
-          currentDate = addDays(currentDate, -1); // Move para o dia anterior para verificar a sequência
-        } else if (isSameDay(uniqueCompletedDates[0], addDays(currentDate, -1))) {
-          // Se o último post concluído foi ontem, a sequência começa de 0 hoje, mas pode continuar amanhã.
-          // Para uma sequência "ativa" precisa ter concluído hoje ou ontem E no dia anterior.
-          // Ajuste para verificar se tem postagem no dia anterior a ontem para manter a streak.
-          tempStreak = 0; // Se o último foi ontem, mas não tem hoje, a streak para
-        }
-
-        // Verifica os dias anteriores
-        for (let i = 0; i < uniqueCompletedDates.length; i++) {
-          const checkDate = uniqueCompletedDates[i];
-          if (isSameDay(checkDate, addDays(currentDate, -i))) {
-             tempStreak++;
-          } else if (i === 0 && isSameDay(checkDate, currentDate)) {
-            // Caso especial: se o primeiro dia concluído é hoje
-            tempStreak = 1;
-          }
-          else {
-            // Se o dia não é o consecutivo esperado, quebra a sequência
-            break;
-          }
-        }
-        currentStreak = tempStreak; // Atualiza a streak
-      }
-
-      if (currentStreak > streakDays) {
-        if (
-          (streakDays < 7 && currentStreak >= 7) ||
-          (streakDays < 14 && currentStreak >= 14) ||
-          (streakDays < 30 && currentStreak >= 30)
-        ) {
-          setStreakAchievement(true);
-        }
-      }
-
-      setStreakDays(currentStreak);
+    if (uniqueCompletedDays.length === 0) {
+        calculatedStreak = 0;
     } else {
-      setStreakDays(0); // Se não há posts concluídos, a streak é 0
+        let lastDayChecked = uniqueCompletedDays[uniqueCompletedDays.length - 1]; // Most recent completed day
+
+        // Check if the most recent completed day is today or yesterday
+        if (isSameDay(lastDayChecked, todayStartOfDay)) {
+            calculatedStreak = 1;
+        } else if (isSameDay(lastDayChecked, addDays(todayStartOfDay, -1))) {
+            // If the last completed day was yesterday, and no post today yet, streak continues from yesterday
+            calculatedStreak = 1;
+        } else {
+            // Last completed post was before yesterday, streak is 0
+            calculatedStreak = 0;
+        }
+
+        // Count backwards for full streak
+        if (calculatedStreak > 0) {
+            for (let i = uniqueCompletedDays.length - 2; i >= 0; i--) {
+                const prevDay = uniqueCompletedDays[i];
+                if (isSameDay(prevDay, addDays(lastDayChecked, -1))) {
+                    calculatedStreak++;
+                    lastDayChecked = prevDay;
+                } else {
+                    break; // Streak broken
+                }
+            }
+        }
     }
-  }, [planWithIds, events, streakDays]);
+
+    // Only trigger achievement if the calculated streak is a new milestone AND greater than previous streakDays
+    // This comparison uses the `streakDays` from the *previous* render
+    if (calculatedStreak > streakDays) {
+        if (
+            (streakDays < 7 && calculatedStreak >= 7) ||
+            (streakDays < 14 && calculatedStreak >= 14) ||
+            (streakDays < 30 && calculatedStreak >= 30)
+        ) {
+            setStreakAchievement(true);
+        }
+    }
+
+    setStreakDays(calculatedStreak); // Update the state
+  }, [planWithIds, events, streakDays]); // Dependency array should cause re-run when plan changes
 
   // Effect para mostrar parabéns quando atinge marco de streak
   useEffect(() => {
@@ -1260,7 +1254,8 @@ export default function CalendarView({
                 </DialogHeader>
 
                 {/* Conteúdo do Modal */}
-                <div className="flex-grow overflow-hidden">
+                {/* ✅ CORRIGIDO: Removido `overflow-hidden` daqui */}
+                <div className="flex-grow">
                   {isEditing ? (
                     <motion.div
                       key="edit-form"
@@ -1276,12 +1271,13 @@ export default function CalendarView({
                       />
                     </motion.div>
                   ) : (
+
                     <motion.div
                       key="content-view"
                       initial={{ opacity: 0 }}
                       animate={{ opacity: 1 }}
                       exit={{ opacity: 0 }}
-                      className="flex flex-col h-full overflow-hidden"
+                      className="flex flex-col h-full"
                     >
                       <Tabs defaultValue="content" className="flex flex-col h-full">
                         <div className="px-4 sm:px-6 pt-4">
@@ -1301,7 +1297,7 @@ export default function CalendarView({
                         <div ref={contentScrollRef} className="flex-grow overflow-y-auto px-4 sm:px-6 pb-24 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
                           <TabsContent
                             value="content"
-                            className="h-full data-[state=active]:flex flex-col" // Removido flex-grow aqui, pois já está no pai
+                            className="h-full data-[state=active]:flex flex-col"
                           >
                               <div className="pt-4 space-y-5 sm:space-y-6">
                                 <motion.div
@@ -1362,7 +1358,7 @@ export default function CalendarView({
 
                           <TabsContent
                             value="execution"
-                            className="h-full data-[state=active]:flex flex-col" // Removido flex-grow aqui, pois já está no pai
+                            className="h-full data-[state=active]:flex flex-col"
                           >
                               <div className="pt-4 space-y-5 sm:space-y-6">
                                 {selectedEvent.details && (
