@@ -11,8 +11,7 @@ import {
   Copy, Link as LinkIcon, ImageIcon, CheckCircle,
   Clock, Calendar as CalendarIcon, X, Edit, Share2,
   TrendingUp, Camera, Award, Trophy,
-   Zap , Instagram, Twitter, Linkedin,
-   Flame
+   Zap , Instagram, Twitter, Linkedin, Flame
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -30,7 +29,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import confetti from 'canvas-confetti';
-
 
 
 // Tipos
@@ -131,8 +129,6 @@ const LoadingDots = () => (
 );
 
 // Componente de compartilhamento
-// Tipos para os parâmetros
-// Tipos para os parâmetros
 interface ShareAchievementModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -180,8 +176,13 @@ function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchi
   const handleShare = async (platform: 'twitter' | 'linkedin' | 'instagram') => {
     // Verificar se já temos uma URL compartilhável
     if (!shareUrl) {
+      // Tentar gerar novamente se não há URL
       await handleShareAchievement();
-      if (!shareUrl) return; // Falha ao gerar
+      // Se ainda não houver URL, retornar
+      if (!shareUrl) {
+        toast.error("Não foi possível gerar um link para compartilhar.");
+        return;
+      }
     }
 
     // Registrar a plataforma de compartilhamento
@@ -300,47 +301,53 @@ function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchi
             )}
 
             <div className="flex justify-center gap-3 pt-2">
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full h-10 w-10 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-                    onClick={() => handleShare('twitter')}
-                  >
-                    <Twitter className="w-5 h-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Compartilhar no Twitter</TooltipContent>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full h-10 w-10 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                      onClick={() => handleShare('twitter')}
+                    >
+                      <Twitter className="w-5 h-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Compartilhar no Twitter</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full h-10 w-10 bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
-                    onClick={() => handleShare('linkedin')}
-                  >
-                    <Linkedin className="w-5 h-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Compartilhar no LinkedIn</TooltipContent>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full h-10 w-10 bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
+                      onClick={() => handleShare('linkedin')}
+                    >
+                      <Linkedin className="w-5 h-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Compartilhar no LinkedIn</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
 
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="rounded-full h-10 w-10 bg-gradient-to-br from-purple-100 to-amber-50 text-pink-600 border-pink-200 hover:from-purple-200 hover:to-amber-100"
-                    onClick={() => handleShare('instagram')}
-                  >
-                    <Instagram className="w-5 h-5" />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>Compartilhar no Instagram</TooltipContent>
-              </Tooltip>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      className="rounded-full h-10 w-10 bg-gradient-to-br from-purple-100 to-amber-50 text-pink-600 border-pink-200 hover:from-purple-200 hover:to-amber-100"
+                      onClick={() => handleShare('instagram')}
+                    >
+                      <Instagram className="w-5 h-5" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Compartilhar no Instagram</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>
@@ -557,7 +564,7 @@ const formatConfig: Record<string, { icon: JSX.Element; color: string, gradient:
     gradient: "from-blue-500 to-indigo-500"
   },
   story: {
-    icon: <MessageSquare className="w-4 h-4 mr-2" />,
+    icon: <MessageSquare className="w-4 h-4 mr-2" />, // Mantido MessageSquare para Story, mas Eye (de Lucide) também seria uma boa opção!
     color: "bg-yellow-100 text-yellow-800 border-yellow-200 dark:bg-yellow-900/50 dark:text-yellow-300 dark:border-yellow-800",
     gradient: "from-yellow-500 to-amber-500"
   },
@@ -606,7 +613,9 @@ export default function CalendarView({
   const [streakDays, setStreakDays] = useState(0);
   const [showShareModal, setShowShareModal] = useState(false);
   const [streakAchievement, setStreakAchievement] = useState(false);
-  const contentRef = useRef<HTMLDivElement>(null);
+
+  // Ref para o conteúdo scrollável do modal
+  const contentScrollRef = useRef<HTMLDivElement>(null);
 
   const updatePlanMutation = useMutation(api.mentor.updateContentPlan);
 
@@ -620,8 +629,16 @@ export default function CalendarView({
   const events = useMemo(() => {
     const today = startOfDay(new Date());
     return planWithIds.map((item) => {
+      // Ajuste para garantir que a data seja sempre no futuro ou hoje, com base no "dia" do plano.
+      // O `item.day` é uma string como "Dia 1", "Dia 2".
+      // Precisamos mapear isso para uma data real no calendário.
+      // Uma abordagem comum é basear no _primeiro_ dia do plano (se existir)
+      // ou assumir que o "Dia 1" é sempre a data atual quando o plano é gerado.
+      // Por enquanto, o código atual `addDays(today, dayNumber - 1)` funciona se o plano sempre começa do "Dia 1" hoje.
       const dayNumber = parseInt(item.day.replace(/\D/g, ""), 10) || 1;
-      const eventDate = addDays(today, dayNumber - 1);
+      const eventDate = addDays(today, dayNumber - 1); // Isso pode fazer com que eventos de "Dia 1" a "Dia N" sempre apareçam a partir da data atual
+                                                     // O ideal é que o `day` do item já venha do backend como uma data específica (timestamp ou string YYYY-MM-DD)
+                                                     // ou que você tenha uma `startDate` no `analysisId`
       const [h, m] = (item.time ?? "09:00").split(":");
       eventDate.setHours(Number(h ?? 9), Number(m ?? 0), 0, 0);
       return {
@@ -656,42 +673,62 @@ export default function CalendarView({
       .sort((a, b) => (b.completedAt || 0) - (a.completedAt || 0));
 
     if (completedPosts.length > 0) {
-      const lastCompletionDate = new Date(completedPosts[0].completedAt || 0);
-      const hasCompletedToday = isSameDay(lastCompletionDate, today);
+      // Verifica a sequência de dias contínuos
+      let currentStreak = 0;
 
-      if (hasCompletedToday) {
-        let currentStreak = 1;
-        let currentDate = today;
+      const sortedByDate = completedPosts.sort((a, b) => (a.completedAt || 0) - (b.completedAt || 0));
 
-        for (let i = 1; i <= 90; i++) {
-          const previousDate = addDays(currentDate, -1);
-          const hasPostOnPreviousDay = completedPosts.some((post) => {
-            const postDate = new Date(post.completedAt || 0);
-            return isSameDay(postDate, previousDate);
-          });
+      let tempStreak = 0;
+      let currentDate = new Date(); // Começa com a data atual para verificar se há posts de hoje/ontem
 
-          if (hasPostOnPreviousDay) {
-            currentStreak++;
-            currentDate = previousDate;
-          } else {
+      // Verifica se houve alguma conclusão hoje ou ontem
+      const uniqueCompletedDates = Array.from(new Set(
+        sortedByDate.map(p => format(new Date(p.completedAt!), 'yyyy-MM-dd'))
+      )).map(dateStr => parse(dateStr, 'yyyy-MM-dd', new Date())).sort((a,b) => b.getTime() - a.getTime());
+
+      if (uniqueCompletedDates.length > 0) {
+        if (isSameDay(uniqueCompletedDates[0], currentDate)) {
+          tempStreak = 1;
+          currentDate = addDays(currentDate, -1); // Move para o dia anterior para verificar a sequência
+        } else if (isSameDay(uniqueCompletedDates[0], addDays(currentDate, -1))) {
+          // Se o último post concluído foi ontem, a sequência começa de 0 hoje, mas pode continuar amanhã.
+          // Para uma sequência "ativa" precisa ter concluído hoje ou ontem E no dia anterior.
+          // Ajuste para verificar se tem postagem no dia anterior a ontem para manter a streak.
+          tempStreak = 0; // Se o último foi ontem, mas não tem hoje, a streak para
+        }
+
+        // Verifica os dias anteriores
+        for (let i = 0; i < uniqueCompletedDates.length; i++) {
+          const checkDate = uniqueCompletedDates[i];
+          if (isSameDay(checkDate, addDays(currentDate, -i))) {
+             tempStreak++;
+          } else if (i === 0 && isSameDay(checkDate, currentDate)) {
+            // Caso especial: se o primeiro dia concluído é hoje
+            tempStreak = 1;
+          }
+          else {
+            // Se o dia não é o consecutivo esperado, quebra a sequência
             break;
           }
         }
-
-        if (currentStreak > streakDays) {
-          if (
-            (streakDays < 7 && currentStreak >= 7) ||
-            (streakDays < 14 && currentStreak >= 14) ||
-            (streakDays < 30 && currentStreak >= 30)
-          ) {
-            setStreakAchievement(true);
-          }
-        }
-
-        setStreakDays(currentStreak);
+        currentStreak = tempStreak; // Atualiza a streak
       }
+
+      if (currentStreak > streakDays) {
+        if (
+          (streakDays < 7 && currentStreak >= 7) ||
+          (streakDays < 14 && currentStreak >= 14) ||
+          (streakDays < 30 && currentStreak >= 30)
+        ) {
+          setStreakAchievement(true);
+        }
+      }
+
+      setStreakDays(currentStreak);
+    } else {
+      setStreakDays(0); // Se não há posts concluídos, a streak é 0
     }
-  }, [planWithIds, events, streakDays]); // ✅ streakDays adicionado
+  }, [planWithIds, events, streakDays]);
 
   // Effect para mostrar parabéns quando atinge marco de streak
   useEffect(() => {
@@ -709,7 +746,7 @@ export default function CalendarView({
             size="sm"
             onClick={() => {
               setShowShareModal(true);
-              setStreakAchievement(false);
+              setStreakAchievement(false); // Reset para não disparar múltiplas vezes
             }}
           >
             <Trophy className="w-4 h-4 mr-2" />
@@ -723,7 +760,7 @@ export default function CalendarView({
         }
       );
     }
-  }, [streakAchievement, streakDays]); // ✅ streakDays adicionado
+  }, [streakAchievement, streakDays]);
 
   const handleUpdatePlan = async (updatedPlan: PlanItem[]) => {
     setIsUpdating(true);
@@ -791,14 +828,12 @@ export default function CalendarView({
     });
   };
 
+  // ✅ NOVO: useEffect para rolar para o topo quando o evento selecionado muda ou quando o modo de edição muda
   useEffect(() => {
-    if (contentRef.current) {
-      contentRef.current.scrollTop = 0;
+    if (contentScrollRef.current) {
+      contentScrollRef.current.scrollTop = 0;
     }
   }, [selectedEvent, isEditing]);
-
-
-
 
 
   return (
@@ -1262,12 +1297,12 @@ export default function CalendarView({
                           </TabsList>
                         </div>
 
-                        <div className="flex-grow overflow-hidden">
+                        {/* ✅ AQUI ESTÁ O SCROLL: `contentScrollRef` aplicado e `overflow-y-auto` */}
+                        <div ref={contentScrollRef} className="flex-grow overflow-y-auto px-4 sm:px-6 pb-24 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
                           <TabsContent
                             value="content"
-                            className="h-full data-[state=active]:flex flex-col"
+                            className="h-full data-[state=active]:flex flex-col" // Removido flex-grow aqui, pois já está no pai
                           >
-                            <div ref={contentRef} className="flex-grow overflow-y-auto px-4 sm:px-6 pb-24">
                               <div className="pt-4 space-y-5 sm:space-y-6">
                                 <motion.div
                                   initial={{ opacity: 0, y: 10 }}
@@ -1323,14 +1358,12 @@ export default function CalendarView({
                                   </motion.div>
                                 )}
                               </div>
-                            </div>
                           </TabsContent>
 
                           <TabsContent
                             value="execution"
-                            className="h-full data-[state=active]:flex flex-col"
+                            className="h-full data-[state=active]:flex flex-col" // Removido flex-grow aqui, pois já está no pai
                           >
-                            <div ref={contentRef} className="flex-grow overflow-y-auto px-4 sm:px-6 pb-24">
                               <div className="pt-4 space-y-5 sm:space-y-6">
                                 {selectedEvent.details && (
                                   <>
@@ -1420,7 +1453,6 @@ export default function CalendarView({
                                   </>
                                 )}
                               </div>
-                            </div>
                           </TabsContent>
                         </div>
                       </Tabs>
