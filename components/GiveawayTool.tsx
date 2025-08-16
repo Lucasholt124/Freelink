@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
@@ -102,28 +102,31 @@ function launchConfetti() {
 // Animated counter for statistics
 function AnimatedCounter({ value, duration = 1000 }: { value: number, duration?: number }) {
   const [count, setCount] = useState(0);
-  const countRef = useRef(count);
-  countRef.current = count;
 
-useEffect(() => {
-  const start = 0;
-  const step = 20;
-  const valueIncrement = (value - start) / (duration / step);
-
-  const interval = setInterval(() => {
-    if (countRef.current >= value) {
-      setCount(value);
-      clearInterval(interval);
+  useEffect(() => {
+    if (value === 0) {
+      setCount(0);
       return;
     }
 
-      setCount(Math.min(countRef.current + valueIncrement, value));
-    }, step);
+    const startValue = 0;
+    const increment = value / (duration / 50);
+    let current = startValue;
 
-    return () => clearInterval(interval);
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= value) {
+        setCount(value);
+        clearInterval(timer);
+      } else {
+        setCount(Math.floor(current));
+      }
+    }, 50);
+
+    return () => clearInterval(timer);
   }, [value, duration]);
 
-  return <span>{Math.round(count)}</span>;
+  return <span>{count}</span>;
 }
 
 // Screenshot functionality
@@ -162,43 +165,47 @@ function DramaticSelection({
   const [currentIndex, setCurrentIndex] = useState(0);
   const [completed, setCompleted] = useState(false);
   const [progress, setProgress] = useState(0);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const startTimeRef = useRef<number>(Date.now());
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(0);
 
   useEffect(() => {
     startTimeRef.current = Date.now();
+    setProgress(0);
+    setCompleted(false);
 
-    const updateIndex = () => {
+    const updateAnimation = () => {
       const elapsed = Date.now() - startTimeRef.current;
       const currentProgress = Math.min(elapsed / duration, 1);
+
       setProgress(currentProgress);
 
-      // Exponential slowdown
-      const speed = 50 + 450 * Math.pow(currentProgress, 2);
+      if (currentProgress >= 1) {
+        setCurrentIndex(selectedIndex);
+        setCompleted(true);
+        if (intervalRef.current) {
+          clearInterval(intervalRef.current);
+          intervalRef.current = null;
+        }
+        setTimeout(onComplete, 500);
+        return;
+      }
 
-      // Increase chance of landing on the selected index as we get closer to the end
-      const targetProbability = Math.pow(currentProgress, 3);
-      const random = Math.random();
-
-      if (currentProgress > 0.8 && random < targetProbability) {
+      // Increase chance of showing selected index near the end
+      if (currentProgress > 0.8 && Math.random() < Math.pow(currentProgress, 3)) {
         setCurrentIndex(selectedIndex);
       } else {
         setCurrentIndex(Math.floor(Math.random() * items.length));
       }
-
-      if (currentProgress < 1) {
-        timeoutRef.current = setTimeout(updateIndex, speed);
-      } else {
-        setCurrentIndex(selectedIndex);
-        setCompleted(true);
-        setTimeout(onComplete, 500);
-      }
     };
 
-    timeoutRef.current = setTimeout(updateIndex, 50);
+    // Use interval instead of recursive setTimeout
+    intervalRef.current = setInterval(updateAnimation, 100);
 
     return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
     };
   }, [duration, items.length, onComplete, selectedIndex]);
 
@@ -220,9 +227,9 @@ function DramaticSelection({
           >
             <h3 className={clsx(
               "text-3xl md:text-4xl font-bold text-white break-words",
-              completed && "text-amber-300 drop-shadow-glow"
+              completed && "text-amber-300"
             )}>
-              {items[currentIndex]}
+              {items[currentIndex] || "Carregando..."}
             </h3>
           </motion.div>
         </AnimatePresence>
@@ -269,23 +276,24 @@ function WinnerCard({
   })();
 
   // Get items for dramatic selection
-  const selectionItems = (() => {
-    if (giveawayType === "number") {
-      // Generate random numbers between min and max
-      const min = 1;
-      const max = 1000;
-      return Array.from({ length: 50 }, () =>
-        Math.floor(Math.random() * (max - min + 1) + min).toString()
-      );
-    }
+ const selectionItems = useMemo(() => {
+  if (giveawayType === "number") {
+    const min = 1;
+    const max = 1000;
+    return Array.from({ length: 50 }, () =>
+      Math.floor(Math.random() * (max - min + 1) + min).toString()
+    );
+  }
 
     // For other types, create fake names or use placeholders
-    return Array.from({ length: 50 }, (_, i) =>
-      giveawayType === "instagram"
-        ? `@usuario_${Math.floor(Math.random() * 10000)}`
-        : `Participante ${i+1}`
-    );
-  })();
+      return Array.from({ length: 50 }, (_, i) =>
+    giveawayType === "instagram"
+      ? `@usuario_${Math.floor(Math.random() * 10000)}`
+      : `Participante ${i+1}`
+  );
+}, [giveawayType]);
+
+
 
   useEffect(() => {
     if (!showSelectionAnimation) {
@@ -308,18 +316,18 @@ function WinnerCard({
     ? ((winnersCount / totalParticipants) * 100).toFixed(2)
     : "N/A";
 
-  if (showSelectionAnimation) {
-    return (
-      <div className="mt-4 sm:mt-8 max-w-2xl mx-auto w-full">
-        <DramaticSelection
-          items={selectionItems}
-          duration={3000}
-          selectedIndex={selectionItems.length - 1}
-          onComplete={() => setShowSelectionAnimation(false)}
-        />
-      </div>
-    );
-  }
+if (showSelectionAnimation && selectionItems.length > 0) {
+  return (
+    <div className="mt-4 sm:mt-8 max-w-2xl mx-auto w-full">
+      <DramaticSelection
+        items={selectionItems}
+        duration={3000}
+        selectedIndex={Math.min(selectionItems.length - 1, 0)}
+        onComplete={() => setShowSelectionAnimation(false)}
+      />
+    </div>
+  );
+}
 
   return (
     <div className="mt-4 sm:mt-8 max-w-2xl mx-auto w-full">
@@ -1297,24 +1305,17 @@ function WeightedListGiveaway({
     return parsed;
   }, [participants]);
 
-  useEffect(() => {
-  if (participants) {
-    const parsed = parseParticipants();
-    setVisualWeights(parsed.map(p => ({ name: p.username, weight: p.weight })));
+ useEffect(() => {
+  const parsed = parseParticipants();
+  setVisualWeights(parsed.map(p => ({ name: p.username, weight: p.weight })));
 
-    if (parsed.length === 0) {
-      setTotalParticipants(0);
-      return;
-    }
-
-    // Calculate total participants (sum of weights)
+  if (parsed.length === 0) {
+    setTotalParticipants(0);
+  } else {
     const totalWeight = parsed.reduce((sum, p) => sum + p.weight, 0);
     setTotalParticipants(totalWeight);
-  } else {
-    setVisualWeights([]);
-    setTotalParticipants(0);
   }
-}, [participants, setTotalParticipants, parseParticipants]);
+}, [participants, parseParticipants, setTotalParticipants]);
 
 
   const handleRun = () => {

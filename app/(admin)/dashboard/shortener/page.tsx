@@ -654,24 +654,42 @@ const handleFormChange = (e: React.ChangeEvent<HTMLFormElement>) => {
   };
 
   const handleDeleteLink = async (id: string) => {
-    try {
-      const response = await fetch(`/api/shortener/${id}`, {
-        method: "DELETE",
-      });
+  try {
+    const response = await fetch(`/api/shortener/${id}`, {
+      method: "DELETE",
+    });
 
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.error || "Erro ao excluir link");
+    // Verificar se a resposta tem conteúdo JSON
+    const contentType = response.headers.get("content-type");
+    let data = null;
+
+    if (contentType && contentType.includes("application/json")) {
+      const text = await response.text();
+      if (text) {
+        data = JSON.parse(text);
       }
-
-      // Remove link from state
-      setLinks(links => links?.filter(link => link.id !== id));
-      toast.success("Link excluído com sucesso!");
-
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Ocorreu um problema.");
     }
-  };
+
+    if (!response.ok) {
+      throw new Error(data?.error || `Erro ${response.status}: ${response.statusText}`);
+    }
+
+    // Remove link from state
+    setLinks(links => links?.filter(link => link.id !== id));
+
+    // Hide new link card if it's the one being deleted
+    if (newLink?.id === id) {
+      setShowNewLinkCard(false);
+      setNewLink(null);
+    }
+
+    toast.success("Link excluído com sucesso!");
+
+  } catch (error) {
+    console.error("Erro ao excluir link:", error);
+    toast.error(error instanceof Error ? error.message : "Ocorreu um problema ao excluir o link.");
+  }
+};
 
   return (
     <div className="space-y-12 max-w-4xl mx-auto">
