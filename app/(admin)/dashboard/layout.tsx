@@ -4,9 +4,11 @@ import { ReactNode, useState, useEffect, ForwardRefExoticComponent, RefAttribute
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Settings, Wand2, Menu, Scissors, Target, LayoutGrid, Gift,
-  BrainCircuit, CreditCard, LucideProps, LogOut, Bell, ChevronDown,
-  ExternalLink, HelpCircle, Sparkles, Star, Rocket
+  Home, Settings, Wand2, Scissors, Target, LayoutGrid, Gift,
+  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, Star, Rocket, X,
+  LucideProps,
+  ExternalLink,
+  Menu
 } from "lucide-react";
 import clsx from "clsx";
 import { UserButton } from "@clerk/nextjs";
@@ -14,8 +16,6 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
-
-type PlanType = "free" | "pro" | "ultra";
 
 interface NavSubItem {
   href: string;
@@ -34,64 +34,26 @@ interface NavItem {
   subItems?: NavSubItem[];
 }
 
-// Componente de notificações
-function NotificationsMenu() {
-  const [unread, setUnread] = useState(2);
+type PlanType = "free" | "pro" | "ultra";
 
+interface SidebarProps {
+  userPlan?: PlanType;
+}
+
+function FreelinkLogo({ size = 32 }: { size?: number }) {
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell className="w-5 h-5" />
-          {unread > 0 && (
-            <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white text-[10px] flex items-center justify-center rounded-full">
-              {unread}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="w-80 p-0">
-        <div className="p-3 border-b">
-          <h3 className="font-medium">Notificações</h3>
-        </div>
-        <div className="max-h-[300px] overflow-y-auto">
-          <div className="p-3 border-b hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
-            <div className="flex gap-3">
-              <div className="bg-blue-100 dark:bg-blue-900/30 rounded-full p-2 h-min mt-0.5">
-                <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Novo recurso: FreelinkBrain</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Gere ideias virais de conteúdo em segundos!</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">Agora mesmo</p>
-              </div>
-            </div>
-          </div>
-          <div className="p-3 border-b hover:bg-slate-50 dark:hover:bg-slate-800 cursor-pointer">
-            <div className="flex gap-3">
-              <div className="bg-green-100 dark:bg-green-900/30 rounded-full p-2 h-min mt-0.5">
-                <Star className="w-4 h-4 text-green-600 dark:text-green-400" />
-              </div>
-              <div>
-                <p className="text-sm font-medium">Seu link ultrapassou 1000 cliques!</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">Seu link Instagram Bio está com ótimo desempenho</p>
-                <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">1 hora atrás</p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="p-2 border-t">
-          <Button variant="ghost" size="sm" className="w-full justify-center text-sm" onClick={() => setUnread(0)}>
-            Marcar todas como lidas
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <div
+      className="relative flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 shadow-md"
+      style={{ width: size, height: size }}
+    >
+      <span className="text-white font-bold" style={{ fontSize: size * 0.6 }}>
+        F
+      </span>
+    </div>
   );
 }
 
-// Sidebar aprimorada
-function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
+function Sidebar({ userPlan = "free" }: SidebarProps) {
   const pathname = usePathname();
 
   const navItems: NavItem[] = [
@@ -123,9 +85,7 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
   ];
 
   const isActive = (href: string) => {
-    if (href === "/dashboard") {
-      return pathname === href;
-    }
+    if (href === "/dashboard") return pathname === href;
     return pathname.startsWith(href);
   };
 
@@ -213,17 +173,6 @@ function Sidebar({ userPlan = "free" }: { userPlan?: PlanType }) {
         </div>
       )}
     </nav>
-  );
-}
-
-function FreelinkLogo({ size = 32 }: { size?: number }) {
-  return (
-    <div
-      className="relative flex items-center justify-center rounded-lg bg-gradient-to-br from-blue-600 to-purple-600 shadow-md"
-      style={{ width: size, height: size }}
-    >
-      <span className="text-white font-bold" style={{ fontSize: size * 0.6 }}>F</span>
-    </div>
   );
 }
 
@@ -363,12 +312,33 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               transition={{ type: "spring", bounce: 0, duration: 0.4 }}
               className="lg:hidden fixed top-0 left-0 h-full w-[85vw] max-w-[320px] bg-white dark:bg-slate-800 z-50 shadow-2xl flex flex-col"
             >
-              {/* Conteúdo do sidebar com scroll próprio */}
+              <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <Link href="/dashboard" className="flex items-center">
+                    <FreelinkLogo size={32} />
+                    <div className="ml-3">
+                      <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                        Freelink
+                      </span>
+                      {userPlan !== "free" && (
+                        <div className="mt-0.5">{getPlanBadge()}</div>
+                      )}
+                    </div>
+                  </Link>
+                                    <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsSidebarOpen(false)}
+                  >
+                    <X className="w-5 h-5" />
+                  </Button>
+                </div>
+              </div>
+
               <div className="flex-1 overflow-y-auto p-4">
                 <Sidebar userPlan={userPlan} />
               </div>
 
-              {/* Rodapé com conta e logout */}
               <div className="p-4 border-t border-slate-200 dark:border-slate-700">
                 <div className="flex items-center gap-3">
                   <UserButton afterSignOutUrl="/" />
@@ -379,7 +349,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </p>
                   </div>
                   <Link href="/signout">
-                    <Button variant="ghost" size="icon" className="text-slate-500">
+                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600">
                       <LogOut className="w-4 h-4" />
                     </Button>
                   </Link>
@@ -392,8 +362,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Container principal */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header fixo fora do container com overflow */}
-        <header className="sticky top-0 z-50 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 py-2 px-4 flex justify-between items-center flex-shrink-0">
+        {/* Header */}
+        <header className="bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm border-b border-slate-200 dark:border-slate-700 py-2 px-4 flex justify-between items-center flex-shrink-0">
           <div className="flex items-center">
             <Button
               variant="ghost"
@@ -422,8 +392,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex items-center gap-1 sm:gap-2">
-            <NotificationsMenu />
-
             <div className="hidden sm:block">
               <Link href="/dashboard/help">
                 <Button variant="ghost" size="icon">
@@ -449,11 +417,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               )}
             </div>
 
-            <UserButton afterSignOutUrl="/" />
+            <div className="lg:hidden">
+              <UserButton afterSignOutUrl="/" />
+            </div>
           </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pt-[56px]">
+        {/* Main content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>
