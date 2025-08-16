@@ -290,8 +290,6 @@ function WinnerCard({
   useEffect(() => {
     if (!showSelectionAnimation) {
       launchConfetti();
-
-      // Add to history
       onSaveHistory();
 
       // Play victory sound if available
@@ -312,7 +310,7 @@ function WinnerCard({
 
   if (showSelectionAnimation) {
     return (
-      <div className="mt-8 max-w-2xl mx-auto w-full">
+      <div className="mt-4 sm:mt-8 max-w-2xl mx-auto w-full">
         <DramaticSelection
           items={selectionItems}
           duration={3000}
@@ -324,13 +322,13 @@ function WinnerCard({
   }
 
   return (
-    <div className="mt-8 max-w-2xl mx-auto w-full">
+    <div className="mt-4 sm:mt-8 max-w-2xl mx-auto w-full">
       <motion.div
         ref={winnerRef}
         id="winner-card"
         initial={{ opacity: 0, scale: 0.9 }}
         animate={{ opacity: 1, scale: 1 }}
-        className="bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/30 p-8 rounded-3xl border-4 border-amber-400 dark:border-amber-500/70 text-center shadow-2xl relative overflow-hidden"
+        className="bg-gradient-to-br from-amber-50 to-orange-100 dark:from-amber-900/50 dark:to-orange-900/30 p-4 sm:p-8 rounded-2xl sm:rounded-3xl border-4 border-amber-400 dark:border-amber-500/70 text-center shadow-2xl relative overflow-hidden"
       >
         <div className="absolute top-0 left-0 w-full h-full bg-[url('/confetti-bg.svg')] opacity-10"></div>
 
@@ -339,21 +337,21 @@ function WinnerCard({
             initial={{ scale: 0.5, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ delay: 0.3, type: "spring" }}
-            className="w-20 h-20 mx-auto bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg mb-4"
+            className="w-16 h-16 sm:w-20 sm:h-20 mx-auto bg-gradient-to-br from-amber-400 to-orange-500 rounded-full flex items-center justify-center shadow-lg mb-3 sm:mb-4"
           >
-            <Trophy className="w-10 h-10 text-white" />
+            <Trophy className="w-8 h-8 sm:w-10 sm:h-10 text-white" />
           </motion.div>
 
           <motion.h3
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 0.5 }}
-            className="text-lg font-extrabold uppercase tracking-widest text-amber-700 dark:text-amber-500 drop-shadow-sm"
+            className="text-base sm:text-lg font-extrabold uppercase tracking-widest text-amber-700 dark:text-amber-500 drop-shadow-sm"
           >
             🎉 E o vencedor é... 🎉
           </motion.h3>
 
-          <div className="mt-6 flex flex-col items-center gap-5 max-w-full">
+          <div className="mt-4 sm:mt-6 flex flex-col items-center gap-3 sm:gap-5 max-w-full">
             {("profilePicUrl" in winner && winner.profilePicUrl) ? (
               <motion.div
                 initial={{ scale: 0, rotate: -180 }}
@@ -365,9 +363,9 @@ function WinnerCard({
                 <Image
                   src={winner.profilePicUrl}
                   alt={`Foto de ${displayName}`}
-                  width={120}
-                  height={120}
-                  className="rounded-full border-8 border-white dark:border-gray-800 shadow-xl relative"
+                  width={100}
+                  height={100}
+                  className="rounded-full border-6 sm:border-8 border-white dark:border-gray-800 shadow-xl relative"
                   priority
                 />
               </motion.div>
@@ -376,9 +374,9 @@ function WinnerCard({
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
                 transition={{ delay: 0.7, type: "spring" }}
-                className="w-24 h-24 rounded-full bg-gradient-to-br from-orange-400 to-amber-600 flex items-center justify-center shadow-lg"
+                className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-br from-orange-400 to-amber-600 flex items-center justify-center shadow-lg"
               >
-                <User2 className="w-12 h-12 text-white" />
+                <User2 className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
               </motion.div>
             )}
 
@@ -386,7 +384,7 @@ function WinnerCard({
               initial={{ y: 20, opacity: 0 }}
               animate={{ y: 0, opacity: 1 }}
               transition={{ delay: 0.9 }}
-              className="text-4xl font-extrabold text-gray-900 dark:text-white truncate max-w-full px-4"
+              className="text-2xl sm:text-4xl font-extrabold text-gray-900 dark:text-white truncate max-w-full px-2 sm:px-4"
             >
               {displayName}
             </motion.p>
@@ -399,7 +397,7 @@ function WinnerCard({
                 className="relative w-full max-w-md"
               >
                 <div className="absolute inset-0 blur-md bg-white/80 dark:bg-white/10 rounded-xl"></div>
-                <p className="relative text-gray-700 dark:text-gray-200 bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm px-5 py-3 rounded-xl text-lg font-medium shadow-sm max-w-md break-words">
+                <p className="relative text-gray-700 dark:text-gray-200 bg-white/80 dark:bg-gray-800/60 backdrop-blur-sm px-3 sm:px-5 py-2 sm:py-3 rounded-xl text-base sm:text-lg font-medium shadow-sm max-w-md break-words">
                   {winner.commentText}
                 </p>
               </motion.div>
@@ -410,32 +408,35 @@ function WinnerCard({
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: 1.3 }}
-            className="mt-8 flex flex-wrap justify-center gap-3"
+            className="mt-6 sm:mt-8 flex flex-wrap justify-center gap-2 sm:gap-3"
           >
             <Button
               onClick={onRedraw}
               variant="outline"
-              className="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 border-amber-400 hover:border-amber-600 dark:border-amber-700 dark:hover:border-amber-500 transition-colors"
+              size="sm"
+              className="text-amber-600 hover:text-amber-800 dark:text-amber-400 dark:hover:text-amber-300 border-amber-400 hover:border-amber-600 dark:border-amber-700 dark:hover:border-amber-500 transition-colors text-xs sm:text-sm h-8 sm:h-9"
               aria-label="Sortear novamente"
             >
-              <RefreshCw className="w-4 h-4 mr-2" /> Novo Sorteio
+              <RefreshCw className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> Novo Sorteio
             </Button>
 
             <Button
               onClick={() => setShowStats(!showStats)}
               variant="outline"
-              className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 border-purple-400 hover:border-purple-600 dark:border-purple-700 dark:hover:border-purple-500 transition-colors"
+              size="sm"
+              className="text-purple-600 hover:text-purple-800 dark:text-purple-400 dark:hover:text-purple-300 border-purple-400 hover:border-purple-600 dark:border-purple-700 dark:hover:border-purple-500 transition-colors text-xs sm:text-sm h-8 sm:h-9"
             >
-              <Info className="w-4 h-4 mr-2" />
-              {showStats ? "Ocultar Detalhes" : "Ver Detalhes"}
+              <Info className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+              {showStats ? "Ocultar" : "Ver Detalhes"}
             </Button>
 
             <Button
               onClick={() => captureScreenshot('winner-card', `sorteio-${Date.now()}`)}
               variant="outline"
-              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 border-blue-400 hover:border-blue-600 dark:border-blue-700 dark:hover:border-blue-500 transition-colors"
+              size="sm"
+              className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300 border-blue-400 hover:border-blue-600 dark:border-blue-700 dark:hover:border-blue-500 transition-colors text-xs sm:text-sm h-8 sm:h-9"
             >
-              <Camera className="w-4 h-4 mr-2" /> Capturar
+              <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> Capturar
             </Button>
           </motion.div>
 
@@ -447,25 +448,25 @@ function WinnerCard({
                 exit={{ height: 0, opacity: 0 }}
                 className="overflow-hidden"
               >
-                <div className="mt-6 p-4 bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-amber-200 dark:border-amber-900/50">
-                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-3">Estatísticas do Sorteio</h4>
+                <div className="mt-4 sm:mt-6 p-3 sm:p-4 bg-white/70 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-amber-200 dark:border-amber-900/50">
+                  <h4 className="font-semibold text-gray-700 dark:text-gray-300 mb-2 sm:mb-3 text-sm sm:text-base">Estatísticas do Sorteio</h4>
 
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
+                    <div className="bg-amber-50 dark:bg-amber-900/20 p-2 sm:p-3 rounded-lg">
                       <p className="text-amber-700 dark:text-amber-400 font-medium">Total de Participantes</p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
                         <AnimatedCounter value={totalParticipants} />
                       </p>
                     </div>
 
-                    <div className="bg-purple-50 dark:bg-purple-900/20 p-3 rounded-lg">
+                    <div className="bg-purple-50 dark:bg-purple-900/20 p-2 sm:p-3 rounded-lg">
                       <p className="text-purple-700 dark:text-purple-400 font-medium">Chance de Vitória</p>
-                      <p className="text-2xl font-bold text-gray-900 dark:text-white">{winChance}%</p>
+                      <p className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">{winChance}%</p>
                     </div>
 
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-2 sm:p-3 rounded-lg">
                       <p className="text-blue-700 dark:text-blue-400 font-medium">Data e Hora</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-white">
+                      <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white">
                         {new Date().toLocaleDateString('pt-BR', {
                           day: '2-digit',
                           month: '2-digit',
@@ -476,10 +477,10 @@ function WinnerCard({
                       </p>
                     </div>
 
-                    <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg">
+                    <div className="bg-green-50 dark:bg-green-900/20 p-2 sm:p-3 rounded-lg">
                       <p className="text-green-700 dark:text-green-400 font-medium">Verificado</p>
-                      <p className="text-base font-semibold text-gray-900 dark:text-white flex items-center mt-1">
-                        <ShieldCheck className="w-5 h-5 mr-1.5 text-green-600 dark:text-green-400" />
+                      <p className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white flex items-center mt-1">
+                        <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 mr-1 sm:mr-1.5 text-green-600 dark:text-green-400" />
                         Sorteio Auditável
                       </p>
                     </div>
@@ -1548,80 +1549,91 @@ export default function GiveawayTool() {
   };
 
   return (
-    <div className="mx-auto p-4 overflow-x-hidden">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Hero section */}
-        <div className="bg-gradient-to-br from-purple-600 to-indigo-700 dark:from-purple-900 dark:to-indigo-900 rounded-2xl p-8 text-white relative overflow-hidden shadow-xl">
+    <div className="mx-auto p-2 sm:p-4 overflow-x-hidden">
+      <div className="max-w-6xl mx-auto space-y-6 sm:space-y-8">
+        {/* Hero section com melhorias para mobile */}
+        <div className="bg-gradient-to-br from-purple-600 to-indigo-700 dark:from-purple-900 dark:to-indigo-900 rounded-xl sm:rounded-2xl p-4 sm:p-8 text-white relative overflow-hidden shadow-xl">
           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay"></div>
           <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3"></div>
 
           <div className="relative">
-            <div className="flex flex-col md:flex-row items-center gap-6">
-              <div className="bg-white/10 backdrop-blur-sm p-5 rounded-xl">
-                <Trophy className="w-12 h-12 text-amber-300" />
+            {/* Cabeçalho responsivo */}
+            <div className="flex flex-col md:flex-row items-center gap-4 sm:gap-6">
+              <div className="bg-white/10 backdrop-blur-sm p-3 sm:p-5 rounded-xl">
+                <Trophy className="w-8 h-8 sm:w-12 sm:h-12 text-amber-300" />
               </div>
 
               <div>
-                <h1 className="text-3xl md:text-4xl font-bold">
+                <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center md:text-left">
                   Sorteios Profissionais
                 </h1>
-                <p className="mt-2 text-purple-100 max-w-xl">
-                  Realize sorteios transparentes e profissionais para suas campanhas e promoções. Compatível com Instagram, listas, números e muito mais.
+                <p className="mt-2 text-purple-100 max-w-xl text-sm sm:text-base text-center md:text-left">
+                  Realize sorteios transparentes e profissionais para suas campanhas e promoções.
                 </p>
               </div>
             </div>
 
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <div className="flex-1 min-w-[200px]">
+            {/* Navegação de abas responsiva */}
+            <div className="mt-6 sm:mt-8 flex flex-col sm:flex-row items-center gap-3">
+              <div className="flex-1 min-w-[200px] w-full">
                 <Tabs
                   defaultValue={activeTab}
                   value={activeTab}
-                onValueChange={(v) => {
-  setActiveTab(v as "instagram" | "list" | "number" | "weighted");
-  setWinner(null);
-}}
+                  onValueChange={(v) => {
+                    setActiveTab(v as "instagram" | "list" | "number" | "weighted");
+                    setWinner(null);
+                  }}
                 >
-                  <TabsList className="w-full grid grid-cols-4 bg-white/10">
+                  <TabsList className="w-full grid grid-cols-2 sm:grid-cols-4 bg-white/10">
                     <TabsTrigger
                       value="instagram"
-                      className="data-[state=active]:bg-white/15 text-white data-[state=active]:text-white"
+                      className="data-[state=active]:bg-white/15 text-white data-[state=active]:text-white text-xs sm:text-sm py-1 sm:py-2"
                     >
-                      <Instagram className="w-4 h-4 mr-2" /> Instagram
+                      <Instagram className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      <span className="hidden xs:inline">Instagram</span>
+                      <span className="xs:hidden">IG</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="list"
-                      className="data-[state=active]:bg-white/15 text-white data-[state=active]:text-white"
+                      className="data-[state=active]:bg-white/15 text-white data-[state=active]:text-white text-xs sm:text-sm py-1 sm:py-2"
                     >
-                      <List className="w-4 h-4 mr-2" /> Lista
+                      <List className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" /> Lista
                     </TabsTrigger>
                     <TabsTrigger
                       value="number"
-                      className="data-[state=active]:bg-white/15 text-white data-[state=active]:text-white"
+                      className="data-[state=active]:bg-white/15 text-white data-[state=active]:text-white text-xs sm:text-sm py-1 sm:py-2"
                     >
-                      <Hash className="w-4 h-4 mr-2" /> Número
+                      <Hash className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      <span className="hidden xs:inline">Número</span>
+                      <span className="xs:hidden">Num</span>
                     </TabsTrigger>
                     <TabsTrigger
                       value="weighted"
-                      className="data-[state=active]:bg-white/15 text-white data-[state=active]:text-white"
+                      className="data-[state=active]:bg-white/15 text-white data-[state=active]:text-white text-xs sm:text-sm py-1 sm:py-2"
                     >
-                      <Percent className="w-4 h-4 mr-2" /> Ponderado
+                      <Percent className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
+                      <span className="hidden xs:inline">Ponderado</span>
+                      <span className="xs:hidden">Peso</span>
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
               </div>
 
-              <div className="flex gap-2">
+              {/* Botões de configuração responsivos */}
+              <div className="flex gap-2 mt-3 sm:mt-0 w-full sm:w-auto justify-center sm:justify-start">
                 <Dialog open={showSettings} onOpenChange={setShowSettings}>
                   <DialogTrigger asChild>
                     <Button
                       variant="outline"
+                      size="sm"
                       className="bg-white/10 hover:bg-white/20 border-white/20 text-white"
                     >
-                      <Settings className="w-4 h-4 mr-2" />
-                      Configurações
+                      <Settings className="w-4 h-4 mr-1 sm:mr-2" />
+                      <span className="hidden sm:inline">Configurações</span>
+                      <span className="sm:hidden">Config</span>
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="sm:max-w-md">
                     <DialogHeader>
                       <DialogTitle>Configurações do Sorteio</DialogTitle>
                       <DialogDescription>
@@ -1679,13 +1691,14 @@ export default function GiveawayTool() {
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
+                      size="sm"
                       className="bg-white/10 hover:bg-white/20 border-white/20 text-white"
                     >
-                      <History className="w-4 h-4 mr-2" />
-                      Histórico
+                      <History className="w-4 h-4 mr-0 sm:mr-2" />
+                      <span className="hidden sm:inline">Histórico</span>
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-80 p-4" align="end">
+                  <PopoverContent className="w-80 p-4 max-w-[calc(100vw-1rem)]" align="end">
                     <div className="space-y-2">
                       <h3 className="font-semibold">Histórico de Sorteios</h3>
                       <div className="max-h-80 overflow-y-auto">
@@ -1699,8 +1712,8 @@ export default function GiveawayTool() {
           </div>
         </div>
 
-        {/* Main content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Layout principal responsivo */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-8">
           <div className="lg:col-span-2">
             <div role="tabpanel" aria-hidden={activeTab !== "instagram"}>
               {activeTab === "instagram" && (
@@ -1738,75 +1751,76 @@ export default function GiveawayTool() {
             </div>
           </div>
 
+          {/* Card de recursos responsivo */}
           <div className="lg:row-span-2">
             <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <BrainCircuit className="w-5 h-5 text-purple-500 mr-2" />
+              <CardHeader className="px-4 sm:px-6 py-4 sm:py-6">
+                <CardTitle className="text-base sm:text-lg flex items-center">
+                  <BrainCircuit className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500 mr-2" />
                   Recursos Inteligentes
                 </CardTitle>
-                <CardDescription>
-                  Nossos sorteios oferecem recursos avançados para garantir resultados justos e transparentes
+                <CardDescription className="text-xs sm:text-sm">
+                  Nossos sorteios oferecem recursos avançados para resultados justos
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="bg-purple-100 dark:bg-purple-900/30 p-2 rounded-lg">
-                    <Crown className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              <CardContent className="space-y-3 sm:space-y-4 px-4 sm:px-6">
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="bg-purple-100 dark:bg-purple-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                    <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Sorteios Transparentes</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Algoritmo verificável que garante resultados justos em todos os sorteios
+                    <h3 className="font-semibold text-sm sm:text-base">Sorteios Transparentes</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                      Algoritmo verificável que garante resultados justos
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="bg-blue-100 dark:bg-blue-900/30 p-2 rounded-lg">
-                    <Star className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="bg-blue-100 dark:bg-blue-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                    <Star className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Múltiplos Formatos</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Compatível com Instagram, listas personalizadas, números e sorteios ponderados
+                    <h3 className="font-semibold text-sm sm:text-base">Múltiplos Formatos</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                      Compatível com Instagram, listas, números e sorteios ponderados
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="bg-amber-100 dark:bg-amber-900/30 p-2 rounded-lg">
-                    <ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="bg-amber-100 dark:bg-amber-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                    <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600 dark:text-amber-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Filtros Avançados</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Defina critérios específicos como menções, palavras-chave e participantes únicos
+                    <h3 className="font-semibold text-sm sm:text-base">Filtros Avançados</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                      Defina critérios específicos como menções e palavras-chave
                     </p>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
-                  <div className="bg-green-100 dark:bg-green-900/30 p-2 rounded-lg">
-                    <Stars className="w-5 h-5 text-green-600 dark:text-green-400" />
+                <div className="flex items-start gap-2 sm:gap-3">
+                  <div className="bg-green-100 dark:bg-green-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                    <Stars className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
                   </div>
                   <div>
-                    <h3 className="font-semibold">Experiência Visual</h3>
-                    <p className="text-sm text-gray-500 dark:text-gray-400">
-                      Animações e efeitos visuais que tornam o momento do sorteio mais emocionante
+                    <h3 className="font-semibold text-sm sm:text-base">Experiência Visual</h3>
+                    <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                      Animações e efeitos visuais para um sorteio emocionante
                     </p>
                   </div>
                 </div>
               </CardContent>
-              <CardFooter>
+              <CardFooter className="px-4 sm:px-6 pb-4 sm:pb-6">
                 <Button
                   variant="outline"
-                  className="w-full"
+                  className="w-full text-xs sm:text-sm"
                   onClick={() => {
                     window.open('/help/giveaways', '_blank');
                   }}
                 >
-                  <HelpCircle className="w-4 h-4 mr-2" />
+                  <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 sm:mr-2" />
                   Ver Tutorial Completo
                 </Button>
               </CardFooter>
@@ -1814,7 +1828,7 @@ export default function GiveawayTool() {
           </div>
         </div>
 
-        {/* Winner card */}
+        {/* Card do vencedor */}
         {winner && (
           <WinnerCard
             winner={winner}
@@ -1826,6 +1840,9 @@ export default function GiveawayTool() {
           />
         )}
       </div>
+
+      {/* Container para o efeito de confetti */}
+      <div id="confetti-container" className="fixed inset-0 pointer-events-none z-50"></div>
     </div>
   );
 }

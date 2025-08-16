@@ -112,13 +112,16 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
 }
 
 function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
-  const devices = clicks.reduce((acc, click) => {
+  // Garantir que clicks é um array
+  const validClicks = Array.isArray(clicks) ? clicks : [];
+
+  const devices = validClicks.reduce((acc, click) => {
     const device = click.device || 'Desconhecido';
     acc[device] = (acc[device] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
-  const total = clicks.length;
+  const total = validClicks.length;
   const deviceData = Object.entries(devices).map(([name, count]) => ({
     name,
     count,
@@ -156,12 +159,21 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
           </div>
         </div>
       ))}
+
+      {deviceData.length === 0 && (
+        <div className="text-center py-4 text-gray-500">
+          Nenhum dado de dispositivo disponível
+        </div>
+      )}
     </div>
   );
 }
 
 function CountryMap({ clicks }: { clicks: ClickData[] }) {
-  const countries = clicks.reduce((acc, click) => {
+  // Garantir que clicks é um array
+  const validClicks = Array.isArray(clicks) ? clicks : [];
+
+  const countries = validClicks.reduce((acc, click) => {
     const country = click.country || 'Desconhecido';
     acc[country] = (acc[country] || 0) + 1;
     return acc;
@@ -202,11 +214,23 @@ function CountryMap({ clicks }: { clicks: ClickData[] }) {
   );
 }
 
-function ClicksList({ clicks, setFilteredClicks }: { clicks: ClickData[], setFilteredClicks: (clicks: ClickData[]) => void }) {
+
+function ClicksList({ clicks, setFilteredClicks }: {
+  clicks: ClickData[],
+  setFilteredClicks: (clicks: ClickData[]) => void
+}) {
   const [timeFilter, setTimeFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
 
+  // Garantir que clicks é um array
+  const validClicks = Array.isArray(clicks) ? clicks : [];
+
   useEffect(() => {
+    if (!Array.isArray(clicks)) {
+      setFilteredClicks([]);
+      return;
+    }
+
     let filtered = [...clicks];
 
     // Apply time filter
@@ -233,9 +257,9 @@ function ClicksList({ clicks, setFilteredClicks }: { clicks: ClickData[], setFil
   }, [timeFilter, countryFilter, clicks, setFilteredClicks]);
 
   // Get unique countries for filter
-  const countries = Array.from(new Set(clicks.map(click => click.country))).filter(Boolean) as string[];
+  const countries = Array.from(new Set(validClicks.map(click => click.country).filter(Boolean))) as string[];
 
-  if (clicks.length === 0) {
+  if (!validClicks.length) {
     return (
       <div className="text-center text-gray-500 dark:text-gray-400 py-10 px-4">
         <Globe className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500 mb-4 opacity-50" />
@@ -250,7 +274,7 @@ function ClicksList({ clicks, setFilteredClicks }: { clicks: ClickData[], setFil
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row justify-between gap-3">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select defaultValue="all" onValueChange={setTimeFilter}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Período" />
@@ -293,31 +317,36 @@ function ClicksList({ clicks, setFilteredClicks }: { clicks: ClickData[], setFil
                 size="sm"
                 className="w-full justify-start text-sm"
                 onClick={() => {
-                  // Create CSV content
-                  const headers = ['Data', 'Hora', 'País', 'Dispositivo', 'Navegador'];
-                  const rows = clicks.map(click => [
-                    new Date(click.timestamp).toLocaleDateString('pt-BR'),
-                    new Date(click.timestamp).toLocaleTimeString('pt-BR'),
-                    click.country || 'Desconhecido',
-                    click.device || 'Desconhecido',
-                    click.browser || 'Desconhecido'
-                  ]);
+                  try {
+                    // Create CSV content
+                    const headers = ['Data', 'Hora', 'País', 'Dispositivo', 'Navegador'];
+                    const rows = validClicks.map(click => [
+                      new Date(click.timestamp).toLocaleDateString('pt-BR'),
+                      new Date(click.timestamp).toLocaleTimeString('pt-BR'),
+                      click.country || 'Desconhecido',
+                      click.device || 'Desconhecido',
+                      click.browser || 'Desconhecido'
+                    ]);
 
-                  const csvContent = [
-                    headers.join(','),
-                    ...rows.map(row => row.join(','))
-                  ].join('\n');
+                    const csvContent = [
+                      headers.join(','),
+                      ...rows.map(row => row.join(','))
+                    ].join('\n');
 
-                  // Create and download file
-                  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `clicks-${new Date().toISOString().split('T')[0]}.csv`;
-                  link.click();
-                  URL.revokeObjectURL(url);
+                    // Create and download file
+                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `clicks-${new Date().toISOString().split('T')[0]}.csv`;
+                    link.click();
+                    URL.revokeObjectURL(url);
 
-                  toast.success('Relatório CSV baixado!');
+                    toast.success('Relatório CSV baixado!');
+                  } catch (error) {
+                    console.error("Erro ao exportar CSV:", error);
+                    toast.error('Falha ao exportar os dados');
+                  }
                 }}
               >
                 Exportar como CSV
@@ -327,19 +356,24 @@ function ClicksList({ clicks, setFilteredClicks }: { clicks: ClickData[], setFil
                 size="sm"
                 className="w-full justify-start text-sm"
                 onClick={() => {
-                  // Create JSON content
-                  const jsonContent = JSON.stringify(clicks, null, 2);
+                  try {
+                    // Create JSON content
+                    const jsonContent = JSON.stringify(validClicks, null, 2);
 
-                  // Create and download file
-                  const blob = new Blob([jsonContent], { type: 'application/json' });
-                  const url = URL.createObjectURL(blob);
-                  const link = document.createElement('a');
-                  link.href = url;
-                  link.download = `clicks-${new Date().toISOString().split('T')[0]}.json`;
-                  link.click();
-                  URL.revokeObjectURL(url);
+                    // Create and download file
+                    const blob = new Blob([jsonContent], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = `clicks-${new Date().toISOString().split('T')[0]}.json`;
+                    link.click();
+                    URL.revokeObjectURL(url);
 
-                  toast.success('Relatório JSON baixado!');
+                    toast.success('Relatório JSON baixado!');
+                  } catch (error) {
+                    console.error("Erro ao exportar JSON:", error);
+                    toast.error('Falha ao exportar os dados');
+                  }
                 }}
               >
                 Exportar como JSON
@@ -349,7 +383,49 @@ function ClicksList({ clicks, setFilteredClicks }: { clicks: ClickData[], setFil
         </Popover>
       </div>
 
-      <div className="bg-card rounded-lg border overflow-hidden">
+      {/* Versão móvel - cards em vez de tabela */}
+      <div className="md:hidden space-y-3">
+        {validClicks.map((click) => (
+          <div key={click.id} className="bg-white dark:bg-gray-800 border rounded-lg p-3 space-y-2">
+            <div className="flex justify-between items-start">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-muted-foreground" />
+                <time dateTime={new Date(click.timestamp).toISOString()} className="text-sm">
+                  {new Date(click.timestamp).toLocaleString("pt-BR", {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </time>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-muted-foreground" />
+              <span className="text-sm">{click.country || "Desconhecido"}</span>
+            </div>
+
+            <div className="flex items-center gap-2">
+              {click.device?.toLowerCase().includes('mobile') ? (
+                <Smartphone className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <Laptop className="w-4 h-4 text-muted-foreground" />
+              )}
+              <span className="text-sm">{click.device || "Desconhecido"}</span>
+            </div>
+
+            <div className="text-sm pl-6">
+              <span className="text-muted-foreground">Navegador: </span>
+              {click.browser || "Desconhecido"}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Versão desktop - tabela */}
+      <div className="hidden md:block bg-card rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
@@ -361,7 +437,7 @@ function ClicksList({ clicks, setFilteredClicks }: { clicks: ClickData[], setFil
               </tr>
             </thead>
             <tbody className="divide-y">
-              {clicks.map((click) => (
+              {validClicks.map((click) => (
                 <tr key={click.id} className="hover:bg-muted/30 transition-colors">
                   <td className="p-3 text-sm">
                     <div className="flex items-center gap-2">
@@ -419,11 +495,14 @@ function AnalyticsMetrics({
   clicks: ClickData[];
   plan: string;
 }) {
-  const uniqueVisitors = new Set(clicks.map((c) => c.visitorId)).size;
+  // Garantir que clicks é um array
+  const validClicks = Array.isArray(clicks) ? clicks : [];
+
+  const uniqueVisitors = new Set(validClicks.map((c) => c.visitorId)).size;
 
   const calculateTopCountry = () => {
-    if (clicks.length === 0) return "N/A";
-    const countryCounts = clicks.reduce((acc, click) => {
+    if (validClicks.length === 0) return "N/A";
+    const countryCounts = validClicks.reduce((acc, click) => {
       if (click.country) {
         acc[click.country] = (acc[click.country] || 0) + 1;
       }
@@ -439,18 +518,18 @@ function AnalyticsMetrics({
   const topCountryName = calculateTopCountry();
 
   // Calculate click-through rate (mock data for demonstration)
-  const impressions = clicks.length * 2.5; // Simulate impressions
-  const ctr = impressions > 0 ? (clicks.length / impressions) * 100 : 0;
+  const impressions = validClicks.length * 2.5; // Simulate impressions
+  const ctr = impressions > 0 ? (validClicks.length / impressions) * 100 : 0;
 
   // Get recent trend (% change from previous period)
   const calculateTrend = () => {
-    if (clicks.length < 2) return { value: 0, isPositive: true };
+    if (validClicks.length < 2) return { value: 0, isPositive: true };
 
     const now = Date.now();
     const halfPeriod = 7 * 24 * 60 * 60 * 1000 / 2; // Half of 7 days in ms
 
-    const recentClicks = clicks.filter(c => (now - c.timestamp) < halfPeriod).length;
-    const olderClicks = clicks.filter(c => (now - c.timestamp) >= halfPeriod && (now - c.timestamp) < halfPeriod * 2).length;
+    const recentClicks = validClicks.filter(c => (now - c.timestamp) < halfPeriod).length;
+    const olderClicks = validClicks.filter(c => (now - c.timestamp) >= halfPeriod && (now - c.timestamp) < halfPeriod * 2).length;
 
     if (olderClicks === 0) return { value: recentClicks > 0 ? 100 : 0, isPositive: true };
 
@@ -540,7 +619,7 @@ function AnalyticsMetrics({
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
       <Card
         title="Cliques Totais"
-        value={clicks.length}
+        value={validClicks.length}
         subtitle={`${trend.value > 0 ? (trend.isPositive ? "Aumento" : "Redução") : "Sem mudança"} nos últimos 7 dias`}
         trend={trend}
         icon={BarChart2}
@@ -550,7 +629,7 @@ function AnalyticsMetrics({
       <Card
         title="Visitantes Únicos"
         value={plan === "free" ? "—" : uniqueVisitors}
-        subtitle={plan !== "free" ? `${Math.round((uniqueVisitors / Math.max(clicks.length, 1)) * 100)}% de retorno` : undefined}
+        subtitle={plan !== "free" ? `${Math.round((uniqueVisitors / Math.max(validClicks.length, 1)) * 100)}% de retorno` : undefined}
         icon={Users}
         color="from-purple-500 to-purple-600"
         isPro={true}
@@ -584,6 +663,7 @@ export default function ShortLinkDetailsPage() {
   const [filteredClicks, setFilteredClicks] = useState<ClickData[]>([]);
   const [currentTab, setCurrentTab] = useState("overview");
   const chartRef = useRef<HTMLDivElement>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (linkId) {
@@ -598,12 +678,13 @@ export default function ShortLinkDetailsPage() {
         })
         .then((data) => {
           setData(data);
-          setFilteredClicks(data.clicks);
+          // Garantir que clicks é um array
+          const clicks = Array.isArray(data.clicks) ? data.clicks : [];
+          setFilteredClicks(clicks);
         })
         .catch((err) => {
-          toast.error(
-            err.message || "Não foi possível carregar os detalhes do link."
-          );
+          console.error("Error fetching link data:", err);
+          setErrorMessage(err.message || "Não foi possível carregar os detalhes do link.");
           setData(null);
         });
     }
@@ -614,7 +695,7 @@ export default function ShortLinkDetailsPage() {
   const plan = isAdmin ? "ultra" : userPlan;
 
   // Generate chart data
-  const chartData = data?.clicks ? generateChartData(data.clicks) : null;
+  const chartData = data?.clicks && Array.isArray(data.clicks) ? generateChartData(data.clicks) : null;
 
   if (data === undefined) {
     return (
@@ -624,13 +705,12 @@ export default function ShortLinkDetailsPage() {
     );
   }
 
-  if (data === null) {
+  if (errorMessage || data === null) {
     return (
       <div className="text-center mt-12 px-4 max-w-md mx-auto">
         <h2 className="text-2xl font-semibold mb-2">Link não encontrado</h2>
         <p className="text-muted-foreground mb-6">
-          O link que você está procurando não existe ou você não tem permissão
-          para vê-lo.
+          {errorMessage || "O link que você está procurando não existe ou você não tem permissão para vê-lo."}
         </p>
         <Button asChild variant="link" className="inline-flex items-center">
           <Link href="/dashboard/shortener">
@@ -644,8 +724,11 @@ export default function ShortLinkDetailsPage() {
   const { link } = data;
   const shortUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/r/${link.id}`;
 
+  // Garantir que clicks é um array
+  const clicks = Array.isArray(data.clicks) ? data.clicks : [];
+
   return (
-    <main className="max-w-6xl mx-auto w-full px-4 space-y-8 overflow-x-hidden">
+    <main className="max-w-6xl mx-auto w-full px-4 space-y-8 overflow-x-hidden pb-10">
       <div className="flex flex-col gap-2">
         <Button asChild variant="ghost" className="text-muted-foreground w-fit -ml-4">
           <Link href="/dashboard/shortener" className="inline-flex items-center">
@@ -661,10 +744,10 @@ export default function ShortLinkDetailsPage() {
               </div>
               <div className="min-w-0 max-w-full">
                 <div className="flex flex-wrap items-baseline gap-2 mb-1">
-                  <h1 className="text-2xl font-bold truncate break-all">
+                  <h1 className="text-xl sm:text-2xl font-bold truncate break-all">
                     freelinnk.com/r/{link.id}
                   </h1>
-                  <div className="flex gap-2">
+                  <div className="flex gap-2 mt-2 sm:mt-0">
                     <Button
                       size="sm"
                       variant="outline"
@@ -675,7 +758,7 @@ export default function ShortLinkDetailsPage() {
                       }}
                     >
                       <Copy className="w-3.5 h-3.5" />
-                      Copiar
+                      <span className="hidden sm:inline">Copiar</span>
                     </Button>
                     <Button
                       size="sm"
@@ -684,7 +767,7 @@ export default function ShortLinkDetailsPage() {
                       onClick={() => window.open(link.url, '_blank', 'noopener,noreferrer')}
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
-                      Visitar
+                      <span className="hidden sm:inline">Visitar</span>
                     </Button>
                   </div>
                 </div>
@@ -693,13 +776,14 @@ export default function ShortLinkDetailsPage() {
                     <Calendar className="w-4 h-4" />
                     <span>Criado em {new Date(link.createdAt).toLocaleDateString('pt-BR')}</span>
                   </div>
-                  <div className="flex items-center gap-1">
-                    <ExternalLink className="w-4 h-4" />
+                  <div className="flex items-center gap-1 truncate max-w-full">
+                    <ExternalLink className="w-4 h-4 flex-shrink-0" />
                     <a
                       href={link.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="truncate max-w-md hover:underline"
+                      className="truncate max-w-[200px] sm:max-w-[300px] md:max-w-sm hover:underline"
+                      title={link.url}
                     >
                       {link.url}
                     </a>
@@ -708,10 +792,10 @@ export default function ShortLinkDetailsPage() {
               </div>
             </div>
 
-            <div className="flex gap-2 self-stretch md:self-auto">
+            <div className="flex gap-2 self-stretch md:self-auto mt-4 md:mt-0 w-full md:w-auto">
               <Button
                 variant="outline"
-                className="gap-1"
+                className="gap-1 w-full md:w-auto"
                 onClick={() => {
                   // Generate shareable URL with UTM parameters
                   const shareUrl = `${shortUrl}?utm_source=freelink&utm_medium=share&utm_campaign=analytics`;
@@ -733,30 +817,30 @@ export default function ShortLinkDetailsPage() {
 
       <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
         <Tabs defaultValue="overview" value={currentTab} onValueChange={setCurrentTab}>
-          <div className="border-b px-4">
+          <div className="border-b px-4 overflow-x-auto scrollbar-thin">
             <TabsList className="border-0 p-0 h-14 bg-transparent w-full justify-start">
               <TabsTrigger
                 value="overview"
-                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full"
+                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full whitespace-nowrap"
               >
                 Visão Geral
               </TabsTrigger>
               <TabsTrigger
                 value="clicks"
-                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full"
+                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full whitespace-nowrap"
               >
                 Registros de Cliques
               </TabsTrigger>
               <TabsTrigger
                 value="devices"
-                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full"
+                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full whitespace-nowrap"
                 disabled={plan === "free"}
               >
                 Dispositivos
               </TabsTrigger>
               <TabsTrigger
                 value="geo"
-                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full"
+                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full whitespace-nowrap"
                 disabled={plan !== "ultra"}
               >
                 Geografia
@@ -764,7 +848,7 @@ export default function ShortLinkDetailsPage() {
             </TabsList>
           </div>
 
-          <div className="p-6">
+          <div className="p-4 sm:p-6">
             <TabsContent value="overview" className="m-0 p-0">
               <div className="space-y-6">
                 {chartData && (
@@ -772,7 +856,7 @@ export default function ShortLinkDetailsPage() {
                     <CardHeader className="pb-2">
                       <CardTitle className="text-lg">Desempenho nos últimos 7 dias</CardTitle>
                       <CardDescription>
-                        Total de {filteredClicks.length} clique{filteredClicks.length !== 1 ? 's' : ''} registrado{filteredClicks.length !== 1 ? 's' : ''}
+                        Total de {clicks.length} clique{clicks.length !== 1 ? 's' : ''} registrado{clicks.length !== 1 ? 's' : ''}
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -797,7 +881,7 @@ export default function ShortLinkDetailsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <DeviceBreakdown clicks={filteredClicks} />
+                        <DeviceBreakdown clicks={clicks} />
                       </CardContent>
                     </Card>
                   )}
@@ -811,7 +895,7 @@ export default function ShortLinkDetailsPage() {
                         </CardDescription>
                       </CardHeader>
                       <CardContent>
-                        <CountryMap clicks={filteredClicks} />
+                        <CountryMap clicks={clicks} />
                       </CardContent>
                     </Card>
                   )}
@@ -834,7 +918,7 @@ export default function ShortLinkDetailsPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <DeviceBreakdown clicks={filteredClicks} />
+                      <DeviceBreakdown clicks={clicks} />
                     </CardContent>
                   </Card>
                 </div>
@@ -862,7 +946,7 @@ export default function ShortLinkDetailsPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <CountryMap clicks={filteredClicks} />
+                      <CountryMap clicks={clicks} />
                     </CardContent>
                   </Card>
                 </div>

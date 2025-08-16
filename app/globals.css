@@ -157,3 +157,80 @@
   box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
   transition: all 0.2s ease-in-out;
 }
+
+@keyframes confetti-rain {
+  0% {
+    background-position: 0 0;
+    opacity: 1;
+  }
+  100% {
+    background-position: 0 600px;
+    opacity: 0;
+  }
+}
+
+#confetti-container.active {
+  background-image: url('/confetti.png');
+  animation: confetti-rain 5s linear forwards;
+}
+
+/* Adicione classe para destacar elemento na captura de tela */
+.screenshot-highlight {
+  outline: 4px solid rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
+  transition: all 0.2s ease-in-out;
+}
+
+/* Breakpoint personalizado para tamanhos muito pequenos */
+@media (min-width: 480px) {
+  .xs\:inline {
+    display: inline;
+  }
+  .xs\:hidden {
+    display: none;
+  }
+}
+
+/* Tamanhos de borda personalizados para responsividade */
+.border-6 {
+  border-width: 6px;
+}
+
+/* Garantir que texto muito longo quebre corretamente em telas pequenas */
+.break-all-mobile {
+  word-break: break-all;
+}
+
+/* Efeito de sombra para o texto do vencedor */
+.drop-shadow-glow {
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
+}
+
+/* Melhorar espaçamento em dispositivos móveis */
+@media (max-width: 640px) {
+  .sm-spacing {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+  }
+
+  .sm-text-truncate {
+    max-width: 90vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Garantir boa leitura de texto em dispositivos pequenos */
+.mobile-readable {
+  font-size: clamp(0.75rem, 4vw, 1rem);
+  line-height: 1.5;
+}
+
+/* Melhorar grid para dispositivos muito pequenos */
+@media (max-width: 360px) {
+  .xs-stack > * {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}
