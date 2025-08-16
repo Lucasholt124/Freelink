@@ -151,3 +151,9 @@
 .dark .scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: #374151;
 }
+
+.screenshot-highlight {
+  outline: 4px solid rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
+  transition: all 0.2s ease-in-out;
+}

@@ -128,34 +128,23 @@ useEffect(() => {
 
 // Screenshot functionality
 function captureScreenshot(elementId: string, filename: string = 'sorteio-resultado') {
-  // Dynamically import html2canvas only when needed
-  import('html2canvas').then(({ default: html2canvas }) => {
-    const element = document.getElementById(elementId);
-    if (!element) return;
-
-    toast.loading('Capturando screenshot...');
-
-   html2canvas(element, {
- background: undefined,
-  logging: false,
-  allowTaint: true,
-  useCORS: true
-}).then(canvas => {
-      // Create download link
-      const link = document.createElement('a');
-      link.download = `${filename}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
-
-      toast.success('Screenshot salvo!');
-    }).catch(err => {
-      console.error('Screenshot error:', err);
-      toast.error('Erro ao capturar imagem');
-    });
-  }).catch(err => {
-    console.error('Error loading html2canvas:', err);
-    toast.error('Não foi possível carregar o módulo de captura');
+   const link = document.createElement('a');
+  link.href = document.getElementById(elementId)!.innerHTML;
+  link.download = `${filename}.png`;
+  link.click();
+  toast.info('Recurso de captura não disponível. Use a função PrintScreen do seu navegador.', {
+    duration: 5000,
+    id: 'screenshot-tip',
   });
+
+  const element = document.getElementById(elementId);
+  if (element) {
+    // Adicionar uma classe temporária para destacar o elemento
+    element.classList.add('screenshot-highlight');
+    setTimeout(() => {
+      element.classList.remove('screenshot-highlight');
+    }, 2000);
+  }
 }
 
 // Dramatic random selection visualization
