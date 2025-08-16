@@ -651,7 +651,6 @@ function InstagramGiveaway({
       runGiveaway({
         comments: commentList,
         ...filters,
-
       }),
       {
         loading: "Analisando comentários e sorteando...",
@@ -710,10 +709,29 @@ function InstagramGiveaway({
               disabled={isLoading}
               className="resize-none max-w-full font-mono mt-2"
             />
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 flex items-center">
-              <Info className="w-4 h-4 mr-1" />
-              {comments.split("\n").filter(Boolean).length} comentários encontrados
-            </p>
+            <div className="flex items-center justify-between mt-2">
+              <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                <Info className="w-4 h-4 mr-1" />
+                {comments.split("\n").filter(Boolean).length} comentários encontrados
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const exampleComments = [
+                    "@maria_silva: Participando! @joao_santos @ana_costa",
+                    "@pedro_oliveira: Quero muito ganhar! @lucas_ferreira",
+                    "@juliana_lima: Amei o sorteio @carla_rodrigues @bruno_alves",
+                    "@rafael_santos: Participando com @gabriela_martins",
+                    "@fernanda_costa: Vamos lá! @ricardo_souza @patricia_dias"
+                  ];
+                  setComments(exampleComments.join('\n'));
+                }}
+              >
+                Usar comentários de exemplo
+              </Button>
+            </div>
           </div>
 
           <Tabs defaultValue="basic" className="w-full">

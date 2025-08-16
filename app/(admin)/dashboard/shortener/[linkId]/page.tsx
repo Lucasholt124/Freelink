@@ -826,12 +826,6 @@ export default function ShortLinkDetailsPage() {
                 Visão Geral
               </TabsTrigger>
               <TabsTrigger
-                value="clicks"
-                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full whitespace-nowrap"
-              >
-                Registros de Cliques
-              </TabsTrigger>
-              <TabsTrigger
                 value="devices"
                 className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full whitespace-nowrap"
                 disabled={plan === "free"}
