@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import confetti from "canvas-confetti";
 import {
   Loader2,
   RefreshCw,
@@ -90,36 +89,14 @@ type GiveawayHistory = {
 
 // Confetti animation component with real implementation
 function launchConfetti() {
-  const duration = 5 * 1000;
-  const animationEnd = Date.now() + duration;
-  const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 };
-
-  function randomInRange(min: number, max: number) {
-    return Math.random() * (max - min) + min;
+  // Usando apenas CSS para o efeito
+  const confettiContainer = document.getElementById('confetti-container');
+  if (confettiContainer) {
+    confettiContainer.classList.add('active');
+    setTimeout(() => {
+      confettiContainer.classList.remove('active');
+    }, 5000);
   }
-
-  const interval = setInterval(function() {
-    const timeLeft = animationEnd - Date.now();
-
-    if (timeLeft <= 0) {
-      return clearInterval(interval);
-    }
-
-    const particleCount = 50 * (timeLeft / duration);
-    // since particles fall down, start a bit higher than random
-    confetti({
-      ...defaults,
-      particleCount,
-      origin: { x: randomInRange(0.1, 0.3), y: Math.random() - 0.2 },
-      colors: ['#ffd700', '#ff8c00', '#ff4500', '#9932cc', '#4169e1'],
-    });
-    confetti({
-      ...defaults,
-      particleCount,
-      origin: { x: randomInRange(0.7, 0.9), y: Math.random() - 0.2 },
-      colors: ['#ffd700', '#ff8c00', '#ff4500', '#9932cc', '#4169e1'],
-    });
-  }, 250);
 }
 
 // Animated counter for statistics
@@ -234,7 +211,7 @@ function DramaticSelection({
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [duration, items.length, onComplete, selectedIndex]);
+  }, [duration, items.length, onComplete, selectedIndex, speed]);
 
   return (
     <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-violet-900/90 to-purple-800/90 p-8 shadow-xl border-4 border-amber-300">
@@ -938,7 +915,7 @@ function ListGiveaway({
   const [participantsPreview, setParticipantsPreview] = useState<string[]>([]);
   const runGiveaway = useAction(api.giveaways.runListGiveaway);
 
-  const updatePreview = () => {
+  const updatePreview = useCallback(() => {
     let list = participants.split("\n").map((p) => p.trim()).filter(Boolean);
 
     // Apply filters
@@ -957,13 +934,16 @@ function ListGiveaway({
 
     setParticipantsPreview(list.slice(0, 100));
     setTotalParticipants(list.length);
-  };
-
-  useEffect(() => {
-    if (participants) {
-      updatePreview();
+    if (list.length === 0) {
+      toast.error("Nenhum participante válido encontrado com os filtros aplicados.");
     }
-  }, [participants, unique, filters]);
+  }, [participants, unique, filters, setTotalParticipants]);
+
+useEffect(() => {
+  if (participants) {
+    updatePreview();
+  }
+  }, [participants, unique, filters, updatePreview]);
 
   const handleRun = () => {
     const list = participants.split("\n").map((p) => p.trim()).filter(Boolean);
@@ -1291,7 +1271,7 @@ function WeightedListGiveaway({
   const [visualWeights, setVisualWeights] = useState<{name: string, weight: number}[]>([]);
   const runGiveaway = useAction(api.giveaways.runWeightedListGiveaway);
 
-  const parseParticipants = () => {
+  const parseParticipants = useCallback(() => {
     const lines = participants
       .split("\n")
       .map((line) => line.trim())
@@ -1307,7 +1287,7 @@ function WeightedListGiveaway({
     }).filter(Boolean) as {username: string, weight: number}[];
 
     return parsed;
-  };
+  }, [participants]);
 
   useEffect(() => {
     if (participants) {
@@ -1325,7 +1305,8 @@ function WeightedListGiveaway({
       setVisualWeights([]);
       setTotalParticipants(0);
     }
-  }, [participants, setTotalParticipants]);
+  }, [participants, setTotalParticipants, parseParticipants]);
+
 
   const handleRun = () => {
     const parsed = parseParticipants();
