@@ -160,34 +160,34 @@ function DramaticSelection({
   selectedIndex: number
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [speed, setSpeed] = useState(50);
   const [completed, setCompleted] = useState(false);
+  const [progress, setProgress] = useState(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const startTimeRef = useRef<number>(Date.now());
 
   useEffect(() => {
-   const startTime = Date.now();
-    let elapsed = 0;
+    startTimeRef.current = Date.now();
 
     const updateIndex = () => {
-      elapsed = Date.now() - startTime;
-      const progress = Math.min(elapsed / duration, 1);
+      const elapsed = Date.now() - startTimeRef.current;
+      const currentProgress = Math.min(elapsed / duration, 1);
+      setProgress(currentProgress);
 
       // Exponential slowdown
-      const newSpeed = 50 + 450 * Math.pow(progress, 2);
-      setSpeed(newSpeed);
+      const speed = 50 + 450 * Math.pow(currentProgress, 2);
 
       // Increase chance of landing on the selected index as we get closer to the end
-      const targetProbability = Math.pow(progress, 3); // Starts tiny, ends at 1
+      const targetProbability = Math.pow(currentProgress, 3);
       const random = Math.random();
 
-      if (progress > 0.8 && random < targetProbability) {
+      if (currentProgress > 0.8 && random < targetProbability) {
         setCurrentIndex(selectedIndex);
       } else {
         setCurrentIndex(Math.floor(Math.random() * items.length));
       }
 
-      if (progress < 1) {
-        timeoutRef.current = setTimeout(updateIndex, newSpeed);
+      if (currentProgress < 1) {
+        timeoutRef.current = setTimeout(updateIndex, speed);
       } else {
         setCurrentIndex(selectedIndex);
         setCompleted(true);
@@ -195,12 +195,12 @@ function DramaticSelection({
       }
     };
 
-    timeoutRef.current = setTimeout(updateIndex, speed);
+    timeoutRef.current = setTimeout(updateIndex, 50);
 
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
     };
-  }, [duration, items.length, onComplete, selectedIndex, speed]);
+  }, [duration, items.length, onComplete, selectedIndex]);
 
   return (
     <div className="relative overflow-hidden rounded-lg bg-gradient-to-br from-violet-900/90 to-purple-800/90 p-8 shadow-xl border-4 border-amber-300">
@@ -229,7 +229,7 @@ function DramaticSelection({
 
         <div className="mt-4">
           <Progress
-            value={(Date.now() - (timeoutRef.current ? Date.now() - speed : 0)) / duration * 100}
+            value={progress * 100}
             className="h-2 bg-purple-950"
           />
         </div>
@@ -1298,22 +1298,23 @@ function WeightedListGiveaway({
   }, [participants]);
 
   useEffect(() => {
-    if (participants) {
-      const parsed = parseParticipants();
-      if (parsed.length === 0) {
-        setVisualWeights([]);
-        setTotalParticipants(0);
-        return;
-      }
+  if (participants) {
+    const parsed = parseParticipants();
+    setVisualWeights(parsed.map(p => ({ name: p.username, weight: p.weight })));
 
-      // Calculate total participants (sum of weights)
-      const totalWeight = parsed.reduce((sum, p) => sum + p.weight, 0);
-      setTotalParticipants(totalWeight);
-    } else {
-      setVisualWeights([]);
+    if (parsed.length === 0) {
       setTotalParticipants(0);
+      return;
     }
-  }, [participants, setTotalParticipants, parseParticipants]);
+
+    // Calculate total participants (sum of weights)
+    const totalWeight = parsed.reduce((sum, p) => sum + p.weight, 0);
+    setTotalParticipants(totalWeight);
+  } else {
+    setVisualWeights([]);
+    setTotalParticipants(0);
+  }
+}, [participants, setTotalParticipants, parseParticipants]);
 
 
   const handleRun = () => {
