@@ -1,9 +1,7 @@
-/** @type {import('next').NextConfig} */
-const nextConfig = {
-  // Desabilita source maps em produção para evitar requisições desnecessárias
-  productionBrowserSourceMaps: false,
+import type { NextConfig } from "next";
 
-  // Configuração de imagens
+const nextConfig: NextConfig = {
+  /* opções de configuração aqui */
   images: {
     remotePatterns: [
       {
@@ -16,15 +14,6 @@ const nextConfig = {
       },
     ],
   },
-
-  // Configurações adicionais para melhor performance
-  poweredByHeader: false,
-  compress: true,
-
-  // Ignora erros de build relacionados a ESLint em produção
-  eslint: {
-    ignoreDuringBuilds: process.env.NODE_ENV === 'production',
-  },
 };
 
-module.exports = nextConfig;
+export default nextConfig;

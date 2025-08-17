@@ -16,7 +16,7 @@ export const createLink = mutation({
       userId: identity.subject,
       title: args.title,
       url: args.url,
-      order: Date.now(),
+      order: Date.now(), // use isso para classificar por ordem padrão por hora de criação (mais recente primeiro)
     });
   },
 });
@@ -43,7 +43,7 @@ export const getLinks = query({
   },
 });
 
-// 🌐 Obter links pelo slug do usuário
+// 🌐 Obter links pelo slug do usuário (nome de usuário ou ID do funcionário)
 export const getLinksBySlug = query({
   args: { slug: v.string() },
   returns: v.array(
@@ -57,6 +57,7 @@ export const getLinksBySlug = query({
     }),
   ),
   handler: async ({ db }, args) => {
+    // Primeiro tente encontrar um nome de usuário personalizado
     const usernameRecord = await db
       .query("usernames")
       .withIndex("by_username", (q) => q.eq("username", args.slug))
@@ -66,6 +67,7 @@ export const getLinksBySlug = query({
     if (usernameRecord) {
       userId = usernameRecord.userId;
     } else {
+      // Tratar slug como ID de funcionário em potencial
       userId = args.slug;
     }
 
@@ -99,7 +101,7 @@ export const getLinksByUserId = query({
   },
 });
 
-// Obter número de links por ID do usuário
+// obter número de links por ID do usuário
 export const getLinkCountByUserId = query({
   args: { userId: v.string() },
   returns: v.number(),
@@ -153,7 +155,7 @@ export const updateLink = mutation({
   },
 });
 
-// ✏️ Atualizar ordem
+// ✏️ Atualizar pedido
 export const updateLinkOrder = mutation({
   args: { linkIds: v.array(v.id("links")) },
   returns: v.null(),
@@ -161,6 +163,7 @@ export const updateLinkOrder = mutation({
     const identity = await auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
+    // Obtenha todos os links e filtre os inválidos
     const links = await Promise.all(linkIds.map((linkId) => db.get(linkId)));
 
     const validLinks = links
@@ -171,6 +174,7 @@ export const updateLinkOrder = mutation({
         originalIndex,
       }));
 
+   // Atualiza apenas links válidos com seu novo pedido
     await Promise.all(
       validLinks.map(({ link, originalIndex }) =>
         db.patch(link._id, { order: originalIndex }),
@@ -179,42 +183,18 @@ export const updateLinkOrder = mutation({
     return null;
   },
 });
-
-// 🔍 Obter link por ID com validação aprimorada
 export const getLinkById = query({
+  // Define os argumentos que a função espera receber
   args: {
-    linkId: v.id("links"),
+    linkId: v.id("links"), // Espera um 'linkId' que seja um ID válido da tabela "links"
   },
-  returns: v.union(
-    v.object({
-      _id: v.id("links"),
-      _creationTime: v.number(),
-      userId: v.string(),
-      title: v.string(),
-      url: v.string(),
-      order: v.number(),
-    }),
-    v.null()
-  ),
+
+  // A lógica que será executada
   handler: async (ctx, args) => {
-    try {
-      // Validação adicional do ID
-      if (!args.linkId || typeof args.linkId !== 'string') {
-        console.warn('Invalid linkId provided:', args.linkId);
-        return null;
-      }
+    // Busca no banco de dados o documento com o ID fornecido
+    const link = await ctx.db.get(args.linkId);
 
-      const link = await ctx.db.get(args.linkId);
-
-      if (!link) {
-        console.warn('Link not found:', args.linkId);
-        return null;
-      }
-
-      return link;
-    } catch (error) {
-      console.error('Error fetching link:', error);
-      return null;
-    }
+    // Retorna o link encontrado. Se não encontrar, retorna null.
+    return link;
   },
 });

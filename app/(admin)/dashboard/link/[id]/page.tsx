@@ -1,63 +1,62 @@
-"use client";
 
-import { useUser } from "@clerk/nextjs";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import LinkAnalytics from "@/components/LinkAnalytics";
+import { fetchDetailedAnalyticsForLink, LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
+import { currentUser } from "@clerk/nextjs/server";
+import { notFound } from "next/navigation";
+import Link from "next/link";
 
-import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
-import { UpgradeCallToAction } from "@/components/UpgradeCallToAction";
+// Importações necessárias para buscar os detalhes do link no Convex E PARA A TIPAGEM
+import { api } from "@/convex/_generated/api";
+import { fetchQuery } from "convex/nextjs";
+import { Id } from "@/convex/_generated/dataModel"; // <-- IMPORTANTE
 
+// Mantendo a estrutura que a Vercel exige no seu projeto
+interface LinkAnalyticsPageProps {
+  params: Promise<{
+    id: string;
+  }>;
+}
 
-export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsData }) {
-  const { user, isLoaded } = useUser();
-  const [plan, setPlan] = useState<"free" | "pro" | "ultra">("free");
-  const [isAdmin, setIsAdmin] = useState(false);
-  const router = useRouter();
-
-  useEffect(() => {
-    if (isLoaded && user) {
-      try {
-        const userPlan = (user.publicMetadata.subscriptionPlan as "free" | "pro" | "ultra") || "free";
-        setPlan(userPlan);
-        setIsAdmin(user.id === "user_301NTkVsE3v48SXkoCEp0XOXifI");
-      } catch (error) {
-        console.error("Error setting user plan:", error);
-      }
-    }
-  }, [isLoaded, user]);
-
-  const hasAnalyticsAccess = plan === "pro" || plan === "ultra" || isAdmin;
-
-  if (!isLoaded) {
-    return <div>Carregando...</div>;
+export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPageProps) {
+  const user = await currentUser();
+  if (!user) {
+    notFound();
   }
 
-  if (!hasAnalyticsAccess) {
-    return <UpgradeCallToAction />;
-  }
+  const resolvedParams = await params;
+  const { id } = resolvedParams;
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      <div className="max-w-7xl mx-auto px-4 py-8 space-y-6">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 px-4 py-2 bg-white rounded-md shadow-sm"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Voltar</span>
-        </button>
+  // CORREÇÃO: Usamos 'as Id<"links">' para dizer ao TypeScript para confiar em nós.
+  const linkId = id as Id<"links">;
 
-        <h1 className="text-3xl font-bold">{analytics.linkTitle}</h1>
-        <p>{analytics.linkUrl}</p>
+  // Agora, com o userId e o linkId em mãos, buscamos os dados de analytics
+  // E os detalhes do link (título, url) do Convex, tudo em paralelo.
+  const [analytics, linkDetails] = await Promise.all([
+    fetchDetailedAnalyticsForLink(user.id, linkId),
+    fetchQuery(api.lib.links.getLinkById, { linkId: linkId })
+  ]);
 
-        <div className="bg-white p-6 rounded-xl shadow-sm">
-          <h2 className="text-xl font-bold mb-4">Estatísticas Básicas</h2>
-          <p>Total de Cliques: {analytics.totalClicks}</p>
-          <p>Visitantes Únicos: {analytics.uniqueUsers}</p>
-          <p>Países Alcançados: {analytics.countriesReached}</p>
+  if (!analytics) {
+    return (
+       <div className="p-8 text-center bg-gray-50 min-h-screen">
+        <div className="bg-white p-10 rounded-xl shadow-md max-w-lg mx-auto">
+            <h2 className="text-xl font-bold text-gray-800">Dados Indisponíveis</h2>
+            <p className="text-gray-600 mt-2">
+              Não foi possível carregar as análises. Verifique se o link já recebeu cliques ou tente novamente.
+            </p>
+            <Link href="/dashboard" className="mt-6 inline-block text-blue-600 font-semibold hover:underline">
+              Voltar ao Painel
+            </Link>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  const finalAnalyticsData: LinkAnalyticsData = {
+    ...analytics,
+    linkTitle: linkDetails?.title || analytics.linkTitle,
+    linkUrl: linkDetails?.url || analytics.linkUrl,
+  };
+
+  return <LinkAnalytics analytics={finalAnalyticsData} />;
 }
