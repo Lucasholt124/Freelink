@@ -136,7 +136,6 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
   const [plan, setPlan] = useState<"free" | "pro" | "ultra">("free");
   const [isAdmin, setIsAdmin] = useState(false);
 
-
   useEffect(() => {
     if (isLoaded && user) {
       const userPlan = (user.publicMetadata.subscriptionPlan as "free" | "pro" | "ultra") || "free";

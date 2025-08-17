@@ -4,26 +4,30 @@ import type { NextRequest } from 'next/server';
 
 const isProtectedRoute = createRouteMatcher(["/dashboard(.*)"]);
 
-// Lista de extensões de arquivo para ignorar
-const STATIC_FILE_EXTENSIONS = [
-  '.css', '.js', '.map', '.ico', '.png', '.jpg', '.jpeg', '.gif', '.svg',
-  '.woff', '.woff2', '.ttf', '.eot', '.xml', '.txt', '.webp', '.avif'
-];
+// Melhorar detecção de arquivos estáticos
+function isStaticAsset(pathname: string): boolean {
+  // Verificar extensões comuns de arquivos estáticos
+  const staticExtensions = [
+    '.css', '.js', '.map', '.ico', '.png', '.jpg', '.jpeg', '.gif', '.svg',
+    '.woff', '.woff2', '.ttf', '.eot', '.xml', '.txt', '.webp', '.avif'
+  ];
+
+  return (
+    pathname.startsWith('/_next/') ||
+    pathname.startsWith('/api/') ||
+    pathname.includes('.') && staticExtensions.some(ext => pathname.endsWith(ext))
+  );
+}
 
 export default clerkMiddleware(async (auth, req: NextRequest) => {
   const pathname = req.nextUrl.pathname;
 
-  // Ignora arquivos estáticos
-  if (STATIC_FILE_EXTENSIONS.some(ext => pathname.toLowerCase().endsWith(ext))) {
+  // Ignorar completamente arquivos estáticos
+  if (isStaticAsset(pathname)) {
     return NextResponse.next();
   }
 
-  // Ignora rotas do sistema Next.js
-  if (pathname.startsWith('/_next/') || pathname.startsWith('/api/')) {
-    return NextResponse.next();
-  }
-
-  // Protege rotas do dashboard
+  // Proteger rotas do dashboard
   if (isProtectedRoute(req)) {
     await auth.protect();
   }
@@ -31,13 +35,6 @@ export default clerkMiddleware(async (auth, req: NextRequest) => {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except for the ones starting with:
-     * - _next/static (static files)
-     * - _next/image (image optimization files)
-     * - favicon.ico (favicon file)
-     * - public folder
-     */
     "/((?!_next/static|_next/image|favicon.ico|public/).*)",
   ],
 };
