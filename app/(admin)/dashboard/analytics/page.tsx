@@ -132,14 +132,36 @@ export default function AnalyticsPage() {
   const { user, isLoaded } = useUser();
   const getAnalytics = useAction(api.analytics.getDashboardAnalytics);
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (isLoaded) {
+    if (isLoaded && user) {
+      setIsLoading(true);
       getAnalytics({})
         .then(setAnalyticsData)
-        .catch((err) => toast.error(err.message));
+        .catch((err) => {
+          console.error('Error fetching analytics:', err);
+          toast.error('Erro ao carregar análises');
+        })
+        .finally(() => setIsLoading(false));
     }
-  }, [isLoaded, getAnalytics]);
+  }, [isLoaded, user, getAnalytics]);
+
+  if (!isLoaded || isLoading) {
+    return (
+      <div className="space-y-8 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="animate-pulse">
+          <div className="h-12 bg-gray-200 rounded w-1/3 mb-4"></div>
+          <div className="h-6 bg-gray-200 rounded w-1/2 mb-8"></div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-28 bg-gray-200 rounded-xl" />
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const isAdmin = user?.id === "user_301NTkVsE3v48SXkoCEp0XOXifI";
   const userPlan = (user?.publicMetadata?.subscriptionPlan as string) ?? "free";

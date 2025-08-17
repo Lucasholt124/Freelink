@@ -388,7 +388,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       Ajuda & Suporte
                     </Button>
                   </Link>
-                  <Link href="/signout">
+                  <Link href="/">
                     <Button variant="ghost" className="w-full justify-start text-sm text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/10">
                       <LogOut className="w-4 h-4 mr-2" />
                       Sair
@@ -457,7 +457,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       Freelink {userPlan === "ultra" ? "ULTRA" : userPlan === "pro" ? "PRO" : "Free"}
                     </p>
                   </div>
-                  <Link href="/signout">
+                  <Link href="/">
                     <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600">
                       <LogOut className="w-4 h-4" />
                     </Button>

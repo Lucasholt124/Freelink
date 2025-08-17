@@ -247,7 +247,7 @@ function UsageStatsCard({
 function QuickLinksCard({ userPlan }: { userPlan: string }) {
   const quickLinks = [
     { title: "Meus Links", href: "/dashboard/links", icon: LinkIcon, desc: "Gerenciar todos seus links" },
-    { title: "Criar Link", href: "/dashboard/links/new-link", icon: ExternalLink, desc: "Adicionar novo link", highlight: true },
+    { title: "Criar Link", href: "/dashboard/new-link", icon: ExternalLink, desc: "Adicionar novo link", highlight: true },
     { title: "Sorteios", href: "/dashboard/giveaway", icon: Gift, desc: "Gerenciar promoções", locked: userPlan !== "ultra" },
   ];
 
