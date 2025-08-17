@@ -183,36 +183,18 @@ export const updateLinkOrder = mutation({
     return null;
   },
 });
-
-// 🔍 Obter link por ID com validação robusta
 export const getLinkById = query({
+  // Define os argumentos que a função espera receber
   args: {
-    linkId: v.id("links"),
+    linkId: v.id("links"), // Espera um 'linkId' que seja um ID válido da tabela "links"
   },
+
+  // A lógica que será executada
   handler: async (ctx, args) => {
-    try {
-      // Verificação de segurança adicional
-      const linkIdStr = String(args.linkId);
+    // Busca no banco de dados o documento com o ID fornecido
+    const link = await ctx.db.get(args.linkId);
 
-      // Ignora requisições que pareçam ser arquivos estáticos
-      if (linkIdStr.includes('.css') ||
-          linkIdStr.includes('.map') ||
-          linkIdStr.includes('.js') ||
-          linkIdStr.includes('.png') ||
-          linkIdStr.includes('.jpg') ||
-          linkIdStr.includes('.svg')) {
-        console.warn(`Ignorando requisição para arquivo estático: ${linkIdStr}`);
-        return null;
-      }
-
-      // Busca no banco de dados o documento com o ID fornecido
-      const link = await ctx.db.get(args.linkId);
-
-      // Retorna o link encontrado. Se não encontrar, retorna null.
-      return link;
-    } catch (error) {
-      console.error(`Erro ao buscar link: ${error}`);
-      return null;
-    }
+    // Retorna o link encontrado. Se não encontrar, retorna null.
+    return link;
   },
 });

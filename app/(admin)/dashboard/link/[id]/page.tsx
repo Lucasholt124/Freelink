@@ -1,3 +1,4 @@
+
 import LinkAnalytics from "@/components/LinkAnalytics";
 import { fetchDetailedAnalyticsForLink, LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
 import { currentUser } from "@clerk/nextjs/server";
@@ -9,12 +10,6 @@ import { api } from "@/convex/_generated/api";
 import { fetchQuery } from "convex/nextjs";
 import { Id } from "@/convex/_generated/dataModel"; // <-- IMPORTANTE
 
-// Lista de extensões de arquivo para ignorar
-const STATIC_FILE_EXTENSIONS = [
-  '.css', '.js', '.map', '.ico', '.png', '.jpg', '.jpeg', '.gif', '.svg',
-  '.txt', '.webp', '.avif'
-];
-
 // Mantendo a estrutura que a Vercel exige no seu projeto
 interface LinkAnalyticsPageProps {
   params: Promise<{
@@ -23,68 +18,45 @@ interface LinkAnalyticsPageProps {
 }
 
 export default async function LinkAnalyticsPage({ params }: LinkAnalyticsPageProps) {
-  try {
-    const resolvedParams = await params;
-    const { id } = resolvedParams;
-
-    // Verifica se o ID é um arquivo estático - NOVA VERIFICAÇÃO
-    if (STATIC_FILE_EXTENSIONS.some(ext => id.toLowerCase().includes(ext))) {
-      console.log(`Rejeitando arquivo estático: ${id}`);
-      notFound();
-    }
-
-    const user = await currentUser();
-    if (!user) {
-      notFound();
-    }
-
-    // Validação adicional para ID convex válido
-    if (!id.startsWith('k') || id.length < 20 || id.includes('.')) {
-      console.log(`ID inválido: ${id}`);
-      notFound();
-    }
-
-    // CORREÇÃO: Usamos 'as Id<"links">' para dizer ao TypeScript para confiar em nós.
-    const linkId = id as Id<"links">;
-
-    // Agora, com o userId e o linkId em mãos, buscamos os dados de analytics
-    // E os detalhes do link (título, url) do Convex, tudo em paralelo.
-    const [analytics, linkDetails] = await Promise.all([
-      fetchDetailedAnalyticsForLink(user.id, linkId),
-      fetchQuery(api.lib.links.getLinkById, { linkId: linkId })
-    ]);
-
-    // Verificação adicional para links que não existem
-    if (!linkDetails) {
-      console.log(`Link não encontrado: ${id}`);
-      notFound();
-    }
-
-    if (!analytics) {
-      return (
-         <div className="p-8 text-center bg-gray-50 min-h-screen">
-          <div className="bg-white p-10 rounded-xl shadow-md max-w-lg mx-auto">
-              <h2 className="text-xl font-bold text-gray-800">Dados Indisponíveis</h2>
-              <p className="text-gray-600 mt-2">
-                Não foi possível carregar as análises. Verifique se o link já recebeu cliques ou tente novamente.
-              </p>
-              <Link href="/dashboard" className="mt-6 inline-block text-blue-600 font-semibold hover:underline">
-                Voltar ao Painel
-              </Link>
-          </div>
-        </div>
-      );
-    }
-
-    const finalAnalyticsData: LinkAnalyticsData = {
-      ...analytics,
-      linkTitle: linkDetails?.title || analytics.linkTitle,
-      linkUrl: linkDetails?.url || analytics.linkUrl,
-    };
-
-    return <LinkAnalytics analytics={finalAnalyticsData} />;
-  } catch (error) {
-    console.error("Erro ao carregar página de análises:", error);
+  const user = await currentUser();
+  if (!user) {
     notFound();
   }
+
+  const resolvedParams = await params;
+  const { id } = resolvedParams;
+
+  // CORREÇÃO: Usamos 'as Id<"links">' para dizer ao TypeScript para confiar em nós.
+  const linkId = id as Id<"links">;
+
+  // Agora, com o userId e o linkId em mãos, buscamos os dados de analytics
+  // E os detalhes do link (título, url) do Convex, tudo em paralelo.
+  const [analytics, linkDetails] = await Promise.all([
+    fetchDetailedAnalyticsForLink(user.id, linkId),
+    fetchQuery(api.lib.links.getLinkById, { linkId: linkId })
+  ]);
+
+  if (!analytics) {
+    return (
+       <div className="p-8 text-center bg-gray-50 min-h-screen">
+        <div className="bg-white p-10 rounded-xl shadow-md max-w-lg mx-auto">
+            <h2 className="text-xl font-bold text-gray-800">Dados Indisponíveis</h2>
+            <p className="text-gray-600 mt-2">
+              Não foi possível carregar as análises. Verifique se o link já recebeu cliques ou tente novamente.
+            </p>
+            <Link href="/dashboard" className="mt-6 inline-block text-blue-600 font-semibold hover:underline">
+              Voltar ao Painel
+            </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const finalAnalyticsData: LinkAnalyticsData = {
+    ...analytics,
+    linkTitle: linkDetails?.title || analytics.linkTitle,
+    linkUrl: linkDetails?.url || analytics.linkUrl,
+  };
+
+  return <LinkAnalytics analytics={finalAnalyticsData} />;
 }
