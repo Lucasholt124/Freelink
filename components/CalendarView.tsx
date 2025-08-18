@@ -1256,15 +1256,14 @@ export default function CalendarView({
           </DialogHeader>
 
           {/* Conteúdo Principal - ÁREA DE SCROLL */}
-         {/* Conteúdo Principal - ÁREA DE SCROLL */}
-          <div className="flex-1 overflow-hidden relative"> {/* Mudança aqui: removido min-h-0, adicionado overflow-hidden */}
+          <div className="flex-1 overflow-y-auto relative">
             {isEditing ? (
               <motion.div
                 key="edit-form"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent p-4 sm:p-6 pb-20"
+                className="p-4 sm:p-6 pb-20"
               >
                 <EditPostForm
                   item={selectedEvent}
@@ -1278,7 +1277,7 @@ export default function CalendarView({
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="h-full flex flex-col"
+                className="flex flex-col h-full"
               >
                 <Tabs defaultValue="content" className="flex flex-col h-full">
                   {/* Tabs Header - FIXO */}
@@ -1295,20 +1294,15 @@ export default function CalendarView({
                     </TabsList>
                   </div>
 
-                  {/* Conteúdo das Tabs - ÁREA DE SCROLL COM PADDING BOTTOM PARA BOTÕES */}
-                 {/* Conteúdo das Tabs - ÁREA DE SCROLL CORRETA */}
-                  <div className="flex-1 overflow-hidden">
+                  {/* Conteúdo das Tabs - ÁREA DE SCROLL COM PADDING BOTTOM PARA BOTÕES (Ajustado) */}
+                  <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent">
                     <TabsContent
                       value="content"
-                      className="data-[state=active]:block mt-0 h-full"
+                      className="data-[state=active]:block mt-0"
                     >
                       <div
                         ref={contentScrollRef}
-                        className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent pt-4 pb-24 px-4 sm:px-6 space-y-5 sm:space-y-6"
-                        style={{
-                          scrollbarWidth: 'thin',
-                          scrollbarColor: '#cbd5e1 transparent'
-                        }}
+                        className="pt-4 pb-24 px-4 sm:px-6 space-y-5 sm:space-y-6"
                       >
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
@@ -1363,19 +1357,75 @@ export default function CalendarView({
                             </div>
                           </motion.div>
                         )}
+                        {selectedEvent.details?.creative_guidance && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.3 }}
+                          >
+                            <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 mb-3">
+                              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+                              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
+                                Guia Criativo
+                              </span>
+                            </h3>
+
+                            <div className="border p-4 sm:p-5 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-200 dark:border-blue-800/50 shadow-sm">
+                              <div className="flex gap-3 items-start mb-4">
+                                <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-full">
+                                  <Camera className="w-4 h-4 text-blue-700 dark:text-blue-300" />
+                                </div>
+                                <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">{selectedEvent.details.creative_guidance.description}</p>
+                              </div>
+
+                              {selectedEvent.details.creative_guidance.type === 'image' && (
+                                <div className="bg-blue-900/5 dark:bg-blue-500/10 p-4 rounded-md font-mono text-xs sm:text-sm text-blue-800 dark:text-blue-300 relative mb-4 border border-blue-200 dark:border-blue-800/60 shadow-inner">
+                                  <div className="flex justify-between items-center mb-2">
+                                    <p className="font-semibold flex items-center gap-1">
+                                      <Sparkles className="w-3.5 h-3.5" />
+                                      Prompt Sugerido:
+                                    </p>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                                      onClick={() => {
+                                        navigator.clipboard.writeText(selectedEvent.details?.creative_guidance.prompt ?? "");
+                                        toast.success("Prompt copiado!", {
+                                          icon: <Copy className="w-4 h-4 text-blue-500" />
+                                        });
+                                      }}
+                                    >
+                                      <Copy className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                  <p className="whitespace-pre-line break-words">{selectedEvent.details.creative_guidance.prompt}</p>
+                                </div>
+                              )}
+
+                              <a
+                                href={selectedEvent.details.creative_guidance.tool_link}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="block"
+                              >
+                                <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm">
+                                  <LinkIcon className="w-4 h-4 mr-2" />
+                                  Abrir Ferramenta Recomendada
+                                </Button>
+                              </a>
+                            </div>
+                          </motion.div>
+                        )}
                       </div>
                     </TabsContent>
 
                     <TabsContent
                       value="execution"
-                      className="data-[state=active]:block mt-0 h-full"
+                      className="data-[state=active]:block mt-0"
                     >
                       <div
-                        className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent pt-4 pb-24 px-4 sm:px-6 space-y-5 sm:space-y-6"
-                        style={{
-                          scrollbarWidth: 'thin',
-                          scrollbarColor: '#cbd5e1 transparent'
-                        }}
+                        className="pt-4 pb-24 px-4 sm:px-6 space-y-5 sm:space-y-6"
                       >
                         {selectedEvent.details && (
                           <>
@@ -1470,83 +1520,81 @@ export default function CalendarView({
                 </Tabs>
               </motion.div>
             )}
+          </div>
 
-            {/* Barra de ações fixa na parte inferior - SEMPRE VISÍVEL */}
-            <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm pt-4 pb-4 px-4 sm:px-6 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-end gap-2 shadow-lg z-20"> {/* Aumentado padding vertical */}
-              <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 w-full sm:w-auto">
+          {/* Barra de ações fixa na parte inferior - SEMPRE VISÍVEL */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm pt-4 pb-4 px-4 sm:px-6 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-end gap-2 shadow-lg z-20">
+            <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={handleShareItem}
+                className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 w-full"
+                disabled={isUpdating}
+              >
+                <Share2 className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
+                Compartilhar
+              </Button>
+
+              <Button
+                variant="outline"
+                onClick={() => setIsEditing(true)}
+                className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 w-full"
+                disabled={isUpdating}
+              >
+                <Edit className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
+                Editar
+              </Button>
+            </div>
+
+            <div className="mt-2 sm:mt-0 w-full sm:w-auto">
+              {selectedEvent.status !== "concluido" ? (
                 <Button
-                  variant="outline"
-                  onClick={handleShareItem}
-                  className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 w-full"
+                  onClick={() => handleMarkCompleted(selectedEvent)}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white w-full relative overflow-hidden shadow-sm"
                   disabled={isUpdating}
                 >
-                  <Share2 className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
-                  Compartilhar
+                  {isUpdating ? (
+                    <LoadingDots />
+                  ) : (
+                    <>
+                      <CheckCircle className="w-4 h-4 mr-2" />
+                      Marcar como Concluído
+                      <motion.div
+                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                        initial={{ x: -200 }}
+                        animate={{ x: 400 }}
+                        transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                      />
+                    </>
+                  )}
                 </Button>
-
+              ) : (
                 <Button
                   variant="outline"
-                  onClick={() => setIsEditing(true)}
-                  className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 w-full"
+                  className="bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 hover:text-amber-900 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/40 dark:hover:bg-amber-900/30 w-full"
+                  onClick={() => {
+                    if (isUpdating) return;
+
+                    const updatedPlan = planWithIds.map((p) => (
+                      p.id === selectedEvent.id
+                        ? { ...p, status: "planejado" as const, completedAt: undefined }
+                        : p
+                    ));
+                    handleUpdatePlan(updatedPlan);
+                    setSelectedEvent(null);
+                  }}
                   disabled={isUpdating}
                 >
-                  <Edit className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
-                  Editar
+                  {isUpdating ? (
+                    <LoadingDots />
+                  ) : (
+                    <>
+                      <Clock className="w-4 h-4 mr-2" />
+                      Marcar como Pendente
+                    </>
+                  )}
                 </Button>
-              </div>
-
-              <div className="mt-2 sm:mt-0 w-full sm:w-auto">
-                {selectedEvent.status !== "concluido" ? (
-                  <Button
-                    onClick={() => handleMarkCompleted(selectedEvent)}
-                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white w-full relative overflow-hidden shadow-sm"
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? (
-                      <LoadingDots />
-                    ) : (
-                      <>
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        Marcar como Concluído
-
-                        {/* Efeito de brilho */}
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                          initial={{ x: -200 }}
-                          animate={{ x: 400 }}
-                          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                        />
-                      </>
-                    )}
-                  </Button>
-                ) : (
-                  <Button
-                    variant="outline"
-                    className="bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 hover:text-amber-900 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/40 dark:hover:bg-amber-900/30 w-full"
-                    onClick={() => {
-                      if (isUpdating) return;
-
-                      const updatedPlan = planWithIds.map((p) => (
-                        p.id === selectedEvent.id
-                          ? { ...p, status: "planejado" as const, completedAt: undefined }
-                          : p
-                      ));
-                      handleUpdatePlan(updatedPlan);
-                      setSelectedEvent(null);
-                    }}
-                    disabled={isUpdating}
-                  >
-                    {isUpdating ? (
-                      <LoadingDots />
-                    ) : (
-                      <>
-                        <Clock className="w-4 h-4 mr-2" />
-                        Marcar como Pendente
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </motion.div>
@@ -1554,6 +1602,7 @@ export default function CalendarView({
     </AnimatePresence>
   </DialogContent>
 </Dialog>
+
       {/* Modal de compartilhamento - FUNCIONALIDADE VIRAL #2 */}
       <ShareAchievementModal
         isOpen={showShareModal}
