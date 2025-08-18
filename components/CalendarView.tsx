@@ -1296,20 +1296,20 @@ export default function CalendarView({
                   </div>
 
                   {/* Conteúdo das Tabs - ÁREA DE SCROLL COM PADDING BOTTOM PARA BOTÕES */}
-                  <div
-                    ref={contentScrollRef}
-                    className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent px-4 sm:px-6 pb-24" // Aumentado o padding bottom de pb-20 para pb-24
-                    style={{
-                      // Fallback para browsers que não suportam scrollbar-thin
-                      scrollbarWidth: 'thin',
-                      scrollbarColor: '#cbd5e1 transparent'
-                    }}
-                  >
+                 {/* Conteúdo das Tabs - ÁREA DE SCROLL CORRETA */}
+                  <div className="flex-1 overflow-hidden">
                     <TabsContent
                       value="content"
-                      className="data-[state=active]:block mt-0 space-y-0" // Removido h-auto
+                      className="data-[state=active]:block mt-0 h-full"
                     >
-                      <div className="pt-4 space-y-5 sm:space-y-6">
+                      <div
+                        ref={contentScrollRef}
+                        className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent pt-4 pb-24 px-4 sm:px-6 space-y-5 sm:space-y-6"
+                        style={{
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: '#cbd5e1 transparent'
+                        }}
+                      >
                         <motion.div
                           initial={{ opacity: 0, y: 10 }}
                           animate={{ opacity: 1, y: 0 }}
@@ -1368,9 +1368,15 @@ export default function CalendarView({
 
                     <TabsContent
                       value="execution"
-                      className="data-[state=active]:block mt-0 space-y-0" // Removido h-auto
+                      className="data-[state=active]:block mt-0 h-full"
                     >
-                      <div className="pt-4 space-y-5 sm:space-y-6">
+                      <div
+                        className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent pt-4 pb-24 px-4 sm:px-6 space-y-5 sm:space-y-6"
+                        style={{
+                          scrollbarWidth: 'thin',
+                          scrollbarColor: '#cbd5e1 transparent'
+                        }}
+                      >
                         {selectedEvent.details && (
                           <>
                             <motion.div
