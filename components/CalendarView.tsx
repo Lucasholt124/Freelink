@@ -1190,356 +1190,363 @@ export default function CalendarView({
       </motion.div>
 
       {/* Modal de detalhes do evento - VERSÃO VIRAL */}
-      <Dialog open={!!selectedEvent} onOpenChange={() => { setSelectedEvent(null); setIsEditing(false); }}>
-        <DialogContent className="max-w-3xl w-[95vw] sm:w-full max-h-[90vh] p-0 overflow-hidden bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700">
-          <AnimatePresence mode="wait">
-            {selectedEvent && (
+     {/* Modal de detalhes do evento - VERSÃO COM SCROLL OTIMIZADO */}
+<Dialog open={!!selectedEvent} onOpenChange={() => { setSelectedEvent(null); setIsEditing(false); }}>
+  <DialogContent className="max-w-3xl w-[95vw] sm:w-full max-h-[90vh] p-0 overflow-hidden bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 flex flex-col">
+    <AnimatePresence mode="wait">
+      {selectedEvent && (
+        <motion.div
+          className="flex flex-col h-full min-h-0" // min-h-0 é crucial para flexbox
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+        >
+          {/* Header do Modal - FIXO */}
+          <DialogHeader className="p-4 sm:p-6 pb-0 sm:pb-0 flex-shrink-0 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3">
+              <div className="pr-8 sm:pr-0">
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <Badge className={cn(
+                    "px-2 py-0.5 font-medium",
+                    getConfig(selectedEvent.format).color
+                  )}>
+                    <span className="flex items-center">
+                      {getConfig(selectedEvent.format).icon}
+                      {selectedEvent.format}
+                    </span>
+                  </Badge>
+
+                  <Badge className={cn(
+                    "px-2 py-0.5",
+                    selectedEvent.status === "concluido"
+                      ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                      : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                  )}>
+                    {selectedEvent.status === "concluido" ? (
+                      <span className="flex items-center">
+                        <CheckCircle className="w-3.5 h-3.5 mr-1" />
+                        Concluído
+                      </span>
+                    ) : (
+                      <span className="flex items-center">
+                        <Clock className="w-3.5 h-3.5 mr-1" />
+                        Pendente
+                      </span>
+                    )}
+                  </Badge>
+                </div>
+
+                <DialogTitle className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
+                  {selectedEvent.title}
+                </DialogTitle>
+              </div>
+
+              <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 shrink-0">
+                <div className="flex items-center gap-1">
+                  <CalendarIcon className="w-3.5 h-3.5" />
+                  <span>{selectedEvent.day}</span>
+                </div>
+                <span>•</span>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>{selectedEvent.time}</span>
+                </div>
+              </div>
+            </div>
+          </DialogHeader>
+
+          {/* Conteúdo Principal - ÁREA DE SCROLL */}
+          <div className="flex-1 min-h-0 relative"> {/* min-h-0 é essencial */}
+            {isEditing ? (
               <motion.div
-                className="flex flex-col h-full"
+                key="edit-form"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
+                className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent p-4 sm:p-6"
               >
-                {/* Header do Modal */}
-                <DialogHeader className="p-4 sm:p-6 pb-0 sm:pb-0 flex-shrink-0 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-3">
-                    <div className="pr-8 sm:pr-0">
-                      <div className="flex flex-wrap items-center gap-2 mb-1">
-                        <Badge className={cn(
-                          "px-2 py-0.5 font-medium",
-                          getConfig(selectedEvent.format).color
-                        )}>
-                          <span className="flex items-center">
-                            {getConfig(selectedEvent.format).icon}
-                            {selectedEvent.format}
-                          </span>
-                        </Badge>
-
-                        <Badge className={cn(
-                          "px-2 py-0.5",
-                          selectedEvent.status === "concluido"
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                            : "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
-                        )}>
-                          {selectedEvent.status === "concluido" ? (
-                            <span className="flex items-center">
-                              <CheckCircle className="w-3.5 h-3.5 mr-1" />
-                              Concluído
-                            </span>
-                          ) : (
-                            <span className="flex items-center">
-                              <Clock className="w-3.5 h-3.5 mr-1" />
-                              Pendente
-                            </span>
-                          )}
-                        </Badge>
-                      </div>
-
-                      <DialogTitle className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white">
-                        {selectedEvent.title}
-                      </DialogTitle>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 dark:text-slate-400 shrink-0">
-                      <div className="flex items-center gap-1">
-                        <CalendarIcon className="w-3.5 h-3.5" />
-                        <span>{selectedEvent.day}</span>
-                      </div>
-                      <span>•</span>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{selectedEvent.time}</span>
-                      </div>
-                    </div>
+                <EditPostForm
+                  item={selectedEvent}
+                  onSave={handleSaveEdit}
+                  onCancel={() => setIsEditing(false)}
+                />
+              </motion.div>
+            ) : (
+              <motion.div
+                key="content-view"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="h-full flex flex-col"
+              >
+                <Tabs defaultValue="content" className="flex flex-col h-full">
+                  {/* Tabs Header - FIXO */}
+                  <div className="px-4 sm:px-6 pt-4 flex-shrink-0">
+                    <TabsList className="w-full grid grid-cols-2 mb-1">
+                      <TabsTrigger value="content" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300">
+                        <MessageSquare className="w-4 h-4 mr-2" />
+                        Conteúdo
+                      </TabsTrigger>
+                      <TabsTrigger value="execution" className="data-[state=active]:bg-green-50 data-[state=active]:text-green-700 dark:data-[state=active]:bg-green-900/30 dark:data-[state=active]:text-green-300">
+                        <Trophy className="w-4 h-4 mr-2" />
+                        Execução
+                      </TabsTrigger>
+                    </TabsList>
                   </div>
-                </DialogHeader>
 
-                {/* Conteúdo do Modal */}
-                {/* ✅ CORRIGIDO: Removido `overflow-hidden` daqui */}
-                <div className="flex-grow">
-                  {isEditing ? (
-                    <motion.div
-                      key="edit-form"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="p-4 sm:p-6 overflow-y-auto h-full"
+                  {/* Conteúdo das Tabs - ÁREA DE SCROLL COM PADDING BOTTOM PARA BOTÕES */}
+                  <div
+                    ref={contentScrollRef}
+                    className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent px-4 sm:px-6 pb-20" // pb-20 = espaço para botões
+                    style={{
+                      // Fallback para browsers que não suportam scrollbar-thin
+                      scrollbarWidth: 'thin',
+                      scrollbarColor: '#cbd5e1 transparent'
+                    }}
+                  >
+                    <TabsContent
+                      value="content"
+                      className="data-[state=active]:block mt-0 h-auto"
                     >
-                      <EditPostForm
-                        item={selectedEvent}
-                        onSave={handleSaveEdit}
-                        onCancel={() => setIsEditing(false)}
-                      />
-                    </motion.div>
-                  ) : (
+                      <div className="pt-4 space-y-5 sm:space-y-6">
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: 0.1 }}
+                          className="bg-blue-50/50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/50"
+                        >
+                          <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 text-blue-800 dark:text-blue-300 mb-2">
+                            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
+                            Ideia de Conteúdo
+                          </h3>
+                          <div className="prose prose-sm dark:prose-invert max-w-none bg-white dark:bg-slate-800/60 p-3 sm:p-4 rounded-md whitespace-pre-line text-sm border border-blue-100 dark:border-blue-800/50 shadow-sm">
+                            <ReactMarkdown>{selectedEvent.content_idea?.replace(/\\n/g, '\n')}</ReactMarkdown>
+                          </div>
+                        </motion.div>
 
-                    <motion.div
-                      key="content-view"
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      exit={{ opacity: 0 }}
-                      className="flex flex-col h-full"
-                    >
-                      <Tabs defaultValue="content" className="flex flex-col h-full">
-                        <div className="px-4 sm:px-6 pt-4">
-                          <TabsList className="w-full grid grid-cols-2 mb-1">
-                            <TabsTrigger value="content" className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 dark:data-[state=active]:bg-blue-900/30 dark:data-[state=active]:text-blue-300">
-                              <MessageSquare className="w-4 h-4 mr-2" />
-                              Conteúdo
-                            </TabsTrigger>
-                            <TabsTrigger value="execution" className="data-[state=active]:bg-green-50 data-[state=active]:text-green-700 dark:data-[state=active]:bg-green-900/30 dark:data-[state=active]:text-green-300">
-                              <Trophy className="w-4 h-4 mr-2" />
-                              Execução
-                            </TabsTrigger>
-                          </TabsList>
-                        </div>
-
-                        {/* ✅ AQUI ESTÁ O SCROLL: `contentScrollRef` aplicado e `overflow-y-auto` */}
-                        <div ref={contentScrollRef} className="flex-grow overflow-y-auto px-4 sm:px-6 pb-24 scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600">
-                          <TabsContent
-                            value="content"
-                            className="h-full data-[state=active]:flex flex-col"
+                        {selectedEvent.details && (
+                          <motion.div
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: 0.2 }}
                           >
-                              <div className="pt-4 space-y-5 sm:space-y-6">
-                                <motion.div
-                                  initial={{ opacity: 0, y: 10 }}
-                                  animate={{ opacity: 1, y: 0 }}
-                                  transition={{ delay: 0.1 }}
-                                  className="bg-blue-50/50 dark:bg-blue-900/20 rounded-xl p-4 border border-blue-100 dark:border-blue-800/50"
-                                >
-                                  <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 text-blue-800 dark:text-blue-300 mb-2">
-                                    <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 dark:text-blue-400" />
-                                    Ideia de Conteúdo
-                                  </h3>
-                                  <div className="prose prose-sm dark:prose-invert max-w-none bg-white dark:bg-slate-800/60 p-3 sm:p-4 rounded-md whitespace-pre-line text-sm border border-blue-100 dark:border-blue-800/50 shadow-sm">
-                                    <ReactMarkdown>{selectedEvent.content_idea?.replace(/\\n/g, '\n')}</ReactMarkdown>
-                                  </div>
-                                </motion.div>
+                            <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 mb-2">
+                              <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+                              <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400">
+                                Roteiro e Legenda
+                              </span>
+                            </h3>
+                            <div className="prose prose-sm dark:prose-invert max-w-none bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-md whitespace-pre-line text-sm border border-purple-100 dark:border-purple-900/30 shadow-sm">
+                              <ReactMarkdown>{selectedEvent.details.script_or_copy?.replace(/\\n/g, '\n')}</ReactMarkdown>
+                            </div>
 
-                                {selectedEvent.details && (
-                                  <motion.div
-                                    initial={{ opacity: 0, y: 10 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: 0.2 }}
-                                  >
-                                    <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 mb-2">
-                                      <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                                      <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400">
-                                        Roteiro e Legenda
-                                      </span>
-                                    </h3>
-                                    <div className="prose prose-sm dark:prose-invert max-w-none bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-md whitespace-pre-line text-sm border border-purple-100 dark:border-purple-900/30 shadow-sm">
-                                      <ReactMarkdown>{selectedEvent.details.script_or_copy?.replace(/\\n/g, '\n')}</ReactMarkdown>
-                                    </div>
-
-                                    <div className="mt-4 p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
-                                      <p className="text-xs sm:text-sm flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
-                                        <span className="font-semibold text-slate-500 dark:text-slate-400">Hashtags:</span>
-                                        <span className="text-blue-600 dark:text-blue-400 break-words font-medium">{selectedEvent.details.hashtags}</span>
-                                      </p>
-                                      <Button
-                                        variant="outline"
-                                        size="sm"
-                                        className="mt-3 w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30"
-                                        onClick={() => {
-                                          navigator.clipboard.writeText(selectedEvent.details?.script_or_copy + "\n\n" + selectedEvent.details?.hashtags);
-                                          toast.success("Legenda com hashtags copiada!", {
-                                            icon: <Copy className="w-4 h-4 text-blue-500" />
-                                          });
-                                        }}
-                                      >
-                                        <Copy className="w-4 h-4 mr-2" />
-                                        Copiar Legenda Completa
-                                      </Button>
-                                    </div>
-                                  </motion.div>
-                                )}
-                              </div>
-                          </TabsContent>
-
-                          <TabsContent
-                            value="execution"
-                            className="h-full data-[state=active]:flex flex-col"
-                          >
-                              <div className="pt-4 space-y-5 sm:space-y-6">
-                                {selectedEvent.details && (
-                                  <>
-                                    <motion.div
-                                      initial={{ opacity: 0, y: 10 }}
-                                      animate={{ opacity: 1, y: 0 }}
-                                      transition={{ delay: 0.1 }}
-                                      className="bg-green-50/50 dark:bg-green-900/20 rounded-xl p-4 border border-green-100 dark:border-green-800/50"
-                                    >
-                                      <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 text-green-800 dark:text-green-300 mb-2">
-                                        <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
-                                        Plano de Execução
-                                      </h3>
-
-                                      <div className="bg-white dark:bg-slate-800/60 rounded-lg p-3 border border-green-100 dark:border-green-800/50 mb-3 shadow-sm">
-                                        <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
-                                          <span className="font-semibold text-green-700 dark:text-green-400">Ferramenta Recomendada:</span>
-                                          <span className="font-medium">{selectedEvent.details.tool_suggestion}</span>
-                                        </p>
-                                      </div>
-
-                                      <div className="prose prose-sm dark:prose-invert max-w-none bg-white dark:bg-slate-800/60 p-3 sm:p-4 rounded-md text-sm border border-green-100 dark:border-green-800/50 shadow-sm">
-                                        <ReactMarkdown>{selectedEvent.details.step_by_step?.replace(/\\n/g, '\n')}</ReactMarkdown>
-                                      </div>
-                                    </motion.div>
-
-                                    {selectedEvent.details.creative_guidance && (
-                                      <motion.div
-                                        initial={{ opacity: 0, y: 10 }}
-                                        animate={{ opacity: 1, y: 0 }}
-                                        transition={{ delay: 0.2 }}
-                                      >
-                                        <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 mb-3">
-                                          <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                                          <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
-                                            Guia Criativo
-                                          </span>
-                                        </h3>
-
-                                        <div className="border p-4 sm:p-5 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-200 dark:border-blue-800/50 shadow-sm">
-                                          <div className="flex gap-3 items-start mb-4">
-                                            <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-full">
-                                              <Camera className="w-4 h-4 text-blue-700 dark:text-blue-300" />
-                                            </div>
-                                            <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">{selectedEvent.details.creative_guidance.description}</p>
-                                          </div>
-
-                                          {selectedEvent.details.creative_guidance.type === 'image' && (
-                                            <div className="bg-blue-900/5 dark:bg-blue-500/10 p-4 rounded-md font-mono text-xs sm:text-sm text-blue-800 dark:text-blue-300 relative mb-4 border border-blue-200 dark:border-blue-800/60 shadow-inner">
-                                              <div className="flex justify-between items-center mb-2">
-                                                <p className="font-semibold flex items-center gap-1">
-                                                  <Sparkles className="w-3.5 h-3.5" />
-                                                  Prompt Sugerido:
-                                                </p>
-                                                <Button
-                                                  size="icon"
-                                                  variant="ghost"
-                                                  className="h-7 w-7 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30"
-                                                  onClick={() => {
-                                                    navigator.clipboard.writeText(selectedEvent.details?.creative_guidance.prompt ?? "");
-                                                    toast.success("Prompt copiado!", {
-                                                      icon: <Copy className="w-4 h-4 text-blue-500" />
-                                                    });
-                                                  }}
-                                                >
-                                                  <Copy className="w-4 h-4" />
-                                                </Button>
-                                              </div>
-                                              <p className="whitespace-pre-line">{selectedEvent.details.creative_guidance.prompt}</p>
-                                            </div>
-                                          )}
-
-                                          <a
-                                            href={selectedEvent.details.creative_guidance.tool_link}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="block"
-                                          >
-                                            <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm">
-                                              <LinkIcon className="w-4 h-4 mr-2" />
-                                              Abrir Ferramenta Recomendada
-                                            </Button>
-                                          </a>
-                                        </div>
-                                      </motion.div>
-                                    )}
-                                  </>
-                                )}
-                              </div>
-                          </TabsContent>
-                        </div>
-                      </Tabs>
-
-                      {/* Barra de ações fixa na parte inferior - Versão Viral */}
-                      <div className="absolute bottom-0 left-0 right-0 bg-white dark:bg-slate-900 pt-3 pb-3 px-4 sm:px-6 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-end gap-2 shadow-md z-10">
-                        <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 w-full sm:w-auto">
-                          <Button
-                            variant="outline"
-                            onClick={handleShareItem}
-                            className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 w-full"
-                            disabled={isUpdating}
-                          >
-                            <Share2 className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
-                            Compartilhar
-                          </Button>
-
-                          <Button
-                            variant="outline"
-                            onClick={() => setIsEditing(true)}
-                            className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 w-full"
-                            disabled={isUpdating}
-                          >
-                            <Edit className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
-                            Editar
-                          </Button>
-                        </div>
-
-                        <div className="mt-2 sm:mt-0 w-full sm:w-auto">
-                          {selectedEvent.status !== "concluido" ? (
-                            <Button
-                              onClick={() => handleMarkCompleted(selectedEvent)}
-                              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white w-full relative overflow-hidden shadow-sm"
-                              disabled={isUpdating}
-                            >
-                              {isUpdating ? (
-                                <LoadingDots />
-                              ) : (
-                                <>
-                                  <CheckCircle className="w-4 h-4 mr-2" />
-                                  Marcar como Concluído
-
-                                  {/* Efeito de brilho */}
-                                  <motion.div
-                                    className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                                    initial={{ x: -200 }}
-                                    animate={{ x: 400 }}
-                                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                                  />
-                                </>
-                              )}
-                            </Button>
-                          ) : (
-                            <Button
-                              variant="outline"
-                              className="bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 hover:text-amber-900 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/40 dark:hover:bg-amber-900/30 w-full"
-                              onClick={() => {
-                                if (isUpdating) return;
-
-                                const updatedPlan = planWithIds.map((p) => (
-                                  p.id === selectedEvent.id
-                                    ? { ...p, status: "planejado" as const, completedAt: undefined }
-                                    : p
-                                ));
-                                handleUpdatePlan(updatedPlan);
-                                setSelectedEvent(null);
-                              }}
-                              disabled={isUpdating}
-                            >
-                              {isUpdating ? (
-                                <LoadingDots />
-                              ) : (
-                                <>
-                                  <Clock className="w-4 h-4 mr-2" />
-                                  Marcar como Pendente
-                                </>
-                              )}
-                            </Button>
-                          )}
-                        </div>
+                            <div className="mt-4 p-4 border rounded-lg bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700">
+                              <p className="text-xs sm:text-sm flex flex-col sm:flex-row sm:items-start gap-1 sm:gap-2">
+                                <span className="font-semibold text-slate-500 dark:text-slate-400">Hashtags:</span>
+                                <span className="text-blue-600 dark:text-blue-400 break-words font-medium">{selectedEvent.details.hashtags}</span>
+                              </p>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="mt-3 w-full sm:w-auto border-blue-200 text-blue-700 hover:bg-blue-50 hover:text-blue-800 dark:border-blue-800 dark:text-blue-400 dark:hover:bg-blue-900/30"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(selectedEvent.details?.script_or_copy + "\n\n" + selectedEvent.details?.hashtags);
+                                  toast.success("Legenda com hashtags copiada!", {
+                                    icon: <Copy className="w-4 h-4 text-blue-500" />
+                                  });
+                                }}
+                              >
+                                <Copy className="w-4 h-4 mr-2" />
+                                Copiar Legenda Completa
+                              </Button>
+                            </div>
+                          </motion.div>
+                        )}
                       </div>
-                    </motion.div>
-                  )}
-                </div>
+                    </TabsContent>
+
+                    <TabsContent
+                      value="execution"
+                      className="data-[state=active]:block mt-0 h-auto"
+                    >
+                      <div className="pt-4 space-y-5 sm:space-y-6">
+                        {selectedEvent.details && (
+                          <>
+                            <motion.div
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: 0.1 }}
+                              className="bg-green-50/50 dark:bg-green-900/20 rounded-xl p-4 border border-green-100 dark:border-green-800/50"
+                            >
+                              <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 text-green-800 dark:text-green-300 mb-2">
+                                <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 dark:text-green-400" />
+                                Plano de Execução
+                              </h3>
+
+                              <div className="bg-white dark:bg-slate-800/60 rounded-lg p-3 border border-green-100 dark:border-green-800/50 mb-3 shadow-sm">
+                                <p className="text-xs sm:text-sm text-slate-800 dark:text-slate-200 flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                                  <span className="font-semibold text-green-700 dark:text-green-400">Ferramenta Recomendada:</span>
+                                  <span className="font-medium">{selectedEvent.details.tool_suggestion}</span>
+                                </p>
+                              </div>
+
+                              <div className="prose prose-sm dark:prose-invert max-w-none bg-white dark:bg-slate-800/60 p-3 sm:p-4 rounded-md text-sm border border-green-100 dark:border-green-800/50 shadow-sm">
+                                <ReactMarkdown>{selectedEvent.details.step_by_step?.replace(/\\n/g, '\n')}</ReactMarkdown>
+                              </div>
+                            </motion.div>
+
+                            {selectedEvent.details.creative_guidance && (
+                              <motion.div
+                                initial={{ opacity: 0, y: 10 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.2 }}
+                              >
+                                <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 mb-3">
+                                  <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+                                  <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
+                                    Guia Criativo
+                                  </span>
+                                </h3>
+
+                                <div className="border p-4 sm:p-5 rounded-xl bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-blue-200 dark:border-blue-800/50 shadow-sm">
+                                  <div className="flex gap-3 items-start mb-4">
+                                    <div className="bg-blue-100 dark:bg-blue-900/50 p-2 rounded-full">
+                                      <Camera className="w-4 h-4 text-blue-700 dark:text-blue-300" />
+                                    </div>
+                                    <p className="text-xs sm:text-sm text-slate-700 dark:text-slate-300">{selectedEvent.details.creative_guidance.description}</p>
+                                  </div>
+
+                                  {selectedEvent.details.creative_guidance.type === 'image' && (
+                                    <div className="bg-blue-900/5 dark:bg-blue-500/10 p-4 rounded-md font-mono text-xs sm:text-sm text-blue-800 dark:text-blue-300 relative mb-4 border border-blue-200 dark:border-blue-800/60 shadow-inner">
+                                      <div className="flex justify-between items-center mb-2">
+                                        <p className="font-semibold flex items-center gap-1">
+                                          <Sparkles className="w-3.5 h-3.5" />
+                                          Prompt Sugerido:
+                                        </p>
+                                        <Button
+                                          size="icon"
+                                          variant="ghost"
+                                          className="h-7 w-7 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30"
+                                          onClick={() => {
+                                            navigator.clipboard.writeText(selectedEvent.details?.creative_guidance.prompt ?? "");
+                                            toast.success("Prompt copiado!", {
+                                              icon: <Copy className="w-4 h-4 text-blue-500" />
+                                            });
+                                          }}
+                                        >
+                                          <Copy className="w-4 h-4" />
+                                        </Button>
+                                      </div>
+                                      <p className="whitespace-pre-line break-words">{selectedEvent.details.creative_guidance.prompt}</p>
+                                    </div>
+                                  )}
+
+                                  <a
+                                    href={selectedEvent.details.creative_guidance.tool_link}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="block"
+                                  >
+                                    <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-sm">
+                                      <LinkIcon className="w-4 h-4 mr-2" />
+                                      Abrir Ferramenta Recomendada
+                                    </Button>
+                                  </a>
+                                </div>
+                              </motion.div>
+                            )}
+                          </>
+                        )}
+                      </div>
+                    </TabsContent>
+                  </div>
+                </Tabs>
               </motion.div>
             )}
-          </AnimatePresence>
-        </DialogContent>
-      </Dialog>
 
+            {/* Barra de ações fixa na parte inferior - SEMPRE VISÍVEL */}
+            <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm pt-3 pb-3 px-4 sm:px-6 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-end gap-2 shadow-lg z-20">
+              <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 w-full sm:w-auto">
+                <Button
+                  variant="outline"
+                  onClick={handleShareItem}
+                  className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 w-full"
+                  disabled={isUpdating}
+                >
+                  <Share2 className="w-4 h-4 mr-2 text-blue-600 dark:text-blue-400" />
+                  Compartilhar
+                </Button>
+
+                <Button
+                  variant="outline"
+                  onClick={() => setIsEditing(true)}
+                  className="border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 w-full"
+                  disabled={isUpdating}
+                >
+                  <Edit className="w-4 h-4 mr-2 text-purple-600 dark:text-purple-400" />
+                  Editar
+                </Button>
+              </div>
+
+              <div className="mt-2 sm:mt-0 w-full sm:w-auto">
+                {selectedEvent.status !== "concluido" ? (
+                  <Button
+                    onClick={() => handleMarkCompleted(selectedEvent)}
+                    className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white w-full relative overflow-hidden shadow-sm"
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? (
+                      <LoadingDots />
+                    ) : (
+                      <>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Marcar como Concluído
+
+                        {/* Efeito de brilho */}
+                        <motion.div
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                          initial={{ x: -200 }}
+                          animate={{ x: 400 }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                        />
+                      </>
+                    )}
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="bg-amber-50 text-amber-800 border-amber-200 hover:bg-amber-100 hover:text-amber-900 dark:bg-amber-900/20 dark:text-amber-300 dark:border-amber-800/40 dark:hover:bg-amber-900/30 w-full"
+                    onClick={() => {
+                      if (isUpdating) return;
+
+                      const updatedPlan = planWithIds.map((p) => (
+                        p.id === selectedEvent.id
+                          ? { ...p, status: "planejado" as const, completedAt: undefined }
+                          : p
+                      ));
+                      handleUpdatePlan(updatedPlan);
+                      setSelectedEvent(null);
+                    }}
+                    disabled={isUpdating}
+                  >
+                    {isUpdating ? (
+                      <LoadingDots />
+                    ) : (
+                      <>
+                        <Clock className="w-4 h-4 mr-2" />
+                        Marcar como Pendente
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  </DialogContent>
+</Dialog>
       {/* Modal de compartilhamento - FUNCIONALIDADE VIRAL #2 */}
       <ShareAchievementModal
         isOpen={showShareModal}

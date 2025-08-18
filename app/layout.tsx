@@ -3,9 +3,9 @@ import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
 import { Providers } from "@/app/providers/Providers";
-
 import { Toaster } from "@/components/ui/sonner";
 import { getBaseUrl } from "@/convex/lib/getBaseUrl";
+import clsx from "clsx";
 
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseUrl()),
@@ -15,12 +15,10 @@ export const metadata: Metadata = {
   },
   description:
     "Crie uma página de links na bio com analytics, personalização total e suporte em português. A alternativa ao Linktree feita para o mercado brasileiro.",
-
   icons: {
     icon: "/favicon.svg",
     apple: "/apple-touch-icon.svg",
   },
-
   openGraph: {
     title: "Freelinnk - Sua página de links com analytics avançado",
     description:
@@ -64,9 +62,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+    <html lang="pt-BR" suppressHydrationWarning>
       <body
-        className="antialiased bg-gray-50 text-gray-800 flex flex-col min-h-screen overflow-x-hidden"
+        className={clsx(
+          "antialiased bg-gray-50 text-gray-800 dark:bg-slate-900 dark:text-slate-200 flex flex-col min-h-screen overflow-x-hidden",
+          `${GeistSans.variable} ${GeistMono.variable}`
+        )}
         style={{ minHeight: "100dvh" }}
       >
         <Providers>
