@@ -1256,14 +1256,15 @@ export default function CalendarView({
           </DialogHeader>
 
           {/* Conteúdo Principal - ÁREA DE SCROLL */}
-          <div className="flex-1 min-h-0 relative"> {/* min-h-0 é essencial */}
+         {/* Conteúdo Principal - ÁREA DE SCROLL */}
+          <div className="flex-1 overflow-hidden relative"> {/* Mudança aqui: removido min-h-0, adicionado overflow-hidden */}
             {isEditing ? (
               <motion.div
                 key="edit-form"
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent p-4 sm:p-6"
+                className="h-full overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent p-4 sm:p-6 pb-20"
               >
                 <EditPostForm
                   item={selectedEvent}
@@ -1297,7 +1298,7 @@ export default function CalendarView({
                   {/* Conteúdo das Tabs - ÁREA DE SCROLL COM PADDING BOTTOM PARA BOTÕES */}
                   <div
                     ref={contentScrollRef}
-                    className="flex-1 min-h-0 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent px-4 sm:px-6 pb-20" // pb-20 = espaço para botões
+                    className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-300 dark:scrollbar-thumb-slate-600 scrollbar-track-transparent px-4 sm:px-6 pb-24" // Aumentado o padding bottom de pb-20 para pb-24
                     style={{
                       // Fallback para browsers que não suportam scrollbar-thin
                       scrollbarWidth: 'thin',
@@ -1306,7 +1307,7 @@ export default function CalendarView({
                   >
                     <TabsContent
                       value="content"
-                      className="data-[state=active]:block mt-0 h-auto"
+                      className="data-[state=active]:block mt-0 space-y-0" // Removido h-auto
                     >
                       <div className="pt-4 space-y-5 sm:space-y-6">
                         <motion.div
@@ -1367,7 +1368,7 @@ export default function CalendarView({
 
                     <TabsContent
                       value="execution"
-                      className="data-[state=active]:block mt-0 h-auto"
+                      className="data-[state=active]:block mt-0 space-y-0" // Removido h-auto
                     >
                       <div className="pt-4 space-y-5 sm:space-y-6">
                         {selectedEvent.details && (
@@ -1465,7 +1466,7 @@ export default function CalendarView({
             )}
 
             {/* Barra de ações fixa na parte inferior - SEMPRE VISÍVEL */}
-            <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm pt-3 pb-3 px-4 sm:px-6 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-end gap-2 shadow-lg z-20">
+            <div className="absolute bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-900/95 backdrop-blur-sm pt-4 pb-4 px-4 sm:px-6 border-t border-slate-200 dark:border-slate-700 flex flex-col sm:flex-row justify-end gap-2 shadow-lg z-20"> {/* Aumentado padding vertical */}
               <div className="grid grid-cols-2 sm:flex sm:flex-row gap-2 w-full sm:w-auto">
                 <Button
                   variant="outline"
