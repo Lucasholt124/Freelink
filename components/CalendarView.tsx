@@ -31,12 +31,15 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import confetti from 'canvas-confetti';
 
 
+
 // Tipos
 type PlanItemFromDB = {
   day: string;
   time: string;
   format: string;
   title: string;
+   funnel_stage: string;
+  focus_metric: string;
   content_idea: string;
   status: "planejado" | "concluido";
   completedAt?: number;
@@ -759,29 +762,30 @@ export default function CalendarView({
 
   const handleUpdatePlan = async (updatedPlan: PlanItem[]) => {
     setIsUpdating(true);
-    const planToSave = updatedPlan.map((item) => ({
-      day: item.day,
-      time: item.time,
-      format: item.format,
-      title: item.title,
-      content_idea: item.content_idea,
-      status: item.status,
-      completedAt: item.completedAt,
-      details: item.details,
-    }));
-
+const planToSave = updatedPlan.map((item) => ({
+  day: item.day,
+  time: item.time,
+  format: item.format as "reels" | "carrossel" | "stories" | "imagem" | "atividade",
+  title: item.title,
+  content_idea: item.content_idea,
+  status: item.status,
+  completedAt: item.completedAt,
+  details: item.details,
+  funnel_stage: item.funnel_stage as "atrair" | "nutrir" | "converter",
+  focus_metric: item.focus_metric,
+}));
     try {
-      await updatePlanMutation({ analysisId, newPlan: planToSave });
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 1500);
-      toast.success("Plano atualizado com sucesso!");
-    } catch (err) {
-      toast.error(
-        err instanceof Error
-          ? err.message
-          : "Falha ao sincronizar. Tente novamente."
-      );
-    } finally {
+  await updatePlanMutation({ analysisId, newPlan: planToSave });
+  setShowSuccess(true);
+  setTimeout(() => setShowSuccess(false), 1500);
+  toast.success("Plano atualizado com sucesso!");
+} catch (err) {
+  toast.error(
+    err instanceof Error
+      ? err.message
+      : "Falha ao sincronizar. Tente novamente."
+  );
+} finally {
       setIsUpdating(false);
     }
   };

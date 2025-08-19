@@ -326,29 +326,6 @@ const Testimonials = () => (
 );
 
 
-// Fallbacks para quando os dados estão vazios (Ainda mantemos o fallback da estratégia para o download, caso a estratégia em si não tenha sido removida do objeto `savedAnalysis` na API)
-const getFallbackStrategy = (username: string, offer: string, audience: string) => {
-  return `# Estratégia de Conteúdo para @${username}
-
-## Análise de Público
-Seu público-alvo (${audience}) está buscando soluções práticas relacionadas a ${offer}. Eles valorizam conteúdo que entrega valor imediato e demonstra sua expertise.
-
-## Pilares de Conteúdo
-1. **Educação**: Compartilhe conhecimentos sobre ${offer} que ajudem seu público a resolver problemas
-2. **Autoridade**: Mostre resultados e cases de sucesso para estabelecer credibilidade
-3. **Engajamento**: Crie conteúdo que gere interação e construa relacionamento
-
-## Recomendações
-- Poste pelo menos 3-4 vezes por semana para manter consistência
-- Alterne entre formatos para variedade
-- Use storytelling para criar conexão emocional com ${audience}
-- Inclua chamadas para ação claras direcionando para sua oferta
-
-## Estratégia de Crescimento
-Foque em hashtags relevantes, parcerias com criadores complementares, e responda ativamente nos comentários para aumentar seu alcance orgânico.`;
-};
-
-
 // Componente principal aprimorado
 export default function MentorIaMvp() {
   const savedAnalysis = useQuery(api.mentor.getSavedAnalysis);
@@ -451,44 +428,60 @@ export default function MentorIaMvp() {
     }
   };
 
-  const handleDownloadPlan = () => {
+   const handleDownloadPlan = () => {
     if (!savedAnalysis) return;
 
-    // Embora as abas tenham sido removidas, o download pode conter todas as informações
-    // geradas para um plano completo. Usamos os dados diretamente de savedAnalysis,
-    // com fallbacks se necessário (embora o backend deva sempre fornecer os dados completos).
+    // A função foi reescrita para usar a NOVA estrutura de dados,
+    // que é muito mais rica e estratégica.
     const content = `
 # PLANO ESTRATÉGICO DE CONTEÚDO - MENTOR.IA
 
 ## Perfil: @${savedAnalysis.username}
 Data de geração: ${new Date(savedAnalysis.updatedAt ?? savedAnalysis._creationTime).toLocaleString("pt-BR")}
 
-## ESTRATÉGIA GERAL
-${savedAnalysis.strategy || getFallbackStrategy(savedAnalysis.username, savedAnalysis.offer, savedAnalysis.audience)}
+---
 
-## SUGESTÕES DE BIO (Apenas para referência)
-${(savedAnalysis.suggestions?.length > 0
-  ? savedAnalysis.suggestions
-  : [`Bio padrão 1`, `Bio padrão 2`] // Fallback simplificado
-).map((s, i) => `${i + 1}. ${s}`).join('\n')}
+## 🧠 ESTRATÉGIA CENTRAL
 
-## GRID HARMÔNICO (Apenas para referência)
-${(savedAnalysis.grid?.length > 0
-  ? savedAnalysis.grid
-  : [`Ideia de post 1`, `Ideia de post 2`] // Fallback simplificado
-).map((g, i) => `${i + 1}. ${g}`).join('\n')}
+### Pilares de Conteúdo:
+${savedAnalysis.content_pillars.map((pillar, i) =>
+`  ${i + 1}. **${pillar.pillar}**: ${pillar.description}`
+).join('\n')}
 
-## PLANO DE CONTEÚDO
-${savedAnalysis.content_plan.map((item, i) => `
-DIA ${i + 1} (${item.time}) - ${item.format.toUpperCase()}
-Título: ${item.title}
-Descrição: ${item.content_idea}
+### Persona da Audiência:
+- **Nome:** ${savedAnalysis.audience_persona.name}
+- **Descrição:** ${savedAnalysis.audience_persona.description}
+- **Principais Dores:**\n${savedAnalysis.audience_persona.pain_points.map(pain => `    - ${pain}`).join('\n')}
+
+### Voz da Marca:
+- ${savedAnalysis.brand_voice}
+
+---
+
+## ✨ BIO OTIMIZADA PARA INSTAGRAM
+${savedAnalysis.optimized_bio.replace(/\\n/g, '\n')}
+
+---
+
+## 🗓️ PLANO DE CONTEÚDO DETALHADO
+${savedAnalysis.content_plan.map((item) => `
+===================================================
+**${item.day.toUpperCase()} (${item.time}) - FORMATO: ${item.format.toUpperCase()}**
+
+**Título:** ${item.title}
+**Ideia Central:** ${item.content_idea}
+**Funil:** ${item.funnel_stage}
+**Métrica de Foco:** ${item.focus_metric}
+
 ${item.details ? `
-Ferramenta: ${item.details.tool_suggestion}
-Hashtags: ${item.details.hashtags}
+  **Roteiro/Legenda:**
+  ${item.details.script_or_copy.replace(/\\n/g, '\n  ')}
+
+  **Passo a Passo:** ${item.details.step_by_step}
+  **Ferramenta Sugerida:** ${item.details.tool_suggestion}
+  **Hashtags:** ${item.details.hashtags}
 ` : ''}
 `).join('\n')}
-
 ---
 Gerado por Mentor.IA - Freelink
 A arma secreta dos criadores de conteúdo de elite
