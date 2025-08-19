@@ -3,15 +3,20 @@ import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import OpenAI from "openai";
 
-// Tipos TypeScript
+// =================================================================
+// 1. ESTRUTURAS DE DADOS (INTERFACES E TIPOS)
+// =================================================================
+
 interface ContentPlanItem {
   day: string;
   time: string;
-  format: string;
+  format: "reels" | "carrossel" | "stories" | "imagem" | "atividade";
   title: string;
   content_idea: string;
   status: "planejado" | "concluido";
   completedAt?: number;
+  funnel_stage: "atrair" | "nutrir" | "converter";
+  focus_metric: string;
   details?: {
     tool_suggestion: string;
     step_by_step: string;
@@ -19,266 +24,159 @@ interface ContentPlanItem {
     hashtags: string;
     creative_guidance: {
       type: string;
-      description: string;
+      description:string;
       prompt: string;
       tool_link: string;
     };
   };
 }
 
+interface StrategicAnalysis {
+  optimized_bio: string;
+  content_pillars: { pillar: string; description: string }[];
+  audience_persona: { name: string; description: string; pain_points: string[] };
+  brand_voice: string;
+}
+
 interface ContentPlanResult {
   content_plan: ContentPlanItem[];
 }
 
-// Verificação de variáveis de ambiente
-if (!process.env.GROQ_API_KEY_1) {
-  throw new Error("GROQ_API_KEY_1 não está configurada nas variáveis de ambiente");
-}
+type StrategicSlot = {
+    day: number;
+    time: string;
+    purpose: string;
+};
 
-if (!process.env.GROQ_API_KEY_2) {
-  throw new Error("GROQ_API_KEY_2 não está configurada nas variáveis de ambiente");
-}
+// =================================================================
+// 2. CONFIGURAÇÃO E FUNÇÕES HELPERS
+// =================================================================
 
-// Configuração dos dois clientes Groq
-const groq1 = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY_1,
-  baseURL: "https://api.groq.com/openai/v1"
-});
+if (!process.env.GROQ_API_KEY_1) { throw new Error("GROQ_API_KEY_1 não está configurada"); }
+const groq = new OpenAI({ apiKey: process.env.GROQ_API_KEY_1, baseURL: "https://api.groq.com/openai/v1" });
 
-const groq2 = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY_2,
-  baseURL: "https://api.groq.com/openai/v1"
-});
-
-// Funções de limpeza e extração de JSON (VERSÃO FINAL E ROBUSTA)
 function extractJsonFromText(text: string): string {
-  let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-  const arrayStart = cleaned.indexOf('[');
-  const objectStart = cleaned.indexOf('{');
-
-  if (arrayStart === -1 && objectStart === -1) {
-    throw new Error("Não foi possível encontrar JSON válido na resposta");
-  }
-
-  let start = -1;
-  let isArray = false;
-
-  if (arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart)) {
-    start = arrayStart;
-    isArray = true;
-  } else {
-    start = objectStart;
-    isArray = false;
-  }
-
-  if (start !== -1) {
-    cleaned = cleaned.substring(start);
-    let openBrackets = 0;
-    let closeBracketIndex = -1;
-    const openChar = isArray ? '[' : '{';
-    const closeChar = isArray ? ']' : '}';
-    let inQuote = false;
-    let escaped = false;
-
+    let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+    const arrayStart = cleaned.indexOf('[');
+    const objectStart = cleaned.indexOf('{');
+    if (arrayStart === -1 && objectStart === -1) { throw new Error("Não foi possível encontrar o início de um JSON válido na resposta."); }
+    let start = -1;
+    if (arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart)) { start = arrayStart; } else { start = objectStart; }
+    if (start !== -1) { cleaned = cleaned.substring(start); }
+    const openChar = cleaned.startsWith('[') ? '[' : '{';
+    const closeChar = cleaned.startsWith('[') ? ']' : '}';
+    let balance = 0; let inString = false; let escape = false;
     for (let i = 0; i < cleaned.length; i++) {
-      const char = cleaned[i];
-      if (char === '\\') {
-        escaped = !escaped;
-      } else if (char === '"' && !escaped) {
-        inQuote = !inQuote;
-      } else if (!inQuote) {
-        if (char === openChar) openBrackets++;
-        else if (char === closeChar) {
-          openBrackets--;
-          if (openBrackets === 0) {
-            closeBracketIndex = i;
-            break;
-          }
-        }
-      }
-      if (char !== '\\') escaped = false;
+        const char = cleaned[i];
+        if (inString) { if (char === '"' && !escape) { inString = false; } else if (char === '\\') { escape = !escape; } else { escape = false; } }
+        else { if (char === '"') { inString = true; } else if (char === openChar) { balance++; } else if (char === closeChar) { balance--; } }
+        if (balance === 0 && i > 0) { return cleaned.substring(0, i + 1); }
     }
-    if (closeBracketIndex !== -1) {
-      cleaned = cleaned.substring(0, closeBracketIndex + 1);
-    }
-  }
-  return cleaned;
+    return cleaned;
 }
 
 function cleanAndFixJson(text: string): string {
-  let cleaned = extractJsonFromText(text);
-
-  // Normaliza espaços e remove quebras de linha que quebram o parser
-  cleaned = cleaned.replace(/\s+/g, ' ').trim();
-
-  // Remove vírgulas traiçoeiras antes de fechar colchetes ou chaves
-  cleaned = cleaned.replace(/,\s*([}```])/g, '$1');
-
-  // Adiciona vírgula entre objetos que a IA esquece
-  cleaned = cleaned.replace(/}\s*{/g, '},{');
-
-  // **LÓGICA CORRIGIDA para aspas internas - SIMPLES E EFICAZ**
-  // A regex foi corrigida para ser sintaticamente válida.
-  // Ela encontra o conteúdo de uma string JSON, e a função callback escapa as aspas internas.
-  cleaned = cleaned.replace(/:(\s*)"((?:\\.|[^"`]*)*)"/g, (match, whitespace, content) => {
-      // Escapa todas as aspas duplas DENTRO do conteúdo da string
-      const escapedContent = content.replace(/"/g, '\\"');
-      // Reconstrói a string do valor JSON
-      return `:${whitespace}"${escapedContent}"`;
-  });
-
-  return cleaned;
+    let cleaned = extractJsonFromText(text);
+    cleaned = cleaned.replace(/,\s*([}\]])/g, '$1');
+    cleaned = cleaned.replace(/}\s*{/g, '},{');
+    cleaned = cleaned.replace(/:(\s*)"((?:\\.|[^"])*)"/g, (match, whitespace, content) => {
+        const escapedContent = content.replace(/(?<!\\)"/g, '\\"');
+        return `:${whitespace}"${escapedContent}"`;
+    });
+    return cleaned;
 }
 
-// Função helper para extrair JSON
 function extractJson<T>(text: string): T {
-  console.log("extractJson - Texto inicial:", text.substring(0, 100) + "...");
-
-  try {
-    const cleanedText = cleanAndFixJson(text);
-    console.log("JSON limpo:", cleanedText.substring(0, 100) + "...");
-
-    if (cleanedText.startsWith('[')) {
-      console.log("Detectado array direto");
-      try {
-        const arrayData = JSON.parse(cleanedText);
-        return { content_plan: arrayData } as T;
-      } catch (parseError) {
-        console.error("Erro ao parsear array:", parseError);
-        return { content_plan: fallbackParsing(cleanedText) } as T;
-      }
-    }
-
     try {
-      return JSON.parse(cleanedText) as T;
-    } catch (parseError) {
-      console.error("Erro ao parsear objeto:", parseError);
-      throw new Error("Não foi possível parsear o JSON mesmo após limpeza");
+        const cleanedText = cleanAndFixJson(text);
+        const parsed = JSON.parse(cleanedText);
+        if (Array.isArray(parsed)) {
+            return { content_plan: parsed } as T;
+        }
+        if (parsed.content_plan && Array.isArray(parsed.content_plan)) {
+            return parsed as T;
+        }
+        throw new Error("Formato de JSON inesperado.");
+    } catch (error) {
+        console.error("Erro CRÍTICO ao parsear JSON:", error, "Texto Recebido:", text);
+        throw new Error("Falha ao parsear o JSON da IA.");
     }
-  } catch (error) {
-    console.error("Erro no processo de extração:", error);
-    throw new Error("Falha ao extrair JSON da resposta");
-  }
 }
 
-// Função para parsing de fallback
-function fallbackParsing(text: string): ContentPlanItem[] {
-  const items: ContentPlanItem[] = [];
-  const dayMatches = text.match(/"day"\s*:\s*"[^"]*"/g) || [];
+function getStrategicSchedule(totalDays: number): StrategicSlot[] {
+    const postsPerWeek = 4;
+    const schedule: StrategicSlot[] = [];
+    const totalWeeks = Math.ceil(totalDays / 7);
+    const weeklySlotsPool: Omit<StrategicSlot, 'day'>[] = [
+        { time: "08:30", purpose: "Motivação e planejamento semanal (Funil: Atrair)" },
+        { time: "19:30", purpose: "Conteúdo denso e educacional (Funil: Nutrir)" },
+        { time: "12:30", purpose: "Dica rápida ou entretenimento (Funil: Atrair)" },
+        { time: "20:00", purpose: "Tutorial aprofundado ou estudo de caso (Funil: Nutrir)" },
+        { time: "12:00", purpose: "Bastidores ou conexão com a audiência (Funil: Nutrir)" },
+        { time: "11:00", purpose: "Inspiracional ou resultado de cliente (Funil: Converter)" },
+    ];
+    const strategicDays = [1, 2, 3, 4, 5];
 
-  if (dayMatches.length > 0) {
-    for (let i = 0; i < dayMatches.length; i++) {
-        const dayNumber = String(i + 1);
-        items.push({
-            day: `Dia ${dayNumber}`,
-            time: "12:00",
-            format: "reels",
-            title: `Conteúdo do dia ${dayNumber}`,
-            content_idea: "Extraído manualmente devido a erro de parsing.",
-            status: "planejado",
-            details: {
-            tool_suggestion: "Canva",
-            step_by_step: "1. Criar conteúdo. 2. Revisar. 3. Publicar.",
-            script_or_copy: "Texto do post gerado como fallback.",
-            hashtags: "#marketingdigital #conteudo #fallback",
-            creative_guidance: {
-                type: "imagem",
-                description: "Visual genérico para o post.",
-                prompt: "Criar imagem para post do Instagram.",
-                tool_link: "https://canva.com"
+    for (let week = 0; week < totalWeeks; week++) {
+        const shuffledDays = [...strategicDays].sort(() => 0.5 - Math.random());
+        const shuffledSlots = [...weeklySlotsPool].sort(() => 0.5 - Math.random());
+        const weekPosts = Math.min(postsPerWeek, totalDays - (week * 7));
+
+        for (let i = 0; i < weekPosts; i++) {
+            const dayOfWeek = shuffledDays[i];
+            const actualDay = (week * 7) + dayOfWeek;
+
+            if (actualDay <= totalDays) {
+                schedule.push({
+                    day: actualDay,
+                    time: shuffledSlots[i].time,
+                    purpose: shuffledSlots[i].purpose,
+                });
             }
-            }
-        });
+        }
     }
-  }
-  return items;
+    return schedule.sort((a, b) => a.day - b.day);
 }
 
-// Prompt do Sistema Compartilhado
-const systemPromptContent = `Você é um especialista de elite em marketing digital para Instagram. Sua missão é gerar um plano de conteúdo ESTRATÉGICO e ACIONÁVEL, focado em crescimento orgânico.
-
-REGRAS CRÍTICAS:
-1. Responda APENAS com JSON válido, sem texto introdutório ou comentários.
-2. Comece sua resposta DIRETAMENTE com o caractere "[".
-3. Mantenha a estrutura exata do JSON do exemplo.
-4. O campo "status" DEVE SER SEMPRE "planejado".
-5. Poste apenas em dias úteis e sábado (NUNCA domingo).
-6. Use horários de pico reais: manhã (09:00), almoço (12:30) ou noite (19:30).
-7. Inclua 5-7 hashtags relevantes e específicas.
-8. Escreva legendas persuasivas com um forte Call-To-Action (CTA). Use quebras de linha como \\\\n (duplo backslash) no JSON.
-9. O "step_by_step" deve ser um mini-tutorial prático com 3-5 passos.
-10. Títulos e ideias de conteúdo devem ser magnéticos e resolver um problema claro para a audiência.
-11. Para dias de "atividade", sugira ações de otimização de tráfego orgânico (ex: Análise de concorrentes, Engajamento estratégico).`;
-
-// Função helper para chamar o Groq1
-async function callGroq1(prompt: string): Promise<string> {
-  try {
-    const response = await groq1.chat.completions.create({
-      model: "llama3-70b-8192",
-      messages: [
-        { role: "system", content: systemPromptContent },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 8000,
-    });
-    const responseText = response.choices[0]?.message?.content;
-    if (!responseText) throw new Error("Groq1 não retornou conteúdo.");
-    return responseText;
-  } catch (error) {
-    console.error("Erro ao chamar Groq1:", error);
-    throw error;
-  }
-}
-
-// Função helper para chamar o Groq2
-async function callGroq2(prompt: string): Promise<string> {
-  try {
-    const response = await groq2.chat.completions.create({
-      model: "llama3-70b-8192",
-      messages: [
-        { role: "system", content: systemPromptContent },
-        { role: "user", content: prompt },
-      ],
-      temperature: 0.7,
-      max_tokens: 8000,
-    });
-    const responseText = response.choices[0]?.message?.content;
-    if (!responseText) throw new Error("Groq2 não retornou conteúdo.");
-    return responseText;
-  } catch (error) {
-    console.error("Erro ao chamar Groq2:", error);
-    throw error;
-  }
-}
-
-// Funções de melhoria e sanitização
-function improveContentItem(item: ContentPlanItem, offer: string, audience: string): ContentPlanItem {
-  if (item.format !== "atividade" && item.details) {
-    if (item.details.hashtags.split(" ").length < 4) {
-      item.details.hashtags = `#${offer.replace(/\s+/g, '')} #${audience.replace(/\s+/g, '')} #marketingdigital #conteudodevalor #estrategia`;
-    }
-    if (item.details.script_or_copy.length < 30) {
-      item.details.script_or_copy = `🔥 ${item.title}\\n\\nDescubra como ${offer} pode transformar os resultados de ${audience}.\\n\\nComente 'EU QUERO' para saber mais!`;
-    }
-  }
-  return item;
-}
-
-function sanitizeContentPlan(plan: ContentPlanItem[], offer?: string, audience?: string): ContentPlanItem[] {
+function sanitizeContentPlan(plan: ContentPlanItem[]): ContentPlanItem[] {
   return plan.map(item => {
-    let validStatus: "planejado" | "concluido" = "planejado";
-    if (item.status === "planejado" || item.status === "concluido") {
-      validStatus = item.status;
+    let correctedFunnelStage: "atrair" | "nutrir" | "converter" = "nutrir";
+    if (item.funnel_stage) {
+        const stage = item.funnel_stage.toLowerCase().trim();
+        if (stage.includes("atrair") || stage.includes("atrir")) {
+            correctedFunnelStage = "atrair";
+        } else if (stage.includes("nutrir")) {
+            correctedFunnelStage = "nutrir";
+        } else if (stage.includes("converter")) {
+            correctedFunnelStage = "converter";
+        }
     }
-    let sanitizedItem: ContentPlanItem = {
-      day: item.day,
-      time: item.time || "12:00",
-      format: item.format || "reels",
+
+    let correctedFormat: "reels" | "carrossel" | "stories" | "imagem" | "atividade" = "imagem";
+    if (item.format) {
+        const format = item.format.toLowerCase().trim();
+        if (format.includes("reels")) {
+            correctedFormat = "reels";
+        } else if (format.includes("carrossel") || format.includes("carousel")) {
+            correctedFormat = "carrossel";
+        } else if (format.includes("stories")) {
+            correctedFormat = "stories";
+        } else if (format.includes("imagem") || format.includes("image")) {
+            correctedFormat = "imagem";
+        } else if (format.includes("atividade") || format.includes("activity")) {
+            correctedFormat = "atividade";
+        }
+    }
+
+    return {
+      day: item.day || "Dia indefinido", time: item.time || "12:30",
+      format: correctedFormat,
       title: item.title || "Título do post",
       content_idea: item.content_idea || "Ideia de conteúdo",
-      status: validStatus,
+      status: (item.status === "planejado" || item.status === "concluido") ? item.status : "planejado",
       completedAt: item.completedAt,
+      funnel_stage: correctedFunnelStage,
+      focus_metric: item.focus_metric || "Engajamento",
       details: item.details ? {
         tool_suggestion: item.details.tool_suggestion || "Canva",
         step_by_step: item.details.step_by_step || "1. Criar. 2. Publicar.",
@@ -292,314 +190,163 @@ function sanitizeContentPlan(plan: ContentPlanItem[], offer?: string, audience?:
         }
       } : undefined
     };
-    if (offer && audience) {
-      sanitizedItem = improveContentItem(sanitizedItem, offer, audience);
-    }
-    return sanitizedItem;
   });
 }
 
-// Função para determinar dias de postagem
-function getPostingDays(totalDays: number): number[] {
-    if (totalDays === 7) return [1, 3, 5, 6]; // 4 posts na semana
-    const postsPerWeek = 4;
-    const totalWeeks = Math.ceil(totalDays / 7);
-    const postingDays: number[] = [];
+// =================================================================
+// 3. CHAMADAS DE IA REFORMULADAS
+// =================================================================
 
-    for (let week = 0; week < totalWeeks; week++) {
-        const weekDays = [1, 2, 3, 4, 5, 6]; // Seg a Sab
-        const shuffled = [...weekDays].sort(() => 0.5 - Math.random());
-        const selected = shuffled.slice(0, postsPerWeek);
-        for (const day of selected) {
-            const actualDay = week * 7 + day;
-            if (actualDay <= totalDays) {
-                postingDays.push(actualDay);
-            }
-        }
-    }
-    return postingDays.sort((a,b) => a-b);
+async function callGroqForStrategy(username: string, offer: string, audience: string, bio: string | undefined): Promise<StrategicAnalysis> {
+  const systemPrompt = `Você é um Estrategista de Marketing Digital de classe mundial, especialista em crescimento orgânico no Instagram. Sua missão é analisar as informações de um cliente e criar a FUNDAÇÃO ESTRATÉGICA para seu sucesso. Responda APENAS com um objeto JSON válido, sem nenhum texto adicional. Comece com "{".`;
+  const userPrompt = `Analise as seguintes informações do cliente:
+- Nome de Usuário: @${username}
+- Oferta Principal: "${offer}"
+- Público-Alvo: "${audience}"
+- Bio Atual: "${bio || 'Não informada'}"
+Com base nisso, crie a seguinte estrutura estratégica em JSON:
+1. "optimized_bio": Crie uma bio de Instagram magnética e otimizada para conversão (máx 150 caracteres), incluindo um forte CTA. Use \\n para quebras de linha.
+2. "content_pillars": Defina 3 pilares de conteúdo essenciais. Para cada pilar, forneça um "pillar" (título) e uma "description" (o que abordar dentro dele).
+3. "audience_persona": Desenvolva uma persona detalhada para o público-alvo, com "name" (um nome fictício), "description" (quem são, seus desejos) e "pain_points" (um array com 3 dores principais que a oferta resolve).
+4. "brand_voice": Descreva o tom de voz ideal para a marca em uma única frase (ex: "Educacional, motivador e direto ao ponto.").
+Exemplo da estrutura JSON de saída esperada:
+{ "optimized_bio": "Transformo [Público] em [Resultado] com [Oferta].\\n✨ [Benefício 1]\\n✨ [Benefício 2]\\n👇 Comece agora:", "content_pillars": [ { "pillar": "Educação sobre o Problema", "description": "Conteúdos que ensinam a audiência sobre a importância de resolver o problema que a sua oferta soluciona." }, { "pillar": "Demonstração da Solução", "description": "Posts que mostram como sua oferta funciona na prática, estudos de caso e tutoriais." }, { "pillar": "Construção de Autoridade", "description": "Conteúdos que posicionam você como especialista, compartilhando insights, tendências e bastidores." } ], "audience_persona": { "name": "Carlos Empreendedor", "description": "Um dono de pequeno negócio de 35 anos que luta para atrair clientes online e se sente sobrecarregado com marketing digital.", "pain_points": ["Falta de tempo para criar conteúdo", "Não sabe como converter seguidores em clientes", "Orçamento de marketing limitado"] }, "brand_voice": "Confiável, experiente e encorajador, como um mentor." }`;
+  try {
+    const response = await groq.chat.completions.create({ model: "llama3-70b-8192", messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }], temperature: 0.8, max_tokens: 4000, response_format: { type: "json_object" } });
+    const responseText = response.choices[0]?.message?.content;
+    if (!responseText) throw new Error("A Fase 1 (Estratégia) não retornou conteúdo.");
+    return JSON.parse(responseText) as StrategicAnalysis;
+  } catch (error) { console.error("Erro na Fase 1 (callGroqForStrategy):", error); throw new Error("Falha ao gerar a análise estratégica."); }
 }
 
-// Função principal para gerar o plano de conteúdo
-async function generateContentPlan(
-  username: string,
-  offer: string,
-  audience: string,
-  planDuration: "week" | "month"
-): Promise<ContentPlanResult> {
-  const totalDays = planDuration === "week" ? 7 : 30;
-  const postingDays = getPostingDays(totalDays);
-  const midPoint = Math.ceil(totalDays / 2);
+async function callGroqForContentPlan(schedule: StrategicSlot[], strategy: StrategicAnalysis, username: string, offer: string, audience: string): Promise<string> {
+  const systemPrompt = `Você é 'O Estrategista Viral', uma fusão de um copywriter de resposta direta, um growth hacker e um diretor criativo. Sua especialidade é criar planos de conteúdo para Instagram que são psicologicamente persuasivos, impossíveis de ignorar e que geram crescimento orgânico massivo.
 
-  const firstHalfDays = postingDays.filter(d => d <= midPoint);
-  const secondHalfDays = postingDays.filter(d => d > midPoint);
+**REGRAS DE OURO (NÃO QUEBRE NUNCA):**
+1. **FORMATO JSON PURO:** Sua única saída é um array JSON válido. Comece com '[' e termine com ']'. Sem comentários, sem introduções.
+2. **PROFUNDIDADE MÁXIMA:** É PROIBIDO conteúdo genérico ou superficial. Evite dicas óbvias como 'tenha consistência' ou 'conheça seu público'. Cada post deve entregar uma pequena transformação, uma nova perspectiva ou um momento 'AHA!'.
+3. **ZERO REPETIÇÃO:** O plano deve ser 100% coeso e sem repetições. Como você está gerando o plano inteiro de uma vez, você tem o contexto total. Use-o para garantir que cada título, ideia e ângulo seja único.
+4. **GATILHOS MENTAIS:** Incorpore curiosidade, prova social, especificidade e urgência nos títulos e ideias. Crie posts que as pessoas sintam uma necessidade intrínseca de salvar e compartilhar.
+5. **ESTRUTURA RÍGIDA:** Siga a estrutura do JSON de exemplo à risca. Os campos \`funnel_stage\` e \`format\` devem conter apenas os valores literais permitidos: "reels", "carrossel", "stories", "imagem", "atividade", "atrair", "nutrir", "converter".
+6. **NARRATIVA SEMANAL:** Pense em mini-temas para cada semana. Os posts de uma semana devem se conectar de alguma forma, contando uma história ou explorando um tópico em profundidade.`;
 
-  const promptTemplate = (days: number[], startDay: number) => `
-Crie um calendário de conteúdo para Instagram para @${username} sobre "${offer}" para "${audience}".
-Postar apenas nos dias: ${days.join(', ')}. Nos outros dias, sugira atividades de otimização.
-O primeiro dia deste bloco é o Dia ${startDay}.
-Use quebras de linha como \\\\n no campo script_or_copy.
-Exemplo de formato JSON EXATO:
-[
-  {
-    "day": "Dia ${startDay}",
-    "time": "09:00",
-    "format": "reels",
-    "title": "🔴 O ERRO que 99% de ${audience} Comete com ${offer}",
-    "content_idea": "Reel rápido mostrando um erro comum e como corrigi-lo para obter resultados imediatos.",
-    "status": "planejado",
-    "details": {
-      "tool_suggestion": "CapCut",
-      "step_by_step": "1. Gancho visual forte (3s). 2. Mostrar o erro (5s). 3. Apresentar a solução (15s). 4. CTA para salvar.",
-      "script_or_copy": "🚨 PARE AGORA! Você está perdendo clientes por causa disso.\\\\n\\\\nA solução é mais simples do que parece. Assista e transforme seus resultados!\\\\n\\\\n#SALVE para não esquecer!",
-      "hashtags": "#dicasinstagram #${offer.replace(/\s+/g, '')} #${audience.replace(/\s+/g, '')} #marketingdeconteudo #crescimentoorganico",
-      "creative_guidance": {
-        "type": "vídeo",
-        "description": "Vídeo dinâmico com texto grande e legendas claras. Foco em uma estética limpa e profissional.",
-        "prompt": "Criar um vídeo curto para Instagram sobre um erro comum no nicho de ${offer}, mostrando a solução de forma visualmente clara.",
-        "tool_link": "https://www.capcut.com"
-      }
-    }
-  }
-]`;
+  const scheduleInstructions = schedule.map(slot => `- Dia ${slot.day} às ${slot.time}: Propósito '${slot.purpose}'.`).join('\n');
+
+  const userPrompt = `**MISSÃO:** Criar um plano de conteúdo viral completo para @${username}.
+
+**<ANALISE_ESTRATEGICA>**
+${JSON.stringify(strategy, null, 2)}
+**</ANALISE_ESTRATEGICA>**
+
+**<INSTRUCOES_PLANO>**
+1. **CRONOGRAMA ESTRATÉGICO:** Crie um post para CADA um dos seguintes slots. Siga o propósito de cada um:
+${scheduleInstructions}
+2. **DIAS DE ATIVIDADE:** Nos dias que NÃO estão no cronograma, sugira uma "atividade" de crescimento (ex: "Interagir com 10 contas do público-alvo", "Analisar 3 concorrentes").
+3. **COERÊNCIA:** Garanta que o plano flua logicamente, usando a 'Narrativa Semanal' para conectar as ideias. Alterne entre os pilares de conteúdo para manter o interesse.
+4. **FOCO PRINCIPAL:** Todo o conteúdo deve ser criado para ajudar "${audience}" a ter sucesso com "${offer}".
+**</INSTRUCOES_PLANO>**
+
+**<EXEMPLO_JSON_ITEM>**
+{ "day": "Dia 1", "time": "08:30", "format": "reels", "title": "O erro de 1 minuto que custa 90% das suas vendas em ${offer}", "content_idea": "Um Reel rápido e chocante que expõe um erro contraintuitivo que a persona comete no início do dia. A solução é uma simples mudança de mentalidade ou processo.", "status": "planejado", "funnel_stage": "atrair", "focus_metric": "Compartilhamentos", "details": { "script_or_copy": "Você acorda e faz ISSO? 🤯 Pare agora!\\\\n9 em cada 10 pessoas que vendem ${offer} sabotam seu dia antes mesmo do café. O verdadeiro problema não é o que você faz, mas o que você PENSA.\\\\nTeste esta mudança de 1 minuto amanhã e me agradeça depois. 👇\\\\n#erroscomuns #${offer.replace(/\s+/g, '')} #produtividade", "tool_suggestion": "CapCut", "step_by_step": "1. Gancho forte. 2. Mostrar erro. 3. Apresentar solução.", "hashtags": "#dicas #vendas", "creative_guidance": { "type": "video", "description": "...", "prompt": "...", "tool_link": "..." } } }
+**</EXEMPLO_JSON_ITEM>**`;
 
   try {
-    const [response1, response2] = await Promise.all([
-      callGroq1(promptTemplate(firstHalfDays, 1)),
-      callGroq2(promptTemplate(secondHalfDays, midPoint + 1))
-    ]);
-
-    let part1: ContentPlanItem[] = [];
-    let part2: ContentPlanItem[] = [];
-
-    try {
-      part1 = extractJson<ContentPlanResult>(response1).content_plan;
-    } catch (e) {
-      console.error("Falha ao processar resposta 1:", e);
-      part1 = fallbackParsing(response1);
-    }
-
-    try {
-      part2 = extractJson<ContentPlanResult>(response2).content_plan;
-    } catch (e) {
-      console.error("Falha ao processar resposta 2:", e);
-      part2 = fallbackParsing(response2);
-    }
-
-    const fullPlan = [...part1, ...part2];
-    return { content_plan: sanitizeContentPlan(fullPlan, offer, audience) };
-
-  } catch (error) {
-    console.error("Erro ao gerar plano:", error);
-    return { content_plan: fallbackParsing("Erro geral na geração do plano.") };
-  }
+    const response = await groq.chat.completions.create({
+      model: "llama3-70b-8192", messages: [{ role: "system", content: systemPrompt }, { role: "user", content: userPrompt }],
+      temperature: 0.8, max_tokens: 8100
+    });
+    const responseText = response.choices[0]?.message?.content;
+    if (!responseText) throw new Error("A IA não retornou conteúdo.");
+    return responseText;
+  } catch (error) { console.error("Erro na Fase de Conteúdo:", error); throw error; }
 }
 
-// Action principal para gerar plano
+// =================================================================
+// 4. ACTION PRINCIPAL E MUTAÇÕES
+// =================================================================
+
 export const generateAnalysis = action({
-  args: {
-    username: v.string(),
-    bio: v.optional(v.string()),
-    offer: v.string(),
-    audience: v.string(),
-    planDuration: v.union(v.literal("week"), v.literal("month"))
-  },
+  args: { username: v.string(), bio: v.optional(v.string()), offer: v.string(), audience: v.string(), planDuration: v.union(v.literal("week"), v.literal("month")) },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Usuário não autenticado.");
 
-    const contentPlanResult = await generateContentPlan(
-      args.username,
-      args.offer,
-      args.audience,
-      args.planDuration
-    );
+    const strategicAnalysis = await callGroqForStrategy(args.username, args.offer, args.audience, args.bio);
 
-    const sanitizedPlan = sanitizeContentPlan(
-      contentPlanResult.content_plan,
-      args.offer,
-      args.audience
-    );
+    const totalDays = args.planDuration === "week" ? 7 : 30;
+    const schedule = getStrategicSchedule(totalDays);
 
-    const analysisData = {
-      content_plan: sanitizedPlan,
-      username: args.username,
-      bio: args.bio || "",
-      offer: args.offer,
-      audience: args.audience,
-      planDuration: args.planDuration,
-      suggestions: [],
-      strategy: "",
-      grid: [],
-      aiModel: "groq-dual"
-    };
+    let fullPlan: ContentPlanItem[] = [];
+    if (schedule.length > 0) {
+        const contentPlanResponse = await callGroqForContentPlan(schedule, strategicAnalysis, args.username, args.offer, args.audience);
+        fullPlan = extractJson<ContentPlanResult>(contentPlanResponse).content_plan;
+    }
+
+    const sanitizedPlan = sanitizeContentPlan(fullPlan);
+
+    const analysisData = { ...strategicAnalysis, content_plan: sanitizedPlan, username: args.username, bio: args.bio || "", offer: args.offer, audience: args.audience, planDuration: args.planDuration, aiModel: "groq-viral-strategist-llama3-70b" };
 
     await ctx.runMutation(internal.mentor.saveAnalysis, { analysisData });
     return analysisData;
   },
 });
 
-// Mutation interna para salvar análise
+const contentPlanItemSchema = v.object({
+  day: v.string(), time: v.string(),
+  format: v.union(v.literal("reels"), v.literal("carrossel"), v.literal("stories"), v.literal("imagem"), v.literal("atividade")),
+  title: v.string(), content_idea: v.string(),
+  status: v.union(v.literal("planejado"), v.literal("concluido")),
+  completedAt: v.optional(v.number()),
+  funnel_stage: v.union(v.literal("atrair"), v.literal("nutrir"), v.literal("converter")),
+  focus_metric: v.string(),
+  details: v.optional(v.object({
+    tool_suggestion: v.string(), step_by_step: v.string(), script_or_copy: v.string(), hashtags: v.string(),
+    creative_guidance: v.object({ type: v.string(), description: v.string(), prompt: v.string(), tool_link: v.string(), }),
+  })),
+});
+
 export const saveAnalysis = internalMutation({
-  args: {
-    analysisData: v.object({
-      suggestions: v.array(v.string()),
-      strategy: v.string(),
-      grid: v.array(v.string()),
-      content_plan: v.array(v.object({
-        day: v.string(),
-        time: v.string(),
-        format: v.string(),
-        title: v.string(),
-        content_idea: v.string(),
-        status: v.union(v.literal("planejado"), v.literal("concluido")),
-        completedAt: v.optional(v.number()),
-        details: v.optional(v.object({
-          tool_suggestion: v.string(),
-          step_by_step: v.string(),
-          script_or_copy: v.string(),
-          hashtags: v.string(),
-          creative_guidance: v.object({
-            type: v.string(),
-            description: v.string(),
-            prompt: v.string(),
-            tool_link: v.string(),
-          }),
-        })),
-      })),
-      username: v.string(),
-      bio: v.string(),
-      offer: v.string(),
-      audience: v.string(),
-      planDuration: v.union(v.literal("week"), v.literal("month")),
-      aiModel: v.optional(v.string()),
-    })
-  },
+  args: { analysisData: v.object({
+      optimized_bio: v.string(), content_pillars: v.array(v.object({ pillar: v.string(), description: v.string() })),
+      audience_persona: v.object({ name: v.string(), description: v.string(), pain_points: v.array(v.string()) }),
+      brand_voice: v.string(), content_plan: v.array(contentPlanItemSchema), username: v.string(), bio: v.string(),
+      offer: v.string(), audience: v.string(), planDuration: v.union(v.literal("week"), v.literal("month")),
+      aiModel: v.optional(v.string()), }) },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado.");
-
-    const sanitizedPlan = sanitizeContentPlan(
-      args.analysisData.content_plan,
-      args.analysisData.offer,
-      args.analysisData.audience
-    );
-
-    const existingAnalysis = await ctx.db
-      .query("analyses")
-      .withIndex("by_user", q => q.eq("userId", identity.subject))
-      .first();
-
-    const dataToSave = {
-      ...args.analysisData,
-      content_plan: sanitizedPlan,
-      userId: identity.subject,
-      updatedAt: Date.now()
-    };
-
-    if (existingAnalysis) {
-      await ctx.db.patch(existingAnalysis._id, dataToSave);
-      return existingAnalysis._id;
-    } else {
-      return await ctx.db.insert("analyses", {
-        ...dataToSave,
-        createdAt: Date.now()
-      });
-    }
+    const identity = await ctx.auth.getUserIdentity(); if (!identity) throw new Error("Não autenticado.");
+    const existingAnalysis = await ctx.db.query("analyses").withIndex("by_user", q => q.eq("userId", identity.subject)).first();
+    const dataToSave = { ...args.analysisData, userId: identity.subject, updatedAt: Date.now() };
+    if (existingAnalysis) { await ctx.db.patch(existingAnalysis._id, dataToSave); return existingAnalysis._id;
+    } else { return await ctx.db.insert("analyses", { ...dataToSave, createdAt: Date.now() }); }
   }
 });
 
-// Query para obter análise salva
 export const getSavedAnalysis = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
-
-    return await ctx.db
-      .query("analyses")
-      .withIndex("by_user", q => q.eq("userId", identity.subject))
-      .order("desc")
-      .first();
+  args: {}, handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity(); if (!identity) return null;
+    return await ctx.db.query("analyses").withIndex("by_user", q => q.eq("userId", identity.subject)).order("desc").first();
   }
 });
 
-// Mutation para atualizar plano de conteúdo
 export const updateContentPlan = mutation({
-  args: {
-    analysisId: v.id("analyses"),
-    newPlan: v.array(v.object({
-      day: v.string(),
-      time: v.string(),
-      format: v.string(),
-      title: v.string(),
-      content_idea: v.string(),
-      status: v.union(v.literal("planejado"), v.literal("concluido")),
-      completedAt: v.optional(v.number()),
-      details: v.optional(v.object({
-        tool_suggestion: v.string(),
-        step_by_step: v.string(),
-        script_or_copy: v.string(),
-        hashtags: v.string(),
-        creative_guidance: v.object({
-          type: v.string(),
-          description: v.string(),
-          prompt: v.string(),
-          tool_link: v.string(),
-        }),
-      })),
-    }))
-  },
+  args: { analysisId: v.id("analyses"), newPlan: v.array(contentPlanItemSchema) },
   handler: async (ctx, { analysisId, newPlan }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado.");
-
-    const analysis = await ctx.db.get(analysisId);
-    if (!analysis || analysis.userId !== identity.subject) {
-      throw new Error("Análise não encontrada.");
-    }
-
-    const sanitizedPlan = sanitizeContentPlan(newPlan, analysis.offer, analysis.audience);
-    await ctx.db.patch(analysisId, {
-      content_plan: sanitizedPlan,
-      updatedAt: Date.now()
-    });
+    const identity = await ctx.auth.getUserIdentity(); if (!identity) throw new Error("Não autenticado.");
+    const analysis = await ctx.db.get(analysisId); if (!analysis || analysis.userId !== identity.subject) throw new Error("Análise não encontrada.");
+    await ctx.db.patch(analysisId, { content_plan: sanitizeContentPlan(newPlan), updatedAt: Date.now() });
     return { success: true };
   }
 });
 
-// Mutation para marcar item como completo
 export const markContentItemComplete = mutation({
-  args: {
-    analysisId: v.id("analyses"),
-    dayIndex: v.number(),
-    status: v.union(v.literal("planejado"), v.literal("concluido")),
-  },
+  args: { analysisId: v.id("analyses"), dayIndex: v.number(), status: v.union(v.literal("planejado"), v.literal("concluido")), },
   handler: async (ctx, { analysisId, dayIndex, status }) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado.");
-
-    const analysis = await ctx.db.get(analysisId);
-    if (!analysis || analysis.userId !== identity.subject) {
-      throw new Error("Análise não encontrada.");
-    }
-
+    const identity = await ctx.auth.getUserIdentity(); if (!identity) throw new Error("Não autenticado.");
+    const analysis = await ctx.db.get(analysisId); if (!analysis || analysis.userId !== identity.subject) throw new Error("Análise não encontrada.");
     const contentPlan = [...analysis.content_plan];
-    if (dayIndex < 0 || dayIndex >= contentPlan.length) {
-      throw new Error("Índice de dia inválido.");
-    }
-
-    contentPlan[dayIndex] = {
-      ...contentPlan[dayIndex],
-      status: status,
-      completedAt: status === "concluido" ? Date.now() : undefined
-    };
-
-    const sanitizedPlan = sanitizeContentPlan(contentPlan, analysis.offer, analysis.audience);
-    await ctx.db.patch(analysisId, {
-      content_plan: sanitizedPlan,
-      updatedAt: Date.now()
-    });
+    if (dayIndex < 0 || dayIndex >= contentPlan.length) throw new Error("Índice de dia inválido.");
+    contentPlan[dayIndex] = { ...contentPlan[dayIndex], status: status, completedAt: status === "concluido" ? Date.now() : undefined };
+    await ctx.db.patch(analysisId, { content_plan: sanitizeContentPlan(contentPlan), updatedAt: Date.now() });
     return { success: true };
   }
 });
