@@ -26,11 +26,7 @@ export function DailyPerformanceChart({ data }: DailyPerformanceChartProps) {
 
               {/* ÁREA DA CORREÇÃO */}
               <div className="w-20 text-sm font-medium text-gray-600 shrink-0">
-                {/*
-                  Adicionamos timeZone: 'UTC' para que a data seja formatada
-                  considerando o fuso horário UTC, evitando o problema de
-                  "voltar um dia" em fusos como o do Brasil (UTC-3).
-                */}
+
                 {new Date(day.date).toLocaleDateString('pt-BR', {
                   month: 'short',
                   day: '2-digit',

@@ -260,15 +260,15 @@ const Testimonials = () => (
         ))}
       </div>
       <p className="italic text-gray-600 dark:text-gray-300 mb-4">
-        O Mentor.IA revolucionou minha estratégia de conteúdo. Em 30 dias, ganhei mais de 10k seguidores e tripliquei minhas conversões. Vale cada centavo!
+        O Mentor.IA revolucionou minha estratégia de conteúdo. Em 30 dias, ganhei mais de 1k seguidores e tripliquei minhas conversões. Vale cada centavo!
       </p>
       <div className="flex items-center gap-3">
         <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-400 to-pink-500 flex items-center justify-center text-white font-bold">
           M
         </div>
         <div>
-          <p className="font-medium">Marcos Silva</p>
-          <p className="text-xs text-muted-foreground">@marketingcommarcos</p>
+          <p className="font-medium">Wislla Souza</p>
+          <p className="text-xs text-muted-foreground">@glamfit.online</p>
         </div>
       </div>
     </motion.div>
