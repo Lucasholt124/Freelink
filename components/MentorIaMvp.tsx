@@ -618,7 +618,7 @@ const previewImageUrl = `/api/og/share?${imageParams}`;
           <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-md border border-slate-200 dark:border-slate-700">
             <p className="text-sm text-slate-700 dark:text-slate-300">{shareText}</p>
             <div className="flex justify-between items-center mt-2">
-              <p className="text-xs text-muted-foreground">freelink.io/mentor-ia</p>
+              <p className="text-xs text-muted-foreground">freelinnk.com/dashboard/mentor-ia</p>
               <Button
                 variant="ghost"
                 size="sm"

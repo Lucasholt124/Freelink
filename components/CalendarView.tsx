@@ -222,7 +222,7 @@ function ProfileModal({ isOpen, onClose, streakDays, plansGenerated = 0 }: Profi
   const username = currentUserData?.username || "seu_usuario";
 
   // 3. Monta a URL real e dinâmica, que agora funciona perfeitamente
-  const profileUrl = `https://freelink.com/${encodeURIComponent(username)}`;
+  const profileUrl = `https://freelinnk.com/${encodeURIComponent(username)}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>

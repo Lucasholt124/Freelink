@@ -430,12 +430,12 @@ export const shareAchievement = mutation({
     });
 
     // Gerar URL de compartilhamento
-    const shareUrl = `https://freelink.com/share/${shareCode}`;
+    const shareUrl = `https://freelinnk.com/share/${shareCode}`;
 
     // Aqui você adicionaria uma lógica para gerar a imagem dinâmica com Vercel OG ou similar
     const imageUrl = args.generateImage
-      ? `https://freelink.com/api/og?username=${args.username}&streak=${args.streakDays}&completed=${args.completedPosts}&total=${args.totalPosts}`
-      : '';
+  ? `https://freelinnk.com/api/og/share?username=${args.username}&streak=${args.streakDays}&completed=${args.completedPosts}&total=${args.totalPosts}`
+  : '';
 
     return {
       shareCode,
