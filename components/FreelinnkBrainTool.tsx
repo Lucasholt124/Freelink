@@ -6,9 +6,9 @@ import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Sparkles, Copy, Check , Brain,
+  Sparkles, Copy, Check, Brain,
   Lightbulb, Video, RefreshCcw, Layers,
-  Camera, MessageSquare , Wand2,
+  Camera, MessageSquare, Wand2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,7 +66,7 @@ interface BrainResults {
 }
 
 // =================================================================
-// 2. SUB-COMPONENTES DE UI APRIMORADOS
+// 2. SUB-COMPONENTES DE UI OTIMIZADOS PARA MOBILE-FIRST
 // =================================================================
 
 function CopyButton({ textToCopy, className }: { textToCopy: string; className?: string }) {
@@ -96,13 +96,7 @@ function CopyButton({ textToCopy, className }: { textToCopy: string; className?:
 
 function EnhancedLoadingSpinner() {
   const [status, setStatus] = useState("Analisando seu tema...");
-  const statuses = [
-    "Mapeando a persona...",
-    "Criando roteiros virais para Reels...",
-    "Estruturando Carrosséis de alto valor...",
-    "Gerando ideias para Posts e Stories...",
-    "Finalizando sua campanha...",
-  ];
+  const statuses = [ "Mapeando a persona...", "Criando roteiros virais para Reels...", "Estruturando Carrosséis de alto valor...", "Gerando ideias para Posts e Stories...", "Finalizando sua campanha...", ];
 
   useEffect(() => {
     let currentIndex = 0;
@@ -114,36 +108,15 @@ function EnhancedLoadingSpinner() {
   }, []);
 
   return (
-    <motion.div
-      key="loading"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      className="min-h-[400px] flex flex-col items-center justify-center text-center p-8 bg-background rounded-2xl"
-    >
+    <motion.div key="loading" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="min-h-[400px] flex flex-col items-center justify-center text-center p-4 bg-background rounded-2xl">
       <div className="relative flex items-center justify-center mb-6">
-        <motion.div
-          className="w-20 h-20 rounded-full border-4 border-blue-500/20"
-          animate={{ rotate: 360 }}
-          transition={{ duration: 5, repeat: Infinity, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute w-16 h-16 rounded-full border-4 border-purple-500/30"
-          animate={{ rotate: -360 }}
-          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-        />
+        <motion.div className="w-20 h-20 rounded-full border-4 border-blue-500/20" animate={{ rotate: 360 }} transition={{ duration: 5, repeat: Infinity, ease: "linear" }}/>
+        <motion.div className="absolute w-16 h-16 rounded-full border-4 border-purple-500/30" animate={{ rotate: -360 }} transition={{ duration: 8, repeat: Infinity, ease: "linear" }}/>
         <Brain className="w-10 h-10 text-blue-500 absolute animate-pulse" />
       </div>
-      <h3 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-        O FreelinkBrain está criando...
-      </h3>
+      <h3 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"> O FreelinkBrain está criando... </h3>
       <AnimatePresence mode="wait">
-        <motion.p
-          key={status}
-          initial={{ y: 10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          exit={{ y: -10, opacity: 0 }}
-          transition={{ duration: 0.3 }}
-          className="mt-4 text-muted-foreground text-lg"
-        >
+        <motion.p key={status} initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: -10, opacity: 0 }} transition={{ duration: 0.3 }} className="mt-4 text-muted-foreground text-base sm:text-lg">
           {status}
         </motion.p>
       </AnimatePresence>
@@ -153,20 +126,20 @@ function EnhancedLoadingSpinner() {
 
 const ReelCard = ({ reel }: { reel: ReelContent }) => (
   <Card className="overflow-hidden transition-all hover:shadow-lg hover:border-blue-500/50">
-    <CardHeader>
-      <CardTitle className="flex justify-between items-start gap-2">
+    <CardHeader className="p-4 sm:p-6">
+      <CardTitle className="flex justify-between items-start gap-2 text-base sm:text-lg">
         <span>{reel.title}</span>
         <CopyButton textToCopy={`Título: ${reel.title}\n\nGancho (3s): ${reel.hook}\n\nConteúdo:\n- ${reel.main_points.join('\n- ')}\n\nCTA: ${reel.cta}`} />
       </CardTitle>
     </CardHeader>
-    <CardContent className="space-y-4 text-sm">
+    <CardContent className="space-y-3 p-4 sm:p-6 pt-0">
       <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
         <span className="text-lg mt-0.5">🪝</span>
-        <div><strong className="font-semibold text-foreground">Gancho (3s):</strong> {reel.hook}</div>
+        <div className="text-sm"><strong className="font-semibold text-foreground">Gancho (3s):</strong> {reel.hook}</div>
       </div>
       <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
         <span className="text-lg mt-0.5">🎬</span>
-        <div><strong className="font-semibold text-foreground">Conteúdo:</strong>
+        <div className="text-sm"><strong className="font-semibold text-foreground">Conteúdo:</strong>
           <ul className="list-disc pl-5 mt-1 space-y-1">
             {reel.main_points.map((p, idx) => <li key={idx}>{p}</li>)}
           </ul>
@@ -174,7 +147,7 @@ const ReelCard = ({ reel }: { reel: ReelContent }) => (
       </div>
       <div className="flex items-start gap-3 p-3 bg-muted/50 rounded-lg">
         <span className="text-lg mt-0.5">📢</span>
-        <div><strong className="font-semibold text-foreground">CTA (Chamada para Ação):</strong> {reel.cta}</div>
+        <div className="text-sm"><strong className="font-semibold text-foreground">CTA:</strong> {reel.cta}</div>
       </div>
     </CardContent>
   </Card>
@@ -182,24 +155,24 @@ const ReelCard = ({ reel }: { reel: ReelContent }) => (
 
 const CarouselViewer = ({ carousel }: { carousel: CarouselContent }) => (
   <Card className="overflow-hidden">
-    <CardHeader>
-      <CardTitle>{carousel.title}</CardTitle>
+    <CardHeader className="p-4 sm:p-6">
+      <CardTitle className="text-base sm:text-lg">{carousel.title}</CardTitle>
       <CardDescription>Arraste para ver os slides da sua ideia de carrossel.</CardDescription>
     </CardHeader>
-    <CardContent>
-      <div className="flex gap-4 overflow-x-auto pb-4 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
+    <CardContent className="p-4 sm:p-6 pt-0">
+      <div className="flex gap-3 overflow-x-auto pb-4 -mx-4 sm:-mx-6 px-4 sm:px-6 scrollbar-thin scrollbar-thumb-primary/20 scrollbar-track-transparent">
         {carousel.slides.map(slide => (
-          <div key={slide.slide_number} className="min-w-[250px] w-[250px] aspect-square flex flex-col justify-between p-4 rounded-lg bg-muted/50 border shadow-sm">
+          <div key={slide.slide_number} className="min-w-[220px] w-[220px] sm:min-w-[250px] sm:w-[250px] aspect-square flex flex-col justify-between p-4 rounded-lg bg-muted/50 border shadow-sm">
             <div>
               <Badge variant="secondary">Slide {slide.slide_number}</Badge>
-              <h4 className="font-bold text-lg mt-2">{slide.title}</h4>
+              <h4 className="font-bold text-base sm:text-lg mt-2">{slide.title}</h4>
             </div>
             <p className="text-sm">{slide.content}</p>
           </div>
         ))}
-        <div className="min-w-[250px] w-[250px] aspect-square flex flex-col justify-center items-center text-center p-4 rounded-lg bg-blue-500 text-white shadow-lg">
+        <div className="min-w-[220px] w-[220px] sm:min-w-[250px] sm:w-[250px] aspect-square flex flex-col justify-center items-center text-center p-4 rounded-lg bg-blue-500 text-white shadow-lg">
           <Layers className="w-8 h-8 mb-2"/>
-          <h4 className="font-bold text-lg">Último Slide (CTA)</h4>
+          <h4 className="font-bold text-base sm:text-lg">Último Slide (CTA)</h4>
           <p className="text-sm mt-1">{carousel.cta_slide}</p>
         </div>
       </div>
@@ -209,43 +182,41 @@ const CarouselViewer = ({ carousel }: { carousel: CarouselContent }) => (
 
 const ImagePostCard = ({ post }: { post: ImagePostContent }) => (
   <Card className="overflow-hidden transition-all hover:shadow-lg hover:border-purple-500/50">
-    <CardHeader><CardTitle>{post.idea}</CardTitle></CardHeader>
-    <CardContent className="space-y-4">
+    <CardHeader className="p-4 sm:p-6"><CardTitle className="text-base sm:text-lg">{post.idea}</CardTitle></CardHeader>
+    <CardContent className="space-y-4 p-4 sm:p-6 pt-0">
       <div>
         <div className="flex justify-between items-center mb-1">
           <label className="text-sm font-semibold">Legenda Sugerida</label>
           <CopyButton textToCopy={post.caption} />
         </div>
-        <p className="text-sm p-4 bg-muted/50 rounded-lg whitespace-pre-wrap border">{post.caption}</p>
+        <p className="text-sm p-3 sm:p-4 bg-muted/50 rounded-lg whitespace-pre-wrap border">{post.caption}</p>
       </div>
       <div>
         <div className="flex justify-between items-center mb-1">
           <label className="text-sm font-semibold">Prompt para IA de Imagem</label>
           <CopyButton textToCopy={post.image_prompt} />
         </div>
-        <p className="text-sm p-4 bg-gray-900 text-gray-200 rounded-lg font-mono border border-gray-700">{post.image_prompt}</p>
+        <p className="text-xs sm:text-sm p-3 sm:p-4 bg-gray-900 text-gray-200 rounded-lg font-mono border border-gray-700">{post.image_prompt}</p>
       </div>
     </CardContent>
   </Card>
 );
 
 const StorySequenceCard = ({ seq }: { seq: StorySequenceContent }) => {
-  const iconMap = {
-    Poll: "📊", Quiz: "❓", "Q&A": "💬", Link: "🔗", Text: "✍️"
-  };
+  const iconMap = { Poll: "📊", Quiz: "❓", "Q&A": "💬", Link: "🔗", Text: "✍️" };
   return (
   <Card className="overflow-hidden transition-all hover:shadow-lg hover:border-pink-500/50">
-    <CardHeader><CardTitle>{seq.theme}</CardTitle></CardHeader>
-    <CardContent>
+    <CardHeader className="p-4 sm:p-6"><CardTitle className="text-base sm:text-lg">{seq.theme}</CardTitle></CardHeader>
+    <CardContent className="p-4 sm:p-6 pt-0">
       <div className="space-y-4">
         {seq.slides.map(slide => (
           <Fragment key={slide.slide_number}>
-            <div className="flex items-start gap-4">
+            <div className="flex items-start gap-3">
               <div className="flex flex-col items-center">
                 <div className="flex items-center justify-center w-10 h-10 rounded-full bg-muted border font-semibold">{slide.slide_number}</div>
                 {slide.slide_number < seq.slides.length && <div className="w-px h-6 bg-border" />}
               </div>
-              <div className="flex-1 pb-6">
+              <div className="flex-1 pb-4">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-lg">{iconMap[slide.type]}</span>
                   <strong className="font-semibold text-foreground">{slide.type}</strong>
@@ -307,7 +278,7 @@ export default function FreelinkBrainTool() {
   };
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-12 pb-20 px-4">
+    <div className="w-full max-w-5xl mx-auto space-y-8 sm:space-y-12 pb-20 px-4">
       <AnimatePresence mode="wait">
         {isLoading ? (
           <EnhancedLoadingSpinner key="loading" />
@@ -315,7 +286,7 @@ export default function FreelinkBrainTool() {
           <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
               <div className="flex-1">
-                <h2 className="text-3xl font-bold tracking-tight">Sua Campanha de Conteúdo</h2>
+                <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Sua Campanha de Conteúdo</h2>
                 <p className="text-muted-foreground mt-1">Resultados para: <span className="font-semibold text-primary">{theme}</span></p>
               </div>
               <Button onClick={handleGenerateNew} variant="outline" className="gap-2 w-full sm:w-auto">
@@ -323,68 +294,61 @@ export default function FreelinkBrainTool() {
               </Button>
             </div>
 
-            {/* Resumo Estratégico */}
             <Card className="mb-8 border-blue-500/30 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/50 dark:to-purple-950/50">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-3 text-xl"><Lightbulb className="w-6 h-6 text-yellow-400"/> Resumo Estratégico</CardTitle>
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="flex items-center gap-3 text-lg sm:text-xl"><Lightbulb className="w-6 h-6 text-yellow-400"/> Resumo Estratégico</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="p-3 bg-background/50 rounded-md"><strong className="font-semibold">🧠 Ângulo do Conteúdo:</strong> {results.theme_summary}</div>
-                <div className="p-3 bg-background/50 rounded-md"><strong className="font-semibold">🎯 Público Sugerido:</strong> {results.target_audience_suggestion}</div>
+              <CardContent className="space-y-3 p-4 sm:p-6 pt-0">
+                <div className="p-3 bg-background/50 rounded-md text-sm sm:text-base"><strong className="font-semibold">🧠 Ângulo:</strong> {results.theme_summary}</div>
+                <div className="p-3 bg-background/50 rounded-md text-sm sm:text-base"><strong className="font-semibold">🎯 Público:</strong> {results.target_audience_suggestion}</div>
               </CardContent>
             </Card>
 
-            {/* Abas com os Tipos de Conteúdo */}
             <Tabs defaultValue="reels" className="w-full">
-              <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4 h-auto">
-                <TabsTrigger value="reels" className="gap-2"><Video className="w-4 h-4"/>Reels</TabsTrigger>
-                <TabsTrigger value="carousels" className="gap-2"><Layers className="w-4 h-4"/>Carrosséis</TabsTrigger>
-                <TabsTrigger value="image_posts" className="gap-2"><Camera className="w-4 h-4"/>Posts</TabsTrigger>
-                <TabsTrigger value="story_sequences" className="gap-2"><MessageSquare className="w-4 h-4"/>Stories</TabsTrigger>
-              </TabsList>
-              <div className="mt-6">
-                <TabsContent value="reels">{results.content_pack.reels.map((reel, i) => <ReelCard key={i} reel={reel} />)}</TabsContent>
-                <TabsContent value="carousels">{results.content_pack.carousels.map((carousel, i) => <CarouselViewer key={i} carousel={carousel} />)}</TabsContent>
-                <TabsContent value="image_posts">{results.content_pack.image_posts.map((post, i) => <ImagePostCard key={i} post={post} />)}</TabsContent>
-                <TabsContent value="story_sequences">{results.content_pack.story_sequences.map((seq, i) => <StorySequenceCard key={i} seq={seq} />)}</TabsContent>
+              <div className="overflow-x-auto scrollbar-thin scrollbar-thumb-muted-foreground/20 scrollbar-track-transparent">
+                <TabsList className="inline-flex h-auto p-1">
+                  <TabsTrigger value="reels" className="gap-2 px-3"><Video className="w-4 h-4"/>Reels</TabsTrigger>
+                  <TabsTrigger value="carousels" className="gap-2 px-3"><Layers className="w-4 h-4"/>Carrosséis</TabsTrigger>
+                  <TabsTrigger value="image_posts" className="gap-2 px-3"><Camera className="w-4 h-4"/>Posts</TabsTrigger>
+                  <TabsTrigger value="story_sequences" className="gap-2 px-3"><MessageSquare className="w-4 h-4"/>Stories</TabsTrigger>
+                </TabsList>
+              </div>
+              <div className="mt-6 space-y-4">
+                <TabsContent value="reels" className="mt-0">{results.content_pack.reels.map((reel, i) => <ReelCard key={i} reel={reel} />)}</TabsContent>
+                <TabsContent value="carousels" className="mt-0">{results.content_pack.carousels.map((carousel, i) => <CarouselViewer key={i} carousel={carousel} />)}</TabsContent>
+                <TabsContent value="image_posts" className="mt-0">{results.content_pack.image_posts.map((post, i) => <ImagePostCard key={i} post={post} />)}</TabsContent>
+                <TabsContent value="story_sequences" className="mt-0">{results.content_pack.story_sequences.map((seq, i) => <StorySequenceCard key={i} seq={seq} />)}</TabsContent>
               </div>
             </Tabs>
           </motion.div>
         ) : (
-          <motion.div key="welcome" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-            <div className="text-center p-6 md:p-10 rounded-2xl bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950/50 dark:via-background dark:to-purple-950/50 border shadow-sm">
+          <motion.div key="welcome" initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
+            <div className="text-center p-6 md:p-8 rounded-2xl bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-blue-950/50 dark:via-background dark:to-purple-950/50 border shadow-sm">
               <Badge variant="secondary" className="gap-2 mb-4 animate-pulse"><Sparkles className="w-4 h-4 text-blue-500"/>Nova IA Criativa</Badge>
-              <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight">
                 Freelink<span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">Brain</span>
               </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto mt-3">
+              <p className="text-base sm:text-lg text-muted-foreground max-w-2xl mx-auto mt-3">
                 A faísca de gênio para seu conteúdo. Transforme <span className="font-semibold text-foreground">um único tema</span> em uma campanha completa para o Instagram.
               </p>
             </div>
            
-            <Card className="mt-8 shadow-lg">
-              <CardContent className="pt-6">
+            <Card className="shadow-lg">
+              <CardContent className="p-4 sm:p-6">
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="space-y-1">
-                    <label htmlFor="theme-input" className="text-sm font-medium flex items-center gap-2"><Wand2 className="w-4 h-4 text-purple-500"/> Sobre qual tema você quer criar?</label>
-                    <Input
-                      id="theme-input"
-                      ref={inputRef}
-                      value={theme}
-                      onChange={(e) => setTheme(e.target.value)}
-                      placeholder="Ex: Como criar hábitos de estudo eficientes"
-                      className="py-6 text-base"
-                    />
+                  <div>
+                    <label htmlFor="theme-input" className="text-sm font-medium flex items-center gap-2 mb-2"><Wand2 className="w-4 h-4 text-purple-500"/> Sobre qual tema você quer criar?</label>
+                    <Input id="theme-input" ref={inputRef} value={theme} onChange={(e) => setTheme(e.target.value)} placeholder="Ex: Como criar hábitos de estudo eficientes" className="py-6 text-base" />
                   </div>
-                  <Button type="submit" className="w-full py-6 font-bold text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 transition-opacity">
+                  <Button type="submit" className="w-full py-6 font-bold text-base sm:text-lg bg-gradient-to-r from-blue-600 to-purple-600 hover:opacity-90 transition-opacity">
                     <Sparkles className="w-5 h-5 mr-2" />
                     Gerar Campanha de Conteúdo
                   </Button>
                 </form>
-                <div className="mt-4 text-center">
-                  <span className="text-xs text-muted-foreground">Ou tente um exemplo:</span>
+                <div className="mt-6 text-center">
+                  <span className="text-xs text-muted-foreground">Sem ideias? Tente um exemplo:</span>
                   <div className="flex flex-wrap gap-2 justify-center mt-2">
-                    {["Marketing de afiliados para iniciantes", "Receitas saudáveis para a semana", "Como vencer a procrastinação"].map(ex => (
+                    {["Marketing de afiliados", "Receitas saudáveis", "Vencer a procrastinação"].map(ex => (
                       <Button key={ex} size="sm" variant="outline" onClick={() => handleExampleClick(ex)}>{ex}</Button>
                     ))}
                   </div>
