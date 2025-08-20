@@ -445,13 +445,9 @@ interface ShareAchievementModalProps {
 function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchievementModalProps) {
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState("");
-
-  // Busca o username do usuário logado para usar na imagem
   const currentUser = useQuery(api.users.getMyUsername);
   const shareAchievement = useMutation(api.shareAchievements.shareAchievement);
 
-
-  // Reseta o estado da imagem quando o modal é fechado
   useEffect(() => { if (!isOpen) setGeneratedImageUrl(""); }, [isOpen]);
 
   const generateShareImage = async () => {
@@ -461,7 +457,6 @@ function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchi
     }
     setIsGenerating(true);
     try {
-      // 1. Constrói a URL da nossa API de imagem com os dados da conquista
       const params = new URLSearchParams({
         username: currentUser.username,
         streak: String(streakDays),
@@ -469,19 +464,10 @@ function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchi
         total: String(stats.total),
       });
       const imageUrl = `/api/og/share?${params.toString()}`;
-
-      // 2. A "geração" é apenas a construção da URL. O navegador fará o resto.
       setGeneratedImageUrl(imageUrl);
       toast.success("Sua imagem de conquista está pronta!");
-
-      // 3. Registra a conquista no backend
-      const result = await shareAchievement({
-        streakDays,
-        completedPosts: stats.completed,
-        totalPosts: stats.total,
-      });
-
-      return { imageUrl, shareCode: result.shareCode };
+      await shareAchievement({ streakDays, completedPosts: stats.completed, totalPosts: stats.total });
+      return imageUrl;
     } catch (error) {
       console.error("Erro ao gerar ou registrar a imagem:", error);
       toast.error("Não foi possível gerar a imagem de conquista.");
@@ -493,21 +479,11 @@ function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchi
 
   const handleShare = async (platform: 'twitter' | 'linkedin' | 'instagram' | 'download') => {
     let finalShareUrl = generatedImageUrl;
-    let shareCode: string | null = null;
-
     if (!finalShareUrl) {
-      const result = await generateShareImage();
-      if (!result) return;
-      finalShareUrl = result.imageUrl;
-      shareCode = result.shareCode;
+      const generatedUrl = await generateShareImage();
+      if (!generatedUrl) return;
+      finalShareUrl = generatedUrl;
     }
-
-    if (platform === 'download' && !shareCode) {
-      toast.error("Não foi possível baixar a imagem. Tente novamente.");
-      return;
-    }
-
-
     const shareText = `🔥 Minha sequência de ${streakDays} dias continua! Concluí ${stats.completed}/${stats.total} posts com o Mentor.IA da @freelink. #MentorIA #Freelinnk`;
     let url;
     switch (platform) {

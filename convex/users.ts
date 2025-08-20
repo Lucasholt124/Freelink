@@ -10,33 +10,24 @@ export const getUserByUsername = query({
             .withIndex("by_username", q => q.eq("username", args.username))
             .first();
 
-        return user; // Retorna o objeto { _id, userId, username } ou null
+        return user;
     }
 });
 
-// --- NOVA FUNÇÃO ADICIONADA AQUI ---
-// Busca o username do usuário atualmente autenticado.
+// ADICIONADO: Busca o username do usuário atualmente autenticado.
 export const getMyUsername = query({
   handler: async (ctx) => {
-    // Pega a identidade do usuário logado
     const identity = await ctx.auth.getUserIdentity();
-
-    // Se não houver usuário logado, retorna null
     if (!identity) {
       return null;
     }
-
-    // Busca na tabela 'usernames' pelo userId correspondente
     const user = await ctx.db
       .query("usernames")
       .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
       .unique();
-
-    // Retorna o objeto do usuário (que contém o username) ou null se não encontrar
     return user;
   },
 });
-
 
 // Query para buscar o plano do usuário atualmente autenticado.
 export const getMyPlan = query({
