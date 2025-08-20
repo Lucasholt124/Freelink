@@ -7,21 +7,25 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
+    // 1. Pega os dados da URL com fallbacks
     const username = searchParams.get('username') || 'Usuário';
     const streak = searchParams.get('streak') || '0';
     const completed = searchParams.get('completed') || '0';
     const total = searchParams.get('total') || '0';
     const percent = total !== '0' ? Math.round((parseInt(completed) / parseInt(total)) * 100) : 0;
 
+    // CORREÇÃO: Constrói a URL base para encontrar os arquivos na pasta /public
     const baseUrl = process.env.VERCEL_URL
       ? `https://${process.env.VERCEL_URL}`
       : 'http://localhost:3000';
 
+    // 2. Carrega as fontes usando a URL absoluta
     const interRegular = fetch(`${baseUrl}/fonts/Inter-Regular.ttf`).then((res) => res.arrayBuffer());
     const interBold = fetch(`${baseUrl}/fonts/Inter-Bold.ttf`).then((res) => res.arrayBuffer());
 
     return new ImageResponse(
       (
+        // 3. O JSX que define o visual da imagem (sem alterações)
         <div
           style={{
             height: '100%',
@@ -48,6 +52,7 @@ export async function GET(req: NextRequest) {
                 boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
             }}
           >
+            {/* Cabeçalho */}
             <div style={{ display: 'flex', alignItems: 'center' }}>
                 <img
                     src={`https://avatar.vercel.sh/${username}.png`}
@@ -61,6 +66,7 @@ export async function GET(req: NextRequest) {
                 </div>
             </div>
 
+            {/* Corpo com Estatísticas */}
             <div style={{ display: 'flex', flexGrow: 1, alignItems: 'center', justifyContent: 'space-around', marginTop: '30px' }}>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                     <div style={{ fontSize: 90, fontWeight: 700, color: '#fb923c' }}>{streak}</div>
@@ -73,6 +79,7 @@ export async function GET(req: NextRequest) {
                 </div>
             </div>
 
+            {/* Barra de Progresso */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginBottom: '20px' }}>
                 <div style={{ fontSize: 20, color: '#4b5563', marginBottom: '10px' }}>
                     {percent}% do plano concluído
@@ -82,6 +89,7 @@ export async function GET(req: NextRequest) {
                 </div>
             </div>
 
+            {/* Rodapé */}
             <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', fontSize: 22, color: '#6b7280' }}>
                Gerado com <span style={{ color: '#3b82f6', fontWeight: 700, margin: '0 8px' }}>Mentor.IA</span> da Freelinnk
             </div>
