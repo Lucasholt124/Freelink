@@ -14,13 +14,18 @@ export async function GET(req: NextRequest) {
     const total = searchParams.get('total') || '0';
     const percent = total !== '0' ? Math.round((parseInt(completed) / parseInt(total)) * 100) : 0;
 
-    // 2. Carrega as fontes
-    const interRegular = fetch(new URL('../../../../assets/Inter-Regular.ttf', import.meta.url)).then((res) => res.arrayBuffer());
-    const interBold = fetch(new URL('../../../../assets/Inter-Bold.ttf', import.meta.url)).then((res) => res.arrayBuffer());
+    // CORREÇÃO: Constrói a URL base para encontrar os arquivos na pasta /public
+    const baseUrl = process.env.VERCEL_URL
+      ? `https://${process.env.VERCEL_URL}`
+      : 'http://localhost:3000';
+
+    // 2. Carrega as fontes usando a URL absoluta
+    const interRegular = fetch(`${baseUrl}/fonts/Inter-Regular.ttf`).then((res) => res.arrayBuffer());
+    const interBold = fetch(`${baseUrl}/fonts/Inter-Bold.ttf`).then((res) => res.arrayBuffer());
 
     return new ImageResponse(
       (
-        // 3. O JSX que define o visual da imagem
+        // 3. O JSX que define o visual da imagem (sem alterações)
         <div
           style={{
             height: '100%',
@@ -74,7 +79,7 @@ export async function GET(req: NextRequest) {
                 </div>
             </div>
 
-            {/* APRIMORAMENTO: Barra de Progresso */}
+            {/* Barra de Progresso */}
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', marginBottom: '20px' }}>
                 <div style={{ fontSize: 20, color: '#4b5563', marginBottom: '10px' }}>
                     {percent}% do plano concluído
@@ -100,14 +105,10 @@ export async function GET(req: NextRequest) {
         ],
       },
     );
-  } catch (e: unknown) { // CORREÇÃO: Tipagem do erro para 'unknown'
+  } catch (e: unknown) {
     if (e instanceof Error) {
-        console.log(`${e.message}`);
-    } else {
-        console.log('Ocorreu um erro desconhecido');
+        console.log(`Failed to generate the image: ${e.message}`);
     }
-    return new Response(`Failed to generate the image`, {
-      status: 500,
-    });
+    return new Response(`Failed to generate the image`, { status: 500 });
   }
 }
