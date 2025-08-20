@@ -33,7 +33,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Checkbox } from "@/components/ui/checkbox";
 import confetti from 'canvas-confetti';
 
-
 // Tipos
 type PlanItemFromDB = {
   day: string;
@@ -216,14 +215,14 @@ function ProfileModal({ isOpen, onClose, streakDays, plansGenerated = 0 }: Profi
     return streakDays >= medal.threshold;
   });
 
-// 1. Usa a query CORRETA que acabamos de criar no backend
-const currentUserData = useQuery(api.users.getMyUsername);
+  // 1. Usa a query CORRETA que acabamos de criar no backend
+  const currentUserData = useQuery(api.users.getMyUsername);
 
-// 2. Pega o username dos dados retornados (com um fallback para segurança)
-const username = currentUserData?.username || "seu_usuario";
+  // 2. Pega o username dos dados retornados (com um fallback para segurança)
+  const username = currentUserData?.username || "seu_usuario";
 
-// 3. Monta a URL real e dinâmica, que agora funciona perfeitamente
-const profileUrl = `https://freelink.com/${encodeURIComponent(username)}`;
+  // 3. Monta a URL real e dinâmica, que agora funciona perfeitamente
+  const profileUrl = `https://freelink.com/${encodeURIComponent(username)}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -242,7 +241,7 @@ const profileUrl = `https://freelink.com/${encodeURIComponent(username)}`;
                 <div>
                   <h3 className="text-lg font-bold">Seu Usuário</h3>
                   <p className="text-sm text-slate-500 dark:text-slate-400">
-                    <span className="text-blue-600 dark:text-blue-400">@seu_usuario</span>
+                    <span className="text-blue-600 dark:text-blue-400">@{username}</span>
                   </p>
                 </div>
               </div>
@@ -463,7 +462,7 @@ function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchi
         completed: String(stats.completed),
         total: String(stats.total),
       });
-      const imageUrl = `/api/og/share?${params.toString()}`;
+      const imageUrl = `/api/og/share?${params.toString()}`; // Caminho da API para gerar imagem
       setGeneratedImageUrl(imageUrl);
       toast.success("Sua imagem de conquista está pronta!");
       await shareAchievement({ streakDays, completedPosts: stats.completed, totalPosts: stats.total });
@@ -888,9 +887,11 @@ const ExecutionChecklist = ({ steps, planItem, onStepToggle }: ExecutionChecklis
 export default function CalendarView({
   plan,
   analysisId,
+  sanitizePlan, // Recebendo a função de sanitização como prop
 }: {
   plan: PlanItemFromDB[];
   analysisId: Id<"analyses">;
+  sanitizePlan?: (items: PlanItem[]) => PlanItem[]; // Opcional para garantir compatibilidade
 }) {
   const [selectedEvent, setSelectedEvent] = useState<PlanItem | null>(null);
   const [isEditing, setIsEditing] = useState(false);
@@ -1046,7 +1047,11 @@ export default function CalendarView({
 
   const handleUpdatePlan = async (updatedPlan: PlanItem[]) => {
     setIsUpdating(true);
-    const planToSave = updatedPlan.map((item) => ({
+
+    // Sanitizar o plano para remover campos não suportados pelo backend
+    const sanitizedPlan = sanitizePlan ? sanitizePlan(updatedPlan) : updatedPlan;
+
+    const planToSave = sanitizedPlan.map((item) => ({
       day: item.day,
       time: item.time,
       format: item.format as "reels" | "carrossel" | "stories" | "imagem" | "atividade",
@@ -1058,6 +1063,7 @@ export default function CalendarView({
       funnel_stage: item.funnel_stage as "atrair" | "nutrir" | "converter",
       focus_metric: item.focus_metric,
     }));
+
     try {
       await updatePlanMutation({ analysisId, newPlan: planToSave });
       setShowSuccess(true);
@@ -1111,48 +1117,17 @@ export default function CalendarView({
     });
   };
 
-  // Nova função para lidar com o toggle das etapas da checklist
-  const handleStepToggle = async (item: PlanItem, stepIndex: number, checked: boolean) => {
-    // Clone o item atual
-    const updatedItem = { ...item };
-
-    // Garantir que step_progress existe
-    if (!updatedItem.details) {
-      updatedItem.details = {
-        tool_suggestion: "",
-        step_by_step: "",
-        script_or_copy: "",
-        hashtags: "",
-        step_progress: {},
-        creative_guidance: { type: "", description: "", prompt: "", tool_link: "" }
-      };
-    } else if (!updatedItem.details.step_progress) {
-      updatedItem.details.step_progress = {};
-    }
-
-    // Atualizar o status do step
-    const stepId = `step-${item.id}-${stepIndex}`;
-    updatedItem.details.step_progress ??= {};
-    updatedItem.details.step_progress[stepId] = checked;
-
-    // Atualizar o plano
-    const updatedPlan = planWithIds.map((p) =>
-      p.id === updatedItem.id ? updatedItem : p
-    );
-
-    // Salvar
-    await handleUpdatePlan(updatedPlan);
-
-    // Atualizar o evento selecionado
-    setSelectedEvent(updatedItem);
-  };
-
   // useEffect para rolar para o topo quando o evento selecionado muda ou quando o modo de edição muda
   useEffect(() => {
     if (contentScrollRef.current) {
       contentScrollRef.current.scrollTop = 0;
     }
   }, [selectedEvent, isEditing]);
+
+function handleStepToggle(selectedEvent: PlanItem, index: number, checked: boolean) {
+  console.log(`Índice do evento: ${index}, Checked: ${checked}`);
+  throw new Error("Function not implemented.");
+}
 
   return (
     <MotionConfig transition={{ duration: 0.2 }}>
@@ -1795,9 +1770,10 @@ export default function CalendarView({
                                     <ExecutionChecklist
                                       steps={selectedEvent.details.step_by_step}
                                       planItem={selectedEvent}
-                                      onStepToggle={(index, checked) =>
-                                        handleStepToggle(selectedEvent, index, checked)
-                                      }
+                                       onStepToggle={(index, checked) => {
+                                            handleStepToggle(selectedEvent, index, checked)
+                                        }}
+
                                     />
                                   </motion.div>
 

@@ -25,6 +25,21 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Twitter, Linkedin, MessageCircle } from "lucide-react";
 
+// Função para sanitizar os dados antes de enviar ao backend (remove step_progress)
+const sanitizeForBackend = (items: PlanItem[]): PlanItem[] => {
+  return items.map(item => {
+    // Cria uma cópia profunda do item para evitar referências
+    const sanitizedItem = JSON.parse(JSON.stringify(item)) as PlanItem;
+
+    // Remove o campo step_progress se existir
+    if (sanitizedItem.details && sanitizedItem.details.step_progress) {
+      delete sanitizedItem.details.step_progress;
+    }
+
+    return sanitizedItem;
+  });
+};
+
 // Animação de confete com cores mais vibrantes e efeito premium
 const triggerSuccessConfetti = () => {
   const duration = 3 * 1000;
@@ -1377,6 +1392,7 @@ https://freelink.io
                       <CalendarView
                         plan={savedAnalysis.content_plan as PlanItem[]}
                         analysisId={savedAnalysis._id}
+                        sanitizePlan={sanitizeForBackend}
                       />
                     )}
                   </motion.div>
