@@ -1126,7 +1126,6 @@ export default function CalendarView({
 
 function handleStepToggle(selectedEvent: PlanItem, index: number, checked: boolean) {
   console.log(`Índice do evento: ${index}, Checked: ${checked}`);
-  throw new Error("Function not implemented.");
 }
 
   return (
@@ -1336,11 +1335,11 @@ function handleStepToggle(selectedEvent: PlanItem, index: number, checked: boole
                           <CardContent className="p-3 sm:p-4">
                             <div className="flex items-start mb-2">
                               <div className={cn(
-                                "bg-gradient-to-r p-2 rounded-full mr-3",
-                                `from-${getConfig(event.format).gradient}`
-                              )}>
+  "bg-gradient-to-r p-2 rounded-full mr-3",
+  getConfig(event.format).gradient
+)}>
                                 {getConfig(event.format).icon}
-                              </div>
+</div>
                               <div className="flex-1">
                                 <div className="flex justify-between items-start">
                                   <Badge className={cn(
@@ -1646,7 +1645,7 @@ function handleStepToggle(selectedEvent: PlanItem, index: number, checked: boole
                                 >
                                   <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 mb-2">
                                     <Newspaper className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                                    <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent dark:from-purple-400 dark:to-pink-400">
+                                    <span className="bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-slate-900 dark:from-purple-400 dark:to-pink-400">
                                       Roteiro e Legenda
                                     </span>
                                   </h3>
@@ -1684,7 +1683,7 @@ function handleStepToggle(selectedEvent: PlanItem, index: number, checked: boole
                                 >
                                   <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 mb-3">
                                     <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
+                                    <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-slate-900 dark:from-blue-400 dark:to-purple-400">
                                       Guia Criativo
                                     </span>
                                   </h3>
@@ -1785,7 +1784,7 @@ function handleStepToggle(selectedEvent: PlanItem, index: number, checked: boole
                                     >
                                       <h3 className="font-bold text-base sm:text-lg flex items-center gap-2 mb-3">
                                         <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
-                                        <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent dark:from-blue-400 dark:to-purple-400">
+                                        <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-slate-900 dark:from-blue-400 dark:to-purple-400">
                                           Guia Criativo
                                         </span>
                                       </h3>
@@ -1885,7 +1884,7 @@ function handleStepToggle(selectedEvent: PlanItem, index: number, checked: boole
                             <CheckCircle className="w-4 h-4 mr-2" />
                             Marcar como Concluído
                             <motion.div
-                              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                              className="absolute inset-0 bg-gradient-to-r from-slate-50 via-white/20 to-transparent"
                               initial={{ x: -200 }}
                               animate={{ x: 400 }}
                               transition={{ repeat: Infinity, duration: 2, ease: "linear" }}

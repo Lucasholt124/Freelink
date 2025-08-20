@@ -321,7 +321,7 @@ const MentorLoadingState = () => {
           initial={{ y: 10, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           transition={{ delay: 0.3 }}
-          className="text-3xl font-bold mt-8 bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text"
+          className="text-3xl font-bold mt-8 bg-gradient-to-r from-blue-600 to-purple-600 text-slate-900 bg-clip-text"
         >
           Athena está trabalhando
         </motion.h2>
@@ -350,7 +350,7 @@ const MentorLoadingState = () => {
           </Progress>
           <div className="flex justify-between items-center mt-2">
             <span className="text-xs text-muted-foreground">Executando IA avançada</span>
-            <p className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">{progress}%</p>
+            <p className="text-sm font-semibold bg-gradient-to-r from-blue-600 to-purple-600 text-slate-900 bg-clip-text">{progress}%</p>
           </div>
         </motion.div>
 
@@ -511,10 +511,10 @@ const Testimonials = () => {
         >
           {/* Gradiente decorativo no canto */}
           <div className="absolute -top-10 -right-10 w-20 h-20 rounded-full bg-gradient-to-br opacity-20 blur-xl"
-            style={{
-              backgroundImage: `linear-gradient(to bottom right, var(--${testimonial.gradient.split(' ')[0].slice(5)}-500), var(--${testimonial.gradient.split(' ')[2].slice(3)}-500))`
-            }}
-          />
+  style={{
+    backgroundImage: `linear-gradient(to bottom right, var(--${testimonial.gradient.split(' ')[0].slice(5)}-500), var(--${testimonial.gradient.split(' ')[1].slice(3)}-500))`
+  }}
+/>
 
           <div className="flex items-center gap-2 mb-4">
             {Array(5).fill(0).map((_, i) => (
@@ -551,7 +551,7 @@ interface ShareModalProps {
 // Componente de modal de compartilhamento
 const ShareModal = ({ isOpen, onClose, username = "seu_perfil" }: ShareModalProps) => {
   const shareText = `Acabei de criar um plano de conteúdo poderoso com o Mentor.IA da @freelink! Transformando meu perfil em uma máquina de crescimento orgânico. 🚀 #FreelinkMentorIA`;
-  const shareUrl = 'https://freelink.io/mentor-ia';
+  const shareUrl = 'https://freelinnk.com/dashboard/mentor-ia';
 
   // Copiar texto para a área de transferência
   const copyToClipboard = () => {
@@ -585,8 +585,14 @@ const ShareModal = ({ isOpen, onClose, username = "seu_perfil" }: ShareModalProp
   ];
 
   // Gerar uma imagem de prévia para compartilhamento (mockup)
-  const previewImageUrl = `https://via.placeholder.com/600x315/3B82F6/FFFFFF?text=Plano+de+Conteúdo+de+@${username}`;
+const imageParams = new URLSearchParams({
+  username: username,
+  title: `Plano de Conteúdo de @${username}`,
+  // Você pode adicionar mais parâmetros se quiser, como o número de dias do plano
+}).toString();
 
+// Gera a URL para a sua API de imagem
+const previewImageUrl = `/api/og/share?${imageParams}`;
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md bg-white dark:bg-slate-900">
@@ -604,7 +610,7 @@ const ShareModal = ({ isOpen, onClose, username = "seu_perfil" }: ShareModalProp
               alt="Preview de compartilhamento"
               className="w-full h-auto aspect-[1.91/1] object-cover"
             />
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-slate-100  p-4">
               <p className="text-white text-sm font-medium">Plano de Conteúdo gerado com Mentor.IA</p>
             </div>
           </div>
@@ -997,21 +1003,21 @@ https://freelink.io
                     icon: <Award className="w-8 h-8 text-blue-600" />,
                     title: "Plano de Elite",
                     description: "Análise profunda do seu nicho para conteúdo otimizado.",
-                    gradient: "from-blue-50 to-transparent dark:from-blue-950/50 dark:to-transparent",
+                    gradient: "from-blue-50 to-slate-100  dark:from-blue-950/50 dark:to-slate-100 ",
                     border: "border-blue-100/50 dark:border-blue-800/30"
                   },
                   {
                     icon: <Calendar className="w-8 h-8 text-purple-600" />,
                     title: "Calendário Completo",
                     description: "Plano de 7 ou 30 dias com todos os detalhes e ideias.",
-                    gradient: "from-purple-50 to-transparent dark:from-purple-950/50 dark:to-transparent",
+                    gradient: "from-purple-50 to-slate-100  dark:from-purple-950/50 dark:to-slate-100 ",
                     border: "border-purple-100/50 dark:border-purple-800/30"
                   },
                   {
                     icon: <Zap className="w-8 h-8 text-indigo-600" />,
                     title: "Impulsione o Engajamento",
                     description: "Fórmulas testadas para maximizar seu alcance e interação.",
-                    gradient: "from-indigo-50 to-transparent dark:from-indigo-950/50 dark:to-transparent",
+                    gradient: "from-indigo-50 to-slate-100  dark:from-indigo-950/50 dark:to-slate-100 ",
                     border: "border-indigo-100/50 dark:border-indigo-800/30"
                   }
                 ].map((feature, index) => (
@@ -1386,7 +1392,7 @@ https://freelink.io
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-gradient-to-b from-blue-50 to-transparent dark:from-blue-950/20 dark:to-transparent p-6 rounded-2xl shadow-lg border border-blue-200 dark:border-blue-800/50"
+                    className="bg-gradient-to-b from-blue-50 to-slate-100  dark:from-blue-950/20 dark:to-slate-100  p-6 rounded-2xl shadow-lg border border-blue-200 dark:border-blue-800/50"
                   >
                     {savedAnalysis.content_plan && (
                       <CalendarView
