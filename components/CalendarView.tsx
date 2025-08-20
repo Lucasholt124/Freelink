@@ -12,11 +12,12 @@ import {
   Clock, Calendar as CalendarIcon, X, Edit, Share2,
   TrendingUp, Camera, Award, Trophy,
   Zap, Instagram, Twitter, Linkedin, Flame,
-  Shield, Gift, Crown, Medal, BookOpen
+  Shield, Gift, Crown, Medal, BookOpen,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import ReactMarkdown from 'react-markdown';
@@ -31,6 +32,7 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import confetti from 'canvas-confetti';
+
 
 // Tipos
 type PlanItemFromDB = {
@@ -214,8 +216,14 @@ function ProfileModal({ isOpen, onClose, streakDays, plansGenerated = 0 }: Profi
     return streakDays >= medal.threshold;
   });
 
-  // URL do perfil público (simulada)
-  const profileUrl = `freelink.com/${encodeURIComponent("seu_usuario")}`;
+// 1. Usa a query CORRETA que acabamos de criar no backend
+const currentUserData = useQuery(api.users.getMyUsername);
+
+// 2. Pega o username dos dados retornados (com um fallback para segurança)
+const username = currentUserData?.username || "seu_usuario";
+
+// 3. Monta a URL real e dinâmica, que agora funciona perfeitamente
+const profileUrl = `https://freelink.com/${encodeURIComponent(username)}`;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -413,6 +421,9 @@ function RankingModal({ isOpen, onClose, currentStreak }: RankingModalProps) {
               onClick={() => {
                 onClose();
                 // Aqui poderia abrir um modal para compartilhar conquista
+                toast.success("Compartilhe seu ranking nas redes sociais!");
+                toast.dismiss();
+
               }}
             >
               <Flame className="w-4 h-4 mr-2" />
@@ -425,240 +436,118 @@ function RankingModal({ isOpen, onClose, currentStreak }: RankingModalProps) {
   );
 }
 
-// Componente de compartilhamento com imagem dinâmica
 interface ShareAchievementModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  stats: {
-    total: number;
-    completed: number;
-    percent: number;
-  };
+  isOpen: boolean; onClose: () => void;
+  stats: { total: number; completed: number; percent: number; };
   streakDays: number;
 }
 
 function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchievementModalProps) {
-  const [isSharing, setIsSharing] = useState(false);
-  const [shareUrl, setShareUrl] = useState("");
-  const [shareCode, setShareCode] = useState("");
-  const [imageReady, setImageReady] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [generatedImageUrl, setGeneratedImageUrl] = useState("");
 
-
+  // Busca o username do usuário logado para usar na imagem
+  const currentUser = useQuery(api.users.getMyUsername);
   const shareAchievement = useMutation(api.shareAchievements.shareAchievement);
-  const updatePlatform = useMutation(api.shareAchievements.updateSharingPlatform);
 
-  // Simular geração de imagem
+
+  // Reseta o estado da imagem quando o modal é fechado
+  useEffect(() => { if (!isOpen) setGeneratedImageUrl(""); }, [isOpen]);
+
   const generateShareImage = async () => {
-    setIsSharing(true);
-
+    if (!currentUser?.username) {
+        toast.error("Nome de usuário não encontrado para gerar a imagem.");
+        return null;
+    }
+    setIsGenerating(true);
     try {
-      // Na implementação real, isso chamaria uma API para gerar a imagem
-      // Aqui apenas simulamos com um delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // 1. Constrói a URL da nossa API de imagem com os dados da conquista
+      const params = new URLSearchParams({
+        username: currentUser.username,
+        streak: String(streakDays),
+        completed: String(stats.completed),
+        total: String(stats.total),
+      });
+      const imageUrl = `/api/og/share?${params.toString()}`;
 
-      // Simular uma URL de imagem gerada
-      // Na implementação real, essa URL viria da API
+      // 2. A "geração" é apenas a construção da URL. O navegador fará o resto.
+      setGeneratedImageUrl(imageUrl);
+      toast.success("Sua imagem de conquista está pronta!");
 
-      setImageReady(true);
-
-      // Registrar no backend
+      // 3. Registra a conquista no backend
       const result = await shareAchievement({
         streakDays,
         completedPosts: stats.completed,
         totalPosts: stats.total,
       });
 
-      setShareUrl(result.shareUrl);
-      setShareCode(result.shareCode);
-
-      toast.success("Imagem pronta para compartilhar!", {
-        duration: 3000,
-      });
+      return { imageUrl, shareCode: result.shareCode };
     } catch (error) {
-      console.error("Erro ao gerar imagem:", error);
-      toast.error("Não foi possível gerar a imagem");
+      console.error("Erro ao gerar ou registrar a imagem:", error);
+      toast.error("Não foi possível gerar a imagem de conquista.");
+      return null;
     } finally {
-      setIsSharing(false);
+      setIsGenerating(false);
     }
   };
 
-  const handleShare = async (platform: 'twitter' | 'linkedin' | 'instagram') => {
-    if (!imageReady) {
-      await generateShareImage();
-      if (!imageReady) return;
+  const handleShare = async (platform: 'twitter' | 'linkedin' | 'instagram' | 'download') => {
+    let finalShareUrl = generatedImageUrl;
+    let shareCode: string | null = null;
+
+    if (!finalShareUrl) {
+      const result = await generateShareImage();
+      if (!result) return;
+      finalShareUrl = result.imageUrl;
+      shareCode = result.shareCode;
     }
 
-    // Registrar a plataforma de compartilhamento
-    if (shareCode) {
-      updatePlatform({
-        achievementId: shareCode as unknown as Id<"sharedAchievements">,
-        platform,
-      }).catch(console.error);
+    if (platform === 'download' && !shareCode) {
+      toast.error("Não foi possível baixar a imagem. Tente novamente.");
+      return;
     }
 
-    // Texto para compartilhamento
-    const shareText = `🔥 Mantenho minha sequência de ${streakDays} dias criando conteúdo! Já concluí ${stats.completed} de ${stats.total} posts com o Mentor.IA da @freelink`;
 
+    const shareText = `🔥 Minha sequência de ${streakDays} dias continua! Concluí ${stats.completed}/${stats.total} posts com o Mentor.IA da @freelink. #MentorIA #Freelinnk`;
     let url;
     switch (platform) {
-      case 'twitter':
-        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(shareUrl)}`;
-        break;
-      case 'linkedin':
-        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}&summary=${encodeURIComponent(shareText)}`;
-        break;
-      case 'instagram':
-        // Instagram não permite compartilhamento direto via URL
-        toast.info("Imagem salva! Compartilhe no Instagram!");
-        // Aqui poderia ter um download da imagem
-        return;
+      case 'twitter': url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(window.location.origin)}`; break;
+      case 'linkedin': url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.origin)}`; break;
+      case 'instagram': navigator.clipboard.writeText(shareText); toast.info("Texto copiado! Baixe a imagem e cole a legenda no seu post."); return;
+      case 'download': const link = document.createElement('a'); link.href = finalShareUrl; link.download = `conquista-freelink-${currentUser?.username}.png`; link.click(); return;
     }
-
     if (url) window.open(url, '_blank');
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md bg-white dark:bg-slate-900 p-0 overflow-hidden rounded-xl">
-        <div className="p-4 sm:p-6">
-          <h2 className="text-xl font-bold text-center mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Compartilhe sua Conquista! 🏆
-          </h2>
-
-          {/* Visualização aprimorada da conquista - imagem dinâmica */}
-          <div className="relative rounded-xl overflow-hidden bg-gradient-to-br from-blue-600 to-purple-700 p-6 text-white shadow-xl">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-white/10 rounded-full -ml-12 -mb-12"></div>
-
-            <div className="relative z-10">
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                  {/* Placeholder para avatar do usuário */}
-                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-bold">
-                    YU
-                  </div>
-                </div>
-                <div>
-                  <div className="text-xs text-white/70">@seu_usuario</div>
-                  <div className="font-medium">Mentor.IA</div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-3 mb-4">
-                <div className="bg-white/20 p-2 rounded-full">
-                  <Flame className="w-6 h-6 text-amber-300" />
-                </div>
-                <div>
-                  <div className="text-xs text-white/70">Minha sequência</div>
-                  <div className="text-2xl font-bold">{streakDays} dias 🔥</div>
-                </div>
-              </div>
-
-              <div className="mb-4 bg-white/10 rounded-lg p-3">
-                <div className="text-center">
-                  <div className="text-4xl font-bold mb-1">{stats.completed}</div>
-                  <div className="text-xs text-white/70">Posts concluídos</div>
-                </div>
-
-                <div className="mt-2 h-2 bg-white/20 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-gradient-to-r from-amber-400 to-yellow-300"
-                    style={{ width: `${stats.percent}%` }}
-                  ></div>
-                </div>
-                <div className="text-xs text-white/70 text-center mt-1">
-                  {stats.percent}% do plano
-                </div>
-              </div>
-
-              <div className="text-sm text-center">
-                Criado com <span className="font-bold">Mentor.IA</span> da @freelink
-              </div>
-            </div>
+      <DialogContent className="max-w-xl p-0 overflow-hidden">
+        <div className="p-6">
+          <h2 className="text-2xl font-bold text-center mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Compartilhe sua Conquista! 🏆</h2>
+          <div className="aspect-video bg-muted rounded-lg flex items-center justify-center border relative overflow-hidden">
+            {isGenerating && <Loader2 className="w-8 h-8 text-primary animate-spin" />}
+            {generatedImageUrl ? (<img src={generatedImageUrl} alt="Imagem de conquista gerada" className="object-cover w-full h-full" />) :
+            (!isGenerating && <div className="text-center text-muted-foreground p-4"><ImageIcon className="w-10 h-10 mx-auto mb-2" /><p className="text-sm font-medium">Sua imagem personalizada aparecerá aqui.</p></div>)}
           </div>
-
-          {/* Botões de ação */}
-          <div className="mt-4 space-y-3">
-            {!imageReady ? (
-              <Button
-                onClick={generateShareImage}
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white"
-                disabled={isSharing}
-              >
-                {isSharing ? <LoadingDots /> : (
-                  <>
-                    <ImageIcon className="w-4 h-4 mr-2" />
-                    Gerar imagem para compartilhar
-                  </>
-                )}
+          <div className="mt-6 space-y-4">
+            {!generatedImageUrl ? (
+              <Button onClick={generateShareImage} className="w-full" disabled={isGenerating}>
+                {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                Gerar Imagem de Conquista
               </Button>
             ) : (
-              <div className="space-y-2">
-                <p className="text-sm text-slate-600 dark:text-slate-300 text-center mb-1">
-                  Imagem pronta para compartilhar! 🎉
-                </p>
-                <Button
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white"
-                  onClick={() => {
-                    toast.success("Imagem salva na galeria!");
-                    // Aqui seria implementado o download da imagem
-                  }}
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Salvar imagem
-                </Button>
-              </div>
+                <div className="text-center">
+                    <p className="text-sm font-medium mb-3">Pronto! Agora compartilhe seu progresso:</p>
+                    <div className="flex justify-center gap-3">
+                        <TooltipProvider>
+                            <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => handleShare('twitter')}><Twitter className="w-5 h-5" /></Button></TooltipTrigger><TooltipContent>Compartilhar no Twitter</TooltipContent></Tooltip>
+                            <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => handleShare('linkedin')}><Linkedin className="w-5 h-5" /></Button></TooltipTrigger><TooltipContent>Compartilhar no LinkedIn</TooltipContent></Tooltip>
+                            <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => handleShare('instagram')}><Instagram className="w-5 h-5" /></Button></TooltipTrigger><TooltipContent>Copiar para Instagram</TooltipContent></Tooltip>
+                            <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => handleShare('download')}><Download className="w-5 h-5" /></Button></TooltipTrigger><TooltipContent>Baixar Imagem</TooltipContent></Tooltip>
+                        </TooltipProvider>
+                    </div>
+                </div>
             )}
-
-            <div className="flex justify-center gap-3 pt-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full h-10 w-10 bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
-                      onClick={() => handleShare('twitter')}
-                    >
-                      <Twitter className="w-5 h-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Compartilhar no Twitter</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full h-10 w-10 bg-blue-50 text-blue-800 border-blue-200 hover:bg-blue-100"
-                      onClick={() => handleShare('linkedin')}
-                    >
-                      <Linkedin className="w-5 h-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Compartilhar no LinkedIn</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      className="rounded-full h-10 w-10 bg-gradient-to-br from-purple-100 to-amber-50 text-pink-600 border-pink-200 hover:from-purple-200 hover:to-amber-100"
-                      onClick={() => handleShare('instagram')}
-                    >
-                      <Instagram className="w-5 h-5" />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Compartilhar no Instagram</TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </div>
           </div>
         </div>
       </DialogContent>

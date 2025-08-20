@@ -34,6 +34,7 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@radix-ui/react-tooltip": "^1.2.8",
     "@vercel/functions": "^2.2.3",
+    "@vercel/og": "^0.8.5",
     "@vercel/postgres": "^0.10.0",
     "canvas-confetti": "^1.9.3",
     "class-variance-authority": "^0.7.1",

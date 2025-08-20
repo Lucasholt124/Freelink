@@ -1,5 +1,3 @@
-// Em convex/users.ts
-
 import { v } from "convex/values";
 import { query } from "./_generated/server";
 
@@ -16,22 +14,40 @@ export const getUserByUsername = query({
     }
 });
 
-// --- QUERY 'getMyPlan' CORRIGIDA ---
-// Busca o plano do usuário atualmente autenticado.
+// --- NOVA FUNÇÃO ADICIONADA AQUI ---
+// Busca o username do usuário atualmente autenticado.
+export const getMyUsername = query({
+  handler: async (ctx) => {
+    // Pega a identidade do usuário logado
+    const identity = await ctx.auth.getUserIdentity();
+
+    // Se não houver usuário logado, retorna null
+    if (!identity) {
+      return null;
+    }
+
+    // Busca na tabela 'usernames' pelo userId correspondente
+    const user = await ctx.db
+      .query("usernames")
+      .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+      .unique();
+
+    // Retorna o objeto do usuário (que contém o username) ou null se não encontrar
+    return user;
+  },
+});
+
+
+// Query para buscar o plano do usuário atualmente autenticado.
 export const getMyPlan = query({
   handler: async (ctx): Promise<"free" | "pro" | "ultra"> => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
-      // Se não houver usuário logado, o plano é 'free' por padrão.
       return "free";
     }
 
-    // --- CORREÇÃO PRINCIPAL AQUI ---
-    // Usamos uma "afirmação de tipo" para informar ao TypeScript a estrutura de `public`.
-    // Dizemos a ele que esperamos um objeto que PODE ter uma propriedade `plan`.
     const plan = (identity.public as { plan?: "free" | "pro" | "ultra" })?.plan;
 
-    // Se o 'plan' for um dos valores válidos, retorna ele. Senão, retorna 'free'.
     if (plan === "pro" || plan === "ultra") {
       return plan;
     }
