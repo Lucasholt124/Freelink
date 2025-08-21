@@ -442,38 +442,44 @@ interface ShareAchievementModalProps {
 }
 
 function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchievementModalProps) {
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState("");
   const currentUser = useQuery(api.users.getMyUsername);
-  const shareAchievement = useMutation(api.shareAchievements.shareAchievement);
+  const shareAchievement = useMutation(api.shareAchievements.shareAchievement); //
 
   useEffect(() => { if (!isOpen) setGeneratedImageUrl(""); }, [isOpen]);
 
-  const generateShareImage = async () => {
+   const generateShareImage = async () => {
     if (!currentUser?.username) {
         toast.error("Nome de usuário não encontrado para gerar a imagem.");
         return null;
     }
     setIsGenerating(true);
     try {
-      const params = new URLSearchParams({
-        username: currentUser.username,
-        streak: String(streakDays),
-        completed: String(stats.completed),
-        total: String(stats.total),
-      });
-      const imageUrl = `/api/og/share?${params.toString()}`; // Caminho da API para gerar imagem
-      setGeneratedImageUrl(imageUrl);
-      toast.success("Sua imagem de conquista está pronta!");
-      await shareAchievement({ streakDays, completedPosts: stats.completed, totalPosts: stats.total });
-      return imageUrl;
-    } catch (error) {
-      console.error("Erro ao gerar ou registrar a imagem:", error);
-      toast.error("Não foi possível gerar a imagem de conquista.");
-      return null;
-    } finally {
-      setIsGenerating(false);
-    }
+  const params = new URLSearchParams({
+    username: currentUser.username,
+    streak: String(streakDays),
+    completed: String(stats.completed),
+    total: String(stats.total),
+  });
+  const imageUrl = `/api/og/share?${params.toString()}`; // Caminho da API para gerar imagem
+  setGeneratedImageUrl(imageUrl);
+  toast.success("Sua imagem de conquista está pronta!");
+  await shareAchievement({
+    streakDays,
+    completedPosts: stats.completed,
+    totalPosts: stats.total
+, username: currentUser.username
+  });
+  return imageUrl;
+} catch (error) {
+  console.error("Erro ao gerar ou registrar a imagem:", error);
+  toast.error("Não foi possível gerar a imagem de conquista.");
+  return null;
+} finally {
+  setIsGenerating(false);
+}
   };
 
   const handleShare = async (platform: 'twitter' | 'linkedin' | 'instagram' | 'download') => {

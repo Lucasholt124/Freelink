@@ -14,6 +14,7 @@ export const shareAchievement = mutation({
     streakDays: v.number(),
     completedPosts: v.number(),
     totalPosts: v.number(),
+     username: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();

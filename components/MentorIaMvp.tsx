@@ -1474,7 +1474,7 @@ https://freelink.io
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => window.open('https://freelinnk.com/whats-new', '_blank')}
+                    onClick={() => window.open('https://freelinnk.com/dashboard', '_blank')}
                     className="text-xs flex items-center gap-1.5 h-7 bg-white dark:bg-transparent"
                   >
                     <span>Ver novidades</span>

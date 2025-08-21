@@ -228,7 +228,7 @@ function EnhancedLoadingSpinner() {
       clearInterval(progressInterval);
       clearInterval(stepInterval);
     };
-  }, []);
+  }, [ ]);
 
   const CurrentIcon = steps[currentStep].icon;
 

@@ -1,4 +1,4 @@
-// CÓDIGO FINAL para src/app/api/og/share/route.tsx
+
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 
@@ -8,19 +8,16 @@ export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
 
-    // Parâmetros que definem o tipo de imagem
+    // Parâmetros da URL
     const username = searchParams.get('username') || 'Usuário';
-    const title = searchParams.get('title'); // Usado para o preview genérico
-    const streak = searchParams.get('streak'); // Usado para a conquista
+    const title = searchParams.get('title'); // Parâmetro para o preview genérico
+    const streak = searchParams.get('streak'); // Parâmetro que define se é uma conquista
 
     // Se o parâmetro 'streak' existir, é uma imagem de conquista
-    const isAchievement = streak !== null;
-
-    if (isAchievement) {
-      // --- LÓGICA PARA IMAGEM DE CONQUISTA ---
+    if (streak !== null) {
       const completed = searchParams.get('completed') || '0';
       const total = searchParams.get('total') || '1'; // Evita divisão por zero
-      const percent = Math.round((parseInt(completed) / parseInt(total)) * 100);
+      const percent = total !== '0' ? Math.round((parseInt(completed) / parseInt(total)) * 100) : 0;
       const userInitial = username.charAt(0).toUpperCase();
 
       return new ImageResponse(
@@ -29,7 +26,6 @@ export async function GET(req: NextRequest) {
             <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap');`}</style>
             <div style={{ display: 'flex', flexDirection: 'column', padding: '40px 50px', width: '90%', height: '90%', borderRadius: '24px', backgroundColor: 'rgba(255, 255, 255, 0.85)', border: '1px solid rgba(0, 0, 0, 0.1)', boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)' }}>
               <div style={{ display: 'flex', alignItems: 'center' }}>
-                {/* Avatar simples sem chamada externa, mais confiável */}
                 <div style={{ width: 80, height: 80, borderRadius: '9999px', border: '4px solid #fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40, fontWeight: 700, color: 'white', background: 'linear-gradient(to bottom right, #3b82f6, #8b5cf6)' }}>
                   {userInitial}
                 </div>
@@ -63,7 +59,7 @@ export async function GET(req: NextRequest) {
         ), { width: 1200, height: 630 }
       );
     } else {
-      // --- LÓGICA PARA IMAGEM DE PREVIEW GENÉRICO ---
+      // LÓGICA PARA IMAGEM DE PREVIEW GENÉRICO (do outro botão)
       return new ImageResponse(
         (
           <div style={{ height: '100%', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: '"Inter", sans-serif', backgroundImage: 'linear-gradient(to bottom right, #1E3A8A, #5B21B6)', color: 'white' }}>
@@ -73,7 +69,6 @@ export async function GET(req: NextRequest) {
               <div style={{ fontSize: 72, fontWeight: 900, background: 'linear-gradient(to right, #A78BFA, #FDE047)', WebkitBackgroundClip: 'text', color: 'transparent' }}>
                 {title || `Plano de Conteúdo para @${username}`}
               </div>
-              <div style={{ fontSize: 28, marginTop: '30px', opacity: 0.8 }}>Transforme seu perfil em uma máquina de crescimento orgânico.</div>
             </div>
           </div>
         ), { width: 1200, height: 630 }
