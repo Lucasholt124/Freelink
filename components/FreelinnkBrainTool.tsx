@@ -1120,6 +1120,7 @@ const CampaignHistory = ({
 };
 
 const OutreachMessageGenerator = () => {
+  // ... (seus hooks useState, useEffect, etc. continuam aqui como antes)
   const [messageType, setMessageType] = useState("cold");
   const [businessType, setBusinessType] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<OutreachTemplate | null>(null);
@@ -1129,7 +1130,6 @@ const OutreachMessageGenerator = () => {
   const generateOutreachMessage = useAction(api.brain.generateOutreachMessage)
 
   useEffect(() => {
-    // Carrega templates salvos ou usa os padrões
     const saved = getOutreachTemplates();
     setSavedTemplates(saved);
   }, []);
@@ -1141,7 +1141,6 @@ const OutreachMessageGenerator = () => {
 
   const handleSaveTemplate = () => {
     if (!customizedMessage.trim()) return;
-
     const newTemplate: OutreachTemplate = {
       id: selectedTemplate?.id || generateId(),
       title: selectedTemplate?.title || `Template ${savedTemplates.length + 1}`,
@@ -1149,34 +1148,31 @@ const OutreachMessageGenerator = () => {
       tags: selectedTemplate?.tags || [messageType],
       lastUsed: new Date().toISOString()
     };
-
     const updated = selectedTemplate
       ? savedTemplates.map(t => t.id === selectedTemplate.id ? newTemplate : t)
       : [...savedTemplates, newTemplate];
-
     setSavedTemplates(updated);
     saveOutreachTemplates(updated);
     toast.success("Template salvo com sucesso!");
   };
 
   const handleGenerateNew = async () => {
-  if (!businessType) {
-    toast.error("Selecione um tipo de negócio");
-    return;
-  }
-   try {
-    const result = await generateOutreachMessage({
-      businessType,
-      messageType,
-      customization: customizedMessage
-    }) as OutreachMessageResult; // Adicione esta tipagem explícita
-
-    setCustomizedMessage(result.content);
-    toast.success("Mensagem gerada com sucesso!");
-  } catch  {
-    toast.error("Erro ao gerar mensagem");
-  }
-};
+    if (!businessType) {
+      toast.error("Selecione um tipo de negócio");
+      return;
+    }
+    try {
+      const result = await generateOutreachMessage({
+        businessType,
+        messageType,
+        customization: customizedMessage
+      }) as OutreachMessageResult;
+      setCustomizedMessage(result.content);
+      toast.success("Mensagem gerada com sucesso!");
+    } catch {
+      toast.error("Erro ao gerar mensagem");
+    }
+  };
 
   return (
     <Card className="w-full">
@@ -1190,7 +1186,9 @@ const OutreachMessageGenerator = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* ✅ CORREÇÃO 1: MUDADO DE 'md:grid-cols-2' PARA 'lg:grid-cols-2' */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Coluna da Esquerda: Controles */}
           <div className="space-y-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Tipo de Mensagem</label>
@@ -1245,16 +1243,19 @@ const OutreachMessageGenerator = () => {
             </div>
           </div>
 
-          <div className="space-y-4">
+          {/* Coluna da Direita: Mensagem e Ações */}
+          <div className="flex flex-col space-y-4">
             <label className="text-sm font-medium">Mensagem Personalizada</label>
             <Textarea
               value={customizedMessage}
               onChange={(e) => setCustomizedMessage(e.target.value)}
               placeholder="Sua mensagem personalizada aparecerá aqui..."
-              className="min-h-[250px] font-mono text-sm"
+              // ✅ CORREÇÃO 2: Altura responsiva para o Textarea
+              className="min-h-[200px] sm:min-h-[285px] flex-grow font-mono text-sm"
             />
 
-            <div className="flex justify-between">
+            {/* ✅ CORREÇÃO 3: Layout dos botões agora é responsivo */}
+            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1269,7 +1270,7 @@ const OutreachMessageGenerator = () => {
                 </Tooltip>
               </TooltipProvider>
 
-              <div className="flex gap-2">
+              <div className="flex flex-col-reverse sm:flex-row gap-2">
                 <Button variant="outline" size="sm" onClick={handleGenerateNew}>
                   <RefreshCcw className="h-4 w-4 mr-2" />
                   Regenerar
@@ -1813,7 +1814,7 @@ export default function FreelinkBrainTool() {
                   className="space-y-6"
                 >
                   {/* Header com métricas */}
-                  <div className="sticky top-[57px] z-10 bg-background/80 backdrop-blur-lg border-b">
+                 <div className="lg:sticky top-[57px] z-10 bg-background/80 backdrop-blur-lg border-b">
                     <div className="py-4 space-y-4">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div className="flex-1">
