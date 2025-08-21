@@ -1477,7 +1477,7 @@ export default function FreelinkBrainTool() {
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!theme.trim()) {
+    if (!theme || !theme.trim()) {
       toast.error("Por favor, insira um tema para gerar ideias.");
       inputRef.current?.focus();
       return;
@@ -1915,14 +1915,27 @@ export default function FreelinkBrainTool() {
                         </div>
                         <Separator className="my-2 h-px bg-muted" />
                         <div className="flex items-start gap-3">
-                          <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase">
-                              Público-Alvo
-                            </p>
-                            <p className="text-sm">{results.target_audience_suggestion}</p>
-                          </div>
-                        </div>
+  <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
+  <div className="flex-1">
+    <p className="text-xs font-semibold text-muted-foreground uppercase">
+      Público-Alvo
+    </p>
+    <div className="text-sm">
+      {typeof results.target_audience_suggestion === 'string'
+        ? results.target_audience_suggestion
+        : (
+          <ul className="list-disc list-inside space-y-1">
+            {Object.entries(results.target_audience_suggestion).map(([key, value]) => (
+              <li key={key}>
+                <strong className="capitalize">{key.replace(/_/g, ' ')}:</strong> {Array.isArray(value) ? value.join(', ') : String(value)}
+              </li>
+            ))}
+          </ul>
+        )
+      }
+    </div>
+  </div>
+</div>
                       </CardContent>
                     </Card>
 
