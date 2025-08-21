@@ -470,7 +470,8 @@ function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchi
     streakDays,
     completedPosts: stats.completed,
     totalPosts: stats.total
-, username: currentUser.username
+, username: currentUser.username,
+   generateImage: true,
   });
   return imageUrl;
 } catch (error) {

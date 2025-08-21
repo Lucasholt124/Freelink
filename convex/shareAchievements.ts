@@ -15,6 +15,7 @@ export const shareAchievement = mutation({
     completedPosts: v.number(),
     totalPosts: v.number(),
      username: v.string(),
+    generateImage: v.optional(v.boolean())
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
