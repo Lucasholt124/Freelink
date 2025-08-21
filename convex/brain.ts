@@ -25,19 +25,19 @@ interface CarouselContent {
 }
 
 interface ImagePostContent {
-    idea: string;
-    caption: string;
-    image_prompt: string;
+  idea: string;
+  caption: string;
+  image_prompt: string;
 }
 
 interface StorySequenceContent {
-    theme: string;
-    slides: {
-        slide_number: number;
-        type: "Poll" | "Quiz" | "Q&A" | "Link" | "Text";
-        content: string;
-        options?: string[];
-    }[];
+  theme: string;
+  slides: {
+    slide_number: number;
+    type: "Poll" | "Quiz" | "Q&A" | "Link" | "Text";
+    content: string;
+    options?: string[];
+  }[];
 }
 
 interface BrainResults {
@@ -48,7 +48,7 @@ interface BrainResults {
     carousels: CarouselContent[];
     image_posts: ImagePostContent[];
     story_sequences: StorySequenceContent[];
-  }
+  };
 }
 
 // =================================================================
@@ -60,45 +60,86 @@ const groq = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
 });
 
+// Configuração da OpenAI como fallback
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+}) : null;
+
 // JSON parsing e helpers (mantidos como estavam)
 function extractJsonFromText(text: string): string {
-    let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-    const arrayStart = cleaned.indexOf('[');
-    const objectStart = cleaned.indexOf('{');
-    if (arrayStart === -1 && objectStart === -1) { throw new Error("Não foi possível encontrar o início de um JSON válido na resposta."); }
-    let start = -1;
-    if (arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart)) { start = arrayStart; } else { start = objectStart; }
-    if (start !== -1) { cleaned = cleaned.substring(start); }
-    const openChar = cleaned.startsWith('[') ? '[' : '{';
-    const closeChar = cleaned.startsWith('[') ? ']' : '}';
-    let balance = 0; let inString = false; let escape = false;
-    for (let i = 0; i < cleaned.length; i++) {
-        const char = cleaned[i];
-        if (inString) { if (char === '"' && !escape) { inString = false; } else if (char === '\\') { escape = !escape; } else { escape = false; } }
-        else { if (char === '"') { inString = true; } else if (char === openChar) { balance++; } else if (char === closeChar) { balance--; } }
-        if (balance === 0 && i > 0) { return cleaned.substring(0, i + 1); }
+  let cleaned = text.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+  const arrayStart = cleaned.indexOf('[');
+  const objectStart = cleaned.indexOf('{');
+  if (arrayStart === -1 && objectStart === -1) {
+    throw new Error("Não foi possível encontrar o início de um JSON válido na resposta.");
+  }
+
+  let start = -1;
+  if (arrayStart !== -1 && (objectStart === -1 || arrayStart < objectStart)) {
+    start = arrayStart;
+  } else {
+    start = objectStart;
+  }
+
+  if (start !== -1) {
+    cleaned = cleaned.substring(start);
+  }
+
+  const openChar = cleaned.startsWith('[') ? '[' : '{';
+  const closeChar = cleaned.startsWith('[') ? ']' : '}';
+  let balance = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let i = 0; i < cleaned.length; i++) {
+    const char = cleaned[i];
+    if (inString) {
+      if (char === '"' && !escape) {
+        inString = false;
+      } else if (char === '\\') {
+        escape = !escape;
+      } else {
+        escape = false;
+      }
+    } else {
+      if (char === '"') {
+        inString = true;
+      } else if (char === openChar) {
+        balance++;
+      } else if (char === closeChar) {
+        balance--;
+      }
     }
-    return cleaned;
+
+    if (balance === 0 && i > 0) {
+      return cleaned.substring(0, i + 1);
+    }
+  }
+
+  return cleaned;
 }
+
 function cleanAndFixJson(text: string): string {
-    let cleaned = extractJsonFromText(text);
-    cleaned = cleaned.replace(/,\s*([}\]])/g, '$1'); // Corrigido para um regex mais comum, o original também era válido
-    cleaned = cleaned.replace(/}\s*{/g, '},{');
-    cleaned = cleaned.replace(/:(\s*)"((?:\\.|[^"])*)"/g, (match, whitespace, content) => {
-        // CORREÇÃO: A regex original para escapar aspas era inválida em JavaScript.
-        const escapedContent = content.replace(/(?<!\\)"/g, '\\"');
-        return `:${whitespace}"${escapedContent}"`;
-    });
-    return cleaned;
+  let cleaned = extractJsonFromText(text);
+  cleaned = cleaned.replace(/,\s*([}```])/g, '$1');
+  cleaned = cleaned.replace(/}\s*{/g, '},{');
+  cleaned = cleaned.replace(/:(\s*)"((?:\\.|[^"])*)"/g, (match, whitespace, content) => {
+    // Escapar aspas dentro de strings
+    const escapedContent = content.replace(/(?<!\KATEX_INLINE_CLOSE")/g, '\\"');
+    return `:${whitespace}"${escapedContent}"`;
+  });
+
+  return cleaned;
 }
+
 function extractJson<T>(text: string): T {
-    try {
-        const cleanedText = cleanAndFixJson(text);
-        return JSON.parse(cleanedText) as T;
-    } catch (error) {
-        console.error("Erro CRÍTICO ao parsear JSON:", error, "Texto Recebido:", text);
-        throw new Error("Falha ao parsear o JSON da IA.");
-    }
+  try {
+    const cleanedText = cleanAndFixJson(text);
+    return JSON.parse(cleanedText) as T;
+  } catch (error) {
+    console.error("Erro CRÍTICO ao parsear JSON:", error, "Texto Recebido:", text);
+    throw new Error("Falha ao parsear o JSON da IA.");
+  }
 }
 
 // =================================================================
@@ -249,32 +290,98 @@ LEMBRE-SE:
 Agora, REVOLUCIONE o tema "${theme}" com conteúdo que vai MUDAR VIDAS!
 `;
 
-  const response = await groq.chat.completions.create({
-    model: 'llama3-70b-8192',
-    response_format: { type: 'json_object' },
-    messages: [
-      { role: 'system', content: 'Você é um GÊNIO do marketing de conteúdo viral. Crie conteúdo TRANSFORMADOR que gera resultados REAIS. Responda APENAS em JSON.' },
-      { role: 'user', content: prompt },
-    ],
-    temperature: 0.9, // Aumentado para mais criatividade
-    max_tokens: 8000,
-  });
-
-  const resultText = response.choices[0]?.message?.content;
-  if (!resultText) {
-    throw new Error("A IA (Groq) não retornou um resultado válido.");
-  }
-
   try {
+    const response = await groq.chat.completions.create({
+      model: 'llama3-70b-8192',
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: 'Você é um GÊNIO do marketing de conteúdo viral. Crie conteúdo TRANSFORMADOR que gera resultados REAIS. Responda APENAS em JSON.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.9, // Aumentado para mais criatividade
+      max_tokens: 8000,
+    });
+
+    const resultText = response.choices[0]?.message?.content;
+    if (!resultText) {
+      throw new Error("A IA (Groq) não retornou um resultado válido.");
+    }
+
     return extractJson<BrainResults>(resultText);
-  } catch  {
-    console.error("Erro ao fazer parse do JSON do Groq:", resultText);
-    throw new Error("O Groq retornou uma resposta em um formato JSON inválido.");
+  } catch (error) {
+    console.error("Erro ao gerar com Groq:", error);
+
+    // Tenta OpenAI como fallback se configurado
+    if (openai) {
+      try {
+        console.log("Tentando gerar com OpenAI como fallback...");
+        return await generateWithOpenAI(theme);
+      } catch (openaiError) {
+        console.error("Erro com OpenAI:", openaiError);
+        throw new Error("Falha ao gerar conteúdo com ambas as APIs. Tente novamente mais tarde.");
+      }
+    } else {
+      throw new Error(`Falha ao gerar conteúdo: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+    }
   }
 }
 
-// CORREÇÃO: A função inteira estava com um erro de sintaxe devido a uma duplicação de código.
-// A estrutura foi corrigida para retornar um único objeto BrainResults válido.
+// Função de fallback com OpenAI
+async function generateWithOpenAI(theme: string): Promise<BrainResults> {
+  if (!openai) {
+    throw new Error("OpenAI não está configurada.");
+  }
+
+  // Versão simplificada do prompt para economizar tokens
+  const prompt = `
+Crie um pacote completo de conteúdo para Instagram sobre "${theme}" que inclua:
+- Um resumo estratégico do tema
+- Identificação do público-alvo
+- Reels com gancho viral, pontos principais e call-to-action
+- Carrosséis com vários slides educativos
+- Posts com legenda e prompt para imagem
+- Sequências de stories interativas
+
+Siga a estrutura JSON exata como mostrada abaixo:
+{
+  "theme_summary": "Resumo estratégico",
+  "target_audience_suggestion": "Público-alvo",
+  "content_pack": {
+    "reels": [array de objetos com title, hook, main_points, cta],
+    "carousels": [array de objetos com title, slides (array), cta_slide],
+    "image_posts": [array de objetos com idea, caption, image_prompt],
+    "story_sequences": [array de objetos com theme, slides (array)]
+  }
+}
+
+Crie conteúdo disruptivo, acionável e emocional que gere compartilhamentos e conversões.
+`;
+
+  try {
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4',
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: 'Você é um diretor criativo especializado em marketing de conteúdo viral. Responda EXCLUSIVAMENTE em JSON válido.' },
+        { role: 'user', content: prompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 4000,
+    });
+
+    const resultText = response.choices[0]?.message?.content;
+    if (!resultText) {
+      throw new Error("A OpenAI não retornou um resultado válido.");
+    }
+
+    return extractJson<BrainResults>(resultText);
+  } catch (error) {
+    console.error("Erro ao gerar com OpenAI:", error);
+    return generateFallbackContent(theme);
+  }
+}
+
+// Conteúdo de fallback caso ambas as APIs falhem
 function generateFallbackContent(theme: string): BrainResults {
   return {
     theme_summary: `A verdade chocante sobre ${theme} que 97% das pessoas ignoram - e como usar isso a seu favor em 7 dias`,
@@ -349,36 +456,103 @@ function generateFallbackContent(theme: string): BrainResults {
   };
 }
 
-
 // =================================================================
 // 4. ACTION PRINCIPAL
 // =================================================================
 
 export const generateContentIdeas = action({
-  args: { theme: v.string() },
+  args: {
+    theme: v.string(),
+    model: v.optional(v.string())
+  },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autenticado.");
 
-    if (!args.theme.trim()) throw new Error("Tema não pode estar vazio.");
-    if (args.theme.length > 150) throw new Error("Tema deve ter no máximo 150 caracteres.");
-    if (!process.env.GROQ_API_KEY) {
-        throw new Error("A API da Groq (GROQ_API_KEY) não está configurada no ambiente.");
+    const { theme } = args;
+    if (!theme.trim()) throw new Error("Tema não pode estar vazio.");
+    if (theme.length > 150) throw new Error("Tema deve ter no máximo 150 caracteres.");
+
+    // Verifica API keys
+    if (!process.env.GROQ_API_KEY && !process.env.OPENAI_API_KEY) {
+      throw new Error("Nenhuma API de IA está configurada no ambiente.");
     }
 
     try {
-      console.log(`Gerando campanha revolucionária para: "${args.theme}" usando Groq (Llama3-70b)`);
-      const results = await generateWithGroq(args.theme);
+      console.log(`Gerando campanha revolucionária para: "${theme}" usando Groq (Llama3-70b)`);
+      const results = await generateWithGroq(theme);
       console.log("Sucesso ao gerar conteúdo transformador com Groq");
 
       if (!results.content_pack || !results.content_pack.reels) {
         throw new Error("Estrutura de resultados da IA está inválida");
       }
-      return results;
 
+      return results;
     } catch (error) {
       console.error("Erro primário com Groq, usando fallback otimizado:", error);
-      return generateFallbackContent(args.theme);
+      return generateFallbackContent(theme);
+    }
+  },
+});
+
+// Action para gerar mensagens de outreach (sem dependência do banco de dados)
+export const generateOutreachMessage = action({
+  args: {
+    businessType: v.string(),
+    messageType: v.string(),
+    customization: v.optional(v.string())
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Não autenticado.");
+
+    const { businessType, messageType, customization } = args;
+
+    // Prompt simplificado para gerar mensagens de outreach
+    const prompt = `
+Crie uma mensagem de ${messageType} para um cliente do tipo ${businessType}.
+${customization ? `Customizações: ${customization}` : ''}
+
+Formato esperado:
+{
+  "title": "Título da mensagem",
+  "content": "Conteúdo completo da mensagem",
+  "businessType": "${businessType}",
+  "messageType": "${messageType}"
+}
+`;
+
+    try {
+      // Usa Groq se disponível, caso contrário tenta OpenAI
+      const ai = process.env.GROQ_API_KEY ? groq : (openai || null);
+      if (!ai) throw new Error("Nenhuma API de IA configurada");
+
+      const response = await ai.chat.completions.create({
+        model: process.env.GROQ_API_KEY ? 'llama3-8b-8192' : 'gpt-3.5-turbo',
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: 'Você é um especialista em vendas B2B e copywriting. Crie mensagens persuasivas e profissionais.' },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.7,
+      });
+
+      const resultText = response.choices[0]?.message?.content;
+      if (!resultText) {
+        throw new Error("A IA não retornou um resultado válido.");
+      }
+
+      return extractJson(resultText);
+    } catch (error) {
+      console.error("Erro ao gerar mensagem:", error);
+
+      // Retorna um fallback genérico
+      return {
+        title: `Mensagem de ${messageType} para ${businessType}`,
+        content: "Não foi possível gerar a mensagem personalizada. Por favor, tente novamente mais tarde.",
+        businessType,
+        messageType
+      };
     }
   },
 });
