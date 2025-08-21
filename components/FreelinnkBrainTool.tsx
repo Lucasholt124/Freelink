@@ -1959,34 +1959,34 @@ export default function FreelinkBrainTool() {
                       </div>
 
                       <div className="mt-6 space-y-4">
-                        <TabsContent value="reels" className="mt-0 space-y-4">
-                          {results.content_pack.reels.map((reel, i) => (
-                            <ReelCard
-                              key={i}
-                              reel={reel}
-                              index={i}
-                              onSchedule={handleScheduleContent}
-                            />
-                          ))}
-                        </TabsContent>
+                     <TabsContent value="reels" className="mt-0 space-y-4">
+  {results.content_pack?.reels?.map((reel, i) => (
+    <ReelCard
+      key={i}
+      reel={reel}
+      index={i}
+      onSchedule={handleScheduleContent}
+    />
+  ))}
+</TabsContent>
 
                         <TabsContent value="carousels" className="mt-0 space-y-4">
-                          {results.content_pack.carousels.map((carousel, i) => (
-                            <CarouselViewer key={i} carousel={carousel} index={i} />
-                          ))}
-                        </TabsContent>
+  {results.content_pack?.carousels?.map((carousel, i) => (
+    <CarouselViewer key={i} carousel={carousel} index={i} />
+  ))}
+</TabsContent>
 
                         <TabsContent value="image_posts" className="mt-0 space-y-4">
-                          {results.content_pack.image_posts.map((post, i) => (
-                            <ImagePostCard key={i} post={post} index={i} />
-                          ))}
-                        </TabsContent>
+  {results.content_pack?.image_posts?.map((post, i) => (
+    <ImagePostCard key={i} post={post} index={i} />
+  ))}
+</TabsContent>
 
                         <TabsContent value="story_sequences" className="mt-0 space-y-4">
-                          {results.content_pack.story_sequences.map((seq, i) => (
-                            <StorySequenceCard key={i} seq={seq} index={i} />
-                          ))}
-                        </TabsContent>
+  {results.content_pack?.story_sequences?.map((seq, i) => (
+    <StorySequenceCard key={i} seq={seq} index={i} />
+  ))}
+</TabsContent>
                       </div>
                     </Tabs>
                   </div>
