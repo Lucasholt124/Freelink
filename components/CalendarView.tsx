@@ -13,7 +13,9 @@ import {
   TrendingUp, Camera, Award, Trophy,
   Zap, Instagram, Twitter, Linkedin, Flame,
   Shield, Gift, Crown, Medal, BookOpen,
-  Loader2
+  Loader2,
+  RefreshCw,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
@@ -32,6 +34,8 @@ import { cn } from "@/lib/utils";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Checkbox } from "@/components/ui/checkbox";
 import confetti from 'canvas-confetti';
+import { DialogDescription } from "@radix-ui/react-dialog";
+import { VisuallyHidden } from "./ui/visually-hidden";
 
 // Tipos
 type PlanItemFromDB = {
@@ -436,99 +440,275 @@ function RankingModal({ isOpen, onClose, currentStreak }: RankingModalProps) {
 }
 
 interface ShareAchievementModalProps {
-  isOpen: boolean; onClose: () => void;
-  stats: { total: number; completed: number; percent: number; };
+  isOpen: boolean;
+  onClose: () => void;
+  stats: { total: number; completed: number; percent: number };
   streakDays: number;
 }
 
 function ShareAchievementModal({ isOpen, onClose, stats, streakDays }: ShareAchievementModalProps) {
-
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedImageUrl, setGeneratedImageUrl] = useState("");
+  const [imageError, setImageError] = useState(false);
   const currentUser = useQuery(api.users.getMyUsername);
-  const shareAchievement = useMutation(api.shareAchievements.shareAchievement); //
+  const shareAchievement = useMutation(api.shareAchievements.shareAchievement);
 
-  useEffect(() => { if (!isOpen) setGeneratedImageUrl(""); }, [isOpen]);
-
-   const generateShareImage = async () => {
-    if (!currentUser?.username) {
-        toast.error("Nome de usuário não encontrado para gerar a imagem.");
-        return null;
+  useEffect(() => {
+    if (!isOpen) {
+      setGeneratedImageUrl("");
+      setImageError(false);
     }
+  }, [isOpen]);
+
+  const generateShareImage = async () => {
+    if (!currentUser?.username) {
+      toast.error("Nome de usuário não encontrado para gerar a imagem.");
+      return null;
+    }
+
     setIsGenerating(true);
+    setImageError(false);
+
     try {
-  const params = new URLSearchParams({
-    username: currentUser.username,
-    streak: String(streakDays),
-    completed: String(stats.completed),
-    total: String(stats.total),
-  });
-  const imageUrl = `/api/og/share?${params.toString()}`; // Caminho da API para gerar imagem
-  setGeneratedImageUrl(imageUrl);
-  toast.success("Sua imagem de conquista está pronta!");
-  await shareAchievement({
-    streakDays,
-    completedPosts: stats.completed,
-    totalPosts: stats.total
-, username: currentUser.username,
-   generateImage: true,
-  });
-  return imageUrl;
-} catch (error) {
-  console.error("Erro ao gerar ou registrar a imagem:", error);
-  toast.error("Não foi possível gerar a imagem de conquista.");
-  return null;
-} finally {
-  setIsGenerating(false);
-}
+      const params = new URLSearchParams({
+        username: currentUser.username,
+        streak: String(streakDays),
+        completed: String(stats.completed),
+        total: String(stats.total),
+      });
+
+      // Gera URL absoluta
+      const baseUrl = window.location.origin;
+      const imageUrl = `${baseUrl}/api/og/share?${params.toString()}`;
+
+      // Verifica se a imagem pode ser carregada
+      await new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = imageUrl;
+      });
+
+      setGeneratedImageUrl(imageUrl);
+      toast.success("Sua imagem de conquista está pronta!");
+
+      // Registra no banco de dados
+      await shareAchievement({
+        streakDays,
+        completedPosts: stats.completed,
+        totalPosts: stats.total,
+        username: currentUser.username,
+        generateImage: true,
+      });
+
+      return imageUrl;
+    } catch (error) {
+      console.error("Erro ao gerar ou registrar a imagem:", error);
+      setImageError(true);
+      toast.error("Não foi possível gerar a imagem de conquista.");
+      return null;
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleShare = async (platform: 'twitter' | 'linkedin' | 'instagram' | 'download') => {
     let finalShareUrl = generatedImageUrl;
+
     if (!finalShareUrl) {
       const generatedUrl = await generateShareImage();
       if (!generatedUrl) return;
       finalShareUrl = generatedUrl;
     }
+
     const shareText = `🔥 Minha sequência de ${streakDays} dias continua! Concluí ${stats.completed}/${stats.total} posts com o Mentor.IA da @freelink. #MentorIA #Freelinnk`;
+
     let url;
     switch (platform) {
-      case 'twitter': url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(window.location.origin)}`; break;
-      case 'linkedin': url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.origin)}`; break;
-      case 'instagram': navigator.clipboard.writeText(shareText); toast.info("Texto copiado! Baixe a imagem e cole a legenda no seu post."); return;
-      case 'download': const link = document.createElement('a'); link.href = finalShareUrl; link.download = `conquista-freelink-${currentUser?.username}.png`; link.click(); return;
+      case 'twitter':
+        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(shareText)}&url=${encodeURIComponent(window.location.origin)}`;
+        break;
+      case 'linkedin':
+        url = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(window.location.origin)}`;
+        break;
+      case 'instagram':
+        navigator.clipboard.writeText(shareText);
+        toast.info("Texto copiado! Baixe a imagem e cole a legenda no seu post.");
+        return;
+      case 'download':
+        try {
+          // Faz download da imagem
+          const response = await fetch(finalShareUrl);
+          const blob = await response.blob();
+          const url = window.URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = `conquista-freelink-${currentUser?.username}-${Date.now()}.png`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          window.URL.revokeObjectURL(url);
+          toast.success("Imagem baixada com sucesso!");
+        } catch (error) {
+          console.error("Erro ao baixar imagem:", error);
+          toast.error("Erro ao baixar a imagem");
+        }
+        return;
     }
+
     if (url) window.open(url, '_blank');
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-xl p-0 overflow-hidden">
+        {/* Título acessível mas visualmente oculto */}
+        <VisuallyHidden>
+          <DialogTitle>Compartilhar Conquista</DialogTitle>
+          <DialogDescription>
+            Compartilhe sua conquista de {streakDays} dias de sequência e {stats.completed} posts concluídos
+          </DialogDescription>
+        </VisuallyHidden>
+
         <div className="p-6">
-          <h2 className="text-2xl font-bold text-center mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Compartilhe sua Conquista! 🏆</h2>
+          <h2 className="text-2xl font-bold text-center mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Compartilhe sua Conquista! 🏆
+          </h2>
+
           <div className="aspect-video bg-muted rounded-lg flex items-center justify-center border relative overflow-hidden">
-            {isGenerating && <Loader2 className="w-8 h-8 text-primary animate-spin" />}
-            {generatedImageUrl ? (<img src={generatedImageUrl} alt="Imagem de conquista gerada" className="object-cover w-full h-full" />) :
-            (!isGenerating && <div className="text-center text-muted-foreground p-4"><ImageIcon className="w-10 h-10 mx-auto mb-2" /><p className="text-sm font-medium">Sua imagem personalizada aparecerá aqui.</p></div>)}
+            {isGenerating && (
+              <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                <div className="text-center">
+                  <Loader2 className="w-8 h-8 text-primary animate-spin mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">Gerando sua imagem...</p>
+                </div>
+              </div>
+            )}
+
+            {generatedImageUrl && !imageError ? (
+              <img
+                src={generatedImageUrl}
+                alt="Imagem de conquista gerada"
+                className="object-cover w-full h-full"
+                onError={() => setImageError(true)}
+              />
+            ) : imageError ? (
+              <div className="text-center text-destructive p-4">
+                <AlertCircle className="w-10 h-10 mx-auto mb-2" />
+                <p className="text-sm font-medium">Erro ao carregar a imagem</p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={generateShareImage}
+                  className="mt-2"
+                >
+                  Tentar novamente
+                </Button>
+              </div>
+            ) : (
+              !isGenerating && (
+                <div className="text-center text-muted-foreground p-4">
+                  <ImageIcon className="w-10 h-10 mx-auto mb-2" />
+                  <p className="text-sm font-medium">Sua imagem personalizada aparecerá aqui</p>
+                  <p className="text-xs mt-1">Clique no botão abaixo para gerar</p>
+                </div>
+              )
+            )}
           </div>
+
           <div className="mt-6 space-y-4">
-            {!generatedImageUrl ? (
-              <Button onClick={generateShareImage} className="w-full" disabled={isGenerating}>
-                {isGenerating ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
-                Gerar Imagem de Conquista
+            {!generatedImageUrl || imageError ? (
+              <Button
+                onClick={generateShareImage}
+                className="w-full"
+                disabled={isGenerating}
+                size="lg"
+              >
+                {isGenerating ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Gerando imagem...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Gerar Imagem de Conquista
+                  </>
+                )}
               </Button>
             ) : (
+              <div className="space-y-4">
                 <div className="text-center">
-                    <p className="text-sm font-medium mb-3">Pronto! Agora compartilhe seu progresso:</p>
-                    <div className="flex justify-center gap-3">
-                        <TooltipProvider>
-                            <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => handleShare('twitter')}><Twitter className="w-5 h-5" /></Button></TooltipTrigger><TooltipContent>Compartilhar no Twitter</TooltipContent></Tooltip>
-                            <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => handleShare('linkedin')}><Linkedin className="w-5 h-5" /></Button></TooltipTrigger><TooltipContent>Compartilhar no LinkedIn</TooltipContent></Tooltip>
-                            <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => handleShare('instagram')}><Instagram className="w-5 h-5" /></Button></TooltipTrigger><TooltipContent>Copiar para Instagram</TooltipContent></Tooltip>
-                            <Tooltip><TooltipTrigger asChild><Button variant="outline" size="icon" onClick={() => handleShare('download')}><Download className="w-5 h-5" /></Button></TooltipTrigger><TooltipContent>Baixar Imagem</TooltipContent></Tooltip>
-                        </TooltipProvider>
-                    </div>
+                  <p className="text-sm font-medium mb-3">
+                    Pronto! Agora compartilhe seu progresso:
+                  </p>
+                  <div className="flex justify-center gap-3">
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleShare('twitter')}
+                          >
+                            <Twitter className="w-5 h-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Compartilhar no Twitter</TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleShare('linkedin')}
+                          >
+                            <Linkedin className="w-5 h-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Compartilhar no LinkedIn</TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleShare('instagram')}
+                          >
+                            <Instagram className="w-5 h-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Copiar para Instagram</TooltipContent>
+                      </Tooltip>
+
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleShare('download')}
+                          >
+                            <Download className="w-5 h-5" />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>Baixar Imagem</TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
                 </div>
+
+                <Button
+                  variant="ghost"
+                  onClick={generateShareImage}
+                  className="w-full"
+                  size="sm"
+                >
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Gerar nova imagem
+                </Button>
+              </div>
             )}
           </div>
         </div>

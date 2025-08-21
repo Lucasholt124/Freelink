@@ -115,6 +115,7 @@ export default defineSchema({
     expiresAt: v.number(),
     views: v.number(),
     platform: v.optional(v.string()),
+
   }).index("by_user", ["userId"])
     .index("by_shareCode", ["shareCode"])
     .index("by_expiration", ["expiresAt"]),
