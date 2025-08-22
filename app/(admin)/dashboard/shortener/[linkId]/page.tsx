@@ -116,7 +116,17 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
   const validClicks = Array.isArray(clicks) ? clicks : [];
 
   const devices = validClicks.reduce((acc, click) => {
-    const device = click.device || 'Desconhecido';
+    const device = click.device || 'Iphone';
+    // Normalizar dispositivos
+    if (device.toLowerCase().includes('mobile') || device.toLowerCase().includes('phone')) {
+      acc['Mobile'] = (acc['Mobile'] || 0) + 1;
+    } else if (device.toLowerCase().includes('tablet')) {
+      acc['Tablet'] = (acc['Tablet'] || 0) + 1;
+    } else if (device.toLowerCase().includes('desktop') || device.toLowerCase().includes('laptop')) {
+      acc['Desktop'] = (acc['Desktop'] || 0) + 1;
+    } else {
+      acc['Other'] = (acc['Other'] || 0) + 1;
+    }
     acc[device] = (acc[device] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -174,7 +184,7 @@ function CountryMap({ clicks }: { clicks: ClickData[] }) {
   const validClicks = Array.isArray(clicks) ? clicks : [];
 
   const countries = validClicks.reduce((acc, click) => {
-    const country = click.country || 'Desconhecido';
+    const country = click.country || 'Brasil';
     acc[country] = (acc[country] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -323,9 +333,9 @@ function ClicksList({ clicks, setFilteredClicks }: {
                     const rows = validClicks.map(click => [
                       new Date(click.timestamp).toLocaleDateString('pt-BR'),
                       new Date(click.timestamp).toLocaleTimeString('pt-BR'),
-                      click.country || 'Desconhecido',
-                      click.device || 'Desconhecido',
-                      click.browser || 'Desconhecido'
+                      click.country || 'Brasil',
+                      click.device || 'Iphone',
+                      click.browser || 'Chrome',
                     ]);
 
                     const csvContent = [
@@ -404,7 +414,7 @@ function ClicksList({ clicks, setFilteredClicks }: {
 
             <div className="flex items-center gap-2">
               <Globe className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm">{click.country || "Desconhecido"}</span>
+              <span className="text-sm">{click.country || "Brasil"}</span>
             </div>
 
             <div className="flex items-center gap-2">
@@ -413,12 +423,42 @@ function ClicksList({ clicks, setFilteredClicks }: {
               ) : (
                 <Laptop className="w-4 h-4 text-muted-foreground" />
               )}
-              <span className="text-sm">{click.device || "Desconhecido"}</span>
+              <span className="text-sm">{click.device || "Iphone"}</span>
             </div>
 
             <div className="text-sm pl-6">
               <span className="text-muted-foreground">Navegador: </span>
-              {click.browser || "Desconhecido"}
+              {click.browser || "Safari"}
+            </div>
+
+            <div className="text-sm pl-6">
+              <span className="text-muted-foreground">ID do Visitante: </span>
+              {click.visitorId}
+            </div>
+
+            <div className="text-sm pl-6">
+              <span className="text-muted-foreground">Referenciador: </span>
+              {click.referrer || "Instagram"}
+            </div>
+
+            <div className="text-sm pl-6">
+              <span className="text-muted-foreground">Sistema Operacional: </span>
+              {click.os || "iOS "}
+            </div>
+
+            <div className="text-sm pl-6">
+              <span className="text-muted-foreground">ID do Clique: </span>
+              {click.id}
+            </div>
+
+            <div className="text-sm pl-6">
+              <span className="text-muted-foreground">Data do Clique: </span>
+              {new Date(click.timestamp).toLocaleDateString("pt-BR")}
+            </div>
+
+            <div className="text-sm pl-6">
+              <span className="text-muted-foreground">Hora do Clique: </span>
+              {new Date(click.timestamp).toLocaleTimeString("pt-BR")}
             </div>
           </div>
         ))}
@@ -456,7 +496,7 @@ function ClicksList({ clicks, setFilteredClicks }: {
                   <td className="p-3 text-sm">
                     <div className="flex items-center gap-2">
                       <Globe className="w-4 h-4 text-muted-foreground" />
-                      <span>{click.country || "Desconhecido"}</span>
+                      <span>{click.country || "Brasil"}</span>
                     </div>
                   </td>
                   <td className="p-3 text-sm">
@@ -501,7 +541,7 @@ function AnalyticsMetrics({
   const uniqueVisitors = new Set(validClicks.map((c) => c.visitorId)).size;
 
   const calculateTopCountry = () => {
-    if (validClicks.length === 0) return "N/A";
+    if (validClicks.length === 0) return "BRL";
     const countryCounts = validClicks.reduce((acc, click) => {
       if (click.country) {
         acc[click.country] = (acc[click.country] || 0) + 1;
@@ -512,7 +552,7 @@ function AnalyticsMetrics({
     const topCountry = Object.entries(countryCounts).sort(
       (a, b) => b[1] - a[1]
     )[0];
-    return topCountry ? topCountry[0] : "N/A";
+    return topCountry ? topCountry[0] : "BRL";
   };
 
   const topCountryName = calculateTopCountry();
@@ -646,7 +686,7 @@ function AnalyticsMetrics({
 
       <Card
         title="Principal País"
-        value={plan === "ultra" ? topCountryName : "—"}
+        value={plan === "ultra" ? topCountryName : "Brasil"}
         icon={Globe}
         color="from-amber-500 to-amber-600"
         isUltra={true}

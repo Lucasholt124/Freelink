@@ -312,9 +312,30 @@ export const generateOutreachMessage = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autenticado.");
 
-    const { businessType, messageType,  } = args;
+    const { businessType, messageType, customization } = args;
 
-    const prompt = `Crie uma mensagem de ${messageType} para um cliente do tipo ${businessType}...`; // Seu prompt original aqui
+    // ✅ PROMPT DE ALTA PRECISÃO
+    const prompt = `
+# MISSÃO: Gerar uma mensagem de prospecção profissional e original.
+
+## REGRAS CRÍTICAS E INVIOLÁVEIS:
+1.  **IDIOMA:** A mensagem gerada DEVE SER 100% em **Português do Brasil**.
+2.  **ORIGINALIDADE:** Crie um texto único. Evite frases de marketing genéricas.
+3.  **FORMATO:** A sua resposta DEVE SER um objeto JSON VÁLIDO. As chaves DEVEM ser EXATAMENTE "title" e "content". É proibido usar "subject" ou "body".
+
+## DADOS PARA A MENSAGEM:
+- Tipo de Mensagem: ${messageType}
+- Público Alvo: ${businessType}
+- Instrução Adicional: ${customization}
+
+## ESTRUTURA JSON OBRIGATÓRIA:
+{
+  "title": "Crie um título/assunto curto, profissional e que desperte curiosidade aqui.",
+  "content": "Crie o corpo completo da mensagem aqui. Seja pessoal, direto e agregue valor.",
+  "businessType": "${businessType}",
+  "messageType": "${messageType}"
+}
+`;
 
     try {
       const ai = process.env.GROQ_API_KEY ? groq : (openai || null);
@@ -324,26 +345,23 @@ export const generateOutreachMessage = action({
         model: process.env.GROQ_API_KEY ? 'llama3-8b-8192' : 'gpt-3.5-turbo',
         response_format: { type: 'json_object' },
         messages: [
-            { role: 'system', content: 'Você é um especialista em vendas B2B e copywriting. Crie mensagens persuasivas e profissionais em formato JSON.' },
-            { role: 'user', content: prompt },
+          { role: 'system', content: 'Você é um copywriter B2B sênior, especialista em prospecção para o mercado brasileiro. Sua única tarefa é preencher o objeto JSON fornecido com um texto persuasivo em Português do Brasil, seguindo todas as regras.' },
+          { role: 'user', content: prompt },
         ],
-        temperature: 0.7,
+        temperature: 0.8,
       });
 
       const resultText = response.choices[0]?.message?.content;
       if (!resultText) {
         throw new Error("A IA não retornou um resultado válido.");
       }
-
-      // ✅ CORREÇÃO: Usando a nova função de parse aqui também
       return parseAiJsonResponse(resultText);
 
     } catch (error) {
       console.error("Erro ao gerar mensagem:", error);
-      // ... (lógica de fallback mantida)
       return {
-        title: `Mensagem de ${messageType} para ${businessType}`,
-        content: "Não foi possível gerar a mensagem personalizada. Por favor, tente novamente mais tarde.",
+        title: `Fallback para ${messageType}`,
+        content: "Não foi possível gerar a mensagem personalizada. Por favor, tente novamente.",
         businessType,
         messageType
       };
