@@ -1158,19 +1158,33 @@ const OutreachMessageGenerator = () => {
 
   const handleGenerateNew = async () => {
     if (!businessType) {
-      toast.error("Selecione um tipo de negócio");
+      toast.error("Por favor, selecione um tipo de negócio para a IA.");
       return;
     }
+
+    toast.info("Gerando nova mensagem com a IA...");
+
     try {
       const result = await generateOutreachMessage({
         businessType,
         messageType,
-        customization: customizedMessage
+        // ✅ CORREÇÃO 1: Instrução clara para a IA em vez de enviar a mensagem antiga.
+        customization: "Gerar uma mensagem completamente nova com base nas opções selecionadas."
       }) as OutreachMessageResult;
-      setCustomizedMessage(result.content);
-      toast.success("Mensagem gerada com sucesso!");
-    } catch {
-      toast.error("Erro ao gerar mensagem");
+
+      // ✅ CORREÇÃO 2: Verificar se o conteúdo realmente existe antes de atualizar.
+      if (result && result.content && result.content.trim() !== "") {
+        setCustomizedMessage(result.content);
+        toast.success("Nova mensagem gerada com sucesso!");
+      } else {
+        // Se a IA não retornar conteúdo, o toast de sucesso não será mais exibido.
+        console.error("A IA retornou uma resposta sem conteúdo:", result);
+        toast.error("A IA não conseguiu gerar um texto válido. Tente novamente.");
+      }
+
+    } catch (error) {
+      console.error("Erro na action generateOutreachMessage:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao gerar mensagem");
     }
   };
 
