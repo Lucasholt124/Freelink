@@ -33,7 +33,7 @@ function MentorIaWidget({ userPlan }: { userPlan: string }) {
             <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-sm opacity-60"></div>
             <Badge className="relative bg-gradient-to-r from-yellow-500 to-orange-600 text-white border-0 px-3 py-1.5 sm:px-4 sm:py-2 font-bold shadow-2xl">
               <Crown className="w-4 h-4 mr-1.5 animate-spin" style={{ animationDuration: '3s' }} />
-              PRO UNLOCK
+              ULTRA UNLOCK
             </Badge>
           </div>
         </div>
@@ -361,7 +361,7 @@ export default async function DashboardOverviewPage() {
             <div>
               <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black bg-gradient-to-r from-slate-900 via-blue-800 to-purple-800 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent leading-tight">
                 Olá, {user.firstName || user.username}!
-                <span className="inline-block animate-bounce ml-2 text-2xl sm:text-3xl lg:text-4xl">🚀</span>
+                <span className="inline-block animate-bounce ml-2 text-2xl sm:text-3xl lg:text-4xl via-black dark:via-white text-slate-600">🚀</span>
               </h1>
               <p className="text-lg sm:text-xl font-bold text-slate-600 dark:text-slate-400 mt-2">
                 Seu império digital está
