@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import {
   Loader2, Rocket, Star, CheckCircle, HelpCircle, ArrowRight, XCircle,
   BrainCircuit, Wand2, Sparkles, Zap,  ChevronRight,
-  Calendar, Shield, CreditCard, Target,  MessageSquare
+   Shield, CreditCard, Target,  MessageSquare,
+  Palette
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -75,8 +76,8 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
-          { text: "Análise de Bio com Mentor.IA por mês", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
-          { text: "Análises ilimitadas com Mentor.IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
+          { text: "Geração básica de imagens (3 por mês)", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
+          { text: "Geração ilimitada de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Acesso ao FreelinkBrain (gerador de ideias)", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Calendário de conteúdo personalizado", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
         ]
@@ -103,7 +104,7 @@ const plans: Plan[] = [
     yearlyPrice: "R$199",
     priceDetails: "/mês",
     popularFeatures: [
-      "Mentor.IA ilimitado",
+      "Geração ilimitada de imagens",
       "FreelinkBrain para ideias virais",
       "Analytics avançados"
     ],
@@ -119,8 +120,8 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
-          { text: "Mentor.IA ilimitado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "Diagnóstico completo (Bio, Destaques, Feed)", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true  },
+          { text: "Geração ilimitada de imagens profissionais", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "Formatos otimizados para todas as redes sociais", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "FreelinkBrain: Gerador de ideias virais", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Roteiros prontos para Reels e Posts",  icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
           { text: "Plano estratégico de conteúdo completo", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
@@ -149,7 +150,7 @@ const plans: Plan[] = [
     yearlyPrice: "R$399",
     priceDetails: "/mês",
     popularFeatures: [
-      "Plano de conteúdo estratégico",
+      "Estúdio de imagens IA avançado",
       "Calendário de posts automático",
       "Ferramentas de monetização"
     ],
@@ -166,7 +167,7 @@ const plans: Plan[] = [
         title: "Ferramentas de IA",
         features: [
           { text: "Todas as ferramentas do plano Pro", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
-          { text: "Plano estratégico de conteúdo completo", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "Estúdio de imagens IA avançado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Calendário de conteúdo personalizado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Agendamento automático de posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> }
         ]
@@ -321,89 +322,89 @@ export default function BillingContent() {
           </Badge>
 
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 mb-4">
-            Desbloqueie todo o potencial da sua bio
+            Desbloqueie o poder das imagens para seu perfil
           </h1>
 
           <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-            Escolha o plano ideal para transformar seu perfil e automatizar seu crescimento com inteligência artificial.
+           Escolha o plano ideal para criar imagens profissionais e automatizar seu crescimento com inteligência artificial.
           </p>
         </motion.div>
 
         {/* Spotlight para as ferramentas de IA */}
-        <motion.div
-          className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16"
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
-        >
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4 mb-3">
-                <div className="p-3 bg-white/20 rounded-full">
-                  <Wand2 className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">Mentor.IA</h3>
-                  <p className="text-blue-100">Estratégia personalizada para seu perfil</p>
-                </div>
-              </div>
+       <motion.div
+  className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16"
+  initial={{ opacity: 0, y: 20 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ duration: 0.6, delay: 0.2 }}
+>
+  <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
+    <CardContent className="p-6">
+      <div className="flex items-center gap-4 mb-3">
+        <div className="p-3 bg-white/20 rounded-full">
+          <Wand2 className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold">Estúdio de Imagens IA</h3>
+          <p className="text-blue-100">Crie imagens profissionais em segundos</p>
+        </div>
+      </div>
 
-              <p className="mb-4 text-blue-100 text-sm">
-                Análise avançada do seu perfil, bio e conteúdo com recomendações personalizadas para maximizar seu engajamento.
-              </p>
+      <p className="mb-4 text-blue-100 text-sm">
+        Gere imagens incríveis para suas redes sociais com IA avançada. Escolha estilos, formatos e proporções específicas para cada plataforma.
+      </p>
 
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                  <span className="text-sm">Estratégia personalizada</span>
-                </div>
-                <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
-                  <Calendar className="w-4 h-4 text-yellow-300" />
-                  <span className="text-sm">Calendário de posts</span>
-                </div>
-              </div>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-yellow-300" />
+          <span className="text-sm">Imagens profissionais</span>
+        </div>
+        <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
+          <Palette className="w-4 h-4 text-yellow-300" />
+          <span className="text-sm">Múltiplos estilos</span>
+        </div>
+      </div>
 
-              <div className="mt-1 text-xs text-blue-200 flex items-center">
-                <Shield className="w-3.5 h-3.5 mr-1.5" />
-                Incluído nos planos Pro e Ultra
-              </div>
-            </CardContent>
-          </Card>
+      <div className="mt-1 text-xs text-blue-200 flex items-center">
+        <Shield className="w-3.5 h-3.5 mr-1.5" />
+        Incluído nos planos Pro e Ultra
+      </div>
+    </CardContent>
+  </Card>
 
-          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-purple-600 to-pink-600 text-white">
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4 mb-3">
-                <div className="p-3 bg-white/20 rounded-full">
-                  <BrainCircuit className="w-6 h-6" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold">FreelinkBrain</h3>
-                  <p className="text-purple-100">Ideias virais em segundos</p>
-                </div>
-              </div>
+  <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-purple-600 to-pink-600 text-white">
+    <CardContent className="p-6">
+      <div className="flex items-center gap-4 mb-3">
+        <div className="p-3 bg-white/20 rounded-full">
+          <BrainCircuit className="w-6 h-6" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold">FreelinkBrain</h3>
+          <p className="text-purple-100">Ideias virais em segundos</p>
+        </div>
+      </div>
 
-              <p className="mb-4 text-purple-100 text-sm">
-                Gere títulos impactantes e roteiros prontos para Reels com nossa IA especializada em conteúdo viral.
-              </p>
+      <p className="mb-4 text-purple-100 text-sm">
+        Gere títulos impactantes e roteiros prontos para Reels com nossa IA especializada em conteúdo viral.
+      </p>
 
-              <div className="grid grid-cols-2 gap-3 mb-3">
-                <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4 text-yellow-300" />
-                  <span className="text-sm">Roteiros prontos</span>
-                </div>
-                <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
-                  <Target className="w-4 h-4 text-yellow-300" />
-                  <span className="text-sm">Títulos de alto CTR</span>
-                </div>
-              </div>
+      <div className="grid grid-cols-2 gap-3 mb-3">
+        <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-yellow-300" />
+          <span className="text-sm">Roteiros prontos</span>
+        </div>
+        <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
+          <Target className="w-4 h-4 text-yellow-300" />
+          <span className="text-sm">Títulos de alto CTR</span>
+        </div>
+      </div>
 
-              <div className="mt-1 text-xs text-purple-200 flex items-center">
-                <Shield className="w-3.5 h-3.5 mr-1.5" />
-                Incluído nos planos Pro e Ultra
-              </div>
-            </CardContent>
-          </Card>
-        </motion.div>
+      <div className="mt-1 text-xs text-purple-200 flex items-center">
+        <Shield className="w-3.5 h-3.5 mr-1.5" />
+        Incluído nos planos Pro e Ultra
+      </div>
+    </CardContent>
+  </Card>
+</motion.div>
 
         {/* Toggle de ciclo de cobrança */}
         <div className="flex items-center justify-center gap-4 mb-12">
@@ -724,6 +725,11 @@ function FAQ() {
 
   const faqs = [
     {
+  q: "As imagens geradas pela IA realmente parecem profissionais?",
+  a: "Sim! Nosso gerador de imagens utiliza os modelos de IA mais avançados disponíveis, otimizados especificamente para marketing digital e redes sociais. Milhares de criadores já estão utilizando nossas imagens de alta qualidade em seus perfis."
+},
+    {
+
       q: "Posso cancelar a qualquer momento?",
       a: "Sim! Você pode cancelar sua assinatura quando quiser no seu painel. Seu acesso aos recursos premium continuará até o final do seu ciclo de faturamento."
     },

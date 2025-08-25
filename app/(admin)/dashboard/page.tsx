@@ -37,7 +37,7 @@ function MentorIaWidget({ userPlan }: { userPlan: string }) {
         <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-sm opacity-60"></div>
         <Badge className="relative bg-gradient-to-r from-yellow-500 to-orange-600 text-white border-0 px-3 py-1.5 sm:px-4 sm:py-2 font-bold shadow-2xl">
           <Crown className="w-4 h-4 mr-1.5 animate-spin" style={{ animationDuration: '3s' }} />
-          PRO UNLOCK
+          ULTRA UNLOCK
         </Badge>
       </div>
     </div>
@@ -296,7 +296,20 @@ function QuickLinksCard({ userPlan }: { userPlan: string }) {
 
 function ExclusiveFeaturesCard({ userPlan }: { userPlan: string }) {
     const features = {
-        free: { title: "🎯 Desbloqueie o Poder ULTRA", description: "Transforme seu perfil em uma máquina viral", features: ["🧠 Mentor.IA Ilimitado", "⚡ FreelinkBrain Premium", "📊 Analytics Profundos", "🎨 Marca Própria"], cta: "ATIVAR SUPERPODERES", icon: <Rocket className="w-10 h-10 sm:w-12 sm:h-12 text-blue-500" />, gradient: "from-blue-500 via-indigo-500 to-purple-500", bgGradient: "from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20" },
+        free: {
+  title: "🎯 Desbloqueie o Poder ULTRA",
+  description: "Transforme seu perfil com imagens profissionais",
+  features: [
+    "🖼️ Gerador de Imagens IA Ilimitado",
+    "⚡ FreelinkBrain Premium",
+    "📊 Analytics Profundos",
+    "🎨 Marca Própria"
+  ],
+  cta: "ATIVAR SUPERPODERES",
+  icon: <Rocket className="w-10 h-10 sm:w-12 sm:h-12 text-blue-500" />,
+  gradient: "from-blue-500 via-indigo-500 to-purple-500",
+  bgGradient: "from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20"
+},
         pro: { title: "👑 Evolua para ULTRA Master", description: "Domine completamente sua audiência", features: ["🤖 Automação Total", "🎁 Engine de Sorteios", "🎯 Tracking Avançado", "⭐ Suporte VIP 24/7"], cta: "VIRAR ULTRA MASTER", icon: <Crown className="w-10 h-10 sm:w-12 sm:h-12 text-purple-500" />, gradient: "from-purple-500 via-pink-500 to-red-500", bgGradient: "from-purple-50 via-pink-50 to-red-50 dark:from-purple-950/20 dark:via-pink-950/20 dark:to-red-950/20" },
         ultra: { title: "💎 Você É Um ULTRA Master!", description: "Status máximo desbloqueado", features: ["🌟 Acesso Total Premium", "🚀 Recursos Futuros", "💬 Canal VIP Direto", "🔥 API Exclusiva"], cta: null, icon: <Diamond className="w-10 h-10 sm:w-12 sm:h-12 text-purple-500" />, gradient: "from-yellow-400 via-orange-500 to-red-500", bgGradient: "from-yellow-50 via-orange-50 to-red-50 dark:from-yellow-950/20 dark:via-orange-950/20 dark:to-red-950/20" }
     };

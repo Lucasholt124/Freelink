@@ -5,7 +5,6 @@ import { useAction, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Doc } from "../convex/_generated/dataModel";
 import { motion, AnimatePresence } from "framer-motion";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -288,7 +287,7 @@ export function ImageGenerator() {
 
                       {/* Format Selection */}
                       <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block text-center">
+                        <label className="text-sm font-medium text-gray-700 mb-2 flex items-center justify-between">
                           <span>Formato para redes sociais</span>
                           <Badge variant="outline" className="font-normal text-xs bg-gray-50">
                             <Info className="w-3 h-3 mr-1" />
@@ -609,14 +608,34 @@ export function ImageGenerator() {
                             className="object-cover transition-transform duration-300 group-hover:scale-105"
                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                            <div className="absolute bottom-0 left-0 right-0 p-3">
+
+                          {/* Botão de download sempre visível em mobile */}
+                          <div className="absolute top-2 right-2 md:hidden">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownload(image.imageUrl, image.prompt);
+                              }}
+                              className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm border-white/30 shadow-sm text-gray-700 hover:bg-white"
+                            >
+                              <Download className="w-4 h-4" />
+                            </Button>
+                          </div>
+
+                          {/* Overlay desktop */}
+                          <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 md:transition-opacity md:duration-200">
+                            <div className="p-3">
                               <p className="text-xs text-white line-clamp-2 mb-2">{image.prompt}</p>
                               <div className="flex gap-1.5">
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => toggleLike(image._id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleLike(image._id);
+                                  }}
                                   className="h-7 w-7 p-0 text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30"
                                 >
                                   <Heart className={`w-3.5 h-3.5 ${likedImages.has(image._id) ? 'fill-rose-500 text-rose-500' : ''}`} />
@@ -624,15 +643,21 @@ export function ImageGenerator() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => handleDownload(image.imageUrl, image.prompt)}
-                                  className="h-7 w-7 p-0 text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDownload(image.imageUrl, image.prompt);
+                                  }}
+                                  className="h-7 w-7 p-0 text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 hidden md:flex"
                                 >
                                   <Download className="w-3.5 h-3.5" />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => handleCopyPrompt(image.prompt)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleCopyPrompt(image.prompt);
+                                  }}
                                   className="h-7 w-7 p-0 text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30"
                                 >
                                   {copiedPrompt === image.prompt ? (
@@ -644,7 +669,10 @@ export function ImageGenerator() {
                                 <Button
                                   size="sm"
                                   variant="outline"
-                                  onClick={() => setSelectedImage(image.imageUrl)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedImage(image.imageUrl);
+                                  }}
                                   className="h-7 w-7 p-0 text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30"
                                 >
                                   <Maximize2 className="w-3.5 h-3.5" />
@@ -653,6 +681,87 @@ export function ImageGenerator() {
                             </div>
                           </div>
                         </AspectRatio>
+
+                        {/* Botão invisível para toggle do overlay no mobile */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const overlay = document.getElementById(`image-overlay-${image._id}`);
+                            if (overlay) {
+                              overlay.classList.toggle('opacity-0');
+                              overlay.classList.toggle('opacity-100');
+                            }
+                          }}
+                          className="absolute inset-0 md:hidden z-10"
+                          aria-label="Ver opções"
+                        />
+
+                        {/* Overlay mobile */}
+                        <div
+                          id={`image-overlay-${image._id}`}
+                          className="absolute inset-0 bg-black/60 opacity-0 flex flex-col justify-end p-3 md:hidden transition-opacity z-20"
+                        >
+                          <p className="text-xs text-white line-clamp-2 mb-2">{image.prompt}</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownload(image.imageUrl, image.prompt);
+                              }}
+                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                            >
+                              <Download className="w-3.5 h-3.5 mr-1.5" />
+                              <span className="text-xs">Baixar</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleLike(image._id);
+                              }}
+                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                            >
+                              <Heart className={`w-3.5 h-3.5 mr-1.5 ${likedImages.has(image._id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                              <span className="text-xs">Curtir</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedImage(image.imageUrl);
+                              }}
+                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                            >
+                              <Maximize2 className="w-3.5 h-3.5 mr-1.5" />
+                              <span className="text-xs">Ampliar</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyPrompt(image.prompt);
+                              }}
+                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                            >
+                              {copiedPrompt === image.prompt ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 mr-1.5" />
+                                  <span className="text-xs">Copiado</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5 mr-1.5" />
+                                  <span className="text-xs">Copiar</span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -664,7 +773,7 @@ export function ImageGenerator() {
           {/* Templates View */}
           <TabsContent value="templates" className="mt-0">
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {Object.entries(businessPrompts).map(([businessId, prompts] ) => {
+              {Object.entries(businessPrompts).map(([businessId, prompts]) => {
                 const category = businessCategories.find(b => b.id === businessId);
                 const Icon = category?.icon || Lightbulb;
 
@@ -763,7 +872,7 @@ export function ImageGenerator() {
                   <Button
                     size="sm"
                     variant="outline"
-                    onClick={() => handleDownload(selectedImage, "imagem-profissional")}
+                    onClick={() => handleDownload(selectedImage, prompt || "imagem-profissional")}
                     className="bg-white text-gray-700 border-gray-200"
                   >
                     <Download className="w-4 h-4 mr-2" />

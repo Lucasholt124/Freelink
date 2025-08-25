@@ -4,7 +4,6 @@
 import { currentUser } from "@clerk/nextjs/server";
 import { getUserSubscriptionPlan } from "@/lib/subscription"; // Verifique se o caminho está correto
 import { Wand2, Lock, Sparkles } from "lucide-react";
-
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { ImageGenerator } from "@/components/ImageGenerator"; // Verifique se o caminho está correto
