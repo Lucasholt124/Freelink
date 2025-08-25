@@ -2,12 +2,16 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
 import {
-  Wand2, BrainCircuit, LinkIcon,
+   BrainCircuit, LinkIcon,
   Zap, Gift, Sparkles, Target,
   ChevronRight,  Rocket, Star,
-  Crown, Flame,  Eye, Heart,
+  Crown, Flame, Heart,
   Trophy, Diamond, Infinity, ArrowRight, Play,
-  Layers, Globe, Magnet, Workflow, Plus, Bolt
+  Layers, Globe, Magnet, Workflow, Plus, Bolt,
+  Type,
+  Instagram,
+  Palette,
+  ImageIcon
 } from "lucide-react";
 import { fetchAnalytics } from "@/lib/analytics-server";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
@@ -25,81 +29,86 @@ function MentorIaWidget({ userPlan }: { userPlan: string }) {
   const isLocked = userPlan === "free";
 
   return (
-    <div className="relative group h-full">
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded-3xl blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-      {isLocked && (
-        <div className="absolute -top-3 -right-3 z-20 animate-bounce">
-          <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-sm opacity-60"></div>
-            <Badge className="relative bg-gradient-to-r from-yellow-500 to-orange-600 text-white border-0 px-3 py-1.5 sm:px-4 sm:py-2 font-bold shadow-2xl">
-              <Crown className="w-4 h-4 mr-1.5 animate-spin" style={{ animationDuration: '3s' }} />
-              ULTRA UNLOCK
-            </Badge>
+   <div className="relative group h-full">
+  <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded-3xl blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+  {isLocked && (
+    <div className="absolute -top-3 -right-3 z-20 animate-bounce">
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-sm opacity-60"></div>
+        <Badge className="relative bg-gradient-to-r from-yellow-500 to-orange-600 text-white border-0 px-3 py-1.5 sm:px-4 sm:py-2 font-bold shadow-2xl">
+          <Crown className="w-4 h-4 mr-1.5 animate-spin" style={{ animationDuration: '3s' }} />
+          PRO UNLOCK
+        </Badge>
+      </div>
+    </div>
+  )}
+  <div className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-6 sm:p-8 rounded-3xl shadow-2xl text-white transition-all duration-700 group-hover:shadow-blue-500/25 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:scale-105 flex flex-col h-full border border-blue-400/30 overflow-hidden">
+    <div className="absolute inset-0 opacity-10">
+      <div className="absolute top-10 left-10 w-20 h-20 bg-white/20 rounded-full blur-xl animate-pulse"></div>
+      <div className="absolute bottom-10 right-10 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
+    </div>
+    <div className="relative z-10 flex-grow flex flex-col">
+      <div className="flex items-center gap-4 sm:gap-6 mb-6">
+        <div className="relative flex-shrink-0">
+          <div className="absolute -inset-2 bg-gradient-to-r from-blue-400 to-purple-600 rounded-2xl blur opacity-60 animate-pulse"></div>
+          <div className="relative bg-gradient-to-br from-white/20 to-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/20">
+            {/* Ícone atualizado para representar imagem/criação */}
+            <ImageIcon className="w-7 h-7 sm:w-8 sm:h-8 animate-pulse" />
           </div>
         </div>
-      )}
-      <div className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-6 sm:p-8 rounded-3xl shadow-2xl text-white transition-all duration-700 group-hover:shadow-blue-500/25 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:scale-105 flex flex-col h-full border border-blue-400/30 overflow-hidden">
-        <div className="absolute inset-0 opacity-10">
-          <div className="absolute top-10 left-10 w-20 h-20 bg-white/20 rounded-full blur-xl animate-pulse"></div>
-          <div className="absolute bottom-10 right-10 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-        </div>
-        <div className="relative z-10 flex-grow flex flex-col">
-          <div className="flex items-center gap-4 sm:gap-6 mb-6">
-            <div className="relative flex-shrink-0">
-              <div className="absolute -inset-2 bg-gradient-to-r from-blue-400 to-purple-600 rounded-2xl blur opacity-60 animate-pulse"></div>
-              <div className="relative bg-gradient-to-br from-white/20 to-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/20">
-                <Wand2 className="w-7 h-7 sm:w-8 sm:h-8 animate-pulse" />
-              </div>
-            </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent">Mentor.IA</h2>
-              <div className="flex items-center gap-2 mt-1">
-                <Flame className="w-4 h-4 text-orange-400 animate-pulse" />
-                <p className="text-blue-200 font-medium text-xs sm:text-sm">Estratégias que viralizam</p>
-              </div>
-            </div>
-          </div>
-          <div className="bg-gradient-to-r from-white/10 to-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 backdrop-blur-sm mb-6 flex-grow">
-            <h3 className="font-bold text-md sm:text-lg mb-4 flex items-center">
-              <Bolt className="w-5 h-5 mr-2 text-yellow-400 animate-pulse" />
-              IA que revoluciona seu crescimento
-            </h3>
-            <div className="space-y-3">
-              {[
-                { icon: Eye, text: "Análise psicográfica da audiência", color: "text-blue-400" },
-                { icon: Target, text: "Estratégias de neurociência", color: "text-purple-400" },
-                { icon: Rocket, text: "Calendário viral de 30 dias", color: "text-pink-400" }
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 group/item">
-                  <div className="bg-gradient-to-r from-white/20 to-white/10 p-2 rounded-xl group-hover/item:scale-110 transition-transform flex-shrink-0">
-                    <item.icon className={`w-4 h-4 ${item.color}`} />
-                  </div>
-                  <span className="font-medium text-sm sm:text-base group-hover/item:text-white transition-colors">{item.text}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="relative z-10 mt-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Heart className="w-4 h-4 text-red-400 animate-pulse" />
-              <span className="text-xs sm:text-sm font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
-                47.293+ criadores apaixonados
-              </span>
-            </div>
-            <Link href={isLocked ? "/dashboard/billing" : "/dashboard/mentor-ia"} className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto relative group/btn bg-gradient-to-r from-white to-blue-50 text-slate-900 hover:from-yellow-400 hover:to-orange-500 hover:text-white font-black px-6 py-3 rounded-2xl transition-all duration-300 transform hover:scale-110 shadow-2xl text-sm sm:text-base">
-                <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl blur opacity-0 group-hover/btn:opacity-60 transition duration-300"></div>
-                <span className="relative flex items-center justify-center gap-2">
-                  <Play className="w-4 h-4" />
-                  {isLocked ? "DESBLOQUEAR" : "COMEÇAR"}
-                  <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-                </span>
-              </Button>
-            </Link>
+        <div>
+          <h2 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent">Mentor.IA</h2>
+          <div className="flex items-center gap-2 mt-1">
+            <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
+            {/* Subtítulo atualizado */}
+            <p className="text-blue-200 font-medium text-xs sm:text-sm">Seu estúdio de criação visual</p>
           </div>
         </div>
       </div>
+      <div className="bg-gradient-to-r from-white/10 to-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 backdrop-blur-sm mb-6 flex-grow">
+        <h3 className="font-bold text-md sm:text-lg mb-4 flex items-center">
+          <Bolt className="w-5 h-5 mr-2 text-yellow-400 animate-pulse" />
+          {/* Título da lista atualizado */}
+          Crie imagens únicas com IA
+        </h3>
+        <div className="space-y-3">
+          {/* Lista de features atualizada para o Gerador de Imagens */}
+          {[
+            { icon: Type, text: "Transforme qualquer texto em arte", color: "text-blue-400" },
+            { icon: Instagram, text: "Visuais para posts e stories", color: "text-purple-400" },
+            { icon: Palette, text: "Estilos de arte ilimitados", color: "text-pink-400" }
+          ].map((item, i) => (
+            <div key={i} className="flex items-center gap-3 group/item">
+              <div className="bg-gradient-to-r from-white/20 to-white/10 p-2 rounded-xl group-hover/item:scale-110 transition-transform flex-shrink-0">
+                <item.icon className={`w-4 h-4 ${item.color}`} />
+              </div>
+              <span className="font-medium text-sm sm:text-base group-hover/item:text-white transition-colors">{item.text}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+      <div className="relative z-10 mt-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+        <div className="flex items-center gap-2">
+          <Heart className="w-4 h-4 text-red-400 animate-pulse" />
+          {/* Prova social atualizada */}
+          <span className="text-xs sm:text-sm font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
+            500.000+ imagens já criadas
+          </span>
+        </div>
+        <Link href={isLocked ? "/dashboard/billing" : "/dashboard/mentor-ia"} className="w-full sm:w-auto">
+          <Button className="w-full sm:w-auto relative group/btn bg-gradient-to-r from-white to-blue-50 text-slate-900 hover:from-yellow-400 hover:to-orange-500 hover:text-white font-black px-6 py-3 rounded-2xl transition-all duration-300 transform hover:scale-110 shadow-2xl text-sm sm:text-base">
+            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl blur opacity-0 group-hover/btn:opacity-60 transition duration-300"></div>
+            <span className="relative flex items-center justify-center gap-2">
+              <Play className="w-4 h-4" />
+              {isLocked ? "DESBLOQUEAR" : "CRIAR AGORA"}
+              <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+            </span>
+          </Button>
+        </Link>
+      </div>
     </div>
+  </div>
+</div>
   );
 }
 
@@ -148,7 +157,8 @@ function FreelinkBrainWidget({ userPlan }: { userPlan: string }) {
               {[
                 { icon: Magnet, text: "Títulos com 10x engajamento", color: "text-emerald-600" },
                 { icon: Workflow, text: "Scripts de Reels virais", color: "text-cyan-600" },
-                { icon: Diamond, text: "Prompts testados por 50k+", color: "text-purple-600" }
+                { icon: Diamond, text: "Prompts testados por 50k+", color: "text-purple-600" },
+                { icon: Globe, text: "Gerador de Mensagens de Abordagem", color: "text-purple-600" }
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-3 group/item">
                   <div className="bg-white dark:bg-slate-700 p-2 rounded-xl shadow-md group-hover/item:scale-110 transition-transform flex-shrink-0">

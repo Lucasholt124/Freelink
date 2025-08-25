@@ -46,11 +46,7 @@ export default defineSchema({
     createdAt: v.optional(v.number()),
   }).index("by_slug", ["slug"]).index("by_user", ["userId"]),
 
-  // ===============================================================
-  // ▼▼▼ A ÚNICA SEÇÃO ALTERADA É ESTA TABELA 'analyses' ▼▼▼
-  // ===============================================================
   analyses: defineTable({
-    // --- CAMPOS ESTRATÉGICOS NOVOS ---
     optimized_bio: v.string(),
     content_pillars: v.array(v.object({
       pillar: v.string(),
@@ -62,8 +58,6 @@ export default defineSchema({
       pain_points: v.array(v.string())
     }),
     brand_voice: v.string(),
-
-    // --- PLANO DE CONTEÚDO ATUALIZADO ---
     content_plan: v.array(v.object({
       day: v.string(),
       time: v.string(),
@@ -87,8 +81,6 @@ export default defineSchema({
         }),
       })),
     })),
-
-    // --- CAMPOS DE METADADOS (JÁ EXISTENTES) ---
     userId: v.string(),
     username: v.string(),
     bio: v.string(),
@@ -98,13 +90,8 @@ export default defineSchema({
     aiModel: v.optional(v.string()),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
-  }).index("by_user", ["userId"]).index("by_created", ["createdAt"]), // Removidos os campos antigos (suggestions, strategy, grid)
+  }).index("by_user", ["userId"]).index("by_created", ["createdAt"]),
 
-  // ===============================================================
-  // ▲▲▲ FIM DA SEÇÃO ALTERADA ▲▲▲
-  // ===============================================================
-
-  // Suas outras tabelas (sem alterações)
   sharedAchievements: defineTable({
     userId: v.string(),
     streakDays: v.number(),
@@ -115,7 +102,6 @@ export default defineSchema({
     expiresAt: v.number(),
     views: v.number(),
     platform: v.optional(v.string()),
-
   }).index("by_user", ["userId"])
     .index("by_shareCode", ["shareCode"])
     .index("by_expiration", ["expiresAt"]),
@@ -131,4 +117,14 @@ export default defineSchema({
       shared: v.boolean(),
     })),
   }).index("by_user", ["userId"]),
+
+  // ▼▼▼ AQUI ESTÁ A CORREÇÃO ▼▼▼
+  // A tabela foi movida para DENTRO do objeto principal do schema.
+  generatedImages: defineTable({
+    userId: v.string(),
+    prompt: v.string(),
+    imageUrl: v.string(),
+  }).index("by_user", ["userId"]),
+  // ▲▲▲ FIM DA CORREÇÃO ▲▲▲
+
 });
