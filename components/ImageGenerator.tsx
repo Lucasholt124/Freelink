@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Doc } from "../convex/_generated/dataModel";
@@ -10,8 +10,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
-
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import {
   Loader2,
@@ -21,39 +22,33 @@ import {
   Share2,
   Heart,
   Maximize2,
-  Zap,
   Palette,
-
+  Clock,
   Copy,
   Check,
   Grid3x3,
   Image as ImageIcon,
-
-  Settings2,
   ChevronRight,
-  Star,
-
   Lightbulb,
   Brush,
   Camera,
   Shapes,
-
   X,
-  Menu,
+  ArrowLeft,
   BookOpen,
-  User
+  Star,
 } from "lucide-react";
 import Image from "next/image";
-import { Slider } from "@radix-ui/react-slider";
+import Link from "next/link";
 
 // Tipos de estilo predefinidos
 const stylePresets = [
-  { id: "realistic", name: "Realista", icon: Camera, gradient: "from-blue-500 to-cyan-500" },
-  { id: "artistic", name: "Artístico", icon: Brush, gradient: "from-purple-500 to-pink-500" },
-  { id: "3d", name: "3D Render", icon: Shapes, gradient: "from-orange-500 to-red-500" },
-  { id: "anime", name: "Anime", icon: Star, gradient: "from-pink-500 to-rose-500" },
-  { id: "minimal", name: "Minimalista", icon: Grid3x3, gradient: "from-gray-500 to-slate-500" },
-  { id: "fantasy", name: "Fantasia", icon: Sparkles, gradient: "from-indigo-500 to-purple-500" }
+  { id: "realistic", name: "Realista", icon: Camera, gradient: "from-blue-400 to-cyan-400" },
+  { id: "artistic", name: "Artístico", icon: Brush, gradient: "from-purple-400 to-pink-400" },
+  { id: "3d", name: "3D Render", icon: Shapes, gradient: "from-orange-400 to-red-400" },
+  { id: "anime", name: "Anime", icon: Star, gradient: "from-pink-400 to-rose-400" },
+  { id: "minimal", name: "Minimalista", icon: Grid3x3, gradient: "from-gray-400 to-slate-400" },
+  { id: "fantasy", name: "Fantasia", icon: Sparkles, gradient: "from-indigo-400 to-purple-400" }
 ];
 
 // Templates de prompt
@@ -73,22 +68,13 @@ export function ImageGenerator() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
   const [likedImages, setLikedImages] = useState<Set<string>>(new Set());
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState("create");
+  const [activeView, setActiveView] = useState("create");
 
   const generate = useAction(api.imageGenerator.generateImage);
   const imageHistory = useQuery(api.imageGenerator.getImagesForUser) || [];
 
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // Animação de gradiente de fundo
-  useEffect(() => {
-    const interval = setInterval(() => {
-      document.documentElement.style.setProperty('--gradient-rotation', `${Date.now() / 100}deg`);
-    }, 50);
-    return () => clearInterval(interval);
-  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,7 +88,7 @@ export function ImageGenerator() {
       const fullPrompt = `${prompt}, ${selectedStyle} style, ${aspectRatio} aspect ratio, high quality`;
       const imageUrl = await generate({ prompt: fullPrompt });
       setLatestImage(imageUrl);
-      setActiveTab("create");
+      setActiveView("create");
     } catch (err) {
       console.error(err);
       setError(err instanceof Error ? err.message : "Ocorreu um erro ao gerar a imagem.");
@@ -111,31 +97,29 @@ export function ImageGenerator() {
     }
   };
 
-  // Correção no método handleDownload
-const handleDownload = async (imageUrl: string, prompt: string) => {
-  try {
-    const response = await fetch(imageUrl);
-    const blob = await response.blob();
-    const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    // Agora usando o prompt para nomear o arquivo
-    a.download = `ai-image-${prompt.slice(0, 20).replace(/[^\w\s]/gi, '')}.png`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    window.URL.revokeObjectURL(url);
-  } catch (error) {
-    console.error('Erro ao baixar imagem:', error);
-  }
-};
+  const handleDownload = async (imageUrl: string, prompt: string) => {
+    try {
+      const response = await fetch(imageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `ai-image-${prompt.slice(0, 20).replace(/[^\w\s]/gi, '')}.png`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Erro ao baixar imagem:', error);
+    }
+  };
 
-// Correção no método handleCopyPrompt
-const handleCopyPrompt = (prompt: string) => {
-  navigator.clipboard.writeText(prompt);
-  setCopiedPrompt(prompt);
-  setTimeout(() => setCopiedPrompt(null), 2000);
-};
+  const handleCopyPrompt = (prompt: string) => {
+    navigator.clipboard.writeText(prompt);
+    setCopiedPrompt(prompt);
+    setTimeout(() => setCopiedPrompt(null), 2000);
+  };
+
   const toggleLike = (imageId: string) => {
     setLikedImages(prev => {
       const newSet = new Set(prev);
@@ -149,138 +133,63 @@ const handleCopyPrompt = (prompt: string) => {
   };
 
   const aspectRatios = [
-    { value: "1:1", label: "Quadrado", icon: "□" },
-    { value: "16:9", label: "Wide", icon: "▭" },
-    { value: "9:16", label: "Portrait", icon: "▯" },
-    { value: "4:3", label: "Clássico", icon: "▬" }
+    { value: "1:1", label: "1:1", icon: "□" },
+    { value: "16:9", label: "16:9", icon: "▭" },
+    { value: "9:16", label: "9:16", icon: "▯" },
+    { value: "4:3", label: "4:3", icon: "▬" }
   ];
 
   return (
-    <div className="min-h-screen bg-black text-white overflow-hidden">
-      {/* Background animado */}
-      <div className="fixed inset-0 opacity-30">
-        <div className="absolute inset-0 bg-gradient-to-br from-purple-900 via-blue-900 to-pink-900 animate-gradient-shift" />
-        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-20" />
-      </div>
+    <div className="w-full bg-gradient-to-b from-slate-950 to-slate-900 text-white rounded-xl overflow-hidden border border-slate-800">
+      {/* Header with navigation */}
+      <div className="p-4 border-b border-slate-800 flex items-center justify-between bg-slate-900/80">
+        <Link href="/dashboard" className="flex items-center text-slate-300 hover:text-white transition-colors">
+          <ArrowLeft className="w-4 h-4 mr-2" />
+          <span>Voltar ao Dashboard</span>
+        </Link>
 
-      {/* Mobile Navigation */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 bg-gray-900/95 backdrop-blur-xl border-t border-gray-800 z-50">
-        <div className="flex items-center justify-around py-2">
-          <button
-            onClick={() => setActiveTab("create")}
-            className={`flex flex-col items-center p-2 ${activeTab === "create" ? "text-purple-400" : "text-gray-400"}`}
-          >
-            <Wand2 className="w-5 h-5" />
-            <span className="text-xs mt-1">Criar</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("gallery")}
-            className={`flex flex-col items-center p-2 ${activeTab === "gallery" ? "text-purple-400" : "text-gray-400"}`}
-          >
-            <Grid3x3 className="w-5 h-5" />
-            <span className="text-xs mt-1">Galeria</span>
-          </button>
-          <button
-            onClick={() => setActiveTab("templates")}
-            className={`flex flex-col items-center p-2 ${activeTab === "templates" ? "text-purple-400" : "text-gray-400"}`}
-          >
-            <BookOpen className="w-5 h-5" />
-            <span className="text-xs mt-1">Templates</span>
-          </button>
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="flex flex-col items-center p-2 text-gray-400"
-          >
-            <Menu className="w-5 h-5" />
-            <span className="text-xs mt-1">Menu</span>
-          </button>
+        <div className="flex items-center gap-2">
+          <Badge variant="outline" className="bg-slate-800/50 border-purple-500/20 text-purple-300">
+            <Sparkles className="w-3 h-3 mr-1 text-purple-400" />
+            AI Studio
+          </Badge>
         </div>
       </div>
 
-      {/* Desktop Sidebar */}
-      <div className="hidden lg:block fixed left-0 top-0 h-full w-64 bg-gray-900/50 backdrop-blur-xl border-r border-gray-800 z-40">
-        <div className="p-6">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
-              <Sparkles className="w-6 h-6 text-white" />
-            </div>
-            <h1 className="text-xl font-bold">AI Studio</h1>
-          </div>
+      <div className="p-4 md:p-6">
+        {/* Tabs for navigation */}
+        <Tabs
+          defaultValue="create"
+          value={activeView}
+          onValueChange={setActiveView}
+          className="w-full"
+        >
+          <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-6">
+            <TabsTrigger value="create" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300">
+              <Wand2 className="w-4 h-4 mr-2" />
+              Criar
+            </TabsTrigger>
+            <TabsTrigger value="gallery" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300">
+              <Grid3x3 className="w-4 h-4 mr-2" />
+              Galeria
+            </TabsTrigger>
+            <TabsTrigger value="templates" className="data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-300">
+              <BookOpen className="w-4 h-4 mr-2" />
+              Templates
+            </TabsTrigger>
+          </TabsList>
 
-          <nav className="space-y-2">
-            <button
-              onClick={() => setActiveTab("create")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === "create" ? "bg-purple-500/20 text-purple-400" : "hover:bg-gray-800 text-gray-400"
-              }`}
-            >
-              <Wand2 className="w-5 h-5" />
-              <span>Criar Imagem</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("gallery")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === "gallery" ? "bg-purple-500/20 text-purple-400" : "hover:bg-gray-800 text-gray-400"
-              }`}
-            >
-              <Grid3x3 className="w-5 h-5" />
-              <span>Minha Galeria</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("templates")}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors ${
-                activeTab === "templates" ? "bg-purple-500/20 text-purple-400" : "hover:bg-gray-800 text-gray-400"
-              }`}
-            >
-              <BookOpen className="w-5 h-5" />
-              <span>Templates</span>
-            </button>
-          </nav>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="lg:ml-64 relative z-10">
-        <div className="container mx-auto px-4 py-6 pb-24 lg:pb-6 max-w-7xl">
-          {/* Header */}
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-8"
-          >
-            <div className="flex items-center justify-between mb-2">
-              <div>
-                <h2 className="text-3xl lg:text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
-                  {activeTab === "create" && "Criar Nova Imagem"}
-                  {activeTab === "gallery" && "Minha Galeria"}
-                  {activeTab === "templates" && "Templates de Inspiração"}
-                </h2>
-                <p className="text-gray-400 mt-2">
-                  {activeTab === "create" && "Transforme suas ideias em arte com IA"}
-                  {activeTab === "gallery" && `${imageHistory.length} criações incríveis`}
-                  {activeTab === "templates" && "Comece com ideias pré-definidas"}
-                </p>
-              </div>
-              <div className="hidden lg:flex items-center gap-2">
-                <Badge variant="outline" className="border-purple-500/50 text-purple-400">
-                  <Zap className="w-3 h-3 mr-1" />
-                  AI Powered
-                </Badge>
-              </div>
-            </div>
-          </motion.div>
-
-          {/* Create Tab */}
-          {activeTab === "create" && (
-            <div className="grid lg:grid-cols-2 gap-6">
+          {/* Create View */}
+          <TabsContent value="create" className="mt-0">
+            <div className="grid md:grid-cols-2 gap-6">
               {/* Left Column - Controls */}
-              <div className="space-y-6">
-                <Card className="bg-gray-900/50 backdrop-blur-xl border-gray-800">
-                  <CardContent className="p-6">
-                    <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="space-y-5">
+                <Card className="bg-slate-900/50 border-slate-800">
+                  <CardContent className="p-5">
+                    <form onSubmit={handleSubmit} className="space-y-5">
                       {/* Prompt Input */}
                       <div>
-                        <label className="text-sm font-medium text-gray-300 mb-2 block">
+                        <label className="text-sm font-medium text-slate-300 mb-2 block">
                           Descreva sua imagem
                         </label>
                         <div className="relative">
@@ -291,17 +200,17 @@ const handleCopyPrompt = (prompt: string) => {
                             onChange={(e) => setPrompt(e.target.value)}
                             placeholder="Ex: astronauta surfando em nebulosa colorida..."
                             disabled={isLoading}
-                            className="pl-10 h-12 bg-gray-800/50 border-gray-700 focus:border-purple-500 text-white placeholder:text-gray-500"
+                            className="pl-10 h-12 bg-slate-800/50 border-slate-700 focus:border-purple-500 text-white placeholder:text-slate-500"
                           />
                         </div>
                       </div>
 
                       {/* Style Selection */}
                       <div>
-                        <label className="text-sm font-medium text-gray-300 mb-3 block">
+                        <label className="text-sm font-medium text-slate-300 mb-3 block">
                           Estilo Visual
                         </label>
-                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-3 gap-2">
                           {stylePresets.map((style) => {
                             const Icon = style.icon;
                             return (
@@ -309,15 +218,14 @@ const handleCopyPrompt = (prompt: string) => {
                                 key={style.id}
                                 type="button"
                                 onClick={() => setSelectedStyle(style.id)}
-                                className={`relative p-4 rounded-lg border-2 transition-all ${
+                                className={`relative p-3 rounded-lg border transition-all ${
                                   selectedStyle === style.id
                                     ? "border-purple-500 bg-purple-500/10"
-                                    : "border-gray-700 hover:border-gray-600 bg-gray-800/30"
+                                    : "border-slate-700 hover:border-slate-600 bg-slate-800/30"
                                 }`}
                               >
-                                <div className={`absolute inset-0 bg-gradient-to-br ${style.gradient} opacity-10 rounded-lg`} />
-                                <Icon className="w-6 h-6 mx-auto mb-2" />
-                                                                <span className="text-xs font-medium">{style.name}</span>
+                                <Icon className="w-5 h-5 mx-auto mb-1.5" />
+                                <span className="text-xs font-medium">{style.name}</span>
                               </button>
                             );
                           })}
@@ -326,7 +234,7 @@ const handleCopyPrompt = (prompt: string) => {
 
                       {/* Aspect Ratio */}
                       <div>
-                        <label className="text-sm font-medium text-gray-300 mb-3 block">
+                        <label className="text-sm font-medium text-slate-300 mb-2 block">
                           Proporção
                         </label>
                         <div className="grid grid-cols-4 gap-2">
@@ -335,13 +243,13 @@ const handleCopyPrompt = (prompt: string) => {
                               key={ratio.value}
                               type="button"
                               onClick={() => setAspectRatio(ratio.value)}
-                              className={`p-3 rounded-lg border-2 transition-all ${
+                              className={`p-2 rounded-lg border transition-all ${
                                 aspectRatio === ratio.value
                                   ? "border-purple-500 bg-purple-500/10"
-                                  : "border-gray-700 hover:border-gray-600 bg-gray-800/30"
+                                  : "border-slate-700 hover:border-slate-600 bg-slate-800/30"
                               }`}
                             >
-                              <div className="text-2xl mb-1">{ratio.icon}</div>
+                              <div className="text-lg mb-1">{ratio.icon}</div>
                               <span className="text-xs">{ratio.label}</span>
                             </button>
                           ))}
@@ -350,8 +258,8 @@ const handleCopyPrompt = (prompt: string) => {
 
                       {/* Quality Slider */}
                       <div>
-                        <div className="flex items-center justify-between mb-3">
-                          <label className="text-sm font-medium text-gray-300">
+                        <div className="flex items-center justify-between mb-2">
+                          <label className="text-sm font-medium text-slate-300">
                             Qualidade
                           </label>
                           <span className="text-sm text-purple-400">{imageQuality[0]}%</span>
@@ -370,12 +278,12 @@ const handleCopyPrompt = (prompt: string) => {
                       <Button
                         type="submit"
                         disabled={isLoading || !prompt.trim()}
-                        className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-semibold shadow-lg shadow-purple-500/25 transition-all duration-300 hover:shadow-xl hover:shadow-purple-500/30"
+                        className="w-full h-12 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-medium"
                       >
                         {isLoading ? (
                           <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Criando sua obra-prima...
+                            Criando...
                           </>
                         ) : (
                           <>
@@ -399,22 +307,22 @@ const handleCopyPrompt = (prompt: string) => {
                 </Card>
 
                 {/* Quick Templates */}
-                <Card className="bg-gray-900/50 backdrop-blur-xl border-gray-800">
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Lightbulb className="w-5 h-5 text-yellow-400" />
+                <Card className="bg-slate-900/50 border-slate-800">
+                  <CardContent className="p-5">
+                    <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                      <Lightbulb className="w-4 h-4 text-amber-400" />
                       Inspiração Rápida
                     </h3>
                     <div className="space-y-3">
                       {promptTemplates.slice(0, 2).map((template, idx) => (
                         <div key={idx}>
-                          <p className="text-xs text-gray-500 mb-2">{template.category}</p>
-                          <div className="flex flex-wrap gap-2">
-                            {template.prompts.slice(0, 2).map((p, i) => (
+                          <p className="text-xs text-slate-500 mb-1.5">{template.category}</p>
+                          <div className="flex flex-wrap gap-1.5">
+                            {template.prompts.map((p, i) => (
                               <button
                                 key={i}
                                 onClick={() => setPrompt(p)}
-                                className="text-xs px-3 py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 rounded-full transition-colors"
+                                className="text-xs px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-full transition-colors"
                               >
                                 {p}
                               </button>
@@ -429,17 +337,17 @@ const handleCopyPrompt = (prompt: string) => {
 
               {/* Right Column - Preview */}
               <div>
-                <Card className="bg-gray-900/50 backdrop-blur-xl border-gray-800 h-full">
-                  <CardContent className="p-6">
+                <Card className="bg-slate-900/50 border-slate-800 h-full">
+                  <CardContent className="p-5">
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-lg font-semibold">Visualização</h3>
+                      <h3 className="text-base font-semibold">Visualização</h3>
                       {latestImage && (
-                        <div className="flex gap-2">
+                        <div className="flex gap-1">
                           <Button
                             size="sm"
                             variant="ghost"
                             onClick={() => toggleLike(latestImage)}
-                            className="text-gray-400 hover:text-pink-400"
+                            className="text-slate-400 hover:text-pink-400"
                           >
                             <Heart className={`w-4 h-4 ${likedImages.has(latestImage) ? 'fill-pink-400 text-pink-400' : ''}`} />
                           </Button>
@@ -447,7 +355,7 @@ const handleCopyPrompt = (prompt: string) => {
                             size="sm"
                             variant="ghost"
                             onClick={() => handleDownload(latestImage, prompt)}
-                            className="text-gray-400 hover:text-white"
+                            className="text-slate-400 hover:text-white"
                           >
                             <Download className="w-4 h-4" />
                           </Button>
@@ -455,7 +363,7 @@ const handleCopyPrompt = (prompt: string) => {
                             size="sm"
                             variant="ghost"
                             onClick={() => setSelectedImage(latestImage)}
-                            className="text-gray-400 hover:text-white"
+                            className="text-slate-400 hover:text-white"
                           >
                             <Maximize2 className="w-4 h-4" />
                           </Button>
@@ -463,30 +371,22 @@ const handleCopyPrompt = (prompt: string) => {
                       )}
                     </div>
 
-                    <AspectRatio ratio={1} className="bg-gray-800/50 rounded-lg overflow-hidden">
+                    <AspectRatio ratio={aspectRatio === "1:1" ? 1 : aspectRatio === "16:9" ? 16/9 : aspectRatio === "9:16" ? 9/16 : 4/3}
+                      className="bg-slate-800/50 rounded-lg overflow-hidden">
                       {isLoading && (
                         <div className="flex flex-col items-center justify-center h-full">
                           <div className="relative">
-                            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full blur-xl animate-pulse" />
-                            <div className="relative bg-gray-900 rounded-full p-8">
-                              <Loader2 className="h-12 w-12 animate-spin text-purple-400" />
+                            <div className="absolute inset-0 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-full blur-lg opacity-40 animate-pulse" />
+                            <div className="relative bg-slate-900 rounded-full p-6">
+                              <Loader2 className="h-10 w-10 animate-spin text-purple-400" />
                             </div>
                           </div>
-                          <p className="mt-4 text-gray-400 animate-pulse">Gerando arte incrível...</p>
-                          <div className="mt-2 flex gap-1">
-                            {[...Array(3)].map((_, i) => (
-                              <div
-                                key={i}
-                                className="w-2 h-2 bg-purple-400 rounded-full animate-bounce"
-                                style={{ animationDelay: `${i * 0.1}s` }}
-                              />
-                            ))}
-                          </div>
+                          <p className="mt-4 text-slate-400 animate-pulse">Gerando sua imagem...</p>
                         </div>
                       )}
                       {!isLoading && !latestImage && (
-                        <div className="flex flex-col items-center justify-center h-full text-gray-500">
-                          <ImageIcon className="w-16 h-16 mb-4 opacity-20" />
+                        <div className="flex flex-col items-center justify-center h-full text-slate-500">
+                          <ImageIcon className="w-14 h-14 mb-3 opacity-20" />
                           <p>Sua criação aparecerá aqui</p>
                         </div>
                       )}
@@ -508,98 +408,102 @@ const handleCopyPrompt = (prompt: string) => {
                     </AspectRatio>
 
                     {latestImage && (
-                      <div className="mt-4 p-3 bg-gray-800/50 rounded-lg">
-                        <p className="text-xs text-gray-400 mb-1">Prompt usado:</p>
-                        <p className="text-sm text-gray-300 line-clamp-2">{prompt}</p>
+                      <div className="mt-3 p-2.5 bg-slate-800/50 rounded-lg">
+                        <p className="text-xs text-slate-400 mb-1">Prompt usado:</p>
+                        <p className="text-sm text-slate-300 line-clamp-2">{prompt}</p>
                       </div>
                     )}
                   </CardContent>
                 </Card>
               </div>
             </div>
-          )}
+          </TabsContent>
 
-          {/* Gallery Tab */}
-          {activeTab === "gallery" && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-6"
-            >
-              {imageHistory.length === 0 ? (
-                <Card className="bg-gray-900/50 backdrop-blur-xl border-gray-800">
-                  <CardContent className="py-16 text-center">
-                    <ImageIcon className="w-16 h-16 mx-auto mb-4 text-gray-600" />
-                    <h3 className="text-xl font-semibold mb-2">Nenhuma imagem ainda</h3>
-                    <p className="text-gray-400 mb-6">Comece criando sua primeira obra-prima!</p>
-                    <Button
-                      onClick={() => setActiveTab("create")}
-                      className="bg-gradient-to-r from-purple-600 to-pink-600"
-                    >
-                      <Wand2 className="w-4 h-4 mr-2" />
-                      Criar Primeira Imagem
-                    </Button>
-                  </CardContent>
-                </Card>
-              ) : (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          {/* Gallery View */}
+          <TabsContent value="gallery" className="mt-0">
+            {imageHistory.length === 0 ? (
+              <Card className="bg-slate-900/50 border-slate-800">
+                <CardContent className="py-12 text-center">
+                  <ImageIcon className="w-14 h-14 mx-auto mb-4 text-slate-700" />
+                  <h3 className="text-xl font-semibold mb-2">Nenhuma imagem ainda</h3>
+                  <p className="text-slate-400 mb-5">Comece criando sua primeira obra-prima!</p>
+                  <Button
+                    onClick={() => setActiveView("create")}
+                    className="bg-gradient-to-r from-purple-600 to-indigo-600"
+                  >
+                    <Wand2 className="w-4 h-4 mr-2" />
+                    Criar Primeira Imagem
+                  </Button>
+                </CardContent>
+              </Card>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xl font-semibold flex items-center">
+                    <Clock className="w-5 h-5 mr-2 text-purple-400" />
+                    Suas Criações
+                  </h3>
+                  <p className="text-sm text-slate-400">{imageHistory.length} imagens</p>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
                   {imageHistory.map((image: Doc<"generatedImages">, index) => (
                     <motion.div
                       key={image._id}
-                      initial={{ opacity: 0, scale: 0.8 }}
+                      initial={{ opacity: 0, scale: 0.95 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: index * 0.05 }}
+                      transition={{ delay: index * 0.03 }}
                       className="group relative"
                     >
-                      <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg opacity-0 group-hover:opacity-50 blur transition-opacity duration-300" />
-                      <div className="relative bg-gray-900 rounded-lg overflow-hidden">
+                      <div className="absolute -inset-0.5 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-lg opacity-0 group-hover:opacity-40 blur transition-opacity duration-300" />
+                      <div className="relative bg-slate-900 rounded-lg overflow-hidden">
                         <AspectRatio ratio={1}>
                           <Image
                             src={image.imageUrl}
                             alt={image.prompt}
                             fill
-                            className="object-cover transition-transform duration-300 group-hover:scale-110"
+                            className="object-cover transition-transform duration-300 group-hover:scale-105"
                             sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 20vw"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <div className="absolute bottom-0 left-0 right-0 p-3">
-                              <p className="text-xs text-white line-clamp-2 mb-2">{image.prompt}</p>
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                            <div className="absolute bottom-0 left-0 right-0 p-2.5">
+                              <p className="text-xs text-white line-clamp-2 mb-1.5">{image.prompt}</p>
                               <div className="flex gap-1">
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => toggleLike(image._id)}
-                                  className="h-8 w-8 p-0 text-white hover:text-pink-400"
+                                  className="h-7 w-7 p-0 text-white hover:text-pink-400"
                                 >
-                                  <Heart className={`w-4 h-4 ${likedImages.has(image._id) ? 'fill-pink-400 text-pink-400' : ''}`} />
+                                  <Heart className={`w-3.5 h-3.5 ${likedImages.has(image._id) ? 'fill-pink-400 text-pink-400' : ''}`} />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleDownload(image.imageUrl, image.prompt)}
-                                  className="h-8 w-8 p-0 text-white hover:text-blue-400"
+                                  className="h-7 w-7 p-0 text-white hover:text-blue-400"
                                 >
-                                  <Download className="w-4 h-4" />
+                                  <Download className="w-3.5 h-3.5" />
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => handleCopyPrompt(image.prompt)}
-                                  className="h-8 w-8 p-0 text-white hover:text-green-400"
+                                  className="h-7 w-7 p-0 text-white hover:text-green-400"
                                 >
                                   {copiedPrompt === image.prompt ? (
-                                    <Check className="w-4 h-4" />
+                                    <Check className="w-3.5 h-3.5" />
                                   ) : (
-                                    <Copy className="w-4 h-4" />
+                                    <Copy className="w-3.5 h-3.5" />
                                   )}
                                 </Button>
                                 <Button
                                   size="sm"
                                   variant="ghost"
                                   onClick={() => setSelectedImage(image.imageUrl)}
-                                  className="h-8 w-8 p-0 text-white hover:text-purple-400"
+                                  className="h-7 w-7 p-0 text-white hover:text-purple-400"
                                 >
-                                  <Maximize2 className="w-4 h-4" />
+                                  <Maximize2 className="w-3.5 h-3.5" />
                                 </Button>
                               </div>
                             </div>
@@ -609,22 +513,18 @@ const handleCopyPrompt = (prompt: string) => {
                     </motion.div>
                   ))}
                 </div>
-              )}
-            </motion.div>
-          )}
+              </>
+            )}
+          </TabsContent>
 
-          {/* Templates Tab */}
-          {activeTab === "templates" && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="space-y-6"
-            >
+          {/* Templates View */}
+          <TabsContent value="templates" className="mt-0">
+            <div className="space-y-5">
               {promptTemplates.map((category, idx) => (
-                <Card key={idx} className="bg-gray-900/50 backdrop-blur-xl border-gray-800">
-                  <CardContent className="p-6">
-                    <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                      <Palette className="w-5 h-5 text-purple-400" />
+                <Card key={idx} className="bg-slate-900/50 border-slate-800">
+                  <CardContent className="p-5">
+                    <h3 className="text-base font-semibold mb-3 flex items-center gap-2">
+                      <Palette className="w-4 h-4 text-purple-400" />
                       {category.category}
                     </h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -633,11 +533,11 @@ const handleCopyPrompt = (prompt: string) => {
                           key={i}
                           onClick={() => {
                             setPrompt(templatePrompt);
-                            setActiveTab("create");
+                            setActiveView("create");
                           }}
-                          className="p-4 bg-gray-800/50 hover:bg-gray-800 rounded-lg border border-gray-700 hover:border-purple-500 transition-all text-left group"
+                          className="p-3 bg-slate-800/70 hover:bg-slate-800 rounded-lg border border-slate-700 hover:border-purple-500/50 transition-all text-left group"
                         >
-                          <p className="text-sm text-gray-300 group-hover:text-white transition-colors">
+                          <p className="text-sm text-slate-300 group-hover:text-white transition-colors">
                             {templatePrompt}
                           </p>
                           <div className="mt-2 flex items-center text-xs text-purple-400">
@@ -650,96 +550,10 @@ const handleCopyPrompt = (prompt: string) => {
                   </CardContent>
                 </Card>
               ))}
-            </motion.div>
-          )}
-        </div>
             </div>
-
-      {/* Mobile Menu Overlay */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="lg:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
-            onClick={() => setMobileMenuOpen(false)}
-          >
-            <motion.div
-              initial={{ x: "100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "100%" }}
-              transition={{ type: "spring", damping: 20 }}
-              className="absolute right-0 top-0 h-full w-80 bg-gray-900 border-l border-gray-800"
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-8">
-                  <h2 className="text-xl font-bold">Menu</h2>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-gray-400 hover:text-white"
-                  >
-                    <X className="w-5 h-5" />
-                  </Button>
-                </div>
-
-                <div className="space-y-6">
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-400 mb-3">Estatísticas</h3>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div className="bg-gray-800/50 rounded-lg p-3">
-                        <p className="text-2xl font-bold text-purple-400">{imageHistory.length}</p>
-                        <p className="text-xs text-gray-400">Imagens criadas</p>
-                      </div>
-                      <div className="bg-gray-800/50 rounded-lg p-3">
-                        <p className="text-2xl font-bold text-pink-400">{likedImages.size}</p>
-                        <p className="text-xs text-gray-400">Favoritas</p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-medium text-gray-400 mb-3">Atalhos</h3>
-                    <div className="space-y-2">
-                      <button className="w-full flex items-center gap-3 px-3 py-2 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors">
-                        <Share2 className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">Compartilhar galeria</span>
-                      </button>
-                      <button className="w-full flex items-center gap-3 px-3 py-2 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors">
-                        <Settings2 className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">Configurações</span>
-                      </button>
-                      <button className="w-full flex items-center gap-3 px-3 py-2 bg-gray-800/50 rounded-lg hover:bg-gray-800 transition-colors">
-                        <User className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm">Meu perfil</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="pt-6 border-t border-gray-800">
-                    <div className="flex items-center gap-2 mb-3">
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center">
-                        <Sparkles className="w-4 h-4 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-medium">AI Studio Pro</p>
-                        <p className="text-xs text-gray-400">Versão 2.0</p>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="border-purple-500/50 text-purple-400 text-xs">
-                      <Zap className="w-3 h-3 mr-1" />
-                      Powered by Advanced AI
-                    </Badge>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Image Viewer Modal */}
       <AnimatePresence>
@@ -748,21 +562,21 @@ const handleCopyPrompt = (prompt: string) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/90 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
             onClick={() => setSelectedImage(null)}
           >
             <motion.div
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               exit={{ scale: 0.9 }}
-              className="relative max-w-5xl w-full"
+              className="relative max-w-4xl w-full"
               onClick={(e) => e.stopPropagation()}
             >
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setSelectedImage(null)}
-                className="absolute -top-12 right-0 text-white hover:text-gray-300"
+                className="absolute -top-12 right-0 text-white hover:text-slate-300"
               >
                 <X className="w-6 h-6" />
               </Button>
@@ -771,8 +585,8 @@ const handleCopyPrompt = (prompt: string) => {
                 <Image
                   src={selectedImage}
                   alt="Visualização em tela cheia"
-                  width={1920}
-                  height={1920}
+                  width={1200}
+                  height={1200}
                   className="w-full h-auto"
                   quality={100}
                 />
@@ -801,79 +615,6 @@ const handleCopyPrompt = (prompt: string) => {
           </motion.div>
         )}
       </AnimatePresence>
-
-      {/* Floating Action Button for Mobile */}
-      {activeTab !== "create" && (
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setActiveTab("create")}
-          className="lg:hidden fixed bottom-20 right-4 w-14 h-14 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full shadow-lg shadow-purple-500/30 flex items-center justify-center z-40"
-        >
-          <Wand2 className="w-6 h-6 text-white" />
-        </motion.button>
-      )}
-
-      <style jsx global>{`
-        @keyframes gradient-shift {
-          0% {
-            background-position: 0% 50%;
-          }
-          50% {
-            background-position: 100% 50%;
-          }
-          100% {
-            background-position: 0% 50%;
-          }
-        }
-
-        .animate-gradient-shift {
-          background-size: 200% 200%;
-          animation: gradient-shift 15s ease infinite;
-        }
-
-        @keyframes float {
-          0%, 100% {
-            transform: translateY(0) translateX(0);
-          }
-          33% {
-            transform: translateY(-10px) translateX(5px);
-          }
-          66% {
-            transform: translateY(5px) translateX(-5px);
-          }
-        }
-
-        .animate-float {
-          animation: float 20s ease-in-out infinite;
-        }
-
-        /* Custom scrollbar */
-        ::-webkit-scrollbar {
-          width: 8px;
-          height: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-          background: rgba(0, 0, 0, 0.1);
-        }
-
-        ::-webkit-scrollbar-thumb {
-          background: rgba(139, 92, 246, 0.3);
-          border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-          background: rgba(139, 92, 246, 0.5);
-        }
-
-        /* Prevent body scroll on mobile when menu is open */
-        body.menu-open {
-          overflow: hidden;
-        }
-      `}</style>
     </div>
   );
 }
