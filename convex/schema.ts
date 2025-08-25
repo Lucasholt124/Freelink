@@ -124,6 +124,7 @@ export default defineSchema({
     userId: v.string(),
     prompt: v.string(),
     imageUrl: v.string(),
+    storageId: v.id("_storage"),
   }).index("by_user", ["userId"]),
   // ▲▲▲ FIM DA CORREÇÃO ▲▲▲
 
