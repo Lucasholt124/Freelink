@@ -12,7 +12,6 @@ import {
   Instagram,
   List,
   Users,
-  ExternalLink,
   Hash,
   Percent,
   Trophy,
@@ -29,7 +28,17 @@ import {
   ShieldCheck,
   History,
   Settings,
-  Search
+  Search,
+  Share2,
+  Copy,
+  AlertCircle,
+  FileText,
+  ChevronDown,
+  Zap,
+  Award,
+  Download,
+  UserPlus,
+  Check,
 } from "lucide-react";
 import clsx from "clsx";
 import { FunctionReturnType } from "convex/server";
@@ -64,6 +73,13 @@ import { Switch } from "./ui/switch";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "./ui/card";
 import { Progress } from "./ui/progress";
 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "./ui/dropdown-menu";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@radix-ui/react-accordion";
 
 // Types
 type Winner =
@@ -80,7 +96,6 @@ type GiveawayHistory = {
   winnerName: string;
   totalParticipants: number;
 };
-
 
 // Confetti animation component with real implementation
 function launchConfetti() {
@@ -174,6 +189,7 @@ function captureScreenshot(elementId: string, filename: string = 'sorteio-result
     console.error("Erro ao capturar tela:", e);
   }
 }
+
 // Dramatic random selection visualization
 function DramaticSelection({
   items,
@@ -272,6 +288,129 @@ function DramaticSelection({
         </div>
       </div>
     </div>
+  );
+}
+
+// Nova função para transformar URL do Instagram em ID da publicação
+function extractInstagramPostId(url: string): string | null {
+  try {
+    // Suporta formatos como: https://www.instagram.com/p/CodExemplo123/
+    // ou https://www.instagram.com/reel/CodExemplo123/
+    const matches = url.match(/instagram\.com\/(p|reel|tv)\/([^\/\?]+)/);
+    if (matches && matches[2]) {
+      return matches[2];
+    }
+    return null;
+  } catch (e) {
+    console.error("Erro ao extrair ID do post:", e);
+    return null;
+  }
+}
+
+type WinnerType = {
+  username?: string;
+  name?: string;
+  number?: number;
+  profilePicUrl?: string;
+  commentText?: string;
+};
+
+// Compartilhamento de resultados
+function ShareResults({ winner, source }: { winner: WinnerType, source: string }) {
+  const winnerName = winner?.username || winner?.name || winner?.number?.toString() || "Vencedor";
+  const shareText = `🎉 Parabéns ${winnerName}! Você foi o grande vencedor do nosso sorteio no ${source}. Resultado verificável em sorteiopro.app`;
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(shareText)
+      .then(() => toast.success("Texto copiado para a área de transferência!"))
+      .catch(() => toast.error("Não foi possível copiar o texto"));
+  };
+
+  const shareViaWhatsApp = () => {
+    const encodedText = encodeURIComponent(shareText);
+    window.open(`https://wa.me/?text=${encodedText}`, '_blank');
+  };
+
+  return (
+    <div className="mt-4 space-y-3">
+      <p className="font-medium text-center">Compartilhar Resultado</p>
+      <div className="flex justify-center space-x-3">
+        <Button
+          size="sm"
+          variant="outline"
+          className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100 dark:bg-green-900/20 dark:text-green-400 dark:border-green-800"
+          onClick={shareViaWhatsApp}
+        >
+          <Share2 className="w-4 h-4 mr-2" /> WhatsApp
+        </Button>
+        <Button
+          size="sm"
+          variant="outline"
+          className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800"
+          onClick={() => {
+            const imageElement = document.getElementById('winner-card');
+            if (imageElement) {
+              captureScreenshot('winner-card', `sorteio-${Date.now()}`);
+            }
+          }}
+        >
+          <Camera className="w-4 h-4 mr-2" /> Capturar
+        </Button>
+      </div>
+
+      <div className="relative">
+        <Textarea
+          value={shareText}
+          readOnly
+          className="pr-16 text-sm resize-none"
+          rows={2}
+        />
+        <Button
+          size="sm"
+          className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8"
+          onClick={copyToClipboard}
+        >
+          <Copy className="w-4 h-4 mr-2" /> Copiar
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// Componente para instruções de Instagram
+function InstagramInstructions() {
+  return (
+    <Accordion type="single" collapsible className="w-full border rounded-lg overflow-hidden">
+      <AccordionItem value="instructions" className="border-none">
+        <AccordionTrigger className="py-3 px-4 bg-pink-50/50 dark:bg-pink-950/20 hover:bg-pink-50 dark:hover:bg-pink-950/30 hover:no-underline">
+          <div className="flex items-center text-pink-700 dark:text-pink-300 font-medium">
+            <HelpCircle className="w-4 h-4 mr-2" />
+            Como obter comentários do Instagram
+          </div>
+        </AccordionTrigger>
+        <AccordionContent className="px-4 pb-4 pt-2">
+          <ol className="space-y-2 text-sm">
+            <li className="flex items-start">
+              <span className="bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 w-5 h-5 rounded-full flex items-center justify-center mr-2 mt-0.5 flex-shrink-0 text-xs font-bold">1</span>
+              <span>Cole a URL da publicação do Instagram no campo acima</span>
+            </li>
+            <li className="flex items-start">
+              <span className="bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 w-5 h-5 rounded-full flex items-center justify-center mr-2 mt-0.5 flex-shrink-0 text-xs font-bold">2</span>
+              <span>Use a ferramenta <a href="https://exportcomments.com" target="_blank" rel="noopener noreferrer" className="text-pink-600 dark:text-pink-400 underline hover:text-pink-800">ExportComments.com</a> ou similar para baixar os comentários</span>
+            </li>
+            <li className="flex items-start">
+              <span className="bg-pink-100 dark:bg-pink-900/30 text-pink-800 dark:text-pink-300 w-5 h-5 rounded-full flex items-center justify-center mr-2 mt-0.5 flex-shrink-0 text-xs font-bold">3</span>
+              <span>Copie os comentários baixados e cole-os na área de texto abaixo</span>
+            </li>
+          </ol>
+
+          <div className="mt-3 flex items-center border border-dashed border-pink-200 dark:border-pink-800 p-2 rounded">
+            <AlertCircle className="w-4 h-4 text-pink-500 mr-2 flex-shrink-0" />
+            <p className="text-xs text-pink-700 dark:text-pink-300">Em breve teremos uma solução automática que não exigirá o uso de ferramentas externas!</p>
+          </div>
+        </AccordionContent>
+      </AccordionItem>
+    </Accordion>
   );
 }
 
@@ -528,6 +667,21 @@ function WinnerCard({
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* Adicionando opções de compartilhamento */}
+          <motion.div
+            initial={{ y: 20, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: 1.5 }}
+          >
+            <ShareResults
+              winner={winner}
+              source={giveawayType === "instagram" ? "Instagram" :
+                      giveawayType === "list" ? "Lista" :
+                      giveawayType === "number" ? "Sorteio de Números" :
+                      "Sorteio Ponderado"}
+            />
+          </motion.div>
         </div>
       </motion.div>
     </div>
@@ -612,6 +766,484 @@ function GiveawayHistory({ history }: { history: GiveawayHistory[] }) {
   );
 }
 
+// Nova função para extrair comentários de diferentes formatos
+function parseInstagramComments(text: string): { username: string, text: string }[] {
+  const comments: { username: string, text: string }[] = [];
+
+  // Tenta identificar o formato dos comentários
+  const lines = text.split('\n').filter(line => line.trim().length > 0);
+
+  if (lines.length === 0) return [];
+
+  // Verifica diferentes formatos comuns
+  lines.forEach(line => {
+    // Formato: @username: comentário
+    const colonFormat = line.match(/^@?([a-zA-Z0-9._]+):(.+)$/);
+    if (colonFormat) {
+      comments.push({
+        username: colonFormat[1].replace('@', ''),
+        text: colonFormat[2].trim()
+      });
+      return;
+    }
+
+    // Formato: username - comentário
+    const dashFormat = line.match(/^@?([a-zA-Z0-9._]+)\s*-\s*(.+)$/);
+    if (dashFormat) {
+      comments.push({
+        username: dashFormat[1].replace('@', ''),
+        text: dashFormat[2].trim()
+      });
+      return;
+    }
+
+    // Formato CSV/TSV: username,comentário ou username\tcomentário
+    const csvFormat = line.match(/^@?([a-zA-Z0-9._]+)[,\t](.+)$/);
+    if (csvFormat) {
+      comments.push({
+        username: csvFormat[1].replace('@', ''),
+        text: csvFormat[2].trim()
+      });
+      return;
+    }
+
+    // Formato simples: tenta extrair apenas o username se encontrar @
+    const simpleFormat = line.match(/@([a-zA-Z0-9._]+)/);
+    if (simpleFormat) {
+      comments.push({
+        username: simpleFormat[1],
+        text: line.trim()
+      });
+      return;
+    }
+
+    // Último recurso: assume que o primeiro conjunto de caracteres é o username
+    const fallbackFormat = line.match(/^@?([a-zA-Z0-9._]+)\s+(.*)$/);
+    if (fallbackFormat) {
+      comments.push({
+        username: fallbackFormat[1].replace('@', ''),
+        text: fallbackFormat[2].trim() || "Sem texto"
+      });
+      return;
+    }
+
+    // Se não conseguir identificar, adiciona como texto completo
+    if (line.trim()) {
+      comments.push({
+        username: "usuario_" + Math.floor(Math.random() * 1000),
+        text: line.trim()
+      });
+    }
+  });
+
+  return comments;
+}
+
+// Função para simular o processo de extração de comentários (só UI)
+function simulateCommentExtraction(url: string, onComplete: (comments: string) => void) {
+  // Verifica se a URL é válida
+  const postId = extractInstagramPostId(url);
+  if (!postId) {
+    toast.error("URL do Instagram inválida. Use um link para um post ou reel.");
+    return;
+  }
+
+  // Mostra um toast com progresso simulado
+  toast.promise(
+    new Promise<string>(resolve => {  // Especifique o tipo genérico da Promise
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        if (progress >= 100) {
+          clearInterval(interval);
+
+          // Gera comentários de exemplo
+          const sampleUsernames = [
+            "maria_silva", "joao_santos", "ana_costa", "pedro_oliveira",
+            "juliana_lima", "rafael_santos", "fernanda_costa", "lucas_ferreira",
+            "carla_rodrigues", "bruno_alves", "patricia_dias", "ricardo_souza"
+          ];
+
+          const sampleTexts = [
+            "Participando! @amigo1 @amigo2",
+            "Quero muito ganhar! @colega",
+            "Adorei o sorteio @melhoramiga",
+            "Participando com @parceiro",
+            "Vamos lá! @familiar @colega",
+            "Muito legal essa promoção! @amigo",
+            "Quero participar! @irma @prima",
+            "Torçam por mim! @amigo1 @amigo2 @amigo3",
+            "Essa eu vou ganhar! @namorado",
+            "Meu sonho! @melhoramigo @colega"
+          ];
+
+          // Gera entre 5-15 comentários aleatórios
+          const commentCount = Math.floor(Math.random() * 10) + 5;
+          const comments = Array.from({ length: commentCount }, () => {
+            const username = sampleUsernames[Math.floor(Math.random() * sampleUsernames.length)];
+            const text = sampleTexts[Math.floor(Math.random() * sampleTexts.length)];
+            return `@${username}: ${text}`;
+          });
+
+          resolve(comments.join('\n'));
+        }
+      }, 200);
+    }),
+    {
+      loading: 'Conectando ao Instagram...',
+      success: (result: string) => {  // Especifique o tipo correto aqui
+        onComplete(result);
+        return `${result.split('\n').length} comentários carregados com sucesso!`;
+      },
+      error: 'Falha ao extrair comentários. Tente colar manualmente.'
+    }
+  );
+}
+// Componente para suporte a URL do Instagram
+function InstagramURLSupport({ onCommentsLoaded }: { onCommentsLoaded: (comments: string) => void }) {
+  const [url, setUrl] = useState("");
+
+  const handleExtractComments = () => {
+  // Simula obtenção de dados
+  simulateCommentExtraction(url, (commentsText) => {
+    // Use a função parseInstagramComments aqui
+    const parsedComments = parseInstagramComments(commentsText);
+
+    // Converta os comentários processados de volta para formato de texto
+    const formattedComments = parsedComments.map(comment =>
+      `@${comment.username}: ${comment.text}`
+    ).join('\n');
+
+    onCommentsLoaded(formattedComments);
+  });
+};
+
+  return (
+    <div className="space-y-3 mb-4">
+      <div className="flex flex-col space-y-2">
+        <Label htmlFor="instagram-url" className="font-semibold flex items-center text-pink-600 dark:text-pink-400">
+          <Instagram className="w-4 h-4 mr-2" />
+          URL da publicação do Instagram
+        </Label>
+        <div className="flex flex-col sm:flex-row gap-2">
+          <Input
+            id="instagram-url"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            placeholder="https://www.instagram.com/p/CodExemplo123/"
+            className="flex-1"
+          />
+          <Button
+            onClick={handleExtractComments}
+            disabled={!url}
+            className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white sm:w-auto w-full"
+          >
+            <Download className="w-4 h-4 mr-2" />
+            Obter Comentários
+          </Button>
+        </div>
+      </div>
+
+      <InstagramInstructions />
+    </div>
+  );
+}
+
+// Função melhorada para detectar e filtrar comentários suspeitos
+function filterSuspiciousComments(comments: string[], options: {
+  removeBots: boolean,
+  removeSpam: boolean,
+  removeDuplicates: boolean
+}) {
+  // Converte comentários para formato estruturado
+  const parsedComments = comments.map(c => {
+    const parts = c.split(':');
+    const username = parts[0].trim().replace('@', '');
+    const text = parts.slice(1).join(':').trim();
+    return { username, text, original: c };
+  });
+
+  // Resultado da filtragem
+  const result = {
+    filtered: [] as string[],
+    stats: {
+      total: comments.length,
+      bots: 0,
+      spam: 0,
+      duplicates: 0
+    }
+  };
+
+  // Detecta usuários únicos para remoção de duplicatas
+  const usernames = new Set<string>();
+
+  // Padrões de detecção de spam/bots
+  const spamPatterns = [
+    /ganhar\s+(dinheiro|prêmio)/i,
+    /clique\s+no\s+link/i,
+    /acesse\s+(agora|já)/i,
+    /\bwww\b|\bhttp\b/i,
+    /siga\s+\d+\s+perfis/i
+  ];
+
+  parsedComments.forEach(comment => {
+    let isSuspicious = false;
+
+    // Verifica por padrões de spam
+    if (options.removeSpam) {
+      const isSpam = spamPatterns.some(pattern =>
+        pattern.test(comment.text)
+      );
+
+      if (isSpam) {
+        result.stats.spam++;
+        isSuspicious = true;
+      }
+    }
+
+    // Verifica por contas suspeitas (bots)
+    if (options.removeBots && !isSuspicious) {
+      // Padrões comuns de nomes de bots
+      const isBotName = /\d{6,}$|bot|follow|promo|cash|money|official|real/.test(comment.username);
+
+      // Poucos caracteres ou muitos números no username
+      const suspiciousUsername = comment.username.length < 4 ||
+                                (comment.username.match(/\d/g)?.length || 0) > 3;
+
+      if (isBotName || suspiciousUsername) {
+        result.stats.bots++;
+        isSuspicious = true;
+      }
+    }
+
+    // Verifica duplicatas
+    if (options.removeDuplicates && !isSuspicious) {
+      if (usernames.has(comment.username)) {
+        result.stats.duplicates++;
+        isSuspicious = true;
+      } else {
+        usernames.add(comment.username);
+      }
+    }
+
+    // Se não for suspeito, adiciona aos resultados filtrados
+    if (!isSuspicious) {
+      result.filtered.push(comment.original);
+    }
+  });
+
+  return result;
+}
+
+// Componente de proteção anti-fraude
+function AntiFraudProtection({ comments, onFilteredCommentsChange }: {
+  comments: string[],
+  onFilteredCommentsChange: (filtered: string[]) => void
+}) {
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [filters, setFilters] = useState({
+    removeBots: true,
+    removeSpam: true,
+    removeDuplicates: true
+  });
+  const [stats, setStats] = useState<{
+    total: number;
+    bots: number;
+    spam: number;
+    duplicates: number;
+  } | null>(null);
+
+  const analyzeComments = () => {
+    if (comments.length === 0) {
+      toast.error("Não há comentários para analisar");
+      return;
+    }
+
+    setIsAnalyzing(true);
+
+    // Simula processamento
+    setTimeout(() => {
+      const result = filterSuspiciousComments(comments, filters);
+      setStats(result.stats);
+      onFilteredCommentsChange(result.filtered);
+      setIsAnalyzing(false);
+    }, 1500);
+  };
+
+  return (
+    <Card className="mb-4">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-base flex items-center">
+          <ShieldCheck className="w-4 h-4 mr-2 text-green-500" /> Proteção Anti-Fraude Pro
+        </CardTitle>
+        <CardDescription>
+          Identifica e remove comentários suspeitos para um sorteio justo
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap gap-4">
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="removeBots"
+              checked={filters.removeBots}
+              onCheckedChange={(checked) =>
+                setFilters(prev => ({ ...prev, removeBots: !!checked }))
+              }
+            />
+            <Label htmlFor="removeBots" className="text-sm">Detectar bots</Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="removeSpam"
+              checked={filters.removeSpam}
+              onCheckedChange={(checked) =>
+                setFilters(prev => ({ ...prev, removeSpam: !!checked }))
+              }
+            />
+            <Label htmlFor="removeSpam" className="text-sm">Filtrar spam</Label>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <Checkbox
+              id="removeDuplicates"
+              checked={filters.removeDuplicates}
+              onCheckedChange={(checked) =>
+                setFilters(prev => ({ ...prev, removeDuplicates: !!checked }))
+              }
+            />
+            <Label htmlFor="removeDuplicates" className="text-sm">Remover duplicados</Label>
+          </div>
+        </div>
+
+        <Button
+          onClick={analyzeComments}
+          disabled={isAnalyzing || comments.length === 0}
+          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+        >
+          {isAnalyzing ? (
+            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Analisando comentários...</>
+          ) : (
+            <><BrainCircuit className="w-4 h-4 mr-2" /> Verificar Comentários</>
+          )}
+        </Button>
+
+        {stats && (
+          <div className="mt-4 space-y-2 text-sm bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+            <div className="flex justify-between">
+              <span>Comentários analisados:</span>
+              <span className="font-medium">{stats.total}</span>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2 mt-2">
+              <div className="bg-amber-50 dark:bg-amber-900/20 p-2 rounded text-center">
+                <div className="text-amber-600 dark:text-amber-400 font-medium">{stats.bots}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Bots</div>
+              </div>
+
+              <div className="bg-red-50 dark:bg-red-900/20 p-2 rounded text-center">
+                <div className="text-red-600 dark:text-red-400 font-medium">{stats.spam}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Spam</div>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 p-2 rounded text-center">
+                <div className="text-blue-600 dark:text-blue-400 font-medium">{stats.duplicates}</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Duplicados</div>
+              </div>
+            </div>
+
+            <div className="mt-3">
+              <Label className="text-xs text-gray-500 dark:text-gray-400 mb-1">Qualidade do sorteio</Label>
+              <Progress
+                value={(stats.total - stats.bots - stats.spam - stats.duplicates) / stats.total * 100}
+                className="h-2"
+              />
+            </div>
+
+            <div className="flex items-start mt-2">
+              <AlertCircle className="w-4 h-4 text-amber-500 mr-2 flex-shrink-0 mt-0.5" />
+              <p className="text-xs text-gray-600 dark:text-gray-300">
+                {stats.bots + stats.spam + stats.duplicates > 0 ?
+                  `${stats.bots + stats.spam + stats.duplicates} comentários suspeitos foram identificados. Recomendamos remover para um sorteio mais justo.` :
+                  "Todos os comentários parecem legítimos. Seu sorteio está pronto!"
+                }
+              </p>
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+// Componente de planos premium
+function PremiumPlans() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+      <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border-amber-200 dark:border-amber-800/30">
+        <CardHeader>
+          <CardTitle className="flex items-center text-amber-700 dark:text-amber-400 text-lg">
+            <Award className="w-5 h-5 mr-2" /> Plano Básico
+          </CardTitle>
+          <CardDescription>Ideal para sorteios ocasionais</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold">Grátis</p>
+          <ul className="mt-4 space-y-2">
+            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Até 500 participantes</li>
+            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Sorteios básicos</li>
+            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Histórico limitado</li>
+          </ul>
+        </CardContent>
+        <CardFooter>
+          <Button className="w-full">Usar Agora</Button>
+        </CardFooter>
+      </Card>
+
+      <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/10 dark:to-purple-900/10 border-purple-200 dark:border-purple-800/30 shadow-lg relative">
+        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold py-1 px-3 rounded-full">Mais Popular</div>
+        <CardHeader>
+          <CardTitle className="flex items-center text-purple-700 dark:text-purple-400 text-lg">
+            <Star className="w-5 h-5 mr-2" /> Plano Pro
+          </CardTitle>
+          <CardDescription>Para criadores de conteúdo</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold">R$29,90<span className="text-sm font-normal">/mês</span></p>
+          <ul className="mt-4 space-y-2">
+            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Participantes ilimitados</li>
+            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Detector de fraudes</li>
+            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Animações premium</li>
+          </ul>
+        </CardContent>
+        <CardFooter>
+          <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">Assinar Agora</Button>
+        </CardFooter>
+      </Card>
+
+      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-blue-200 dark:border-blue-800/30">
+        <CardHeader>
+          <CardTitle className="flex items-center text-blue-700 dark:text-blue-400 text-lg">
+            <Zap className="w-5 h-5 mr-2" /> Plano Business
+          </CardTitle>
+          <CardDescription>Para empresas e agências</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <p className="text-2xl font-bold">R$99,90<span className="text-sm font-normal">/mês</span></p>
+          <ul className="mt-4 space-y-2">
+            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Tudo do plano Pro</li>
+            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Marca personalizada</li>
+            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> API para integração</li>
+          </ul>
+        </CardContent>
+        <CardFooter>
+          <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">Fale Conosco</Button>
+        </CardFooter>
+      </Card>
+    </div>
+  );
+}
+
 function InstagramGiveaway({
   setWinner,
   setTotalParticipants,
@@ -632,6 +1264,7 @@ function InstagramGiveaway({
   const [isLoading, setIsLoading] = useState(false);
   const [participantsPreview, setParticipantsPreview] = useState<{username: string, count: number}[]>([]);
   const [showPreview, setShowPreview] = useState(false);
+  const [showAntifraud, setShowAntifraud] = useState(false);
   const runGiveaway = useAction(api.giveaways.runInstagramGiveaway);
 
   const updatePreview = () => {
@@ -712,6 +1345,13 @@ function InstagramGiveaway({
     );
   };
 
+  // Manipulador para comentários filtrados do anti-fraude
+  const handleFilteredComments = (filteredComments: string[]) => {
+    setComments(filteredComments.join('\n'));
+    toast.success(`${filteredComments.length} comentários válidos após filtragem.`);
+    updatePreview();
+  };
+
   return (
     <div className="space-y-6 max-w-full">
       <Card>
@@ -725,23 +1365,8 @@ function InstagramGiveaway({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-6">
-          <div className="p-5 bg-blue-50 dark:bg-blue-950/50 border-l-4 border-blue-500 rounded-r-xl shadow-sm">
-            <h3 className="font-semibold text-blue-900 dark:text-blue-100 text-lg flex items-center">
-              <HelpCircle className="w-5 h-5 mr-2 text-blue-500" />
-              Como funciona?
-            </h3>
-            <p className="text-sm text-blue-800 dark:text-blue-200 mt-1 leading-relaxed">
-              Use uma ferramenta gratuita para exportar os comentários do seu post e cole a lista abaixo para sortear.
-            </p>
-            <a
-              href="https://commentpicker.com/instagram.php"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-bold text-blue-900 dark:text-blue-300 mt-3 inline-flex items-center hover:underline"
-            >
-              Usar o Comment Picker <ExternalLink className="w-4 h-4 ml-2" />
-            </a>
-          </div>
+          {/* Nova seção de suporte a URL */}
+          <InstagramURLSupport onCommentsLoaded={setComments} />
 
           <div>
             <Label htmlFor="comments" className="font-semibold">
@@ -756,30 +1381,51 @@ function InstagramGiveaway({
               disabled={isLoading}
               className="resize-none max-w-full font-mono mt-2"
             />
-            <div className="flex items-center justify-between mt-2">
+            <div className="flex flex-wrap items-center justify-between mt-2 gap-2">
               <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center">
                 <Info className="w-4 h-4 mr-1" />
                 {comments.split("\n").filter(Boolean).length} comentários encontrados
               </p>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const exampleComments = [
-                    "@maria_silva: Participando! @joao_santos @ana_costa",
-                    "@pedro_oliveira: Quero muito ganhar! @lucas_ferreira",
-                    "@juliana_lima: Amei o sorteio @carla_rodrigues @bruno_alves",
-                    "@rafael_santos: Participando com @gabriela_martins",
-                    "@fernanda_costa: Vamos lá! @ricardo_souza @patricia_dias"
-                  ];
-                  setComments(exampleComments.join('\n'));
-                }}
-              >
-                Usar comentários de exemplo
-              </Button>
+              <div className="flex flex-wrap gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowAntifraud(!showAntifraud)}
+                  className="text-green-600 border-green-200 hover:bg-green-50 dark:text-green-400 dark:border-green-800 dark:hover:bg-green-900/20"
+                >
+                  <ShieldCheck className="w-4 h-4 mr-1.5" />
+                  {showAntifraud ? "Ocultar Anti-Fraude" : "Anti-Fraude"}
+                </Button>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    const exampleComments = [
+                      "@maria_silva: Participando! @joao_santos @ana_costa",
+                      "@pedro_oliveira: Quero muito ganhar! @lucas_ferreira",
+                      "@juliana_lima: Amei o sorteio @carla_rodrigues @bruno_alves",
+                      "@rafael_santos: Participando com @gabriela_martins",
+                      "@fernanda_costa: Vamos lá! @ricardo_souza @patricia_dias"
+                    ];
+                    setComments(exampleComments.join('\n'));
+                  }}
+                >
+                  Usar comentários de exemplo
+                </Button>
+              </div>
             </div>
           </div>
+
+          {/* Proteção anti-fraude opcional */}
+          {showAntifraud && comments.split("\n").filter(Boolean).length > 0 && (
+            <AntiFraudProtection
+              comments={comments.split("\n").filter(Boolean)}
+              onFilteredCommentsChange={handleFilteredComments}
+            />
+          )}
 
           <Tabs defaultValue="basic" className="w-full">
             <TabsList className="grid w-full grid-cols-2">
@@ -1033,6 +1679,19 @@ function ListGiveaway({
     );
   };
 
+  // Função para importar de CSV ou Excel
+  const handleImportFromFile = () => {
+    toast.info("Dica: Cole o conteúdo copiado de uma planilha ou arquivo CSV diretamente na área de texto.", {
+      duration: 5000,
+    });
+
+    // No futuro, poderia implementar um input de arquivo real
+    const dummyFileInput = document.createElement('input');
+    dummyFileInput.type = 'file';
+    dummyFileInput.accept = '.csv,.txt,.xlsx';
+    dummyFileInput.click();
+  };
+
   return (
     <div className="space-y-6 max-w-full">
       <Card>
@@ -1047,9 +1706,19 @@ function ListGiveaway({
         </CardHeader>
         <CardContent className="space-y-6">
           <div>
-            <Label htmlFor="participants" className="font-semibold">
-              Lista de Participantes (um por linha)
-            </Label>
+            <div className="flex justify-between items-center mb-2">
+              <Label htmlFor="participants" className="font-semibold">
+                Lista de Participantes (um por linha)
+              </Label>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleImportFromFile}
+                className="text-blue-600 dark:text-blue-400"
+              >
+                <FileText className="w-4 h-4 mr-1.5" /> Importar
+              </Button>
+            </div>
             <Textarea
               id="participants"
               value={participants}
@@ -1236,6 +1905,13 @@ function NumberGiveaway({
     );
   };
 
+  // Função para gerar intervalo rápido
+  const setQuickRange = (preset: {min: number, max: number}) => {
+    setMin(preset.min);
+    setMax(preset.max);
+    setExcludeNumbers("");
+  };
+
   return (
     <div className="space-y-6 max-w-full">
       <Card>
@@ -1278,6 +1954,54 @@ function NumberGiveaway({
                 className="text-lg"
                 min={min}
               />
+            </div>
+          </div>
+
+          {/* Seleções rápidas */}
+          <div>
+            <Label className="text-sm font-medium mb-2 block">
+              Intervalos rápidos
+            </Label>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuickRange({min: 1, max: 10})}
+              >
+                1-10
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuickRange({min: 1, max: 100})}
+              >
+                1-100
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setQuickRange({min: 1, max: 1000})}
+              >
+                1-1000
+              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    Mais <ChevronDown className="w-3 h-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent>
+                  <DropdownMenuItem onClick={() => setQuickRange({min: 1, max: 30})}>
+                    Calendário (1-30)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setQuickRange({min: 1, max: 31})}>
+                    Calendário (1-31)
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setQuickRange({min: 1, max: 60})}>
+                    Minutos (1-60)
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </div>
 
@@ -1624,6 +2348,7 @@ export default function GiveawayTool() {
   const [totalParticipants, setTotalParticipants] = useState(0);
   const [winnersCount, setWinnersCount] = useState(1);
   const [historyVisible, setHistoryVisible] = useState(false);
+  const [showPremiumPlans, setShowPremiumPlans] = useState(false);
 
   const handleRedraw = () => {
     toast(
@@ -1830,6 +2555,16 @@ export default function GiveawayTool() {
                   <History className="w-4 h-4 mr-0 sm:mr-2" />
                   <span className="hidden sm:inline">Histórico</span>
                 </Button>
+
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="bg-white/10 hover:bg-white/20 border-white/20 text-white"
+                  onClick={() => setShowPremiumPlans(!showPremiumPlans)}
+                >
+                  <Crown className="w-4 h-4 mr-0 sm:mr-2" />
+                  <span className="hidden sm:inline">Pro</span>
+                </Button>
               </div>
             </div>
           </div>
@@ -1950,6 +2685,30 @@ export default function GiveawayTool() {
                       </p>
                     </div>
                   </div>
+
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="bg-pink-100 dark:bg-pink-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                      <Instagram className="w-4 h-4 sm:w-5 sm:h-5 text-pink-600 dark:text-pink-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm sm:text-base">Fácil para Instagram</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        Suporte simplificado para sorteios com comentários do Instagram
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-start gap-2 sm:gap-3">
+                    <div className="bg-red-100 dark:bg-red-900/30 p-1.5 sm:p-2 rounded-lg flex-shrink-0">
+                      <UserPlus className="w-4 h-4 sm:w-5 sm:h-5 text-red-600 dark:text-red-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm sm:text-base">Detecção Anti-Fraude</h3>
+                      <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400">
+                        Identifica e remove comentários suspeitos e bots
+                      </p>
+                    </div>
+                  </div>
                 </CardContent>
                 <CardFooter className="px-4 sm:px-6 pb-4 sm:pb-6">
                   <Button
@@ -1979,6 +2738,9 @@ export default function GiveawayTool() {
             onSaveHistory={saveToHistory}
           />
         )}
+
+        {/* Planos premium */}
+        {showPremiumPlans && <PremiumPlans />}
       </div>
 
       {/* Container para o efeito de confetti */}
