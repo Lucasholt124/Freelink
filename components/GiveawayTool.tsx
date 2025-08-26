@@ -34,11 +34,8 @@ import {
   AlertCircle,
   FileText,
   ChevronDown,
-  Zap,
-  Award,
   Download,
   UserPlus,
-  Check,
 } from "lucide-react";
 import clsx from "clsx";
 import { FunctionReturnType } from "convex/server";
@@ -769,84 +766,42 @@ function GiveawayHistory({ history }: { history: GiveawayHistory[] }) {
 // Nova função para extrair comentários de diferentes formatos
 function parseInstagramComments(text: string): { username: string, text: string }[] {
   const comments: { username: string, text: string }[] = [];
-
-  // Tenta identificar o formato dos comentários
   const lines = text.split('\n').filter(line => line.trim().length > 0);
-
   if (lines.length === 0) return [];
 
-  // Verifica diferentes formatos comuns
   lines.forEach(line => {
-    // Formato: @username: comentário
     const colonFormat = line.match(/^@?([a-zA-Z0-9._]+):(.+)$/);
     if (colonFormat) {
-      comments.push({
-        username: colonFormat[1].replace('@', ''),
-        text: colonFormat[2].trim()
-      });
+      comments.push({ username: colonFormat[1].replace('@',''), text: colonFormat[2].trim() });
       return;
     }
-
-    // Formato: username - comentário
     const dashFormat = line.match(/^@?([a-zA-Z0-9._]+)\s*-\s*(.+)$/);
     if (dashFormat) {
-      comments.push({
-        username: dashFormat[1].replace('@', ''),
-        text: dashFormat[2].trim()
-      });
+      comments.push({ username: dashFormat[1].replace('@',''), text: dashFormat[2].trim() });
       return;
     }
-
-    // Formato CSV/TSV: username,comentário ou username\tcomentário
     const csvFormat = line.match(/^@?([a-zA-Z0-9._]+)[,\t](.+)$/);
     if (csvFormat) {
-      comments.push({
-        username: csvFormat[1].replace('@', ''),
-        text: csvFormat[2].trim()
-      });
+      comments.push({ username: csvFormat[1].replace('@',''), text: csvFormat[2].trim() });
       return;
     }
-
-    // Formato simples: tenta extrair apenas o username se encontrar @
     const simpleFormat = line.match(/@([a-zA-Z0-9._]+)/);
     if (simpleFormat) {
-      comments.push({
-        username: simpleFormat[1],
-        text: line.trim()
-      });
+      comments.push({ username: simpleFormat[1], text: line.trim() });
       return;
     }
-
-    // Último recurso: assume que o primeiro conjunto de caracteres é o username
     const fallbackFormat = line.match(/^@?([a-zA-Z0-9._]+)\s+(.*)$/);
     if (fallbackFormat) {
-      comments.push({
-        username: fallbackFormat[1].replace('@', ''),
-        text: fallbackFormat[2].trim() || "Sem texto"
-      });
+      comments.push({ username: fallbackFormat[1].replace('@',''), text: fallbackFormat[2].trim() || "Sem texto" });
       return;
     }
-
-    // Se não conseguir identificar, adiciona como texto completo
-    if (line.trim()) {
-      comments.push({
-        username: "usuario_" + Math.floor(Math.random() * 1000),
-        text: line.trim()
-      });
-    }
+    comments.push({ username: "usuario_"+Math.floor(Math.random()*1000), text: line.trim() });
   });
-
   return comments;
 }
 
 // Função para simular o processo de extração de comentários (só UI)
-function simulateCommentExtraction(url: string, onComplete: (comments: string) => void) {
-  // Verifica se a URL é válida
-  const postId = extractInstagramPostId(url);
-  if (!postId) {
-    toast.error("URL do Instagram inválida. Use um link para um post ou reel.");
-    return;
-  }
+
 
   // Mostra um toast com progresso simulado
   toast.promise(
@@ -892,34 +847,138 @@ function simulateCommentExtraction(url: string, onComplete: (comments: string) =
     {
       loading: 'Conectando ao Instagram...',
       success: (result: string) => {  // Especifique o tipo correto aqui
-        onComplete(result);
+
         return `${result.split('\n').length} comentários carregados com sucesso!`;
       },
       error: 'Falha ao extrair comentários. Tente colar manualmente.'
     }
   );
-}
+
 // Componente para suporte a URL do Instagram
 function InstagramURLSupport({ onCommentsLoaded }: { onCommentsLoaded: (comments: string) => void }) {
   const [url, setUrl] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [connectionStatus, setConnectionStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
 
-  const handleExtractComments = () => {
-  // Simula obtenção de dados
-  simulateCommentExtraction(url, (commentsText) => {
-    // Use a função parseInstagramComments aqui
-    const parsedComments = parseInstagramComments(commentsText);
+  // Verificar se o usuário está conectado ao Instagram
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const response = await fetch('/api/instagram/check-connection');
+        const data = await response.json();
+        setIsConnected(data.connected);
+        setConnectionStatus(data.connected ? "connected" : "idle");
+      } catch (error) {
+        console.error("Erro ao verificar conexão com Instagram:", error);
+        setConnectionStatus("error");
+      }
+    };
 
-    // Converta os comentários processados de volta para formato de texto
-    const formattedComments = parsedComments.map(comment =>
-      `@${comment.username}: ${comment.text}`
-    ).join('\n');
+    checkConnection();
+  }, []);
+   const connectToInstagram = async () => {
+    setConnectionStatus("connecting");
+    try {
+      // Redirecionar para a rota de autenticação do Instagram
+      window.location.href = '/api/connect/instagram';
+    } catch (error) {
+      console.error("Erro ao conectar com Instagram:", error);
+      setConnectionStatus("error");
+    }
+  };
 
-    onCommentsLoaded(formattedComments);
-  });
-};
+  // Buscar comentários reais usando a API
+  const fetchRealComments = async () => {
+    if (!url) {
+      toast.error("Por favor, insira uma URL do Instagram válida");
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Extrair o ID do post da URL
+      const postId = extractInstagramPostId(url);
+      if (!postId) {
+        toast.error("URL do Instagram inválida. Use um link para um post ou reel.");
+        setIsLoading(false);
+        return;
+      }
+
+      // Chamar a API para buscar comentários
+      const response = await fetch('/api/instagram/comments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ postId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || "Erro ao buscar comentários");
+      }
+
+      const data = await response.json();
+
+      // Formatar comentários para o formato esperado pelo sorteador
+      const formattedComments = data.comments.map((comment: { username: string; text: string }) => {
+        return `@${comment.username}: ${comment.text}`;
+      }).join('\n');
+
+      onCommentsLoaded(formattedComments);
+      toast.success(`${data.comments.length} comentários carregados com sucesso!`);
+    } catch (error) {
+      console.error("Erro ao buscar comentários:", error);
+      toast.error(error instanceof Error ? error.message : "Erro ao buscar comentários");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
-    <div className="space-y-3 mb-4">
+     <div className="space-y-3 mb-4">
+      {/* Status da conexão com Instagram */}
+      {connectionStatus === "connected" ? (
+        <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800/50 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <div className="bg-green-100 dark:bg-green-800/50 p-2 rounded-full">
+              <Instagram className="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p className="font-medium text-green-800 dark:text-green-400">Conectado ao Instagram</p>
+              <p className="text-xs text-green-600 dark:text-green-500">Você pode buscar comentários de qualquer post</p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800/50">
+          <div className="flex items-center gap-2">
+            <div className="bg-amber-100 dark:bg-amber-800/50 p-2 rounded-full">
+              <Instagram className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+            </div>
+            <div>
+              <p className="font-medium text-amber-800 dark:text-amber-400">Conecte-se ao Instagram</p>
+              <p className="text-xs text-amber-600 dark:text-amber-500">Conecte sua conta para buscar comentários automaticamente</p>
+            </div>
+          </div>
+
+          <Button
+            onClick={connectToInstagram}
+            disabled={connectionStatus === "connecting"}
+            className="w-full mt-3 bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white"
+          >
+            {connectionStatus === "connecting" ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Conectando...</>
+            ) : (
+              <><Instagram className="w-4 h-4 mr-2" /> Conectar ao Instagram</>
+            )}
+          </Button>
+        </div>
+      )}
+
+      {/* Input de URL do Instagram */}
       <div className="flex flex-col space-y-2">
         <Label htmlFor="instagram-url" className="font-semibold flex items-center text-pink-600 dark:text-pink-400">
           <Instagram className="w-4 h-4 mr-2" />
@@ -934,17 +993,23 @@ function InstagramURLSupport({ onCommentsLoaded }: { onCommentsLoaded: (comments
             className="flex-1"
           />
           <Button
-            onClick={handleExtractComments}
-            disabled={!url}
+            onClick={fetchRealComments}
+            disabled={isLoading || !url || !isConnected}
             className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white sm:w-auto w-full"
           >
-            <Download className="w-4 h-4 mr-2" />
-            Obter Comentários
+            {isLoading ? (
+              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Buscando...</>
+            ) : (
+              <><Download className="w-4 h-4 mr-2" /> Buscar Comentários</>
+            )}
           </Button>
         </div>
       </div>
 
-      <InstagramInstructions />
+      {/* Exibir métodos alternativos se não estiver conectado */}
+      {!isConnected && (
+        <InstagramInstructions />
+      )}
     </div>
   );
 }
@@ -1177,72 +1242,7 @@ function AntiFraudProtection({ comments, onFilteredCommentsChange }: {
 }
 
 // Componente de planos premium
-function PremiumPlans() {
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
-      <Card className="bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border-amber-200 dark:border-amber-800/30">
-        <CardHeader>
-          <CardTitle className="flex items-center text-amber-700 dark:text-amber-400 text-lg">
-            <Award className="w-5 h-5 mr-2" /> Plano Básico
-          </CardTitle>
-          <CardDescription>Ideal para sorteios ocasionais</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">Grátis</p>
-          <ul className="mt-4 space-y-2">
-            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Até 500 participantes</li>
-            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Sorteios básicos</li>
-            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Histórico limitado</li>
-          </ul>
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full">Usar Agora</Button>
-        </CardFooter>
-      </Card>
 
-      <Card className="bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/10 dark:to-purple-900/10 border-purple-200 dark:border-purple-800/30 shadow-lg relative">
-        <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-pink-500 to-purple-500 text-white text-xs font-bold py-1 px-3 rounded-full">Mais Popular</div>
-        <CardHeader>
-          <CardTitle className="flex items-center text-purple-700 dark:text-purple-400 text-lg">
-            <Star className="w-5 h-5 mr-2" /> Plano Pro
-          </CardTitle>
-          <CardDescription>Para criadores de conteúdo</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">R$29,90<span className="text-sm font-normal">/mês</span></p>
-          <ul className="mt-4 space-y-2">
-            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Participantes ilimitados</li>
-            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Detector de fraudes</li>
-            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Animações premium</li>
-          </ul>
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">Assinar Agora</Button>
-        </CardFooter>
-      </Card>
-
-      <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 border-blue-200 dark:border-blue-800/30">
-        <CardHeader>
-          <CardTitle className="flex items-center text-blue-700 dark:text-blue-400 text-lg">
-            <Zap className="w-5 h-5 mr-2" /> Plano Business
-          </CardTitle>
-          <CardDescription>Para empresas e agências</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-2xl font-bold">R$99,90<span className="text-sm font-normal">/mês</span></p>
-          <ul className="mt-4 space-y-2">
-            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Tudo do plano Pro</li>
-            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> Marca personalizada</li>
-            <li className="flex items-center"><Check className="w-4 h-4 mr-2 text-green-500" /> API para integração</li>
-          </ul>
-        </CardContent>
-        <CardFooter>
-          <Button className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700">Fale Conosco</Button>
-        </CardFooter>
-      </Card>
-    </div>
-  );
-}
 
 function InstagramGiveaway({
   setWinner,
@@ -1347,10 +1347,11 @@ function InstagramGiveaway({
 
   // Manipulador para comentários filtrados do anti-fraude
   const handleFilteredComments = (filteredComments: string[]) => {
-    setComments(filteredComments.join('\n'));
-    toast.success(`${filteredComments.length} comentários válidos após filtragem.`);
-    updatePreview();
-  };
+  const structured = parseInstagramComments(filteredComments.join('\n'));
+  setComments(structured.map(c => `@${c.username}: ${c.text}`).join('\n'));
+  toast.success(`${structured.length} comentários válidos após filtragem.`);
+  updatePreview();
+};
 
   return (
     <div className="space-y-6 max-w-full">
@@ -1366,7 +1367,10 @@ function InstagramGiveaway({
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Nova seção de suporte a URL */}
-          <InstagramURLSupport onCommentsLoaded={setComments} />
+          <InstagramURLSupport onCommentsLoaded={(raw) => {
+  const structured = parseInstagramComments(raw);
+  setComments(structured.map(c => `@${c.username}: ${c.text}`).join('\n'));
+}} />
 
           <div>
             <Label htmlFor="comments" className="font-semibold">
@@ -2739,8 +2743,7 @@ export default function GiveawayTool() {
           />
         )}
 
-        {/* Planos premium */}
-        {showPremiumPlans && <PremiumPlans />}
+
       </div>
 
       {/* Container para o efeito de confetti */}
