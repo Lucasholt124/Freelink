@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Doc } from "../convex/_generated/dataModel";
@@ -44,7 +44,9 @@ import {
   TrendingUp,
   MessageSquare,
   Edit,
-  Info
+  Info,
+  Upload,
+  Clock
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -113,6 +115,16 @@ const socialFormats = [
   { id: "twitter", name: "Twitter", ratio: "16:9", size: "1200x675" }
 ];
 
+// Presets de aprimoramento de imagens
+const enhancementPresets = [
+  { id: "lighting", name: "Melhorar iluminação", prompt: "Melhorar iluminação e contraste, tornar a imagem mais nítida e profissional" },
+  { id: "background", name: "Remover fundo", prompt: "Remover o fundo e substituir por um fundo branco limpo e profissional" },
+  { id: "retouch", name: "Retocar e aprimorar", prompt: "Retocar a imagem, melhorar cores e qualidade geral, aspecto profissional" },
+  { id: "product", name: "Estilo de produto", prompt: "Transformar em foto de produto profissional com iluminação comercial" },
+  { id: "hdr", name: "Efeito HDR", prompt: "Aplicar efeito HDR, cores vibrantes e detalhes realçados" },
+  { id: "artistic", name: "Estilo artístico", prompt: "Transformar em versão artística com estilo profissional e impactante" }
+];
+
 export function ImageGenerator() {
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("realistic");
@@ -124,6 +136,15 @@ export function ImageGenerator() {
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
   const [likedImages, setLikedImages] = useState<Set<string>>(new Set());
   const [activeView, setActiveView] = useState("create");
+
+  // Estados para o aprimoramento de imagens
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [enhancementPrompt, setEnhancementPrompt] = useState("");
+  const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
+  const [isEnhancing, setIsEnhancing] = useState(false);
+  const [enhanceError, setEnhanceError] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generate = useAction(api.imageGenerator.generateImage);
   const imageHistory = useQuery(api.imageGenerator.getImagesForUser) || [];
@@ -144,6 +165,54 @@ export function ImageGenerator() {
     if (ratioStr === "9:16") return 9/16;
     if (ratioStr === "2:3") return 2/3;
     return 1;
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        setEnhanceError("Arquivo muito grande. O tamanho máximo é 5MB.");
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        setEnhanceError("Por favor, selecione um arquivo de imagem válido.");
+        return;
+      }
+
+      setUploadedImage(file);
+      setUploadedImageUrl(URL.createObjectURL(file));
+      setEnhancedImage(null);
+      setEnhanceError(null);
+    }
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+
+    const files = event.dataTransfer.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      if (file.size > 5 * 1024 * 1024) {
+        setEnhanceError("Arquivo muito grande. O tamanho máximo é 5MB.");
+        return;
+      }
+
+      if (!file.type.startsWith("image/")) {
+        setEnhanceError("Por favor, selecione um arquivo de imagem válido.");
+        return;
+      }
+
+      setUploadedImage(file);
+      setUploadedImageUrl(URL.createObjectURL(file));
+      setEnhancedImage(null);
+      setEnhanceError(null);
+    }
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -170,14 +239,36 @@ export function ImageGenerator() {
     }
   };
 
-  const handleDownload = async (imageUrl: string, prompt: string) => {
+  const handleEnhanceSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadedImage || !enhancementPrompt.trim()) return;
+
+    setIsEnhancing(true);
+    setEnhanceError(null);
+
+    try {
+      // Aqui usamos a mesma função de gerar imagem, mas com um prompt específico
+      // que descreve a imagem original e como ela deve ser aprimorada
+      const fullPrompt = `Imagem aprimorada: ${enhancementPrompt}. Estilo profissional e de alta qualidade.`;
+
+      const enhancedImageUrl = await generate({ prompt: fullPrompt });
+      setEnhancedImage(enhancedImageUrl);
+    } catch (err) {
+      console.error(err);
+      setEnhanceError(err instanceof Error ? err.message : "Ocorreu um erro ao aprimorar a imagem.");
+    } finally {
+      setIsEnhancing(false);
+    }
+  };
+
+  const handleDownload = async (imageUrl: string, promptText: string) => {
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `content-studio-${prompt.slice(0, 20).replace(/[^\w\s]/gi, '')}.png`;
+      a.download = `content-studio-${promptText.slice(0, 20).replace(/[^\w\s]/gi, '')}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -187,9 +278,9 @@ export function ImageGenerator() {
     }
   };
 
-  const handleCopyPrompt = (prompt: string) => {
-    navigator.clipboard.writeText(prompt);
-    setCopiedPrompt(prompt);
+  const handleCopyPrompt = (promptText: string) => {
+    navigator.clipboard.writeText(promptText);
+    setCopiedPrompt(promptText);
     setTimeout(() => setCopiedPrompt(null), 2000);
   };
 
@@ -235,10 +326,14 @@ export function ImageGenerator() {
           onValueChange={setActiveView}
           className="w-full"
         >
-          <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-6 bg-gray-100">
+          <TabsList className="w-full max-w-md mx-auto grid grid-cols-4 mb-6 bg-gray-100">
             <TabsTrigger value="create" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
               <Wand2 className="w-4 h-4 mr-2" />
               Criar
+            </TabsTrigger>
+            <TabsTrigger value="enhance" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
+              <Upload className="w-4 h-4 mr-2" />
+              Aprimorar
             </TabsTrigger>
             <TabsTrigger value="gallery" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
               <Grid3x3 className="w-4 h-4 mr-2" />
@@ -563,6 +658,258 @@ export function ImageGenerator() {
             </div>
           </TabsContent>
 
+          {/* Image Enhancer View */}
+          <TabsContent value="enhance" className="mt-0">
+            <div className="grid md:grid-cols-2 gap-6">
+              {/* Left Column - Upload and Controls */}
+              <div className="space-y-5">
+                <Card className="bg-white border-gray-200">
+                  <CardContent className="p-5">
+                    <form onSubmit={handleEnhanceSubmit} className="space-y-5">
+                      {/* Image Upload */}
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Descreva sua imagem de referência
+                        </label>
+                        <div
+                          className={`border-2 border-dashed rounded-lg p-6 text-center ${
+                            uploadedImage ? "border-indigo-300 bg-indigo-50" : "border-gray-300 bg-gray-50"
+                          } hover:border-indigo-400 transition-colors cursor-pointer`}
+                          onClick={() => fileInputRef.current?.click()}
+                          onDrop={handleDrop}
+                          onDragOver={handleDragOver}
+                        >
+                          <input
+                            type="file"
+                            ref={fileInputRef}
+                            className="hidden"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={handleFileChange}
+                          />
+
+                          {uploadedImageUrl ? (
+                            <div className="relative h-40 mx-auto">
+                              <Image
+                                src={uploadedImageUrl}
+                                alt="Imagem enviada"
+                                fill
+                                className="object-contain"
+                              />
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center py-4">
+                              <Upload className="w-10 h-10 text-gray-400 mb-2" />
+                              <p className="text-sm text-gray-500">
+                                Arraste e solte ou clique para selecionar
+                              </p>
+                              <p className="text-xs text-gray-400 mt-1">
+                                PNG, JPG ou WEBP (máx. 5MB)
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Enhancement Instructions */}
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-2 block">
+                          Como você quer criar uma imagem similar?
+                        </label>
+                        <div className="relative">
+                          <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-500" />
+                          <Input
+                            type="text"
+                            value={enhancementPrompt}
+                            onChange={(e) => setEnhancementPrompt(e.target.value)}
+                            placeholder="Ex: Imagem similar com melhor iluminação e fundo branco..."
+                            disabled={isEnhancing || !uploadedImage}
+                            className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 text-gray-800 placeholder:text-gray-400"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Enhancement Presets */}
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 mb-3 block">
+                          Sugestões rápidas
+                        </label>
+                        <div className="grid grid-cols-2 gap-2">
+                          {enhancementPresets.map((preset) => (
+                            <button
+                              key={preset.id}
+                              type="button"
+                              onClick={() => setEnhancementPrompt(preset.prompt)}
+                              className="relative p-3 rounded-lg border border-gray-200 hover:border-indigo-300 bg-white text-gray-700 hover:bg-indigo-50 transition-all text-left"
+                            >
+                              <span className="text-xs font-medium">{preset.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Enhancement Button */}
+                      <Button
+                        type="submit"
+                        disabled={isEnhancing || !uploadedImage || !enhancementPrompt.trim()}
+                        className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+                      >
+                        {isEnhancing ? (
+                          <>
+                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                            Criando imagem similar...
+                          </>
+                        ) : (
+                          <>
+                            <Wand2 className="mr-2 h-5 w-5" />
+                            Criar com IA
+                          </>
+                        )}
+                      </Button>
+
+                      {enhanceError && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="p-3 bg-red-50 border border-red-100 rounded-lg"
+                        >
+                          <p className="text-sm text-red-600">{enhanceError}</p>
+                        </motion.div>
+                      )}
+                    </form>
+                  </CardContent>
+                </Card>
+
+                {/* Tips Card */}
+                <Card className="bg-white border-gray-200">
+                  <CardContent className="p-5">
+                    <h3 className="text-base font-semibold mb-3 flex items-center gap-2 text-gray-800">
+                      <Lightbulb className="w-4 h-4 text-amber-500" />
+                      Dicas para melhores resultados
+                    </h3>
+                    <ul className="space-y-2 text-sm text-gray-600">
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                        <span>Faça uma descrição detalhada do que deseja criar</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                        <span>Mencione elementos específicos e o estilo desejado</span>
+                      </li>
+                      <li className="flex items-start gap-2">
+                        <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
+                        <span>Use a imagem carregada apenas como referência visual</span>
+                      </li>
+                    </ul>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Right Column - Preview */}
+              <div>
+                <Card className="bg-white border-gray-200 h-full">
+                  <CardContent className="p-5">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-indigo-500" />
+                        Imagem criada
+                      </h3>
+                      {enhancedImage && (
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => toggleLike(enhancedImage)}
+                            className="text-gray-500 hover:text-rose-500"
+                          >
+                            <Heart className={`w-4 h-4 ${likedImages.has(enhancedImage) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDownload(enhancedImage, enhancementPrompt)}
+                            className="text-gray-500 hover:text-indigo-600"
+                          >
+                            <Download className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => setSelectedImage(enhancedImage)}
+                            className="text-gray-500 hover:text-indigo-600"
+                          >
+                            <Maximize2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="relative rounded-lg border border-gray-200 p-1 bg-gray-50">
+                      <AspectRatio
+                        ratio={1}
+                        className="bg-white rounded-md overflow-hidden"
+                      >
+                        {isEnhancing && (
+                          <div className="flex flex-col items-center justify-center h-full">
+                            <div className="relative">
+                              <div className="relative bg-gray-100 rounded-full p-6">
+                                <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
+                              </div>
+                            </div>
+                            <p className="mt-4 text-gray-500 animate-pulse">Criando imagem similar...</p>
+                          </div>
+                        )}
+                        {!isEnhancing && !enhancedImage && (
+                          <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                            <Wand2 className="w-14 h-14 mb-3 opacity-30" />
+                            <p className="text-sm">Sua imagem aparecerá aqui</p>
+                            <p className="text-xs text-gray-400 mt-1">
+                              Carregue uma imagem e descreva o que deseja criar
+                            </p>
+                          </div>
+                        )}
+                        {enhancedImage && !isEnhancing && (
+                          <motion.div
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            className="relative w-full h-full"
+                          >
+                            <Image
+                              src={enhancedImage}
+                              alt={enhancementPrompt}
+                              fill
+                              className="object-cover"
+                              sizes="(max-width: 768px) 100vw, 50vw"
+                            />
+                          </motion.div>
+                        )}
+                      </AspectRatio>
+                    </div>
+
+                    {enhancedImage && (
+                      <div className="mt-4 space-y-3">
+                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                          <p className="text-xs text-gray-500 mb-1">Descrição da imagem:</p>
+                          <p className="text-sm text-gray-700">{enhancementPrompt}</p>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mt-2">
+                          <Badge variant="outline" className="text-xs font-normal bg-gray-50 text-gray-600">
+                            <Wand2 className="w-3 h-3 mr-1" />
+                            Criado com IA
+                          </Badge>
+                          <Badge variant="outline" className="text-xs font-normal bg-gray-50 text-gray-600">
+                            <Clock className="w-3 h-3 mr-1" />
+                            {new Date().toLocaleDateString()}
+                          </Badge>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
           {/* Gallery View */}
           <TabsContent value="gallery" className="mt-0">
             {imageHistory.length === 0 ? (
@@ -680,88 +1027,88 @@ export function ImageGenerator() {
                               </div>
                             </div>
                           </div>
-                        </AspectRatio>
 
-                        {/* Botão invisível para toggle do overlay no mobile */}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            const overlay = document.getElementById(`image-overlay-${image._id}`);
-                            if (overlay) {
-                              overlay.classList.toggle('opacity-0');
-                              overlay.classList.toggle('opacity-100');
-                            }
-                          }}
-                          className="absolute inset-0 md:hidden z-10"
-                          aria-label="Ver opções"
-                        />
+                          {/* Botão invisível para toggle do overlay no mobile */}
+                          <button
+                            onClick={(e) => {
+                              e.preventDefault();
+                              const overlay = document.getElementById(`image-overlay-${image._id}`);
+                              if (overlay) {
+                                overlay.classList.toggle('opacity-0');
+                                overlay.classList.toggle('opacity-100');
+                              }
+                            }}
+                            className="absolute inset-0 md:hidden z-10"
+                            aria-label="Ver opções"
+                          />
 
-                        {/* Overlay mobile */}
-                        <div
-                          id={`image-overlay-${image._id}`}
-                          className="absolute inset-0 bg-black/60 opacity-0 flex flex-col justify-end p-3 md:hidden transition-opacity z-20"
-                        >
-                          <p className="text-xs text-white line-clamp-2 mb-2">{image.prompt}</p>
-                          <div className="grid grid-cols-4 gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownload(image.imageUrl, image.prompt);
-                              }}
-                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                            >
-                              <Download className="w-3.5 h-3.5 mr-1.5" />
-                              <span className="text-xs">Baixar</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleLike(image._id);
-                              }}
-                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                            >
-                              <Heart className={`w-3.5 h-3.5 mr-1.5 ${likedImages.has(image._id) ? 'fill-rose-500 text-rose-500' : ''}`} />
-                              <span className="text-xs">Curtir</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedImage(image.imageUrl);
-                              }}
-                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                            >
-                              <Maximize2 className="w-3.5 h-3.5 mr-1.5" />
-                              <span className="text-xs">Ampliar</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopyPrompt(image.prompt);
-                              }}
-                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                            >
-                              {copiedPrompt === image.prompt ? (
-                                <>
-                                  <Check className="w-3.5 h-3.5 mr-1.5" />
-                                  <span className="text-xs">Copiado</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3.5 h-3.5 mr-1.5" />
-                                  <span className="text-xs">Copiar</span>
-                                </>
-                              )}
-                            </Button>
+                          {/* Overlay mobile */}
+                          <div
+                            id={`image-overlay-${image._id}`}
+                            className="absolute inset-0 bg-black/60 opacity-0 flex flex-col justify-end p-3 md:hidden transition-opacity z-20"
+                          >
+                            <p className="text-xs text-white line-clamp-2 mb-2">{image.prompt}</p>
+                            <div className="grid grid-cols-4 gap-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDownload(image.imageUrl, image.prompt);
+                                }}
+                                className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                              >
+                                <Download className="w-3.5 h-3.5 mr-1.5" />
+                                <span className="text-xs">Baixar</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  toggleLike(image._id);
+                                }}
+                                className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                              >
+                                <Heart className={`w-3.5 h-3.5 mr-1.5 ${likedImages.has(image._id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                                <span className="text-xs">Curtir</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedImage(image.imageUrl);
+                                }}
+                                className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                              >
+                                <Maximize2 className="w-3.5 h-3.5 mr-1.5" />
+                                <span className="text-xs">Ampliar</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleCopyPrompt(image.prompt);
+                                }}
+                                className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                              >
+                                {copiedPrompt === image.prompt ? (
+                                  <>
+                                    <Check className="w-3.5 h-3.5 mr-1.5" />
+                                    <span className="text-xs">Copiado</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Copy className="w-3.5 h-3.5 mr-1.5" />
+                                    <span className="text-xs">Copiar</span>
+                                  </>
+                                )}
+                              </Button>
+                            </div>
                           </div>
-                        </div>
+                        </AspectRatio>
                       </div>
                     </motion.div>
                   ))}

@@ -29,167 +29,176 @@ const MODELS = {
 // =================================================================
 // ACTION: GERAR IMAGEM COM HUGGING FACE (100% GRÁTIS)
 // =================================================================
+// =================================================================
+// ACTION: GERAR IMAGEM COM HUGGING FACE (100% GRÁTIS)
+// =================================================================
 export const generateImage = action({
-  args: {
-    prompt: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Usuário não autenticado.");
-    }
-    const userId = identity.subject;
+  args: {
+    prompt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Usuário não autenticado.");
+    }
+    const userId = identity.subject;
 
-    // Se não tiver API key, usa um modelo de demonstração
-    const apiKey = process.env.HUGGINGFACE_API_KEY || "hf_demo_key";
+    // ✨ MELHORIA: Enriquecer o prompt para especificar o idioma do texto!
+    // Adiciona a instrução para o modelo tentar gerar texto em português.
+    const enhancedPrompt = `${args.prompt}, text in Portuguese, legible text`;
 
-    // Escolhe o modelo baseado no prompt
-    let model = MODELS.SDXL; // Modelo padrão de alta qualidade
+    // Se não tiver API key, usa um modelo de demonstração
+    const apiKey = process.env.HUGGINGFACE_API_KEY || "hf_demo_key";
 
-    // Detecta estilo baseado no prompt
-    const promptLower = args.prompt.toLowerCase();
-    if (promptLower.includes("anime") || promptLower.includes("manga")) {
-      model = MODELS.ANIME;
-    } else if (promptLower.includes("realistic") || promptLower.includes("photo")) {
-      model = MODELS.REALISTIC;
-    } else if (promptLower.includes("artistic") || promptLower.includes("painting")) {
-      model = MODELS.ARTISTIC;
-    }
+    // Escolhe o modelo baseado no prompt
+    let model = MODELS.SDXL; // Modelo padrão de alta qualidade
 
-    try {
-      // Primeira tentativa com o modelo escolhido
-      const response = await fetch(
-        `https://api-inference.huggingface.co/models/${model}`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inputs: args.prompt,
-            parameters: {
-              num_inference_steps: 30,
-              guidance_scale: 7.5,
-              negative_prompt: "blurry, bad quality, distorted, ugly, malformed",
-              width: 1024,
-              height: 1024,
-            },
-            options: {
-              wait_for_model: true, // Aguarda o modelo carregar se necessário
-            },
-          }),
-        }
-      );
+    // Detecta estilo baseado no prompt
+    const promptLower = args.prompt.toLowerCase();
+    if (promptLower.includes("anime") || promptLower.includes("manga")) {
+      model = MODELS.ANIME;
+    } else if (promptLower.includes("realistic") || promptLower.includes("photo")) {
+      model = MODELS.REALISTIC;
+    } else if (promptLower.includes("artistic") || promptLower.includes("painting")) {
+      model = MODELS.ARTISTIC;
+    }
 
-      if (!response.ok) {
-        // Se falhar, tenta com modelo alternativo mais rápido
-        console.log("Tentando modelo alternativo...");
-        const fallbackResponse = await fetch(
-          `https://api-inference.huggingface.co/models/${MODELS.FAST}`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              inputs: args.prompt,
-              options: {
-                wait_for_model: true,
-              },
-            }),
-          }
-        );
+    try {
+      // Primeira tentativa com o modelo escolhido
+      const response = await fetch(
+        `https://api-inference.huggingface.co/models/${model}`,
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${apiKey}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            inputs: enhancedPrompt, // Usa o prompt melhorado
+            parameters: {
+              num_inference_steps: 30,
+              guidance_scale: 7.5,
+              // ✨ MELHORIA: Prompt negativo mais robusto contra texto ruim
+              negative_prompt: "blurry, bad quality, distorted, ugly, malformed, mutated, disfigured, bad text, wrong spelling, illegible words",
+              width: 1024,
+              height: 1024,
+            },
+            options: {
+              wait_for_model: true,
+            },
+          }),
+        }
+      );
 
-        if (!fallbackResponse.ok) {
-          const error = await fallbackResponse.json();
-          throw new Error(`Erro na API: ${error.error || "Falha ao gerar imagem"}`);
-        }
+      if (!response.ok) {
+        // Se falhar, tenta com modelo alternativo mais rápido
+        console.log("Tentando modelo alternativo...");
+        const fallbackResponse = await fetch(
+          `https://api-inference.huggingface.co/models/${MODELS.FAST}`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${apiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              inputs: enhancedPrompt, // Usa o prompt melhorado
+              options: {
+                wait_for_model: true,
+              },
+            }),
+          }
+        );
 
-        const imageBlob = await fallbackResponse.blob();
-        const storageId = await ctx.storage.store(imageBlob);
-        const imageUrl = await ctx.storage.getUrl(storageId);
+        if (!fallbackResponse.ok) {
+          const error = await fallbackResponse.json();
+          throw new Error(`Erro na API: ${error.error || "Falha ao gerar imagem"}`);
+        }
 
-        if (!imageUrl) {
-          throw new Error("Não foi possível obter a URL da imagem.");
-        }
+        const imageBlob = await fallbackResponse.blob();
+        const storageId = await ctx.storage.store(imageBlob);
+        const imageUrl = await ctx.storage.getUrl(storageId);
 
-        await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
-          userId,
-          prompt: args.prompt,
-          imageUrl: imageUrl,
-          storageId: storageId,
-        });
+        if (!imageUrl) {
+          throw new Error("Não foi possível obter a URL da imagem.");
+        }
 
-        return imageUrl;
-      }
+        await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
+          userId,
+          prompt: args.prompt, // Salva o prompt original do usuário
+          imageUrl: imageUrl,
+          storageId: storageId,
+        });
 
-      // Processa a resposta principal
-      const imageBlob = await response.blob();
+        return imageUrl;
+      }
 
-      // Verifica se é uma imagem válida
-      if (imageBlob.size < 1000) {
-        const text = await imageBlob.text();
-        console.error("Resposta inválida:", text);
-        throw new Error("Imagem gerada inválida. Tente novamente.");
-      }
+      // Processa a resposta principal
+      const imageBlob = await response.blob();
 
-      const storageId = await ctx.storage.store(imageBlob);
-      const imageUrl = await ctx.storage.getUrl(storageId);
+      // Verifica se é uma imagem válida
+      if (imageBlob.size < 1000) {
+        const text = await imageBlob.text();
+        console.error("Resposta inválida:", text);
+        throw new Error("Imagem gerada inválida. Tente novamente.");
+      }
 
-      if (!imageUrl) {
-        throw new Error("Não foi possível obter a URL da imagem.");
-      }
+      const storageId = await ctx.storage.store(imageBlob);
+      const imageUrl = await ctx.storage.getUrl(storageId);
 
-      await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
-        userId,
-        prompt: args.prompt,
-        imageUrl: imageUrl,
-        storageId: storageId,
-      });
+      if (!imageUrl) {
+        throw new Error("Não foi possível obter a URL da imagem.");
+      }
 
-      return imageUrl;
+      await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
+        userId,
+        prompt: args.prompt, // Salva o prompt original do usuário
+        imageUrl: imageUrl,
+        storageId: storageId,
+      });
 
-    } catch (error) {
-      console.error("Erro ao gerar imagem:", error);
+      return imageUrl;
 
-      // Se tudo falhar, usa uma API de backup totalmente aberta
-      try {
-        console.log("Usando API de backup...");
+    } catch (error) {
+      console.error("Erro ao gerar imagem:", error);
 
-        // API alternativa: Pollinations.ai (sem necessidade de chave!)
-        const backupUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(args.prompt)}?width=1024&height=1024&nologo=true`;
+      // Se tudo falhar, usa uma API de backup totalmente aberta
+      try {
+        console.log("Usando API de backup...");
 
-        const backupResponse = await fetch(backupUrl);
-        if (!backupResponse.ok) {
-          throw new Error("Todas as APIs falharam");
-        }
+        // API alternativa: Pollinations.ai (sem necessidade de chave!)
+        // Usa o prompt melhorado também na API de backup
+        const backupUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true`;
 
-        const imageBlob = await backupResponse.blob();
-        const storageId = await ctx.storage.store(imageBlob);
-        const imageUrl = await ctx.storage.getUrl(storageId);
+        const backupResponse = await fetch(backupUrl);
+        if (!backupResponse.ok) {
+          throw new Error("Todas as APIs falharam");
+        }
 
-        if (!imageUrl) {
-          throw new Error("Não foi possível salvar a imagem.");
-        }
+        const imageBlob = await backupResponse.blob();
+        const storageId = await ctx.storage.store(imageBlob);
+        const imageUrl = await ctx.storage.getUrl(storageId);
 
-        await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
-          userId,
-          prompt: args.prompt,
-          imageUrl: imageUrl,
-          storageId: storageId,
-        });
+        if (!imageUrl) {
+          throw new Error("Não foi possível salvar a imagem.");
+        }
 
-        return imageUrl;
+        await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
+          userId,
+          prompt: args.prompt, // Salva o prompt original do usuário
+          imageUrl: imageUrl,
+          storageId: storageId,
+        });
 
-      } catch  {
-        throw new Error(
-          "Não foi possível gerar a imagem. Por favor, tente novamente em alguns instantes."
-        );
-      }
-    }
-  },
+        return imageUrl;
+
+      } catch  {
+        throw new Error(
+          "Não foi possível gerar a imagem. Por favor, tente novamente em alguns instantes."
+        );
+      }
+    }
+  },
 });
 
 // =================================================================
