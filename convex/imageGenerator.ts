@@ -45,7 +45,7 @@ export const generateImage = action({
 
     // ✨ MELHORIA: Enriquecer o prompt para especificar o idioma do texto!
     // Adiciona a instrução para o modelo tentar gerar texto em português.
-    const enhancedPrompt = `${args.prompt}, text in Portuguese, legible text`;
+    const enhancedPrompt = `${args.prompt}, professional quality, in portuguese, for ${userId} user.`;
 
     // Se não tiver API key, usa um modelo de demonstração
     const apiKey = process.env.HUGGINGFACE_API_KEY || "hf_demo_key";

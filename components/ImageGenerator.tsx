@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Doc } from "../convex/_generated/dataModel";
@@ -44,9 +44,7 @@ import {
   TrendingUp,
   MessageSquare,
   Edit,
-  Info,
-  Upload,
-  Clock
+  Info
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -115,16 +113,6 @@ const socialFormats = [
   { id: "twitter", name: "Twitter", ratio: "16:9", size: "1200x675" }
 ];
 
-// Sugestões para a aba de referência visual
-const inspirationSuggestions = [
-  { id: "similar", name: "Criar similar", prompt: "Criar uma imagem similar a esta referência, mas com estilo profissional e alta qualidade" },
-  { id: "product", name: "Versão produto", prompt: "Transformar esta referência em uma foto de produto profissional com fundo branco e iluminação comercial" },
-  { id: "remake", name: "Recriar em HD", prompt: "Recriar esta referência com alta definição, cores vibrantes e aspecto profissional" },
-  { id: "artistic", name: "Versão artística", prompt: "Criar uma versão artística inspirada nesta referência, com estilo mais sofisticado" },
-  { id: "minimal", name: "Versão minimalista", prompt: "Criar versão minimalista inspirada nesta referência, com menos elementos e foco no essencial" },
-  { id: "branded", name: "Versão para marca", prompt: "Transformar esta referência em uma imagem para marca, com aspecto comercial e profissional" }
-];
-
 export function ImageGenerator() {
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("realistic");
@@ -136,15 +124,6 @@ export function ImageGenerator() {
   const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
   const [likedImages, setLikedImages] = useState<Set<string>>(new Set());
   const [activeView, setActiveView] = useState("create");
-
-  // Estados para a referência visual
-  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
-  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [inspirationPrompt, setInspirationPrompt] = useState("");
-  const [generatedFromRef, setGeneratedFromRef] = useState<string | null>(null);
-  const [isGeneratingFromRef, setIsGeneratingFromRef] = useState(false);
-  const [refError, setRefError] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generate = useAction(api.imageGenerator.generateImage);
   const imageHistory = useQuery(api.imageGenerator.getImagesForUser) || [];
@@ -165,54 +144,6 @@ export function ImageGenerator() {
     if (ratioStr === "9:16") return 9/16;
     if (ratioStr === "2:3") return 2/3;
     return 1;
-  };
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const files = event.target.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (file.size > 5 * 1024 * 1024) {
-        setRefError("Arquivo muito grande. O tamanho máximo é 5MB.");
-        return;
-      }
-
-      if (!file.type.startsWith("image/")) {
-        setRefError("Por favor, selecione um arquivo de imagem válido.");
-        return;
-      }
-
-      setUploadedImage(file);
-      setUploadedImageUrl(URL.createObjectURL(file));
-      setGeneratedFromRef(null);
-      setRefError(null);
-    }
-  };
-
-  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
-
-    const files = event.dataTransfer.files;
-    if (files && files.length > 0) {
-      const file = files[0];
-      if (file.size > 5 * 1024 * 1024) {
-        setRefError("Arquivo muito grande. O tamanho máximo é 5MB.");
-        return;
-      }
-
-      if (!file.type.startsWith("image/")) {
-        setRefError("Por favor, selecione um arquivo de imagem válido.");
-        return;
-      }
-
-      setUploadedImage(file);
-      setUploadedImageUrl(URL.createObjectURL(file));
-      setGeneratedFromRef(null);
-      setRefError(null);
-    }
-  };
-
-  const handleDragOver = (event: React.DragEvent<HTMLDivElement>) => {
-    event.preventDefault();
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -239,36 +170,14 @@ export function ImageGenerator() {
     }
   };
 
-  const handleInspirationSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!uploadedImage || !inspirationPrompt.trim()) return;
-
-    setIsGeneratingFromRef(true);
-    setRefError(null);
-
-    try {
-      // Aqui usamos o generateImage com um prompt detalhado
-      // Nota: Não estamos enviando a imagem para a IA, apenas usando como referência visual para o usuário
-      const fullPrompt = `${inspirationPrompt}. Estilo profissional e alta qualidade.`;
-
-      const generatedImageUrl = await generate({ prompt: fullPrompt });
-      setGeneratedFromRef(generatedImageUrl);
-    } catch (err) {
-      console.error(err);
-      setRefError(err instanceof Error ? err.message : "Ocorreu um erro ao gerar a imagem.");
-    } finally {
-      setIsGeneratingFromRef(false);
-    }
-  };
-
-  const handleDownload = async (imageUrl: string, promptText: string) => {
+  const handleDownload = async (imageUrl: string, prompt: string) => {
     try {
       const response = await fetch(imageUrl);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `content-studio-${promptText.slice(0, 20).replace(/[^\w\s]/gi, '')}.png`;
+      a.download = `content-studio-${prompt.slice(0, 20).replace(/[^\w\s]/gi, '')}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -278,9 +187,9 @@ export function ImageGenerator() {
     }
   };
 
-  const handleCopyPrompt = (promptText: string) => {
-    navigator.clipboard.writeText(promptText);
-    setCopiedPrompt(promptText);
+  const handleCopyPrompt = (prompt: string) => {
+    navigator.clipboard.writeText(prompt);
+    setCopiedPrompt(prompt);
     setTimeout(() => setCopiedPrompt(null), 2000);
   };
 
@@ -326,14 +235,10 @@ export function ImageGenerator() {
           onValueChange={setActiveView}
           className="w-full"
         >
-          <TabsList className="w-full max-w-md mx-auto grid grid-cols-4 mb-6 bg-gray-100">
+          <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-6 bg-gray-100">
             <TabsTrigger value="create" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
               <Wand2 className="w-4 h-4 mr-2" />
               Criar
-            </TabsTrigger>
-            <TabsTrigger value="reference" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
-              <Upload className="w-4 h-4 mr-2" />
-              Referência
             </TabsTrigger>
             <TabsTrigger value="gallery" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
               <Grid3x3 className="w-4 h-4 mr-2" />
@@ -658,258 +563,6 @@ export function ImageGenerator() {
             </div>
           </TabsContent>
 
-          {/* Reference View - Inspiration from uploaded image */}
-          <TabsContent value="reference" className="mt-0">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Left Column - Upload and Controls */}
-              <div className="space-y-5">
-                <Card className="bg-white border-gray-200">
-                  <CardContent className="p-5">
-                    <form onSubmit={handleInspirationSubmit} className="space-y-5">
-                      {/* Image Upload */}
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">
-                          Carregue uma imagem de referência
-                        </label>
-                        <div
-                          className={`border-2 border-dashed rounded-lg p-6 text-center ${
-                            uploadedImage ? "border-indigo-300 bg-indigo-50" : "border-gray-300 bg-gray-50"
-                          } hover:border-indigo-400 transition-colors cursor-pointer`}
-                          onClick={() => fileInputRef.current?.click()}
-                          onDrop={handleDrop}
-                          onDragOver={handleDragOver}
-                        >
-                          <input
-                            type="file"
-                            ref={fileInputRef}
-                            className="hidden"
-                            accept="image/jpeg,image/png,image/webp"
-                            onChange={handleFileChange}
-                          />
-
-                          {uploadedImageUrl ? (
-                            <div className="relative h-40 mx-auto">
-                              <Image
-                                src={uploadedImageUrl}
-                                alt="Imagem de referência"
-                                fill
-                                className="object-contain"
-                              />
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center justify-center py-4">
-                              <Upload className="w-10 h-10 text-gray-400 mb-2" />
-                              <p className="text-sm text-gray-500">
-                                Arraste e solte ou clique para selecionar
-                              </p>
-                              <p className="text-xs text-gray-400 mt-1">
-                                PNG, JPG ou WEBP (máx. 5MB)
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Inspiration Instructions */}
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">
-                          Descreva o que deseja criar com base nesta referência
-                        </label>
-                        <div className="relative">
-                          <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-500" />
-                          <Input
-                            type="text"
-                            value={inspirationPrompt}
-                            onChange={(e) => setInspirationPrompt(e.target.value)}
-                            placeholder="Ex: Criar uma versão mais profissional desta imagem..."
-                            disabled={isGeneratingFromRef || !uploadedImage}
-                            className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 text-gray-800 placeholder:text-gray-400"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Inspiration Suggestions */}
-                      <div>
-                        <label className="text-sm font-medium text-gray-700 mb-3 block">
-                          Sugestões de inspiração
-                        </label>
-                        <div className="grid grid-cols-2 gap-2">
-                          {inspirationSuggestions.map((suggestion) => (
-                            <button
-                              key={suggestion.id}
-                              type="button"
-                              onClick={() => setInspirationPrompt(suggestion.prompt)}
-                              className="relative p-3 rounded-lg border border-gray-200 hover:border-indigo-300 bg-white text-gray-700 hover:bg-indigo-50 transition-all text-left"
-                            >
-                              <span className="text-xs font-medium">{suggestion.name}</span>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-
-                      {/* Create Button */}
-                      <Button
-                        type="submit"
-                        disabled={isGeneratingFromRef || !uploadedImage || !inspirationPrompt.trim()}
-                        className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
-                      >
-                        {isGeneratingFromRef ? (
-                          <>
-                            <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Criando com IA...
-                          </>
-                        ) : (
-                          <>
-                            <Wand2 className="mr-2 h-5 w-5" />
-                            Criar com Inspiração
-                          </>
-                        )}
-                      </Button>
-
-                      {refError && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="p-3 bg-red-50 border border-red-100 rounded-lg"
-                        >
-                          <p className="text-sm text-red-600">{refError}</p>
-                        </motion.div>
-                      )}
-                    </form>
-                  </CardContent>
-                </Card>
-
-                {/* Tips Card */}
-                <Card className="bg-white border-gray-200">
-                  <CardContent className="p-5">
-                    <h3 className="text-base font-semibold mb-3 flex items-center gap-2 text-gray-800">
-                      <Lightbulb className="w-4 h-4 text-amber-500" />
-                      Como funciona
-                    </h3>
-                    <ul className="space-y-2 text-sm text-gray-600">
-                      <li className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                        <span>Carregue uma imagem que servirá como inspiração visual</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                        <span>Descreva o que deseja criar baseado nesta referência</span>
-                      </li>
-                      <li className="flex items-start gap-2">
-                        <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                        <span>A IA criará uma nova imagem inspirada na referência e na sua descrição</span>
-                      </li>
-                    </ul>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Right Column - Preview */}
-              <div>
-                <Card className="bg-white border-gray-200 h-full">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4 text-indigo-500" />
-                        Resultado da inspiração
-                      </h3>
-                      {generatedFromRef && (
-                        <div className="flex gap-1">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => toggleLike(generatedFromRef)}
-                            className="text-gray-500 hover:text-rose-500"
-                          >
-                            <Heart className={`w-4 h-4 ${likedImages.has(generatedFromRef) ? 'fill-rose-500 text-rose-500' : ''}`} />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDownload(generatedFromRef, inspirationPrompt)}
-                            className="text-gray-500 hover:text-indigo-600"
-                          >
-                            <Download className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => setSelectedImage(generatedFromRef)}
-                            className="text-gray-500 hover:text-indigo-600"
-                          >
-                            <Maximize2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="relative rounded-lg border border-gray-200 p-1 bg-gray-50">
-                      <AspectRatio
-                        ratio={1}
-                        className="bg-white rounded-md overflow-hidden"
-                      >
-                        {isGeneratingFromRef && (
-                          <div className="flex flex-col items-center justify-center h-full">
-                            <div className="relative">
-                              <div className="relative bg-gray-100 rounded-full p-6">
-                                <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
-                              </div>
-                            </div>
-                            <p className="mt-4 text-gray-500 animate-pulse">Criando com inspiração...</p>
-                          </div>
-                        )}
-                        {!isGeneratingFromRef && !generatedFromRef && (
-                          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                            <Wand2 className="w-14 h-14 mb-3 opacity-30" />
-                            <p className="text-sm">Nova imagem inspirada na referência</p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              Carregue uma imagem e descreva o que deseja criar
-                            </p>
-                          </div>
-                        )}
-                        {generatedFromRef && !isGeneratingFromRef && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="relative w-full h-full"
-                          >
-                            <Image
-                              src={generatedFromRef}
-                              alt={inspirationPrompt}
-                              fill
-                              className="object-cover"
-                              sizes="(max-width: 768px) 100vw, 50vw"
-                            />
-                          </motion.div>
-                        )}
-                      </AspectRatio>
-                    </div>
-
-                    {generatedFromRef && (
-                      <div className="mt-4 space-y-3">
-                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                          <p className="text-xs text-gray-500 mb-1">Inspiração aplicada:</p>
-                          <p className="text-sm text-gray-700">{inspirationPrompt}</p>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <Badge variant="outline" className="text-xs font-normal bg-gray-50 text-gray-600">
-                            <Wand2 className="w-3 h-3 mr-1" />
-                            Criado com IA
-                          </Badge>
-                          <Badge variant="outline" className="text-xs font-normal bg-gray-50 text-gray-600">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {new Date().toLocaleDateString()}
-                          </Badge>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-
           {/* Gallery View */}
           <TabsContent value="gallery" className="mt-0">
             {imageHistory.length === 0 ? (
@@ -1027,88 +680,88 @@ export function ImageGenerator() {
                               </div>
                             </div>
                           </div>
-
-                          {/* Botão invisível para toggle do overlay no mobile */}
-                          <button
-                            onClick={(e) => {
-                              e.preventDefault();
-                              const overlay = document.getElementById(`image-overlay-${image._id}`);
-                              if (overlay) {
-                                overlay.classList.toggle('opacity-0');
-                                overlay.classList.toggle('opacity-100');
-                              }
-                            }}
-                            className="absolute inset-0 md:hidden z-10"
-                            aria-label="Ver opções"
-                          />
-
-                          {/* Overlay mobile */}
-                          <div
-                            id={`image-overlay-${image._id}`}
-                            className="absolute inset-0 bg-black/60 opacity-0 flex flex-col justify-end p-3 md:hidden transition-opacity z-20"
-                          >
-                            <p className="text-xs text-white line-clamp-2 mb-2">{image.prompt}</p>
-                            <div className="grid grid-cols-4 gap-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleDownload(image.imageUrl, image.prompt);
-                                }}
-                                className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                              >
-                                <Download className="w-3.5 h-3.5 mr-1.5" />
-                                <span className="text-xs">Baixar</span>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  toggleLike(image._id);
-                                }}
-                                className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                              >
-                                <Heart className={`w-3.5 h-3.5 mr-1.5 ${likedImages.has(image._id) ? 'fill-rose-500 text-rose-500' : ''}`} />
-                                <span className="text-xs">Curtir</span>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedImage(image.imageUrl);
-                                }}
-                                className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                              >
-                                <Maximize2 className="w-3.5 h-3.5 mr-1.5" />
-                                <span className="text-xs">Ampliar</span>
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleCopyPrompt(image.prompt);
-                                }}
-                                className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                              >
-                                {copiedPrompt === image.prompt ? (
-                                  <>
-                                    <Check className="w-3.5 h-3.5 mr-1.5" />
-                                    <span className="text-xs">Copiado</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Copy className="w-3.5 h-3.5 mr-1.5" />
-                                    <span className="text-xs">Copiar</span>
-                                  </>
-                                )}
-                              </Button>
-                            </div>
-                          </div>
                         </AspectRatio>
+
+                        {/* Botão invisível para toggle do overlay no mobile */}
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            const overlay = document.getElementById(`image-overlay-${image._id}`);
+                            if (overlay) {
+                              overlay.classList.toggle('opacity-0');
+                              overlay.classList.toggle('opacity-100');
+                            }
+                          }}
+                          className="absolute inset-0 md:hidden z-10"
+                          aria-label="Ver opções"
+                        />
+
+                        {/* Overlay mobile */}
+                        <div
+                          id={`image-overlay-${image._id}`}
+                          className="absolute inset-0 bg-black/60 opacity-0 flex flex-col justify-end p-3 md:hidden transition-opacity z-20"
+                        >
+                          <p className="text-xs text-white line-clamp-2 mb-2">{image.prompt}</p>
+                          <div className="grid grid-cols-4 gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDownload(image.imageUrl, image.prompt);
+                              }}
+                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                            >
+                              <Download className="w-3.5 h-3.5 mr-1.5" />
+                              <span className="text-xs">Baixar</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                toggleLike(image._id);
+                              }}
+                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                            >
+                              <Heart className={`w-3.5 h-3.5 mr-1.5 ${likedImages.has(image._id) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                              <span className="text-xs">Curtir</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedImage(image.imageUrl);
+                              }}
+                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                            >
+                              <Maximize2 className="w-3.5 h-3.5 mr-1.5" />
+                              <span className="text-xs">Ampliar</span>
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCopyPrompt(image.prompt);
+                              }}
+                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
+                            >
+                              {copiedPrompt === image.prompt ? (
+                                <>
+                                  <Check className="w-3.5 h-3.5 mr-1.5" />
+                                  <span className="text-xs">Copiado</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Copy className="w-3.5 h-3.5 mr-1.5" />
+                                  <span className="text-xs">Copiar</span>
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </motion.div>
                   ))}
