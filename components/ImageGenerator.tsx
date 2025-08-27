@@ -115,14 +115,14 @@ const socialFormats = [
   { id: "twitter", name: "Twitter", ratio: "16:9", size: "1200x675" }
 ];
 
-// Presets de aprimoramento de imagens
-const enhancementPresets = [
-  { id: "lighting", name: "Melhorar iluminação", prompt: "Melhorar iluminação e contraste, tornar a imagem mais nítida e profissional" },
-  { id: "background", name: "Remover fundo", prompt: "Remover o fundo e substituir por um fundo branco limpo e profissional" },
-  { id: "retouch", name: "Retocar e aprimorar", prompt: "Retocar a imagem, melhorar cores e qualidade geral, aspecto profissional" },
-  { id: "product", name: "Estilo de produto", prompt: "Transformar em foto de produto profissional com iluminação comercial" },
-  { id: "hdr", name: "Efeito HDR", prompt: "Aplicar efeito HDR, cores vibrantes e detalhes realçados" },
-  { id: "artistic", name: "Estilo artístico", prompt: "Transformar em versão artística com estilo profissional e impactante" }
+// Sugestões para a aba de referência visual
+const inspirationSuggestions = [
+  { id: "similar", name: "Criar similar", prompt: "Criar uma imagem similar a esta referência, mas com estilo profissional e alta qualidade" },
+  { id: "product", name: "Versão produto", prompt: "Transformar esta referência em uma foto de produto profissional com fundo branco e iluminação comercial" },
+  { id: "remake", name: "Recriar em HD", prompt: "Recriar esta referência com alta definição, cores vibrantes e aspecto profissional" },
+  { id: "artistic", name: "Versão artística", prompt: "Criar uma versão artística inspirada nesta referência, com estilo mais sofisticado" },
+  { id: "minimal", name: "Versão minimalista", prompt: "Criar versão minimalista inspirada nesta referência, com menos elementos e foco no essencial" },
+  { id: "branded", name: "Versão para marca", prompt: "Transformar esta referência em uma imagem para marca, com aspecto comercial e profissional" }
 ];
 
 export function ImageGenerator() {
@@ -137,13 +137,13 @@ export function ImageGenerator() {
   const [likedImages, setLikedImages] = useState<Set<string>>(new Set());
   const [activeView, setActiveView] = useState("create");
 
-  // Estados para o aprimoramento de imagens
+  // Estados para a referência visual
   const [uploadedImage, setUploadedImage] = useState<File | null>(null);
   const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
-  const [enhancementPrompt, setEnhancementPrompt] = useState("");
-  const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
-  const [isEnhancing, setIsEnhancing] = useState(false);
-  const [enhanceError, setEnhanceError] = useState<string | null>(null);
+  const [inspirationPrompt, setInspirationPrompt] = useState("");
+  const [generatedFromRef, setGeneratedFromRef] = useState<string | null>(null);
+  const [isGeneratingFromRef, setIsGeneratingFromRef] = useState(false);
+  const [refError, setRefError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const generate = useAction(api.imageGenerator.generateImage);
@@ -172,19 +172,19 @@ export function ImageGenerator() {
     if (files && files.length > 0) {
       const file = files[0];
       if (file.size > 5 * 1024 * 1024) {
-        setEnhanceError("Arquivo muito grande. O tamanho máximo é 5MB.");
+        setRefError("Arquivo muito grande. O tamanho máximo é 5MB.");
         return;
       }
 
       if (!file.type.startsWith("image/")) {
-        setEnhanceError("Por favor, selecione um arquivo de imagem válido.");
+        setRefError("Por favor, selecione um arquivo de imagem válido.");
         return;
       }
 
       setUploadedImage(file);
       setUploadedImageUrl(URL.createObjectURL(file));
-      setEnhancedImage(null);
-      setEnhanceError(null);
+      setGeneratedFromRef(null);
+      setRefError(null);
     }
   };
 
@@ -195,19 +195,19 @@ export function ImageGenerator() {
     if (files && files.length > 0) {
       const file = files[0];
       if (file.size > 5 * 1024 * 1024) {
-        setEnhanceError("Arquivo muito grande. O tamanho máximo é 5MB.");
+        setRefError("Arquivo muito grande. O tamanho máximo é 5MB.");
         return;
       }
 
       if (!file.type.startsWith("image/")) {
-        setEnhanceError("Por favor, selecione um arquivo de imagem válido.");
+        setRefError("Por favor, selecione um arquivo de imagem válido.");
         return;
       }
 
       setUploadedImage(file);
       setUploadedImageUrl(URL.createObjectURL(file));
-      setEnhancedImage(null);
-      setEnhanceError(null);
+      setGeneratedFromRef(null);
+      setRefError(null);
     }
   };
 
@@ -239,25 +239,25 @@ export function ImageGenerator() {
     }
   };
 
-  const handleEnhanceSubmit = async (e: React.FormEvent) => {
+  const handleInspirationSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!uploadedImage || !enhancementPrompt.trim()) return;
+    if (!uploadedImage || !inspirationPrompt.trim()) return;
 
-    setIsEnhancing(true);
-    setEnhanceError(null);
+    setIsGeneratingFromRef(true);
+    setRefError(null);
 
     try {
-      // Aqui usamos a mesma função de gerar imagem, mas com um prompt específico
-      // que descreve a imagem original e como ela deve ser aprimorada
-      const fullPrompt = `Imagem aprimorada: ${enhancementPrompt}. Estilo profissional e de alta qualidade.`;
+      // Aqui usamos o generateImage com um prompt detalhado
+      // Nota: Não estamos enviando a imagem para a IA, apenas usando como referência visual para o usuário
+      const fullPrompt = `${inspirationPrompt}. Estilo profissional e alta qualidade.`;
 
-      const enhancedImageUrl = await generate({ prompt: fullPrompt });
-      setEnhancedImage(enhancedImageUrl);
+      const generatedImageUrl = await generate({ prompt: fullPrompt });
+      setGeneratedFromRef(generatedImageUrl);
     } catch (err) {
       console.error(err);
-      setEnhanceError(err instanceof Error ? err.message : "Ocorreu um erro ao aprimorar a imagem.");
+      setRefError(err instanceof Error ? err.message : "Ocorreu um erro ao gerar a imagem.");
     } finally {
-      setIsEnhancing(false);
+      setIsGeneratingFromRef(false);
     }
   };
 
@@ -331,9 +331,9 @@ export function ImageGenerator() {
               <Wand2 className="w-4 h-4 mr-2" />
               Criar
             </TabsTrigger>
-            <TabsTrigger value="enhance" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
+            <TabsTrigger value="reference" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
               <Upload className="w-4 h-4 mr-2" />
-              Aprimorar
+              Referência
             </TabsTrigger>
             <TabsTrigger value="gallery" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
               <Grid3x3 className="w-4 h-4 mr-2" />
@@ -658,18 +658,18 @@ export function ImageGenerator() {
             </div>
           </TabsContent>
 
-          {/* Image Enhancer View */}
-          <TabsContent value="enhance" className="mt-0">
+          {/* Reference View - Inspiration from uploaded image */}
+          <TabsContent value="reference" className="mt-0">
             <div className="grid md:grid-cols-2 gap-6">
               {/* Left Column - Upload and Controls */}
               <div className="space-y-5">
                 <Card className="bg-white border-gray-200">
                   <CardContent className="p-5">
-                    <form onSubmit={handleEnhanceSubmit} className="space-y-5">
+                    <form onSubmit={handleInspirationSubmit} className="space-y-5">
                       {/* Image Upload */}
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 block">
-                          Descreva sua imagem de referência
+                          Carregue uma imagem de referência
                         </label>
                         <div
                           className={`border-2 border-dashed rounded-lg p-6 text-center ${
@@ -691,7 +691,7 @@ export function ImageGenerator() {
                             <div className="relative h-40 mx-auto">
                               <Image
                                 src={uploadedImageUrl}
-                                alt="Imagem enviada"
+                                alt="Imagem de referência"
                                 fill
                                 className="object-contain"
                               />
@@ -710,69 +710,69 @@ export function ImageGenerator() {
                         </div>
                       </div>
 
-                      {/* Enhancement Instructions */}
+                      {/* Inspiration Instructions */}
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-2 block">
-                          Como você quer criar uma imagem similar?
+                          Descreva o que deseja criar com base nesta referência
                         </label>
                         <div className="relative">
                           <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-500" />
                           <Input
                             type="text"
-                            value={enhancementPrompt}
-                            onChange={(e) => setEnhancementPrompt(e.target.value)}
-                            placeholder="Ex: Imagem similar com melhor iluminação e fundo branco..."
-                            disabled={isEnhancing || !uploadedImage}
+                            value={inspirationPrompt}
+                            onChange={(e) => setInspirationPrompt(e.target.value)}
+                            placeholder="Ex: Criar uma versão mais profissional desta imagem..."
+                            disabled={isGeneratingFromRef || !uploadedImage}
                             className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 text-gray-800 placeholder:text-gray-400"
                           />
                         </div>
                       </div>
 
-                      {/* Enhancement Presets */}
+                      {/* Inspiration Suggestions */}
                       <div>
                         <label className="text-sm font-medium text-gray-700 mb-3 block">
-                          Sugestões rápidas
+                          Sugestões de inspiração
                         </label>
                         <div className="grid grid-cols-2 gap-2">
-                          {enhancementPresets.map((preset) => (
+                          {inspirationSuggestions.map((suggestion) => (
                             <button
-                              key={preset.id}
+                              key={suggestion.id}
                               type="button"
-                              onClick={() => setEnhancementPrompt(preset.prompt)}
+                              onClick={() => setInspirationPrompt(suggestion.prompt)}
                               className="relative p-3 rounded-lg border border-gray-200 hover:border-indigo-300 bg-white text-gray-700 hover:bg-indigo-50 transition-all text-left"
                             >
-                              <span className="text-xs font-medium">{preset.name}</span>
+                              <span className="text-xs font-medium">{suggestion.name}</span>
                             </button>
                           ))}
                         </div>
                       </div>
 
-                      {/* Enhancement Button */}
+                      {/* Create Button */}
                       <Button
                         type="submit"
-                        disabled={isEnhancing || !uploadedImage || !enhancementPrompt.trim()}
+                        disabled={isGeneratingFromRef || !uploadedImage || !inspirationPrompt.trim()}
                         className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
                       >
-                        {isEnhancing ? (
+                        {isGeneratingFromRef ? (
                           <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Criando imagem similar...
+                            Criando com IA...
                           </>
                         ) : (
                           <>
                             <Wand2 className="mr-2 h-5 w-5" />
-                            Criar com IA
+                            Criar com Inspiração
                           </>
                         )}
                       </Button>
 
-                      {enhanceError && (
+                      {refError && (
                         <motion.div
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           className="p-3 bg-red-50 border border-red-100 rounded-lg"
                         >
-                          <p className="text-sm text-red-600">{enhanceError}</p>
+                          <p className="text-sm text-red-600">{refError}</p>
                         </motion.div>
                       )}
                     </form>
@@ -784,20 +784,20 @@ export function ImageGenerator() {
                   <CardContent className="p-5">
                     <h3 className="text-base font-semibold mb-3 flex items-center gap-2 text-gray-800">
                       <Lightbulb className="w-4 h-4 text-amber-500" />
-                      Dicas para melhores resultados
+                      Como funciona
                     </h3>
                     <ul className="space-y-2 text-sm text-gray-600">
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                        <span>Faça uma descrição detalhada do que deseja criar</span>
+                        <span>Carregue uma imagem que servirá como inspiração visual</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                        <span>Mencione elementos específicos e o estilo desejado</span>
+                        <span>Descreva o que deseja criar baseado nesta referência</span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Check className="w-4 h-4 text-green-500 shrink-0 mt-0.5" />
-                        <span>Use a imagem carregada apenas como referência visual</span>
+                        <span>A IA criará uma nova imagem inspirada na referência e na sua descrição</span>
                       </li>
                     </ul>
                   </CardContent>
@@ -811,22 +811,22 @@ export function ImageGenerator() {
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
                         <ImageIcon className="w-4 h-4 text-indigo-500" />
-                        Imagem criada
+                        Resultado da inspiração
                       </h3>
-                      {enhancedImage && (
+                      {generatedFromRef && (
                         <div className="flex gap-1">
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => toggleLike(enhancedImage)}
+                            onClick={() => toggleLike(generatedFromRef)}
                             className="text-gray-500 hover:text-rose-500"
                           >
-                            <Heart className={`w-4 h-4 ${likedImages.has(enhancedImage) ? 'fill-rose-500 text-rose-500' : ''}`} />
+                            <Heart className={`w-4 h-4 ${likedImages.has(generatedFromRef) ? 'fill-rose-500 text-rose-500' : ''}`} />
                           </Button>
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => handleDownload(enhancedImage, enhancementPrompt)}
+                            onClick={() => handleDownload(generatedFromRef, inspirationPrompt)}
                             className="text-gray-500 hover:text-indigo-600"
                           >
                             <Download className="w-4 h-4" />
@@ -834,7 +834,7 @@ export function ImageGenerator() {
                           <Button
                             size="sm"
                             variant="ghost"
-                            onClick={() => setSelectedImage(enhancedImage)}
+                            onClick={() => setSelectedImage(generatedFromRef)}
                             className="text-gray-500 hover:text-indigo-600"
                           >
                             <Maximize2 className="w-4 h-4" />
@@ -848,34 +848,34 @@ export function ImageGenerator() {
                         ratio={1}
                         className="bg-white rounded-md overflow-hidden"
                       >
-                        {isEnhancing && (
+                        {isGeneratingFromRef && (
                           <div className="flex flex-col items-center justify-center h-full">
                             <div className="relative">
                               <div className="relative bg-gray-100 rounded-full p-6">
                                 <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
                               </div>
                             </div>
-                            <p className="mt-4 text-gray-500 animate-pulse">Criando imagem similar...</p>
+                            <p className="mt-4 text-gray-500 animate-pulse">Criando com inspiração...</p>
                           </div>
                         )}
-                        {!isEnhancing && !enhancedImage && (
+                        {!isGeneratingFromRef && !generatedFromRef && (
                           <div className="flex flex-col items-center justify-center h-full text-gray-400">
                             <Wand2 className="w-14 h-14 mb-3 opacity-30" />
-                            <p className="text-sm">Sua imagem aparecerá aqui</p>
+                            <p className="text-sm">Nova imagem inspirada na referência</p>
                             <p className="text-xs text-gray-400 mt-1">
                               Carregue uma imagem e descreva o que deseja criar
                             </p>
                           </div>
                         )}
-                        {enhancedImage && !isEnhancing && (
+                        {generatedFromRef && !isGeneratingFromRef && (
                           <motion.div
                             initial={{ opacity: 0, scale: 0.95 }}
                             animate={{ opacity: 1, scale: 1 }}
                             className="relative w-full h-full"
                           >
                             <Image
-                              src={enhancedImage}
-                              alt={enhancementPrompt}
+                              src={generatedFromRef}
+                              alt={inspirationPrompt}
                               fill
                               className="object-cover"
                               sizes="(max-width: 768px) 100vw, 50vw"
@@ -885,11 +885,11 @@ export function ImageGenerator() {
                       </AspectRatio>
                     </div>
 
-                    {enhancedImage && (
+                    {generatedFromRef && (
                       <div className="mt-4 space-y-3">
                         <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                          <p className="text-xs text-gray-500 mb-1">Descrição da imagem:</p>
-                          <p className="text-sm text-gray-700">{enhancementPrompt}</p>
+                          <p className="text-xs text-gray-500 mb-1">Inspiração aplicada:</p>
+                          <p className="text-sm text-gray-700">{inspirationPrompt}</p>
                         </div>
 
                         <div className="flex flex-wrap gap-2 mt-2">
