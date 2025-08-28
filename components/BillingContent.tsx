@@ -4,8 +4,8 @@ import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
   Loader2, Rocket, Star, CheckCircle, HelpCircle, ArrowRight, XCircle,
-  BrainCircuit, Wand2, Sparkles, Zap,  ChevronRight,
-   Shield, CreditCard, Target,  MessageSquare,
+  BrainCircuit, Wand2, Sparkles, Zap, ChevronRight,
+  Shield, CreditCard, Target, MessageSquare,
   Palette
 } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -61,6 +61,7 @@ const plans: Plan[] = [
     popularFeatures: [
       "Links e cliques ilimitados",
       "URL personalizada",
+      "Analytics básicos"
     ],
     features: [
       {
@@ -76,8 +77,7 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
-          { text: "Geração básica de imagens (3 por mês)", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
-          { text: "Geração ilimitada de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
+          { text: "Geração de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
           { text: "Acesso ao FreelinkBrain (gerador de ideias)", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Calendário de conteúdo personalizado", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
         ]
@@ -104,9 +104,9 @@ const plans: Plan[] = [
     yearlyPrice: "R$199",
     priceDetails: "/mês",
     popularFeatures: [
-      "Geração ilimitada de imagens",
-      "FreelinkBrain para ideias virais",
-      "Analytics avançados"
+      "🧠 IA que gera ideias virais para conteúdo",
+      "📊 Analytics avançados e completos",
+      "🚫 Sem marca d'água Freelink"
     ],
     features: [
       {
@@ -120,10 +120,9 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
-          { text: "Geração ilimitada de imagens profissionais", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "Formatos otimizados para todas as redes sociais", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "FreelinkBrain: Gerador de ideias virais", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "Roteiros prontos para Reels e Posts",  icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
+          { text: "Roteiros prontos para Reels e Posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
+          { text: "Geração de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
           { text: "Plano estratégico de conteúdo completo", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
         ]
       },
@@ -150,9 +149,9 @@ const plans: Plan[] = [
     yearlyPrice: "R$399",
     priceDetails: "/mês",
     popularFeatures: [
-      "Estúdio de imagens IA avançado",
-      "Calendário de posts automático",
-      "Ferramentas de monetização"
+      "🎨 Geração ilimitada de imagens profissionais",
+      "🎁 Sistema completo de sorteios",
+      "📱 Suporte VIP no WhatsApp"
     ],
     features: [
       {
@@ -168,6 +167,7 @@ const plans: Plan[] = [
         features: [
           { text: "Todas as ferramentas do plano Pro", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "Estúdio de imagens IA avançado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "Geração ilimitada de imagens", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Calendário de conteúdo personalizado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Agendamento automático de posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> }
         ]
@@ -245,7 +245,10 @@ export default function BillingContent() {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planIdentifier, cycle: billingCycle }),
+        body: JSON.stringify({
+          plan: planIdentifier,
+          cycle: billingCycle
+        }),
       });
 
       const data = await res.json();
@@ -366,8 +369,12 @@ export default function BillingContent() {
 
       <div className="mt-1 text-xs text-blue-200 flex items-center">
         <Shield className="w-3.5 h-3.5 mr-1.5" />
-        Incluído nos planos Pro e Ultra
+        Incluído apenas no plano Ultra
       </div>
+
+      <Button size="sm" className="mt-4 w-full bg-white/20 hover:bg-white/30 text-white">
+        Ver exemplos →
+      </Button>
     </CardContent>
   </Card>
 
@@ -402,6 +409,10 @@ export default function BillingContent() {
         <Shield className="w-3.5 h-3.5 mr-1.5" />
         Incluído nos planos Pro e Ultra
       </div>
+
+      <Button size="sm" className="mt-4 w-full bg-white/20 hover:bg-white/30 text-white">
+        Ver exemplos →
+      </Button>
     </CardContent>
   </Card>
 </motion.div>
@@ -455,6 +466,123 @@ export default function BillingContent() {
             />
           ))}
         </div>
+
+        {/* NOVO: Depoimentos */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="mt-16"
+        >
+          <h3 className="text-2xl font-bold text-center mb-8 text-gray-900 dark:text-white">
+            Criadores que transformaram seus perfis
+          </h3>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {[
+              {
+                name: "Maria Silva",
+                role: "10K seguidores",
+                text: "Triplicou meu engajamento em 30 dias. As imagens parecem profissionais!",
+                avatar: "MS"
+              },
+              {
+                name: "João Pedro",
+                role: "Coach Digital",
+                text: "Economizo 10 horas por semana agora. O FreelinkBrain é sensacional.",
+                avatar: "JP"
+              },
+              {
+                name: "Ana Costa",
+                role: "Influencer",
+                text: "Melhor que Canva + ChatGPT juntos! Vale cada centavo.",
+                avatar: "AC"
+              }
+            ].map((t, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.1 }}
+                className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700"
+              >
+                <div className="flex items-center gap-3 mb-2">
+                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="font-semibold text-sm">{t.name}</p>
+                    <p className="text-xs text-gray-500">{t.role}</p>
+                  </div>
+                </div>
+                <p className="text-sm text-gray-600 dark:text-gray-300 italic">{t.text}</p>
+                <div className="flex gap-1 mt-2">
+                  {[...Array(5)].map((_, i) => (
+                    <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                  ))}
+                </div>
+              </motion.div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* NOVO: Comparação de Economia */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.4 }}
+          className="mt-16 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-8 rounded-2xl"
+        >
+          <h3 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+            Quanto você economiza com o Freelink?
+          </h3>
+
+          <div className="grid md:grid-cols-2 gap-8">
+            <div>
+              <h4 className="font-semibold mb-4 text-red-600 dark:text-red-400">❌ Sem Freelink:</h4>
+              <ul className="space-y-2">
+                <li className="flex justify-between">
+                  <span>Canva Pro</span>
+                  <span className="font-mono">R$ 34,00</span>
+                </li>
+                <li className="flex justify-between">
+                  <span>ChatGPT Plus</span>
+                  <span className="font-mono">R$ 100,00</span>
+                </li>
+                <li className="flex justify-between">
+                  <span>Gleam.io</span>
+                  <span className="font-mono">R$ 97,00</span>
+                </li>
+                <li className="flex justify-between">
+                  <span>Linktree Pro</span>
+                  <span className="font-mono">R$ 24,00</span>
+                </li>
+                <li className="flex justify-between border-t pt-2 font-bold">
+                  <span>Total Mensal</span>
+                  <span className="font-mono text-red-600 dark:text-red-400">R$ 255,00</span>
+                </li>
+              </ul>
+            </div>
+
+            <div>
+              <h4 className="font-semibold mb-4 text-green-600 dark:text-green-400">✅ Com Freelink Ultra:</h4>
+              <ul className="space-y-2">
+                <li className="flex justify-between">
+                  <span>Tudo incluído</span>
+                  <span className="font-mono">R$ 39,90</span>
+                </li>
+                <li className="flex justify-between mt-8 pt-8 border-t">
+                  <span className="font-bold">Economia Mensal</span>
+                  <span className="font-mono text-green-600 dark:text-green-400 font-bold">R$ 215,10</span>
+                </li>
+                <li className="flex justify-between">
+                  <span className="font-bold">Economia Anual</span>
+                  <span className="font-mono text-green-600 dark:text-green-400 font-bold text-xl">R$ 2.581,20</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </motion.div>
 
         {/* Portal de gerenciamento de assinatura */}
         {currentPlan !== "free" && (
@@ -708,7 +836,8 @@ function PlanCard({
                 ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 : <ArrowRight className="mr-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
               }
-              {currentPlan === 'free' && `Assinar ${plan.name}`}
+              {currentPlan === 'free' && plan.id === 'pro' && 'Assinar Plano Pro'}
+              {currentPlan === 'free' && plan.id === 'ultra' && 'Assinar Plano Ultra'}
               {currentPlan === 'pro' && plan.id === 'ultra' && 'Fazer Upgrade'}
               {currentPlan === 'ultra' && plan.id === 'pro' && 'Fazer Downgrade'}
             </Button>
@@ -725,11 +854,10 @@ function FAQ() {
 
   const faqs = [
     {
-  q: "As imagens geradas pela IA realmente parecem profissionais?",
-  a: "Sim! Nosso gerador de imagens utiliza os modelos de IA mais avançados disponíveis, otimizados especificamente para marketing digital e redes sociais. Milhares de criadores já estão utilizando nossas imagens de alta qualidade em seus perfis."
-},
+      q: "As imagens geradas pela IA realmente parecem profissionais?",
+      a: "Sim! Nosso gerador de imagens utiliza os modelos de IA mais avançados disponíveis, otimizados especificamente para marketing digital e redes sociais. Milhares de criadores já estão utilizando nossas imagens de alta qualidade em seus perfis."
+    },
     {
-
       q: "Posso cancelar a qualquer momento?",
       a: "Sim! Você pode cancelar sua assinatura quando quiser no seu painel. Seu acesso aos recursos premium continuará até o final do seu ciclo de faturamento."
     },
