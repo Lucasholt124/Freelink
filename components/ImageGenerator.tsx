@@ -1,55 +1,63 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Doc } from "../convex/_generated/dataModel";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AspectRatio } from "@/components/ui/aspect-ratio";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
+
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 import {
-  Loader2,
-  Sparkles,
-  Wand2,
-  Download,
-  Share2,
-  Heart,
-  Maximize2,
-  Palette,
-  Copy,
-  Check,
-  Grid3x3,
-  Image as ImageIcon,
-  ChevronRight,
-  Star,
-  Lightbulb,
-  Brush,
-  Camera,
-  Shapes,
-  X,
-  ArrowLeft,
-  BookOpen,
-  User,
-  ShoppingBag,
-  Instagram,
-  Facebook,
-  Linkedin,
-  TrendingUp,
-  MessageSquare,
-  Edit,
-  Info
+  Loader2, Sparkles, Wand2, Download, Share2, Heart, Maximize2,
+  Palette, Copy, Check, Grid3x3, Image as ImageIcon,
+  Star, Lightbulb, Brush, Camera, Shapes, X, ArrowLeft, BookOpen,
+  User, ShoppingBag, Instagram, TrendingUp, Edit, Upload, Video, Music,
+   Crown, Rocket, Film, Eye,
+   Scissors, Brain,
+  AlertCircle
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
+import { Alert, AlertDescription } from "./ui/alert";
 
-// Categorias de negócios
+// ========== TIPOS ==========
+
+interface VideoScene {
+  duration: number;
+  text: string;
+  visualPrompt: string;
+  transition: string;
+  imageUrl?: string;
+}
+
+interface VideoScript {
+  title: string;
+  scenes: VideoScene[];
+  music: string;
+  voiceStyle: string;
+  captions: {
+    style: string;
+    color: string;
+    animation: string;
+  };
+  totalDuration: number;
+  format: string;
+  fps: number;
+}
+
+// ========== CONFIGURAÇÕES ==========
+
 const businessCategories = [
   { id: "ecommerce", name: "E-commerce", icon: ShoppingBag },
   { id: "content", name: "Criador de Conteúdo", icon: Edit },
@@ -59,209 +67,659 @@ const businessCategories = [
   { id: "product", name: "Produtos", icon: Star }
 ];
 
-// Tipos de estilo predefinidos
 const stylePresets = [
-  { id: "realistic", name: "Realista", icon: Camera, gradient: "from-slate-400 to-slate-300" },
-  { id: "artistic", name: "Artístico", icon: Brush, gradient: "from-slate-400 to-slate-300" },
-  { id: "3d", name: "3D Render", icon: Shapes, gradient: "from-slate-400 to-slate-300" },
-  { id: "minimal", name: "Minimalista", icon: Grid3x3, gradient: "from-slate-400 to-slate-300" },
-  { id: "product", name: "Produto", icon: ShoppingBag, gradient: "from-slate-400 to-slate-300" },
-  { id: "lifestyle", name: "Lifestyle", icon: User, gradient: "from-slate-400 to-slate-300" }
+  { id: "realistic", name: "Realista", icon: Camera },
+  { id: "artistic", name: "Artístico", icon: Brush },
+  { id: "3d", name: "3D Render", icon: Shapes },
+  { id: "minimal", name: "Minimalista", icon: Grid3x3 },
+  { id: "product", name: "Produto", icon: ShoppingBag },
+  { id: "lifestyle", name: "Lifestyle", icon: User }
 ];
 
-// Templates de prompt por categoria de negócio
-const businessPrompts = {
+const businessPrompts: Record<string, string[]> = {
   ecommerce: [
     "produto elegante em fundo minimalista branco",
-    "modelo exibindo roupas em cenário urbano",
-    "close em detalhes do produto com iluminação suave"
+    "modelo exibindo roupas em cenário urbano moderno",
+    "close detalhado do produto com iluminação suave"
   ],
   content: [
-    "pessoa criando conteúdo em setup moderno de home office",
-    "laptop em mesa de café com notebook e canetas",
-    "smartphone exibindo feed de rede social em ambiente aconchegante"
+    "criador produzindo conteúdo em estúdio profissional",
+    "setup de gravação com equipamentos modernos",
+    "influencer criando conteúdo viral"
   ],
   social: [
-    "composição instagramável com produto e elementos decorativos",
-    "pessoa sorrindo segurando smartphone em café moderno",
-    "flatlay de produtos em arranjo estético com iluminação natural"
+    "foto instagramável com composição perfeita",
+    "conteúdo viral para redes sociais",
+    "post engajador com elementos visuais"
   ],
   marketing: [
-    "outdoor digital exibindo campanha em centro urbano",
-    "pessoas reagindo positivamente a anúncio em tablet",
-    "gráfico de crescimento com elementos visuais modernos"
+    "campanha publicitária impactante",
+    "material de marketing profissional",
+    "anúncio criativo e persuasivo"
   ],
   branding: [
-    "logo aplicado em mockup realista de papelaria",
-    "identidade visual em múltiplas aplicações",
-    "elementos de marca em composição harmônica"
+    "identidade visual moderna e consistente",
+    "logo aplicado em mockup realista",
+    "brand guidelines profissionais"
   ],
   product: [
-    "produto em explosão 3D mostrando componentes",
-    "conjunto de produtos da mesma linha em exposição elegante",
-    "close detalhado em textura e acabamento do produto"
+    "produto em destaque com iluminação dramática",
+    "packshot profissional em fundo neutro",
+    "demonstração visual do produto"
   ]
 };
 
-// Formatos para redes sociais
 const socialFormats = [
   { id: "instagram_post", name: "Post Instagram", ratio: "1:1", size: "1080x1080" },
   { id: "instagram_story", name: "Story Instagram", ratio: "9:16", size: "1080x1920" },
-  { id: "facebook_post", name: "Post Facebook", ratio: "16:9", size: "1200x630" },
-  { id: "pinterest", name: "Pinterest", ratio: "2:3", size: "1000x1500" },
-  { id: "linkedin", name: "LinkedIn", ratio: "16:9", size: "1200x627" },
-  { id: "twitter", name: "Twitter", ratio: "16:9", size: "1200x675" }
+  { id: "instagram_reel", name: "Reels", ratio: "9:16", size: "1080x1920" },
+  { id: "tiktok", name: "TikTok", ratio: "9:16", size: "1080x1920" },
+  { id: "youtube_short", name: "YouTube Shorts", ratio: "9:16", size: "1080x1920" },
+  { id: "facebook_post", name: "Post Facebook", ratio: "16:9", size: "1200x630" }
 ];
 
+const videoStyles = [
+  { id: "viral", name: "Viral/TikTok", icon: TrendingUp, color: "from-pink-500 to-purple-500" },
+  { id: "motivational", name: "Motivacional", icon: Rocket, color: "from-orange-500 to-red-500" },
+  { id: "educational", name: "Educativo", icon: Brain, color: "from-blue-500 to-cyan-500" },
+  { id: "funny", name: "Engraçado", icon: Star, color: "from-yellow-500 to-orange-500" }
+];
+
+const musicOptions = [
+  { id: "epic", name: "Épica Motivacional", bpm: 140 },
+  { id: "upbeat", name: "Alegre e Animada", bpm: 120 },
+  { id: "chill", name: "Lo-fi Relaxante", bpm: 80 },
+  { id: "trap", name: "Trap Moderno", bpm: 160 },
+  { id: "none", name: "Sem Música", bpm: 0 }
+];
+
+// ========== COMPONENTE PRINCIPAL ==========
+
 export function ImageGenerator() {
+  // Estados principais
+  const [activeTab, setActiveTab] = useState("create");
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("realistic");
   const [selectedBusiness, setSelectedBusiness] = useState("ecommerce");
   const [selectedFormat, setSelectedFormat] = useState("instagram_post");
-  const [imageQuality, setImageQuality] = useState([80]);
+  const [imageQuality, setImageQuality] = useState([90]);
   const [latestImage, setLatestImage] = useState<string | null>(null);
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
-  const [copiedPrompt, setCopiedPrompt] = useState<string | null>(null);
-  const [likedImages, setLikedImages] = useState<Set<string>>(new Set());
-  const [activeView, setActiveView] = useState("create");
-
-  const generate = useAction(api.imageGenerator.generateImage);
-  const imageHistory = useQuery(api.imageGenerator.getImagesForUser) || [];
-
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Definir aspect ratio com base no formato selecionado
-  const getAspectRatio = () => {
-    const format = socialFormats.find(f => f.id === selectedFormat);
-    return format ? format.ratio : "1:1";
-  };
+  // Estados para aprimoramento
+  const [uploadedImage, setUploadedImage] = useState<File | null>(null);
+  const [uploadedImageUrl, setUploadedImageUrl] = useState<string | null>(null);
+  const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
+  const [isEnhancing, setIsEnhancing] = useState(false);
 
-  // Converter ratio string para número (para o componente AspectRatio)
+  // Estados para vídeo
+  const [videoTopic, setVideoTopic] = useState("");
+  const [selectedVideoStyle, setSelectedVideoStyle] = useState("viral");
+  const [selectedMusic, setSelectedMusic] = useState("epic");
+  const [videoDuration, setVideoDuration] = useState([30]);
+  const [videoScript, setVideoScript] = useState<VideoScript | null>(null);
+  const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
+  const [videoProgress, setVideoProgress] = useState(0);
+  const [finalVideoUrl, setFinalVideoUrl] = useState<string | null>(null);
+
+  // Estados UI
+  const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [likedImages, setLikedImages] = useState<Set<string>>(new Set());
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  // Refs
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  // Hooks Convex
+  const generate = useAction(api.imageGenerator.generateImage);
+  const enhance = useAction(api.imageGenerator.enhanceImage);
+  const generateVideo = useAction(api.imageGenerator.generateVideoScript);
+  const imageHistory = useQuery(api.imageGenerator.getImagesForUser) || [];
+
+  // ========== FUNÇÕES UTILITÁRIAS ==========
+
   const getRatioValue = (ratioStr: string) => {
-    if (ratioStr === "1:1") return 1;
-    if (ratioStr === "16:9") return 16/9;
-    if (ratioStr === "9:16") return 9/16;
-    if (ratioStr === "2:3") return 2/3;
-    return 1;
+    const ratios: Record<string, number> = {
+      "1:1": 1,
+      "16:9": 16/9,
+      "9:16": 9/16,
+      "2:3": 2/3
+    };
+    return ratios[ratioStr] || 1;
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!prompt.trim()) return;
+  const getBusinessPrompts = useCallback(() => {
+    return businessPrompts[selectedBusiness] || [];
+  }, [selectedBusiness]);
 
-    setIsLoading(true);
-    setError(null);
-    setLatestImage(null);
+  const handleCopyText = useCallback((text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedText(text);
+    toast.success("Copiado para a área de transferência!");
+    setTimeout(() => setCopiedText(null), 2000);
+  }, []);
 
+  const handleDownload = async (url: string, filename: string) => {
     try {
-      const format = socialFormats.find(f => f.id === selectedFormat);
-      const aspectRatio = format ? format.ratio : "1:1";
-
-      const fullPrompt = `${prompt}, ${selectedStyle} style, ${aspectRatio} aspect ratio, professional quality, for ${selectedBusiness} business`;
-      const imageUrl = await generate({ prompt: fullPrompt });
-      setLatestImage(imageUrl);
-      setActiveView("create");
-    } catch (err) {
-      console.error(err);
-      setError(err instanceof Error ? err.message : "Ocorreu um erro ao gerar a imagem.");
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleDownload = async (imageUrl: string, prompt: string) => {
-    try {
-      const response = await fetch(imageUrl);
+      const response = await fetch(url);
       const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
+      const downloadUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = url;
-      a.download = `content-studio-${prompt.slice(0, 20).replace(/[^\w\s]/gi, '')}.png`;
+      a.href = downloadUrl;
+      a.download = `mentor-ia-${filename}-${Date.now()}.png`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error) {
-      console.error('Erro ao baixar imagem:', error);
+      window.URL.revokeObjectURL(downloadUrl);
+      toast.success("Download iniciado!");
+    } catch {
+      toast.error("Erro ao baixar imagem");
     }
   };
 
-  const handleCopyPrompt = (prompt: string) => {
-    navigator.clipboard.writeText(prompt);
-    setCopiedPrompt(prompt);
-    setTimeout(() => setCopiedPrompt(null), 2000);
+  const handleShare = async (url: string, text: string) => {
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Conteúdo criado com Mentor.IA',
+          text: text,
+          url: url
+        });
+      } catch {
+        console.log('Share cancelado');
+      }
+    } else {
+      navigator.clipboard.writeText(url);
+      toast.success("Link copiado!");
+    }
   };
 
-  const toggleLike = (imageId: string) => {
+  const toggleLikeImage = useCallback((imageId: string) => {
     setLikedImages(prev => {
       const newSet = new Set(prev);
       if (newSet.has(imageId)) {
         newSet.delete(imageId);
+        toast.success("Removido dos favoritos");
       } else {
         newSet.add(imageId);
+        toast.success("Adicionado aos favoritos!");
       }
       return newSet;
     });
+  }, []);
+
+  // ========== GERAÇÃO DE IMAGEM ==========
+
+  const handleGenerateImage = async (e: React.FormEvent) => {
+  e.preventDefault();
+  if (!prompt.trim()) {
+    toast.error("Por favor, descreva sua imagem");
+    return;
+  }
+
+  setIsLoading(true);
+  setError(null);
+  setLatestImage(null);
+
+  try {
+    const format = socialFormats.find(f => f.id === selectedFormat);
+    const fullPrompt = `${prompt}, ${selectedStyle} style, ${format?.ratio} aspect ratio, professional quality, for ${selectedBusiness} business, in Portuguese Brazil market`;
+
+    const imageUrl = await generate({ prompt: fullPrompt });
+    setLatestImage(imageUrl);
+    toast.success("Imagem gerada com sucesso! 🎨");
+
+    // Analytics removido - adicionar quando necessário
+
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : "Erro ao gerar imagem";
+    setError(errorMessage);
+    toast.error(errorMessage);
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+  // ========== APRIMORAMENTO DE IMAGEM ==========
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 10 * 1024 * 1024) {
+        toast.error("Imagem muito grande. Máximo: 10MB");
+        return;
+      }
+
+      setUploadedImage(file);
+      const url = URL.createObjectURL(file);
+      setUploadedImageUrl(url);
+      setEnhancedImage(null);
+      toast.success("Imagem carregada!");
+    }
   };
 
-  // Pegar prompts baseados na categoria de negócio selecionada
-  const getBusinessPrompts = () => {
-    return businessPrompts[selectedBusiness as keyof typeof businessPrompts] || [];
+  const handleEnhanceImage = async (enhancement: string) => {
+    if (!uploadedImageUrl) {
+      toast.error("Por favor, faça upload de uma imagem primeiro");
+      return;
+    }
+
+    setIsEnhancing(true);
+    try {
+      let enhancementPrompt = "";
+
+      switch(enhancement) {
+        case "remove-bg":
+          enhancementPrompt = "Remover fundo da imagem";
+          toast.info("Removendo fundo...");
+          break;
+        case "upscale":
+          enhancementPrompt = "Aumentar qualidade para 4K";
+          toast.info("Melhorando qualidade...");
+          break;
+        case "fix-lighting":
+          enhancementPrompt = "Corrigir iluminação";
+          toast.info("Ajustando iluminação...");
+          break;
+        case "enhance-colors":
+          enhancementPrompt = "Melhorar cores e contraste";
+          toast.info("Otimizando cores...");
+          break;
+      }
+
+      const result = await enhance({
+        imageUrl: uploadedImageUrl,
+        enhancement: enhancement
+      });
+
+      setEnhancedImage(result);
+      toast.success(`✨ ${enhancementPrompt} concluído!`);
+
+    } catch {
+      toast.error("Erro ao aprimorar imagem");
+    } finally {
+      setIsEnhancing(false);
+    }
   };
+
+  // ========== GERAÇÃO DE VÍDEO ==========
+
+  const handleGenerateVideo = async () => {
+    if (!videoTopic.trim()) {
+      toast.error("Por favor, descreva o tema do vídeo");
+      return;
+    }
+
+    setIsGeneratingVideo(true);
+    setVideoProgress(0);
+    setFinalVideoUrl(null);
+
+    try {
+      // Simula progresso
+      const progressInterval = setInterval(() => {
+        setVideoProgress(prev => {
+          if (prev >= 90) return 90;
+          return prev + 10;
+        });
+      }, 500);
+
+      // Gera script com cenas
+      const script = await generateVideo({
+        topic: videoTopic,
+        style: selectedVideoStyle,
+        duration: videoDuration[0]
+      });
+
+      setVideoScript(script);
+      clearInterval(progressInterval);
+      setVideoProgress(100);
+
+      // Cria vídeo no browser
+      await createVideoFromScript(script);
+
+      toast.success("🎬 Vídeo viral criado com sucesso!");
+
+    } catch {
+      toast.error("Erro ao gerar vídeo");
+    } finally {
+      setIsGeneratingVideo(false);
+      setVideoProgress(0);
+    }
+  };
+
+  // Função para criar vídeo usando Canvas e MediaRecorder
+  const createVideoFromScript = async (script: VideoScript) => {
+    if (!canvasRef.current) return;
+
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // Configura canvas para formato vertical (9:16)
+    canvas.width = 1080;
+    canvas.height = 1920;
+
+    // MediaRecorder para gravar o canvas
+    const stream = canvas.captureStream(30); // 30 fps
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'video/webm;codecs=vp9',
+      videoBitsPerSecond: 5000000 // 5 Mbps
+    });
+
+    const chunks: BlobPart[] = [];
+    mediaRecorder.ondataavailable = (e) => chunks.push(e.data);
+
+    mediaRecorder.onstop = () => {
+      const blob = new Blob(chunks, { type: 'video/webm' });
+      const url = URL.createObjectURL(blob);
+      setFinalVideoUrl(url);
+    };
+
+    mediaRecorder.start();
+
+    // Anima cada cena
+    for (const scene of script.scenes) {
+      await animateScene(ctx, scene, canvas.width, canvas.height);
+    }
+
+    mediaRecorder.stop();
+  };
+
+  // Anima uma cena no canvas
+  const animateScene = async (
+    ctx: CanvasRenderingContext2D,
+    scene: VideoScene,
+    width: number,
+    height: number
+  ) => {
+    return new Promise<void>((resolve) => {
+      const duration = scene.duration * 1000; // Converte para ms
+      const startTime = Date.now();
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+
+        // Limpa canvas
+        ctx.fillStyle = '#000000';
+        ctx.fillRect(0, 0, width, height);
+
+        // Desenha imagem da cena (se houver)
+        if (scene.imageUrl) {
+          const img = new window.Image();
+          img.onload = () => {
+            // Efeito Ken Burns (zoom suave)
+            const scale = 1 + (progress * 0.1);
+            const x = (width - width * scale) / 2;
+            const y = (height - height * scale) / 2;
+
+            ctx.save();
+            ctx.translate(width/2, height/2);
+            ctx.scale(scale, scale);
+            ctx.translate(-width/2, -height/2);
+            ctx.drawImage(img, x, y, width, height);
+            ctx.restore();
+          };
+          img.src = scene.imageUrl;
+        }
+
+        // Desenha legendas estilo Mr Beast
+        ctx.save();
+
+        // Sombra para o texto
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetX = 3;
+        ctx.shadowOffsetY = 3;
+
+        // Configuração do texto
+        ctx.font = 'bold 72px Arial';
+        ctx.fillStyle = '#FFFF00';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Animação do texto (bounce)
+        const textScale = 1 + Math.sin(progress * Math.PI) * 0.2;
+        ctx.save();
+        ctx.translate(width/2, height/2);
+        ctx.scale(textScale, textScale);
+
+        // Quebra o texto em linhas
+        const words = scene.text.split(' ');
+        const lines: string[] = [];
+        let currentLine = '';
+
+        words.forEach((word: string) => {
+          const testLine = currentLine + word + ' ';
+          const metrics = ctx.measureText(testLine);
+          if (metrics.width > width - 100 && currentLine !== '') {
+            lines.push(currentLine);
+            currentLine = word + ' ';
+          } else {
+            currentLine = testLine;
+          }
+        });
+        lines.push(currentLine);
+
+        // Desenha cada linha
+        lines.forEach((line, i) => {
+          const y = (i - lines.length/2) * 80;
+          ctx.fillText(line.trim(), 0, y);
+        });
+
+        ctx.restore();
+        ctx.restore();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          resolve();
+        }
+      };
+
+      animate();
+    });
+  };
+
+  // ========== RENDERIZAÇÃO ==========
 
   return (
-    <div className="w-full bg-white text-gray-800 rounded-xl overflow-hidden border border-gray-200 shadow-sm">
-      {/* Header with navigation */}
-      <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white">
-        <Link href="/dashboard" className="flex items-center text-gray-500 hover:text-gray-700 transition-colors">
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          <span>Voltar ao Dashboard</span>
-        </Link>
+    <div className="w-full min-h-screen bg-gradient-to-br from-gray-50 to-white">
+      {/* Canvas oculto para geração de vídeo */}
+      <canvas ref={canvasRef} className="hidden" />
 
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="bg-gray-50 border-gray-200 text-gray-600">
-            <Sparkles className="w-3 h-3 mr-1 text-amber-500" />
-            Content Studio
-          </Badge>
+      {/* Header Premium */}
+      <div className="sticky top-0 z-50 bg-white/80 backdrop-blur-lg border-b border-gray-200 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Link href="/dashboard" className="flex items-center text-gray-600 hover:text-gray-800 transition-colors">
+                <ArrowLeft className="w-5 h-5 mr-2" />
+                <span className="hidden sm:inline">Dashboard</span>
+              </Link>
+
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg blur-sm opacity-50"></div>
+                  <Badge className="relative bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 px-3 py-1">
+                    <Crown className="w-4 h-4 mr-1" />
+                    Mentor.IA Ultimate
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowTutorial(true)}
+                className="hidden sm:flex"
+              >
+                <BookOpen className="w-4 h-4 mr-2" />
+                Tutorial
+              </Button>
+
+              <div className="flex items-center gap-1 text-sm text-gray-600">
+                <Eye className="w-4 h-4" />
+                <span className="font-medium">{imageHistory.length}</span>
+                <span className="hidden sm:inline">criações</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <div className="p-4 md:p-6 bg-gray-50">
-        {/* Tabs for navigation */}
-        <Tabs
-          defaultValue="create"
-          value={activeView}
-          onValueChange={setActiveView}
-          className="w-full"
+      {/* Tutorial Dialog */}
+      <Dialog open={showTutorial} onOpenChange={setShowTutorial}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Como usar o Mentor.IA Ultimate</DialogTitle>
+            <DialogDescription>
+              Aprenda a criar conteúdo viral em minutos
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-bold text-purple-600">1</span>
+              </div>
+              <div>
+                <h4 className="font-medium">Gere imagens profissionais</h4>
+                <p className="text-sm text-gray-600">Descreva sua ideia e escolha o estilo visual</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-bold text-purple-600">2</span>
+              </div>
+              <div>
+                <h4 className="font-medium">Aprimore suas imagens</h4>
+                <p className="text-sm text-gray-600">Remova fundos, melhore qualidade e ajuste cores</p>
+              </div>
+            </div>
+            <div className="flex gap-3">
+              <div className="w-8 h-8 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0">
+                <span className="text-sm font-bold text-purple-600">3</span>
+              </div>
+              <div>
+                <h4 className="font-medium">Crie vídeos virais</h4>
+                <p className="text-sm text-gray-600">Gere scripts e vídeos com legendas automáticas</p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Alert de erro */}
+      {error && (
+        <div className="max-w-7xl mx-auto px-4 mt-4">
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
+      )}
+
+      {/* Conteúdo Principal */}
+      <div className="max-w-7xl mx-auto px-4 py-6">
+        {/* Hero Section */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-center mb-8"
         >
-          <TabsList className="w-full max-w-md mx-auto grid grid-cols-3 mb-6 bg-gray-100">
-            <TabsTrigger value="create" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
-              <Wand2 className="w-4 h-4 mr-2" />
-              Criar
+          <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 bg-clip-text text-transparent mb-3">
+            Crie Conteúdo Viral com IA
+          </h1>
+          <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+            Gere imagens profissionais, remova fundos, crie vídeos virais com legendas e muito mais.
+            Tudo com Inteligência Artificial de última geração.
+          </p>
+
+          {/* Stats */}
+          <div className="flex items-center justify-center gap-8 mt-6">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-800">1M+</div>
+              <div className="text-xs text-gray-500">Imagens Criadas</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-800">500K+</div>
+              <div className="text-xs text-gray-500">Vídeos Virais</div>
+            </div>
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-800">4.9★</div>
+              <div className="text-xs text-gray-500">Avaliação</div>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* Tabs Principais */}
+        <Tabs defaultValue="create" value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid grid-cols-4 max-w-2xl mx-auto mb-8 h-auto p-1 bg-gray-100">
+            <TabsTrigger
+              value="create"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-3"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Wand2 className="w-5 h-5" />
+                <span className="text-xs font-medium">Criar</span>
+              </div>
             </TabsTrigger>
-            <TabsTrigger value="gallery" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
-              <Grid3x3 className="w-4 h-4 mr-2" />
-              Galeria
+
+            <TabsTrigger
+              value="enhance"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-3"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Upload className="w-5 h-5" />
+                <span className="text-xs font-medium">Aprimorar</span>
+              </div>
             </TabsTrigger>
-            <TabsTrigger value="templates" className="data-[state=active]:bg-white data-[state=active]:text-gray-800">
-              <BookOpen className="w-4 h-4 mr-2" />
-              Templates
+
+            <TabsTrigger
+              value="video"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-3"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Video className="w-5 h-5" />
+                <span className="text-xs font-medium">Vídeo</span>
+              </div>
+            </TabsTrigger>
+
+            <TabsTrigger
+              value="gallery"
+              className="data-[state=active]:bg-white data-[state=active]:shadow-sm py-3"
+            >
+              <div className="flex flex-col items-center gap-1">
+                <Grid3x3 className="w-5 h-5" />
+                <span className="text-xs font-medium">Galeria</span>
+              </div>
             </TabsTrigger>
           </TabsList>
 
-          {/* Create View */}
+          {/* TAB 1: CRIAR IMAGEM */}
           <TabsContent value="create" className="mt-0">
-            <div className="grid md:grid-cols-2 gap-6">
-              {/* Left Column - Controls */}
+            <div className="grid lg:grid-cols-2 gap-6">
+              {/* Controles */}
               <div className="space-y-5">
-                <Card className="bg-white border-gray-200">
-                  <CardContent className="p-5">
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                      {/* Business Category Selection */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-purple-500" />
+                      Gerador de Imagens com IA
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleGenerateImage} className="space-y-5">
+                      {/* Categoria de Negócio */}
                       <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">
-                          Seu tipo de negócio
+                        <label className="text-sm font-medium mb-2 block">
+                          Seu Tipo de Negócio
                         </label>
                         <div className="grid grid-cols-3 gap-2">
                           {businessCategories.map((category) => {
@@ -271,13 +729,13 @@ export function ImageGenerator() {
                                 key={category.id}
                                 type="button"
                                 onClick={() => setSelectedBusiness(category.id)}
-                                className={`relative p-3 rounded-lg border transition-all ${
+                                className={`relative p-3 rounded-lg border-2 transition-all ${
                                   selectedBusiness === category.id
-                                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                                    : "border-gray-200 hover:border-gray-300 bg-white text-gray-700"
+                                    ? "border-purple-500 bg-purple-50 text-purple-700 shadow-md"
+                                    : "border-gray-200 hover:border-gray-300 bg-white"
                                 }`}
                               >
-                                <Icon className="w-5 h-5 mx-auto mb-1.5" />
+                                <Icon className="w-5 h-5 mx-auto mb-1" />
                                 <span className="text-xs font-medium">{category.name}</span>
                               </button>
                             );
@@ -285,25 +743,23 @@ export function ImageGenerator() {
                         </div>
                       </div>
 
-                      {/* Format Selection */}
+                      {/* Formato */}
                       <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 flex items-center justify-between">
-                          <span>Formato para redes sociais</span>
-                          <Badge variant="outline" className="font-normal text-xs bg-gray-50">
-                            <Info className="w-3 h-3 mr-1" />
-                            Dimensões otimizadas
-                          </Badge>
+                        <label className="text-sm font-medium mb-2 block">
+                          Formato para Redes Sociais
                         </label>
                         <Select value={selectedFormat} onValueChange={setSelectedFormat}>
-                          <SelectTrigger className="bg-white border-gray-200">
-                            <SelectValue placeholder="Selecione um formato" />
+                          <SelectTrigger>
+                            <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
                             {socialFormats.map(format => (
-                              <SelectItem key={format.id} value={format.id} className="text-sm">
+                              <SelectItem key={format.id} value={format.id}>
                                 <div className="flex items-center justify-between w-full">
                                   <span>{format.name}</span>
-                                  <span className="text-xs text-gray-500">{format.size}</span>
+                                  <Badge variant="outline" className="ml-2 text-xs">
+                                    {format.size}
+                                  </Badge>
                                 </div>
                               </SelectItem>
                             ))}
@@ -311,27 +767,23 @@ export function ImageGenerator() {
                         </Select>
                       </div>
 
-                      {/* Prompt Input */}
+                      {/* Prompt */}
                       <div>
-                        <label className="text-sm font-medium text-gray-700 mb-2 block">
-                          Descreva sua imagem
+                        <label className="text-sm font-medium mb-2 block">
+                          Descreva sua Imagem
                         </label>
-                        <div className="relative">
-                          <Sparkles className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-amber-500" />
-                          <Input
-                            type="text"
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            placeholder="Descreva o que você quer mostrar..."
-                            disabled={isLoading}
-                            className="pl-10 h-12 bg-white border-gray-200 focus:border-indigo-500 text-gray-800 placeholder:text-gray-400"
-                          />
-                        </div>
+                        <Textarea
+                          value={prompt}
+                          onChange={(e) => setPrompt(e.target.value)}
+                          placeholder="Ex: Produto minimalista em fundo branco com iluminação suave..."
+                          className="min-h-[100px] resize-none"
+                          disabled={isLoading}
+                        />
                       </div>
 
-                      {/* Style Selection */}
+                      {/* Estilo */}
                       <div>
-                        <label className="text-sm font-medium text-gray-700 mb-3 block">
+                        <label className="text-sm font-medium mb-2 block">
                           Estilo Visual
                         </label>
                         <div className="grid grid-cols-3 gap-2">
@@ -342,27 +794,25 @@ export function ImageGenerator() {
                                 key={style.id}
                                 type="button"
                                 onClick={() => setSelectedStyle(style.id)}
-                                className={`relative p-3 rounded-lg border transition-all ${
+                                className={`p-3 rounded-lg border-2 transition-all ${
                                   selectedStyle === style.id
-                                    ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                                    : "border-gray-200 hover:border-gray-300 bg-white text-gray-700"
+                                    ? "border-purple-500 bg-purple-50 text-purple-700"
+                                    : "border-gray-200 hover:border-gray-300"
                                 }`}
                               >
-                                <Icon className="w-5 h-5 mx-auto mb-1.5" />
-                                <span className="text-xs font-medium">{style.name}</span>
+                                <Icon className="w-5 h-5 mx-auto mb-1" />
+                                <span className="text-xs">{style.name}</span>
                               </button>
                             );
                           })}
                         </div>
                       </div>
 
-                      {/* Quality Slider */}
+                      {/* Qualidade */}
                       <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <label className="text-sm font-medium text-gray-700">
-                            Qualidade da imagem
-                          </label>
-                          <span className="text-sm text-indigo-600 font-medium">{imageQuality[0]}%</span>
+                        <div className="flex justify-between mb-2">
+                          <label className="text-sm font-medium">Qualidade</label>
+                          <span className="text-sm font-bold text-purple-600">{imageQuality[0]}%</span>
                         </div>
                         <Slider
                           value={imageQuality}
@@ -370,191 +820,130 @@ export function ImageGenerator() {
                           max={100}
                           min={50}
                           step={10}
-                          className="w-full"
                         />
                       </div>
 
-                      {/* Generate Button */}
+                      {/* Botão Gerar */}
                       <Button
                         type="submit"
                         disabled={isLoading || !prompt.trim()}
-                        className="w-full h-12 bg-indigo-600 hover:bg-indigo-700 text-white font-medium"
+                        className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold"
                       >
                         {isLoading ? (
                           <>
                             <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                            Gerando conteúdo...
+                            Criando sua obra-prima...
                           </>
                         ) : (
                           <>
                             <Wand2 className="mr-2 h-5 w-5" />
-                            Criar Imagem Profissional
+                            Gerar Imagem Profissional
                           </>
                         )}
                       </Button>
-
-                      {error && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="p-3 bg-red-50 border border-red-100 rounded-lg"
-                        >
-                          <p className="text-sm text-red-600">{error}</p>
-                        </motion.div>
-                      )}
                     </form>
                   </CardContent>
                 </Card>
 
-                {/* Quick Templates */}
-                <Card className="bg-white border-gray-200">
-                  <CardContent className="p-5">
-                    <h3 className="text-base font-semibold mb-3 flex items-center gap-2 text-gray-800">
-                      <Lightbulb className="w-4 h-4 text-amber-500" />
-                      Ideias para {businessCategories.find(b => b.id === selectedBusiness)?.name || "seu negócio"}
-                    </h3>
-                    <div className="space-y-3">
-                      <div className="flex flex-wrap gap-1.5">
-                        {getBusinessPrompts().map((p, i) => (
-                          <button
-                            key={i}
-                            onClick={() => setPrompt(p)}
-                            className="text-xs px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full transition-colors"
-                          >
-                            {p}
-                          </button>
-                        ))}
-                      </div>
-
-                      <div className="mt-4 pt-3 border-t border-gray-100">
-                        <div className="flex items-center text-xs text-gray-500">
-                          <div className="flex items-center gap-1 mr-3">
-                            <Instagram className="w-3.5 h-3.5" />
-                            <span>Instagram</span>
-                          </div>
-                          <div className="flex items-center gap-1 mr-3">
-                            <Facebook className="w-3.5 h-3.5" />
-                            <span>Facebook</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Linkedin className="w-3.5 h-3.5" />
-                            <span>LinkedIn</span>
-                          </div>
-                        </div>
-                      </div>
+                {/* Templates Rápidos */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Lightbulb className="w-5 h-5 text-yellow-500" />
+                      Ideias Rápidas
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {getBusinessPrompts().map((p, i) => (
+                        <Button
+                          key={i}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setPrompt(p)}
+                          className="text-xs"
+                        >
+                          {p}
+                        </Button>
+                      ))}
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Right Column - Preview */}
+              {/* Preview */}
               <div>
-                <Card className="bg-white border-gray-200 h-full">
-                  <CardContent className="p-5">
-                    <div className="flex items-center justify-between mb-4">
-                      <h3 className="text-base font-semibold text-gray-800 flex items-center gap-2">
-                        <ImageIcon className="w-4 h-4 text-indigo-500" />
-                        Prévia do conteúdo
-                      </h3>
+                <Card className="h-full">
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Preview</CardTitle>
                       {latestImage && (
-                        <div className="flex gap-1">
+                        <div className="flex gap-2">
                           <Button
-                            size="sm"
+                            size="icon"
                             variant="ghost"
-                            onClick={() => toggleLike(latestImage)}
-                            className="text-gray-500 hover:text-rose-500"
-                          >
-                            <Heart className={`w-4 h-4 ${likedImages.has(latestImage) ? 'fill-rose-500 text-rose-500' : ''}`} />
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDownload(latestImage, prompt)}
-                            className="text-gray-500 hover:text-indigo-600"
+                            onClick={() => handleDownload(latestImage, "image")}
                           >
                             <Download className="w-4 h-4" />
                           </Button>
                           <Button
-                            size="sm"
+                            size="icon"
                             variant="ghost"
-                            onClick={() => setSelectedImage(latestImage)}
-                            className="text-gray-500 hover:text-indigo-600"
+                            onClick={() => handleShare(latestImage, prompt)}
                           >
-                            <Maximize2 className="w-4 h-4" />
+                            <Share2 className="w-4 h-4" />
                           </Button>
                         </div>
                       )}
                     </div>
-
-                    <div className="relative rounded-lg border border-gray-200 p-1 bg-gray-50">
-                      <AspectRatio
-                        ratio={getRatioValue(getAspectRatio())}
-                        className="bg-white rounded-md overflow-hidden"
-                      >
-                        {isLoading && (
-                          <div className="flex flex-col items-center justify-center h-full">
-                            <div className="relative">
-                              <div className="relative bg-gray-100 rounded-full p-6">
-                                <Loader2 className="h-10 w-10 animate-spin text-indigo-500" />
-                              </div>
-                            </div>
-                            <p className="mt-4 text-gray-500 animate-pulse">Gerando sua imagem profissional...</p>
-                          </div>
-                        )}
-                        {!isLoading && !latestImage && (
-                          <div className="flex flex-col items-center justify-center h-full text-gray-400">
-                            <ImageIcon className="w-14 h-14 mb-3 opacity-30" />
-                            <p className="text-sm">Sua imagem profissional aparecerá aqui</p>
-                            <p className="text-xs text-gray-400 mt-1">
-                              Formato: {socialFormats.find(f => f.id === selectedFormat)?.name || "Padrão"}
-                            </p>
-                          </div>
-                        )}
-                        {latestImage && !isLoading && (
-                          <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            className="relative w-full h-full"
-                          >
-                            <Image
-                              src={latestImage}
-                              alt={prompt}
-                              fill
-                              className="object-cover"
-                              sizes="(max-width: 768px) 100vw, 50vw"
-                            />
-                          </motion.div>
-                        )}
-                      </AspectRatio>
-                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <AspectRatio
+                      ratio={getRatioValue(socialFormats.find(f => f.id === selectedFormat)?.ratio || "1:1")}
+                      className="bg-gray-100 rounded-lg overflow-hidden"
+                    >
+                      {isLoading ? (
+                        <div className="flex flex-col items-center justify-center h-full">
+                          <Loader2 className="h-12 w-12 animate-spin text-purple-500 mb-4" />
+                          <p className="text-gray-500 animate-pulse">Criando com IA...</p>
+                        </div>
+                      ) : latestImage ? (
+                        <Image
+                          src={latestImage}
+                          alt={prompt}
+                          fill
+                          className="object-cover"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-gray-400">
+                          <ImageIcon className="w-16 h-16 mb-3 opacity-20" />
+                          <p className="text-sm">Sua imagem aparecerá aqui</p>
+                        </div>
+                      )}
+                    </AspectRatio>
 
                     {latestImage && (
-                      <div className="mt-4 space-y-3">
-                        <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                          <p className="text-xs text-gray-500 mb-1">Descrição da imagem:</p>
-                          <p className="text-sm text-gray-700">{prompt}</p>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mt-2">
-                          <Badge variant="outline" className="text-xs font-normal bg-gray-50 text-gray-600">
-                            <MessageSquare className="w-3 h-3 mr-1" />
-                            Ideal para posts
-                          </Badge>
-                          <Badge variant="outline" className="text-xs font-normal bg-gray-50 text-gray-600">
-                            {selectedBusiness === "ecommerce" ? (
-                              <ShoppingBag className="w-3 h-3 mr-1" />
-                            ) : selectedBusiness === "social" ? (
-                              <Instagram className="w-3 h-3 mr-1" />
-                            ) : (
-                              <Palette className="w-3 h-3 mr-1" />
-                            )}
-                            {businessCategories.find(b => b.id === selectedBusiness)?.name}
-                          </Badge>
-                          <Badge variant="outline" className="text-xs font-normal bg-gray-50 text-gray-600">
-                            <Instagram className="w-3 h-3 mr-1" />
-                            {socialFormats.find(f => f.id === selectedFormat)?.name || "Padrão"}
-                          </Badge>
-                        </div>
+                      <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                        <p className="text-xs text-gray-500 mb-1">Prompt usado:</p>
+                        <p className="text-sm text-gray-700">{prompt}</p>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCopyText(prompt)}
+                          className="mt-2"
+                        >
+                          {copiedText === prompt ? (
+                            <>
+                              <Check className="w-3 h-3 mr-1" />
+                              Copiado!
+                            </>
+                          ) : (
+                            <>
+                              <Copy className="w-3 h-3 mr-1" />
+                              Copiar prompt
+                            </>
+                          )}
+                        </Button>
                       </div>
                     )}
                   </CardContent>
@@ -563,330 +952,427 @@ export function ImageGenerator() {
             </div>
           </TabsContent>
 
-          {/* Gallery View */}
-          <TabsContent value="gallery" className="mt-0">
-            {imageHistory.length === 0 ? (
-              <Card className="bg-white border-gray-200">
-                <CardContent className="py-12 text-center">
-                  <ImageIcon className="w-14 h-14 mx-auto mb-4 text-gray-300" />
-                  <h3 className="text-xl font-semibold mb-2 text-gray-800">Sua galeria está vazia</h3>
-                  <p className="text-gray-500 mb-5">Comece criando imagens profissionais para seu negócio!</p>
-                  <Button
-                    onClick={() => setActiveView("create")}
-                    className="bg-indigo-600 hover:bg-indigo-700"
+          {/* TAB 2: APRIMORAR IMAGEM */}
+          <TabsContent value="enhance" className="mt-0">
+            <div className="max-w-4xl mx-auto">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Palette className="w-5 h-5 text-purple-500" />
+                    Aprimorador de Imagens com IA
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Upload */}
+                  <div
+                    className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-purple-500 transition-colors cursor-pointer"
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <Wand2 className="w-4 h-4 mr-2" />
-                    Criar primeira imagem
-                  </Button>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <Upload className="w-12 h-12 mx-auto mb-4 text-gray-400" />
+                    <p className="text-lg font-medium mb-2">
+                      {uploadedImage ? uploadedImage.name : "Clique ou arraste uma imagem"}
+                    </p>
+                    <p className="text-sm text-gray-500">PNG, JPG até 10MB</p>
+                  </div>
+
+                  {/* Ações de Aprimoramento */}
+                  {uploadedImageUrl && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <Button
+                        onClick={() => handleEnhanceImage("remove-bg")}
+                        disabled={isEnhancing}
+                        variant="outline"
+                        className="h-auto py-4 flex-col gap-2"
+                      >
+                        <Scissors className="w-5 h-5" />
+                        <span className="text-xs">Remover Fundo</span>
+                      </Button>
+
+                      <Button
+                        onClick={() => handleEnhanceImage("upscale")}
+                        disabled={isEnhancing}
+                        variant="outline"
+                        className="h-auto py-4 flex-col gap-2"
+                      >
+                        <Maximize2 className="w-5 h-5" />
+                        <span className="text-xs">Aumentar Qualidade</span>
+                      </Button>
+
+                      <Button
+                        onClick={() => handleEnhanceImage("fix-lighting")}
+                        disabled={isEnhancing}
+                        variant="outline"
+                        className="h-auto py-4 flex-col gap-2"
+                      >
+                        <Lightbulb className="w-5 h-5" />
+                        <span className="text-xs">Corrigir Iluminação</span>
+                      </Button>
+
+                      <Button
+                        onClick={() => handleEnhanceImage("enhance-colors")}
+                        disabled={isEnhancing}
+                        variant="outline"
+                        className="h-auto py-4 flex-col gap-2"
+                      >
+                        <Palette className="w-5 h-5" />
+                        <span className="text-xs">Melhorar Cores</span>
+                      </Button>
+                    </div>
+                  )}
+
+                  {/* Comparação Antes/Depois */}
+                  {uploadedImageUrl && (
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Original</h3>
+                        <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                          <Image
+                            src={uploadedImageUrl}
+                            alt="Original"
+                            fill
+                            className="object-cover"
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <h3 className="text-sm font-medium mb-2">Aprimorada</h3>
+                        <div className="relative aspect-square rounded-lg overflow-hidden bg-gray-100">
+                          {isEnhancing ? (
+                            <div className="flex items-center justify-center h-full">
+                              <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                            </div>
+                          ) : enhancedImage ? (
+                            <Image
+                              src={enhancedImage}
+                              alt="Aprimorada"
+                              fill
+                              className="object-cover"
+                            />
+                          ) : (
+                            <div className="flex items-center justify-center h-full text-gray-400">
+                              <ImageIcon className="w-12 h-12 opacity-20" />
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Download Aprimorada */}
+                  {enhancedImage && (
+                    <div className="flex justify-center">
+                      <Button
+                        onClick={() => handleDownload(enhancedImage, "enhanced")}
+                        className="bg-gradient-to-r from-purple-600 to-pink-600"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Baixar Imagem Aprimorada
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
-            ) : (
-              <>
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-xl font-semibold flex items-center text-gray-800">
-                    <Grid3x3 className="w-5 h-5 mr-2 text-indigo-500" />
-                    Sua Biblioteca de Conteúdo
-                  </h3>
-                  <p className="text-sm text-gray-500">{imageHistory.length} imagens</p>
-                </div>
+            </div>
+          </TabsContent>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {imageHistory.map((image: Doc<"generatedImages">, index) => (
+          {/* TAB 3: CRIAR VÍDEO */}
+          <TabsContent value="video" className="mt-0">
+            <div className="max-w-4xl mx-auto">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Video className="w-5 h-5 text-purple-500" />
+                    Criador de Vídeos Virais com IA
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Input do Tema */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Tema do Vídeo
+                    </label>
+                    <Textarea
+                      value={videoTopic}
+                      onChange={(e) => setVideoTopic(e.target.value)}
+                      placeholder="Ex: 5 dicas para vender mais no Instagram..."
+                      className="min-h-[80px]"
+                    />
+                  </div>
+
+                  {/* Estilo do Vídeo */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Estilo do Vídeo
+                    </label>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {videoStyles.map((style) => {
+                        const Icon = style.icon;
+                        return (
+                          <button
+                            key={style.id}
+                            onClick={() => setSelectedVideoStyle(style.id)}
+                            className={`p-4 rounded-lg border-2 transition-all ${
+                              selectedVideoStyle === style.id
+                                ? "border-purple-500 bg-gradient-to-br " + style.color + " text-white"
+                                : "border-gray-200 hover:border-gray-300"
+                            }`}
+                          >
+                            <Icon className="w-6 h-6 mx-auto mb-2" />
+                            <span className="text-xs font-medium">{style.name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Música */}
+                  <div>
+                    <label className="text-sm font-medium mb-2 block">
+                      Trilha Sonora
+                    </label>
+                    <Select value={selectedMusic} onValueChange={setSelectedMusic}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {musicOptions.map(music => (
+                          <SelectItem key={music.id} value={music.id}>
+                            <div className="flex items-center gap-2">
+                              <Music className="w-4 h-4" />
+                              <span>{music.name}</span>
+                              {music.bpm > 0 && (
+                                <Badge variant="outline" className="ml-auto text-xs">
+                                  {music.bpm} BPM
+                                </Badge>
+                              )}
+                            </div>
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Duração */}
+                  <div>
+                    <div className="flex justify-between mb-2">
+                      <label className="text-sm font-medium">Duração</label>
+                      <span className="text-sm font-bold text-purple-600">{videoDuration[0]}s</span>
+                    </div>
+                    <Slider
+                      value={videoDuration}
+                      onValueChange={setVideoDuration}
+                      max={60}
+                      min={15}
+                      step={5}
+                    />
+                  </div>
+
+                  {/* Botão Gerar Vídeo */}
+                  <Button
+                    onClick={handleGenerateVideo}
+                    disabled={isGeneratingVideo || !videoTopic.trim()}
+                    className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold"
+                  >
+                    {isGeneratingVideo ? (
+                      <>
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                        Criando vídeo viral... {videoProgress}%
+                      </>
+                    ) : (
+                      <>
+                        <Film className="mr-2 h-5 w-5" />
+                        Criar Vídeo Viral Agora
+                      </>
+                    )}
+                  </Button>
+
+                  {/* Progress Bar */}
+                  {isGeneratingVideo && (
+                    <Progress value={videoProgress} className="h-2" />
+                  )}
+
+                  {/* Preview do Script */}
+                  {videoScript && (
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Script Gerado</h3>
+                      <div className="space-y-2">
+                        {videoScript.scenes.map((scene: VideoScene, i: number) => (
+                          <div key={i} className="p-3 bg-gray-50 rounded-lg">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Badge variant="outline">Cena {i + 1}</Badge>
+                              <span className="text-xs text-gray-500">{scene.duration}s</span>
+                            </div>
+                            <p className="text-sm">{scene.text}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Player do Vídeo Final */}
+                  {finalVideoUrl && (
+                    <div className="space-y-4">
+                      <h3 className="font-medium">Vídeo Pronto!</h3>
+                      <div className="relative aspect-[9/16] max-w-sm mx-auto rounded-lg overflow-hidden bg-black">
+                        <video
+                          ref={videoRef}
+                          src={finalVideoUrl}
+                          controls
+                          className="w-full h-full"
+                        />
+                      </div>
+                      <div className="flex justify-center">
+                        <Button
+                          onClick={() => {
+                            const a = document.createElement('a');
+                            a.href = finalVideoUrl;
+                            a.download = `video-viral-${Date.now()}.webm`;
+                            a.click();
+                          }}
+                          className="bg-gradient-to-r from-purple-600 to-pink-600"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Baixar Vídeo
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+
+          {/* TAB 4: GALERIA */}
+          <TabsContent value="gallery" className="mt-0">
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold">Suas Criações</h2>
+                <Badge variant="outline">
+                  {imageHistory.length} imagens
+                </Badge>
+              </div>
+
+              {imageHistory.length === 0 ? (
+                <Card>
+                  <CardContent className="py-12 text-center">
+                    <ImageIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <h3 className="text-xl font-semibold mb-2">Nenhuma criação ainda</h3>
+                    <p className="text-gray-500 mb-4">Comece criando sua primeira imagem!</p>
+                    <Button onClick={() => setActiveTab("create")}>
+                      <Wand2 className="w-4 h-4 mr-2" />
+                      Criar Agora
+                    </Button>
+                  </CardContent>
+                </Card>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {imageHistory.map((image: Doc<"generatedImages">) => (
                     <motion.div
                       key={image._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: index * 0.03 }}
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      whileHover={{ scale: 1.05 }}
                       className="group relative"
                     >
-                      <div className="relative bg-white rounded-lg overflow-hidden border border-gray-200 shadow-sm transition-all duration-200 group-hover:shadow-md">
-                        <AspectRatio ratio={1}>
+                      <Card className="overflow-hidden">
+                        <div className="relative aspect-square">
                           <Image
                             src={image.imageUrl}
                             alt={image.prompt}
                             fill
-                            className="object-cover transition-transform duration-300 group-hover:scale-105"
-                            sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
+                            className="object-cover"
                           />
 
-                          {/* Botão de download sempre visível em mobile */}
-                          <div className="absolute top-2 right-2 md:hidden">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownload(image.imageUrl, image.prompt);
-                              }}
-                              className="h-8 w-8 p-0 bg-white/90 backdrop-blur-sm border-white/30 shadow-sm text-gray-700 hover:bg-white"
-                            >
-                              <Download className="w-4 h-4" />
-                            </Button>
-                          </div>
-
-                          {/* Overlay desktop */}
-                          <div className="absolute inset-0 flex flex-col justify-end bg-gradient-to-t from-black/70 via-black/30 to-transparent opacity-0 group-hover:opacity-100 md:transition-opacity md:duration-200">
-                            <div className="p-3">
-                              <p className="text-xs text-white line-clamp-2 mb-2">{image.prompt}</p>
-                              <div className="flex gap-1.5">
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    toggleLike(image._id);
-                                  }}
-                                  className="h-7 w-7 p-0 text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30"
-                                >
-                                  <Heart className={`w-3.5 h-3.5 ${likedImages.has(image._id) ? 'fill-rose-500 text-rose-500' : ''}`} />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleDownload(image.imageUrl, image.prompt);
-                                  }}
-                                  className="h-7 w-7 p-0 text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 hidden md:flex"
-                                >
-                                  <Download className="w-3.5 h-3.5" />
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCopyPrompt(image.prompt);
-                                  }}
-                                  className="h-7 w-7 p-0 text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30"
-                                >
-                                  {copiedPrompt === image.prompt ? (
-                                    <Check className="w-3.5 h-3.5" />
-                                  ) : (
-                                    <Copy className="w-3.5 h-3.5" />
-                                  )}
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedImage(image.imageUrl);
-                                  }}
-                                  className="h-7 w-7 p-0 text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30"
-                                >
-                                  <Maximize2 className="w-3.5 h-3.5" />
-                                </Button>
-                              </div>
+                          {/* Overlay com ações */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3">
+                            <p className="text-white text-xs mb-2 line-clamp-2">
+                              {image.prompt}
+                            </p>
+                            <div className="flex gap-2">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white"
+                                onClick={() => toggleLikeImage(image._id)}
+                              >
+                                <Heart className={`w-4 h-4 ${likedImages.has(image._id) ? 'fill-current' : ''}`} />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white"
+                                onClick={() => handleDownload(image.imageUrl, image.prompt)}
+                              >
+                                <Download className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white"
+                                onClick={() => handleShare(image.imageUrl, image.prompt)}
+                              >
+                                <Share2 className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 bg-white/20 backdrop-blur-sm hover:bg-white/30 text-white"
+                                onClick={() => setSelectedImage(image.imageUrl)}
+                              >
+                                <Maximize2 className="w-4 h-4" />
+                              </Button>
                             </div>
                           </div>
-                        </AspectRatio>
-
-                        {/* Botão invisível para toggle do overlay no mobile */}
-                        <button
-                          onClick={(e) => {
-                            e.preventDefault();
-                            const overlay = document.getElementById(`image-overlay-${image._id}`);
-                            if (overlay) {
-                              overlay.classList.toggle('opacity-0');
-                              overlay.classList.toggle('opacity-100');
-                            }
-                          }}
-                          className="absolute inset-0 md:hidden z-10"
-                          aria-label="Ver opções"
-                        />
-
-                        {/* Overlay mobile */}
-                        <div
-                          id={`image-overlay-${image._id}`}
-                          className="absolute inset-0 bg-black/60 opacity-0 flex flex-col justify-end p-3 md:hidden transition-opacity z-20"
-                        >
-                          <p className="text-xs text-white line-clamp-2 mb-2">{image.prompt}</p>
-                          <div className="grid grid-cols-4 gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDownload(image.imageUrl, image.prompt);
-                              }}
-                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                            >
-                              <Download className="w-3.5 h-3.5 mr-1.5" />
-                              <span className="text-xs">Baixar</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                toggleLike(image._id);
-                              }}
-                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                            >
-                              <Heart className={`w-3.5 h-3.5 mr-1.5 ${likedImages.has(image._id) ? 'fill-rose-500 text-rose-500' : ''}`} />
-                              <span className="text-xs">Curtir</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setSelectedImage(image.imageUrl);
-                              }}
-                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                            >
-                              <Maximize2 className="w-3.5 h-3.5 mr-1.5" />
-                              <span className="text-xs">Ampliar</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleCopyPrompt(image.prompt);
-                              }}
-                              className="w-full text-white border-white/30 bg-black/20 backdrop-blur-sm hover:bg-black/30 py-1 h-auto"
-                            >
-                              {copiedPrompt === image.prompt ? (
-                                <>
-                                  <Check className="w-3.5 h-3.5 mr-1.5" />
-                                  <span className="text-xs">Copiado</span>
-                                </>
-                              ) : (
-                                <>
-                                  <Copy className="w-3.5 h-3.5 mr-1.5" />
-                                  <span className="text-xs">Copiar</span>
-                                </>
-                              )}
-                            </Button>
-                          </div>
                         </div>
-                      </div>
+                      </Card>
                     </motion.div>
                   ))}
                 </div>
-              </>
-            )}
-          </TabsContent>
-
-          {/* Templates View */}
-          <TabsContent value="templates" className="mt-0">
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {Object.entries(businessPrompts).map(([businessId, prompts]) => {
-                const category = businessCategories.find(b => b.id === businessId);
-                const Icon = category?.icon || Lightbulb;
-
-                return (
-                  <Card key={businessId} className="bg-white border-gray-200">
-                    <CardContent className="p-5">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-8 h-8 rounded-full bg-indigo-50 flex items-center justify-center">
-                          <Icon className="w-4 h-4 text-indigo-600" />
-                        </div>
-                        <h3 className="text-base font-semibold text-gray-800">
-                          {category?.name || "Templates"}
-                        </h3>
-                      </div>
-
-                      <div className="space-y-2">
-                        {prompts.map((templatePrompt, i) => (
-                          <button
-                            key={i}
-                            onClick={() => {
-                              setPrompt(templatePrompt);
-                              setSelectedBusiness(businessId);
-                              setActiveView("create");
-                            }}
-                            className="w-full p-3 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 hover:border-gray-300 transition-all text-left group"
-                          >
-                            <p className="text-sm text-gray-700 group-hover:text-gray-900 transition-colors">
-                              {templatePrompt}
-                            </p>
-                            <div className="mt-1.5 flex items-center text-xs text-indigo-600">
-                              <span>Usar template</span>
-                              <ChevronRight className="w-3 h-3 ml-1" />
-                            </div>
-                          </button>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+              )}
             </div>
           </TabsContent>
         </Tabs>
       </div>
 
-      {/* Image Viewer Modal */}
+      {/* Modal de Visualização */}
       <AnimatePresence>
         {selectedImage && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/80 backdrop-blur-sm z-[9999] flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/90 z-[100] flex items-center justify-center p-4"
             onClick={() => setSelectedImage(null)}
           >
             <motion.div
-              initial={{ scale: 0.95 }}
+              initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
-              exit={{ scale: 0.95 }}
-              className="relative max-w-4xl w-full bg-white rounded-xl overflow-hidden shadow-2xl"
+              className="relative max-w-4xl w-full"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-800">Visualização em alta resolução</h3>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => setSelectedImage(null)}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <X className="w-5 h-5" />
-                </Button>
-              </div>
+              <Button
+                onClick={() => setSelectedImage(null)}
+                className="absolute -top-12 right-0 text-white"
+                variant="ghost"
+              >
+                <X className="w-6 h-6" />
+              </Button>
 
-              <div className="p-4 bg-gray-50">
-                <div className="relative rounded-lg overflow-hidden">
-                  <Image
-                    src={selectedImage}
-                    alt="Visualização em alta resolução"
-                    width={1200}
-                    height={1200}
-                    className="w-full h-auto"
-                    quality={100}
-                  />
-                </div>
-              </div>
-
-              <div className="p-4 border-t border-gray-200 flex justify-between items-center">
-                <div className="flex items-center gap-1 text-gray-500 text-sm">
-                  <Badge variant="outline" className="font-normal bg-gray-50 text-gray-700">
-                    <Instagram className="w-3 h-3 mr-1" />
-                    Pronto para redes sociais
-                  </Badge>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDownload(selectedImage, prompt || "imagem-profissional")}
-                    className="bg-white text-gray-700 border-gray-200"
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Baixar HD
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-indigo-600 hover:bg-indigo-700 text-white"
-                  >
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Compartilhar
-                  </Button>
-                </div>
-              </div>
+              <Image
+                src={selectedImage}
+                alt="Preview"
+                width={1920}
+                height={1080}
+                className="w-full h-auto rounded-lg"
+              />
             </motion.div>
           </motion.div>
         )}

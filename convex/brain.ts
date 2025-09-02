@@ -52,8 +52,16 @@ interface BrainResults {
 }
 
 // =================================================================
-// 2. CONFIGURAÇÃO E FUNÇÃO DE PARSE ROBUSTA
+// 2. CONFIGURAÇÃO ATUALIZADA COM MODELOS CORRETOS
 // =================================================================
+
+// Modelos disponíveis no Groq (atualizados)
+const GROQ_MODELS = {
+  primary: 'llama-3.3-70b-versatile',     // Modelo principal mais recente
+  fallback: 'llama-3.1-70b-versatile',    // Fallback se o principal falhar
+  fast: 'llama-3.1-8b-instant',           // Modelo rápido para respostas simples
+  alternative: 'mixtral-8x7b-32768'       // Alternativa Mixtral
+};
 
 const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
@@ -65,11 +73,7 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
 }) : null;
 
 /**
- * ✅ CORREÇÃO: Função de parse de JSON simplificada e robusta.
- * Esta função substitui `extractJsonFromText`, `cleanAndFixJson` e `extractJson`.
- * Ela confia que a API retornará um JSON válido (graças a `response_format`)
- * e apenas extrai o bloco de JSON principal do texto, lidando com possíveis
- * textos ou marcações (```json) que a IA possa adicionar antes ou depois.
+ * Função de parse de JSON robusta
  */
 function parseAiJsonResponse<T>(text: string): T {
   try {
@@ -98,8 +102,7 @@ function parseAiJsonResponse<T>(text: string): T {
     const jsonString = text.substring(start, end + 1);
     return JSON.parse(jsonString) as T;
 
-  } catch (error: unknown) { // <-- MUDANÇA 1: De 'any' para 'unknown'
-    // MUDANÇA 2: Verificamos o tipo do erro antes de usá-lo
+  } catch (error: unknown) {
     if (error instanceof Error) {
       console.error("Erro CRÍTICO ao parsear JSON:", error.message);
     } else {
@@ -111,13 +114,9 @@ function parseAiJsonResponse<T>(text: string): T {
   }
 }
 
-
-// =================================================================
-// 3. LÓGICA DE GERAÇÃO DE CONTEÚDO (Prompts mantidos)
-// =================================================================
-
-async function generateWithGroq(theme: string): Promise<BrainResults> {
-  const prompt = `
+// Função para melhorar o prompt
+function enhancePrompt(prompt: string, theme: string): string {
+  return `
 # MISSÃO CRÍTICA: CRIAR CONTEÚDO QUE TRANSFORME VIDAS E NEGÓCIOS
 
 ## TEMA: "${theme}"
@@ -130,6 +129,18 @@ Você é um GÊNIO CRIATIVO que combina:
 - Estratégias de viralização do TikTok/Instagram
 - Copywriting de conversão de 8 figuras
 
+${prompt}
+
+Agora, REVOLUCIONE o tema "${theme}" com conteúdo que vai MUDAR VIDAS! Me dê o resultado em formato JSON.
+`;
+}
+
+// =================================================================
+// 3. LÓGICA DE GERAÇÃO ATUALIZADA COM MÚLTIPLOS MODELOS
+// =================================================================
+
+async function generateWithGroq(theme: string): Promise<BrainResults> {
+  const basePrompt = `
 ## MINDSET OBRIGATÓRIO:
 1. **VALOR EXTREMO**: Cada peça de conteúdo deve ser tão valiosa que as pessoas pagariam para ter acesso
 2. **EMOÇÃO PROFUNDA**: Faça as pessoas SENTIREM algo - medo de perder, esperança, urgência, transformação
@@ -158,7 +169,9 @@ Você é um GÊNIO CRIATIVO que combina:
       {
         "title": "Promessa GRANDE com número específico (ex: 7 passos para...)",
         "slides": [
-          { "slide_number": 1, "title": "CAPA MATADORA", "content": "Título principal + subtítulo que amplifica a promessa + elemento visual sugerido" },
+          { "slide_number": 1, "title": "CAPA MATADORA", "content": "Título principal + subtítulo que amplifica a promessa" },
+          { "slide_number": 2, "title": "Passo 1", "content": "Conteúdo detalhado do passo 1" },
+          { "slide_number": 3, "title": "Passo 2", "content": "Conteúdo detalhado do passo 2" },
           { "slide_number": 10, "title": "AÇÃO AGORA", "content": "CTA específico com próximo passo claro" }
         ],
         "cta_slide": "Transforme sua vida com ${theme} HOJE! Salve e compartilhe com quem precisa ver isso 🚀"
@@ -168,7 +181,7 @@ Você é um GÊNIO CRIATIVO que combina:
       {
         "idea": "Frase de impacto que PARA o scroll e gera reflexão profunda",
         "caption": "História pessoal emocionante (3-4 parágrafos) → Transição para lição universal → Lista de 3-5 insights práticos → Pergunta que gera engajamento → CTA claro com benefício → Hashtags estratégicas",
-        "image_prompt": "Design minimalista impactante: fundo gradiente vibrante (cores complementares), tipografia bold sans-serif, hierarquia visual clara, elemento gráfico que amplifica a mensagem, proporção 1:1 ou 4:5, estilo premium"
+        "image_prompt": "Design minimalista impactante: fundo gradiente vibrante, tipografia bold sans-serif, hierarquia visual clara, proporção 1:1, estilo premium"
       }
     ],
     "story_sequences": [
@@ -176,51 +189,81 @@ Você é um GÊNIO CRIATIVO que combina:
         "theme": "Diagnóstico Rápido: Descubra seu nível em ${theme}",
         "slides": [
           { "slide_number": 1, "type": "Text", "content": "🚨 ATENÇÃO: 87% das pessoas estão fazendo ${theme} ERRADO. Vamos descobrir se você é uma delas?" },
+          { "slide_number": 2, "type": "Quiz", "content": "Você já tentou X e não funcionou?", "options": ["Sim, várias vezes", "Não, nunca tentei"] },
           { "slide_number": 6, "type": "Link", "content": "BÔNUS EXCLUSIVO 24H: Baixe meu guia gratuito '${theme} Descomplicado' → Link na bio! 🎁" }
         ]
       }
     ]
   }
-}
+}`;
 
-Agora, REVOLUCIONE o tema "${theme}" com conteúdo que vai MUDAR VIDAS! Me dê o resultado em formato JSON.
-`; // Removi partes do prompt aqui para economizar espaço, mas o seu original está ótimo.
+  const prompt = enhancePrompt(basePrompt, theme);
 
-  try {
-    const response = await groq.chat.completions.create({
-      model: 'llama3-70b-8192',
-      response_format: { type: 'json_object' },
-      messages: [
-        { role: 'system', content: 'Você é um GÊNIO do marketing de conteúdo viral. Crie conteúdo TRANSFORMADOR que gera resultados REAIS. Responda APENAS em formato JSON válido.' },
-        { role: 'user', content: prompt },
-      ],
-      temperature: 0.9,
-      max_tokens: 8000,
-    });
+  // Lista de modelos para tentar em ordem
+  const modelsToTry = [
+    GROQ_MODELS.primary,
+    GROQ_MODELS.fallback,
+    GROQ_MODELS.alternative,
+    GROQ_MODELS.fast
+  ];
 
-    const resultText = response.choices[0]?.message?.content;
-    if (!resultText) {
-      throw new Error("A IA (Groq) não retornou um resultado válido.");
-    }
+  let lastError: unknown = null;
 
-    // ✅ CORREÇÃO: Usando a nova função de parse
-    return parseAiJsonResponse<BrainResults>(resultText);
+  // Tenta cada modelo em sequência
+  for (const model of modelsToTry) {
+    try {
+      console.log(`🔄 Tentando gerar com modelo: ${model}...`);
 
-  } catch (error) {
-    console.error("Erro ao gerar com Groq:", error);
+      const response = await groq.chat.completions.create({
+        model,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: 'Você é um GÊNIO do marketing de conteúdo viral. Crie conteúdo TRANSFORMADOR que gera resultados REAIS. Responda APENAS em formato JSON válido.'
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.9,
+        max_tokens: 8000,
+      });
 
-    if (openai) {
-      try {
-        console.log("Tentando gerar com OpenAI como fallback...");
-        return await generateWithOpenAI(theme);
-      } catch (openaiError) {
-        console.error("Erro com OpenAI:", openaiError);
-        throw new Error("Falha ao gerar conteúdo com ambas as APIs. Tente novamente mais tarde.");
+      const resultText = response.choices[0]?.message?.content;
+      if (!resultText) {
+        throw new Error(`Modelo ${model} não retornou resultado válido`);
       }
-    } else {
-      throw new Error(`Falha ao gerar conteúdo: ${error instanceof Error ? error.message : "Erro desconhecido"}`);
+
+      console.log(`✅ Sucesso com modelo: ${model}`);
+      return parseAiJsonResponse<BrainResults>(resultText);
+
+    } catch (error) {
+      console.error(`❌ Erro com modelo ${model}:`, error);
+      lastError = error;
+
+      // Se for erro de modelo descontinuado, tenta o próximo
+      if (error instanceof Error && error.message.includes('decommissioned')) {
+        console.log(`⚠️ Modelo ${model} foi descontinuado, tentando próximo...`);
+        continue;
+      }
+
+      // Para outros erros, também tenta o próximo modelo
+      continue;
     }
   }
+
+  // Se todos os modelos Groq falharem, tenta OpenAI
+  if (openai) {
+    try {
+      console.log("🔄 Tentando gerar com OpenAI como fallback final...");
+      return await generateWithOpenAI(theme);
+    } catch (openaiError) {
+      console.error("❌ Erro com OpenAI também:", openaiError);
+    }
+  }
+
+  // Se tudo falhar, usa fallback estático
+  console.error("❌ Todos os modelos falharam. Último erro:", lastError);
+  throw new Error(`Falha ao gerar conteúdo com todos os modelos disponíveis`);
 }
 
 // Função de fallback com OpenAI
@@ -229,11 +272,22 @@ async function generateWithOpenAI(theme: string): Promise<BrainResults> {
     throw new Error("OpenAI não está configurada.");
   }
 
-  const prompt = `Crie um pacote completo de conteúdo para Instagram sobre "${theme}"...`; // Seu prompt original aqui
+  const prompt = `Crie um pacote completo de conteúdo para Instagram sobre "${theme}".
+
+  Retorne um JSON com:
+  - theme_summary: resumo estratégico do tema
+  - target_audience_suggestion: público-alvo específico
+  - content_pack com arrays de:
+    - reels (mínimo 3)
+    - carousels (mínimo 2)
+    - image_posts (mínimo 3)
+    - story_sequences (mínimo 2)
+
+  Cada item deve seguir a estrutura específica de seu tipo.`;
 
   try {
     const response = await openai.chat.completions.create({
-        model: 'gpt-4',
+        model: 'gpt-4-turbo-preview', // Modelo mais recente
         response_format: { type: 'json_object' },
         messages: [
             { role: 'system', content: 'Você é um diretor criativo especializado em marketing de conteúdo viral. Responda EXCLUSIVAMENTE em JSON válido.' },
@@ -248,7 +302,6 @@ async function generateWithOpenAI(theme: string): Promise<BrainResults> {
         throw new Error("A OpenAI não retornou um resultado válido.");
     }
 
-    // ✅ CORREÇÃO: Usando a nova função de parse
     return parseAiJsonResponse<BrainResults>(resultText);
   } catch (error) {
     console.error("Erro ao gerar com OpenAI:", error);
@@ -256,24 +309,64 @@ async function generateWithOpenAI(theme: string): Promise<BrainResults> {
   }
 }
 
-// Conteúdo de fallback (mantido como estava)
+// Conteúdo de fallback melhorado
 function generateFallbackContent(theme: string): BrainResults {
-    // Seu código de fallback original aqui
     return {
-        theme_summary: `A verdade chocante sobre ${theme} que 97% das pessoas ignoram...`,
-        target_audience_suggestion: `Profissionais ambiciosos...`,
+        theme_summary: `Estratégia revolucionária para dominar ${theme} e se destacar no mercado`,
+        target_audience_suggestion: `Profissionais e empreendedores que buscam resultados rápidos e sustentáveis em ${theme}`,
         content_pack: {
-            reels: [],
-            carousels: [],
-            image_posts: [],
-            story_sequences: [],
+            reels: [
+                {
+                    title: `3 erros fatais em ${theme} que destroem seus resultados`,
+                    hook: `Se você está fazendo isso em ${theme}, pare AGORA! O #2 é chocante...`,
+                    main_points: [
+                        "Erro #1: Focar apenas em táticas sem estratégia",
+                        "Erro #2: Ignorar a psicologia do seu público",
+                        "Erro #3: Não medir os resultados corretos"
+                    ],
+                    cta: "Salve este post e comece a aplicar HOJE! Comenta 'EU' se você já cometeu algum desses erros"
+                }
+            ],
+            carousels: [
+                {
+                    title: `5 passos para dominar ${theme} em 30 dias`,
+                    slides: [
+                        { slide_number: 1, title: "TRANSFORME SEU NEGÓCIO", content: `${theme} nunca mais será um problema` },
+                        { slide_number: 2, title: "Passo 1: Fundamentos", content: "Entenda os princípios básicos que 90% ignora" },
+                        { slide_number: 3, title: "Passo 2: Estratégia", content: "Monte seu plano de ação personalizado" },
+                        { slide_number: 4, title: "Passo 3: Execução", content: "Implemente com o método comprovado" },
+                        { slide_number: 5, title: "Passo 4: Otimização", content: "Ajuste fino para resultados máximos" },
+                        { slide_number: 6, title: "Passo 5: Escala", content: "Multiplique seus resultados" },
+                        { slide_number: 7, title: "AÇÃO IMEDIATA", content: "Comece HOJE! Salve este post e compartilhe com quem precisa" }
+                    ],
+                    cta_slide: "Transforme sua realidade com estes 5 passos! 🚀"
+                }
+            ],
+            image_posts: [
+                {
+                    idea: `"O sucesso em ${theme} não é sobre talento, é sobre sistema"`,
+                    caption: `Descobri isso da pior forma possível...\n\nDurante anos, achei que ${theme} era questão de dom natural. Até que percebi: os melhores não são os mais talentosos, são os mais sistemáticos.\n\n3 insights que mudaram tudo:\n\n1. Consistência > Perfeição\n2. Sistema > Inspiração\n3. Progresso > Resultado\n\nE você, ainda está esperando inspiração ou já está construindo seu sistema?\n\n#${theme.replace(/\s+/g, '')} #marketing #sucesso`,
+                    image_prompt: "Quote minimalista com fundo gradiente roxo para azul, tipografia moderna bold, composição centralizada"
+                }
+            ],
+            story_sequences: [
+                {
+                    theme: `Quiz: Qual seu nível em ${theme}?`,
+                    slides: [
+                        { slide_number: 1, type: "Text", content: `Vamos descobrir seu nível real em ${theme}! Responda com sinceridade...` },
+                        { slide_number: 2, type: "Quiz", content: "Com que frequência você pratica?", options: ["Diariamente", "Semanalmente", "Raramente"] },
+                        { slide_number: 3, type: "Poll", content: "Qual sua maior dificuldade?", options: ["Começar", "Manter consistência"] },
+                        { slide_number: 4, type: "Q&A", content: "Me conta: qual seu maior desafio?" },
+                        { slide_number: 5, type: "Link", content: "Baixe o guia completo GRÁTIS! Link na bio 🎁" }
+                    ]
+                }
+            ]
         }
     };
 }
 
-
 // =================================================================
-// 4. ACTIONS PRINCIPAIS
+// 4. ACTIONS PRINCIPAIS ATUALIZADAS
 // =================================================================
 
 export const generateContentIdeas = action({
@@ -282,21 +375,27 @@ export const generateContentIdeas = action({
     model: v.optional(v.string())
   },
   handler: async (ctx, args) => {
-    // ... (lógica de autenticação e validação mantida)
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Usuário não autenticado");
+    }
 
-    // ✅ CORREÇÃO: O bloco try/catch aqui está mais limpo, pois a lógica
-    // de fallback entre Groq e OpenAI já está dentro de `generateWithGroq`.
+    if (!args.theme || args.theme.trim().length < 3) {
+      throw new Error("Por favor, forneça um tema válido com pelo menos 3 caracteres");
+    }
+
     try {
-      console.log(`Gerando campanha revolucionária para: "${args.theme}"...`);
+      console.log(`🚀 Gerando campanha revolucionária para: "${args.theme}"...`);
       const results = await generateWithGroq(args.theme);
-      console.log("Sucesso ao gerar e processar conteúdo transformador.");
+      console.log("✅ Sucesso ao gerar e processar conteúdo transformador.");
 
       if (!results.content_pack || !results.content_pack.reels) {
         throw new Error("Estrutura de resultados da IA está inválida");
       }
+
       return results;
     } catch (error) {
-      console.error("Erro final na geração de conteúdo, usando fallback estático:", error);
+      console.error("❌ Erro final na geração de conteúdo, usando fallback estático:", error);
       return generateFallbackContent(args.theme);
     }
   },
@@ -314,54 +413,81 @@ export const generateOutreachMessage = action({
 
     const { businessType, messageType, customization } = args;
 
-    // ✅ PROMPT DE ALTA PRECISÃO
     const prompt = `
 # MISSÃO: Gerar uma mensagem de prospecção profissional e original.
 
-## REGRAS CRÍTICAS E INVIOLÁVEIS:
-1.  **IDIOMA:** A mensagem gerada DEVE SER 100% em **Português do Brasil**.
-2.  **ORIGINALIDADE:** Crie um texto único. Evite frases de marketing genéricas.
-3.  **FORMATO:** A sua resposta DEVE SER um objeto JSON VÁLIDO. As chaves DEVEM ser EXATAMENTE "title" e "content". É proibido usar "subject" ou "body".
+## REGRAS CRÍTICAS:
+1. **IDIOMA:** A mensagem DEVE SER 100% em Português do Brasil
+2. **ORIGINALIDADE:** Crie um texto único e personalizado
+3. **FORMATO:** Retorne um JSON com "title" e "content"
 
-## DADOS PARA A MENSAGEM:
+## DADOS:
 - Tipo de Mensagem: ${messageType}
 - Público Alvo: ${businessType}
-- Instrução Adicional: ${customization}
+- Instrução: ${customization || "Mensagem padrão"}
 
-## ESTRUTURA JSON OBRIGATÓRIA:
+## ESTRUTURA JSON:
 {
-  "title": "Crie um título/assunto curto, profissional e que desperte curiosidade aqui.",
-  "content": "Crie o corpo completo da mensagem aqui. Seja pessoal, direto e agregue valor.",
+  "title": "Assunto curto e atrativo",
+  "content": "Corpo da mensagem completo e persuasivo",
   "businessType": "${businessType}",
   "messageType": "${messageType}"
-}
-`;
+}`;
 
     try {
-      const ai = process.env.GROQ_API_KEY ? groq : (openai || null);
-      if (!ai) throw new Error("Nenhuma API de IA configurada");
+      // Tenta com Groq primeiro usando o modelo rápido
+      if (process.env.GROQ_API_KEY) {
+        try {
+          const response = await groq.chat.completions.create({
+            model: GROQ_MODELS.fast, // Usa modelo rápido para mensagens
+            response_format: { type: 'json_object' },
+            messages: [
+              {
+                role: 'system',
+                content: 'Você é um copywriter B2B especialista em prospecção. Responda APENAS em JSON válido com textos em Português do Brasil.'
+              },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.8,
+          });
 
-      const response = await ai.chat.completions.create({
-        model: process.env.GROQ_API_KEY ? 'llama3-8b-8192' : 'gpt-3.5-turbo',
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: 'Você é um copywriter B2B sênior, especialista em prospecção para o mercado brasileiro. Sua única tarefa é preencher o objeto JSON fornecido com um texto persuasivo em Português do Brasil, seguindo todas as regras.' },
-          { role: 'user', content: prompt },
-        ],
-        temperature: 0.8,
-      });
-
-      const resultText = response.choices[0]?.message?.content;
-      if (!resultText) {
-        throw new Error("A IA não retornou um resultado válido.");
+          const resultText = response.choices[0]?.message?.content;
+          if (resultText) {
+            return parseAiJsonResponse(resultText);
+          }
+        } catch (groqError) {
+          console.error("Erro com Groq, tentando OpenAI:", groqError);
+        }
       }
-      return parseAiJsonResponse(resultText);
+
+      // Fallback para OpenAI
+      if (openai) {
+        const response = await openai.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content: 'Você é um copywriter B2B. Responda em JSON com textos em Português do Brasil.'
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.8,
+        });
+
+        const resultText = response.choices[0]?.message?.content;
+        if (resultText) {
+          return parseAiJsonResponse(resultText);
+        }
+      }
+
+      throw new Error("Nenhuma API disponível");
 
     } catch (error) {
       console.error("Erro ao gerar mensagem:", error);
       return {
-        title: `Fallback para ${messageType}`,
-        content: "Não foi possível gerar a mensagem personalizada. Por favor, tente novamente.",
+        title: `Proposta para ${businessType}`,
+        content: `Olá! Gostaria de apresentar uma solução que pode ajudar seu negócio. Podemos conversar?`,
         businessType,
         messageType
       };

@@ -79,7 +79,8 @@ export default async function ImageStudioPage() {
                         )}
                     </h1>
                     <p className="text-gray-600 mt-1">
-                        Crie visuais incríveis para o seu conteúdo com o poder da Inteligência Artificial.
+                        Crie imagens profissionais, remova fundos, gere vídeos virais com legendas e muito mais!
+                Tudo com IA de última geração.
                     </p>
                 </div>
             </div>
