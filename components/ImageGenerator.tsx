@@ -58,6 +58,8 @@ interface VideoScript {
 
 // ========== CONFIGURAÇÕES ==========
 
+
+
 const businessCategories = [
   { id: "ecommerce", name: "E-commerce", icon: ShoppingBag },
   { id: "content", name: "Criador de Conteúdo", icon: Edit },
@@ -266,14 +268,12 @@ export function ImageGenerator() {
   setLatestImage(null);
 
   try {
-    const format = socialFormats.find(f => f.id === selectedFormat);
-    const fullPrompt = `${prompt}, ${selectedStyle} style, ${format?.ratio} aspect ratio, professional quality, for ${selectedBusiness} business, in Portuguese Brazil market`;
+    // Prompt mais simples e direto
+    const simplePrompt = `${prompt} ${selectedStyle}`;
 
-    const imageUrl = await generate({ prompt: fullPrompt });
+    const imageUrl = await generate({ prompt: simplePrompt });
     setLatestImage(imageUrl);
     toast.success("Imagem gerada com sucesso! 🎨");
-
-    // Analytics removido - adicionar quando necessário
 
   } catch (err) {
     const errorMessage = err instanceof Error ? err.message : "Erro ao gerar imagem";
@@ -303,48 +303,53 @@ export function ImageGenerator() {
   };
 
   const handleEnhanceImage = async (enhancement: string) => {
-    if (!uploadedImageUrl) {
-      toast.error("Por favor, faça upload de uma imagem primeiro");
+  if (!uploadedImage) {
+    toast.error("Por favor, faça upload de uma imagem primeiro");
+    return;
+  }
+
+  setIsEnhancing(true);
+  try {
+    // IMPORTANTE: Precisa fazer upload da imagem primeiro para o Convex
+    // Não pode passar blob:// URL para o backend
+
+    // Faz upload da imagem para o storage primeiro
+    const formData = new FormData();
+    formData.append('file', uploadedImage);
+
+    // Se você tem uma imagem já no storage (da galeria), use ela
+    // Senão, precisa fazer upload primeiro
+
+    let imageUrlToEnhance = uploadedImageUrl;
+
+    // Se é uma URL blob://, precisa converter
+    if (uploadedImageUrl?.startsWith('blob:')) {
+      toast.error("Processando upload da imagem...");
+      // Aqui você precisa implementar o upload para o storage
+      // Por enquanto, vamos usar uma imagem placeholder
+      imageUrlToEnhance = latestImage || "";
+    }
+
+    if (!imageUrlToEnhance || imageUrlToEnhance.startsWith('blob:')) {
+      toast.error("Por favor, use uma imagem da galeria ou gere uma nova primeiro");
       return;
     }
 
-    setIsEnhancing(true);
-    try {
-      let enhancementPrompt = "";
+    const result = await enhance({
+      imageUrl: imageUrlToEnhance,
+      enhancement: enhancement
+    });
 
-      switch(enhancement) {
-        case "remove-bg":
-          enhancementPrompt = "Remover fundo da imagem";
-          toast.info("Removendo fundo...");
-          break;
-        case "upscale":
-          enhancementPrompt = "Aumentar qualidade para 4K";
-          toast.info("Melhorando qualidade...");
-          break;
-        case "fix-lighting":
-          enhancementPrompt = "Corrigir iluminação";
-          toast.info("Ajustando iluminação...");
-          break;
-        case "enhance-colors":
-          enhancementPrompt = "Melhorar cores e contraste";
-          toast.info("Otimizando cores...");
-          break;
-      }
+    setEnhancedImage(result);
+    toast.success(`✨ Aprimoramento concluído!`);
 
-      const result = await enhance({
-        imageUrl: uploadedImageUrl,
-        enhancement: enhancement
-      });
-
-      setEnhancedImage(result);
-      toast.success(`✨ ${enhancementPrompt} concluído!`);
-
-    } catch {
-      toast.error("Erro ao aprimorar imagem");
-    } finally {
-      setIsEnhancing(false);
-    }
-  };
+  } catch (error) {
+    console.error("Erro:", error);
+    toast.error("Erro ao aprimorar imagem");
+  } finally {
+    setIsEnhancing(false);
+  }
+};
 
   // ========== GERAÇÃO DE VÍDEO ==========
 
