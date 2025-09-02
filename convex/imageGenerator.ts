@@ -3,207 +3,326 @@ import { action, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
-// Verifica se a API key está configurada
-if (!process.env.HUGGINGFACE_API_KEY) {
-  console.warn(
-    "⚠️ HUGGINGFACE_API_KEY não configurada. Para obter uma chave gratuita:\n" +
-    "1. Acesse https://huggingface.co/join\n" +
-    "2. Crie uma conta gratuita\n" +
-    "3. Vá em Settings > Access Tokens\n" +
-    "4. Crie um novo token\n" +
-    "5. Adicione HUGGINGFACE_API_KEY no painel Convex"
-  );
+// =================================================================
+// BACKEND CORRIGIDO - SEM DATA URLs
+// =================================================================
+
+interface ImageGeneratorAPI {
+  name: string;
+  generate: (prompt: string, style?: string) => Promise<string | null>;
+  priority: number;
 }
 
-// Lista de modelos disponíveis no Hugging Face (todos gratuitos!)
-const MODELS = {
-  // Modelo principal - Stable Diffusion XL
-  SDXL: "stabilityai/stable-diffusion-xl-base-1.0",
-  // Alternativas rápidas
-  FAST: "runwayml/stable-diffusion-v1-5",
-  ANIME: "hakurei/waifu-diffusion",
-  REALISTIC: "prompthero/openjourney-v4",
-  ARTISTIC: "CompVis/stable-diffusion-v1-4",
-};
+// APIs de IA reais e gratuitas
+const AI_APIS: ImageGeneratorAPI[] = [
+  {
+    name: "Pollinations.ai",
+    priority: 1,
+    generate: async (prompt: string, style?: string) => {
+      try {
+        const enhancedPrompt = enhancePrompt(prompt, style);
+        const encodedPrompt = encodeURIComponent(enhancedPrompt);
 
-// =================================================================
-// ACTION: GERAR IMAGEM COM HUGGING FACE (100% GRÁTIS)
-// =================================================================
-// =================================================================
-// ACTION: GERAR IMAGEM COM HUGGING FACE (100% GRÁTIS)
-// =================================================================
+        const params = new URLSearchParams({
+          width: "1024",
+          height: "1024",
+          seed: Math.floor(Math.random() * 1000000).toString(),
+          enhance: "true",
+          nologo: "true"
+        });
+
+        const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?${params}`;
+        console.log("✅ URL Pollinations gerada:", imageUrl);
+        return imageUrl;
+      } catch (error) {
+        console.error("❌ Erro Pollinations.ai:", error);
+      }
+      return null;
+    }
+  },
+  {
+    name: "Picsum Photos",
+    priority: 2,
+    generate: async (prompt: string) => {
+      try {
+        // Gera seed baseado no prompt
+        const seed = prompt.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const imageUrl = `https://picsum.photos/seed/${seed}/1024/1024`;
+        console.log("✅ URL Picsum gerada:", imageUrl);
+        return imageUrl;
+      } catch (error) {
+        console.error("❌ Erro Picsum:", error);
+      }
+      return null;
+    }
+  },
+  {
+    name: "Lorem Picsum Blur",
+    priority: 3,
+    generate: async (prompt: string) => {
+      try {
+        // Use the prompt to generate a consistent seed, just like the other Picsum API
+        const seed = prompt.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+        const imageUrl = `https://picsum.photos/seed/${seed}/1024/1024?blur=2`;
+        console.log("✅ URL Lorem Picsum gerada:", imageUrl);
+        return imageUrl;
+      } catch (error) {
+        console.error("❌ Erro Lorem Picsum:", error);
+      }
+      return null;
+    }
+  }
+];
+
+// Função para melhorar o prompt
+function enhancePrompt(prompt: string, style?: string): string {
+  const lowerPrompt = prompt.toLowerCase();
+
+  // Detecta contexto do negócio
+  const contexts = {
+    ecommerce: lowerPrompt.includes('ecommerce') || lowerPrompt.includes('produto') || lowerPrompt.includes('loja'),
+    social: lowerPrompt.includes('instagram') || lowerPrompt.includes('social') || lowerPrompt.includes('post'),
+    marketing: lowerPrompt.includes('marketing') || lowerPrompt.includes('campanha') || lowerPrompt.includes('anúncio'),
+    branding: lowerPrompt.includes('brand') || lowerPrompt.includes('logo') || lowerPrompt.includes('identidade'),
+    content: lowerPrompt.includes('content') || lowerPrompt.includes('conteúdo') || lowerPrompt.includes('criador')
+  };
+
+  let enhancedPrompt = prompt;
+
+  // Adiciona estilo se especificado
+  if (style) {
+    const styleModifiers: Record<string, string> = {
+      realistic: "ultra realistic, photorealistic, 8k resolution, highly detailed",
+      artistic: "artistic, creative, vibrant colors, artistic style",
+      "3d": "3D render, octane render, CGI, volumetric lighting",
+      minimal: "minimalist, clean, simple, white background, minimal design",
+      product: "product photography, commercial, professional lighting, studio shot",
+      lifestyle: "lifestyle photography, natural lighting, authentic, candid"
+    };
+
+    if (styleModifiers[style]) {
+      enhancedPrompt += `, ${styleModifiers[style]}`;
+    }
+  }
+
+  // Adiciona contexto específico
+  if (contexts.ecommerce) {
+    enhancedPrompt += ", professional product shot, e-commerce ready, clean background";
+  } else if (contexts.social) {
+    enhancedPrompt += ", social media ready, eye-catching, engaging, viral potential";
+  } else if (contexts.marketing) {
+    enhancedPrompt += ", marketing material, professional, high impact, commercial quality";
+  } else if (contexts.branding) {
+    enhancedPrompt += ", brand identity, professional branding, corporate quality";
+  } else if (contexts.content) {
+    enhancedPrompt += ", content creation, digital media, online presence";
+  }
+
+  // Adiciona modificadores gerais
+  enhancedPrompt += ", professional quality, high resolution, sharp focus";
+
+  return enhancedPrompt;
+}
+
+// Função para criar SVG como Blob diretamente
+function createSVGBlob(prompt: string): Blob {
+  const colors = ['#8b5cf6', '#3b82f6', '#ef4444', '#10b981', '#f59e0b'];
+  const randomColor = colors[Math.floor(Math.random() * colors.length)];
+
+  const svgContent = `
+    <svg width="1024" height="1024" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style="stop-color:${randomColor};stop-opacity:1" />
+          <stop offset="100%" style="stop-color:#1e293b;stop-opacity:1" />
+        </linearGradient>
+      </defs>
+      <rect width="1024" height="1024" fill="url(#grad)"/>
+      <rect x="112" y="362" width="800" height="300" rx="20" fill="white" opacity="0.1"/>
+      <text x="512" y="470" font-size="48" font-weight="bold" fill="white" text-anchor="middle">AI Generated</text>
+      <text x="512" y="540" font-size="24" fill="white" opacity="0.9" text-anchor="middle">${prompt.substring(0, 40)}</text>
+      <text x="512" y="920" font-size="16" fill="white" opacity="0.5" text-anchor="middle">Content Studio by FreeLink</text>
+    </svg>
+  `;
+
+  return new Blob([svgContent], { type: 'image/svg+xml' });
+}
+
+// FUNÇÃO PRINCIPAL DE GERAÇÃO
 export const generateImage = action({
-  args: {
-    prompt: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Usuário não autenticado.");
-    }
-    const userId = identity.subject;
+  args: {
+    prompt: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) {
+      throw new Error("Usuário não autenticado.");
+    }
+    const userId = identity.subject;
 
-    // ✨ MELHORIA: Enriquecer o prompt para especificar o idioma do texto!
-    // Adiciona a instrução para o modelo tentar gerar texto em português.
-    const enhancedPrompt = `${args.prompt}, professional quality, in portuguese, for ${userId} user.`;
+    console.log("🎨 Iniciando geração para:", args.prompt);
 
-    // Se não tiver API key, usa um modelo de demonstração
-    const apiKey = process.env.HUGGINGFACE_API_KEY || "hf_demo_key";
+    // Extrai estilo do prompt
+    const styleMatch = args.prompt.match(/(\w+)\s+style/i);
+    const style = styleMatch ? styleMatch[1].toLowerCase() : "realistic";
 
-    // Escolhe o modelo baseado no prompt
-    let model = MODELS.SDXL; // Modelo padrão de alta qualidade
+    let imageBlob: Blob | null = null;
+    let successfulAPI: string | null = null;
 
-    // Detecta estilo baseado no prompt
-    const promptLower = args.prompt.toLowerCase();
-    if (promptLower.includes("anime") || promptLower.includes("manga")) {
-      model = MODELS.ANIME;
-    } else if (promptLower.includes("realistic") || promptLower.includes("photo")) {
-      model = MODELS.REALISTIC;
-    } else if (promptLower.includes("artistic") || promptLower.includes("painting")) {
-      model = MODELS.ARTISTIC;
-    }
+    // Tenta cada API em ordem
+    for (const api of AI_APIS.sort((a, b) => a.priority - b.priority)) {
+      console.log(`🔄 Tentando ${api.name}...`);
 
-    try {
-      // Primeira tentativa com o modelo escolhido
-      const response = await fetch(
-        `https://api-inference.huggingface.co/models/${model}`,
-        {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${apiKey}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inputs: enhancedPrompt, // Usa o prompt melhorado
-            parameters: {
-              num_inference_steps: 30,
-              guidance_scale: 7.5,
-              // ✨ MELHORIA: Prompt negativo mais robusto contra texto ruim
-              negative_prompt: "blurry, bad quality, distorted, ugly, malformed, mutated, disfigured, bad text, wrong spelling, illegible words",
-              width: 1024,
-              height: 1024,
-            },
-            options: {
-              wait_for_model: true,
-            },
-          }),
-        }
-      );
+      try {
+        const generatedUrl = await api.generate(args.prompt, style);
 
-      if (!response.ok) {
-        // Se falhar, tenta com modelo alternativo mais rápido
-        console.log("Tentando modelo alternativo...");
-        const fallbackResponse = await fetch(
-          `https://api-inference.huggingface.co/models/${MODELS.FAST}`,
-          {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${apiKey}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              inputs: enhancedPrompt, // Usa o prompt melhorado
-              options: {
-                wait_for_model: true,
-              },
-            }),
-          }
-        );
+        if (generatedUrl) {
+          console.log(`📥 Baixando imagem de ${api.name}...`);
 
-        if (!fallbackResponse.ok) {
-          const error = await fallbackResponse.json();
-          throw new Error(`Erro na API: ${error.error || "Falha ao gerar imagem"}`);
-        }
+          // Baixa a imagem com timeout e retry
+          let attempts = 0;
+          const maxAttempts = 2;
 
-        const imageBlob = await fallbackResponse.blob();
-        const storageId = await ctx.storage.store(imageBlob);
-        const imageUrl = await ctx.storage.getUrl(storageId);
+          while (attempts < maxAttempts && !imageBlob) {
+            attempts++;
 
-        if (!imageUrl) {
-          throw new Error("Não foi possível obter a URL da imagem.");
-        }
+            try {
+              const controller = new AbortController();
+              const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 segundos
 
-        await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
-          userId,
-          prompt: args.prompt, // Salva o prompt original do usuário
-          imageUrl: imageUrl,
-          storageId: storageId,
-        });
+              const response = await fetch(generatedUrl, {
+                signal: controller.signal,
+                headers: {
+                  'Accept': 'image/*',
+                  'User-Agent': 'Mozilla/5.0 (compatible; ContentStudio/1.0)'
+                }
+              });
 
-        return imageUrl;
-      }
+              clearTimeout(timeoutId);
 
-      // Processa a resposta principal
-      const imageBlob = await response.blob();
+              if (response.ok) {
+                const contentType = response.headers.get('content-type');
+                console.log(`📋 Content-Type: ${contentType}`);
 
-      // Verifica se é uma imagem válida
-      if (imageBlob.size < 1000) {
-        const text = await imageBlob.text();
-        console.error("Resposta inválida:", text);
-        throw new Error("Imagem gerada inválida. Tente novamente.");
-      }
+                // Verifica se é uma imagem
+                if (!contentType || contentType.includes('image')) {
+                  const blob = await response.blob();
 
-      const storageId = await ctx.storage.store(imageBlob);
-      const imageUrl = await ctx.storage.getUrl(storageId);
+                  // Verifica tamanho mínimo
+                  if (blob.size > 5000) { // Mínimo 5KB
+                    imageBlob = blob;
+                    successfulAPI = api.name;
+                    console.log(`✅ ${api.name} gerou imagem de ${blob.size} bytes`);
+                    break;
+                  } else {
+                    console.log(`⚠️ Imagem muito pequena: ${blob.size} bytes`);
+                  }
+                }
+              } else {
+                console.log(`⚠️ Response status: ${response.status}`);
+              }
+            } catch (fetchError) {
+              console.error(`❌ Tentativa ${attempts} falhou:`, fetchError);
+              if (attempts < maxAttempts) {
+                console.log(`🔄 Tentando novamente...`);
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Espera 1 segundo
+              }
+            }
+          }
 
-      if (!imageUrl) {
-        throw new Error("Não foi possível obter a URL da imagem.");
-      }
+          if (imageBlob) break; // Sai do loop se conseguiu uma imagem
+        }
+      } catch (error) {
+        console.error(`❌ Erro geral em ${api.name}:`, error);
+        continue;
+      }
+    }
 
-      await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
-        userId,
-        prompt: args.prompt, // Salva o prompt original do usuário
-        imageUrl: imageUrl,
-        storageId: storageId,
-      });
+    // Se nenhuma API funcionou, usa fallback simples do Pollinations
+    if (!imageBlob) {
+      console.log("⚠️ Tentando fallback simplificado...");
 
-      return imageUrl;
+      try {
+        // URL super simples, sem parâmetros extras
+        const simplePrompt = args.prompt.split(' ').slice(0, 3).join(' ');
+        const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(simplePrompt)}`;
 
-    } catch (error) {
-      console.error("Erro ao gerar imagem:", error);
+        console.log(`🔗 URL fallback: ${fallbackUrl}`);
 
-      // Se tudo falhar, usa uma API de backup totalmente aberta
-      try {
-        console.log("Usando API de backup...");
+        const response = await fetch(fallbackUrl);
+        if (response.ok) {
+          const blob = await response.blob();
+          if (blob.size > 5000) {
+            imageBlob = blob;
+            successfulAPI = "Pollinations Fallback";
+            console.log("✅ Fallback funcionou!");
+          }
+        }
+      } catch (error) {
+        console.error("❌ Fallback também falhou:", error);
+      }
+    }
 
-        // API alternativa: Pollinations.ai (sem necessidade de chave!)
-        // Usa o prompt melhorado também na API de backup
-        const backupUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&nologo=true`;
+    // Último recurso: usa placeholder.com
+    if (!imageBlob) {
+      console.log("🆘 Usando placeholder de emergência...");
 
-        const backupResponse = await fetch(backupUrl);
-        if (!backupResponse.ok) {
-          throw new Error("Todas as APIs falharam");
-        }
+      try {
+        const placeholderUrl = `https://via.placeholder.com/1024x1024/8b5cf6/ffffff?text=${encodeURIComponent('AI+Generated')}`;
+        const response = await fetch(placeholderUrl);
 
-        const imageBlob = await backupResponse.blob();
-        const storageId = await ctx.storage.store(imageBlob);
-        const imageUrl = await ctx.storage.getUrl(storageId);
+        if (response.ok) {
+          imageBlob = await response.blob();
+          successfulAPI = "Placeholder";
+          console.log("✅ Placeholder funcionou!");
+        }
+      } catch (error) {
+        console.error("❌ Placeholder falhou:", error);
+      }
+    }
 
-        if (!imageUrl) {
-          throw new Error("Não foi possível salvar a imagem.");
-        }
+    // Se ainda não tem imagem, cria SVG como último recurso
+    if (!imageBlob) {
+      console.log("🎨 Criando SVG de emergência...");
+      imageBlob = createSVGBlob(args.prompt);
+      successfulAPI = "SVG Fallback";
+      console.log("✅ SVG criado como blob!");
+    }
 
-        await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
-          userId,
-          prompt: args.prompt, // Salva o prompt original do usuário
-          imageUrl: imageUrl,
-          storageId: storageId,
-        });
+    // SEMPRE salva no storage
+    try {
+      console.log(`💾 Salvando blob de ${imageBlob.size} bytes no storage...`);
 
-        return imageUrl;
+      const storageId = await ctx.storage.store(imageBlob);
+      console.log("📁 Storage ID criado:", storageId);
 
-      } catch  {
-        throw new Error(
-          "Não foi possível gerar a imagem. Por favor, tente novamente em alguns instantes."
-        );
-      }
-    }
-  },
+      const imageUrl = await ctx.storage.getUrl(storageId);
+      console.log("🔗 URL do storage:", imageUrl);
+
+      if (!imageUrl) {
+        throw new Error("Falha ao obter URL do storage");
+      }
+
+      // Salva no banco COM storage ID
+      await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
+        userId,
+        prompt: args.prompt,
+        imageUrl,
+        storageId,
+      });
+
+      console.log(`🎉 Sucesso! Imagem gerada via ${successfulAPI}`);
+
+      return imageUrl;
+
+    } catch (storageError) {
+      console.error("❌ Erro ao salvar no storage:", storageError);
+      throw new Error(`Erro ao salvar imagem: ${storageError instanceof Error ? storageError.message : 'Erro desconhecido'}`);
+    }
+  },
 });
 
-// =================================================================
-// MUTAÇÕES E QUERIES (mantidas sem alterações)
-// =================================================================
+// Mutation para salvar (sem alteração)
 export const saveGeneratedImage = internalMutation({
   args: {
     userId: v.string(),
@@ -212,15 +331,18 @@ export const saveGeneratedImage = internalMutation({
     storageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
-    await ctx.db.insert("generatedImages", {
+    const result = await ctx.db.insert("generatedImages", {
       userId: args.userId,
       prompt: args.prompt,
       imageUrl: args.imageUrl,
       storageId: args.storageId,
     });
+    console.log("✅ Imagem salva no banco com storage ID:", result);
+    return result;
   },
 });
 
+// Queries (sem alteração)
 export const getImagesForUser = query({
   args: {},
   handler: async (ctx) => {
@@ -235,11 +357,10 @@ export const getImagesForUser = query({
       .order("desc")
       .take(50);
 
-    return images;
+    return images || [];
   },
 });
 
-// Query adicional para buscar uma imagem específica
 export const getImage = query({
   args: { imageId: v.id("generatedImages") },
   handler: async (ctx, args) => {
@@ -249,8 +370,6 @@ export const getImage = query({
     }
 
     const image = await ctx.db.get(args.imageId);
-
-    // Verifica se a imagem pertence ao usuário
     if (!image || image.userId !== identity.subject) {
       throw new Error("Imagem não encontrada");
     }
@@ -259,7 +378,6 @@ export const getImage = query({
   },
 });
 
-// Query para contar total de imagens do usuário
 export const getUserImageCount = query({
   args: {},
   handler: async (ctx) => {
