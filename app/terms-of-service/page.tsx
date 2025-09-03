@@ -405,13 +405,7 @@ export default function TermsOfServicePage() {
           <p>
             Para questões sobre estes Termos de Serviço, entre em contato conosco:
           </p>
-          <div className="bg-gray-100 p-4 rounded-lg my-4">
-            <p><strong>E-mail:</strong> lucasholt2021@hotmail.com</p>
-            <p><strong>E-mail (Jurídico):</strong> legal@freelinnk.com</p>
-            <p><strong>Endereço:</strong> [Endereço completo da empresa: Remoto]</p>
-            <p><strong>CNPJ:</strong> [Número do CNPJ]</p>
-            <p><strong>Horário de atendimento:</strong> Segunda a sexta, das 9h às 18h (horário de Brasília)</p>
-          </div>
+
 
           <div className="bg-green-50 border-l-4 border-green-400 p-4 mt-8">
             <p className="text-sm">

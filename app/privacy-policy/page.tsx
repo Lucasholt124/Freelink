@@ -365,12 +365,6 @@ export default function PrivacyPolicyPage() {
             Para questões relacionadas à proteção de dados e privacidade, você pode entrar em
             contato com nosso Encarregado de Proteção de Dados:
           </p>
-          <div className="bg-gray-100 p-4 rounded-lg my-4">
-            <p><strong>Nome:</strong> [Nome do DPO: Lucas Aragão Tavares Mota]</p>
-            <p><strong>E-mail:</strong> Lucatavares321@hotmail.com</p>
-            <p><strong>Endereço:</strong> [Endereço completo da empresa: Remoto]</p>
-            <p><strong>Horário de atendimento:</strong> Segunda a sexta, das 9h às 18h (horário de Brasília)</p>
-          </div>
 
           <h2>14. AUTORIDADE DE PROTEÇÃO DE DADOS</h2>
           <p>
@@ -382,21 +376,50 @@ export default function PrivacyPolicyPage() {
             <p><strong>Endereço:</strong> Esplanada dos Ministérios, Bloco C, 2º andar, Brasília/DF, CEP: 70.297-400</p>
           </div>
 
-          <h2>15. LEGISLAÇÃO APLICÁVEL E FORO</h2>
-          <p>
-            Esta Política de Privacidade é regida pelas leis brasileiras. Qualquer disputa
-            relacionada a esta Política será submetida ao foro da comarca de [Sua Cidade/Estado],
-            com exclusão de qualquer outro, por mais privilegiado que seja.
-          </p>
+       <h2>15. LEGISLAÇÃO APLICÁVEL E FORO</h2>
+<p>
+  Esta Política de Privacidade é regida pelas leis da República Federativa do Brasil,
+  especialmente:
+</p>
+<ul className="list-disc pl-6">
+  <li>Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018)</li>
+  <li>Código de Defesa do Consumidor (Lei nº 8.078/1990)</li>
+  <li>Marco Civil da Internet (Lei nº 12.965/2014)</li>
+  <li>Demais normas aplicáveis do ordenamento jurídico brasileiro</li>
+</ul>
 
-          <div className="bg-green-50 border-l-4 border-green-400 p-4 mt-8">
-            <p className="text-sm">
-              <strong>Compromisso com a Transparência:</strong> Esta Política de Privacidade foi
-              elaborada com linguagem clara e acessível, em conformidade com o princípio da
-              transparência estabelecido pela LGPD. Se você tiver qualquer dúvida sobre como
-              tratamos seus dados, não hesite em nos contatar.
-            </p>
-          </div>
+<h3>15.1 Resolução de Conflitos</h3>
+<p>
+  Priorizamos a resolução amigável de qualquer questão relacionada a esta Política.
+  Em caso de dúvidas ou divergências, entre em contato conosco através dos canais
+  disponibilizados para buscarmos uma solução consensual.
+</p>
+
+<h3>15.2 Foro Competente</h3>
+<p>
+  Caso não seja possível uma resolução amigável, as partes reconhecem que:
+</p>
+<ul className="list-disc pl-6">
+  <li>
+    <strong>Para usuários consumidores:</strong> Conforme artigo 101, I, do Código de
+    Defesa do Consumidor, você tem o direito de escolher ajuizar eventual ação em seu
+    próprio domicílio, no nosso domicílio, ou no local onde o dano eventualmente ocorreu
+  </li>
+  <li>
+    <strong>Para usuários pessoas jurídicas ou relações não-consumeristas:</strong>
+    Fica eleito o foro da comarca de [Cidade onde a empresa está sediada] para dirimir
+    quaisquer controvérsias, salvo disposição legal em contrário
+  </li>
+</ul>
+
+<div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-4">
+  <p className="text-sm">
+    <strong>Seus direitos são prioridade:</strong> Esta cláusula respeita integralmente
+    seus direitos como consumidor. Você sempre poderá buscar atendimento nos órgãos de
+    defesa do consumidor, como PROCON, ou através da plataforma consumidor.gov.br,
+    além de poder ajuizar ação em seu próprio domicílio.
+  </p>
+</div>
         </div>
       </main>
     </div>
