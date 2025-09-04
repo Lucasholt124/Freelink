@@ -1,108 +1,76 @@
+// Em /app/api/shortener/route.ts
+// (Substitua o arquivo inteiro)
+
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import prisma from '@/lib/prisma';
-import { nanoid } from 'nanoid';
+import { Link as PrismaLink } from '@prisma/client';
+import prisma from '@/lib/prisma'; // <<< A MUDANÇA CRUCIAL ESTÁ AQUI
 
 export async function GET() {
-  try {
-    const { userId } = await auth();
-
-    if (!userId) {
-      return new NextResponse("Não autenticado", { status: 401 });
-    }
-
-    const shortLinks = await prisma.shortLink.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      include: {
-        _count: {
-          select: { clicks: true }
+    try {
+        const { userId } = await auth();
+        if (!userId) {
+            return new NextResponse(JSON.stringify({ error: "Não autenticado" }), { status: 401 });
         }
-      }
-    });
 
-    const formattedLinks = shortLinks.map(link => ({
-      id: link.id,
-      url: link.url,
-      title: link.title,
-      createdAt: link.createdAt.getTime(),
-      clicks: link._count.clicks
-    }));
+        const links = await prisma.link.findMany({
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
+            include: { _count: { select: { clicks: true } } }
+        });
 
-    return NextResponse.json(formattedLinks);
-  } catch (error) {
-    console.error('[SHORTENER_GET_ERROR]', error);
-    return new NextResponse("Erro interno do servidor", { status: 500 });
-  }
+        type LinkWithCount = PrismaLink & {
+            _count: { clicks: number };
+        };
+
+        const formattedLinks = (links as LinkWithCount[]).map((link) => ({
+            id: link.id,
+            url: link.url,
+            title: link.title,
+            clicks: link._count.clicks,
+            createdAt: link.createdAt.getTime(),
+        }));
+
+        return NextResponse.json(formattedLinks);
+    } catch (error) {
+        console.error("[SHORTENER_GET_ERROR]", error);
+        return new NextResponse(JSON.stringify({ error: "Erro interno do servidor ao buscar links" }), { status: 500 });
+    }
 }
 
 export async function POST(req: Request) {
-  try {
-    const { userId } = await auth();
+    try {
+        const { userId } = await auth();
+        if (!userId) {
+            return new NextResponse(JSON.stringify({ error: "Não autenticado" }), { status: 401 });
+        }
 
-    if (!userId) {
-      return new NextResponse("Não autenticado", { status: 401 });
-    }
+        const { originalUrl, customSlug } = await req.json();
 
-    const { url, customSlug } = await req.json();
+        if (!originalUrl) {
+             return new NextResponse(JSON.stringify({ error: "URL de destino é obrigatória." }), { status: 400 });
+        }
 
-    if (!url) {
-      return new NextResponse("URL é obrigatória", { status: 400 });
-    }
+        if (customSlug) {
+            const existing = await prisma.link.findUnique({ where: { id: customSlug } });
+            if (existing) {
+                return new NextResponse(JSON.stringify({ error: "Este apelido personalizado já está em uso." }), { status: 409 });
+            }
+        }
 
-    let slug = customSlug;
-
-    if (slug) {
-      const existing = await prisma.shortLink.findUnique({
-        where: { id: slug }
-      });
-
-      if (existing) {
-        return new NextResponse("Este apelido personalizado já está em uso.", { status: 409 });
-      }
-    } else {
-      let attempts = 0;
-      const maxAttempts = 10;
-
-      while (attempts < maxAttempts) {
-        slug = nanoid(7);
-        const existing = await prisma.shortLink.findUnique({
-          where: { id: slug }
+        const newLink = await prisma.link.create({
+            data: {
+                id: customSlug || undefined,
+                url: originalUrl,
+                userId: userId,
+                title: "Link Encurtado",
+            },
         });
 
-        if (!existing) break;
-        attempts++;
-      }
+        return NextResponse.json(newLink);
 
-      if (!slug || attempts === maxAttempts) {
-        return new NextResponse("Não foi possível gerar um link único", { status: 500 });
-      }
+    } catch (error) {
+        console.error("[SHORTENER_POST_ERROR]", error);
+        return new NextResponse(JSON.stringify({ error: "Erro interno do servidor ao criar link" }), { status: 500 });
     }
-
-    const shortLink = await prisma.shortLink.create({
-      data: {
-        id: slug,
-        url,
-        userId,
-        title: new URL(url).hostname || "Link Encurtado",
-      },
-      include: {
-        _count: {
-          select: { clicks: true }
-        }
-      }
-    });
-
-    return NextResponse.json({
-      id: shortLink.id,
-      url: shortLink.url,
-      title: shortLink.title,
-      createdAt: shortLink.createdAt.getTime(),
-      clicks: shortLink._count.clicks
-    });
-
-  } catch (error) {
-    console.error('[SHORTENER_POST_ERROR]', error);
-    return new NextResponse("Erro interno do servidor", { status: 500 });
-  }
 }

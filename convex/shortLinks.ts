@@ -1,8 +1,9 @@
-// convex/shortLinks.ts
+// Em convex/shortLinks.ts
+// (Substitua o arquivo inteiro)
+
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import { PrismaClient } from '@prisma/client';
-import { nanoid } from 'nanoid';
 
 const prisma = new PrismaClient({
   datasources: { db: { url: process.env.DATABASE_URL } },
@@ -19,47 +20,24 @@ export const createShortLink = action({
     if (!identity) throw new Error("Usuário não autenticado.");
 
     try {
-      let slug = args.customSlug;
-
-      // Se tem slug personalizado, verificar se está disponível
-      if (slug) {
-        const existing = await prisma.link.findUnique({ where: { id: slug } });
+      if (args.customSlug) {
+        const existing = await prisma.link.findUnique({ where: { id: args.customSlug } });
         if (existing) throw new Error("Este apelido personalizado já está em uso.");
-      } else {
-        // Gerar slug aleatório se não foi fornecido
-        let attempts = 0;
-        const maxAttempts = 10;
-
-        while (attempts < maxAttempts) {
-          slug = nanoid(7); // Gera um ID de 7 caracteres
-          const existing = await prisma.link.findUnique({ where: { id: slug } });
-
-          if (!existing) {
-            break;
-          }
-
-          attempts++;
-        }
-
-        if (!slug || attempts === maxAttempts) {
-          throw new Error("Não foi possível gerar um link único.");
-        }
       }
 
       const newLink = await prisma.link.create({
         data: {
-          id: slug, // Agora slug nunca será undefined
+          id: args.customSlug,
           url: args.originalUrl,
           userId: identity.subject,
           title: "Link Encurtado",
         },
       });
-
       return newLink;
     } catch (error) {
-      throw new Error(error instanceof Error ? error.message : "Falha ao criar link.");
+        throw new Error(error instanceof Error ? error.message : "Falha ao criar link.");
     } finally {
-      await prisma.$disconnect();
+        await prisma.$disconnect();
     }
   },
 });
@@ -78,7 +56,13 @@ export const getLinksForUser = action({
         include: { _count: { select: { clicks: true } } }
       });
 
-      return links.map((link) => ({
+      return links.map((link: {
+        id: string;
+        url: string;
+        title: string | null;
+        createdAt: Date;
+        _count: { clicks: number };
+      }) => ({
         id: link.id,
         url: link.url,
         title: link.title,
@@ -86,50 +70,52 @@ export const getLinksForUser = action({
         createdAt: link.createdAt.getTime(),
       }));
     } catch (error) {
-      console.error("Erro ao buscar links para o usuário:", error);
-      return [];
+        console.error("Erro ao buscar links para o usuário:", error);
+        return [];
     } finally {
-      await prisma.$disconnect();
+        await prisma.$disconnect();
     }
   },
 });
 
 // --- ACTION para buscar os detalhes dos cliques de um link ---
 export const getClicksForLink = action({
-  args: { shortLinkId: v.string() },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado.");
+    args: { shortLinkId: v.string() },
+    handler: async (ctx, args) => {
+        const identity = await ctx.auth.getUserIdentity();
+        if (!identity) throw new Error("Não autenticado.");
 
-    try {
-      const link = await prisma.link.findFirst({
-        where: { id: args.shortLinkId, userId: identity.subject },
-      });
+        try {
+            const link = await prisma.link.findFirst({
+                where: { id: args.shortLinkId, userId: identity.subject },
+            });
+            if (!link) throw new Error("Acesso negado ou link não encontrado.");
 
-      if (!link) throw new Error("Acesso negado ou link não encontrado.");
+            const clicks = await prisma.click.findMany({
+                where: { linkId: args.shortLinkId },
+                orderBy: { timestamp: "desc" },
+            });
 
-      const clicks = await prisma.click.findMany({
-        where: { linkId: args.shortLinkId },
-        orderBy: { timestamp: "desc" },
-      });
+            // =======================================================
+            // CORREÇÃO DEFINITIVA DO TIPO APLICADA AQUI
+            // =======================================================
+            const serializableClicks = clicks.map((click: {
+                id: number; // <-- O ID agora é um NÚMERO
+                timestamp: Date;
+                country: string | null;
+                // Adicione outros campos se precisar deles no frontend
+            }) => ({
+                id: click.id,
+                timestamp: click.timestamp.getTime(),
+                country: click.country,
+            }));
 
-      const serializableClicks = clicks.map((click) => ({
-        id: click.id,
-        timestamp: click.timestamp.getTime(),
-        country: click.country,
-        visitorId: click.visitorId,
-        device: click.device,
-        browser: click.browser,
-        os: click.os,
-        referrer: click.referrer,
-      }));
-
-      return { link, clicks: serializableClicks };
-    } catch(error) {
-      console.error("Erro ao buscar cliques do link:", error);
-      return null;
-    } finally {
-      await prisma.$disconnect();
-    }
-  },
+            return { link, clicks: serializableClicks };
+        } catch(error) {
+            console.error("Erro ao buscar cliques do link:", error);
+            return null;
+        } finally {
+            await prisma.$disconnect();
+        }
+    },
 });

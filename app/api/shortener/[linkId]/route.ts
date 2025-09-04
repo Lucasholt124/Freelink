@@ -1,4 +1,6 @@
-// app/api/shortener/[linkId]/route.ts
+// Em /app/api/shortener/[linkId]/route.ts
+// (Substitua o arquivo inteiro)
+
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
@@ -19,38 +21,32 @@ export async function GET(req: Request) {
       return new NextResponse("ID do link é obrigatório", { status: 400 });
     }
 
-    const shortLink = await prisma.shortLink.findFirst({
-    where: {
-      id: linkId,
-      userId: userId,
-    },
-  });
+    const link = await prisma.link.findFirst({
+      where: {
+        id: linkId,
+        userId: userId,
+      },
+    });
 
-    if (!shortLink) {
-    return new NextResponse("Link não encontrado", { status: 404 });
-  }
+    if (!link) {
+      return new NextResponse("Link não encontrado ou acesso negado", { status: 404 });
+    }
 
-    const clicks = await prisma.shortClick.findMany({
-    where: { shortLinkId: linkId },
-    orderBy: { timestamp: 'desc' },
-  });
+    const clicks = await prisma.click.findMany({
+      where: { linkId: linkId },
+      orderBy: { timestamp: 'desc' },
+    });
+
     const formattedData = {
       link: {
         id: link.id,
         url: link.url,
-        createdAt: link.createdAt.getTime(),
       },
       clicks: clicks.map(click => ({
         id: click.id,
         timestamp: click.timestamp.getTime(),
         country: click.country,
-        city: click.city,
-        region: click.region,
         visitorId: click.visitorId,
-        device: click.device,
-        browser: click.browser,
-        os: click.os,
-        referrer: click.referrer,
       })),
     };
 
