@@ -11,16 +11,17 @@ datasource db {
 }
 
 model Link {
-  id        String   @id @default(cuid())
+  id        String   @id
   url       String
-  title     String?
   userId    String
+  title     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   clicks    Click[]
 
-  @@map("Links")
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Click {

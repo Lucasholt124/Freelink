@@ -1,76 +1,162 @@
-// Em /app/api/shortener/route.ts
-// (Substitua o arquivo inteiro)
-
+// app/api/shortener/route.ts
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { Link as PrismaLink } from '@prisma/client';
-import prisma from '@/lib/prisma'; // <<< A MUDANÇA CRUCIAL ESTÁ AQUI
+import prisma from '@/lib/prisma';
+import { nanoid } from 'nanoid';
 
 export async function GET() {
-    try {
-        const { userId } = await auth();
-        if (!userId) {
-            return new NextResponse(JSON.stringify({ error: "Não autenticado" }), { status: 401 });
-        }
+  try {
+    const { userId } = await auth();
 
-        const links = await prisma.link.findMany({
-            where: { userId },
-            orderBy: { createdAt: 'desc' },
-            include: { _count: { select: { clicks: true } } }
-        });
-
-        type LinkWithCount = PrismaLink & {
-            _count: { clicks: number };
-        };
-
-        const formattedLinks = (links as LinkWithCount[]).map((link) => ({
-            id: link.id,
-            url: link.url,
-            title: link.title,
-            clicks: link._count.clicks,
-            createdAt: link.createdAt.getTime(),
-        }));
-
-        return NextResponse.json(formattedLinks);
-    } catch (error) {
-        console.error("[SHORTENER_GET_ERROR]", error);
-        return new NextResponse(JSON.stringify({ error: "Erro interno do servidor ao buscar links" }), { status: 500 });
+    if (!userId) {
+      return new NextResponse("Não autenticado", { status: 401 });
     }
+
+    const links = await prisma.link.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        _count: {
+          select: { clicks: true }
+        }
+      }
+    });
+
+    const formattedLinks = links.map(link => ({
+      id: link.id,
+      url: link.url,
+      title: link.title,
+      createdAt: link.createdAt.getTime(),
+      clicks: link._count.clicks
+    }));
+
+    return NextResponse.json(formattedLinks);
+  } catch (error) {
+    console.error('[SHORTENER_GET_ERROR]', error);
+    return new NextResponse("Erro interno do servidor", { status: 500 });
+  }
 }
 
 export async function POST(req: Request) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return new NextResponse("Não autenticado", { status: 401 });
+    }
+
+    const { url, customSlug } = await req.json();
+
+    if (!url) {
+      return new NextResponse("URL é obrigatória", { status: 400 });
+    }
+
+    // Validar URL
     try {
-        const { userId } = await auth();
-        if (!userId) {
-            return new NextResponse(JSON.stringify({ error: "Não autenticado" }), { status: 401 });
-        }
+      new URL(url);
+    } catch {
+      return new NextResponse("URL inválida", { status: 400 });
+    }
 
-        const { originalUrl, customSlug } = await req.json();
+    let slug = customSlug;
 
-        if (!originalUrl) {
-             return new NextResponse(JSON.stringify({ error: "URL de destino é obrigatória." }), { status: 400 });
-        }
+    // Se tem slug personalizado, verificar se está disponível
+    if (slug) {
+      const existing = await prisma.link.findUnique({
+        where: { id: slug }
+      });
 
-        if (customSlug) {
-            const existing = await prisma.link.findUnique({ where: { id: customSlug } });
-            if (existing) {
-                return new NextResponse(JSON.stringify({ error: "Este apelido personalizado já está em uso." }), { status: 409 });
-            }
-        }
+      if (existing) {
+        return new NextResponse("Este apelido personalizado já está em uso.", { status: 409 });
+      }
+    } else {
+      // Gerar slug aleatório se não foi fornecido
+      let attempts = 0;
+      const maxAttempts = 10;
 
-        const newLink = await prisma.link.create({
-            data: {
-                id: customSlug || undefined,
-                url: originalUrl,
-                userId: userId,
-                title: "Link Encurtado",
-            },
+      while (attempts < maxAttempts) {
+        slug = nanoid(7);
+        const existing = await prisma.link.findUnique({
+          where: { id: slug }
         });
 
-        return NextResponse.json(newLink);
+        if (!existing) {
+          break;
+        }
 
-    } catch (error) {
-        console.error("[SHORTENER_POST_ERROR]", error);
-        return new NextResponse(JSON.stringify({ error: "Erro interno do servidor ao criar link" }), { status: 500 });
+        attempts++;
+      }
+
+      if (attempts === maxAttempts) {
+        return new NextResponse("Não foi possível gerar um link único", { status: 500 });
+      }
     }
+
+    // Criar o link
+    const link = await prisma.link.create({
+      data: {
+        id: slug,
+        url,
+        userId,
+        title: new URL(url).hostname || "Link Encurtado",
+      },
+      include: {
+        _count: {
+          select: { clicks: true }
+        }
+      }
+    });
+
+    return NextResponse.json({
+      id: link.id,
+      url: link.url,
+      title: link.title,
+      createdAt: link.createdAt.getTime(),
+      clicks: link._count.clicks
+    });
+
+  } catch (error) {
+    console.error('[SHORTENER_POST_ERROR]', error);
+    return new NextResponse("Erro interno do servidor", { status: 500 });
+  }
+}
+
+export async function DELETE(req: Request) {
+  try {
+    const { userId } = await auth();
+
+    if (!userId) {
+      return new NextResponse("Não autenticado", { status: 401 });
+    }
+
+    const { searchParams } = new URL(req.url);
+    const linkId = searchParams.get('id');
+
+    if (!linkId) {
+      return new NextResponse("ID do link é obrigatório", { status: 400 });
+    }
+
+    // Verificar se o link pertence ao usuário
+    const link = await prisma.link.findFirst({
+      where: {
+        id: linkId,
+        userId
+      }
+    });
+
+    if (!link) {
+      return new NextResponse("Link não encontrado", { status: 404 });
+    }
+
+    // Deletar o link (os cliques serão deletados em cascata)
+    await prisma.link.delete({
+      where: { id: linkId }
+    });
+
+    return NextResponse.json({ success: true });
+
+  } catch (error) {
+    console.error('[SHORTENER_DELETE_ERROR]', error);
+    return new NextResponse("Erro interno do servidor", { status: 500 });
+  }
 }
