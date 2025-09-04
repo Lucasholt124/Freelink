@@ -124,9 +124,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const link = await prisma.link.findUnique({ where: { id: slug } });
+    const shortLink = await prisma.shortLink.findUnique({
+      where: { id: slug }
+    });
 
-    if (!link) {
+    if (!shortLink) {
       return NextResponse.redirect(new URL('/404', request.url));
     }
 
@@ -154,21 +156,21 @@ export async function GET(request: NextRequest) {
 
     // Registrar o clique com todas as informações
     try {
-      await prisma.click.create({
-        data: {
-          linkId: slug,
-          visitorId,
-          country: geoInfo.country,
-          city: geoInfo.city,
-          region: geoInfo.region,
-          device,
-          browser,
-          os,
-          referrer: referer,
-          userAgent,
-          ip,
-        },
-      });
+      await prisma.shortClick.create({
+      data: {
+        shortLinkId: slug,
+        visitorId,
+        country: geoInfo.country,
+        city: geoInfo.city,
+        region: geoInfo.region,
+        device,
+        browser,
+        os,
+        referrer: referer,
+        userAgent,
+        ip,
+      },
+    });
     } catch (clickError) {
       // Log do erro mas não falhar o redirect
       console.error('[REGISTER_CLICK_ERROR]', clickError);

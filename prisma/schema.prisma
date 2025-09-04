@@ -1,6 +1,4 @@
-// Em prisma/schema.prisma
-// (Substitua o arquivo inteiro)
-
+// prisma/schema.prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,7 +8,69 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Link {
+// ===== SISTEMA DE PÁGINA DE LINKS (BIO) =====
+model links {
+  id        String   @id @default(cuid())
+  userId    String
+  title     String
+  url       String
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ===== SISTEMA DE ENCURTADOR DE LINKS =====
+model ShortLink {
+  id        String   @id // Este é o slug curto (ex: "abc123")
+  url       String   // URL de destino
+  userId    String   // Dono do link
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clicks    ShortClick[]
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model ShortClick {
+  id            Int      @id @default(autoincrement())
+  shortLinkId   String   // Referência ao ShortLink
+  timestamp     DateTime @default(now())
+  country       String?
+  city          String?
+  region        String?
+  visitorId     String
+  device        String?
+  browser       String?
+  os            String?
+  referrer      String?
+  userAgent     String?
+  ip            String?
+
+  shortLink ShortLink @relation(fields: [shortLinkId], references: [id], onDelete: Cascade)
+
+  @@index([shortLinkId])
+  @@index([timestamp])
+  @@index([visitorId])
+}
+
+// ===== TABELAS EXISTENTES DO CLERK =====
+model users_sync {
+  id         String    @id
+  raw_json   Json
+  created_at DateTime?
+  updated_at DateTime?
+  deleted_at DateTime?
+
+  @@index([deleted_at])
+}
+
+// Se você tiver as tabelas antigas que não usa mais, pode removê-las depois
+model Links {
   id        String   @id
   url       String
   userId    String
@@ -18,30 +78,20 @@ model Link {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  clicks    Click[]
-
-  @@index([userId])
-  @@index([createdAt])
+  @@map("Links")
 }
 
-model Click {
-  id          Int      @id @default(autoincrement())
-  linkId      String
-  timestamp   DateTime @default(now())
-  country     String?
-  city        String?
-  region      String?
-  visitorId   String
-  device      String?
-  browser     String?
-  os          String?
-  referrer    String?
-  userAgent   String?
-  ip          String?
+model clicks {
+  id            Int      @id @default(autoincrement())
+  linkId        String
+  timestamp     DateTime @default(now())
+  profileUserId String
+  country       String?
+  city          String?
+  region        String?
+  visitorId     String
+  referrer      String?
+  userAgent     String?
 
-  link Link @relation(fields: [linkId], references: [id], onDelete: Cascade)
-
-  @@index([linkId])
-  @@index([timestamp])
-  @@index([visitorId])
+  @@map("clicks")
 }

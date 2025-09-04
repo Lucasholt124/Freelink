@@ -19,22 +19,21 @@ export async function GET(req: Request) {
       return new NextResponse("ID do link é obrigatório", { status: 400 });
     }
 
-    const link = await prisma.link.findFirst({
-      where: {
-        id: linkId,
-        userId: userId,
-      },
-    });
+    const shortLink = await prisma.shortLink.findFirst({
+    where: {
+      id: linkId,
+      userId: userId,
+    },
+  });
 
-    if (!link) {
-      return new NextResponse("Link não encontrado ou acesso negado", { status: 404 });
-    }
+    if (!shortLink) {
+    return new NextResponse("Link não encontrado", { status: 404 });
+  }
 
-    const clicks = await prisma.click.findMany({
-      where: { linkId: linkId },
-      orderBy: { timestamp: 'desc' },
-    });
-
+    const clicks = await prisma.shortClick.findMany({
+    where: { shortLinkId: linkId },
+    orderBy: { timestamp: 'desc' },
+  });
     const formattedData = {
       link: {
         id: link.id,
