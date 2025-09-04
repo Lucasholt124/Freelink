@@ -1,6 +1,4 @@
-// Em /app/api/shortener/[linkId]/route.ts
-// (Substitua o arquivo inteiro)
-
+// app/api/shortener/[linkId]/route.ts
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
@@ -41,12 +39,19 @@ export async function GET(req: Request) {
       link: {
         id: link.id,
         url: link.url,
+        createdAt: link.createdAt.getTime(),
       },
       clicks: clicks.map(click => ({
         id: click.id,
         timestamp: click.timestamp.getTime(),
         country: click.country,
+        city: click.city,
+        region: click.region,
         visitorId: click.visitorId,
+        device: click.device,
+        browser: click.browser,
+        os: click.os,
+        referrer: click.referrer,
       })),
     };
 
