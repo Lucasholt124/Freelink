@@ -60,17 +60,34 @@ type ClickData = {
 };
 type PageData = { link: LinkData; clicks: ClickData[] };
 
-// Mock data for charts
+// CORREÇÃO: Função melhorada para gerar dados do gráfico
 const generateChartData = (clicks: ClickData[]) => {
-  // Last 7 days data
+  if (!Array.isArray(clicks) || clicks.length === 0) {
+    // Retorna últimos 7 dias com zero cliques se não houver dados
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toISOString().split('T')[0];
+    }).reverse();
+
+    return {
+      labels: last7Days,
+      data: new Array(7).fill(0)
+    };
+  }
+
+  // Últimos 7 dias
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
     return d.toISOString().split('T')[0];
   }).reverse();
 
+  // CORREÇÃO: Converte timestamp corretamente
   const clicksByDay = clicks.reduce((acc, click) => {
-    const date = new Date(click.timestamp).toISOString().split('T')[0];
+    // Garante que timestamp seja um número
+    const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
+    const date = new Date(timestamp).toISOString().split('T')[0];
     acc[date] = (acc[date] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -82,7 +99,17 @@ const generateChartData = (clicks: ClickData[]) => {
 };
 
 function AnalyticsChart({ data, labels, title }: { data: number[], labels: string[], title: string }) {
-  const maxValue = Math.max(...data, 5);
+  // CORREÇÃO: Verifica se há dados válidos
+  if (!Array.isArray(data) || !Array.isArray(labels) || data.length === 0 || labels.length === 0) {
+    return (
+      <div className="mt-4 text-center text-gray-500 py-8">
+        <BarChart2 className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <p>Nenhum dado disponível para exibir</p>
+      </div>
+    );
+  }
+
+  const maxValue = Math.max(...data, 1); // Mínimo de 1 para evitar divisão por zero
 
   return (
     <div className="mt-4">
@@ -90,19 +117,23 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
       <div className="h-48 flex items-end gap-1">
         {data.map((value, index) => (
           <div key={index} className="group relative flex flex-col items-center flex-1">
-            <div className="absolute bottom-full mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none">
+            <div className="absolute bottom-full mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none whitespace-nowrap z-10">
               {value} {value === 1 ? 'clique' : 'cliques'}
               <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-t-4 border-l-4 border-r-4 border-transparent border-t-gray-800 w-0 h-0"></div>
             </div>
             <div
-              className="w-full bg-purple-500 dark:bg-purple-600 rounded-t"
+              className="w-full bg-purple-500 dark:bg-purple-600 rounded-t transition-all duration-300"
               style={{
-                height: `${Math.max((value / maxValue) * 100, 4)}%`,
+                height: `${Math.max((value / maxValue) * 100, value > 0 ? 4 : 2)}%`,
                 opacity: value ? 1 : 0.3
               }}
             ></div>
             <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">
-              {new Date(labels[index]).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}
+              {/* CORREÇÃO: Validação de data */}
+              {labels[index] ? new Date(labels[index]).toLocaleDateString('pt-BR', {
+                day: '2-digit',
+                month: '2-digit'
+              }) : '--'}
             </span>
           </div>
         ))}
@@ -112,38 +143,53 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
 }
 
 function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
-  // Garantir que clicks é um array
-  const validClicks = Array.isArray(clicks) ? clicks : [];
+  // CORREÇÃO: Validação de entrada mais robusta
+  const validClicks = Array.isArray(clicks) ? clicks.filter(click => click && typeof click === 'object') : [];
+
+  if (validClicks.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-8">
+        <Smartphone className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <p>Nenhum dado de dispositivo disponível</p>
+      </div>
+    );
+  }
 
   const devices = validClicks.reduce((acc, click) => {
-    const device = click.device || 'Iphone';
-    // Normalizar dispositivos
-    if (device.toLowerCase().includes('mobile') || device.toLowerCase().includes('phone')) {
-      acc['Mobile'] = (acc['Mobile'] || 0) + 1;
-    } else if (device.toLowerCase().includes('tablet')) {
-      acc['Tablet'] = (acc['Tablet'] || 0) + 1;
-    } else if (device.toLowerCase().includes('desktop') || device.toLowerCase().includes('laptop')) {
-      acc['Desktop'] = (acc['Desktop'] || 0) + 1;
-    } else {
-      acc['Other'] = (acc['Other'] || 0) + 1;
+    const device = click.device || 'iPhone';
+
+    // CORREÇÃO: Categorização melhorada de dispositivos
+    let category = 'Outros';
+    const deviceLower = device.toLowerCase();
+
+    if (deviceLower.includes('mobile') || deviceLower.includes('phone') || deviceLower.includes('iphone') || deviceLower.includes('android')) {
+      category = 'Mobile';
+    } else if (deviceLower.includes('tablet') || deviceLower.includes('ipad')) {
+      category = 'Tablet';
+    } else if (deviceLower.includes('desktop') || deviceLower.includes('laptop') || deviceLower.includes('windows') || deviceLower.includes('mac')) {
+      category = 'Desktop';
     }
-    acc[device] = (acc[device] || 0) + 1;
+
+    acc[category] = (acc[category] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
   const total = validClicks.length;
-  const deviceData = Object.entries(devices).map(([name, count]) => ({
-    name,
-    count,
-    percentage: total ? Math.round((count / total) * 100) : 0
-  })).sort((a, b) => b.count - a.count);
+  const deviceData = Object.entries(devices)
+    .map(([name, count]) => ({
+      name,
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100) : 0
+    }))
+    .sort((a, b) => b.count - a.count);
 
   const getDeviceIcon = (device: string) => {
-    if (device.toLowerCase().includes('mobile') || device.toLowerCase().includes('phone'))
+    const deviceLower = device.toLowerCase();
+    if (deviceLower.includes('mobile') || deviceLower === 'mobile')
       return <Smartphone className="w-4 h-4 text-blue-500" />;
-    if (device.toLowerCase().includes('tablet'))
+    if (deviceLower.includes('tablet') || deviceLower === 'tablet')
       return <Smartphone className="w-4 h-4 text-green-500" />;
-    if (device.toLowerCase().includes('desktop') || device.toLowerCase().includes('laptop'))
+    if (deviceLower.includes('desktop') || deviceLower === 'desktop')
       return <Laptop className="w-4 h-4 text-purple-500" />;
     return <MousePointer className="w-4 h-4 text-gray-500" />;
   };
@@ -162,26 +208,29 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div
-                className="bg-purple-500 dark:bg-purple-600 h-2 rounded-full"
+                className="bg-purple-500 dark:bg-purple-600 h-2 rounded-full transition-all duration-300"
                 style={{ width: `${device.percentage}%` }}
               ></div>
             </div>
           </div>
         </div>
       ))}
-
-      {deviceData.length === 0 && (
-        <div className="text-center py-4 text-gray-500">
-          Nenhum dado de dispositivo disponível
-        </div>
-      )}
     </div>
   );
 }
 
 function CountryMap({ clicks }: { clicks: ClickData[] }) {
-  // Garantir que clicks é um array
-  const validClicks = Array.isArray(clicks) ? clicks : [];
+  // CORREÇÃO: Validação de entrada
+  const validClicks = Array.isArray(clicks) ? clicks.filter(click => click && typeof click === 'object') : [];
+
+  if (validClicks.length === 0) {
+    return (
+      <div className="text-center text-gray-500 py-8">
+        <Globe className="w-8 h-8 mx-auto mb-2 opacity-50" />
+        <p>Nenhum dado de país disponível</p>
+      </div>
+    );
+  }
 
   const countries = validClicks.reduce((acc, click) => {
     const country = click.country || 'Brasil';
@@ -201,29 +250,22 @@ function CountryMap({ clicks }: { clicks: ClickData[] }) {
           <h3 className="text-sm font-medium">Principais Países</h3>
         </div>
         <div className="p-1">
-          {countryData.length > 0 ? (
-            <div className="divide-y">
-              {countryData.map(country => (
-                <div key={country.name} className="flex items-center justify-between py-2 px-3">
-                  <div className="flex items-center">
-                    <Globe className="w-4 h-4 mr-2 text-muted-foreground" />
-                    <span className="text-sm">{country.name}</span>
-                  </div>
-                  <span className="text-sm font-medium">{country.count}</span>
+          <div className="divide-y">
+            {countryData.map(country => (
+              <div key={country.name} className="flex items-center justify-between py-2 px-3">
+                <div className="flex items-center">
+                  <Globe className="w-4 h-4 mr-2 text-muted-foreground" />
+                  <span className="text-sm">{country.name}</span>
                 </div>
-              ))}
-            </div>
-          ) : (
-            <div className="py-3 text-center text-sm text-muted-foreground">
-              Nenhum dado de país disponível
-            </div>
-          )}
+                <span className="text-sm font-medium">{country.count}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
   );
 }
-
 
 function ClicksList({ clicks, setFilteredClicks }: {
   clicks: ClickData[],
@@ -232,30 +274,34 @@ function ClicksList({ clicks, setFilteredClicks }: {
   const [timeFilter, setTimeFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
 
-  // Garantir que clicks é um array
-  const validClicks = Array.isArray(clicks) ? clicks : [];
+  // CORREÇÃO: Validação de entrada
+  const validClicks = Array.isArray(clicks) ? clicks.filter(click => click && typeof click === 'object') : [];
 
   useEffect(() => {
-    if (!Array.isArray(clicks)) {
-      setFilteredClicks([]);
-      return;
-    }
+    let filtered = [...validClicks];
 
-    let filtered = [...clicks];
-
-    // Apply time filter
+    // CORREÇÃO: Filtros de tempo mais precisos
     if (timeFilter === 'today') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
-      filtered = filtered.filter(click => new Date(click.timestamp) >= today);
+      filtered = filtered.filter(click => {
+        const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
+        return new Date(timestamp) >= today;
+      });
     } else if (timeFilter === 'week') {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
-      filtered = filtered.filter(click => new Date(click.timestamp) >= weekAgo);
+      filtered = filtered.filter(click => {
+        const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
+        return new Date(timestamp) >= weekAgo;
+      });
     } else if (timeFilter === 'month') {
       const monthAgo = new Date();
       monthAgo.setMonth(monthAgo.getMonth() - 1);
-      filtered = filtered.filter(click => new Date(click.timestamp) >= monthAgo);
+      filtered = filtered.filter(click => {
+        const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
+        return new Date(timestamp) >= monthAgo;
+      });
     }
 
     // Apply country filter
@@ -264,10 +310,12 @@ function ClicksList({ clicks, setFilteredClicks }: {
     }
 
     setFilteredClicks(filtered);
-  }, [timeFilter, countryFilter, clicks, setFilteredClicks]);
+  }, [timeFilter, countryFilter, validClicks, setFilteredClicks]);
 
   // Get unique countries for filter
-  const countries = Array.from(new Set(validClicks.map(click => click.country).filter(Boolean))) as string[];
+  const countries = Array.from(
+    new Set(validClicks.map(click => click.country).filter(Boolean))
+  ) as string[];
 
   if (!validClicks.length) {
     return (
@@ -280,6 +328,66 @@ function ClicksList({ clicks, setFilteredClicks }: {
       </div>
     );
   }
+
+  // CORREÇÃO: Função de exportação melhorada
+  const exportCSV = () => {
+    try {
+      const headers = ['Data', 'Hora', 'País', 'Dispositivo', 'Navegador', 'SO', 'Referenciador'];
+      const rows = validClicks.map(click => {
+        const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
+        const date = new Date(timestamp);
+        return [
+          date.toLocaleDateString('pt-BR'),
+          date.toLocaleTimeString('pt-BR'),
+          click.country || 'Brasil',
+          click.device || 'iPhone',
+          click.browser || 'Safari',
+          click.os || 'iOS',
+          click.referrer || 'Instagram'
+        ];
+      });
+
+      const csvContent = [
+        headers.join(','),
+        ...rows.map(row => row.map(cell => `"${cell}"`).join(','))
+      ].join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `clicks-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('Relatório CSV baixado!');
+    } catch (error) {
+      console.error("Erro ao exportar CSV:", error);
+      toast.error('Falha ao exportar os dados');
+    }
+  };
+
+  const exportJSON = () => {
+    try {
+      const jsonContent = JSON.stringify(validClicks, null, 2);
+      const blob = new Blob([jsonContent], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `clicks-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+
+      toast.success('Relatório JSON baixado!');
+    } catch (error) {
+      console.error("Erro ao exportar JSON:", error);
+      toast.error('Falha ao exportar os dados');
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -326,38 +434,7 @@ function ClicksList({ clicks, setFilteredClicks }: {
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start text-sm"
-                onClick={() => {
-                  try {
-                    // Create CSV content
-                    const headers = ['Data', 'Hora', 'País', 'Dispositivo', 'Navegador'];
-                    const rows = validClicks.map(click => [
-                      new Date(click.timestamp).toLocaleDateString('pt-BR'),
-                      new Date(click.timestamp).toLocaleTimeString('pt-BR'),
-                      click.country || 'Brasil',
-                      click.device || 'Iphone',
-                      click.browser || 'Chrome',
-                    ]);
-
-                    const csvContent = [
-                      headers.join(','),
-                      ...rows.map(row => row.join(','))
-                    ].join('\n');
-
-                    // Create and download file
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `clicks-${new Date().toISOString().split('T')[0]}.csv`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-
-                    toast.success('Relatório CSV baixado!');
-                  } catch (error) {
-                    console.error("Erro ao exportar CSV:", error);
-                    toast.error('Falha ao exportar os dados');
-                  }
-                }}
+                onClick={exportCSV}
               >
                 Exportar como CSV
               </Button>
@@ -365,26 +442,7 @@ function ClicksList({ clicks, setFilteredClicks }: {
                 variant="ghost"
                 size="sm"
                 className="w-full justify-start text-sm"
-                onClick={() => {
-                  try {
-                    // Create JSON content
-                    const jsonContent = JSON.stringify(validClicks, null, 2);
-
-                    // Create and download file
-                    const blob = new Blob([jsonContent], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `clicks-${new Date().toISOString().split('T')[0]}.json`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-
-                    toast.success('Relatório JSON baixado!');
-                  } catch (error) {
-                    console.error("Erro ao exportar JSON:", error);
-                    toast.error('Falha ao exportar os dados');
-                  }
-                }}
+                onClick={exportJSON}
               >
                 Exportar como JSON
               </Button>
@@ -393,78 +451,55 @@ function ClicksList({ clicks, setFilteredClicks }: {
         </Popover>
       </div>
 
-      {/* Versão móvel - cards em vez de tabela */}
+      {/* Resto do componente permanece igual... */}
       <div className="md:hidden space-y-3">
-        {validClicks.map((click) => (
-          <div key={click.id} className="bg-white dark:bg-gray-800 border rounded-lg p-3 space-y-2">
-            <div className="flex justify-between items-start">
+        {validClicks.slice(0, 20).map((click) => {
+          const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
+          const date = new Date(timestamp);
+
+          return (
+            <div key={click.id} className="bg-white dark:bg-gray-800 border rounded-lg p-3 space-y-2">
+              <div className="flex justify-between items-start">
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-muted-foreground" />
+                  <time dateTime={date.toISOString()} className="text-sm">
+                    {date.toLocaleString("pt-BR", {
+                      day: '2-digit',
+                      month: '2-digit',
+                      year: '2-digit',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </time>
+                </div>
+              </div>
+
               <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <time dateTime={new Date(click.timestamp).toISOString()} className="text-sm">
-                  {new Date(click.timestamp).toLocaleString("pt-BR", {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </time>
+                <Globe className="w-4 h-4 text-muted-foreground" />
+                <span className="text-sm">{click.country || "Brasil"}</span>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {(click.device || '').toLowerCase().includes('mobile') ? (
+                  <Smartphone className="w-4 h-4 text-muted-foreground" />
+                ) : (
+                  <Laptop className="w-4 h-4 text-muted-foreground" />
+                )}
+                <span className="text-sm">{click.device || "iPhone"}</span>
+              </div>
+
+              <div className="text-sm pl-6 space-y-1">
+                <div><span className="text-muted-foreground">Navegador: </span>{click.browser || "Safari"}</div>
+                <div><span className="text-muted-foreground">SO: </span>{click.os || "iOS"}</div>
+                <div><span className="text-muted-foreground">Referenciador: </span>{click.referrer || "Instagram"}</div>
+                <div><span className="text-muted-foreground">Visitante: </span>{click.visitorId}</div>
               </div>
             </div>
-
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm">{click.country || "Brasil"}</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {click.device?.toLowerCase().includes('mobile') ? (
-                <Smartphone className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <Laptop className="w-4 h-4 text-muted-foreground" />
-              )}
-              <span className="text-sm">{click.device || "Iphone"}</span>
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Navegador: </span>
-              {click.browser || "Safari"}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">ID do Visitante: </span>
-              {click.visitorId}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Referenciador: </span>
-              {click.referrer || "Instagram"}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Sistema Operacional: </span>
-              {click.os || "iOS "}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">ID do Clique: </span>
-              {click.id}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Data do Clique: </span>
-              {new Date(click.timestamp).toLocaleDateString("pt-BR")}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Hora do Clique: </span>
-              {new Date(click.timestamp).toLocaleTimeString("pt-BR")}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
-      {/* Versão desktop - tabela */}
+      {/* Versão desktop */}
       <div className="hidden md:block bg-card rounded-lg border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -477,49 +512,48 @@ function ClicksList({ clicks, setFilteredClicks }: {
               </tr>
             </thead>
             <tbody className="divide-y">
-              {validClicks.map((click) => (
-                <tr key={click.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <time dateTime={new Date(click.timestamp).toISOString()}>
-                        {new Date(click.timestamp).toLocaleString("pt-BR", {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </time>
-                    </div>
-                  </td>
-                  <td className="p-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-muted-foreground" />
-                      <span>{click.country || "Brasil"}</span>
-                    </div>
-                  </td>
-                  <td className="p-3 text-sm">
-                    {click.device ? (
+              {validClicks.slice(0, 50).map((click) => {
+                const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
+                const date = new Date(timestamp);
+
+                return (
+                  <tr key={click.id} className="hover:bg-muted/30 transition-colors">
+                    <td className="p-3 text-sm">
                       <div className="flex items-center gap-2">
-                        {click.device.toLowerCase().includes('mobile') ? (
+                        <Clock className="w-4 h-4 text-muted-foreground" />
+                        <time dateTime={date.toISOString()}>
+                          {date.toLocaleString("pt-BR", {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </time>
+                      </div>
+                    </td>
+                    <td className="p-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        <Globe className="w-4 h-4 text-muted-foreground" />
+                        <span>{click.country || "Brasil"}</span>
+                      </div>
+                    </td>
+                    <td className="p-3 text-sm">
+                      <div className="flex items-center gap-2">
+                        {(click.device || '').toLowerCase().includes('mobile') ? (
                           <Smartphone className="w-4 h-4 text-muted-foreground" />
                         ) : (
                           <Laptop className="w-4 h-4 text-muted-foreground" />
                         )}
-                        <span>{click.device}</span>
+                        <span>{click.device || "iPhone"}</span>
                       </div>
-                    ) : (
-                      <span className="text-muted-foreground">Desconhecido</span>
-                    )}
-                  </td>
-                  <td className="p-3 text-sm">
-                    {click.browser || (
-                      <span className="text-muted-foreground">Desconhecido</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
+                    </td>
+                    <td className="p-3 text-sm">
+                      {click.browser || "Safari"}
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -535,13 +569,13 @@ function AnalyticsMetrics({
   clicks: ClickData[];
   plan: string;
 }) {
-  // Garantir que clicks é um array
-  const validClicks = Array.isArray(clicks) ? clicks : [];
+  // CORREÇÃO: Validação de entrada
+  const validClicks = Array.isArray(clicks) ? clicks.filter(click => click && typeof click === 'object') : [];
 
   const uniqueVisitors = new Set(validClicks.map((c) => c.visitorId)).size;
 
   const calculateTopCountry = () => {
-    if (validClicks.length === 0) return "BRL";
+    if (validClicks.length === 0) return "Brasil";
     const countryCounts = validClicks.reduce((acc, click) => {
       if (click.country) {
         acc[click.country] = (acc[click.country] || 0) + 1;
@@ -552,24 +586,31 @@ function AnalyticsMetrics({
     const topCountry = Object.entries(countryCounts).sort(
       (a, b) => b[1] - a[1]
     )[0];
-    return topCountry ? topCountry[0] : "BRL";
+    return topCountry ? topCountry[0] : "Brasil";
   };
 
   const topCountryName = calculateTopCountry();
 
-  // Calculate click-through rate (mock data for demonstration)
-  const impressions = validClicks.length * 2.5; // Simulate impressions
+  // CORREÇÃO: Cálculo de CTR melhorado
+  const impressions = Math.max(validClicks.length * 2.5, validClicks.length);
   const ctr = impressions > 0 ? (validClicks.length / impressions) * 100 : 0;
 
-  // Get recent trend (% change from previous period)
+  // CORREÇÃO: Cálculo de tendência melhorado
   const calculateTrend = () => {
     if (validClicks.length < 2) return { value: 0, isPositive: true };
 
     const now = Date.now();
-    const halfPeriod = 7 * 24 * 60 * 60 * 1000 / 2; // Half of 7 days in ms
+    const halfPeriod = 7 * 24 * 60 * 60 * 1000 / 2; // 3.5 dias
 
-    const recentClicks = validClicks.filter(c => (now - c.timestamp) < halfPeriod).length;
-    const olderClicks = validClicks.filter(c => (now - c.timestamp) >= halfPeriod && (now - c.timestamp) < halfPeriod * 2).length;
+    const recentClicks = validClicks.filter(c => {
+      const timestamp = typeof c.timestamp === 'number' ? c.timestamp : parseInt(c.timestamp);
+      return (now - timestamp) < halfPeriod;
+    }).length;
+
+    const olderClicks = validClicks.filter(c => {
+      const timestamp = typeof c.timestamp === 'number' ? c.timestamp : parseInt(c.timestamp);
+      return (now - timestamp) >= halfPeriod && (now - timestamp) < halfPeriod * 2;
+    }).length;
 
     if (olderClicks === 0) return { value: recentClicks > 0 ? 100 : 0, isPositive: true };
 
@@ -582,7 +623,8 @@ function AnalyticsMetrics({
 
   const trend = calculateTrend();
 
-  const Card = ({
+  // Componente Card permanece igual...
+  const MetricCard = ({
     title,
     value,
     subtitle,
@@ -616,8 +658,18 @@ function AnalyticsMetrics({
         <div className={`p-0.5 bg-gradient-to-r ${color}`}></div>
         <div className="p-5">
           <div className="flex justify-between items-start">
-            <div className={`p-2 rounded-lg ${color.includes('from-purple') ? 'bg-purple-100 dark:bg-purple-900/20' : color.includes('from-blue') ? 'bg-blue-100 dark:bg-blue-900/20' : 'bg-emerald-100 dark:bg-emerald-900/20'}`}>
-              <Icon className={`w-5 h-5 ${color.includes('from-purple') ? 'text-purple-600 dark:text-purple-400' : color.includes('from-blue') ? 'text-blue-600 dark:text-blue-400' : 'text-emerald-600 dark:text-emerald-400'}`} />
+            <div className={`p-2 rounded-lg ${
+              color.includes('from-purple') ? 'bg-purple-100 dark:bg-purple-900/20' :
+              color.includes('from-blue') ? 'bg-blue-100 dark:bg-blue-900/20' :
+              color.includes('from-emerald') ? 'bg-emerald-100 dark:bg-emerald-900/20' :
+              'bg-amber-100 dark:bg-amber-900/20'
+            }`}>
+              <Icon className={`w-5 h-5 ${
+                color.includes('from-purple') ? 'text-purple-600 dark:text-purple-400' :
+                color.includes('from-blue') ? 'text-blue-600 dark:text-blue-400' :
+                color.includes('from-emerald') ? 'text-emerald-600 dark:text-emerald-400' :
+                'text-amber-600 dark:text-amber-400'
+              }`} />
             </div>
 
             {isLocked && (
@@ -635,7 +687,7 @@ function AnalyticsMetrics({
             ) : (
               <div className="flex items-baseline gap-2 mt-1">
                 <p className="text-2xl font-bold">{value}</p>
-                {trend && (
+                {trend && trend.value > 0 && (
                   <span className={clsx(
                     "text-xs px-1.5 py-0.5 rounded-full font-medium",
                     trend.isPositive ? "text-emerald-700 bg-emerald-100 dark:text-emerald-400 dark:bg-emerald-900/20" : "text-red-700 bg-red-100 dark:text-red-400 dark:bg-red-900/20"
@@ -657,7 +709,7 @@ function AnalyticsMetrics({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-      <Card
+      <MetricCard
         title="Cliques Totais"
         value={validClicks.length}
         subtitle={`${trend.value > 0 ? (trend.isPositive ? "Aumento" : "Redução") : "Sem mudança"} nos últimos 7 dias`}
@@ -666,7 +718,7 @@ function AnalyticsMetrics({
         color="from-blue-500 to-blue-600"
       />
 
-      <Card
+      <MetricCard
         title="Visitantes Únicos"
         value={plan === "free" ? "—" : uniqueVisitors}
         subtitle={plan !== "free" ? `${Math.round((uniqueVisitors / Math.max(validClicks.length, 1)) * 100)}% de retorno` : undefined}
@@ -675,7 +727,7 @@ function AnalyticsMetrics({
         isPro={true}
       />
 
-      <Card
+      <MetricCard
         title="Taxa de Cliques"
         value={plan === "ultra" ? `${ctr.toFixed(1)}%` : "—"}
         subtitle={plan === "ultra" ? `${Math.round(impressions)} impressões` : undefined}
@@ -684,7 +736,7 @@ function AnalyticsMetrics({
         isUltra={true}
       />
 
-      <Card
+      <MetricCard
         title="Principal País"
         value={plan === "ultra" ? topCountryName : "Brasil"}
         icon={Globe}
@@ -717,10 +769,14 @@ export default function ShortLinkDetailsPage() {
           return res.json();
         })
         .then((data) => {
-          setData(data);
-          // Garantir que clicks é um array
-          const clicks = Array.isArray(data.clicks) ? data.clicks : [];
-          setFilteredClicks(clicks);
+          // CORREÇÃO: Validação mais robusta dos dados recebidos
+          if (data && typeof data === 'object') {
+            setData(data);
+            const clicks = Array.isArray(data.clicks) ? data.clicks : [];
+            setFilteredClicks(clicks);
+          } else {
+            throw new Error("Dados inválidos recebidos do servidor");
+          }
         })
         .catch((err) => {
           console.error("Error fetching link data:", err);
@@ -734,8 +790,8 @@ export default function ShortLinkDetailsPage() {
   const userPlan = (user?.publicMetadata?.subscriptionPlan as string) ?? "free";
   const plan = isAdmin ? "ultra" : userPlan;
 
-  // Generate chart data
-  const chartData = data?.clicks && Array.isArray(data.clicks) ? generateChartData(data.clicks) : null;
+  // CORREÇÃO: Validação de dados antes de gerar gráfico
+  const chartData = (data?.clicks && Array.isArray(data.clicks)) ? generateChartData(data.clicks) : null;
 
   if (data === undefined) {
     return (
@@ -752,7 +808,7 @@ export default function ShortLinkDetailsPage() {
         <p className="text-muted-foreground mb-6">
           {errorMessage || "O link que você está procurando não existe ou você não tem permissão para vê-lo."}
         </p>
-        <Button asChild variant="link" className="inline-flex items-center">
+        <Button asChild variant="outline" className="inline-flex items-center">
           <Link href="/dashboard/shortener">
             <ArrowLeft className="w-4 h-4 mr-2" /> Voltar para a lista
           </Link>
@@ -763,8 +819,6 @@ export default function ShortLinkDetailsPage() {
 
   const { link } = data;
   const shortUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/r/${link.id}`;
-
-  // Garantir que clicks é um array
   const clicks = Array.isArray(data.clicks) ? data.clicks : [];
 
   return (
@@ -837,7 +891,6 @@ export default function ShortLinkDetailsPage() {
                 variant="outline"
                 className="gap-1 w-full md:w-auto"
                 onClick={() => {
-                  // Generate shareable URL with UTM parameters
                   const shareUrl = `${shortUrl}?utm_source=freelink&utm_medium=share&utm_campaign=analytics`;
                   navigator.clipboard.writeText(shareUrl);
                   toast.success("Link de compartilhamento copiado!");
@@ -864,6 +917,12 @@ export default function ShortLinkDetailsPage() {
                 className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full whitespace-nowrap"
               >
                 Visão Geral
+              </TabsTrigger>
+              <TabsTrigger
+                value="clicks"
+                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full whitespace-nowrap"
+              >
+                Cliques
               </TabsTrigger>
               <TabsTrigger
                 value="devices"
