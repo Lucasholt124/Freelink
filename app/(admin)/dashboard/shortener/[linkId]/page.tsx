@@ -50,7 +50,7 @@ import {
 type LinkData = { id: string; url: string; createdAt: number; };
 type ClickData = {
   id: number;
-  timestamp: number;
+  timestamp: number | string;
   country: string | null;
   visitorId: string;
   device?: string;
@@ -60,34 +60,57 @@ type ClickData = {
 };
 type PageData = { link: LinkData; clicks: ClickData[] };
 
+// CORREÇÃO PRINCIPAL: Função para validar e converter timestamp de forma segura
+const parseTimestamp = (timestamp: number | string | undefined | null): number | null => {
+  if (timestamp === undefined || timestamp === null) return null;
+
+  let ts: number;
+
+  if (typeof timestamp === 'number') {
+    ts = timestamp;
+  } else if (typeof timestamp === 'string') {
+    // Tenta parse como número
+    ts = parseInt(timestamp);
+    if (isNaN(ts)) {
+      // Se falhar, tenta como data ISO
+      const date = new Date(timestamp);
+      ts = date.getTime();
+    }
+  } else {
+    return null;
+  }
+
+  // Valida se é um timestamp válido
+  if (isNaN(ts) || ts <= 0 || ts > Date.now() + 86400000) { // não pode ser no futuro (permite 1 dia de margem)
+    return null;
+  }
+
+  return ts;
+};
+
 // CORREÇÃO: Função melhorada para gerar dados do gráfico
 const generateChartData = (clicks: ClickData[]) => {
-  if (!Array.isArray(clicks) || clicks.length === 0) {
-    // Retorna últimos 7 dias com zero cliques se não houver dados
-    const last7Days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - i);
-      return d.toISOString().split('T')[0];
-    }).reverse();
+  // Últimos 7 dias
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    d.setHours(0, 0, 0, 0);
+    return d.toISOString().split('T')[0];
+  }).reverse();
 
+  if (!Array.isArray(clicks) || clicks.length === 0) {
     return {
       labels: last7Days,
       data: new Array(7).fill(0)
     };
   }
 
-  // Últimos 7 dias
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
-  }).reverse();
-
-  // CORREÇÃO: Converte timestamp corretamente
+  // Conta cliques por dia com validação de timestamp
   const clicksByDay = clicks.reduce((acc, click) => {
-    // Garante que timestamp seja um número
-    const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
-    const date = new Date(timestamp).toISOString().split('T')[0];
+    const ts = parseTimestamp(click.timestamp);
+    if (ts === null) return acc; // Ignora cliques com timestamp inválido
+
+    const date = new Date(ts).toISOString().split('T')[0];
     acc[date] = (acc[date] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -99,7 +122,6 @@ const generateChartData = (clicks: ClickData[]) => {
 };
 
 function AnalyticsChart({ data, labels, title }: { data: number[], labels: string[], title: string }) {
-  // CORREÇÃO: Verifica se há dados válidos
   if (!Array.isArray(data) || !Array.isArray(labels) || data.length === 0 || labels.length === 0) {
     return (
       <div className="mt-4 text-center text-gray-500 py-8">
@@ -109,41 +131,52 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
     );
   }
 
-  const maxValue = Math.max(...data, 1); // Mínimo de 1 para evitar divisão por zero
+  const maxValue = Math.max(...data, 1);
 
   return (
     <div className="mt-4">
       <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">{title}</h3>
       <div className="h-48 flex items-end gap-1">
-        {data.map((value, index) => (
-          <div key={index} className="group relative flex flex-col items-center flex-1">
-            <div className="absolute bottom-full mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none whitespace-nowrap z-10">
-              {value} {value === 1 ? 'clique' : 'cliques'}
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-t-4 border-l-4 border-r-4 border-transparent border-t-gray-800 w-0 h-0"></div>
-            </div>
-            <div
-              className="w-full bg-purple-500 dark:bg-purple-600 rounded-t transition-all duration-300"
-              style={{
-                height: `${Math.max((value / maxValue) * 100, value > 0 ? 4 : 2)}%`,
-                opacity: value ? 1 : 0.3
-              }}
-            ></div>
-            <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">
-              {/* CORREÇÃO: Validação de data */}
-              {labels[index] ? new Date(labels[index]).toLocaleDateString('pt-BR', {
+        {data.map((value, index) => {
+          // Validação de data
+          let dateStr = '--';
+          try {
+            const date = new Date(labels[index]);
+            if (!isNaN(date.getTime())) {
+              dateStr = date.toLocaleDateString('pt-BR', {
                 day: '2-digit',
                 month: '2-digit'
-              }) : '--'}
-            </span>
-          </div>
-        ))}
+              });
+            }
+          } catch {
+            // Mantém '--' se falhar
+          }
+
+          return (
+            <div key={index} className="group relative flex flex-col items-center flex-1">
+              <div className="absolute bottom-full mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none whitespace-nowrap z-10">
+                {value} {value === 1 ? 'clique' : 'cliques'}
+                <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-t-4 border-l-4 border-r-4 border-transparent border-t-gray-800 w-0 h-0"></div>
+              </div>
+              <div
+                className="w-full bg-purple-500 dark:bg-purple-600 rounded-t transition-all duration-300"
+                style={{
+                  height: `${Math.max((value / maxValue) * 100, value > 0 ? 4 : 2)}%`,
+                  opacity: value ? 1 : 0.3
+                }}
+              ></div>
+              <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">
+                {dateStr}
+              </span>
+            </div>
+          );
+        })}
       </div>
     </div>
   );
 }
 
 function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
-  // CORREÇÃO: Validação de entrada mais robusta
   const validClicks = Array.isArray(clicks) ? clicks.filter(click => click && typeof click === 'object') : [];
 
   if (validClicks.length === 0) {
@@ -157,8 +190,6 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
 
   const devices = validClicks.reduce((acc, click) => {
     const device = click.device || 'iPhone';
-
-    // CORREÇÃO: Categorização melhorada de dispositivos
     let category = 'Outros';
     const deviceLower = device.toLowerCase();
 
@@ -220,7 +251,6 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
 }
 
 function CountryMap({ clicks }: { clicks: ClickData[] }) {
-  // CORREÇÃO: Validação de entrada
   const validClicks = Array.isArray(clicks) ? clicks.filter(click => click && typeof click === 'object') : [];
 
   if (validClicks.length === 0) {
@@ -274,37 +304,40 @@ function ClicksList({ clicks, setFilteredClicks }: {
   const [timeFilter, setTimeFilter] = useState('all');
   const [countryFilter, setCountryFilter] = useState('all');
 
-  // CORREÇÃO: Validação de entrada
-  const validClicks = Array.isArray(clicks) ? clicks.filter(click => click && typeof click === 'object') : [];
+  const validClicks = Array.isArray(clicks) ? clicks.filter(click => {
+    if (!click || typeof click !== 'object') return false;
+    const ts = parseTimestamp(click.timestamp);
+    return ts !== null;
+  }) : [];
 
   useEffect(() => {
     let filtered = [...validClicks];
 
-    // CORREÇÃO: Filtros de tempo mais precisos
+    // Filtros de tempo
     if (timeFilter === 'today') {
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       filtered = filtered.filter(click => {
-        const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
-        return new Date(timestamp) >= today;
+        const ts = parseTimestamp(click.timestamp);
+        return ts && new Date(ts) >= today;
       });
     } else if (timeFilter === 'week') {
       const weekAgo = new Date();
       weekAgo.setDate(weekAgo.getDate() - 7);
       filtered = filtered.filter(click => {
-        const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
-        return new Date(timestamp) >= weekAgo;
+        const ts = parseTimestamp(click.timestamp);
+        return ts && new Date(ts) >= weekAgo;
       });
     } else if (timeFilter === 'month') {
       const monthAgo = new Date();
       monthAgo.setMonth(monthAgo.getMonth() - 1);
       filtered = filtered.filter(click => {
-        const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
-        return new Date(timestamp) >= monthAgo;
+        const ts = parseTimestamp(click.timestamp);
+        return ts && new Date(ts) >= monthAgo;
       });
     }
 
-    // Apply country filter
+    // Filtro de país
     if (countryFilter !== 'all') {
       filtered = filtered.filter(click => click.country === countryFilter);
     }
@@ -312,7 +345,6 @@ function ClicksList({ clicks, setFilteredClicks }: {
     setFilteredClicks(filtered);
   }, [timeFilter, countryFilter, validClicks, setFilteredClicks]);
 
-  // Get unique countries for filter
   const countries = Array.from(
     new Set(validClicks.map(click => click.country).filter(Boolean))
   ) as string[];
@@ -329,13 +361,12 @@ function ClicksList({ clicks, setFilteredClicks }: {
     );
   }
 
-  // CORREÇÃO: Função de exportação melhorada
   const exportCSV = () => {
     try {
       const headers = ['Data', 'Hora', 'País', 'Dispositivo', 'Navegador', 'SO', 'Referenciador'];
       const rows = validClicks.map(click => {
-        const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
-        const date = new Date(timestamp);
+        const ts = parseTimestamp(click.timestamp);
+        const date = ts ? new Date(ts) : new Date();
         return [
           date.toLocaleDateString('pt-BR'),
           date.toLocaleTimeString('pt-BR'),
@@ -451,11 +482,11 @@ function ClicksList({ clicks, setFilteredClicks }: {
         </Popover>
       </div>
 
-      {/* Resto do componente permanece igual... */}
+      {/* Versão mobile */}
       <div className="md:hidden space-y-3">
         {validClicks.slice(0, 20).map((click) => {
-          const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
-          const date = new Date(timestamp);
+          const ts = parseTimestamp(click.timestamp);
+          const date = ts ? new Date(ts) : new Date();
 
           return (
             <div key={click.id} className="bg-white dark:bg-gray-800 border rounded-lg p-3 space-y-2">
@@ -513,8 +544,8 @@ function ClicksList({ clicks, setFilteredClicks }: {
             </thead>
             <tbody className="divide-y">
               {validClicks.slice(0, 50).map((click) => {
-                const timestamp = typeof click.timestamp === 'number' ? click.timestamp : parseInt(click.timestamp);
-                const date = new Date(timestamp);
+                const ts = parseTimestamp(click.timestamp);
+                const date = ts ? new Date(ts) : new Date();
 
                 return (
                   <tr key={click.id} className="hover:bg-muted/30 transition-colors">
@@ -569,8 +600,11 @@ function AnalyticsMetrics({
   clicks: ClickData[];
   plan: string;
 }) {
-  // CORREÇÃO: Validação de entrada
-  const validClicks = Array.isArray(clicks) ? clicks.filter(click => click && typeof click === 'object') : [];
+  const validClicks = Array.isArray(clicks) ? clicks.filter(click => {
+    if (!click || typeof click !== 'object') return false;
+    const ts = parseTimestamp(click.timestamp);
+    return ts !== null;
+  }) : [];
 
   const uniqueVisitors = new Set(validClicks.map((c) => c.visitorId)).size;
 
@@ -591,25 +625,23 @@ function AnalyticsMetrics({
 
   const topCountryName = calculateTopCountry();
 
-  // CORREÇÃO: Cálculo de CTR melhorado
   const impressions = Math.max(validClicks.length * 2.5, validClicks.length);
   const ctr = impressions > 0 ? (validClicks.length / impressions) * 100 : 0;
 
-  // CORREÇÃO: Cálculo de tendência melhorado
   const calculateTrend = () => {
     if (validClicks.length < 2) return { value: 0, isPositive: true };
 
     const now = Date.now();
-    const halfPeriod = 7 * 24 * 60 * 60 * 1000 / 2; // 3.5 dias
+    const halfPeriod = 7 * 24 * 60 * 60 * 1000 / 2;
 
     const recentClicks = validClicks.filter(c => {
-      const timestamp = typeof c.timestamp === 'number' ? c.timestamp : parseInt(c.timestamp);
-      return (now - timestamp) < halfPeriod;
+      const ts = parseTimestamp(c.timestamp);
+      return ts && (now - ts) < halfPeriod;
     }).length;
 
     const olderClicks = validClicks.filter(c => {
-      const timestamp = typeof c.timestamp === 'number' ? c.timestamp : parseInt(c.timestamp);
-      return (now - timestamp) >= halfPeriod && (now - timestamp) < halfPeriod * 2;
+      const ts = parseTimestamp(c.timestamp);
+      return ts && (now - ts) >= halfPeriod && (now - ts) < halfPeriod * 2;
     }).length;
 
     if (olderClicks === 0) return { value: recentClicks > 0 ? 100 : 0, isPositive: true };
@@ -623,7 +655,6 @@ function AnalyticsMetrics({
 
   const trend = calculateTrend();
 
-  // Componente Card permanece igual...
   const MetricCard = ({
     title,
     value,
@@ -769,11 +800,18 @@ export default function ShortLinkDetailsPage() {
           return res.json();
         })
         .then((data) => {
-          // CORREÇÃO: Validação mais robusta dos dados recebidos
           if (data && typeof data === 'object') {
-            setData(data);
-            const clicks = Array.isArray(data.clicks) ? data.clicks : [];
-            setFilteredClicks(clicks);
+            // Valida os cliques antes de definir os dados
+            const validatedData = {
+              ...data,
+              clicks: Array.isArray(data.clicks) ? data.clicks.filter((click: ClickData) => {
+                if (!click || typeof click !== 'object') return false;
+                const ts = parseTimestamp(click.timestamp);
+                return ts !== null;
+              }) : []
+            };
+            setData(validatedData);
+            setFilteredClicks(validatedData.clicks);
           } else {
             throw new Error("Dados inválidos recebidos do servidor");
           }
@@ -790,7 +828,6 @@ export default function ShortLinkDetailsPage() {
   const userPlan = (user?.publicMetadata?.subscriptionPlan as string) ?? "free";
   const plan = isAdmin ? "ultra" : userPlan;
 
-  // CORREÇÃO: Validação de dados antes de gerar gráfico
   const chartData = (data?.clicks && Array.isArray(data.clicks)) ? generateChartData(data.clicks) : null;
 
   if (data === undefined) {
@@ -818,7 +855,7 @@ export default function ShortLinkDetailsPage() {
   }
 
   const { link } = data;
-  const shortUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/r/${link.id}`;
+  const shortUrl = typeof window !== 'undefined' ? `${window.location.origin}/r/${link.id}` : `https://freelinnk.com/r/${link.id}`;
   const clicks = Array.isArray(data.clicks) ? data.clicks : [];
 
   return (
