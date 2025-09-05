@@ -1,10 +1,10 @@
-// convex/brain.ts
+// Em convex/brain.ts
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import OpenAI from 'openai';
 
 // =================================================================
-// 1. CONFIGURAÇÃO E TIPOS
+// 1. ESTRUTURAS DE DADOS (Mantidas como estavam)
 // =================================================================
 
 interface ReelContent {
@@ -12,10 +12,6 @@ interface ReelContent {
   hook: string;
   main_points: string[];
   cta: string;
-  duration?: number;
-  hashtags?: string[];
-  music_suggestion?: string;
-  thumbnail_prompt?: string;
 }
 
 interface CarouselContent {
@@ -24,638 +20,353 @@ interface CarouselContent {
     slide_number: number;
     title: string;
     content: string;
-    design_notes?: string;
   }[];
   cta_slide: string;
-  color_scheme?: string;
 }
 
 interface ImagePostContent {
   idea: string;
   caption: string;
   image_prompt: string;
-  alt_text?: string;
-  hashtags?: string[];
 }
 
 interface StorySequenceContent {
   theme: string;
   slides: {
     slide_number: number;
-    type: "Poll" | "Quiz" | "Q&A" | "Link" | "Text" | "Image" | "Video";
+    type: "Poll" | "Quiz" | "Q&A" | "Link" | "Text";
     content: string;
     options?: string[];
-    media_url?: string;
   }[];
-}
-
-interface ContentStrategy {
-  main_pillars: string[];
-  content_mix: {
-    educational: number;
-    entertaining: number;
-    inspirational: number;
-    promotional: number;
-  };
-  posting_schedule: {
-    optimal_times: string[];
-    frequency: string;
-    platform_specific: Record<string, unknown>;
-  };
-  kpis: string[];
-}
-
-interface AnalyticsPrediction {
-  estimated_monthly_reach: number;
-  estimated_engagement_rate: number;
-  estimated_follower_growth: number;
-  estimated_conversion_rate: number;
-  roi_projection: number;
-}
-
-interface AudienceProfile {
-  demographics: {
-    age_range: string;
-    gender_distribution: string;
-    location: string[];
-    income_level: string;
-  };
-  psychographics: {
-    interests: string[];
-    pain_points: string[];
-    goals: string[];
-    values: string[];
-  };
-  behavior: {
-    preferred_platforms: string[];
-    content_consumption_times: string[];
-    engagement_patterns: string;
-  };
 }
 
 interface BrainResults {
   theme_summary: string;
-  target_audience_suggestion: string | AudienceProfile;
-  content_strategy?: ContentStrategy;
+  target_audience_suggestion: string;
   content_pack: {
     reels: ReelContent[];
     carousels: CarouselContent[];
     image_posts: ImagePostContent[];
     story_sequences: StorySequenceContent[];
   };
-  analytics_predictions?: AnalyticsPrediction;
-}
-
-interface OutreachMessageResult {
-  title: string;
-  content: string;
-  businessType: string;
-  messageType: string;
-  followUpDate: string;
-  alternativeVersions: string[];
-}
-
-interface ContentAnalysisResult {
-  content_score: number;
-  improvements: string[];
-  predicted_metrics: {
-    estimated_reach: number;
-    engagement_rate: number;
-    virality_score: number;
-    best_time_to_post: string;
-  };
-  competitor_comparison: {
-    your_score: number;
-    industry_average: number;
-    top_performer: number;
-  };
 }
 
 // =================================================================
-// 2. CONFIGURAÇÃO DE MODELOS DE IA
+// 2. CONFIGURAÇÃO ATUALIZADA COM MODELOS CORRETOS
 // =================================================================
 
+// Modelos disponíveis no Groq (atualizados)
 const GROQ_MODELS = {
-  primary: 'llama-3.3-70b-versatile',
-  fallback: 'llama-3.1-70b-versatile',
-  fast: 'llama-3.1-8b-instant',
-  alternative: 'mixtral-8x7b-32768'
-} as const;
+  primary: 'llama-3.3-70b-versatile',     // Modelo principal mais recente
+  fallback: 'llama-3.1-70b-versatile',    // Fallback se o principal falhar
+  fast: 'llama-3.1-8b-instant',           // Modelo rápido para respostas simples
+  alternative: 'mixtral-8x7b-32768'       // Alternativa Mixtral
+};
 
-const groq = process.env.GROQ_API_KEY
-  ? new OpenAI({
-      apiKey: process.env.GROQ_API_KEY,
-      baseURL: 'https://api.groq.com/openai/v1',
-    })
-  : null;
+const groq = new OpenAI({
+  apiKey: process.env.GROQ_API_KEY,
+  baseURL: 'https://api.groq.com/openai/v1',
+});
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
-  : null;
+const openai = process.env.OPENAI_API_KEY ? new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY,
+}) : null;
 
-// =================================================================
-// 3. FUNÇÕES AUXILIARES
-// =================================================================
-
+/**
+ * Função de parse de JSON robusta
+ */
 function parseAiJsonResponse<T>(text: string): T {
   try {
-    const cleanText = text
-      .replace(/```json\n?/g, '')
-      .replace(/```\n?/g, '')
-      .trim();
+    const jsonStart = text.indexOf('{');
+    const arrayStart = text.indexOf('[');
+    let start = -1;
 
-    const jsonStart = cleanText.indexOf('{');
-    const jsonEnd = cleanText.lastIndexOf('}') + 1;
-
-    if (jsonStart === -1 || jsonEnd === 0) {
-      throw new Error("Nenhum JSON válido encontrado na resposta");
+    if (jsonStart === -1 && arrayStart === -1) {
+      throw new Error("Nenhum objeto ou array JSON encontrado no texto da IA.");
     }
 
-    const jsonString = cleanText.substring(jsonStart, jsonEnd);
+    if (jsonStart !== -1 && (arrayStart === -1 || jsonStart < arrayStart)) {
+      start = jsonStart;
+    } else {
+      start = arrayStart;
+    }
+
+    const jsonEnd = text.lastIndexOf('}');
+    const arrayEnd = text.lastIndexOf(']');
+    const end = Math.max(jsonEnd, arrayEnd);
+
+    if (start === -1 || end === -1) {
+      throw new Error("Não foi possível delimitar o início ou o fim do JSON.");
+    }
+
+    const jsonString = text.substring(start, end + 1);
     return JSON.parse(jsonString) as T;
 
-  } catch (error) {
-    console.error("Erro ao parsear JSON:", error);
-    throw new Error("Falha ao processar resposta da IA");
+  } catch (error: unknown) {
+    if (error instanceof Error) {
+      console.error("Erro CRÍTICO ao parsear JSON:", error.message);
+    } else {
+      console.error("Erro CRÍTICO ao parsear JSON (tipo desconhecido):", error);
+    }
+
+    console.error("Texto Recebido da IA:", text);
+    throw new Error("Falha ao parsear a resposta JSON da IA.");
   }
 }
 
-function generateHashtags(theme: string, count: number = 10): string[] {
-  const baseHashtags = [
-    'marketing', 'empreendedorismo', 'negócios', 'sucesso',
-    'motivação', 'dicas', 'estratégia', 'crescimento',
-    'inovação', 'resultados', 'vendas', 'digital',
-    'tendências', 'produtividade', 'liderança', 'gestão'
-  ];
+// Função para melhorar o prompt
+function enhancePrompt(prompt: string, theme: string): string {
+  return `
+# MISSÃO CRÍTICA: CRIAR CONTEÚDO QUE TRANSFORME VIDAS E NEGÓCIOS
 
-  const themeWords = theme.toLowerCase()
-    .replace(/[^a-záàâãéèêíïóôõöúçñ\s]/gi, '')
-    .split(' ')
-    .filter(word => word.length > 3)
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1));
+## TEMA: "${theme}"
 
-  const uniqueHashtags = Array.from(new Set([
-    ...themeWords.slice(0, Math.floor(count / 2)),
-    ...baseHashtags.slice(0, count - themeWords.length)
-  ]));
+## SEU PAPEL:
+Você é um GÊNIO CRIATIVO que combina:
+- Psicologia comportamental avançada
+- Técnicas de storytelling de Hollywood
+- Gatilhos mentais comprovados cientificamente
+- Estratégias de viralização do TikTok/Instagram
+- Copywriting de conversão de 8 figuras
 
-  return uniqueHashtags.slice(0, count);
-}
+${prompt}
 
-function estimateMetrics(contentType: string): {
-  estimated_reach: number;
-  engagement_rate: number;
-  virality_score: number;
-  best_time_to_post: string;
-} {
-  const baseMetrics: Record<string, { reach: number; engagement: number; virality: number }> = {
-    reel: { reach: 10000, engagement: 8.5, virality: 75 },
-    carousel: { reach: 7500, engagement: 6.5, virality: 60 },
-    post: { reach: 5000, engagement: 5.0, virality: 45 },
-    story: { reach: 3000, engagement: 12.0, virality: 30 }
-  };
-
-  const metrics = baseMetrics[contentType] || baseMetrics.post;
-  const variance = 0.2;
-  const randomMultiplier = 1 + (Math.random() - 0.5) * variance;
-
-  const bestTimes = ["07:00", "12:00", "19:00", "20:00", "21:00"];
-
-  return {
-    estimated_reach: Math.round(metrics.reach * randomMultiplier),
-    engagement_rate: Number((metrics.engagement * randomMultiplier).toFixed(1)),
-    virality_score: Math.round(metrics.virality * randomMultiplier),
-    best_time_to_post: bestTimes[Math.floor(Math.random() * bestTimes.length)]
-  };
+Agora, REVOLUCIONE o tema "${theme}" com conteúdo que vai MUDAR VIDAS! Me dê o resultado em formato JSON.
+`;
 }
 
 // =================================================================
-// 4. GERAÇÃO DE CONTEÚDO COM IA
+// 3. LÓGICA DE GERAÇÃO ATUALIZADA COM MÚLTIPLOS MODELOS
 // =================================================================
 
-async function generateWithAI(theme: string, model: string = "balanced"): Promise<BrainResults> {
-  const modelConfig: Record<string, { model: string; temperature: number; max_tokens: number }> = {
-    fast: {
-      model: GROQ_MODELS.fast,
-      temperature: 0.7,
-      max_tokens: 6000
-    },
-    balanced: {
-      model: GROQ_MODELS.primary,
-      temperature: 0.8,
-      max_tokens: 8000
-    },
-    quality: {
-      model: GROQ_MODELS.primary,
-      temperature: 0.9,
-      max_tokens: 10000
-    }
-  };
+async function generateWithGroq(theme: string): Promise<BrainResults> {
+  const basePrompt = `
+## MINDSET OBRIGATÓRIO:
+1. **VALOR EXTREMO**: Cada peça de conteúdo deve ser tão valiosa que as pessoas pagariam para ter acesso
+2. **EMOÇÃO PROFUNDA**: Faça as pessoas SENTIREM algo - medo de perder, esperança, urgência, transformação
+3. **AÇÃO IMEDIATA**: Cada conteúdo deve gerar uma ação específica AGORA
+4. **MEMORÁVEL**: Use histórias, analogias e exemplos que grudem na mente
+5. **COMPARTILHÁVEL**: Crie conteúdo que as pessoas se ORGULHEM de compartilhar
 
-  const config = modelConfig[model] || modelConfig.balanced;
-
-  const systemPrompt = `Você é um estrategista de conteúdo especializado em criar campanhas virais.
-
-IMPORTANTE:
-- Responda APENAS em JSON válido
-- Crie conteúdo em português brasileiro
-- Use psicologia comportamental e gatilhos mentais
-- Foque em valor real para a audiência`;
-
-  const userPrompt = `Crie uma campanha completa sobre: "${theme}"
-
-Retorne EXATAMENTE neste formato JSON:
+## ESTRUTURA JSON OBRIGATÓRIA:
 {
-  "theme_summary": "Resumo estratégico do tema",
-  "target_audience_suggestion": "Descrição detalhada do público-alvo ideal",
+  "theme_summary": "Ângulo ÚNICO e PROVOCATIVO que ninguém está falando sobre ${theme}",
+  "target_audience_suggestion": "Persona ULTRA específica com dores e desejos profundos",
   "content_pack": {
     "reels": [
       {
-        "title": "Título atrativo",
-        "hook": "Gancho dos primeiros 3 segundos",
-        "main_points": ["Ponto 1", "Ponto 2", "Ponto 3"],
-        "cta": "Call to action claro",
-        "duration": 30,
-        "hashtags": ["hashtag1", "hashtag2"],
-        "music_suggestion": "Sugestão de música"
+        "title": "Título que gera FOMO instantâneo",
+        "hook": "Primeiros 3 segundos que PARAM o scroll. Use: pergunta chocante, estatística impossível, ou contradição",
+        "main_points": [
+          "Revelação 1: Quebre uma crença limitante",
+          "Revelação 2: Mostre o caminho oculto",
+          "Revelação 3: Dê a chave da transformação"
+        ],
+        "cta": "CTA que gera ação IMEDIATA com recompensa clara"
       }
     ],
     "carousels": [
       {
-        "title": "Título do carrossel",
+        "title": "Promessa GRANDE com número específico (ex: 7 passos para...)",
         "slides": [
-          {
-            "slide_number": 1,
-            "title": "Título do slide",
-            "content": "Conteúdo do slide",
-            "design_notes": "Notas de design"
-          }
+          { "slide_number": 1, "title": "CAPA MATADORA", "content": "Título principal + subtítulo que amplifica a promessa" },
+          { "slide_number": 2, "title": "Passo 1", "content": "Conteúdo detalhado do passo 1" },
+          { "slide_number": 3, "title": "Passo 2", "content": "Conteúdo detalhado do passo 2" },
+          { "slide_number": 10, "title": "AÇÃO AGORA", "content": "CTA específico com próximo passo claro" }
         ],
-        "cta_slide": "Slide final com CTA",
-        "color_scheme": "Esquema de cores"
+        "cta_slide": "Transforme sua vida com ${theme} HOJE! Salve e compartilhe com quem precisa ver isso 🚀"
       }
     ],
     "image_posts": [
       {
-        "idea": "Ideia central",
-        "caption": "Legenda completa",
-        "image_prompt": "Prompt para gerar imagem",
-        "alt_text": "Texto alternativo",
-        "hashtags": ["hashtag1", "hashtag2"]
+        "idea": "Frase de impacto que PARA o scroll e gera reflexão profunda",
+        "caption": "História pessoal emocionante (3-4 parágrafos) → Transição para lição universal → Lista de 3-5 insights práticos → Pergunta que gera engajamento → CTA claro com benefício → Hashtags estratégicas",
+        "image_prompt": "Design minimalista impactante: fundo gradiente vibrante, tipografia bold sans-serif, hierarquia visual clara, proporção 1:1, estilo premium"
       }
     ],
     "story_sequences": [
       {
-        "theme": "Tema da sequência",
+        "theme": "Diagnóstico Rápido: Descubra seu nível em ${theme}",
         "slides": [
-          {
-            "slide_number": 1,
-            "type": "Text",
-            "content": "Conteúdo do slide",
-            "options": ["Opção 1", "Opção 2"]
-          }
+          { "slide_number": 1, "type": "Text", "content": "🚨 ATENÇÃO: 87% das pessoas estão fazendo ${theme} ERRADO. Vamos descobrir se você é uma delas?" },
+          { "slide_number": 2, "type": "Quiz", "content": "Você já tentou X e não funcionou?", "options": ["Sim, várias vezes", "Não, nunca tentei"] },
+          { "slide_number": 6, "type": "Link", "content": "BÔNUS EXCLUSIVO 24H: Baixe meu guia gratuito '${theme} Descomplicado' → Link na bio! 🎁" }
         ]
       }
     ]
   }
+}`;
+
+  const prompt = enhancePrompt(basePrompt, theme);
+
+  // Lista de modelos para tentar em ordem
+  const modelsToTry = [
+    GROQ_MODELS.primary,
+    GROQ_MODELS.fallback,
+    GROQ_MODELS.alternative,
+    GROQ_MODELS.fast
+  ];
+
+  let lastError: unknown = null;
+
+  // Tenta cada modelo em sequência
+  for (const model of modelsToTry) {
+    try {
+      console.log(`🔄 Tentando gerar com modelo: ${model}...`);
+
+      const response = await groq.chat.completions.create({
+        model,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: 'Você é um GÊNIO do marketing de conteúdo viral. Crie conteúdo TRANSFORMADOR que gera resultados REAIS. Responda APENAS em formato JSON válido.'
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: 0.9,
+        max_tokens: 8000,
+      });
+
+      const resultText = response.choices[0]?.message?.content;
+      if (!resultText) {
+        throw new Error(`Modelo ${model} não retornou resultado válido`);
+      }
+
+      console.log(`✅ Sucesso com modelo: ${model}`);
+      return parseAiJsonResponse<BrainResults>(resultText);
+
+    } catch (error) {
+      console.error(`❌ Erro com modelo ${model}:`, error);
+      lastError = error;
+
+      // Se for erro de modelo descontinuado, tenta o próximo
+      if (error instanceof Error && error.message.includes('decommissioned')) {
+        console.log(`⚠️ Modelo ${model} foi descontinuado, tentando próximo...`);
+        continue;
+      }
+
+      // Para outros erros, também tenta o próximo modelo
+      continue;
+    }
+  }
+
+  // Se todos os modelos Groq falharem, tenta OpenAI
+  if (openai) {
+    try {
+      console.log("🔄 Tentando gerar com OpenAI como fallback final...");
+      return await generateWithOpenAI(theme);
+    } catch (openaiError) {
+      console.error("❌ Erro com OpenAI também:", openaiError);
+    }
+  }
+
+  // Se tudo falhar, usa fallback estático
+  console.error("❌ Todos os modelos falharam. Último erro:", lastError);
+  throw new Error(`Falha ao gerar conteúdo com todos os modelos disponíveis`);
 }
 
-Crie no mínimo:
-- 3 reels virais
-- 2 carrosséis completos (5-7 slides cada)
-- 3 posts com legendas engajadoras
-- 2 sequências de stories interativos`;
+// Função de fallback com OpenAI
+async function generateWithOpenAI(theme: string): Promise<BrainResults> {
+  if (!openai) {
+    throw new Error("OpenAI não está configurada.");
+  }
+
+  const prompt = `Crie um pacote completo de conteúdo para Instagram sobre "${theme}".
+
+  Retorne um JSON com:
+  - theme_summary: resumo estratégico do tema
+  - target_audience_suggestion: público-alvo específico
+  - content_pack com arrays de:
+    - reels (mínimo 3)
+    - carousels (mínimo 2)
+    - image_posts (mínimo 3)
+    - story_sequences (mínimo 2)
+
+  Cada item deve seguir a estrutura específica de seu tipo.`;
 
   try {
-    if (!groq) {
-      console.log("⚠️ Groq não configurado, usando fallback estático");
-      return generateStaticFallback(theme);
-    }
-
-    console.log(`🚀 Gerando conteúdo com ${config.model}...`);
-
-    const response = await groq.chat.completions.create({
-      model: config.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
-      ],
-      temperature: config.temperature,
-      max_tokens: config.max_tokens,
-      response_format: { type: 'json_object' }
+    const response = await openai.chat.completions.create({
+        model: 'gpt-4-turbo-preview', // Modelo mais recente
+        response_format: { type: 'json_object' },
+        messages: [
+            { role: 'system', content: 'Você é um diretor criativo especializado em marketing de conteúdo viral. Responda EXCLUSIVAMENTE em JSON válido.' },
+            { role: 'user', content: prompt },
+        ],
+        temperature: 0.7,
+        max_tokens: 4000,
     });
 
-    const content = response.choices[0]?.message?.content;
-    if (!content) {
-      throw new Error("Resposta vazia da IA");
+    const resultText = response.choices[0]?.message?.content;
+    if (!resultText) {
+        throw new Error("A OpenAI não retornou um resultado válido.");
     }
 
-    const result = parseAiJsonResponse<BrainResults>(content);
-
-    // Enriquecer conteúdo
-    if (result.content_pack.reels) {
-      result.content_pack.reels = result.content_pack.reels.map(reel => ({
-        ...reel,
-        hashtags: reel.hashtags?.length ? reel.hashtags : generateHashtags(theme, 10),
-        duration: reel.duration || 30,
-        music_suggestion: reel.music_suggestion || "Música trending do momento"
-      }));
-    }
-
-    if (result.content_pack.image_posts) {
-      result.content_pack.image_posts = result.content_pack.image_posts.map(post => ({
-        ...post,
-        hashtags: post.hashtags?.length ? post.hashtags : generateHashtags(theme, 15),
-        alt_text: post.alt_text || `Imagem sobre ${theme}`
-      }));
-    }
-
-    // Garantir conteúdo mínimo
-    if (!result.content_pack.reels || result.content_pack.reels.length < 3) {
-      const fallback = generateStaticFallback(theme);
-      result.content_pack.reels = [
-        ...(result.content_pack.reels || []),
-        ...fallback.content_pack.reels.slice(0, 3 - (result.content_pack.reels?.length || 0))
-      ];
-    }
-
-    if (!result.content_pack.carousels || result.content_pack.carousels.length < 2) {
-      const fallback = generateStaticFallback(theme);
-      result.content_pack.carousels = [
-        ...(result.content_pack.carousels || []),
-        ...fallback.content_pack.carousels.slice(0, 2 - (result.content_pack.carousels?.length || 0))
-      ];
-    }
-
-    return result;
-
+    return parseAiJsonResponse<BrainResults>(resultText);
   } catch (error) {
-    console.error("Erro na geração com IA:", error);
-
-    // Tentar com OpenAI
-    if (openai) {
-      try {
-        console.log("🔄 Tentando com OpenAI...");
-
-        const response = await openai.chat.completions.create({
-          model: 'gpt-3.5-turbo-1106',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt }
-          ],
-          temperature: 0.8,
-          max_tokens: 4000,
-          response_format: { type: 'json_object' }
-        });
-
-        const content = response.choices[0]?.message?.content;
-        if (!content) throw new Error("Resposta vazia da OpenAI");
-
-        return parseAiJsonResponse<BrainResults>(content);
-
-      } catch (openaiError) {
-        console.error("Erro com OpenAI:", openaiError);
-      }
-    }
-
-    // Fallback final
-    console.log("🔄 Usando fallback estático");
-    return generateStaticFallback(theme);
+    console.error("Erro ao gerar com OpenAI:", error);
+    return generateFallbackContent(theme);
   }
 }
 
-function generateStaticFallback(theme: string): BrainResults {
-  const hashtags = generateHashtags(theme, 15);
-
-  return {
-    theme_summary: `Estratégia completa para dominar ${theme} e alcançar resultados extraordinários no marketing digital`,
-    target_audience_suggestion: `Profissionais e empresas que buscam excelência em ${theme}, com foco em resultados mensuráveis e crescimento sustentável`,
-    content_strategy: {
-      main_pillars: [
-        `Educação sobre ${theme}`,
-        "Cases de sucesso",
-        "Dicas práticas",
-        "Tendências do mercado"
-      ],
-      content_mix: {
-        educational: 40,
-        entertaining: 30,
-        inspirational: 20,
-        promotional: 10
-      },
-      posting_schedule: {
-        optimal_times: ["08:00", "12:00", "19:00"],
-        frequency: "3 posts por dia",
-        platform_specific: {
-          instagram: "Reels 2x/dia, Posts 1x/dia",
-          linkedin: "1 post por dia"
+// Conteúdo de fallback melhorado
+function generateFallbackContent(theme: string): BrainResults {
+    return {
+        theme_summary: `Estratégia revolucionária para dominar ${theme} e se destacar no mercado`,
+        target_audience_suggestion: `Profissionais e empreendedores que buscam resultados rápidos e sustentáveis em ${theme}`,
+        content_pack: {
+            reels: [
+                {
+                    title: `3 erros fatais em ${theme} que destroem seus resultados`,
+                    hook: `Se você está fazendo isso em ${theme}, pare AGORA! O #2 é chocante...`,
+                    main_points: [
+                        "Erro #1: Focar apenas em táticas sem estratégia",
+                        "Erro #2: Ignorar a psicologia do seu público",
+                        "Erro #3: Não medir os resultados corretos"
+                    ],
+                    cta: "Salve este post e comece a aplicar HOJE! Comenta 'EU' se você já cometeu algum desses erros"
+                }
+            ],
+            carousels: [
+                {
+                    title: `5 passos para dominar ${theme} em 30 dias`,
+                    slides: [
+                        { slide_number: 1, title: "TRANSFORME SEU NEGÓCIO", content: `${theme} nunca mais será um problema` },
+                        { slide_number: 2, title: "Passo 1: Fundamentos", content: "Entenda os princípios básicos que 90% ignora" },
+                        { slide_number: 3, title: "Passo 2: Estratégia", content: "Monte seu plano de ação personalizado" },
+                        { slide_number: 4, title: "Passo 3: Execução", content: "Implemente com o método comprovado" },
+                        { slide_number: 5, title: "Passo 4: Otimização", content: "Ajuste fino para resultados máximos" },
+                        { slide_number: 6, title: "Passo 5: Escala", content: "Multiplique seus resultados" },
+                        { slide_number: 7, title: "AÇÃO IMEDIATA", content: "Comece HOJE! Salve este post e compartilhe com quem precisa" }
+                    ],
+                    cta_slide: "Transforme sua realidade com estes 5 passos! 🚀"
+                }
+            ],
+            image_posts: [
+                {
+                    idea: `"O sucesso em ${theme} não é sobre talento, é sobre sistema"`,
+                    caption: `Descobri isso da pior forma possível...\n\nDurante anos, achei que ${theme} era questão de dom natural. Até que percebi: os melhores não são os mais talentosos, são os mais sistemáticos.\n\n3 insights que mudaram tudo:\n\n1. Consistência > Perfeição\n2. Sistema > Inspiração\n3. Progresso > Resultado\n\nE você, ainda está esperando inspiração ou já está construindo seu sistema?\n\n#${theme.replace(/\s+/g, '')} #marketing #sucesso`,
+                    image_prompt: "Quote minimalista com fundo gradiente roxo para azul, tipografia moderna bold, composição centralizada"
+                }
+            ],
+            story_sequences: [
+                {
+                    theme: `Quiz: Qual seu nível em ${theme}?`,
+                    slides: [
+                        { slide_number: 1, type: "Text", content: `Vamos descobrir seu nível real em ${theme}! Responda com sinceridade...` },
+                        { slide_number: 2, type: "Quiz", content: "Com que frequência você pratica?", options: ["Diariamente", "Semanalmente", "Raramente"] },
+                        { slide_number: 3, type: "Poll", content: "Qual sua maior dificuldade?", options: ["Começar", "Manter consistência"] },
+                        { slide_number: 4, type: "Q&A", content: "Me conta: qual seu maior desafio?" },
+                        { slide_number: 5, type: "Link", content: "Baixe o guia completo GRÁTIS! Link na bio 🎁" }
+                    ]
+                }
+            ]
         }
-      },
-      kpis: ["Alcance", "Engajamento", "Conversões", "ROI"]
-    },
-    content_pack: {
-      reels: [
-        {
-          title: `3 erros fatais em ${theme}`,
-          hook: `Se você comete o erro #2, pare AGORA!`,
-          main_points: [
-            "Erro 1: Falta de estratégia clara",
-            "Erro 2: Ignorar métricas importantes",
-            "Erro 3: Não testar continuamente"
-          ],
-          cta: "Salve este post e aplique hoje mesmo!",
-          duration: 30,
-          hashtags: hashtags.slice(0, 10),
-          music_suggestion: "Música motivacional trending"
-        },
-        {
-          title: `Como triplicar resultados em ${theme}`,
-          hook: "Este método mudou tudo em 30 dias...",
-          main_points: [
-            "Análise profunda do mercado",
-            "Implementação de sistema testado",
-            "Otimização baseada em dados"
-          ],
-          cta: "Comente QUERO para receber o guia completo!",
-          duration: 45,
-          hashtags: hashtags.slice(5, 15),
-          music_suggestion: "Beat energético com drop"
-        },
-        {
-          title: `A verdade sobre ${theme}`,
-          hook: "5 anos de experiência resumidos aqui...",
-          main_points: [
-            "Não existe fórmula mágica",
-            "Consistência vence talento",
-            "Simplicidade é o segredo"
-          ],
-          cta: "Compartilhe com quem precisa ver isso!",
-          duration: 30,
-          hashtags: hashtags.slice(0, 12),
-          music_suggestion: "Lo-fi inspiracional"
-        }
-      ],
-      carousels: [
-        {
-          title: `Guia completo de ${theme}`,
-          slides: [
-            {
-              slide_number: 1,
-              title: "TRANSFORMAÇÃO GARANTIDA",
-              content: `Domine ${theme} em 5 passos simples`,
-              design_notes: "Fundo gradiente, texto bold"
-            },
-            {
-              slide_number: 2,
-              title: "Passo 1: Fundamentos",
-              content: "Entenda os princípios básicos",
-              design_notes: "Ícones visuais, cores vibrantes"
-            },
-            {
-              slide_number: 3,
-              title: "Passo 2: Estratégia",
-              content: "Monte seu plano de ação",
-              design_notes: "Fluxograma visual"
-            },
-            {
-              slide_number: 4,
-              title: "Passo 3: Execução",
-              content: "Implemente com método",
-              design_notes: "Checklist visual"
-            },
-            {
-              slide_number: 5,
-              title: "Passo 4: Análise",
-              content: "Meça e otimize resultados",
-              design_notes: "Gráficos e métricas"
-            },
-            {
-              slide_number: 6,
-              title: "AÇÃO IMEDIATA",
-              content: "Comece agora mesmo!",
-              design_notes: "CTA destacado com urgência"
-            }
-          ],
-          cta_slide: "Salve e compartilhe este guia!",
-          color_scheme: "Gradiente azul-roxo moderno"
-        },
-        {
-          title: `Checklist ${theme}`,
-          slides: [
-            {
-              slide_number: 1,
-              title: "CHECKLIST COMPLETO",
-              content: "Tudo que você precisa verificar",
-              design_notes: "Design minimalista"
-            },
-            {
-              slide_number: 2,
-              title: "Preparação",
-              content: "□ Objetivos definidos\n□ Recursos mapeados",
-              design_notes: "Checkboxes visuais"
-            },
-            {
-              slide_number: 3,
-              title: "Execução",
-              content: "□ Plano implementado\n□ Testes realizados",
-              design_notes: "Progress bars"
-            },
-            {
-              slide_number: 4,
-              title: "BAIXE O PDF",
-              content: "Link na bio para download!",
-              design_notes: "CTA com ícone de download"
-            }
-          ],
-          cta_slide: "Acesse o link na bio agora!",
-          color_scheme: "Verde e laranja vibrantes"
-        }
-      ],
-      image_posts: [
-        {
-          idea: `Mindset vencedor em ${theme}`,
-          caption: `A maior lição que aprendi sobre ${theme}:\n\nNão é sobre ferramentas.\nNão é sobre táticas.\nÉ sobre mentalidade.\n\nQuando você muda seu mindset, tudo muda.\n\n${hashtags.join(' ')}`,
-          image_prompt: "Quote inspiracional, design minimalista, fundo gradiente",
-          alt_text: `Frase motivacional sobre ${theme}`,
-          hashtags
-        },
-        {
-          idea: "Transformação com método certo",
-          caption: `ANTES vs DEPOIS de aplicar o método:\n\nANTES:\n❌ Sem direção clara\n❌ Resultados inconsistentes\n\nDEPOIS:\n✅ Estratégia definida\n✅ Crescimento consistente\n\n${hashtags.join(' ')}`,
-          image_prompt: "Comparação visual antes/depois, design moderno",
-          alt_text: "Comparação de resultados",
-          hashtags
-        },
-        {
-          idea: "Framework de sucesso",
-          caption: `Os 4 pilares do sucesso em ${theme}:\n\n1. Clareza\n2. Velocidade\n3. Consistência\n4. Mensuração\n\nQual você precisa fortalecer?\n\n${hashtags.join(' ')}`,
-          image_prompt: "Diagrama de 4 pilares, design corporativo",
-          alt_text: "Framework visual de sucesso",
-          hashtags
-        }
-      ],
-      story_sequences: [
-        {
-          theme: `Quiz sobre ${theme}`,
-          slides: [
-            {
-              slide_number: 1,
-              type: "Text",
-              content: `Quiz rápido!\nDescubra seu nível em ${theme}`
-            },
-            {
-              slide_number: 2,
-              type: "Quiz",
-              content: `Com que frequência você pratica ${theme}?`,
-              options: ["Diariamente", "Semanalmente", "Raramente"]
-            },
-            {
-              slide_number: 3,
-              type: "Poll",
-              content: "Qual sua maior dificuldade?",
-              options: ["Começar", "Manter consistência"]
-            },
-            {
-              slide_number: 4,
-              type: "Link",
-              content: "Baixe o guia completo no link da bio!"
-            }
-          ]
-        },
-        {
-          theme: `Dicas rápidas de ${theme}`,
-          slides: [
-            {
-              slide_number: 1,
-              type: "Text",
-              content: `5 dicas rápidas de ${theme} que funcionam!`
-            },
-            {
-              slide_number: 2,
-              type: "Text",
-              content: "Dica 1: Comece pequeno mas comece hoje"
-            },
-            {
-              slide_number: 3,
-              type: "Text",
-              content: "Dica 2: Foque em consistência, não perfeição"
-            },
-            {
-              slide_number: 4,
-              type: "Q&A",
-              content: "Me pergunta sobre qualquer dúvida!"
-            }
-          ]
-        }
-      ]
-    }
-  };
+    };
 }
 
 // =================================================================
-// 5. ACTIONS PRINCIPAIS
+// 4. ACTIONS PRINCIPAIS ATUALIZADAS
 // =================================================================
 
 export const generateContentIdeas = action({
@@ -663,30 +374,29 @@ export const generateContentIdeas = action({
     theme: v.string(),
     model: v.optional(v.string())
   },
-  handler: async (ctx, args): Promise<BrainResults> => {
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) {
       throw new Error("Usuário não autenticado");
     }
 
     if (!args.theme || args.theme.trim().length < 3) {
-      throw new Error("Tema deve ter pelo menos 3 caracteres");
-    }
-
-    if (args.theme.trim().length > 200) {
-      throw new Error("Tema deve ter no máximo 200 caracteres");
+      throw new Error("Por favor, forneça um tema válido com pelo menos 3 caracteres");
     }
 
     try {
-      console.log(`🚀 Gerando campanha para: "${args.theme}"`);
-      const results = await generateWithAI(args.theme, args.model || 'balanced');
+      console.log(`🚀 Gerando campanha revolucionária para: "${args.theme}"...`);
+      const results = await generateWithGroq(args.theme);
+      console.log("✅ Sucesso ao gerar e processar conteúdo transformador.");
 
-      console.log("✅ Campanha gerada com sucesso!");
+      if (!results.content_pack || !results.content_pack.reels) {
+        throw new Error("Estrutura de resultados da IA está inválida");
+      }
+
       return results;
-
     } catch (error) {
-      console.error("❌ Erro na geração:", error);
-      return generateStaticFallback(args.theme);
+      console.error("❌ Erro final na geração de conteúdo, usando fallback estático:", error);
+      return generateFallbackContent(args.theme);
     }
   },
 });
@@ -695,66 +405,92 @@ export const generateOutreachMessage = action({
   args: {
     businessType: v.string(),
     messageType: v.string(),
-    customization: v.optional(v.string()),
-    targetName: v.optional(v.string()),
-    targetCompany: v.optional(v.string())
+    customization: v.optional(v.string())
   },
-  handler: async (ctx, args): Promise<OutreachMessageResult> => {
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Não autenticado");
-    }
+    if (!identity) throw new Error("Não autenticado.");
 
-    const templates: Record<string, { subject: string; tone: string }> = {
-      cold: {
-        subject: "Proposta para revolucionar seu marketing",
-        tone: "profissional e amigável"
-      },
-      followup: {
-        subject: "Ainda interessado em escalar seu conteúdo?",
-        tone: "casual e direto"
+    const { businessType, messageType, customization } = args;
+
+    const prompt = `
+# MISSÃO: Gerar uma mensagem de prospecção profissional e original.
+
+## REGRAS CRÍTICAS:
+1. **IDIOMA:** A mensagem DEVE SER 100% em Português do Brasil
+2. **ORIGINALIDADE:** Crie um texto único e personalizado
+3. **FORMATO:** Retorne um JSON com "title" e "content"
+
+## DADOS:
+- Tipo de Mensagem: ${messageType}
+- Público Alvo: ${businessType}
+- Instrução: ${customization || "Mensagem padrão"}
+
+## ESTRUTURA JSON:
+{
+  "title": "Assunto curto e atrativo",
+  "content": "Corpo da mensagem completo e persuasivo",
+  "businessType": "${businessType}",
+  "messageType": "${messageType}"
+}`;
+
+    try {
+      // Tenta com Groq primeiro usando o modelo rápido
+      if (process.env.GROQ_API_KEY) {
+        try {
+          const response = await groq.chat.completions.create({
+            model: GROQ_MODELS.fast, // Usa modelo rápido para mensagens
+            response_format: { type: 'json_object' },
+            messages: [
+              {
+                role: 'system',
+                content: 'Você é um copywriter B2B especialista em prospecção. Responda APENAS em JSON válido com textos em Português do Brasil.'
+              },
+              { role: 'user', content: prompt },
+            ],
+            temperature: 0.8,
+          });
+
+          const resultText = response.choices[0]?.message?.content;
+          if (resultText) {
+            return parseAiJsonResponse(resultText);
+          }
+        } catch (groqError) {
+          console.error("Erro com Groq, tentando OpenAI:", groqError);
+        }
       }
-    };
 
-    const template = templates[args.messageType] || templates.cold;
+      // Fallback para OpenAI
+      if (openai) {
+        const response = await openai.chat.completions.create({
+          model: 'gpt-3.5-turbo',
+          response_format: { type: 'json_object' },
+          messages: [
+            {
+              role: 'system',
+              content: 'Você é um copywriter B2B. Responda em JSON com textos em Português do Brasil.'
+            },
+            { role: 'user', content: prompt },
+          ],
+          temperature: 0.8,
+        });
 
-    return {
-      title: template.subject,
-      content: `Olá ${args.targetName || ''},\n\nVi que sua empresa trabalha com ${args.businessType} e tenho uma proposta interessante.\n\n${args.customization || 'Vamos conversar?'}\n\nAtenciosamente,\n${identity.name || 'Equipe'}`,
-      businessType: args.businessType,
-      messageType: args.messageType,
-      followUpDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      alternativeVersions: ["Versão curta disponível", "Versão detalhada disponível"]
-    };
-  },
-});
-
-export const analyzeContent = action({
-  args: {
-    content: v.string(),
-    contentType: v.string()
-  },
-  handler: async (ctx, args): Promise<ContentAnalysisResult> => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Não autenticado");
-    }
-
-    const metrics = estimateMetrics(args.contentType);
-
-    return {
-      content_score: Math.round(Math.random() * 30 + 70),
-      improvements: [
-        "Adicione um hook mais forte",
-        "Inclua uma pergunta para engajamento",
-        "Use verbos de ação no CTA"
-      ],
-      predicted_metrics: metrics,
-      competitor_comparison: {
-        your_score: 85,
-        industry_average: 72,
-        top_performer: 94
+        const resultText = response.choices[0]?.message?.content;
+        if (resultText) {
+          return parseAiJsonResponse(resultText);
+        }
       }
-    };
+
+      throw new Error("Nenhuma API disponível");
+
+    } catch (error) {
+      console.error("Erro ao gerar mensagem:", error);
+      return {
+        title: `Proposta para ${businessType}`,
+        content: `Olá! Gostaria de apresentar uma solução que pode ajudar seu negócio. Podemos conversar?`,
+        businessType,
+        messageType
+      };
+    }
   },
 });
