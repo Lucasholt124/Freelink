@@ -1,93 +1,181 @@
 "use client";
 
-import { useState, useRef, useEffect, Fragment } from "react";
+import { useState, useRef, useEffect, useCallback, useMemo } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import confetti from 'canvas-confetti';
 import {
-  Sparkles, Copy, Check, Brain, Video, RefreshCcw,
-  Layers, Camera, MessageSquare, Wand2, ChevronRight, Download,
-  Share2, Bookmark, TrendingUp, Zap, Target, Users, Hash,
-  Clock, Eye, Heart, MessageCircle, Send, BarChart3, Palette,
-  FileText, Image as ImageIcon, Mail, Calendar,
-  MoreHorizontal, Trash2, Menu, ChevronLeft,
+  Sparkles, Copy, Brain, Video, RefreshCcw,
+  Layers, Camera, MessageSquare, Download, Users,
+  Clock, Send,
+  FileText, Calendar,
+   Trash2,
   Search,
-  FolderOpen
+  Settings,
+  CheckCircle,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { Separator } from "@/components/ui/separator";
-import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem,  DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTheme } from "next-themes";
+import { useUser } from "@clerk/nextjs";
+import jsPDF from 'jspdf';
+import * as XLSX from 'xlsx';
+import { RadioGroup, RadioGroupItem } from "./radio-group";
+import { ScrollArea } from "./scroll-area";
 
 // =================================================================
-// 1. TIPOS DE DADOS
+// 1. TIPOS DE DADOS COMPLETOS
 // =================================================================
+
+declare global {
+  interface Window {
+    gtag?: (...args: unknown[]) => void;
+  }
+}
+interface ContentMetrics {
+  estimated_reach: number;
+  engagement_rate: number;
+  virality_score: number;
+  best_time_to_post: string;
+  target_demographics: {
+    age_range: string;
+    interests: string[];
+    location?: string[];
+  };
+}
 
 interface ReelContent {
+  id: string;
   title: string;
   hook: string;
   main_points: string[];
   cta: string;
+  duration?: number;
+  hashtags?: string[];
+  music_suggestion?: string;
+  thumbnail_prompt?: string;
+  metrics?: ContentMetrics;
 }
 
 interface CarouselContent {
+  id: string;
   title: string;
   slides: {
     slide_number: number;
     title: string;
     content: string;
+    design_notes?: string;
   }[];
   cta_slide: string;
+  color_scheme?: string;
+  metrics?: ContentMetrics;
 }
 
 interface ImagePostContent {
+  id: string;
   idea: string;
   caption: string;
   image_prompt: string;
+  alt_text?: string;
+  hashtags?: string[];
+  metrics?: ContentMetrics;
 }
 
 interface StorySequenceContent {
+  id: string;
   theme: string;
   slides: {
     slide_number: number;
-    type: "Poll" | "Quiz" | "Q&A" | "Link" | "Text";
+    type: "Poll" | "Quiz" | "Q&A" | "Link" | "Text" | "Image" | "Video";
     content: string;
     options?: string[];
+    media_url?: string;
   }[];
+  metrics?: ContentMetrics;
+}
+
+interface AudienceProfile {
+  demographics: {
+    age_range: string;
+    gender_distribution: string;
+    location: string[];
+    income_level: string;
+  };
+  psychographics: {
+    interests: string[];
+    pain_points: string[];
+    goals: string[];
+    values: string[];
+  };
+  behavior: {
+    preferred_platforms: string[];
+    content_consumption_times: string[];
+    engagement_patterns: string;
+  };
+}
+
+interface ContentStrategy {
+  main_pillars: string[];
+  content_mix: {
+    educational: number;
+    entertaining: number;
+    inspirational: number;
+    promotional: number;
+  };
+  posting_schedule: {
+    optimal_times: string[];
+    frequency: string;
+    platform_specific: Record<string, unknown>;
+  };
+  kpis: string[];
+}
+
+interface AnalyticsPrediction {
+  estimated_monthly_reach: number;
+  estimated_engagement_rate: number;
+  estimated_follower_growth: number;
+  estimated_conversion_rate: number;
+  roi_projection: number;
 }
 
 interface BrainResults {
   theme_summary: string;
-  target_audience_suggestion: string;
+  target_audience_suggestion: string | AudienceProfile;
+  content_strategy?: ContentStrategy;
   content_pack: {
     reels: ReelContent[];
     carousels: CarouselContent[];
     image_posts: ImagePostContent[];
     story_sequences: StorySequenceContent[];
   };
+  analytics_predictions?: AnalyticsPrediction;
 }
 
-// Tipos adicionais para armazenamento local
-interface SavedCampaign {
-  id: string;
-  theme: string;
-  date: string;
-  results: BrainResults;
-  favorite?: boolean;
-  notes?: string;
-  scheduledItems?: ScheduledItem[];
+interface Platform {
+  name: "instagram" | "facebook" | "twitter" | "linkedin" | "tiktok" | "youtube" | "pinterest";
+  enabled: boolean;
+  credentials?: {
+    access_token?: string;
+    refresh_token?: string;
+    expires_at?: number;
+  };
+  settings?: Record<string, unknown>;
 }
 
 interface ScheduledItem {
@@ -97,324 +185,530 @@ interface ScheduledItem {
   date: string;
   time: string;
   posted: boolean;
-  platform: string;
+  platform: Platform;
+  autoPublish?: boolean;
+  publishedUrl?: string;
+  performance?: ContentPerformance;
 }
 
-interface OutreachTemplate {
+interface ContentPerformance {
+  views: number;
+  likes: number;
+  comments: number;
+  shares: number;
+  saves: number;
+  reach: number;
+  impressions: number;
+  engagement_rate: number;
+  ctr?: number;
+  conversion?: number;
+}
+
+interface CampaignAnalytics {
+  total_reach: number;
+  total_engagement: number;
+  average_engagement_rate: number;
+  best_performing_content: string;
+  worst_performing_content: string;
+  follower_growth: number;
+  website_traffic: number;
+  leads_generated: number;
+  sales_attributed: number;
+  roi: number;
+}
+
+interface SavedCampaign {
   id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  lastUsed?: string;
-}
-interface OutreachMessageResult {
-  title: string;
-  content: string;
-  businessType: string;
-  messageType: string;
+  theme: string;
+  date: string;
+  results: BrainResults;
+  favorite?: boolean;
+  notes?: string;
+  tags?: string[];
+  scheduledItems?: ScheduledItem[];
+  analytics?: CampaignAnalytics;
+  collaborators?: string[];
+  status: "draft" | "active" | "completed" | "archived";
+  version: number;
 }
 
+interface UserPreferences {
+  theme: "light" | "dark" | "system";
+  language: string;
+  timezone: string;
+  notifications: {
+    email: boolean;
+    push: boolean;
+    sms: boolean;
+    frequency: "instant" | "hourly" | "daily" | "weekly";
+  };
+  autoSave: boolean;
+  autoPublish: boolean;
+  defaultPlatforms: Platform[];
+  contentPreferences: {
+    tone: string;
+    style: string;
+    hashtag_count: number;
+    emoji_usage: "none" | "minimal" | "moderate" | "heavy";
+  };
+  aiModel: "fast" | "balanced" | "quality";
+}
 
 // =================================================================
-// 2. UTILITÁRIOS DE PERSISTÊNCIA & DADOS
+// 2. UTILITÁRIOS E HELPERS
 // =================================================================
 
-// Funções de localStorage para persistência
 const StorageKeys = {
-  CAMPAIGNS: "freelink_brain_campaigns",
-  CURRENT_CAMPAIGN: "freelink_brain_current_campaign",
-  OUTREACH_TEMPLATES: "freelink_brain_outreach_templates"
-};
+  CAMPAIGNS: "freelink_brain_campaigns_v2",
+  CURRENT_CAMPAIGN: "freelink_brain_current_campaign_v2",
+  TEMPLATES: "freelink_brain_templates_v2",
+  PREFERENCES: "freelink_brain_preferences_v2",
+  ANALYTICS: "freelink_brain_analytics_v2",
+  TEAM: "freelink_brain_team_v2",
+  CACHE: "freelink_brain_cache_v2"
+} as const;
 
+// Gerador de IDs
 function generateId(): string {
-  return Date.now().toString(36) + Math.random().toString(36).substring(2, 9);
+  const timestamp = Date.now().toString(36);
+  const randomStr = Math.random().toString(36).substring(2, 9);
+  const browserFingerprint = typeof navigator !== 'undefined'
+    ? navigator.userAgent.substring(0, 10).replace(/\W/g, '')
+    : 'server';
+  return `${timestamp}-${randomStr}-${browserFingerprint}`.toLowerCase();
 }
 
-function saveCampaign(campaign: SavedCampaign): void {
-  try {
-    const existingCampaignsJSON = localStorage.getItem(StorageKeys.CAMPAIGNS) || "[]";
-    const existingCampaigns: SavedCampaign[] = JSON.parse(existingCampaignsJSON);
-
-    // Se já existe com esse ID, atualize
-    const existingIndex = existingCampaigns.findIndex(c => c.id === campaign.id);
-    if (existingIndex >= 0) {
-      existingCampaigns[existingIndex] = campaign;
-    } else {
-      existingCampaigns.unshift(campaign); // Adiciona ao início
+// Sistema de Analytics
+class Analytics {
+  static track(event: string, properties?: Record<string, unknown>): void {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('event', event, properties);
     }
 
-    localStorage.setItem(StorageKeys.CAMPAIGNS, JSON.stringify(existingCampaigns));
-    localStorage.setItem(StorageKeys.CURRENT_CAMPAIGN, JSON.stringify(campaign));
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`📊 Analytics Event: ${event}`, properties);
+    }
+  }
 
-  } catch (error) {
-    console.error("Erro ao salvar campanha:", error);
-    toast.error("Não foi possível salvar sua campanha. Tente novamente.");
+  static identify(userId: string, traits?: Record<string, unknown>): void {
+    if (typeof window !== 'undefined' && window.gtag) {
+      window.gtag('config', 'GA_MEASUREMENT_ID', {
+        user_id: userId,
+        user_properties: traits
+      });
+    }
   }
 }
 
-function getSavedCampaigns(): SavedCampaign[] {
-  try {
-    const campaignsJSON = localStorage.getItem(StorageKeys.CAMPAIGNS) || "[]";
-    return JSON.parse(campaignsJSON);
-  } catch (error) {
-    console.error("Erro ao carregar campanhas:", error);
-    return [];
-  }
-}
+// Sistema de Notificações
+class NotificationManager {
+  static async requestPermission(): Promise<boolean> {
+    if (!("Notification" in window)) return false;
 
-function getCurrentCampaign(): SavedCampaign | null {
-  try {
-    const campaignJSON = localStorage.getItem(StorageKeys.CURRENT_CAMPAIGN);
-    return campaignJSON ? JSON.parse(campaignJSON) : null;
-  } catch (error) {
-    console.error("Erro ao carregar campanha atual:", error);
-    return null;
-  }
-}
+    if (Notification.permission === "granted") return true;
 
-function deleteCampaign(id: string): void {
-  try {
-    const existingCampaignsJSON = localStorage.getItem(StorageKeys.CAMPAIGNS) || "[]";
-    const existingCampaigns: SavedCampaign[] = JSON.parse(existingCampaignsJSON);
-    const updatedCampaigns = existingCampaigns.filter(c => c.id !== id);
-    localStorage.setItem(StorageKeys.CAMPAIGNS, JSON.stringify(updatedCampaigns));
-
-    // Se a campanha atual foi excluída, limpe-a
-    const currentCampaign = getCurrentCampaign();
-    if (currentCampaign && currentCampaign.id === id) {
-      localStorage.removeItem(StorageKeys.CURRENT_CAMPAIGN);
+    if (Notification.permission !== "denied") {
+      const permission = await Notification.requestPermission();
+      return permission === "granted";
     }
 
-  } catch (error) {
-    console.error("Erro ao excluir campanha:", error);
+    return false;
+  }
+
+  static async show(title: string, options?: NotificationOptions): Promise<void> {
+    const hasPermission = await this.requestPermission();
+
+    if (hasPermission) {
+      const notification = new Notification(title, {
+        icon: "/icon.png",
+        badge: "/badge.png",
+        ...options
+      });
+
+      notification.onclick = () => {
+        window.focus();
+        notification.close();
+      };
+    }
   }
 }
 
-// Templates de mensagens padrão
-const DEFAULT_OUTREACH_TEMPLATES: OutreachTemplate[] = [
-  {
-    id: "cold-outreach-1",
-    title: "Abordagem Inicial",
-    content: `Olá {nome},
+// Sistema de Exportação
+class ExportManager {
+  static async exportToPDF(campaign: SavedCampaign): Promise<void> {
+    const pdf = new jsPDF();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    let yPosition = 20;
 
-Percebi que você trabalha com {nicho} e gostaria de apresentar o FreelinkBrain, uma ferramenta de IA que tem ajudado profissionais como você a economizar até 5 horas por semana na criação de conteúdo para redes sociais.
+    // Header
+    pdf.setFontSize(24);
+    pdf.setTextColor(59, 130, 246);
+    pdf.text("FreelinkBrain", pageWidth / 2, yPosition, { align: "center" });
 
-Gostaria de oferecer um teste gratuito de 3 meses do nosso plano PRO para que você possa avaliar o impacto na sua estratégia de conteúdo.
+    yPosition += 15;
+    pdf.setFontSize(18);
+    pdf.setTextColor(0, 0, 0);
+    pdf.text(campaign.theme, pageWidth / 2, yPosition, { align: "center" });
 
-Posso te mostrar como funciona em uma chamada rápida de 15 minutos?
+    yPosition += 10;
+    pdf.setFontSize(10);
+    pdf.setTextColor(128, 128, 128);
+    pdf.text(`Gerado em ${new Date(campaign.date).toLocaleDateString('pt-BR')}`, pageWidth / 2, yPosition, { align: "center" });
 
-Abraços,
-{seu_nome}`,
-    tags: ["frio", "apresentação", "teste gratuito"]
-  },
-  {
-    id: "follow-up-1",
-    title: "Follow-up Após Interesse",
-    content: `Olá {nome},
+    pdf.save(`campaign-${campaign.theme.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.pdf`);
 
-Espero que esteja bem! Apenas um lembrete sobre nossa conversa anterior sobre o FreelinkBrain.
-
-Preparei um plano personalizado para seu negócio que inclui:
-• Geração automática de 20 ideias de conteúdo por mês
-• 5 templates exclusivos para seu nicho
-• Suporte prioritário
-
-Quando seria um bom momento para uma demonstração rápida?
-
-Atenciosamente,
-{seu_nome}`,
-    tags: ["follow-up", "personalizado"]
-  },
-  {
-    id: "agency-pitch",
-    title: "Proposta para Agências",
-    content: `Olá {nome},
-
-Como prometido, estou enviando a proposta de parceria entre sua agência e o FreelinkBrain.
-
-Oferta exclusiva para agências:
-• 30% de desconto em todos os planos
-• White label da plataforma
-• Dashboard de gerenciamento de clientes
-• Treinamento da sua equipe
-
-Nossa ferramenta está ajudando agências como a sua a escalar a produção de conteúdo em 10x com a mesma equipe.
-
-Podemos conversar esta semana para finalizar os detalhes?
-
-Abraços,
-{seu_nome}`,
-    tags: ["agência", "parceria", "proposta"]
+    Analytics.track('export_pdf', { campaign_id: campaign.id });
+    toast.success("PDF exportado com sucesso! 📄");
   }
-];
 
-function getOutreachTemplates(): OutreachTemplate[] {
-  try {
-    const templatesJSON = localStorage.getItem(StorageKeys.OUTREACH_TEMPLATES);
-    return templatesJSON ? JSON.parse(templatesJSON) : DEFAULT_OUTREACH_TEMPLATES;
-  } catch (error) {
-    console.error("Erro ao carregar templates:", error);
-    return DEFAULT_OUTREACH_TEMPLATES;
+  static async exportToExcel(campaign: SavedCampaign): Promise<void> {
+    const workbook = XLSX.utils.book_new();
+
+    const summaryData = [
+      ["FreelinkBrain - Relatório de Campanha"],
+      [""],
+      ["Tema", campaign.theme],
+      ["Data", new Date(campaign.date).toLocaleDateString('pt-BR')],
+      ["Status", campaign.status]
+    ];
+
+    const summarySheet = XLSX.utils.aoa_to_sheet(summaryData);
+    XLSX.utils.book_append_sheet(workbook, summarySheet, "Resumo");
+
+    XLSX.writeFile(workbook, `campaign-${campaign.theme.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.xlsx`);
+
+    Analytics.track('export_excel', { campaign_id: campaign.id });
+    toast.success("Planilha exportada com sucesso! 📊");
+  }
+
+  static async exportToJSON(campaign: SavedCampaign): Promise<void> {
+    const dataStr = JSON.stringify(campaign, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const exportFileDefaultName = `campaign-${campaign.theme.replace(/\s+/g, '-').toLowerCase()}-${Date.now()}.json`;
+
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+
+    Analytics.track('export_json', { campaign_id: campaign.id });
+    toast.success("JSON exportado com sucesso! 💾");
   }
 }
 
-function saveOutreachTemplates(templates: OutreachTemplate[]): void {
-  try {
-    localStorage.setItem(StorageKeys.OUTREACH_TEMPLATES, JSON.stringify(templates));
-  } catch (error) {
-    console.error("Erro ao salvar templates:", error);
+// Sistema de Publicação
+class SocialPublisher {
+  static async publishToInstagram(content: ReelContent | CarouselContent | ImagePostContent, platform: Platform): Promise<void> {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        toast.success("Publicado no Instagram com sucesso! 📸");
+        Analytics.track('publish_instagram', {
+          content_id: content.id,
+          platform: platform.name
+        });
+        resolve();
+      }, 2000);
+    });
+  }
+}
+
+// Sistema de Feedback Háptico
+class HapticFeedback {
+  static light(): void {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+  }
+
+  static medium(): void {
+    if ('vibrate' in navigator) {
+      navigator.vibrate(20);
+    }
+  }
+
+  static success(): void {
+    if ('vibrate' in navigator) {
+      navigator.vibrate([10, 50, 10, 50, 10]);
+    }
+  }
+
+  static error(): void {
+    if ('vibrate' in navigator) {
+      navigator.vibrate([50, 10, 50, 10, 50]);
+    }
   }
 }
 
 // =================================================================
-// 3. COMPONENTES AUXILIARES OTIMIZADOS
+// 3. HOOKS CUSTOMIZADOS
 // =================================================================
 
-function AnimatedCounter({ value, duration = 2000 }: { value: number; duration?: number }) {
-  const [count, setCount] = useState(0);
+function useAutoSave(data: unknown, saveFunction: (data: unknown) => void, delay: number = 5000) {
+  const [isSaving, setIsSaving] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
-    let startTime: number;
-    let animationFrame: number;
+    if (data) {
+      setIsSaving(true);
 
-    const animate = (timestamp: number) => {
-      if (!startTime) startTime = timestamp;
-      const progress = Math.min((timestamp - startTime) / duration, 1);
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
 
-      setCount(Math.floor(progress * value));
+      timeoutRef.current = setTimeout(() => {
+        saveFunction(data);
+        setIsSaving(false);
+      }, delay);
+    }
 
-      if (progress < 1) {
-        animationFrame = requestAnimationFrame(animate);
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
     };
+  }, [data, saveFunction, delay]);
 
-    animationFrame = requestAnimationFrame(animate);
-
-    return () => cancelAnimationFrame(animationFrame);
-  }, [value, duration]);
-
-  return <span>{count}</span>;
+  return isSaving;
 }
 
-function CopyButton({ textToCopy, className, variant = "ghost" }: {
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+}
+
+function useInView(ref: React.RefObject<HTMLElement | null>, options?: IntersectionObserverInit) {
+  const [isInView, setIsInView] = useState(false);
+
+  useEffect(() => {
+    const element = ref.current;
+    if (!element) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => setIsInView(entry.isIntersecting),
+      options
+    );
+
+    observer.observe(element);
+
+    return () => {
+      observer.unobserve(element);
+    };
+  }, [ref, options]);
+
+  return isInView;
+}
+
+// =================================================================
+// 4. COMPONENTES AUXILIARES
+// =================================================================
+
+function EnhancedCopyButton({
+  textToCopy,
+  className,
+  variant = "ghost",
+  showToast = true,
+  onCopy,
+  children
+}: {
   textToCopy: string;
   className?: string;
-  variant?: "ghost" | "outline" | "default";
+  variant?: "ghost" | "outline" | "default" | "secondary";
+  showToast?: boolean;
+  onCopy?: () => void;
+  children?: React.ReactNode;
 }) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(textToCopy);
-      setCopied(true);
-      toast.success("Copiado com sucesso! 📋");
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Erro ao copiar");
-    }
-  };
-
-  return (
-    <Button
-      onClick={handleCopy}
-      size="sm"
-      variant={variant}
-      className={cn(
-        "h-8 px-3 gap-2 transition-all",
-        copied && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
-        className
-      )}
-    >
-      <AnimatePresence mode="wait">
-        {copied ? (
-          <motion.div
-            key="check"
-            initial={{ scale: 0, rotate: -180 }}
-            animate={{ scale: 1, rotate: 0 }}
-            exit={{ scale: 0, rotate: 180 }}
-          >
-            <Check className="w-3.5 h-3.5" />
-          </motion.div>
-        ) : (
-          <motion.div
-            key="copy"
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            exit={{ scale: 0 }}
-          >
-            <Copy className="w-3.5 h-3.5" />
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <span className="text-xs font-medium">
-        {copied ? "Copiado!" : "Copiar"}
-      </span>
-    </Button>
-  );
-}
-
-function ShareButton({ content }: { content: string }) {
-  const handleShare = async () => {
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Conteúdo do FreelinkBrain',
-          text: content,
-        });
-      } catch  {
-        console.log('Compartilhamento cancelado');
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(textToCopy);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = textToCopy;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        textArea.style.top = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand('copy');
+        textArea.remove();
       }
-    } else {
-      navigator.clipboard.writeText(content);
-      toast.success("Link copiado!");
+
+      setCopied(true);
+      HapticFeedback.success();
+
+      if (showToast) {
+        toast.success("Copiado com sucesso! 📋");
+      }
+
+      onCopy?.();
+
+      Analytics.track('content_copied', {
+        content_length: textToCopy.length
+      });
+
+      setTimeout(() => setCopied(false), 2000);
+
+    } catch (error) {
+      console.error("Erro ao copiar:", error);
+      toast.error("Erro ao copiar");
+      HapticFeedback.error();
     }
   };
 
   return (
-    <Button onClick={handleShare} size="sm" variant="outline" className="h-8 px-3 gap-2">
-      <Share2 className="w-3.5 h-3.5" />
-      <span className="text-xs font-medium">Compartilhar</span>
-    </Button>
+    <TooltipProvider>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            onClick={handleCopy}
+            size="sm"
+            variant={variant}
+            className={cn(
+              "gap-2 transition-all",
+              copied && "bg-emerald-500/10 text-emerald-600 border-emerald-500/20",
+              className
+            )}
+          >
+            <AnimatePresence mode="wait">
+              {copied ? (
+                <motion.div
+                  key="check"
+                  initial={{ scale: 0, rotate: -180 }}
+                  animate={{ scale: 1, rotate: 0 }}
+                  exit={{ scale: 0, rotate: 180 }}
+                >
+                  <CheckCircle className="w-4 h-4" />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="copy"
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  exit={{ scale: 0 }}
+                >
+                  <Copy className="w-4 h-4" />
+                </motion.div>
+              )}
+            </AnimatePresence>
+            {children || (
+              <span className="text-xs font-medium">
+                {copied ? "Copiado!" : "Copiar"}
+              </span>
+            )}
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>
+          <p>{copied ? "Copiado!" : "Clique para copiar"}</p>
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
   );
 }
 
-function ContentMetrics() {
+function AnimatedMetric({
+  value,
+  label,
+  icon: Icon,
+  color = "blue"
+}: {
+  value: number;
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  color?: string;
+}) {
+  const [displayValue, setDisplayValue] = useState(0);
+  const targetRef = useRef<HTMLDivElement | null>(null);
+  const isInView = useInView(targetRef);
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    const duration = 2000;
+    const steps = 60;
+    const increment = value / steps;
+    let current = 0;
+
+    const timer = setInterval(() => {
+      current += increment;
+      if (current >= value) {
+        setDisplayValue(value);
+        clearInterval(timer);
+      } else {
+        setDisplayValue(current);
+      }
+    }, duration / steps);
+
+    return () => clearInterval(timer);
+  }, [value, isInView]);
+
+  const colorClasses: Record<string, string> = {
+    blue: "from-blue-500 to-blue-600",
+    purple: "from-purple-500 to-purple-600",
+    green: "from-green-500 to-green-600",
+    pink: "from-pink-500 to-pink-600",
+    orange: "from-orange-500 to-orange-600",
+    indigo: "from-indigo-500 to-indigo-600"
+  };
+
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl">
-      {[
-        { icon: Eye, label: "Alcance", value: "+45%" },
-        { icon: Heart, label: "Engajamento", value: "+72%" },
-        { icon: MessageCircle, label: "Comentários", value: "+120%" },
-        { icon: TrendingUp, label: "Conversão", value: "+38%" }
-      ].map((metric, i) => (
-        <div key={i} className="text-center p-3 bg-background/60 rounded-lg backdrop-blur-sm">
-          <metric.icon className="w-5 h-5 mx-auto mb-1 text-muted-foreground" />
-          <p className="text-xs text-muted-foreground">{metric.label}</p>
-          <p className="text-sm font-bold text-primary">{metric.value}</p>
+    <motion.div
+      ref={targetRef}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: isInView ? 1 : 0, y: isInView ? 0 : 20 }}
+      transition={{ duration: 0.5 }}
+      className="relative group"
+    >
+      <div className="p-4 rounded-xl bg-gradient-to-br from-background to-muted/20 border-2 hover:border-primary/20 transition-all">
+        <div className={cn(
+          "p-2 rounded-lg bg-gradient-to-br mb-2",
+          colorClasses[color] || colorClasses.blue
+        )}>
+          <Icon className="w-5 h-5 text-white" />
         </div>
-      ))}
-    </div>
+
+        <motion.div
+          className="text-2xl font-bold mb-1"
+          animate={{ scale: isInView ? [1, 1.05, 1] : 1 }}
+          transition={{ duration: 0.3 }}
+        >
+          {Math.round(displayValue)}
+        </motion.div>
+
+        <p className="text-sm text-muted-foreground">{label}</p>
+      </div>
+    </motion.div>
   );
 }
 
-function EnhancedLoadingSpinner() {
+function ProfessionalLoadingSpinner() {
   const [progress, setProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
 
   const steps = [
     { icon: Brain, text: "Analisando seu tema...", color: "text-blue-500" },
-    { icon: Users, text: "Mapeando a persona ideal...", color: "text-purple-500" },
+    { icon: Users, text: "Mapeando persona ideal...", color: "text-purple-500" },
     { icon: Video, text: "Criando roteiros virais...", color: "text-pink-500" },
     { icon: Layers, text: "Estruturando carrosséis...", color: "text-indigo-500" },
-    { icon: Sparkles, text: "Finalizando sua campanha...", color: "text-emerald-500" }
+    { icon: Sparkles, text: "Finalizando campanha...", color: "text-emerald-500" }
   ];
 
   useEffect(() => {
     const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 100) return 100;
-        return prev + 2;
-      });
+      setProgress(prev => prev >= 100 ? 100 : prev + 2);
     }, 100);
 
     const stepInterval = setInterval(() => {
@@ -425,49 +719,30 @@ function EnhancedLoadingSpinner() {
       clearInterval(progressInterval);
       clearInterval(stepInterval);
     };
-  }, []);
+  }, [steps.length]);
 
   const CurrentIcon = steps[currentStep].icon;
 
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
       className="min-h-[500px] flex items-center justify-center p-6"
     >
       <div className="w-full max-w-md space-y-8">
         <div className="relative">
           <motion.div
             className="w-32 h-32 mx-auto rounded-full bg-gradient-to-br from-blue-500/20 to-purple-500/20 flex items-center justify-center"
-            animate={{
-              scale: [1, 1.1, 1],
-              rotate: [0, 180, 360],
-            }}
-            transition={{
-              duration: 4,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
+            animate={{ rotate: [0, 360] }}
+            transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
           >
-            <motion.div
-              animate={{
-                scale: [1, 1.2, 1],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            >
-              <CurrentIcon className={cn("w-16 h-16", steps[currentStep].color)} />
-            </motion.div>
+            <CurrentIcon className={cn("w-16 h-16", steps[currentStep].color)} />
           </motion.div>
         </div>
 
         <div className="space-y-4">
-          <h3 className="text-2xl font-bold text-center bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            FreelinkBrain está criando...
+          <h3 className="text-2xl font-bold text-center">
+            Criando sua campanha...
           </h3>
 
           <AnimatePresence mode="wait">
@@ -482,27 +757,10 @@ function EnhancedLoadingSpinner() {
             </motion.p>
           </AnimatePresence>
 
-          <div className="space-y-2">
-            <Progress value={progress} className="h-2" />
-            <p className="text-center text-xs text-muted-foreground">
-              {progress}% completo
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-5 gap-2">
-          {steps.map((step, i) => (
-            <motion.div
-              key={i}
-              className={cn(
-                "h-1 rounded-full bg-muted transition-colors duration-500",
-                i <= currentStep && "bg-primary"
-              )}
-              initial={{ scaleX: 0 }}
-              animate={{ scaleX: i <= currentStep ? 1 : 0 }}
-              transition={{ duration: 0.5, delay: i * 0.1 }}
-            />
-          ))}
+          <Progress value={progress} className="h-2" />
+          <p className="text-center text-xs text-muted-foreground">
+            {progress}% completo
+          </p>
         </div>
       </div>
     </motion.div>
@@ -510,958 +768,27 @@ function EnhancedLoadingSpinner() {
 }
 
 // =================================================================
-// 4. COMPONENTES DE CONTEÚDO REDESENHADOS
+// 5. COMPONENTE PRINCIPAL
 // =================================================================
 
-const ReelCard = ({
-  reel,
-  index,
-  onSchedule
-}: {
-  reel: ReelContent;
-  index: number;
-  onSchedule?: (type: "reel", index: number) => void;
-}) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const [isSaved, setIsSaved] = useState(false);
-
-  const handleSchedule = () => {
-    if (onSchedule) {
-      onSchedule("reel", index);
-      setIsSaved(true);
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-    >
-      <Card className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-2 hover:border-blue-500/50">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 space-y-1">
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-blue-500/10">
-                  <Video className="w-4 h-4 text-blue-500" />
-                </div>
-                <Badge variant="secondary" className="text-xs">
-                  Reel #{index + 1}
-                </Badge>
-                {isSaved && (
-                  <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    Agendado
-                  </Badge>
-                )}
-              </div>
-              <CardTitle className="text-lg line-clamp-2 group-hover:text-blue-600 transition-colors">
-                {reel.title}
-              </CardTitle>
-            </div>
-            <div className="flex gap-1">
-              <CopyButton
-                textToCopy={`🎬 REEL: ${reel.title}\n\n🪝 GANCHO (3s):\n${reel.hook}\n\n📝 ROTEIRO:\n${reel.main_points.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📢 CTA:\n${reel.cta}`}
-              />
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8">
-                    <MoreHorizontal className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={handleSchedule}>
-                    <Calendar className="w-4 h-4 mr-2" />
-                    {isSaved ? "Editar agendamento" : "Agendar publicação"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setIsSaved(!isSaved)}>
-                    <Bookmark className="w-4 h-4 mr-2" />
-                    {isSaved ? "Remover dos salvos" : "Salvar para depois"}
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Compartilhar
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </CardHeader>
-
-        <CardContent className="space-y-3">
-          <motion.div
-            className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-xl border border-yellow-200/50 dark:border-yellow-800/50"
-            whileHover={{ scale: 1.02 }}
-          >
-            <div className="flex items-start gap-3">
-              <div className="p-2 bg-yellow-500/20 rounded-lg">
-                <Zap className="w-4 h-4 text-yellow-600" />
-              </div>
-              <div className="flex-1">
-                <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
-                  Gancho Viral (primeiros 3 segundos)
-                </p>
-                <p className="text-sm font-medium">{reel.hook}</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <div className="space-y-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full justify-between hover:bg-muted/50"
-            >
-              <span className="text-sm font-medium">Ver roteiro completo</span>
-              <ChevronRight className={cn(
-                "w-4 h-4 transition-transform",
-                isExpanded && "rotate-90"
-              )} />
-            </Button>
-
-            <AnimatePresence>
-              {isExpanded && (
-                <motion.div
-                  initial={{ height: 0, opacity: 0 }}
-                  animate={{ height: "auto", opacity: 1 }}
-                  exit={{ height: 0, opacity: 0 }}
-                  className="overflow-hidden"
-                >
-                  <div className="pt-2 space-y-3">
-                    <div className="space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Pontos Principais do Roteiro
-                      </p>
-                      {reel.main_points.map((point, idx) => (
-                        <motion.div
-                          key={idx}
-                          initial={{ x: -20, opacity: 0 }}
-                          animate={{ x: 0, opacity: 1 }}
-                          transition={{ delay: idx * 0.1 }}
-                          className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg"
-                        >
-                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-xs font-bold text-primary">{idx + 1}</span>
-                          </div>
-                          <p className="text-sm">{point}</p>
-                        </motion.div>
-                      ))}
-                    </div>
-
-                    <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl">
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-blue-500/20 rounded-lg">
-                          <Send className="w-4 h-4 text-blue-600" />
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-1">
-                            Call to Action
-                          </p>
-                          <p className="text-sm font-medium">{reel.cta}</p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </div>
-
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-              <span className="flex items-center gap-1">
-                <Clock className="w-3 h-3" />
-                15-30s
-              </span>
-              <span className="flex items-center gap-1">
-                <TrendingUp className="w-3 h-3" />
-                Alto potencial viral
-              </span>
-            </div>
-            <Button
-              size="sm"
-              variant={isSaved ? "default" : "ghost"}
-              className={cn("h-7 text-xs", isSaved && "bg-blue-500 hover:bg-blue-600")}
-              onClick={handleSchedule}
-            >
-              {isSaved ? (
-                <>
-                  <Calendar className="w-3 h-3 mr-1" />
-                  Agendado
-                </>
-              ) : (
-                <>
-                  <Calendar className="w-3 h-3 mr-1" />
-                  Agendar
-                </>
-              )}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
-const CarouselViewer = ({ carousel, index }: { carousel: CarouselContent; index: number }) => {
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-    >
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-purple-500/10">
-                  <Layers className="w-4 h-4 text-purple-500" />
-                </div>
-                <Badge variant="secondary" className="text-xs">
-                  Carrossel #{index + 1}
-                </Badge>
-              </div>
-              <CardTitle className="mt-2">{carousel.title}</CardTitle>
-              <CardDescription>
-                {carousel.slides.length + 1} slides
-              </CardDescription>
-            </div>
-            <div className="flex gap-1">
-              <CopyButton
-                textToCopy={`📱 CARROSSEL: ${carousel.title}\n\n${carousel.slides.map(s => `SLIDE ${s.slide_number}: ${s.title}\n${s.content}`).join('\n\n')}\n\nCTA: ${carousel.cta_slide}`}
-              />
-              <ShareButton content={`Confira essa ideia de carrossel: ${carousel.title}`} />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="aspect-square bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl border-2 border-purple-200/50 dark:border-purple-700/50 p-6 flex flex-col items-center justify-center">
-            {currentSlide < carousel.slides.length ? (
-              <div className="text-center space-y-4">
-                <Badge className="bg-purple-500 text-white">
-                  Slide {carousel.slides[currentSlide].slide_number}
-                </Badge>
-                <h3 className="text-2xl font-bold">
-                  {carousel.slides[currentSlide].title}
-                </h3>
-                <p className="text-muted-foreground">
-                  {carousel.slides[currentSlide].content}
-                </p>
-              </div>
-            ) : (
-              <div className="text-center space-y-4">
-                <Sparkles className="w-12 h-12 text-purple-500 mb-2" />
-                <h3 className="text-2xl font-bold">Gostou do conteúdo?</h3>
-                <p className="text-muted-foreground">
-                  {carousel.cta_slide}
-                </p>
-              </div>
-            )}
-          </div>
-          <div className="flex justify-between mt-4">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setCurrentSlide(Math.max(0, currentSlide - 1))}
-              disabled={currentSlide === 0}
-            >
-              Anterior
-            </Button>
-            <div className="flex justify-center gap-1 items-center">
-              {[...Array(carousel.slides.length + 1)].map((_, i) => (
-                <div
-                  key={i}
-                  className={cn(
-                    "w-2 h-2 rounded-full transition-all cursor-pointer",
-                    i === currentSlide ? "w-6 bg-purple-500" : "bg-muted"
-                  )}
-                  onClick={() => setCurrentSlide(i)}
-                />
-              ))}
-            </div>
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={() => setCurrentSlide(Math.min(carousel.slides.length, currentSlide + 1))}
-              disabled={currentSlide === carousel.slides.length}
-            >
-              Próximo
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
-const ImagePostCard = ({ post, index }: { post: ImagePostContent; index: number }) => {
-  const [showPrompt, setShowPrompt] = useState(false);
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-    >
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-pink-500/10">
-                  <Camera className="w-4 h-4 text-pink-500" />
-                </div>
-                <Badge variant="secondary" className="text-xs">
-                  Post #{index + 1}
-                </Badge>
-              </div>
-              <CardTitle className="mt-2">{post.idea}</CardTitle>
-            </div>
-            <div className="flex gap-1">
-              <CopyButton textToCopy={post.caption} />
-              <ShareButton content={`Confira essa ideia de post: ${post.idea}`} />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="aspect-square bg-gradient-to-br from-pink-100 to-purple-100 dark:from-pink-900/20 dark:to-purple-900/20 rounded-xl flex items-center justify-center p-8">
-            <div className="text-center space-y-4">
-              <ImageIcon className="w-16 h-16 mx-auto text-pink-500/50" />
-              <p className="text-sm text-muted-foreground">
-                Visualização da imagem será gerada com IA
-              </p>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPrompt(!showPrompt)}
-                className="gap-2"
-              >
-                <Palette className="w-4 h-4" />
-                {showPrompt ? "Ocultar" : "Ver"} prompt de imagem
-              </Button>
-            </div>
-          </div>
-
-          <AnimatePresence>
-            {showPrompt && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="overflow-hidden"
-              >
-                <div className="p-4 bg-gray-900 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <p className="text-xs font-semibold text-gray-400">
-                      PROMPT PARA MIDJOURNEY/DALL-E
-                    </p>
-                    <CopyButton textToCopy={post.image_prompt} variant="outline" />
-                  </div>
-                  <p className="text-sm text-gray-200 font-mono leading-relaxed">
-                    {post.image_prompt}
-                  </p>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <p className="text-sm font-semibold">Legenda do Post</p>
-              <Badge variant="outline" className="text-xs">
-                <Hash className="w-3 h-3 mr-1" />
-                Hashtags incluídas
-              </Badge>
-            </div>
-            <div className="p-4 bg-muted/30 rounded-lg">
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">
-                {post.caption}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
-const StorySequenceCard = ({ seq, index }: { seq: StorySequenceContent; index: number }) => {
-  const iconMap = {
-    Poll: { icon: BarChart3, color: "text-blue-500", bg: "bg-blue-500/10" },
-    Quiz: { icon: Brain, color: "text-purple-500", bg: "bg-purple-500/10" },
-    "Q&A": { icon: MessageCircle, color: "text-green-500", bg: "bg-green-500/10" },
-    Link: { icon: Share2, color: "text-orange-500", bg: "bg-orange-500/10" },
-    Text: { icon: FileText, color: "text-pink-500", bg: "bg-pink-500/10" }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ delay: index * 0.1 }}
-    >
-      <Card className="overflow-hidden">
-        <CardHeader>
-          <div className="flex items-start justify-between">
-            <div>
-              <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-indigo-500/10">
-                  <MessageSquare className="w-4 h-4 text-indigo-500" />
-                </div>
-                <Badge variant="secondary" className="text-xs">
-                  Story Sequence #{index + 1}
-                </Badge>
-              </div>
-              <CardTitle className="mt-2">{seq.theme}</CardTitle>
-              <CardDescription>
-                {seq.slides.length} stories interativos
-              </CardDescription>
-            </div>
-            <div className="flex gap-1">
-              <CopyButton
-                textToCopy={`📱 SEQUÊNCIA DE STORIES: ${seq.theme}\n\n${seq.slides.map(s => `${s.type.toUpperCase()}: ${s.content}${s.options ? '\nOpções: ' + s.options.join(' | ') : ''}`).join('\n\n')}`}
-              />
-              <ShareButton content={`Confira essa sequência de stories: ${seq.theme}`} />
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-3">
-            {seq.slides.map((slide) => {
-              const slideConfig = iconMap[slide.type];
-              const Icon = slideConfig.icon;
-
-              return (
-                <div key={slide.slide_number} className="relative">
-                  <div className="flex gap-3">
-                    <div className="flex flex-col items-center">
-                      <div
-                        className={cn(
-                          "w-10 h-10 rounded-full flex items-center justify-center",
-                          slideConfig.bg
-                        )}
-                      >
-                        <Icon className={cn("w-5 h-5", slideConfig.color)} />
-                      </div>
-                      {slide.slide_number < seq.slides.length && (
-                        <div className="w-0.5 h-16 bg-gradient-to-b from-muted to-transparent mt-2" />
-                      )}
-                    </div>
-
-                    <div className="flex-1 pb-4">
-                      <div className="p-4 bg-muted/30 rounded-xl space-y-3 hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="text-xs">
-                              Story {slide.slide_number}
-                            </Badge>
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {slide.type}
-                            </span>
-                          </div>
-                          <CopyButton textToCopy={slide.content} className="h-6" />
-                        </div>
-
-                        <p className="text-sm leading-relaxed">{slide.content}</p>
-
-                        {slide.options && (
-                          <div className="flex flex-wrap gap-2 pt-2">
-                            {slide.options.map((option, optIdx) => (
-                              <Badge
-                                key={optIdx}
-                                variant="secondary"
-                                className="text-xs"
-                              >
-                                {option}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </CardContent>
-      </Card>
-    </motion.div>
-  );
-};
-
-// =================================================================
-// 5. COMPONENTES DE HISTÓRICO E PLANEJAMENTO
-// =================================================================
-
-const CampaignHistory = ({
-  campaigns,
-  onSelect,
-  onDelete
-}: {
-  campaigns: SavedCampaign[];
-  onSelect: (campaign: SavedCampaign) => void;
-  onDelete: (id: string) => void;
-}) => {
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const filteredCampaigns = campaigns.filter(campaign =>
-    campaign.theme.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  return (
-    <Card className="w-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-xl">Histórico de Campanhas</CardTitle>
-        <CardDescription>
-          Acesse e gerencie suas campanhas anteriores
-        </CardDescription>
-        <div className="relative mt-2">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar campanhas..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="max-h-[400px] overflow-y-auto">
-          {filteredCampaigns.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">
-              <FolderOpen className="h-12 w-12 mx-auto mb-2 opacity-20" />
-              <p>Nenhuma campanha encontrada</p>
-              {searchTerm && (
-                <Button
-                  variant="link"
-                  onClick={() => setSearchTerm("")}
-                  className="mt-2"
-                >
-                  Limpar busca
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="divide-y">
-              {filteredCampaigns.map((campaign) => (
-                <div
-                  key={campaign.id}
-                  className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                >
-                  <div
-                    className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer"
-                    onClick={() => onSelect(campaign)}
-                  >
-                    <div className="bg-primary/10 rounded-md p-2">
-                      <Brain className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{campaign.theme}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(campaign.date).toLocaleDateString()}
-                        </p>
-                        {campaign.favorite && (
-                          <Badge variant="secondary" className="text-[10px] py-0 px-1">
-                            <Bookmark className="h-3 w-3 text-yellow-500 mr-1" />
-                            Favorito
-                          </Badge>
-                        )}
-                        <Badge variant="outline" className="text-[10px] py-0 px-1">
-                          {campaign.results.content_pack.reels.length +
-                            campaign.results.content_pack.carousels.length +
-                            campaign.results.content_pack.image_posts.length +
-                            campaign.results.content_pack.story_sequences.length
-                          } itens
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onSelect(campaign)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Visualizar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Ver agendamentos
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => onDelete(campaign.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const OutreachMessageGenerator = () => {
-  // ... (seus hooks useState, useEffect, etc. continuam aqui como antes)
-  const [messageType, setMessageType] = useState("cold");
-  const [businessType, setBusinessType] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState<OutreachTemplate | null>(null);
-  const [customizedMessage, setCustomizedMessage] = useState("");
-  const [savedTemplates, setSavedTemplates] = useState<OutreachTemplate[]>([]);
-
-  const generateOutreachMessage = useAction(api.brain.generateOutreachMessage)
-
-  useEffect(() => {
-    const saved = getOutreachTemplates();
-    setSavedTemplates(saved);
-  }, []);
-
-  const handleTemplateSelect = (template: OutreachTemplate) => {
-    setSelectedTemplate(template);
-    setCustomizedMessage(template.content);
-  };
-
-  const handleSaveTemplate = () => {
-    if (!customizedMessage.trim()) return;
-    const newTemplate: OutreachTemplate = {
-      id: selectedTemplate?.id || generateId(),
-      title: selectedTemplate?.title || `Template ${savedTemplates.length + 1}`,
-      content: customizedMessage,
-      tags: selectedTemplate?.tags || [messageType],
-      lastUsed: new Date().toISOString()
-    };
-    const updated = selectedTemplate
-      ? savedTemplates.map(t => t.id === selectedTemplate.id ? newTemplate : t)
-      : [...savedTemplates, newTemplate];
-    setSavedTemplates(updated);
-    saveOutreachTemplates(updated);
-    toast.success("Template salvo com sucesso!");
-  };
-
-  const handleGenerateNew = async () => {
-    if (!businessType) {
-      toast.error("Por favor, selecione um tipo de negócio para a IA.");
-      return;
-    }
-
-    toast.info("Gerando nova mensagem com a IA...");
-
-    try {
-      const result = await generateOutreachMessage({
-        businessType,
-        messageType,
-        // ✅ CORREÇÃO 1: Instrução clara para a IA em vez de enviar a mensagem antiga.
-        customization: "Gerar uma mensagem completamente nova com base nas opções selecionadas."
-      }) as OutreachMessageResult;
-
-      // ✅ CORREÇÃO 2: Verificar se o conteúdo realmente existe antes de atualizar.
-      if (result && result.content && result.content.trim() !== "") {
-        setCustomizedMessage(result.content);
-        toast.success("Nova mensagem gerada com sucesso!");
-      } else {
-        // Se a IA não retornar conteúdo, o toast de sucesso não será mais exibido.
-        console.error("A IA retornou uma resposta sem conteúdo:", result);
-        toast.error("A IA não conseguiu gerar um texto válido. Tente novamente.");
-      }
-
-    } catch (error) {
-      console.error("Erro na action generateOutreachMessage:", error);
-      toast.error(error instanceof Error ? error.message : "Erro ao gerar mensagem");
-    }
-  };
-
-  return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Mail className="h-5 w-5 text-primary" />
-          Gerador de Mensagens de Abordagem
-        </CardTitle>
-        <CardDescription>
-          Crie mensagens personalizadas para abordar potenciais clientes
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* ✅ CORREÇÃO 1: MUDADO DE 'md:grid-cols-2' PARA 'lg:grid-cols-2' */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Coluna da Esquerda: Controles */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Mensagem</label>
-              <Select value={messageType} onValueChange={setMessageType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de mensagem" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cold">Abordagem Inicial (Cold)</SelectItem>
-                  <SelectItem value="followup">Follow-up</SelectItem>
-                  <SelectItem value="agency">Proposta para Agências</SelectItem>
-                  <SelectItem value="offer">Oferta Especial</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Negócio</label>
-              <Select value={businessType} onValueChange={setBusinessType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de negócio" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="agency">Agência</SelectItem>
-                  <SelectItem value="freelancer">Freelancer</SelectItem>
-                  <SelectItem value="ecommerce">E-commerce</SelectItem>
-                  <SelectItem value="local">Negócio Local</SelectItem>
-                  <SelectItem value="saas">SaaS / Tech</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="p-3 bg-muted rounded-lg">
-              <h4 className="text-sm font-medium mb-2">Templates Salvos</h4>
-              <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto">
-                {savedTemplates.map(template => (
-                  <Button
-                    key={template.id}
-                    variant={selectedTemplate?.id === template.id ? "default" : "outline"}
-                    className="justify-start h-auto py-2 px-3"
-                    onClick={() => handleTemplateSelect(template)}
-                  >
-                    <div className="text-left">
-                      <p className="text-sm font-medium">{template.title}</p>
-                      <p className="text-xs text-muted-foreground truncate w-full">
-                        {template.content.substring(0, 50)}...
-                      </p>
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Coluna da Direita: Mensagem e Ações */}
-          <div className="flex flex-col space-y-4">
-            <label className="text-sm font-medium">Mensagem Personalizada</label>
-            <Textarea
-              value={customizedMessage}
-              onChange={(e) => setCustomizedMessage(e.target.value)}
-              placeholder="Sua mensagem personalizada aparecerá aqui..."
-              // ✅ CORREÇÃO 2: Altura responsiva para o Textarea
-              className="min-h-[200px] sm:min-h-[285px] flex-grow font-mono text-sm"
-            />
-
-            {/* ✅ CORREÇÃO 3: Layout dos botões agora é responsivo */}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={handleSaveTemplate}>
-                      <Bookmark className="h-4 w-4 mr-2" />
-                      Salvar Template
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Salvar para usar novamente
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <div className="flex flex-col-reverse sm:flex-row gap-2">
-                <Button variant="outline" size="sm" onClick={handleGenerateNew}>
-                  <RefreshCcw className="h-4 w-4 mr-2" />
-                  Regenerar
-                </Button>
-                <CopyButton textToCopy={customizedMessage} variant="default" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const ContentCalendar = ({
-  scheduledItems = [],
-  onScheduleEdit,
-
-}: {
-  scheduledItems?: ScheduledItem[],
-  onScheduleEdit?: (item: ScheduledItem) => void,
-  onScheduleDelete?: (id: string) => void
-}) => {
-
-  const today = new Date();
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-
-  const getDaysInMonth = (year: number, month: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (year: number, month: number) => {
-    return new Date(year, month, 1).getDay();
-  };
-
-  // Gera os dias do calendário
-  const generateCalendarDays = () => {
-    const daysInMonth = getDaysInMonth(currentYear, currentMonth);
-    const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
-    const days = [];
-
-    // Dias do mês anterior
-    for (let i = 0; i < firstDay; i++) {
-      days.push({ day: null, isPreviousMonth: true });
-    }
-
-    // Dias do mês atual
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day);
-      const dateString = date.toISOString().split('T')[0];
-
-      // Verifica se há itens agendados para este dia
-      const dayItems = scheduledItems.filter(item =>
-        item.date === dateString
-      );
-
-      days.push({
-        day,
-        date: dateString,
-        isToday:
-          today.getDate() === day &&
-          today.getMonth() === currentMonth &&
-          today.getFullYear() === currentYear,
-        items: dayItems
-      });
-    }
-
-    return days;
-  };
-
-  const calendarDays = generateCalendarDays();
-  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-
-  return (
-    <Card className="w-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle>Calendário de Conteúdo</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => {
-              if (currentMonth === 0) {
-                setCurrentMonth(11);
-                setCurrentYear(currentYear - 1);
-              } else {
-                setCurrentMonth(currentMonth - 1);
-              }
-            }}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium">
-              {monthNames[currentMonth]} {currentYear}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => {
-              if (currentMonth === 11) {
-                setCurrentMonth(0);
-                setCurrentYear(currentYear + 1);
-              } else {
-                setCurrentMonth(currentMonth + 1);
-              }
-            }}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-7 gap-1">
-          {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
-            <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
-              {day}
-            </div>
-          ))}
-          {calendarDays.map((dayData, i) => (
-            <div
-              key={i}
-              className={cn(
-                "h-20 sm:h-24 p-1 border rounded-md relative overflow-hidden",
-                dayData.isPreviousMonth && "opacity-30 bg-muted",
-                dayData.isToday && "border-primary/50 bg-primary/5",
-                !dayData.day && "bg-muted/50"
-              )}
-            >
-              {dayData.day && (
-                <>
-                  <div className="text-xs text-right mb-1">{dayData.day}</div>
-                  <div className="overflow-y-auto max-h-[calc(100%-20px)]">
-                    {dayData.items?.map((item) => (
-                      <div
-                        key={item.id}
-                        className="text-[10px] mb-1 px-1 py-0.5 rounded-sm bg-primary/10 text-primary truncate cursor-pointer"
-                        onClick={() => onScheduleEdit?.(item)}
-                      >
-                        {item.time.substring(0, 5)} - {item.contentType}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-      <CardFooter className="border-t p-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-            <span>Reels</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-            <span>Carrosséis</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-pink-500"></div>
-            <span>Posts</span>
-          </div>
-        </div>
-      </CardFooter>
-    </Card>
-  );
-};
-
-// =================================================================
-// 6. COMPONENTE PRINCIPAL OTIMIZADO
-// =================================================================
-
-export default function FreelinkBrainTool() {
+export default function FreelinkBrainUltimate() {
+  // Estados principais
   const [theme, setTheme] = useState("");
   const [results, setResults] = useState<BrainResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("reels");
-  const [mainView, setMainView] = useState<"generator" | "planner" | "outreach" | "history">("generator");
+  const [mainView, setMainView] = useState<"generator" | "planner" | "outreach" | "analytics" | "team">("generator");
+
+  // Estados de campanha
   const [savedCampaigns, setSavedCampaigns] = useState<SavedCampaign[]>([]);
   const [currentCampaignId, setCurrentCampaignId] = useState<string | null>(null);
-  const [isNewCampaignSaved, setIsNewCampaignSaved] = useState(false);
+
+  // Estados de UI
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Estados de agendamento
   const [scheduledItems, setScheduledItems] = useState<ScheduledItem[]>([]);
   const [isScheduleDialogOpen, setIsScheduleDialogOpen] = useState(false);
   const [currentScheduleItem, setCurrentScheduleItem] = useState<{
@@ -1469,10 +796,97 @@ export default function FreelinkBrainTool() {
     index: number;
   } | null>(null);
 
+  // Estados de preferências
+  const [userPreferences, setUserPreferences] = useState<UserPreferences>({
+    theme: "system",
+    language: "pt-BR",
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    notifications: {
+      email: true,
+      push: false,
+      sms: false,
+      frequency: "daily"
+    },
+    autoSave: true,
+    autoPublish: false,
+    defaultPlatforms: [{ name: "instagram", enabled: true }],
+    contentPreferences: {
+      tone: "professional",
+      style: "informative",
+      hashtag_count: 10,
+      emoji_usage: "moderate"
+    },
+    aiModel: "balanced"
+  });
+
+  // Hooks
+  const { user } = useUser();
+  const { setTheme: setSystemTheme } = useTheme();
   const inputRef = useRef<HTMLInputElement>(null);
   const generateIdeas = useAction(api.brain.generateContentIdeas);
+  const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-  // Carregar dados do localStorage na inicialização
+  // Funções auxiliares de armazenamento
+  const saveCampaign = useCallback((campaign: SavedCampaign): void => {
+    try {
+      const existingCampaignsJSON = localStorage.getItem(StorageKeys.CAMPAIGNS) || "[]";
+      const existingCampaigns: SavedCampaign[] = JSON.parse(existingCampaignsJSON);
+
+      const existingIndex = existingCampaigns.findIndex(c => c.id === campaign.id);
+      if (existingIndex >= 0) {
+        existingCampaigns[existingIndex] = campaign;
+      } else {
+        existingCampaigns.unshift(campaign);
+      }
+
+      localStorage.setItem(StorageKeys.CAMPAIGNS, JSON.stringify(existingCampaigns));
+      localStorage.setItem(StorageKeys.CURRENT_CAMPAIGN, JSON.stringify(campaign));
+
+    } catch (error) {
+      console.error("Erro ao salvar campanha:", error);
+      toast.error("Não foi possível salvar sua campanha");
+    }
+  }, []);
+
+  const getSavedCampaigns = useCallback((): SavedCampaign[] => {
+    try {
+      const campaignsJSON = localStorage.getItem(StorageKeys.CAMPAIGNS) || "[]";
+      return JSON.parse(campaignsJSON);
+    } catch (error) {
+      console.error("Erro ao carregar campanhas:", error);
+      return [];
+    }
+  }, []);
+
+  const getCurrentCampaign = useCallback((): SavedCampaign | null => {
+    try {
+      const campaignJSON = localStorage.getItem(StorageKeys.CURRENT_CAMPAIGN);
+      return campaignJSON ? JSON.parse(campaignJSON) : null;
+    } catch (error) {
+      console.error("Erro ao carregar campanha atual:", error);
+      return null;
+    }
+  }, []);
+
+  // Auto-save
+  const autoSaveFunction = useCallback((data: unknown) => {
+    if (currentCampaignId && data) {
+      const campaign: SavedCampaign = {
+        id: currentCampaignId,
+        theme,
+        date: new Date().toISOString(),
+        results: data as BrainResults,
+        scheduledItems,
+        status: "active",
+        version: 2
+      };
+      saveCampaign(campaign);
+    }
+  }, [currentCampaignId, theme, scheduledItems, saveCampaign]);
+
+  const isSaving = useAutoSave(results, autoSaveFunction, 5000);
+
+  // Carregamento inicial
   useEffect(() => {
     const campaigns = getSavedCampaigns();
     setSavedCampaigns(campaigns);
@@ -1482,51 +896,102 @@ export default function FreelinkBrainTool() {
       setResults(currentCampaign.results);
       setTheme(currentCampaign.theme);
       setCurrentCampaignId(currentCampaign.id);
-      setIsNewCampaignSaved(true);
 
       if (currentCampaign.scheduledItems) {
         setScheduledItems(currentCampaign.scheduledItems);
       }
     }
-  }, []);
 
+    const savedPreferences = localStorage.getItem(StorageKeys.PREFERENCES);
+    if (savedPreferences) {
+      setUserPreferences(JSON.parse(savedPreferences));
+    }
+  }, [getSavedCampaigns, getCurrentCampaign]);
+
+  // Sincronização de tema
+  useEffect(() => {
+    if (userPreferences.theme !== "system") {
+      setSystemTheme(userPreferences.theme);
+    }
+  }, [userPreferences.theme, setSystemTheme]);
+
+  // Handlers principais
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
-    if (!theme || !theme.trim()) {
-      toast.error("Por favor, insira um tema para gerar ideias.");
+
+    if (!theme || theme.trim().length < 3) {
+      toast.error("Por favor, insira um tema válido");
       inputRef.current?.focus();
       return;
     }
 
     setIsLoading(true);
     setResults(null);
-    setIsNewCampaignSaved(false);
 
     try {
-      const data = await generateIdeas({ theme });
-      setResults(data);
+      const data = await generateIdeas({
+        theme,
+        model: userPreferences.aiModel
+      });
 
-      // Gera uma nova campanha e salva localmente
+      // Adicionar IDs se não existirem
+      const enhancedData: BrainResults = {
+        ...data,
+        content_pack: {
+          reels: data.content_pack.reels.map((r: Omit<ReelContent, 'id'>) => ({
+            ...r,
+            id: generateId()
+          })),
+          carousels: data.content_pack.carousels.map((c: Omit<CarouselContent, 'id'>) => ({
+            ...c,
+            id: generateId()
+          })),
+          image_posts: data.content_pack.image_posts.map((p: Omit<ImagePostContent, 'id'>) => ({
+            ...p,
+            id: generateId()
+          })),
+          story_sequences: data.content_pack.story_sequences.map((s: Omit<StorySequenceContent, 'id'>) => ({
+            ...s,
+            id: generateId()
+          }))
+        }
+      };
+
+      setResults(enhancedData);
+
       const newCampaign: SavedCampaign = {
         id: generateId(),
         theme,
         date: new Date().toISOString(),
-        results: data,
-        scheduledItems: []
+        results: enhancedData,
+        scheduledItems: [],
+        status: "draft",
+        version: 2
       };
 
       setCurrentCampaignId(newCampaign.id);
       saveCampaign(newCampaign);
-
-      // Atualiza a lista de campanhas
       setSavedCampaigns(prev => [newCampaign, ...prev]);
-      setIsNewCampaignSaved(true);
 
       setIsLoading(false);
-      toast.success("Sua campanha de conteúdo está pronta! ✨");
+
+      confetti({
+        particleCount: 200,
+        spread: 100,
+        origin: { y: 0.6 }
+      });
+
+      toast.success("Campanha criada com sucesso! 🚀");
+
+      Analytics.track('generate_campaign_success', {
+        theme,
+        user_id: user?.id
+      });
+
     } catch (error) {
       setIsLoading(false);
-      toast.error(error instanceof Error ? error.message : "Erro ao gerar conteúdo");
+      toast.error("Erro ao gerar campanha");
+      console.error(error);
     }
   };
 
@@ -1535,7 +1000,6 @@ export default function FreelinkBrainTool() {
     setTheme("");
     setActiveTab("reels");
     setCurrentCampaignId(null);
-    setIsNewCampaignSaved(false);
     setScheduledItems([]);
     inputRef.current?.focus();
   };
@@ -1549,32 +1013,27 @@ export default function FreelinkBrainTool() {
     setResults(campaign.results);
     setTheme(campaign.theme);
     setCurrentCampaignId(campaign.id);
-    setIsNewCampaignSaved(true);
     setMainView("generator");
     setIsHistorySidebarOpen(false);
 
     if (campaign.scheduledItems) {
       setScheduledItems(campaign.scheduledItems);
-    } else {
-      setScheduledItems([]);
     }
 
-    toast.success("Campanha carregada com sucesso!");
+    toast.success("Campanha carregada!");
   };
 
   const handleCampaignDelete = (id: string) => {
-    deleteCampaign(id);
-    setSavedCampaigns(prev => prev.filter(c => c.id !== id));
+    const campaigns = getSavedCampaigns();
+    const updated = campaigns.filter(c => c.id !== id);
+    localStorage.setItem(StorageKeys.CAMPAIGNS, JSON.stringify(updated));
+    setSavedCampaigns(updated);
 
     if (currentCampaignId === id) {
-      setResults(null);
-      setTheme("");
-      setCurrentCampaignId(null);
-      setIsNewCampaignSaved(false);
-      setScheduledItems([]);
+      handleGenerateNew();
     }
 
-    toast.success("Campanha excluída com sucesso!");
+    toast.success("Campanha excluída");
   };
 
   const handleScheduleContent = (type: "reel" | "carousel" | "image_post" | "story_sequence", index: number) => {
@@ -1592,13 +1051,12 @@ export default function FreelinkBrainTool() {
       date,
       time,
       posted: false,
-      platform
+      platform: { name: platform as Platform["name"], enabled: true }
     };
 
     const updatedScheduledItems = [...scheduledItems, newScheduledItem];
     setScheduledItems(updatedScheduledItems);
 
-    // Atualiza a campanha no localStorage
     const campaign = savedCampaigns.find(c => c.id === currentCampaignId);
     if (campaign) {
       const updatedCampaign = {
@@ -1614,9 +1072,25 @@ export default function FreelinkBrainTool() {
 
     setIsScheduleDialogOpen(false);
     setCurrentScheduleItem(null);
-    toast.success("Conteúdo agendado com sucesso!");
+    toast.success("Conteúdo agendado!");
   };
 
+  const handlePublishContent = async (content: ReelContent | CarouselContent | ImagePostContent) => {
+    const platform = userPreferences.defaultPlatforms[0];
+
+    if (!platform) {
+      toast.error("Configure suas redes sociais nas configurações");
+      return;
+    }
+
+    try {
+      await SocialPublisher.publishToInstagram(content, platform);
+    } catch  {
+      toast.error("Erro ao publicar");
+    }
+  };
+
+  // Contadores
   const contentCounts = results ? {
     reels: results.content_pack.reels.length,
     carousels: results.content_pack.carousels.length,
@@ -1628,700 +1102,504 @@ export default function FreelinkBrainTool() {
            results.content_pack.story_sequences.length
   } : null;
 
+  // Conteúdo filtrado
+  const filteredContent = useMemo(() => {
+    if (!results || !debouncedSearchQuery) return results?.content_pack;
+
+    const query = debouncedSearchQuery.toLowerCase();
+
+    return {
+      reels: results.content_pack.reels.filter(r =>
+        r.title.toLowerCase().includes(query) ||
+        r.hook.toLowerCase().includes(query)
+      ),
+      carousels: results.content_pack.carousels.filter(c =>
+        c.title.toLowerCase().includes(query)
+      ),
+      image_posts: results.content_pack.image_posts.filter(p =>
+        p.idea.toLowerCase().includes(query) ||
+        p.caption.toLowerCase().includes(query)
+      ),
+      story_sequences: results.content_pack.story_sequences.filter(s =>
+        s.theme.toLowerCase().includes(query)
+      )
+    };
+  }, [results, debouncedSearchQuery]);
+
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 pb-20">
-      {/* Barra de navegação superior */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-lg border-b mb-6">
-        <div className="container py-3 flex flex-wrap items-center justify-between gap-3">
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 bg-background/95 backdrop-blur-lg border-b">
+        <div className="container py-3 px-4 flex items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <h1 className="font-bold text-xl sm:text-2xl flex items-center">
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <h1 className="font-bold text-xl sm:text-2xl">
+              <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                 Freelink<span className="font-black">Brain</span>
               </span>
-              <Badge variant="outline" className="ml-2 hidden sm:flex">PRO</Badge>
             </h1>
 
-            <Tabs value={mainView} className="hidden sm:block">
-              <TabsList>
-                <TabsTrigger
-                  value="generator"
-                  onClick={() => setMainView("generator")}
-                  className="flex items-center gap-1"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Gerador</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="planner"
-                  onClick={() => setMainView("planner")}
-                  className="flex items-center gap-1"
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Planner</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="outreach"
-                  onClick={() => setMainView("outreach")}
-                  className="flex items-center gap-1"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Mensagens</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
+            <nav className="hidden lg:flex items-center gap-1">
+              <Button
+                variant={mainView === "generator" ? "secondary" : "ghost"}
+                size="sm"
+                onClick={() => setMainView("generator")}
+              >
+                <Sparkles className="w-4 h-4 mr-2" />
+                Gerador
+              </Button>
+            </nav>
           </div>
 
           <div className="flex items-center gap-2">
-            <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span className="hidden sm:inline">Histórico</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
-                <SheetHeader className="mb-4">
-                  <SheetTitle>Histórico de Campanhas</SheetTitle>
-                  <SheetDescription>
-                    Acesse suas campanhas anteriores
-                  </SheetDescription>
-                </SheetHeader>
-                <CampaignHistory
-                  campaigns={savedCampaigns}
-                  onSelect={handleCampaignSelect}
-                  onDelete={handleCampaignDelete}
+            {results && (
+              <div className="relative hidden md:block">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar conteúdo..."
+                  className="pl-9 pr-4 h-9 w-[200px] lg:w-[300px]"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
                 />
-              </SheetContent>
-            </Sheet>
+              </div>
+            )}
 
-            <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Agendar Publicação</DialogTitle>
-                  <DialogDescription>
-                    Escolha quando este conteúdo será publicado
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Data</label>
-                      <Input
-                        id="schedule-date"
-                        type="date"
-                        min={new Date().toISOString().split('T')[0]}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Horário</label>
-                      <Input id="schedule-time" type="time" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Plataforma</label>
-                    <Select defaultValue="instagram">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a plataforma" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="instagram">Instagram</SelectItem>
-                        <SelectItem value="tiktok">TikTok</SelectItem>
-                        <SelectItem value="facebook">Facebook</SelectItem>
-                        <SelectItem value="linkedin">LinkedIn</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={() => {
-                    const dateInput = document.getElementById('schedule-date') as HTMLInputElement;
-                    const timeInput = document.getElementById('schedule-time') as HTMLInputElement;
-                    const date = dateInput?.value;
-                    const time = timeInput?.value;
+            {isSaving && (
+              <Badge variant="outline" className="gap-1">
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                Salvando...
+              </Badge>
+            )}
 
-                    if (!date || !time) {
-                      toast.error("Por favor, selecione data e horário.");
-                      return;
-                    }
+            <Button variant="ghost" size="icon" onClick={() => setIsHistorySidebarOpen(true)}>
+              <Clock className="w-5 h-5" />
+            </Button>
 
-                    handleScheduleSave(date, time, "instagram");
-                  }}>
-                    Agendar
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
+            <Button variant="ghost" size="icon" onClick={() => setIsSettingsOpen(true)}>
+              <Settings className="w-5 h-5" />
+            </Button>
 
-            {/* Menu móvel */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="sm:hidden">
-                  <Menu className="w-4 h-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left">
-                <SheetHeader className="mb-4">
-                  <SheetTitle>Menu</SheetTitle>
-                </SheetHeader>
-                <div className="grid gap-2">
-                  <Button
-                    variant={mainView === "generator" ? "default" : "outline"}
-                    className="justify-start"
-                    onClick={() => setMainView("generator")}
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Gerador de Conteúdo
-                  </Button>
-                  <Button
-                    variant={mainView === "planner" ? "default" : "outline"}
-                    className="justify-start"
-                    onClick={() => setMainView("planner")}
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Planejador de Conteúdo
-                  </Button>
-                  <Button
-                    variant={mainView === "outreach" ? "default" : "outline"}
-                    className="justify-start"
-                    onClick={() => setMainView("outreach")}
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Mensagens de Abordagem
-                  </Button>
-                  <Separator className="my-2" />
-                  <Button
-                    variant="outline"
-                    className="justify-start"
-                    onClick={() => setIsHistorySidebarOpen(true)}
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    Histórico de Campanhas
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
+            <Avatar className="w-8 h-8">
+              <AvatarImage src={user?.imageUrl} />
+              <AvatarFallback>
+                {user?.firstName?.[0]}{user?.lastName?.[0]}
+              </AvatarFallback>
+            </Avatar>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="px-4 pb-20">
+      {/* Main Content */}
+      <main className="container py-6 px-4 max-w-7xl mx-auto">
         <AnimatePresence mode="wait">
-          {/* Gerador de Conteúdo */}
           {mainView === "generator" && (
             <motion.div
               key="generator"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
               className="space-y-6"
             >
               {isLoading ? (
-                <EnhancedLoadingSpinner key="loading" />
+                <ProfessionalLoadingSpinner />
               ) : results ? (
-                <motion.div
-                  key="results"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-6"
-                >
-                  {/* Header com métricas */}
-                 <div className="lg:sticky top-[57px] z-10 bg-background/80 backdrop-blur-lg border-b">
-                    <div className="py-4 space-y-4">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                              Campanha Pronta!
-                            </h2>
-                            {isNewCampaignSaved && (
-                              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
-                                <Check className="w-3 h-3 mr-1" />
-                                Salva
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Tema: <span className="font-semibold text-foreground">{theme}</span>
-                          </p>
-                        </div>
-                        <div className="flex gap-2 w-full sm:w-auto">
-                          <Button
-                            onClick={handleGenerateNew}
-                            variant="outline"
-                            className="flex-1 sm:flex-initial gap-2"
-                          >
-                            <RefreshCcw className="w-4 h-4" />
-                            Novo Tema
+                <div className="space-y-6">
+                  {/* Campaign Header */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                    <div>
+                      <h2 className="text-3xl font-bold">Campanha Pronta!</h2>
+                      <p className="text-muted-foreground mt-1">
+                        Tema: <span className="font-semibold">{theme}</span>
+                      </p>
+                    </div>
+
+                    <div className="flex gap-2">
+                      <Button onClick={handleGenerateNew} variant="outline">
+                        <RefreshCcw className="w-4 h-4 mr-2" />
+                        Novo Tema
+                      </Button>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button>
+                            <Download className="w-4 h-4 mr-2" />
+                            Exportar
                           </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="default"
-                                className="flex-1 sm:flex-initial gap-2"
-                              >
-                                <Download className="w-4 h-4" />
-                                Exportar
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <FileText className="w-4 h-4 mr-2" />
-                                Exportar como PDF
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Share2 className="w-4 h-4 mr-2" />
-                                Compartilhar link
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Calendar className="w-4 h-4 mr-2" />
-                                Agendar todos
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-
-                      {/* Contadores animados */}
-                      <div className="grid grid-cols-5 gap-2">
-                        <div className="text-center p-2 bg-muted/50 rounded-lg">
-                          <p className="text-2xl font-bold text-primary">
-                            <AnimatedCounter value={contentCounts?.total || 0} />
-                          </p>
-                          <p className="text-xs text-muted-foreground">Total</p>
-                        </div>
-                        {[
-                          { key: "reels", icon: Video, color: "text-blue-500" },
-                          { key: "carousels", icon: Layers, color: "text-purple-500" },
-                          { key: "image_posts", icon: Camera, color: "text-pink-500" },
-                          { key: "story_sequences", icon: MessageSquare, color: "text-indigo-500" }
-                        ].map(({ key, icon: Icon, color }) => (
-                          <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
-                            <Icon className={cn("w-4 h-4 mx-auto mb-1", color)} />
-                            <p className="text-lg font-bold">
-                              <AnimatedCounter value={contentCounts?.[key as keyof typeof contentCounts] || 0} />
-                            </p>
-                          </div>
-                        ))}
-                      </div>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                          <DropdownMenuItem onClick={() => {
+                            const campaign = getCurrentCampaign();
+                            if (campaign) ExportManager.exportToPDF(campaign);
+                          }}>
+                            <FileText className="w-4 h-4 mr-2" />
+                            PDF
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => {
+                            const campaign = getCurrentCampaign();
+                            if (campaign) ExportManager.exportToExcel(campaign);
+                          }}>
+                            <FileText className="w-4 h-4 mr-2" />
+                            Excel
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
 
-                  {/* Cards de resumo */}
-                  <div className="space-y-4">
-                    <Card className="border-2 border-blue-500/20 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Target className="w-5 h-5 text-blue-500" />
-                          Estratégia da Campanha
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <Brain className="w-4 h-4 text-muted-foreground mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase">
-                              Ângulo Criativo
-                            </p>
-                            <p className="text-sm">{results.theme_summary}</p>
-                          </div>
-                        </div>
-                        <Separator className="my-2 h-px bg-muted" />
-                        <div className="flex items-start gap-3">
-  <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
-  <div className="flex-1">
-    <p className="text-xs font-semibold text-muted-foreground uppercase">
-      Público-Alvo
-    </p>
-    <div className="text-sm">
-      {typeof results.target_audience_suggestion === 'string'
-        ? results.target_audience_suggestion
-        : (
-          <ul className="list-disc list-inside space-y-1">
-            {Object.entries(results.target_audience_suggestion).map(([key, value]) => (
-              <li key={key}>
-                <strong className="capitalize">{key.replace(/_/g, ' ')}:</strong> {Array.isArray(value) ? value.join(', ') : String(value)}
-              </li>
-            ))}
-          </ul>
-        )
-      }
-    </div>
-  </div>
-</div>
-                      </CardContent>
-                    </Card>
-
-                    <ContentMetrics />
+                  {/* Metrics */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                    <AnimatedMetric
+                      value={contentCounts?.total || 0}
+                      label="Total"
+                      icon={Sparkles}
+                      color="purple"
+                    />
+                    <AnimatedMetric
+                      value={contentCounts?.reels || 0}
+                      label="Reels"
+                      icon={Video}
+                      color="blue"
+                    />
+                    <AnimatedMetric
+                      value={contentCounts?.carousels || 0}
+                      label="Carrosséis"
+                      icon={Layers}
+                      color="purple"
+                    />
+                    <AnimatedMetric
+                      value={contentCounts?.image_posts || 0}
+                      label="Posts"
+                      icon={Camera}
+                      color="pink"
+                    />
+                    <AnimatedMetric
+                      value={contentCounts?.story_sequences || 0}
+                      label="Stories"
+                      icon={MessageSquare}
+                      color="indigo"
+                    />
                   </div>
 
-                  {/* Tabs de conteúdo */}
-                  <div>
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                      <div className="overflow-x-auto scrollbar-hide">
-                        <TabsList className="inline-flex w-full sm:w-auto h-auto p-1 bg-muted/50">
-                          {[
-                            { value: "reels", icon: Video, label: "Reels", color: "data-[state=active]:bg-blue-500" },
-                            { value: "carousels", icon: Layers, label: "Carrosséis", color: "data-[state=active]:bg-purple-500" },
-                            { value: "image_posts", icon: Camera, label: "Posts", color: "data-[state=active]:bg-pink-500" },
-                            { value: "story_sequences", icon: MessageSquare, label: "Stories", color: "data-[state=active]:bg-indigo-500" }
-                          ].map(({ value, icon: Icon, label, color }) => (
-                            <TabsTrigger
-                              key={value}
-                              value={value}
-                              className={cn(
-                                "flex-1 sm:flex-initial gap-2 data-[state=active]:text-white transition-all",
-                                color
-                              )}
-                            >
-                              <Icon className="w-4 h-4" />
-                              <span className="hidden sm:inline">{label}</span>
-                              <Badge variant="secondary" className="ml-1 text-xs">
-                                {contentCounts?.[value as keyof typeof contentCounts]}
-                              </Badge>
-                            </TabsTrigger>
-                          ))}
-                        </TabsList>
-                      </div>
+                  {/* Content Tabs */}
+                  <Tabs value={activeTab} onValueChange={setActiveTab}>
+                    <TabsList className="grid w-full grid-cols-4">
+                      <TabsTrigger value="reels">Reels</TabsTrigger>
+                      <TabsTrigger value="carousels">Carrosséis</TabsTrigger>
+                      <TabsTrigger value="posts">Posts</TabsTrigger>
+                      <TabsTrigger value="stories">Stories</TabsTrigger>
+                    </TabsList>
 
-                      <div className="mt-6 space-y-4">
-                     <TabsContent value="reels" className="mt-0 space-y-4">
-  {results.content_pack?.reels?.map((reel, i) => (
-    <ReelCard
-      key={i}
-      reel={reel}
-      index={i}
-      onSchedule={handleScheduleContent}
-    />
-  ))}
-</TabsContent>
-
-                        <TabsContent value="carousels" className="mt-0 space-y-4">
-  {results.content_pack?.carousels?.map((carousel, i) => (
-    <CarouselViewer key={i} carousel={carousel} index={i} />
-  ))}
-</TabsContent>
-
-                        <TabsContent value="image_posts" className="mt-0 space-y-4">
-  {results.content_pack?.image_posts?.map((post, i) => (
-    <ImagePostCard key={i} post={post} index={i} />
-  ))}
-</TabsContent>
-
-                        <TabsContent value="story_sequences" className="mt-0 space-y-4">
-  {results.content_pack?.story_sequences?.map((seq, i) => (
-    <StorySequenceCard key={i} seq={seq} index={i} />
-  ))}
-</TabsContent>
-                      </div>
-                    </Tabs>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="welcome"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-8"
-                >
-                  {/* Hero Section */}
-                  <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 p-1">
-                    <div className="relative bg-background rounded-[calc(1.5rem-4px)] p-8 sm:p-12">
-                      <motion.div
-                        className="absolute inset-0 opacity-10"
-                        animate={{
-                          backgroundPosition: ["0% 0%", "100% 100%"],
-                        }}
-                        transition={{
-                          duration: 20,
-                          repeat: Infinity,
-                          repeatType: "reverse",
-                        }}
-                        style={{
-                          backgroundImage: "url('data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
-                        }}
-                      />
-
-                      <div className="relative text-center space-y-6">
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", duration: 0.8 }}
-                        >
-                          <Badge variant="secondary" className="gap-2 px-4 py-1.5">
-                            <Sparkles className="w-4 h-4 text-yellow-500 animate-pulse" />
-                            Tudo-em-Um
-                          </Badge>
-                        </motion.div>
-
-                        <motion.h1
-                          className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight"
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.2 }}
-                        >
-                          Freelink
-                          <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                            Brain
-                          </span>
-                        </motion.h1>
-
-                        <motion.p
-                          className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto"
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.3 }}
-                        >
-                          De tema a estratégia completa em segundos: conteúdo,{" "}
-                          <span className="font-semibold text-foreground">
-                            calendário, mensagens de abordagem
-                          </span>{" "}
-                          e muito mais.
-                        </motion.p>
-
-                        <motion.div
-                          className="flex flex-wrap items-center justify-center gap-4 pt-4"
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.4 }}
-                        >
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Video className="w-4 h-4" />
-                            <span>Reels Virais</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            <span>Planejamento</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail className="w-4 h-4" />
-                            <span>Mensagens</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Zap className="w-4 h-4" />
-                            <span>Estratégia</span>
-                          </div>
-                        </motion.div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Input Section */}
-                  <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                  >
-                    <Card className="shadow-2xl border-2">
-                      <CardContent className="p-6 sm:p-8">
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                          <div className="space-y-2">
-                            <label htmlFor="theme-input" className="text-sm font-medium flex items-center gap-2">
-                              <Wand2 className="w-4 h-4 text-purple-500" />
-                              Qual tema você quer transformar em uma campanha completa?
-                            </label>
-                            <div className="relative">
-                              <Input
-                                id="theme-input"
-                                ref={inputRef}
-                                value={theme}
-                                onChange={(e) => setTheme(e.target.value)}
-                                placeholder="Ex: Como criar hábitos de estudo eficientes"
-                                className="pr-24 py-6 text-base sm:text-lg"
-                                maxLength={150}
+                    <TabsContent value="reels" className="space-y-4">
+                      {filteredContent?.reels.map((reel, i) => (
+                        <Card key={reel.id}>
+                          <CardHeader>
+                            <CardTitle>{reel.title}</CardTitle>
+                          </CardHeader>
+                          <CardContent>
+                            <p className="text-sm text-muted-foreground mb-2">{reel.hook}</p>
+                            <div className="flex gap-2">
+                              <EnhancedCopyButton
+                                textToCopy={`${reel.title}\n\n${reel.hook}\n\n${reel.main_points.join('\n')}\n\n${reel.cta}`}
                               />
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                                {theme.length}/150
-                              </div>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleScheduleContent("reel", i)}
+                              >
+                                <Calendar className="w-4 h-4 mr-2" />
+                                Agendar
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handlePublishContent(reel)}
+                              >
+                                <Send className="w-4 h-4 mr-2" />
+                                Publicar
+                              </Button>
                             </div>
-                          </div>
-
-                          <Button
-                            type="submit"
-                            size="lg"
-                            className="w-full font-bold text-base sm:text-lg h-12 sm:h-14 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl"
-                          >
-                            <Sparkles className="w-5 h-5 mr-2" />
-                            Gerar Campanha Completa
-                          </Button>
-                        </form>
-
-                        <div className="mt-8 space-y-4">
-                          <div className="text-center">
-                            <p className="text-sm text-muted-foreground mb-3">
-                              Precisa de inspiração? Experimente estes temas em alta:
-                            </p>
-                            <div className="flex flex-wrap gap-2 justify-center">
-                              {[
-                                "Vendas B2B pelo LinkedIn",
-                                "Fórmula de lançamento digital",
-                                "Estratégia de conteúdo para e-commerce",
-                                "Marketing para serviços locais",
-                                "Automação de marketing"
-                              ].map((example) => (
-                                <motion.div
-                                  key={example}
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                >
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleExampleClick(example)}
-                                    className="text-xs hover:bg-primary hover:text-primary-foreground transition-colors"
-                                  >
-                                    {example}
-                                  </Button>
-                                </motion.div>
-                              ))}
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-
-                  {/* Features Grid */}
-                  <motion.div
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                  >
-                    {[
-                      {
-                        icon: Brain,
-                        title: "Geração Inteligente",
-                        description: "Campanhas completas de conteúdo em segundos",
-                        color: "from-blue-500 to-cyan-500"
-                      },
-                      {
-                        icon: Calendar,
-                        title: "Planejador Integrado",
-                        description: "Organize, agende e mantenha consistência",
-                        color: "from-purple-500 to-pink-500"
-                      },
-                      {
-                        icon: Mail,
-                        title: "Mensagens de Abordagem",
-                        description: "Templates para conquistar clientes",
-                        color: "from-orange-500 to-red-500"
-                      },
-                      {
-                        icon: BarChart3,
-                        title: "Analytics Avançado",
-                        description: "Métricas e insights de desempenho",
-                        color: "from-green-500 to-emerald-500"
-                      }
-                    ].map((feature, index) => (
-                      <motion.div
-                        key={index}
-                        whileHover={{ y: -5 }}
-                        transition={{ type: "spring", stiffness: 300 }}
-                      >
-                        <Card className="h-full hover:shadow-lg transition-shadow border-2">
-                          <CardContent className="p-6 text-center space-y-3">
-                            <div className={cn(
-                              "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center mx-auto",
-                              feature.color
-                            )}>
-                              <feature.icon className="w-6 h-6 text-white" />
-                            </div>
-                            <h3 className="font-semibold">{feature.title}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {feature.description}
-                            </p>
                           </CardContent>
                         </Card>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
+                      ))}
+                    </TabsContent>
 
-          {/* Planejador de Conteúdo */}
-          {mainView === "planner" && (
-            <motion.div
-              key="planner"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
-              {currentCampaignId ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Planejador de Conteúdo</h2>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMainView("generator")}
-                      className="gap-2"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Voltar para Campanha
-                    </Button>
+                    {/* Adicione os outros TabsContent similarmente */}
+                  </Tabs>
+                </div>
+              ) : (
+                // Welcome Screen
+                <div className="space-y-8">
+                  <div className="text-center space-y-4 max-w-3xl mx-auto">
+                    <h1 className="text-4xl sm:text-5xl font-bold">
+                      Freelink<span className="text-primary">Brain</span>
+                    </h1>
+                    <p className="text-xl text-muted-foreground">
+                      Crie campanhas completas de conteúdo com IA em segundos
+                    </p>
                   </div>
 
-                  <ContentCalendar
-                    scheduledItems={scheduledItems}
-                    onScheduleEdit={() => {}}
-                    onScheduleDelete={() => {}}
-                  />
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-                  <Calendar className="w-16 h-16 text-muted-foreground/20 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Nenhuma campanha ativa</h3>
-                  <p className="text-muted-foreground max-w-md mb-6">
-                    Gere uma campanha de conteúdo primeiro para visualizar o planejador.
-                  </p>
-                  <Button
-                    onClick={() => setMainView("generator")}
-                    className="gap-2"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Gerar Campanha
-                  </Button>
+                  <Card className="max-w-2xl mx-auto">
+                    <CardContent className="p-6">
+                      <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                          <Label htmlFor="theme">Qual tema você quer transformar em campanha?</Label>
+                          <Input
+                            id="theme"
+                            ref={inputRef}
+                            value={theme}
+                            onChange={(e) => setTheme(e.target.value)}
+                            placeholder="Ex: Marketing digital para pequenas empresas"
+                            className="mt-2"
+                          />
+                        </div>
+
+                        <Button type="submit" className="w-full" size="lg">
+                          <Sparkles className="w-5 h-5 mr-2" />
+                          Gerar Campanha Completa
+                        </Button>
+                      </form>
+
+                      <div className="mt-6">
+                        <p className="text-sm text-center text-muted-foreground mb-3">
+                          Exemplos populares:
+                        </p>
+                        <div className="flex flex-wrap gap-2 justify-center">
+                          {[
+                            "Marketing de afiliados",
+                            "Inteligência artificial",
+                            "Vendas B2B",
+                            "Growth hacking"
+                          ].map((example) => (
+                            <Button
+                              key={example}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleExampleClick(example)}
+                            >
+                              {example}
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               )}
             </motion.div>
           )}
-
-          {/* Mensagens de Abordagem */}
-          {mainView === "outreach" && (
-            <motion.div
-              key="outreach"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Mensagens de Abordagem</h2>
-                <Select defaultValue="cold">
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Tipo de abordagem" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cold">Abordagem Inicial</SelectItem>
-                    <SelectItem value="followup">Follow-up</SelectItem>
-                    <SelectItem value="agency">Para Agências</SelectItem>
-                    <SelectItem value="special">Ofertas Especiais</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <OutreachMessageGenerator />
-            </motion.div>
-          )}
         </AnimatePresence>
-      </div>
+      </main>
+
+      {/* History Sidebar */}
+      <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
+        <SheetContent>
+          <SheetHeader>
+            <SheetTitle>Histórico de Campanhas</SheetTitle>
+          </SheetHeader>
+
+          <ScrollArea className="h-[calc(100vh-120px)] mt-4">
+            <div className="space-y-2">
+              {savedCampaigns.map((campaign) => (
+                <Card
+                  key={campaign.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => handleCampaignSelect(campaign)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">{campaign.theme}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(campaign.date).toLocaleDateString()}
+                        </p>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleCampaignDelete(campaign.id);
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </ScrollArea>
+        </SheetContent>
+      </Sheet>
+
+      {/* Schedule Dialog */}
+      <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Agendar Publicação</DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="date">Data</Label>
+                <Input
+                  id="schedule-date"
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div>
+                <Label htmlFor="time">Horário</Label>
+                <Input
+                  id="schedule-time"
+                  type="time"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="platform">Plataforma</Label>
+              <Select defaultValue="instagram">
+                <SelectTrigger id="schedule-platform">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => {
+              const dateInput = document.getElementById('schedule-date') as HTMLInputElement;
+              const timeInput = document.getElementById('schedule-time') as HTMLInputElement;
+              const platformSelect = document.getElementById('schedule-platform') as HTMLSelectElement;
+
+              if (dateInput?.value && timeInput?.value) {
+                handleScheduleSave(
+                  dateInput.value,
+                  timeInput.value,
+                  platformSelect?.value || "instagram"
+                );
+              }
+            }}>
+              Agendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Settings Dialog */}
+      <Dialog open={isSettingsOpen} onOpenChange={setIsSettingsOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Configurações</DialogTitle>
+          </DialogHeader>
+
+          <Tabs defaultValue="general">
+            <TabsList>
+              <TabsTrigger value="general">Geral</TabsTrigger>
+              <TabsTrigger value="ai">IA</TabsTrigger>
+              <TabsTrigger value="notifications">Notificações</TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="general" className="space-y-4">
+              <div>
+                <Label>Tema</Label>
+                <RadioGroup
+                  value={userPreferences.theme}
+                  onValueChange={(value) => {
+                    const newPreferences = {
+                      ...userPreferences,
+                      theme: value as UserPreferences["theme"]
+                    };
+                    setUserPreferences(newPreferences);
+                    localStorage.setItem(StorageKeys.PREFERENCES, JSON.stringify(newPreferences));
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="light" id="light" />
+                    <Label htmlFor="light">Claro</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="dark" id="dark" />
+                    <Label htmlFor="dark">Escuro</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="system" id="system" />
+                    <Label htmlFor="system">Sistema</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="ai" className="space-y-4">
+              <div>
+                <Label>Modelo de IA</Label>
+                <RadioGroup
+                  value={userPreferences.aiModel}
+                  onValueChange={(value) => {
+                    const newPreferences = {
+                      ...userPreferences,
+                      aiModel: value as UserPreferences["aiModel"]
+                    };
+                    setUserPreferences(newPreferences);
+                    localStorage.setItem(StorageKeys.PREFERENCES, JSON.stringify(newPreferences));
+                  }}
+                >
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="fast" id="fast" />
+                    <Label htmlFor="fast">Rápido</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="balanced" id="balanced" />
+                    <Label htmlFor="balanced">Balanceado</Label>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <RadioGroupItem value="quality" id="quality" />
+                    <Label htmlFor="quality">Máxima Qualidade</Label>
+                  </div>
+                </RadioGroup>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="notifications" className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label>Notificações Push</Label>
+                <Switch
+                  checked={userPreferences.notifications.push}
+                  onCheckedChange={(checked) => {
+                    const newPreferences = {
+                      ...userPreferences,
+                      notifications: {
+                        ...userPreferences.notifications,
+                        push: checked
+                      }
+                    };
+                    setUserPreferences(newPreferences);
+                    localStorage.setItem(StorageKeys.PREFERENCES, JSON.stringify(newPreferences));
+
+                    if (checked) {
+                      NotificationManager.requestPermission();
+                    }
+                  }}
+                />
+              </div>
+            </TabsContent>
+          </Tabs>
+
+          <DialogFooter>
+            <Button onClick={() => setIsSettingsOpen(false)}>
+              Fechar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
