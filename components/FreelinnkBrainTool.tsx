@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, Fragment } from "react";
+import { useState, useRef, useEffect, Fragment} from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
@@ -12,14 +12,13 @@ import {
   Clock, Eye, Heart, MessageCircle, Send, BarChart3, Palette,
   FileText, Image as ImageIcon, Mail, Calendar,
   MoreHorizontal, Trash2, Menu, ChevronLeft,
-  Search,
-  FolderOpen
+  Search, FolderOpen
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -27,9 +26,10 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
 
 // =================================================================
 // 1. TIPOS DE DADOS
@@ -70,7 +70,7 @@ interface StorySequenceContent {
 
 interface BrainResults {
   theme_summary: string;
-  target_audience_suggestion: string;
+  target_audience_suggestion: string | Record<string, string>;
   content_pack: {
     reels: ReelContent[];
     carousels: CarouselContent[];
@@ -79,7 +79,6 @@ interface BrainResults {
   };
 }
 
-// Tipos adicionais para armazenamento local
 interface SavedCampaign {
   id: string;
   theme: string;
@@ -107,6 +106,7 @@ interface OutreachTemplate {
   tags: string[];
   lastUsed?: string;
 }
+
 interface OutreachMessageResult {
   title: string;
   content: string;
@@ -114,12 +114,10 @@ interface OutreachMessageResult {
   messageType: string;
 }
 
-
 // =================================================================
 // 2. UTILITÁRIOS DE PERSISTÊNCIA & DADOS
 // =================================================================
 
-// Funções de localStorage para persistência
 const StorageKeys = {
   CAMPAIGNS: "freelink_brain_campaigns",
   CURRENT_CAMPAIGN: "freelink_brain_current_campaign",
@@ -135,12 +133,11 @@ function saveCampaign(campaign: SavedCampaign): void {
     const existingCampaignsJSON = localStorage.getItem(StorageKeys.CAMPAIGNS) || "[]";
     const existingCampaigns: SavedCampaign[] = JSON.parse(existingCampaignsJSON);
 
-    // Se já existe com esse ID, atualize
     const existingIndex = existingCampaigns.findIndex(c => c.id === campaign.id);
     if (existingIndex >= 0) {
       existingCampaigns[existingIndex] = campaign;
     } else {
-      existingCampaigns.unshift(campaign); // Adiciona ao início
+      existingCampaigns.unshift(campaign);
     }
 
     localStorage.setItem(StorageKeys.CAMPAIGNS, JSON.stringify(existingCampaigns));
@@ -179,7 +176,6 @@ function deleteCampaign(id: string): void {
     const updatedCampaigns = existingCampaigns.filter(c => c.id !== id);
     localStorage.setItem(StorageKeys.CAMPAIGNS, JSON.stringify(updatedCampaigns));
 
-    // Se a campanha atual foi excluída, limpe-a
     const currentCampaign = getCurrentCampaign();
     if (currentCampaign && currentCampaign.id === id) {
       localStorage.removeItem(StorageKeys.CURRENT_CAMPAIGN);
@@ -190,60 +186,23 @@ function deleteCampaign(id: string): void {
   }
 }
 
-// Templates de mensagens padrão
 const DEFAULT_OUTREACH_TEMPLATES: OutreachTemplate[] = [
   {
     id: "cold-outreach-1",
     title: "Abordagem Inicial",
-    content: `Olá {nome},
-
-Percebi que você trabalha com {nicho} e gostaria de apresentar o FreelinkBrain, uma ferramenta de IA que tem ajudado profissionais como você a economizar até 5 horas por semana na criação de conteúdo para redes sociais.
-
-Gostaria de oferecer um teste gratuito de 3 meses do nosso plano PRO para que você possa avaliar o impacto na sua estratégia de conteúdo.
-
-Posso te mostrar como funciona em uma chamada rápida de 15 minutos?
-
-Abraços,
-{seu_nome}`,
+    content: `Olá {nome},\n\nPercebi que você trabalha com {nicho} e gostaria de apresentar o FreelinkBrain, uma ferramenta de IA que tem ajudado profissionais como você a economizar até 5 horas por semana na criação de conteúdo para redes sociais.\n\nGostaria de oferecer um teste gratuito de 3 meses do nosso plano PRO para que você possa avaliar o impacto na sua estratégia de conteúdo.\n\nPosso te mostrar como funciona em uma chamada rápida de 15 minutos?\n\nAbraços,\n{seu_nome}`,
     tags: ["frio", "apresentação", "teste gratuito"]
   },
   {
     id: "follow-up-1",
     title: "Follow-up Após Interesse",
-    content: `Olá {nome},
-
-Espero que esteja bem! Apenas um lembrete sobre nossa conversa anterior sobre o FreelinkBrain.
-
-Preparei um plano personalizado para seu negócio que inclui:
-• Geração automática de 20 ideias de conteúdo por mês
-• 5 templates exclusivos para seu nicho
-• Suporte prioritário
-
-Quando seria um bom momento para uma demonstração rápida?
-
-Atenciosamente,
-{seu_nome}`,
+    content: `Olá {nome},\n\nEspero que esteja bem! Apenas um lembrete sobre nossa conversa anterior sobre o FreelinkBrain.\n\nPreparei um plano personalizado para seu negócio que inclui:\n• Geração automática de 20 ideias de conteúdo por mês\n• 5 templates exclusivos para seu nicho\n• Suporte prioritário\n\nQuando seria um bom momento para uma demonstração rápida?\n\nAtenciosamente,\n{seu_nome}`,
     tags: ["follow-up", "personalizado"]
   },
   {
     id: "agency-pitch",
     title: "Proposta para Agências",
-    content: `Olá {nome},
-
-Como prometido, estou enviando a proposta de parceria entre sua agência e o FreelinkBrain.
-
-Oferta exclusiva para agências:
-• 30% de desconto em todos os planos
-• White label da plataforma
-• Dashboard de gerenciamento de clientes
-• Treinamento da sua equipe
-
-Nossa ferramenta está ajudando agências como a sua a escalar a produção de conteúdo em 10x com a mesma equipe.
-
-Podemos conversar esta semana para finalizar os detalhes?
-
-Abraços,
-{seu_nome}`,
+    content: `Olá {nome},\n\nComo prometido, estou enviando a proposta de parceria entre sua agência e o FreelinkBrain.\n\nOferta exclusiva para agências:\n• 30% de desconto em todos os planos\n• White label da plataforma\n• Dashboard de gerenciamento de clientes\n• Treinamento da sua equipe\n\nNossa ferramenta está ajudando agências como a sua a escalar a produção de conteúdo em 10x com a mesma equipe.\n\nPodemos conversar esta semana para finalizar os detalhes?\n\nAbraços,\n{seu_nome}`,
     tags: ["agência", "parceria", "proposta"]
   }
 ];
@@ -299,7 +258,7 @@ function AnimatedCounter({ value, duration = 2000 }: { value: number; duration?:
 function CopyButton({ textToCopy, className, variant = "ghost" }: {
   textToCopy: string;
   className?: string;
-  variant?: "ghost" | "outline" | "default";
+  variant?: "ghost" | "outline" | "default" | "secondary" | "destructive" | "link" | null | undefined;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -361,7 +320,7 @@ function ShareButton({ content }: { content: string }) {
           title: 'Conteúdo do FreelinkBrain',
           text: content,
         });
-      } catch  {
+      } catch {
         console.log('Compartilhamento cancelado');
       }
     } else {
@@ -1120,14 +1079,13 @@ const CampaignHistory = ({
 };
 
 const OutreachMessageGenerator = () => {
-  // ... (seus hooks useState, useEffect, etc. continuam aqui como antes)
   const [messageType, setMessageType] = useState("cold");
   const [businessType, setBusinessType] = useState("");
   const [selectedTemplate, setSelectedTemplate] = useState<OutreachTemplate | null>(null);
   const [customizedMessage, setCustomizedMessage] = useState("");
   const [savedTemplates, setSavedTemplates] = useState<OutreachTemplate[]>([]);
 
-  const generateOutreachMessage = useAction(api.brain.generateOutreachMessage)
+  const generateOutreachMessage = useAction(api.brain.generateOutreachMessage);
 
   useEffect(() => {
     const saved = getOutreachTemplates();
@@ -1158,33 +1116,26 @@ const OutreachMessageGenerator = () => {
 
   const handleGenerateNew = async () => {
     if (!businessType) {
-      toast.error("Por favor, selecione um tipo de negócio para a IA.");
+      toast.error("Por favor, selecione um tipo de negócio");
       return;
     }
 
-    toast.info("Gerando nova mensagem com a IA...");
+    toast.info("Gerando nova mensagem com IA...");
 
     try {
       const result = await generateOutreachMessage({
         businessType,
         messageType,
-        // ✅ CORREÇÃO 1: Instrução clara para a IA em vez de enviar a mensagem antiga.
-        customization: "Gerar uma mensagem completamente nova com base nas opções selecionadas."
+        customization: "Gerar uma mensagem completamente nova"
       }) as OutreachMessageResult;
 
-      // ✅ CORREÇÃO 2: Verificar se o conteúdo realmente existe antes de atualizar.
-      if (result && result.content && result.content.trim() !== "") {
+      if (result && result.content) {
         setCustomizedMessage(result.content);
         toast.success("Nova mensagem gerada com sucesso!");
-      } else {
-        // Se a IA não retornar conteúdo, o toast de sucesso não será mais exibido.
-        console.error("A IA retornou uma resposta sem conteúdo:", result);
-        toast.error("A IA não conseguiu gerar um texto válido. Tente novamente.");
       }
-
     } catch (error) {
-      console.error("Erro na action generateOutreachMessage:", error);
-      toast.error(error instanceof Error ? error.message : "Erro ao gerar mensagem");
+      console.error("Erro:", error);
+      toast.error("Erro ao gerar mensagem");
     }
   };
 
@@ -1200,30 +1151,28 @@ const OutreachMessageGenerator = () => {
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        {/* ✅ CORREÇÃO 1: MUDADO DE 'md:grid-cols-2' PARA 'lg:grid-cols-2' */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Coluna da Esquerda: Controles */}
           <div className="space-y-4">
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Mensagem</label>
+              <Label>Tipo de Mensagem</Label>
               <Select value={messageType} onValueChange={setMessageType}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de mensagem" />
+                  <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="cold">Abordagem Inicial (Cold)</SelectItem>
+                  <SelectItem value="cold">Abordagem Inicial</SelectItem>
                   <SelectItem value="followup">Follow-up</SelectItem>
-                  <SelectItem value="agency">Proposta para Agências</SelectItem>
+                  <SelectItem value="agency">Para Agências</SelectItem>
                   <SelectItem value="offer">Oferta Especial</SelectItem>
                 </SelectContent>
               </Select>
             </div>
 
             <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Negócio</label>
+              <Label>Tipo de Negócio</Label>
               <Select value={businessType} onValueChange={setBusinessType}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de negócio" />
+                  <SelectValue placeholder="Selecione o tipo" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="agency">Agência</SelectItem>
@@ -1237,17 +1186,17 @@ const OutreachMessageGenerator = () => {
 
             <div className="p-3 bg-muted rounded-lg">
               <h4 className="text-sm font-medium mb-2">Templates Salvos</h4>
-              <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto">
+              <div className="space-y-2 max-h-[200px] overflow-y-auto">
                 {savedTemplates.map(template => (
                   <Button
                     key={template.id}
                     variant={selectedTemplate?.id === template.id ? "default" : "outline"}
-                    className="justify-start h-auto py-2 px-3"
+                    className="w-full justify-start h-auto py-2 px-3"
                     onClick={() => handleTemplateSelect(template)}
                   >
                     <div className="text-left">
                       <p className="text-sm font-medium">{template.title}</p>
-                      <p className="text-xs text-muted-foreground truncate w-full">
+                      <p className="text-xs text-muted-foreground truncate">
                         {template.content.substring(0, 50)}...
                       </p>
                     </div>
@@ -1257,19 +1206,16 @@ const OutreachMessageGenerator = () => {
             </div>
           </div>
 
-          {/* Coluna da Direita: Mensagem e Ações */}
           <div className="flex flex-col space-y-4">
-            <label className="text-sm font-medium">Mensagem Personalizada</label>
+            <Label>Mensagem Personalizada</Label>
             <Textarea
               value={customizedMessage}
               onChange={(e) => setCustomizedMessage(e.target.value)}
               placeholder="Sua mensagem personalizada aparecerá aqui..."
-              // ✅ CORREÇÃO 2: Altura responsiva para o Textarea
-              className="min-h-[200px] sm:min-h-[285px] flex-grow font-mono text-sm"
+              className="min-h-[285px] flex-grow font-mono text-sm"
             />
 
-            {/* ✅ CORREÇÃO 3: Layout dos botões agora é responsivo */}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+            <div className="flex justify-between gap-2">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -1284,7 +1230,7 @@ const OutreachMessageGenerator = () => {
                 </Tooltip>
               </TooltipProvider>
 
-              <div className="flex flex-col-reverse sm:flex-row gap-2">
+              <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={handleGenerateNew}>
                   <RefreshCcw className="h-4 w-4 mr-2" />
                   Regenerar
@@ -1301,14 +1247,11 @@ const OutreachMessageGenerator = () => {
 
 const ContentCalendar = ({
   scheduledItems = [],
-  onScheduleEdit,
-
+  onScheduleEdit
 }: {
   scheduledItems?: ScheduledItem[],
-  onScheduleEdit?: (item: ScheduledItem) => void,
-  onScheduleDelete?: (id: string) => void
+  onScheduleEdit?: (item: ScheduledItem) => void
 }) => {
-
   const today = new Date();
   const [currentMonth, setCurrentMonth] = useState(today.getMonth());
   const [currentYear, setCurrentYear] = useState(today.getFullYear());
@@ -1321,26 +1264,19 @@ const ContentCalendar = ({
     return new Date(year, month, 1).getDay();
   };
 
-  // Gera os dias do calendário
   const generateCalendarDays = () => {
     const daysInMonth = getDaysInMonth(currentYear, currentMonth);
     const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
     const days = [];
 
-    // Dias do mês anterior
     for (let i = 0; i < firstDay; i++) {
       days.push({ day: null, isPreviousMonth: true });
     }
 
-    // Dias do mês atual
     for (let day = 1; day <= daysInMonth; day++) {
       const date = new Date(currentYear, currentMonth, day);
       const dateString = date.toISOString().split('T')[0];
-
-      // Verifica se há itens agendados para este dia
-      const dayItems = scheduledItems.filter(item =>
-        item.date === dateString
-      );
+      const dayItems = scheduledItems.filter(item => item.date === dateString);
 
       days.push({
         day,
@@ -1398,7 +1334,7 @@ const ContentCalendar = ({
               {day}
             </div>
           ))}
-          {calendarDays.map((dayData, i) => (
+          {calendarDays.map((dayData: typeof calendarDays[0], i) => (
             <div
               key={i}
               className={cn(
@@ -1412,7 +1348,7 @@ const ContentCalendar = ({
                 <>
                   <div className="text-xs text-right mb-1">{dayData.day}</div>
                   <div className="overflow-y-auto max-h-[calc(100%-20px)]">
-                    {dayData.items?.map((item) => (
+                    {dayData.items?.map((item: ScheduledItem) => (
                       <div
                         key={item.id}
                         className="text-[10px] mb-1 px-1 py-0.5 rounded-sm bg-primary/10 text-primary truncate cursor-pointer"
@@ -1428,22 +1364,6 @@ const ContentCalendar = ({
           ))}
         </div>
       </CardContent>
-      <CardFooter className="border-t p-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-            <span>Reels</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-            <span>Carrosséis</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-pink-500"></div>
-            <span>Posts</span>
-          </div>
-        </div>
-      </CardFooter>
     </Card>
   );
 };
@@ -1472,7 +1392,6 @@ export default function FreelinkBrainTool() {
   const inputRef = useRef<HTMLInputElement>(null);
   const generateIdeas = useAction(api.brain.generateContentIdeas);
 
-  // Carregar dados do localStorage na inicialização
   useEffect(() => {
     const campaigns = getSavedCampaigns();
     setSavedCampaigns(campaigns);
@@ -1506,7 +1425,6 @@ export default function FreelinkBrainTool() {
       const data = await generateIdeas({ theme });
       setResults(data);
 
-      // Gera uma nova campanha e salva localmente
       const newCampaign: SavedCampaign = {
         id: generateId(),
         theme,
@@ -1518,13 +1436,12 @@ export default function FreelinkBrainTool() {
       setCurrentCampaignId(newCampaign.id);
       saveCampaign(newCampaign);
 
-      // Atualiza a lista de campanhas
       setSavedCampaigns(prev => [newCampaign, ...prev]);
       setIsNewCampaignSaved(true);
 
       setIsLoading(false);
       toast.success("Sua campanha de conteúdo está pronta! ✨");
-    } catch (error) {
+    } catch (error: unknown) {
       setIsLoading(false);
       toast.error(error instanceof Error ? error.message : "Erro ao gerar conteúdo");
     }
@@ -1598,7 +1515,6 @@ export default function FreelinkBrainTool() {
     const updatedScheduledItems = [...scheduledItems, newScheduledItem];
     setScheduledItems(updatedScheduledItems);
 
-    // Atualiza a campanha no localStorage
     const campaign = savedCampaigns.find(c => c.id === currentCampaignId);
     if (campaign) {
       const updatedCampaign = {
@@ -1629,699 +1545,688 @@ export default function FreelinkBrainTool() {
   } : null;
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 pb-20">
-      {/* Barra de navegação superior */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-lg border-b mb-6">
-        <div className="container py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <h1 className="font-bold text-xl sm:text-2xl flex items-center">
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Freelink<span className="font-black">Brain</span>
-              </span>
-              <Badge variant="outline" className="ml-2 hidden sm:flex">PRO</Badge>
-            </h1>
+    <TooltipProvider>
+      <div className="w-full max-w-6xl mx-auto space-y-6 pb-20">
+        <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-lg border-b mb-6">
+          <div className="container py-3 flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <h1 className="font-bold text-xl sm:text-2xl flex items-center">
+                <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                  Freelink<span className="font-black">Brain</span>
+                </span>
+                <Badge variant="outline" className="ml-2 hidden sm:flex">PRO</Badge>
+              </h1>
 
-            <Tabs value={mainView} className="hidden sm:block">
-              <TabsList>
-                <TabsTrigger
-                  value="generator"
-                  onClick={() => setMainView("generator")}
-                  className="flex items-center gap-1"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Gerador</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="planner"
-                  onClick={() => setMainView("planner")}
-                  className="flex items-center gap-1"
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Planner</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="outreach"
-                  onClick={() => setMainView("outreach")}
-                  className="flex items-center gap-1"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Mensagens</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span className="hidden sm:inline">Histórico</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
-                <SheetHeader className="mb-4">
-                  <SheetTitle>Histórico de Campanhas</SheetTitle>
-                  <SheetDescription>
-                    Acesse suas campanhas anteriores
-                  </SheetDescription>
-                </SheetHeader>
-                <CampaignHistory
-                  campaigns={savedCampaigns}
-                  onSelect={handleCampaignSelect}
-                  onDelete={handleCampaignDelete}
-                />
-              </SheetContent>
-            </Sheet>
-
-            <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Agendar Publicação</DialogTitle>
-                  <DialogDescription>
-                    Escolha quando este conteúdo será publicado
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Data</label>
-                      <Input
-                        id="schedule-date"
-                        type="date"
-                        min={new Date().toISOString().split('T')[0]}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Horário</label>
-                      <Input id="schedule-time" type="time" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Plataforma</label>
-                    <Select defaultValue="instagram">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a plataforma" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="instagram">Instagram</SelectItem>
-                        <SelectItem value="tiktok">TikTok</SelectItem>
-                        <SelectItem value="facebook">Facebook</SelectItem>
-                        <SelectItem value="linkedin">LinkedIn</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={() => {
-                    const dateInput = document.getElementById('schedule-date') as HTMLInputElement;
-                    const timeInput = document.getElementById('schedule-time') as HTMLInputElement;
-                    const date = dateInput?.value;
-                    const time = timeInput?.value;
-
-                    if (!date || !time) {
-                      toast.error("Por favor, selecione data e horário.");
-                      return;
-                    }
-
-                    handleScheduleSave(date, time, "instagram");
-                  }}>
-                    Agendar
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            {/* Menu móvel */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="sm:hidden">
-                  <Menu className="w-4 h-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left">
-                <SheetHeader className="mb-4">
-                  <SheetTitle>Menu</SheetTitle>
-                </SheetHeader>
-                <div className="grid gap-2">
-                  <Button
-                    variant={mainView === "generator" ? "default" : "outline"}
-                    className="justify-start"
+              <Tabs value={mainView} className="hidden sm:block">
+                <TabsList>
+                  <TabsTrigger
+                    value="generator"
                     onClick={() => setMainView("generator")}
+                    className="flex items-center gap-1"
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Gerador de Conteúdo
-                  </Button>
-                  <Button
-                    variant={mainView === "planner" ? "default" : "outline"}
-                    className="justify-start"
+                    <Sparkles className="w-3.5 h-3.5" />
+                    <span>Gerador</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="planner"
                     onClick={() => setMainView("planner")}
+                    className="flex items-center gap-1"
                   >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Planejador de Conteúdo
-                  </Button>
-                  <Button
-                    variant={mainView === "outreach" ? "default" : "outline"}
-                    className="justify-start"
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>Planner</span>
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="outreach"
                     onClick={() => setMainView("outreach")}
+                    className="flex items-center gap-1"
                   >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Mensagens de Abordagem
+                    <Mail className="w-3.5 h-3.5" />
+                    <span>Mensagens</span>
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span className="hidden sm:inline">Histórico</span>
                   </Button>
-                  <Separator className="my-2" />
-                  <Button
-                    variant="outline"
-                    className="justify-start"
-                    onClick={() => setIsHistorySidebarOpen(true)}
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    Histórico de Campanhas
+                </SheetTrigger>
+                <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
+                  <SheetHeader className="mb-4">
+                    <SheetTitle>Histórico de Campanhas</SheetTitle>
+                    <SheetDescription>
+                      Acesse suas campanhas anteriores
+                    </SheetDescription>
+                  </SheetHeader>
+                  <CampaignHistory
+                    campaigns={savedCampaigns}
+                    onSelect={handleCampaignSelect}
+                    onDelete={handleCampaignDelete}
+                  />
+                </SheetContent>
+              </Sheet>
+
+              <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+                <DialogContent className="sm:max-w-md">
+                  <DialogHeader>
+                    <DialogTitle>Agendar Publicação</DialogTitle>
+                    <DialogDescription>
+                      Escolha quando este conteúdo será publicado
+                    </DialogDescription>
+                  </DialogHeader>
+                  <div className="grid gap-4 py-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Data</Label>
+                        <Input
+                          id="schedule-date"
+                          type="date"
+                          min={new Date().toISOString().split('T')[0]}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">Horário</Label>
+                        <Input id="schedule-time" type="time" />
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Plataforma</Label>
+                      <Select defaultValue="instagram">
+                        <SelectTrigger>
+                          <SelectValue placeholder="Selecione a plataforma" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="instagram">Instagram</SelectItem>
+                          <SelectItem value="tiktok">TikTok</SelectItem>
+                          <SelectItem value="facebook">Facebook</SelectItem>
+                          <SelectItem value="linkedin">LinkedIn</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
+                      Cancelar
+                    </Button>
+                    <Button onClick={() => {
+                      const dateInput = document.getElementById('schedule-date') as HTMLInputElement;
+                      const timeInput = document.getElementById('schedule-time') as HTMLInputElement;
+                      const date = dateInput?.value;
+                      const time = timeInput?.value;
+
+                      if (!date || !time) {
+                        toast.error("Por favor, selecione data e horário.");
+                        return;
+                      }
+
+                      handleScheduleSave(date, time, "instagram");
+                    }}>
+                      Agendar
+                    </Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="sm:hidden">
+                    <Menu className="w-4 h-4" />
                   </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
+                </SheetTrigger>
+                <SheetContent side="left">
+                  <SheetHeader className="mb-4">
+                    <SheetTitle>Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="grid gap-2">
+                    <Button
+                      variant={mainView === "generator" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => setMainView("generator")}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Gerador de Conteúdo
+                    </Button>
+                    <Button
+                      variant={mainView === "planner" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => setMainView("planner")}
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Planejador de Conteúdo
+                    </Button>
+                    <Button
+                      variant={mainView === "outreach" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => setMainView("outreach")}
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Mensagens de Abordagem
+                    </Button>
+                    <Separator className="my-2" />
+                    <Button
+                      variant="outline"
+                      className="justify-start"
+                      onClick={() => setIsHistorySidebarOpen(true)}
+                    >
+                      <Clock className="w-4 h-4 mr-2" />
+                      Histórico de Campanhas
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="px-4 pb-20">
-        <AnimatePresence mode="wait">
-          {/* Gerador de Conteúdo */}
-          {mainView === "generator" && (
-            <motion.div
-              key="generator"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
-              {isLoading ? (
-                <EnhancedLoadingSpinner key="loading" />
-              ) : results ? (
-                <motion.div
-                  key="results"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-6"
-                >
-                  {/* Header com métricas */}
-                 <div className="lg:sticky top-[57px] z-10 bg-background/80 backdrop-blur-lg border-b">
-                    <div className="py-4 space-y-4">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                              Campanha Pronta!
-                            </h2>
-                            {isNewCampaignSaved && (
-                              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
-                                <Check className="w-3 h-3 mr-1" />
-                                Salva
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Tema: <span className="font-semibold text-foreground">{theme}</span>
-                          </p>
-                        </div>
-                        <div className="flex gap-2 w-full sm:w-auto">
-                          <Button
-                            onClick={handleGenerateNew}
-                            variant="outline"
-                            className="flex-1 sm:flex-initial gap-2"
-                          >
-                            <RefreshCcw className="w-4 h-4" />
-                            Novo Tema
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="default"
-                                className="flex-1 sm:flex-initial gap-2"
-                              >
-                                <Download className="w-4 h-4" />
-                                Exportar
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <FileText className="w-4 h-4 mr-2" />
-                                Exportar como PDF
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Share2 className="w-4 h-4 mr-2" />
-                                Compartilhar link
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Calendar className="w-4 h-4 mr-2" />
-                                Agendar todos
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-
-                      {/* Contadores animados */}
-                      <div className="grid grid-cols-5 gap-2">
-                        <div className="text-center p-2 bg-muted/50 rounded-lg">
-                          <p className="text-2xl font-bold text-primary">
-                            <AnimatedCounter value={contentCounts?.total || 0} />
-                          </p>
-                          <p className="text-xs text-muted-foreground">Total</p>
-                        </div>
-                        {[
-                          { key: "reels", icon: Video, color: "text-blue-500" },
-                          { key: "carousels", icon: Layers, color: "text-purple-500" },
-                          { key: "image_posts", icon: Camera, color: "text-pink-500" },
-                          { key: "story_sequences", icon: MessageSquare, color: "text-indigo-500" }
-                        ].map(({ key, icon: Icon, color }) => (
-                          <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
-                            <Icon className={cn("w-4 h-4 mx-auto mb-1", color)} />
-                            <p className="text-lg font-bold">
-                              <AnimatedCounter value={contentCounts?.[key as keyof typeof contentCounts] || 0} />
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Cards de resumo */}
-                  <div className="space-y-4">
-                    <Card className="border-2 border-blue-500/20 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
-                      <CardHeader className="pb-3">
-                        <CardTitle className="flex items-center gap-2 text-lg">
-                          <Target className="w-5 h-5 text-blue-500" />
-                          Estratégia da Campanha
-                        </CardTitle>
-                      </CardHeader>
-                      <CardContent className="space-y-3">
-                        <div className="flex items-start gap-3">
-                          <Brain className="w-4 h-4 text-muted-foreground mt-0.5" />
-                          <div className="flex-1">
-                            <p className="text-xs font-semibold text-muted-foreground uppercase">
-                              Ângulo Criativo
-                            </p>
-                            <p className="text-sm">{results.theme_summary}</p>
-                          </div>
-                        </div>
-                        <Separator className="my-2 h-px bg-muted" />
-                        <div className="flex items-start gap-3">
-  <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
-  <div className="flex-1">
-    <p className="text-xs font-semibold text-muted-foreground uppercase">
-      Público-Alvo
-    </p>
-    <div className="text-sm">
-      {typeof results.target_audience_suggestion === 'string'
-        ? results.target_audience_suggestion
-        : (
-          <ul className="list-disc list-inside space-y-1">
-            {Object.entries(results.target_audience_suggestion).map(([key, value]) => (
-              <li key={key}>
-                <strong className="capitalize">{key.replace(/_/g, ' ')}:</strong> {Array.isArray(value) ? value.join(', ') : String(value)}
-              </li>
-            ))}
-          </ul>
-        )
-      }
-    </div>
-  </div>
-</div>
-                      </CardContent>
-                    </Card>
-
-                    <ContentMetrics />
-                  </div>
-
-                  {/* Tabs de conteúdo */}
-                  <div>
-                    <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                      <div className="overflow-x-auto scrollbar-hide">
-                        <TabsList className="inline-flex w-full sm:w-auto h-auto p-1 bg-muted/50">
-                          {[
-                            { value: "reels", icon: Video, label: "Reels", color: "data-[state=active]:bg-blue-500" },
-                            { value: "carousels", icon: Layers, label: "Carrosséis", color: "data-[state=active]:bg-purple-500" },
-                            { value: "image_posts", icon: Camera, label: "Posts", color: "data-[state=active]:bg-pink-500" },
-                            { value: "story_sequences", icon: MessageSquare, label: "Stories", color: "data-[state=active]:bg-indigo-500" }
-                          ].map(({ value, icon: Icon, label, color }) => (
-                            <TabsTrigger
-                              key={value}
-                              value={value}
-                              className={cn(
-                                "flex-1 sm:flex-initial gap-2 data-[state=active]:text-white transition-all",
-                                color
-                              )}
-                            >
-                              <Icon className="w-4 h-4" />
-                              <span className="hidden sm:inline">{label}</span>
-                              <Badge variant="secondary" className="ml-1 text-xs">
-                                {contentCounts?.[value as keyof typeof contentCounts]}
-                              </Badge>
-                            </TabsTrigger>
-                          ))}
-                        </TabsList>
-                      </div>
-
-                      <div className="mt-6 space-y-4">
-                     <TabsContent value="reels" className="mt-0 space-y-4">
-  {results.content_pack?.reels?.map((reel, i) => (
-    <ReelCard
-      key={i}
-      reel={reel}
-      index={i}
-      onSchedule={handleScheduleContent}
-    />
-  ))}
-</TabsContent>
-
-                        <TabsContent value="carousels" className="mt-0 space-y-4">
-  {results.content_pack?.carousels?.map((carousel, i) => (
-    <CarouselViewer key={i} carousel={carousel} index={i} />
-  ))}
-</TabsContent>
-
-                        <TabsContent value="image_posts" className="mt-0 space-y-4">
-  {results.content_pack?.image_posts?.map((post, i) => (
-    <ImagePostCard key={i} post={post} index={i} />
-  ))}
-</TabsContent>
-
-                        <TabsContent value="story_sequences" className="mt-0 space-y-4">
-  {results.content_pack?.story_sequences?.map((seq, i) => (
-    <StorySequenceCard key={i} seq={seq} index={i} />
-  ))}
-</TabsContent>
-                      </div>
-                    </Tabs>
-                  </div>
-                </motion.div>
-              ) : (
-                <motion.div
-                  key="welcome"
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="space-y-8"
-                >
-                  {/* Hero Section */}
-                  <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 p-1">
-                    <div className="relative bg-background rounded-[calc(1.5rem-4px)] p-8 sm:p-12">
-                      <motion.div
-                        className="absolute inset-0 opacity-10"
-                        animate={{
-                          backgroundPosition: ["0% 0%", "100% 100%"],
-                        }}
-                        transition={{
-                          duration: 20,
-                          repeat: Infinity,
-                          repeatType: "reverse",
-                        }}
-                        style={{
-                          backgroundImage: "url('data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
-                        }}
-                      />
-
-                      <div className="relative text-center space-y-6">
-                        <motion.div
-                          initial={{ scale: 0 }}
-                          animate={{ scale: 1 }}
-                          transition={{ type: "spring", duration: 0.8 }}
-                        >
-                          <Badge variant="secondary" className="gap-2 px-4 py-1.5">
-                            <Sparkles className="w-4 h-4 text-yellow-500 animate-pulse" />
-                            Tudo-em-Um
-                          </Badge>
-                        </motion.div>
-
-                        <motion.h1
-                          className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight"
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.2 }}
-                        >
-                          Freelink
-                          <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                            Brain
-                          </span>
-                        </motion.h1>
-
-                        <motion.p
-                          className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto"
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.3 }}
-                        >
-                          De tema a estratégia completa em segundos: conteúdo,{" "}
-                          <span className="font-semibold text-foreground">
-                            calendário, mensagens de abordagem
-                          </span>{" "}
-                          e muito mais.
-                        </motion.p>
-
-                        <motion.div
-                          className="flex flex-wrap items-center justify-center gap-4 pt-4"
-                          initial={{ y: 20, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          transition={{ delay: 0.4 }}
-                        >
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Video className="w-4 h-4" />
-                            <span>Reels Virais</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Calendar className="w-4 h-4" />
-                            <span>Planejamento</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Mail className="w-4 h-4" />
-                            <span>Mensagens</span>
-                          </div>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Zap className="w-4 h-4" />
-                            <span>Estratégia</span>
-                          </div>
-                        </motion.div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Input Section */}
+        <div className="px-4 pb-20">
+          <AnimatePresence mode="wait">
+            {mainView === "generator" && (
+              <motion.div
+                key="generator"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6"
+              >
+                {isLoading ? (
+                  <EnhancedLoadingSpinner key="loading" />
+                ) : results ? (
                   <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.5 }}
+                    key="results"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-6"
                   >
-                    <Card className="shadow-2xl border-2">
-                      <CardContent className="p-6 sm:p-8">
-                        <form onSubmit={handleSubmit} className="space-y-6">
-                          <div className="space-y-2">
-                            <label htmlFor="theme-input" className="text-sm font-medium flex items-center gap-2">
-                              <Wand2 className="w-4 h-4 text-purple-500" />
-                              Qual tema você quer transformar em uma campanha completa?
-                            </label>
-                            <div className="relative">
-                              <Input
-                                id="theme-input"
-                                ref={inputRef}
-                                value={theme}
-                                onChange={(e) => setTheme(e.target.value)}
-                                placeholder="Ex: Como criar hábitos de estudo eficientes"
-                                className="pr-24 py-6 text-base sm:text-lg"
-                                maxLength={150}
-                              />
-                              <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                                {theme.length}/150
+                    <div className="lg:sticky top-[57px] z-10 bg-background/80 backdrop-blur-lg border-b">
+                      <div className="py-4 space-y-4">
+                        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                                Campanha Pronta!
+                              </h2>
+                              {isNewCampaignSaved && (
+                                <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                                  <Check className="w-3 h-3 mr-1" />
+                                  Salva
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Tema: <span className="font-semibold text-foreground">{theme}</span>
+                            </p>
+                          </div>
+                          <div className="flex gap-2 w-full sm:w-auto">
+                            <Button
+                              onClick={handleGenerateNew}
+                              variant="outline"
+                              className="flex-1 sm:flex-initial gap-2"
+                            >
+                              <RefreshCcw className="w-4 h-4" />
+                              Novo Tema
+                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="default"
+                                  className="flex-1 sm:flex-initial gap-2"
+                                >
+                                  <Download className="w-4 h-4" />
+                                  Exportar
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem>
+                                  <FileText className="w-4 h-4 mr-2" />
+                                  Exportar como PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <Share2 className="w-4 h-4 mr-2" />
+                                  Compartilhar link
+                                </DropdownMenuItem>
+                                <DropdownMenuItem>
+                                  <Calendar className="w-4 h-4 mr-2" />
+                                  Agendar todos
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+                        </div>
+
+                        <div className="grid grid-cols-5 gap-2">
+                          <div className="text-center p-2 bg-muted/50 rounded-lg">
+                            <p className="text-2xl font-bold text-primary">
+                              <AnimatedCounter value={contentCounts?.total || 0} />
+                            </p>
+                            <p className="text-xs text-muted-foreground">Total</p>
+                          </div>
+                          {[
+                            { key: "reels", icon: Video, color: "text-blue-500" },
+                            { key: "carousels", icon: Layers, color: "text-purple-500" },
+                            { key: "image_posts", icon: Camera, color: "text-pink-500" },
+                            { key: "story_sequences", icon: MessageSquare, color: "text-indigo-500" }
+                          ].map(({ key, icon: Icon, color }) => (
+                            <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
+                              <Icon className={cn("w-4 h-4 mx-auto mb-1", color)} />
+                              <p className="text-lg font-bold">
+                                <AnimatedCounter value={contentCounts?.[key as keyof typeof contentCounts] || 0} />
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="space-y-4">
+                      <Card className="border-2 border-blue-500/20 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
+                        <CardHeader className="pb-3">
+                          <CardTitle className="flex items-center gap-2 text-lg">
+                            <Target className="w-5 h-5 text-blue-500" />
+                            Estratégia da Campanha
+                          </CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                          <div className="flex items-start gap-3">
+                            <Brain className="w-4 h-4 text-muted-foreground mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Ângulo Criativo
+                              </p>
+                              <p className="text-sm">{results.theme_summary}</p>
+                            </div>
+                          </div>
+                          <Separator className="my-2 h-px bg-muted" />
+                          <div className="flex items-start gap-3">
+                            <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
+                            <div className="flex-1">
+                              <p className="text-xs font-semibold text-muted-foreground uppercase">
+                                Público-Alvo
+                              </p>
+                              <div className="text-sm">
+                                {typeof results.target_audience_suggestion === 'string'
+                                  ? results.target_audience_suggestion
+                                  : (
+                                    <ul className="list-disc list-inside space-y-1">
+                                      {Object.entries(results.target_audience_suggestion).map(([key, value]) => (
+                                        <li key={key}>
+                                          <strong className="capitalize">{key.replace(/_/g, ' ')}:</strong> {Array.isArray(value) ? value.join(', ') : String(value)}
+                                        </li>
+                                      ))}
+                                    </ul>
+                                  )
+                                }
                               </div>
                             </div>
                           </div>
+                        </CardContent>
+                      </Card>
 
-                          <Button
-                            type="submit"
-                            size="lg"
-                            className="w-full font-bold text-base sm:text-lg h-12 sm:h-14 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+                      <ContentMetrics />
+                    </div>
+
+                    <div>
+                      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+                        <div className="overflow-x-auto scrollbar-hide">
+                          <TabsList className="inline-flex w-full sm:w-auto h-auto p-1 bg-muted/50">
+                            {[
+                              { value: "reels", icon: Video, label: "Reels", color: "data-[state=active]:bg-blue-500" },
+                              { value: "carousels", icon: Layers, label: "Carrosséis", color: "data-[state=active]:bg-purple-500" },
+                              { value: "image_posts", icon: Camera, label: "Posts", color: "data-[state=active]:bg-pink-500" },
+                              { value: "story_sequences", icon: MessageSquare, label: "Stories", color: "data-[state=active]:bg-indigo-500" }
+                            ].map(({ value, icon: Icon, label, color }) => (
+                              <TabsTrigger
+                                key={value}
+                                value={value}
+                                className={cn(
+                                  "flex-1 sm:flex-initial gap-2 data-[state=active]:text-white transition-all",
+                                  color
+                                )}
+                              >
+                                <Icon className="w-4 h-4" />
+                                <span className="hidden sm:inline">{label}</span>
+                                <Badge variant="secondary" className="ml-1 text-xs">
+                                  {contentCounts?.[value as keyof typeof contentCounts]}
+                                </Badge>
+                              </TabsTrigger>
+                            ))}
+                          </TabsList>
+                        </div>
+
+                        <div className="mt-6 space-y-4">
+                          <TabsContent value="reels" className="mt-0 space-y-4">
+                            {results.content_pack?.reels?.map((reel, i) => (
+                              <ReelCard
+                                key={i}
+                                reel={reel}
+                                index={i}
+                                onSchedule={handleScheduleContent}
+                              />
+                            ))}
+                          </TabsContent>
+
+                          <TabsContent value="carousels" className="mt-0 space-y-4">
+                            {results.content_pack?.carousels?.map((carousel, i) => (
+                              <CarouselViewer key={i} carousel={carousel} index={i} />
+                            ))}
+                          </TabsContent>
+
+                          <TabsContent value="image_posts" className="mt-0 space-y-4">
+                            {results.content_pack?.image_posts?.map((post, i) => (
+                              <ImagePostCard key={i} post={post} index={i} />
+                            ))}
+                          </TabsContent>
+
+                          <TabsContent value="story_sequences" className="mt-0 space-y-4">
+                            {results.content_pack?.story_sequences?.map((seq, i) => (
+                              <StorySequenceCard key={i} seq={seq} index={i} />
+                            ))}
+                          </TabsContent>
+                        </div>
+                      </Tabs>
+                    </div>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="welcome"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="space-y-8"
+                  >
+                    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 p-1">
+                      <div className="relative bg-background rounded-[calc(1.5rem-4px)] p-8 sm:p-12">
+                        <motion.div
+                          className="absolute inset-0 opacity-10"
+                          animate={{
+                            backgroundPosition: ["0% 0%", "100% 100%"],
+                          }}
+                          transition={{
+                            duration: 20,
+                            repeat: Infinity,
+                            repeatType: "reverse",
+                          }}
+                          style={{
+                            backgroundImage: "url('data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')",
+                          }}
+                        />
+
+                        <div className="relative text-center space-y-6">
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            transition={{ type: "spring", duration: 0.8 }}
                           >
-                            <Sparkles className="w-5 h-5 mr-2" />
-                            Gerar Campanha Completa
-                          </Button>
-                        </form>
+                            <Badge variant="secondary" className="gap-2 px-4 py-1.5">
+                              <Sparkles className="w-4 h-4 text-yellow-500 animate-pulse" />
+                              Tudo-em-Um
+                            </Badge>
+                          </motion.div>
 
-                        <div className="mt-8 space-y-4">
-                          <div className="text-center">
-                            <p className="text-sm text-muted-foreground mb-3">
-                              Precisa de inspiração? Experimente estes temas em alta:
-                            </p>
-                            <div className="flex flex-wrap gap-2 justify-center">
-                              {[
-                                "Vendas B2B pelo LinkedIn",
-                                "Fórmula de lançamento digital",
-                                "Estratégia de conteúdo para e-commerce",
-                                "Marketing para serviços locais",
-                                "Automação de marketing"
-                              ].map((example) => (
-                                <motion.div
-                                  key={example}
-                                  whileHover={{ scale: 1.05 }}
-                                  whileTap={{ scale: 0.95 }}
-                                >
-                                  <Button
-                                    type="button"
-                                    size="sm"
-                                    variant="outline"
-                                    onClick={() => handleExampleClick(example)}
-                                    className="text-xs hover:bg-primary hover:text-primary-foreground transition-colors"
+                          <motion.h1
+                            className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight"
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.2 }}
+                          >
+                            Freelink
+                            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                              Brain
+                            </span>
+                          </motion.h1>
+
+                          <motion.p
+                            className="text-lg sm:text-xl text-muted-foreground max-w-2xl mx-auto"
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.3 }}
+                          >
+                            De tema a estratégia completa em segundos: conteúdo,{" "}
+                            <span className="font-semibold text-foreground">
+                              calendário, mensagens de abordagem
+                            </span>{" "}
+                            e muito mais.
+                          </motion.p>
+
+                          <motion.div
+                            className="flex flex-wrap items-center justify-center gap-4 pt-4"
+                            initial={{ y: 20, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            transition={{ delay: 0.4 }}
+                          >
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Video className="w-4 h-4" />
+                              <span>Reels Virais</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Calendar className="w-4 h-4" />
+                              <span>Planejamento</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Mail className="w-4 h-4" />
+                              <span>Mensagens</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Zap className="w-4 h-4" />
+                              <span>Estratégia</span>
+                            </div>
+                          </motion.div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <motion.div
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <Card className="shadow-2xl border-2">
+                        <CardContent className="p-6 sm:p-8">
+                          <form onSubmit={handleSubmit} className="space-y-6">
+                            <div className="space-y-2">
+                              <Label htmlFor="theme-input" className="text-sm font-medium flex items-center gap-2">
+                                <Wand2 className="w-4 h-4 text-purple-500" />
+                                Qual tema você quer transformar em uma campanha completa?
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="theme-input"
+                                  ref={inputRef}
+                                  value={theme}
+                                  onChange={(e) => setTheme(e.target.value)}
+                                  placeholder="Ex: Como criar hábitos de estudo eficientes"
+                                  className="pr-24 py-6 text-base sm:text-lg"
+                                  maxLength={150}
+                                />
+                                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
+                                  {theme.length}/150
+                                </div>
+                              </div>
+                            </div>
+
+                            <Button
+                              type="submit"
+                              size="lg"
+                              className="w-full font-bold text-base sm:text-lg h-12 sm:h-14 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 transition-all duration-300 shadow-lg hover:shadow-xl"
+                            >
+                              <Sparkles className="w-5 h-5 mr-2" />
+                              Gerar Campanha Completa
+                            </Button>
+                          </form>
+
+                          <div className="mt-8 space-y-4">
+                            <div className="text-center">
+                              <p className="text-sm text-muted-foreground mb-3">
+                                Precisa de inspiração? Experimente estes temas em alta:
+                              </p>
+                              <div className="flex flex-wrap gap-2 justify-center">
+                                {[
+                                  "Vendas B2B pelo LinkedIn",
+                                  "Fórmula de lançamento digital",
+                                  "Estratégia de conteúdo para e-commerce",
+                                  "Marketing para serviços locais",
+                                  "Automação de marketing"
+                                ].map((example) => (
+                                  <motion.div
+                                    key={example}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
                                   >
-                                    {example}
-                                  </Button>
-                                </motion.div>
-                              ))}
+                                    <Button
+                                      type="button"
+                                      size="sm"
+                                      variant="outline"
+                                      onClick={() => handleExampleClick(example)}
+                                      className="text-xs hover:bg-primary hover:text-primary-foreground transition-colors"
+                                    >
+                                      {example}
+                                    </Button>
+                                  </motion.div>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
 
-                  {/* Features Grid */}
-                  <motion.div
-                    className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                  >
-                    {[
-                      {
-                        icon: Brain,
-                        title: "Geração Inteligente",
-                        description: "Campanhas completas de conteúdo em segundos",
-                        color: "from-blue-500 to-cyan-500"
-                      },
-                      {
-                        icon: Calendar,
-                        title: "Planejador Integrado",
-                        description: "Organize, agende e mantenha consistência",
-                        color: "from-purple-500 to-pink-500"
-                      },
-                      {
-                        icon: Mail,
-                        title: "Mensagens de Abordagem",
-                        description: "Templates para conquistar clientes",
-                        color: "from-orange-500 to-red-500"
-                      },
-                      {
-                        icon: BarChart3,
-                        title: "Analytics Avançado",
-                        description: "Métricas e insights de desempenho",
-                        color: "from-green-500 to-emerald-500"
-                      }
-                    ].map((feature, index) => (
-                      <motion.div
-                        key={index}
-                        whileHover={{ y: -5 }}
-                        transition={{ type: "spring", stiffness: 300 }}
+                    <motion.div
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: 0.6 }}
+                    >
+                      {[
+                        {
+                          icon: Brain,
+                          title: "Geração Inteligente",
+                          description: "Campanhas completas de conteúdo em segundos",
+                          color: "from-blue-500 to-cyan-500"
+                        },
+                        {
+                          icon: Calendar,
+                          title: "Planejador Integrado",
+                          description: "Organize, agende e mantenha consistência",
+                          color: "from-purple-500 to-pink-500"
+                        },
+                        {
+                          icon: Mail,
+                          title: "Mensagens de Abordagem",
+                          description: "Templates para conquistar clientes",
+                          color: "from-orange-500 to-red-500"
+                        },
+                        {
+                          icon: BarChart3,
+                          title: "Analytics Avançado",
+                          description: "Métricas e insights de desempenho",
+                          color: "from-green-500 to-emerald-500"
+                        }
+                      ].map((feature, index) => (
+                        <motion.div
+                          key={index}
+                          whileHover={{ y: -5 }}
+                          transition={{ type: "spring", stiffness: 300 }}
+                        >
+                          <Card className="h-full hover:shadow-lg transition-shadow border-2">
+                            <CardContent className="p-6 text-center space-y-3">
+                              <div className={cn(
+                                "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center mx-auto",
+                                feature.color
+                              )}>
+                                <feature.icon className="w-6 h-6 text-white" />
+                              </div>
+                              <h3 className="font-semibold">{feature.title}</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {feature.description}
+                              </p>
+                            </CardContent>
+                          </Card>
+                        </motion.div>
+                      ))}
+                    </motion.div>
+                  </motion.div>
+                )}
+              </motion.div>
+            )}
+
+            {mainView === "planner" && (
+              <motion.div
+                key="planner"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6"
+              >
+                {currentCampaignId ? (
+                  <>
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-2xl font-bold">Planejador de Conteúdo</h2>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setMainView("generator")}
+                        className="gap-2"
                       >
-                        <Card className="h-full hover:shadow-lg transition-shadow border-2">
-                          <CardContent className="p-6 text-center space-y-3">
-                            <div className={cn(
-                              "w-12 h-12 rounded-xl bg-gradient-to-br flex items-center justify-center mx-auto",
-                              feature.color
-                            )}>
-                              <feature.icon className="w-6 h-6 text-white" />
-                            </div>
-                            <h3 className="font-semibold">{feature.title}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              {feature.description}
-                            </p>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    ))}
-                  </motion.div>
-                </motion.div>
-              )}
-            </motion.div>
-          )}
+                        <ChevronLeft className="w-4 h-4" />
+                        Voltar para Campanha
+                      </Button>
+                    </div>
 
-          {/* Planejador de Conteúdo */}
-          {mainView === "planner" && (
-            <motion.div
-              key="planner"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
-              {currentCampaignId ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Planejador de Conteúdo</h2>
+                    <ContentCalendar
+                      scheduledItems={scheduledItems}
+                      onScheduleEdit={() => {}}
+                    />
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+                    <Calendar className="w-16 h-16 text-muted-foreground/20 mb-4" />
+                    <h3 className="text-xl font-semibold mb-2">Nenhuma campanha ativa</h3>
+                    <p className="text-muted-foreground max-w-md mb-6">
+                      Gere uma campanha de conteúdo primeiro para visualizar o planejador.
+                    </p>
                     <Button
-                      variant="outline"
-                      size="sm"
                       onClick={() => setMainView("generator")}
                       className="gap-2"
                     >
-                      <ChevronLeft className="w-4 h-4" />
-                      Voltar para Campanha
+                      <Sparkles className="w-4 h-4" />
+                      Gerar Campanha
                     </Button>
                   </div>
+                )}
+              </motion.div>
+            )}
 
-                  <ContentCalendar
-                    scheduledItems={scheduledItems}
-                    onScheduleEdit={() => {}}
-                    onScheduleDelete={() => {}}
-                  />
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-                  <Calendar className="w-16 h-16 text-muted-foreground/20 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Nenhuma campanha ativa</h3>
-                  <p className="text-muted-foreground max-w-md mb-6">
-                    Gere uma campanha de conteúdo primeiro para visualizar o planejador.
-                  </p>
-                  <Button
-                    onClick={() => setMainView("generator")}
-                    className="gap-2"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Gerar Campanha
-                  </Button>
+            {mainView === "outreach" && (
+              <motion.div
+                key="outreach"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="space-y-6"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold">Mensagens de Abordagem</h2>
+                  <Select defaultValue="cold">
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Tipo de abordagem" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="cold">Abordagem Inicial</SelectItem>
+                      <SelectItem value="followup">Follow-up</SelectItem>
+                      <SelectItem value="agency">Para Agências</SelectItem>
+                      <SelectItem value="special">Ofertas Especiais</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
-              )}
-            </motion.div>
-          )}
 
-          {/* Mensagens de Abordagem */}
-          {mainView === "outreach" && (
-            <motion.div
-              key="outreach"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="text-2xl font-bold">Mensagens de Abordagem</h2>
-                <Select defaultValue="cold">
-                  <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Tipo de abordagem" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="cold">Abordagem Inicial</SelectItem>
-                    <SelectItem value="followup">Follow-up</SelectItem>
-                    <SelectItem value="agency">Para Agências</SelectItem>
-                    <SelectItem value="special">Ofertas Especiais</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <OutreachMessageGenerator />
-            </motion.div>
-          )}
-        </AnimatePresence>
+                <OutreachMessageGenerator />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+    </TooltipProvider>
   );
 }
