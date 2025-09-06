@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { useAction, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
-import { Doc, Id } from "../convex/_generated/dataModel";
+import { Id } from "../convex/_generated/dataModel";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -13,77 +13,66 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
 
 
 import {
   Loader2, Sparkles, Wand2, Download, Share2, Heart, Maximize2,
-  Grid3x3, Image as ImageIcon, Camera,
+   Grid3x3, Image as ImageIcon, Camera,
   Shapes, X, ArrowLeft, BookOpen, ShoppingBag, Instagram, TrendingUp,
-  Video, Crown, Rocket, Film, Brain, Star, AlertCircle, Eye,
-  CheckCircle, Zap, MessageSquare, Hash
+  Video, Crown, Rocket, Film, Brain, Star, Eye,
+  CheckCircle, Zap, Hash
 } from "lucide-react";
 
 import Image from "next/image";
 import Link from "next/link";
-import { ScrollArea } from "./scroll-area";
+import { ScrollArea } from "@radix-ui/react-scroll-area";
 
 // ========== TIPOS ==========
-interface GeneratedImage {
-  _id: Id<"generatedImages">;
-  userId: string;
-  prompt: string;
-  imageUrl: string;
-  storageId: Id<"_storage">;
-}
 
 interface VideoScriptScene {
-  sceneNumber: number;
+  number: number;
   duration: string;
-  visualDescription: string;
   text: string;
-  cameraMovement: string;
+  visual: string;
+  camera: string;
   transition: string;
-  musicCue: string;
-  canvaInstructions: string;
-  capcutInstructions: string;
 }
 
-interface VideoScriptResult {
+interface VideoScript {
   title: string;
   hook: string;
-  totalDuration: string;
+  duration: string;
   format: string;
   style: string;
   scenes: VideoScriptScene[];
-  musicRecommendation: string;
-  hashtagSuggestions: string[];
-  callToAction: string;
-  canvaStepByStep: string[];
-  capcutStepByStep: string[];
+  music: string;
+  hashtags: string[];
+  cta: string;
+  canvaSteps: string[];
+  capcutSteps: string[];
   proTips: string[];
 }
 
 interface GenerateImageResponse {
   url: string;
   method: string;
-  remainingGeminiUses: number;
+  remainingPremium: number;
+  message: string;
 }
 
 interface GenerateVideoResponse {
-  script: VideoScriptResult;
+  script: VideoScript;
   method: string;
-  remainingGeminiUses: number;
+  remainingPremium: number;
+  message: string;
 }
 
-interface GeneratedImage extends Doc<"generatedImages"> {
+interface GeneratedImage {
   _id: Id<"generatedImages">;
   userId: string;
   prompt: string;
   imageUrl: string;
   storageId: Id<"_storage">;
-  method?: string;
-  createdAt?: number;
 }
 
 // ========== CONFIGURAÇÕES ==========
@@ -112,7 +101,7 @@ const videoStyles = [
 // ========== COMPONENTE PRINCIPAL ==========
 
 export function ImageGenerator() {
-  // Estados
+  // Estados principais
   const [activeTab, setActiveTab] = useState("create");
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("realistic");
@@ -125,18 +114,18 @@ export function ImageGenerator() {
   const [videoTopic, setVideoTopic] = useState("");
   const [selectedVideoStyle, setSelectedVideoStyle] = useState("viral");
   const [videoDuration, setVideoDuration] = useState(30);
-  const [videoScript, setVideoScript] = useState<VideoScriptResult | null>(null);
+  const [videoScript, setVideoScript] = useState<VideoScript | null>(null);
   const [isGeneratingVideo, setIsGeneratingVideo] = useState(false);
 
   // Estados UI
-  const [copiedText, setCopiedText] = useState<string | null>(null);
+  const [, setCopiedText] = useState<string | null>(null);
   const [likedImages, setLikedImages] = useState<Set<string>>(new Set());
   const [showTutorial, setShowTutorial] = useState(false);
 
   // Hooks Convex
   const generate = useAction(api.imageGenerator.generateImage);
   const generateVideo = useAction(api.imageGenerator.generateVideoScript);
-  const imageHistory = useQuery(api.imageGenerator.getImagesForUser) || [];
+  const imageHistory = useQuery(api.imageGenerator.getImagesForUser) ?? [];
   const usageStats = useQuery(api.imageGenerator.getUsageStats);
 
   // ========== FUNÇÕES ==========
@@ -161,7 +150,8 @@ export function ImageGenerator() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(downloadUrl);
       toast.success("Download iniciado!");
-    } catch {
+    } catch (error) {
+      console.error("Erro ao baixar:", error);
       toast.error("Erro ao baixar");
     }
   };
@@ -174,8 +164,8 @@ export function ImageGenerator() {
           text,
           url
         });
-      } catch {
-        console.log('Cancelado');
+      } catch (error) {
+        console.log('Share cancelado:', error);
       }
     } else {
       navigator.clipboard.writeText(url);
@@ -210,14 +200,12 @@ export function ImageGenerator() {
         prompt: `${prompt} ${selectedStyle} style`
       }) as GenerateImageResponse;
 
-      setLatestImage(result.url);
-
-      if (result.method === 'gemini') {
-        toast.success(`✨ Imagem Premium gerada! ${result.remainingGeminiUses} usos Gemini restantes hoje.`);
-      } else {
-        toast.success("Imagem gerada com sucesso!");
+      if (result && result.url) {
+        setLatestImage(result.url);
+        toast.success(result.message || "Imagem gerada com sucesso!");
       }
-    } catch  {
+    } catch (error) {
+      console.error("Erro ao gerar imagem:", error);
       toast.error("Erro ao gerar imagem");
     } finally {
       setIsLoading(false);
@@ -232,21 +220,21 @@ export function ImageGenerator() {
     }
 
     setIsGeneratingVideo(true);
+    setVideoScript(null);
+
     try {
       const result = await generateVideo({
-  topic: videoTopic,
-  style: selectedVideoStyle,
-  duration: videoDuration
-}) as unknown as GenerateVideoResponse;
+        topic: videoTopic,
+        style: selectedVideoStyle,
+        duration: videoDuration
+      }) as GenerateVideoResponse;
 
-      setVideoScript(result.script);
-
-      if (result.method === 'gemini') {
-        toast.success(`🎬 Roteiro Premium criado! ${result.remainingGeminiUses} roteiros Gemini restantes hoje.`);
-      } else {
-        toast.success("Roteiro criado com sucesso!");
+      if (result && result.script) {
+        setVideoScript(result.script);
+        toast.success(result.message || "Roteiro criado com sucesso!");
       }
-    } catch {
+    } catch (error) {
+      console.error("Erro ao gerar roteiro:", error);
       toast.error("Erro ao gerar roteiro");
     } finally {
       setIsGeneratingVideo(false);
@@ -278,11 +266,11 @@ export function ImageGenerator() {
                 <div className="hidden sm:flex items-center gap-2 text-sm">
                   <Badge variant="outline">
                     <Sparkles className="w-3 h-3 mr-1" />
-                    {usageStats.geminiImagesRemaining} imagens Gemini
+                    {usageStats.geminiImagesRemaining || 0} imagens
                   </Badge>
                   <Badge variant="outline">
                     <Film className="w-3 h-3 mr-1" />
-                    {usageStats.geminiVideosRemaining} roteiros Gemini
+                    {usageStats.geminiVideosRemaining || 0} roteiros
                   </Badge>
                 </div>
               )}
@@ -313,7 +301,7 @@ export function ImageGenerator() {
               <CheckCircle className="w-5 h-5 text-green-500 mt-0.5" />
               <div>
                 <p className="font-medium">Gere imagens profissionais</p>
-                <p className="text-sm text-gray-600">Com Gemini Premium ou IAs gratuitas</p>
+                <p className="text-sm text-gray-600">Com IA avançada</p>
               </div>
             </div>
             <div className="flex gap-3">
@@ -339,7 +327,7 @@ export function ImageGenerator() {
             Crie Conteúdo Viral com IA
           </h1>
           <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-            Google Gemini + IAs Premium. Imagens profissionais e roteiros virais.
+            Imagens profissionais e roteiros virais com tutoriais completos.
           </p>
         </motion.div>
 
@@ -595,34 +583,32 @@ export function ImageGenerator() {
                       <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-4 rounded-lg">
                         <h3 className="font-bold text-lg mb-2">{videoScript.title}</h3>
                         <div className="flex flex-wrap gap-2">
-                          <Badge><Zap className="w-3 h-3 mr-1" />{videoScript.totalDuration}</Badge>
+                          <Badge><Zap className="w-3 h-3 mr-1" />{videoScript.duration}</Badge>
                           <Badge><Eye className="w-3 h-3 mr-1" />{videoScript.format}</Badge>
                           <Badge><Sparkles className="w-3 h-3 mr-1" />{videoScript.style}</Badge>
                         </div>
                       </div>
 
                       {/* Hook */}
-                      <Alert>
-                        <AlertCircle className="h-4 w-4" />
-                        <AlertDescription>
-                          <strong>GANCHO:</strong> {videoScript.hook}
-                        </AlertDescription>
-                      </Alert>
+                      <div className="bg-yellow-50 border border-yellow-200 p-4 rounded-lg">
+                        <p className="font-semibold text-yellow-900 mb-1">🎯 GANCHO INICIAL:</p>
+                        <p className="text-lg font-bold text-yellow-900">{videoScript.hook}</p>
+                      </div>
 
                       {/* Cenas */}
                       <div>
                         <h4 className="font-semibold mb-3">📎 Roteiro Detalhado</h4>
                         {videoScript.scenes.map((scene) => (
-                          <div key={scene.sceneNumber} className="mb-4 p-4 border rounded-lg">
+                          <div key={scene.number} className="mb-4 p-4 border rounded-lg">
                             <div className="flex items-center justify-between mb-2">
-                              <Badge>Cena {scene.sceneNumber}</Badge>
+                              <Badge>Cena {scene.number}</Badge>
                               <span className="text-sm text-gray-500">{scene.duration}</span>
                             </div>
                             <p className="font-medium mb-1">{scene.text}</p>
-                            <p className="text-sm text-gray-600 mb-2">{scene.visualDescription}</p>
+                            <p className="text-sm text-gray-600 mb-2">{scene.visual}</p>
                             <div className="grid grid-cols-2 gap-2 text-xs">
                               <div className="bg-gray-50 p-2 rounded">
-                                <strong>Câmera:</strong> {scene.cameraMovement}
+                                <strong>Câmera:</strong> {scene.camera}
                               </div>
                               <div className="bg-gray-50 p-2 rounded">
                                 <strong>Transição:</strong> {scene.transition}
@@ -632,18 +618,21 @@ export function ImageGenerator() {
                         ))}
                       </div>
 
-                      {/* Tutorial Canva */}
+                      {/* Música */}
                       <div className="bg-purple-50 p-4 rounded-lg">
+                        <h4 className="font-semibold mb-2">🎵 Música Recomendada</h4>
+                        <p>{videoScript.music}</p>
+                      </div>
+
+                      {/* Tutorial Canva */}
+                      <div className="bg-blue-50 p-4 rounded-lg">
                         <h4 className="font-semibold mb-3 flex items-center">
                           <Sparkles className="w-4 h-4 mr-2" />
-                          Como Criar no Canva
+                          Tutorial Completo - Canva
                         </h4>
-                        <div className="space-y-2">
-                          {videoScript.canvaStepByStep.map((step, i) => (
-                            <div key={i} className="flex gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                              <p className="text-sm">{step}</p>
-                            </div>
+                        <div className="space-y-1">
+                          {videoScript.canvaSteps.map((step, i) => (
+                            <p key={i} className="text-sm">{step}</p>
                           ))}
                         </div>
                       </div>
@@ -652,14 +641,11 @@ export function ImageGenerator() {
                       <div className="bg-pink-50 p-4 rounded-lg">
                         <h4 className="font-semibold mb-3 flex items-center">
                           <Video className="w-4 h-4 mr-2" />
-                          Como Criar no CapCut
+                          Tutorial Completo - CapCut
                         </h4>
-                        <div className="space-y-2">
-                          {videoScript.capcutStepByStep.map((step, i) => (
-                            <div key={i} className="flex gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-500 mt-0.5 flex-shrink-0" />
-                              <p className="text-sm">{step}</p>
-                            </div>
+                        <div className="space-y-1">
+                          {videoScript.capcutSteps.map((step, i) => (
+                            <p key={i} className="text-sm">{step}</p>
                           ))}
                         </div>
                       </div>
@@ -668,39 +654,36 @@ export function ImageGenerator() {
                       <div>
                         <h4 className="font-semibold mb-2 flex items-center">
                           <Hash className="w-4 h-4 mr-2" />
-                          Hashtags Recomendadas
+                          Hashtags Virais
                         </h4>
                         <div className="flex flex-wrap gap-2">
-                          {videoScript.hashtagSuggestions.map((tag, i) => (
+                          {videoScript.hashtags.map((tag, i) => (
                             <Badge
-                               key={i}
-                               variant={copiedText === tag ? "default" : "outline"}
-                               className={`cursor-pointer transition-all ${
-                                 copiedText === tag ? 'bg-green-500' : ''
-                               }`}
-                               onClick={() => handleCopyText(tag)}
-                             >
-                               {copiedText === tag && <CheckCircle className="w-3 h-3 mr-1" />}
-                               {tag}
-                             </Badge>
+                              key={i}
+                              variant="outline"
+                              className="cursor-pointer hover:bg-gray-100"
+                              onClick={() => handleCopyText(tag)}
+                            >
+                              {tag}
+                            </Badge>
                           ))}
                         </div>
                       </div>
 
                       {/* Call to Action */}
-                      <Alert>
-                        <MessageSquare className="h-4 w-4" />
-                        <AlertDescription>
-                          <strong>CTA:</strong> {videoScript.callToAction}
-                        </AlertDescription>
-                      </Alert>
+                      <div className="bg-green-50 border border-green-200 p-4 rounded-lg">
+                        <p className="font-semibold text-green-900 mb-1">💬 CALL TO ACTION:</p>
+                        <p className="text-green-900">{videoScript.cta}</p>
+                      </div>
 
                       {/* Pro Tips */}
                       <div className="bg-yellow-50 p-4 rounded-lg">
-                        <h4 className="font-semibold mb-3">💡 Dicas Pro</h4>
-                        {videoScript.proTips.map((tip, i) => (
-                          <p key={i} className="text-sm mb-2">{tip}</p>
-                        ))}
+                        <h4 className="font-semibold mb-3">💡 Dicas Pro para Viralizar</h4>
+                        <div className="space-y-2">
+                          {videoScript.proTips.map((tip, i) => (
+                            <p key={i} className="text-sm">{tip}</p>
+                          ))}
+                        </div>
                       </div>
 
                       {/* Botões de Ação */}
@@ -714,6 +697,7 @@ export function ImageGenerator() {
                             a.href = url;
                             a.download = `roteiro-${Date.now()}.txt`;
                             a.click();
+                            URL.revokeObjectURL(url);
                           }}
                         >
                           <Download className="w-4 h-4 mr-2" />
@@ -772,13 +756,6 @@ export function ImageGenerator() {
                             className="object-cover"
                           />
 
-                          {image.method === 'gemini' && (
-                            <Badge className="absolute top-2 right-2 bg-purple-600">
-                              <Sparkles className="w-3 h-3 mr-1" />
-                              Premium
-                            </Badge>
-                          )}
-
                           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-3">
                             <div className="w-full">
                               <p className="text-white text-xs mb-2 line-clamp-2">
@@ -788,7 +765,7 @@ export function ImageGenerator() {
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-7 w-7 text-white"
+                                  className="h-7 w-7 text-white hover:bg-white/20"
                                   onClick={() => toggleLikeImage(image._id)}
                                 >
                                   <Heart className={`w-4 h-4 ${likedImages.has(image._id) ? 'fill-current' : ''}`} />
@@ -796,7 +773,7 @@ export function ImageGenerator() {
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-7 w-7 text-white"
+                                  className="h-7 w-7 text-white hover:bg-white/20"
                                   onClick={() => handleDownload(image.imageUrl)}
                                 >
                                   <Download className="w-4 h-4" />
@@ -804,7 +781,7 @@ export function ImageGenerator() {
                                 <Button
                                   size="icon"
                                   variant="ghost"
-                                  className="h-7 w-7 text-white"
+                                  className="h-7 w-7 text-white hover:bg-white/20"
                                   onClick={() => setSelectedImage(image.imageUrl)}
                                 >
                                   <Maximize2 className="w-4 h-4" />
