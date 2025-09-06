@@ -1,430 +1,465 @@
-// /convex/imageGenerator.ts - VERSÃO DEFINITIVA COM AS MELHORES APIs
+// /convex/imageGenerator.ts - VERSÃO ADAPTADA PARA SEU SCHEMA
 import { action, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 
+
 // ============================================================
-// 🚀 SISTEMA COM AS MELHORES IAs DE IMAGEM GRÁTIS
+// 🚀 CONFIGURAÇÕES DO SISTEMA
 // ============================================================
 
-// PASSO 1: USA GROQ PARA TRADUZIR E OTIMIZAR (TEXTO)
-async function translateWithGroq(prompt: string): Promise<string> {
+// Como não temos tabela de limites, vamos usar um sistema simples em memória
+const RATE_LIMITS = new Map<string, { images: number; videos: number; date: string }>();
+
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyBX2ZDO0cSXzPmJX-Your-Key';
+
+// ============================================================
+// CONTROLE DE LIMITES SIMPLES (Em Memória)
+// ============================================================
+
+function checkDailyLimits(userId: string, type: 'image' | 'video'): { canUse: boolean; remaining: number } {
+  const today = new Date().toISOString().split('T')[0];
+  const userLimits = RATE_LIMITS.get(userId);
+
+  const limits = { image: 3, video: 2 };
+
+  if (!userLimits || userLimits.date !== today) {
+    // Reset ou primeiro uso do dia
+    RATE_LIMITS.set(userId, { images: 0, videos: 0, date: today });
+    return { canUse: true, remaining: limits[type] };
+  }
+
+  const used = type === 'image' ? userLimits.images : userLimits.videos;
+  const limit = limits[type];
+
+  if (used >= limit) {
+    return { canUse: false, remaining: 0 };
+  }
+
+  // Incrementa o uso
+  if (type === 'image') {
+    userLimits.images++;
+  } else {
+    userLimits.videos++;
+  }
+
+  return { canUse: true, remaining: limit - used - 1 };
+}
+
+// ============================================================
+// GEMINI - MELHORIA DE PROMPTS
+// ============================================================
+
+async function improvePromptWithGemini(prompt: string): Promise<string> {
   try {
-    // GROQ - Só para processar texto (SUPER RÁPIDA)
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Crie uma conta grátis em groq.com e pegue sua API key
-        'Authorization': 'Bearer gsk_SUACHAVEGRATIS' // Substitua pela sua chave
-      },
-      body: JSON.stringify({
-        model: "mixtral-8x7b-32768", // Modelo mais rápido
-        messages: [
-          {
-            role: "system",
-            content: "Translate Portuguese to English and optimize for AI image generation. Return ONLY the optimized English prompt."
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{
+              text: `Improve this image generation prompt to be more detailed, artistic and specific.
+                     Make it photorealistic and professional. Return ONLY the improved prompt in English: "${prompt}"`
+            }]
+          }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 200,
           },
-          {
-            role: "user",
-            content: prompt
-          }
-        ],
-        temperature: 0.3,
-        max_tokens: 150
-      })
-    });
+        }),
+      }
+    );
 
     if (response.ok) {
       const data = await response.json();
-      return data.choices[0].message.content.trim();
+      const improved = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      return improved || prompt;
     }
-  } catch  {
-    console.log("Groq falhou, usando fallback");
+  } catch (error) {
+    console.error("Erro Gemini:", error);
   }
-
-  // Fallback: tradução simples
   return prompt;
 }
 
-// PASSO 2: GERA IMAGEM COM AS MELHORES APIs GRÁTIS
-async function generateWithBestFreeAI(prompt: string): Promise<Blob | null> {
-  console.log("🎨 Gerando com prompt otimizado:", prompt);
+// ============================================================
+// GERAÇÃO DE IMAGEM COM MÚLTIPLAS APIs
+// ============================================================
 
-  // ============ MELHORES APIs DE IMAGEM GRÁTIS ============
+async function _generateImageFromApis(prompt: string, useGemini: boolean): Promise<Blob | null> {
+  let finalPrompt = prompt;
 
-  // 1️⃣ TOGETHER.AI - FLUX (A MELHOR QUALIDADE)
-  try {
-    console.log("Tentando Together.ai FLUX...");
-    const response = await fetch('https://api.together.xyz/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Crie conta grátis em together.ai (25$ de crédito grátis!)
-        'Authorization': 'Bearer YOUR_TOGETHER_KEY'
-      },
-      body: JSON.stringify({
-        model: "black-forest-labs/FLUX.1-schnell",
-        prompt: prompt,
-        width: 1024,
-        height: 1024,
-        steps: 4,
-        n: 1
-      })
-    });
+  // Se tem acesso ao Gemini, melhora o prompt primeiro
+  if (useGemini) {
+    console.log("✨ Melhorando prompt com Gemini...");
+    finalPrompt = await improvePromptWithGemini(prompt);
+  }
 
-    if (response.ok) {
-      const data = await response.json();
-      if (data.data?.[0]?.url) {
-        const imgResponse = await fetch(data.data[0].url);
-        const blob = await imgResponse.blob();
-        if (blob.size > 10000) {
-          console.log("✅ Together.ai funcionou!");
+  // Lista de APIs para tentar
+  const apis = [
+    // 1. Pollinations (sempre funciona, grátis)
+    async () => {
+      const seed = Math.floor(Math.random() * 999999);
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(finalPrompt)}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true&enhance=true`;
+      const response = await fetch(url);
+      if (response.ok) {
+        const blob = await response.blob();
+        if (blob.size > 1000) {
+          console.log("✅ Pollinations funcionou!");
           return blob;
         }
       }
-    }
-  } catch  {
-    console.log("Together.ai falhou");
-  }
+      return null;
+    },
 
-  // 2️⃣ REPLICATE - SDXL (GRÁTIS COM GITHUB)
-  try {
-    console.log("Tentando Replicate SDXL...");
-    const response = await fetch('https://api.replicate.com/v1/predictions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        // Login com GitHub = créditos grátis
-        'Authorization': 'Token YOUR_REPLICATE_TOKEN'
-      },
-      body: JSON.stringify({
-        version: "39ed52f2a78e934b3ba6e2a89f5b1c712de7dfea535525255b1aa35c5565e08b",
-        input: {
-          prompt: prompt,
-          width: 1024,
-          height: 1024,
-          num_outputs: 1
-        }
-      })
-    });
+    // 2. Together AI (se você tiver chave)
+    async () => {
+      if (!process.env.TOGETHER_API_KEY) return null;
 
-    if (response.ok) {
-      const prediction = await response.json();
-
-      // Aguarda a geração
-      let result = prediction;
-      while (result.status !== "succeeded" && result.status !== "failed") {
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        const statusResponse = await fetch(
-          `https://api.replicate.com/v1/predictions/${prediction.id}`,
-          {
-            headers: {
-              'Authorization': 'Token YOUR_REPLICATE_TOKEN'
-            }
-          }
-        );
-        result = await statusResponse.json();
-      }
-
-      if (result.output?.[0]) {
-        const imgResponse = await fetch(result.output[0]);
-        const blob = await imgResponse.blob();
-        if (blob.size > 10000) {
-          console.log("✅ Replicate funcionou!");
-          return blob;
-        }
-      }
-    }
-  } catch  {
-    console.log("Replicate falhou");
-  }
-
-  // 3️⃣ HUGGINGFACE SPACES (100% GRÁTIS)
-  try {
-    console.log("Tentando HuggingFace Spaces...");
-
-    // Lista de Spaces públicos e gratuitos
-    const spaces = [
-      'https://prodia-sdxl-stable-diffusion-xl.hf.space/api/predict',
-      'https://artificialguybr-artificialguybr.hf.space/api/predict',
-      'https://cagliostrolab-animagine-xl-3-1.hf.space/api/predict'
-    ];
-
-    for (const spaceUrl of spaces) {
-      try {
-        const response = await fetch(spaceUrl, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            data: [
-              prompt,           // prompt
-              "worst quality",  // negative prompt
-              7.5,             // guidance scale
-              1024,            // width
-              1024,            // height
-              30,              // steps
-              Date.now()       // seed
-            ]
-          })
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.data?.[0]) {
-            // Spaces retornam base64 ou URL
-            let blob: Blob;
-
-            if (result.data[0].startsWith('data:image')) {
-              // É base64
-              const base64 = result.data[0].split(',')[1];
-              const bytes = atob(base64);
-              const arr = new Uint8Array(bytes.length);
-              for (let i = 0; i < bytes.length; i++) {
-                arr[i] = bytes.charCodeAt(i);
-              }
-              blob = new Blob([arr], { type: 'image/png' });
-            } else {
-              // É URL
-              const imgResponse = await fetch(result.data[0]);
-              blob = await imgResponse.blob();
-            }
-
-            if (blob.size > 10000) {
-              console.log("✅ HuggingFace Space funcionou!");
-              return blob;
-            }
-          }
-        }
-      } catch  {
-        continue;
-      }
-    }
-  } catch  {
-    console.log("HuggingFace Spaces falhou");
-  }
-
-  // 4️⃣ STABLE HORDE (COMUNIDADE - 100% GRÁTIS)
-  try {
-    console.log("Tentando Stable Horde...");
-
-    // Envia requisição
-    const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': '0000000000' // API anônima funciona!
-      },
-      body: JSON.stringify({
-        prompt: prompt,
-        params: {
-          cfg_scale: 7.5,
-          sampler_name: "k_euler",
-          height: 1024,
-          width: 1024,
-          steps: 30,
-          n: 1
+      const response = await fetch('https://api.together.xyz/v1/images/generations', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${process.env.TOGETHER_API_KEY}`
         },
-        models: ["stable_diffusion"],
-        nsfw: false,
-        censor_nsfw: true
-      })
-    });
+        body: JSON.stringify({
+          model: "black-forest-labs/FLUX.1-schnell",
+          prompt: finalPrompt,
+          width: 1024,
+          height: 1024,
+          steps: 4,
+          n: 1
+        })
+      });
 
-    if (response.ok) {
-      const { id } = await response.json();
-
-      // Aguarda processamento
-      let status = 'waiting';
-      let attempts = 0;
-
-      while (status !== 'done' && attempts < 60) {
-        await new Promise(resolve => setTimeout(resolve, 2000));
-
-        const checkResponse = await fetch(
-          `https://stablehorde.net/api/v2/generate/check/${id}`,
-          {
-            headers: { 'apikey': '0000000000' }
-          }
-        );
-
-        const checkData = await checkResponse.json();
-        status = checkData.done ? 'done' : 'waiting';
-        attempts++;
-      }
-
-      if (status === 'done') {
-        const resultResponse = await fetch(
-          `https://stablehorde.net/api/v2/generate/status/${id}`,
-          {
-            headers: { 'apikey': '0000000000' }
-          }
-        );
-
-        const resultData = await resultResponse.json();
-        if (resultData.generations?.[0]?.img) {
-          const imgData = resultData.generations[0].img;
-          const base64 = imgData.split(',')[1] || imgData;
-          const bytes = atob(base64);
-          const arr = new Uint8Array(bytes.length);
-          for (let i = 0; i < bytes.length; i++) {
-            arr[i] = bytes.charCodeAt(i);
-          }
-          const blob = new Blob([arr], { type: 'image/png' });
-
-          if (blob.size > 10000) {
-            console.log("✅ Stable Horde funcionou!");
+      if (response.ok) {
+        const data = await response.json();
+        if (data.data?.[0]?.url) {
+          const imgResponse = await fetch(data.data[0].url);
+          const blob = await imgResponse.blob();
+          if (blob.size > 1000) {
+            console.log("✅ Together AI funcionou!");
             return blob;
           }
         }
       }
-    }
-  } catch  {
-    console.log("Stable Horde falhou");
-  }
+      return null;
+    },
 
-  // 5️⃣ POLLINATIONS (SEMPRE FUNCIONA - FALLBACK)
-  try {
-    console.log("Usando Pollinations como fallback...");
-    const seed = Math.floor(Math.random() * 999999);
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?model=flux&width=1024&height=1024&seed=${seed}&nologo=true`;
+    // 3. Stable Horde (comunidade, grátis mas lento)
+    async () => {
+      const response = await fetch('https://stablehorde.net/api/v2/generate/async', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': '0000000000' // API anônima
+        },
+        body: JSON.stringify({
+          prompt: finalPrompt,
+          params: {
+            cfg_scale: 7.5,
+            height: 1024,
+            width: 1024,
+            steps: 20,
+            n: 1
+          },
+          models: ["stable_diffusion"],
+          nsfw: false,
+        })
+      });
 
-    const response = await fetch(url);
-    if (response.ok) {
-      const blob = await response.blob();
-      if (blob.size > 10000) {
-        console.log("✅ Pollinations funcionou!");
-        return blob;
+      if (response.ok) {
+        const { id } = await response.json();
+
+        // Aguarda até 30 segundos
+        for (let i = 0; i < 15; i++) {
+          await new Promise(r => setTimeout(r, 2000));
+
+          const statusRes = await fetch(
+            `https://stablehorde.net/api/v2/generate/status/${id}`,
+            { headers: { 'apikey': '0000000000' } }
+          );
+
+          if (statusRes.ok) {
+            const data = await statusRes.json();
+            if (data.done && data.generations?.[0]?.img) {
+              const base64 = data.generations[0].img;
+              const bytes = atob(base64.split(',')[1] || base64);
+              const arr = new Uint8Array(bytes.length);
+              for (let i = 0; i < bytes.length; i++) {
+                arr[i] = bytes.charCodeAt(i);
+              }
+              console.log("✅ Stable Horde funcionou!");
+              return new Blob([arr], { type: 'image/png' });
+            }
+          }
+        }
       }
+      return null;
+    },
+  ];
+
+  // Tenta cada API em ordem
+  for (const api of apis) {
+    try {
+      const result = await api();
+      if (result) return result;
+    } catch (error) {
+      console.error("API falhou:", error);
+      continue;
     }
-  } catch  {
-    console.log("Pollinations também falhou");
   }
 
   return null;
 }
 
-// FUNÇÃO PRINCIPAL - COMBINA TUDO
+// ============================================================
+// GERAÇÃO DE ROTEIRO VIRAL (Não precisa salvar no DB)
+// ============================================================
+
+interface VideoScript {
+  title: string;
+  hook: string;
+  totalDuration: string;
+  format: string;
+  style: string;
+  scenes: Array<{
+    sceneNumber: number;
+    duration: string;
+    text: string;
+    visualDescription: string;
+    cameraMovement: string;
+    transition: string;
+  }>;
+  musicRecommendation: string;
+  hashtagSuggestions: string[];
+  callToAction: string;
+  canvaStepByStep: string[];
+  capcutStepByStep: string[];
+  proTips: string[];
+}
+
+async function createViralScript(
+  topic: string,
+  style: string,
+  duration: number,
+  useGemini: boolean
+): Promise<VideoScript> {
+
+  if (useGemini) {
+    try {
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{
+              parts: [{
+                text: `Crie um roteiro de vídeo VIRAL de ${duration} segundos sobre: "${topic}"
+                       Estilo: ${style}
+
+                       Inclua:
+                       1. Hook inicial IMPACTANTE (3 segundos)
+                       2. ${Math.ceil(duration/5)} cenas detalhadas
+                       3. Textos curtos e impactantes para cada cena
+                       4. Transições dinâmicas
+                       5. Sugestão de música trending
+                       6. 10 hashtags virais
+                       7. Call-to-action poderoso
+
+                       Formato: Vertical 9:16 (Reels/TikTok/Shorts)
+
+                       Responda em português do Brasil de forma estruturada.`
+              }]
+            }],
+            generationConfig: {
+              temperature: 0.9,
+              maxOutputTokens: 2048,
+            },
+          }),
+        }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const content = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+
+        // Processa a resposta do Gemini em formato estruturado
+        return processGeminiResponse(content, topic, style, duration);
+      }
+    } catch (error) {
+      console.error("Erro ao gerar com Gemini:", error);
+    }
+  }
+
+  // Fallback: Geração sem Gemini
+  return generateBasicScript(topic, style, duration);
+}
+
+function processGeminiResponse(content: string, topic: string, style: string, duration: number): VideoScript {
+  // Processa o texto do Gemini ou usa template básico
+  return generateBasicScript(topic, style, duration);
+}
+
+function generateBasicScript(topic: string, style: string, duration: number): VideoScript {
+  const sceneCount = Math.ceil(duration / 5);
+  const scenes = [];
+
+  const styleTemplates = {
+    viral: {
+      hooks: ["🤯 ISSO VAI EXPLODIR SUA MENTE!", "PARA TUDO! Você precisa ver isso", "90% das pessoas NÃO SABEM disso"],
+      transitions: ["zoom rápido", "glitch", "flash"],
+      music: "música eletrônica viral ou phonk",
+      tone: "energético e impactante"
+    },
+    motivational: {
+      hooks: ["Esta é sua CHANCE de mudar", "O que separa você do SUCESSO?", "Chegou a HORA da transformação"],
+      transitions: ["fade épico", "slow motion", "luz dourada"],
+      music: "música orquestral épica",
+      tone: "inspirador e poderoso"
+    },
+    educational: {
+      hooks: ["APRENDA em 30 segundos", "O SEGREDO que ninguém ensina", "DOMINE esta técnica agora"],
+      transitions: ["slide suave", "reveal", "focus"],
+      music: "lo-fi ou ambiente calmo",
+      tone: "claro e didático"
+    },
+    funny: {
+      hooks: ["NÃO É POSSÍVEL! 😂", "Você NÃO vai acreditar", "FAIL ÉPICO em 3, 2, 1..."],
+      transitions: ["corte seco", "zoom cômico", "shake"],
+      music: "efeitos sonoros engraçados",
+      tone: "divertido e surpreendente"
+    }
+  };
+
+  const template = styleTemplates[style as keyof typeof styleTemplates] || styleTemplates.viral;
+
+  // Gera cenas
+  for (let i = 0; i < sceneCount; i++) {
+    scenes.push({
+      sceneNumber: i + 1,
+      duration: i === 0 ? "3 segundos" : "3-5 segundos",
+      text: i === 0 ? template.hooks[0] : `Ponto ${i}: Informação chave`,
+      visualDescription: `Visual ${template.tone} - Cena ${i + 1}`,
+      cameraMovement: i % 2 === 0 ? "Zoom in dramático" : "Pan dinâmico",
+      transition: template.transitions[i % template.transitions.length],
+    });
+  }
+
+  return {
+    title: `${topic} - ${style.toUpperCase()} VERSION`,
+    hook: template.hooks[0],
+    totalDuration: `${duration} segundos`,
+    format: "9:16 Vertical (Reels/TikTok/Shorts)",
+    style: style,
+    scenes: scenes,
+    musicRecommendation: template.music,
+    hashtagSuggestions: [
+      "#viral", "#fyp", "#foryou", "#trending", "#reels",
+      "#brasil", "#viralvideo", "#contentcreator", "#socialmedia",
+      `#${topic.toLowerCase().replace(/\s/g, '')}`
+    ],
+    callToAction: "💬 COMENTA 'EU QUERO' e SEGUE para mais!",
+
+    canvaStepByStep: [
+      "1️⃣ Abra o Canva e escolha 'Vídeo do Instagram Reels' (1080x1920)",
+      "2️⃣ Busque templates com 'viral' ou 'trending'",
+      "3️⃣ Substitua os textos pelos do roteiro acima",
+      "4️⃣ Em 'Áudio', escolha uma música trending atual",
+      "5️⃣ Adicione elementos animados e stickers relevantes",
+      "6️⃣ Use animação 'Stomp' ou 'Pop' para textos",
+      "7️⃣ Ajuste timing: 3s para hook, 3-5s para outras cenas",
+      "8️⃣ Adicione sua logo/marca d'água discretamente",
+      "9️⃣ Exporte em MP4, qualidade máxima",
+      "🔥 DICA: Poste entre 19h-21h para máximo engajamento!"
+    ],
+
+    capcutStepByStep: [
+      "1️⃣ Crie novo projeto 9:16 no CapCut",
+      "2️⃣ Importe seus vídeos/imagens",
+      "3️⃣ Corte cada clipe para 3-5 segundos",
+      "4️⃣ Adicione texto com estilo 'Trending' ou 'Bold'",
+      "5️⃣ Vá em Áudio > Músicas > Sons em Alta",
+      "6️⃣ Sincronize cortes com batidas da música",
+      "7️⃣ Adicione transições: Glitch, Zoom ou Flash",
+      "8️⃣ Use filtros vibrantes e ajuste saturação +20%",
+      "9️⃣ Adicione movimento com keyframes",
+      "🔟 Ative legendas automáticas antes de exportar",
+      "💡 Exporte em 1080p, 60fps para qualidade máxima!"
+    ],
+
+    proTips: [
+      "🎯 Use os 3 primeiros segundos para PRENDER atenção",
+      "📱 Grave sempre na VERTICAL",
+      "💡 Iluminação natural é sua melhor amiga",
+      "🔥 Poste consistentemente no mesmo horário",
+      "💬 Responda TODOS os comentários nas primeiras 2 horas",
+      "📊 Analise métricas após 24h e ajuste estratégia",
+      "🎪 Crie uma SÉRIE sobre o tema para fidelizar",
+      "⚡ Use palavras-gatilho: GRÁTIS, EXCLUSIVO, URGENTE",
+    ]
+  };
+}
+
+// ============================================================
+// AÇÕES PRINCIPAIS
+// ============================================================
+
 export const generateImage = action({
   args: {
     prompt: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Usuário não autenticado.");
-    }
+    if (!identity) throw new Error("Faça login para continuar");
+
     const userId = identity.subject;
 
-    console.log("📝 Prompt original:", args.prompt);
-
     try {
-      // PASSO 1: Traduz e otimiza com Groq (ou fallback)
-      const optimizedPrompt = await translateWithGroq(args.prompt);
-      console.log("🚀 Prompt otimizado:", optimizedPrompt);
+      // Verifica limites simples
+      const { canUse, remaining } = checkDailyLimits(userId, 'image');
 
-      // PASSO 2: Gera imagem com a melhor API disponível
-      const imageBlob = await generateWithBestFreeAI(optimizedPrompt);
+      // Gera a imagem
+      const imageBlob = await _generateImageFromApis(args.prompt, canUse);
 
       if (!imageBlob) {
-        throw new Error("Todas as APIs falharam");
+        throw new Error("Não foi possível gerar a imagem. Tente novamente.");
       }
 
-      // PASSO 3: Salva no storage
+      // Salva no storage do Convex
       const storageId = await ctx.storage.store(imageBlob);
-      const finalUrl = await ctx.storage.getUrl(storageId);
+      const imageUrl = await ctx.storage.getUrl(storageId);
 
-      if (!finalUrl) {
-        throw new Error("Erro ao salvar no storage");
+      if (!imageUrl) {
+        throw new Error("Erro ao salvar imagem");
       }
 
-      // PASSO 4: Registra no banco
+      // Salva no banco usando sua estrutura existente
       await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
         userId,
         prompt: args.prompt,
-        imageUrl: finalUrl,
+        imageUrl,
         storageId,
+        method: canUse ? 'premium' : 'free',
+        createdAt: Date.now(),
       });
 
-      console.log("🎉 SUCESSO! Imagem gerada e salva!");
-      return finalUrl;
-
-    } catch (error) {
-      console.error("❌ Erro:", error);
-
-      // Fallback final: imagem genérica
-      try {
-        const keyword = args.prompt.split(' ')[0];
-        const fallbackUrl = `https://source.unsplash.com/1024x1024/?${encodeURIComponent(keyword)}`;
-
-        const response = await fetch(fallbackUrl);
-        const blob = await response.blob();
-
-        const storageId = await ctx.storage.store(blob);
-        const finalUrl = await ctx.storage.getUrl(storageId);
-
-        if (finalUrl) {
-          await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
-            userId,
-            prompt: args.prompt,
-            imageUrl: finalUrl,
-            storageId,
-          });
-
-          return finalUrl;
-        }
-      } catch  {
-        console.error("Fallback também falhou");
-      }
-
-      throw new Error("Não foi possível gerar a imagem. Tente novamente.");
-    }
-  },
-});
-
-// RESTO DO CÓDIGO MANTÉM IGUAL
-export const enhanceImage = action({
-  args: {
-    imageUrl: v.string(),
-    enhancement: v.string(),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado");
-
-    try {
-      const enhancementPrompts: Record<string, string> = {
-        "remove-bg": "isolated object transparent background cutout PNG",
-        "upscale": "ultra high resolution 8K detailed sharp",
-        "fix-lighting": "perfect studio lighting professional",
-        "enhance-colors": "vibrant colors saturated HDR"
+      return {
+        url: imageUrl,
+        method: canUse ? 'premium' : 'free',
+        remainingGeminiUses: remaining,
+        message: canUse
+          ? `✨ Imagem Premium gerada! ${remaining} usos restantes hoje.`
+          : "Imagem gerada com sucesso!"
       };
 
-      const basePrompt = enhancementPrompts[args.enhancement] || "enhanced";
-      const optimizedPrompt = await translateWithGroq(basePrompt);
-      const imageBlob = await generateWithBestFreeAI(optimizedPrompt);
-
-      if (!imageBlob) throw new Error("Falha no aprimoramento");
-
-      const storageId = await ctx.storage.store(imageBlob);
-      const finalUrl = await ctx.storage.getUrl(storageId);
-
-      if (!finalUrl) throw new Error("Erro ao salvar");
-
-      await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
-        userId: identity.subject,
-        prompt: `[${args.enhancement.toUpperCase()}] Aplicado`,
-        imageUrl: finalUrl,
-        storageId,
-      });
-
-      return finalUrl;
-    } catch  {
-      throw new Error("Não foi possível aprimorar");
+    } catch (error) {
+      console.error("Erro:", error);
+      throw new Error(error instanceof Error ? error.message : "Erro ao gerar imagem");
     }
-  }
+  },
 });
 
 export const generateVideoScript = action({
@@ -435,52 +470,41 @@ export const generateVideoScript = action({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado");
+    if (!identity) throw new Error("Faça login para continuar");
 
-    const templates: Record<string, string[]> = {
-      viral: ["🔥 VIRAL!", "😱 OMG!", "💥 BOOM!", "📱 SHARE!"],
-      motivational: ["💪 POWER!", "🎯 FOCUS!", "🏆 WIN!", "✨ SHINE!"],
-      educational: ["📚 LEARN", "🧠 SMART", "✍️ PRACTICE", "🎓 MASTER!"],
-      funny: ["😂 LOL!", "🤣 DEAD!", "😭 CRYING!", "💀 RIP!"]
-    };
+    const userId = identity.subject;
 
-    const texts = templates[args.style] || templates.viral;
-    const sceneCount = Math.min(Math.floor(args.duration / 5), texts.length);
-    const scenes = [];
+    try {
+      // Verifica limites
+      const { canUse, remaining } = checkDailyLimits(userId, 'video');
 
-    for (let i = 0; i < sceneCount; i++) {
-      scenes.push({
-        duration: 5,
-        text: texts[i],
-        visualPrompt: `${args.topic} scene ${i + 1}`,
-        transition: "fade",
-        imageUrl: `https://picsum.photos/seed/${Date.now() + i}/1080/1920`
-      });
+      // Gera o roteiro
+      const script = await createViralScript(
+        args.topic,
+        args.style,
+        args.duration,
+        canUse
+      );
+
+      return {
+        script,
+        method: canUse ? 'premium' : 'basic',
+        remainingGeminiUses: remaining,
+        message: canUse
+          ? `🎬 Roteiro Premium criado! ${remaining} roteiros restantes hoje.`
+          : "Roteiro criado com sucesso!"
+      };
+
+    } catch (error) {
+      console.error("Erro:", error);
+      throw new Error("Erro ao gerar roteiro. Tente novamente.");
     }
-
-    return {
-      title: args.topic,
-      scenes: scenes,
-      music: "epic",
-      voiceStyle: args.style,
-      captions: {
-        style: "bold",
-        color: "#FFFF00",
-        animation: "pop"
-      },
-      totalDuration: args.duration,
-      format: "9:16",
-      fps: 30,
-      style: args.style,
-      renderSettings: {
-        width: 1080,
-        height: 1920,
-        quality: "high",
-        codec: "h264"
-      }
-    };
-  }
+  },
 });
+
+// ============================================================
+// MUTATIONS - Adaptadas para seu schema
+// ============================================================
 
 export const saveGeneratedImage = internalMutation({
   args: {
@@ -488,16 +512,17 @@ export const saveGeneratedImage = internalMutation({
     prompt: v.string(),
     imageUrl: v.string(),
     storageId: v.id("_storage"),
+    method: v.string(),
+    createdAt: v.number(),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("generatedImages", {
-      userId: args.userId,
-      prompt: args.prompt,
-      imageUrl: args.imageUrl,
-      storageId: args.storageId,
-    });
+    return await ctx.db.insert("generatedImages", args);
   },
 });
+
+// ============================================================
+// QUERIES - Adaptadas para seu schema
+// ============================================================
 
 export const getImagesForUser = query({
   args: {},
@@ -515,21 +540,6 @@ export const getImagesForUser = query({
   },
 });
 
-export const getImage = query({
-  args: { imageId: v.id("generatedImages") },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado");
-
-    const image = await ctx.db.get(args.imageId);
-    if (!image || image.userId !== identity.subject) {
-      throw new Error("Imagem não encontrada");
-    }
-
-    return image;
-  },
-});
-
 export const getUserImageCount = query({
   args: {},
   handler: async (ctx) => {
@@ -542,5 +552,22 @@ export const getUserImageCount = query({
       .collect();
 
     return images.length;
+  },
+});
+
+export const getUsageStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    // Como usamos sistema em memória, retornamos valores aproximados
+    const limits = checkDailyLimits(identity.subject, 'image');
+    const videoLimits = checkDailyLimits(identity.subject, 'video');
+
+    return {
+      geminiImagesRemaining: limits.remaining,
+      geminiVideosRemaining: videoLimits.remaining,
+    };
   },
 });

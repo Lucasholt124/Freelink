@@ -125,6 +125,8 @@ export default defineSchema({
     prompt: v.string(),
     imageUrl: v.string(),
     storageId: v.id("_storage"),
+    method: v.optional(v.string()), // 'premium' ou 'free'
+    createdAt: v.optional(v.number()),
   }).index("by_user", ["userId"]),
   // ▲▲▲ FIM DA CORREÇÃO ▲▲▲
 
