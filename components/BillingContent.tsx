@@ -169,7 +169,8 @@ const plans: Plan[] = [
           { text: "Estúdio de imagens IA avançado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Geração ilimitada de imagens", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Calendário de conteúdo personalizado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "Agendamento automático de posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> }
+          { text: "Agendamento automático de posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
+        { text: "Ai-Studio", icon: <CheckCircle className="w-4 h-4 text-green-500" /> }
         ]
       },
       {
@@ -202,31 +203,38 @@ export default function BillingContent() {
     const success = searchParams.get("success");
     const canceled = searchParams.get("canceled");
 
-    if (success) {
-      toast.success("Assinatura realizada com sucesso! 🎉");
-      router.replace("/dashboard/billing");
-    }
-
-    if (canceled) {
-      toast.info("O processo de assinatura foi cancelado.");
-      router.replace("/dashboard/billing");
-    }
-
-    async function fetchPlan() {
-      if (!user?.id) return;
-      try {
-        const res = await fetch("/api/subscription-plan");
-        if (res.ok) {
-          const data = await res.json();
-          setCurrentPlan(data.plan || "free");
-        }
-      } catch (err) {
-        console.error(err);
+     async function handlePurchaseResult() {
+      if (success) {
+        toast.success("Assinatura realizada com sucesso! 🎉");
+        // Força o Clerk a buscar os metadados mais recentes do usuário.
+        // O webhook já terá atualizado o plano, e isso trará a informação para o frontend.
+        await user?.reload();
+      }
+      if (canceled) {
+        toast.info("O processo de assinatura foi cancelado.");
+      }
+      // Limpa os parâmetros da URL para evitar que o toast apareça novamente ao recarregar a página
+      if (success || canceled) {
+        router.replace("/dashboard/billing", { scroll: false });
       }
     }
 
-    fetchPlan();
-  }, [user?.id, searchParams, router]);
+    handlePurchaseResult();
+
+  }, [searchParams, router, user]);
+
+
+  // CORREÇÃO 2: Este hook SINCRONIZA o estado da UI com os dados do usuário do Clerk.
+  // Ele é executado sempre que os dados do usuário (inclusive o plano) são atualizados.
+  useEffect(() => {
+    if (user?.publicMetadata?.subscriptionPlan) {
+      setCurrentPlan(user.publicMetadata.subscriptionPlan as PlanIdentifier);
+    } else {
+      // Se não houver plano definido nos metadados, assume-se que é o plano gratuito.
+      setCurrentPlan("free");
+    }
+  }, [user?.publicMetadata]);
+
 
   const toggleFeatureSection = (sectionTitle: string) => {
     setExpandedFeatures(prev => ({
