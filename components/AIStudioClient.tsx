@@ -1,20 +1,18 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import Image from 'next/image' // Importação adicionada
 import { useUser } from '@clerk/nextjs'
 import { useAction } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Mic, Volume2, Video, Upload, Download, Loader2, Wand2, Copy, Check,
-  Play, Pause, Zap, Crown, FileAudio, Image, Bot, Heart, Star, Rocket,
-  Camera, Music, Film, Palette, Brain, Globe, Headphones, Share2,
-  MagnetIcon
+  Play, Pause, Zap, Crown, FileAudio, Heart, Star, Rocket,
+  Camera, Film, Brain, Headphones, Share2
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-
-
 
 // CONFIGURAÇÃO REVOLUCIONÁRIA DE ABAS
 const tabs = [
@@ -146,10 +144,6 @@ export function AIStudioClient() {
 
     setLoading(true)
     try {
-      // Criar FormData para enviar arquivo
-      const formData = new FormData()
-      formData.append('file', imageFile)
-
       const result = await enhanceImageAction({
         userId: user.id,
         imageFile: await fileToBase64(imageFile),
@@ -159,7 +153,8 @@ export function AIStudioClient() {
       if (result.success) {
         setEnhancedImage(result.url!)
         toast.success('🎉 Imagem aprimorada com sucesso!')
-        confetti()
+        // Para um efeito de confete real, use uma biblioteca como 'canvas-confetti'
+        // Ex: import confetti from 'canvas-confetti'; confetti();
       } else {
         toast.error(`❌ ${result.message}`)
       }
@@ -200,7 +195,6 @@ export function AIStudioClient() {
       if (result.success) {
         setAudioUrl(result.url!)
         toast.success('🎵 Áudio criado com sucesso!')
-        confetti()
       } else {
         toast.error(`❌ ${result.message}`)
       }
@@ -243,7 +237,6 @@ export function AIStudioClient() {
       if (result.success) {
         setTranscription(result.text!)
         toast.success('📝 Áudio transcrito com sucesso!')
-        confetti()
       } else {
         toast.error(`❌ ${result.message}`)
       }
@@ -272,7 +265,6 @@ export function AIStudioClient() {
       if (result.success) {
         setVideoUrl(result.url!)
         toast.success('🎥 Vídeo encontrado!')
-        confetti()
       } else {
         toast.error(`❌ ${result.message}`)
       }
@@ -301,7 +293,6 @@ export function AIStudioClient() {
       if (result.success) {
         setRemoveBgResult(result.url!)
         toast.success('✨ Fundo removido com sucesso!')
-        confetti()
       } else {
         toast.error(`❌ ${result.message}`)
       }
@@ -368,26 +359,6 @@ export function AIStudioClient() {
       console.error('Erro no download:', error)
       toast.error('Erro ao baixar arquivo')
     }
-  }
-
-  // EFEITO CONFETTI
-  const confetti = () => {
-    const duration = 3000
-    const animationEnd = Date.now() + duration
-    const defaults = { startVelocity: 30, spread: 360, ticks: 60, zIndex: 0 }
-
-    function randomInRange(min: number, max: number) {
-      return Math.random() * (max - min) + min
-    }
-
-    const interval: ReturnType<typeof setInterval> = setInterval(function() {
-      const timeLeft = animationEnd - Date.now()
-      if (timeLeft <= 0) {
-        return clearInterval(interval)
-      }
-      const particleCount = 50 * (timeLeft / duration)
-      // Criar partículas de confetti (visual apenas)
-    }, 250)
   }
 
   return (
@@ -591,10 +562,11 @@ export function AIStudioClient() {
                       >
                         {imagePreview ? (
                           <>
-                            <img
+                            <Image
                               src={imagePreview}
                               alt="Preview"
-                              className="w-full h-full object-cover"
+                              fill={true}
+                              className="object-cover"
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <p className="text-white font-semibold">Clique para trocar</p>
@@ -624,10 +596,11 @@ export function AIStudioClient() {
                       <div className="relative aspect-square rounded-2xl border-2 border-gray-700 bg-gray-800/50 overflow-hidden">
                         {enhancedImage ? (
                           <>
-                            <img
+                            <Image
                               src={enhancedImage}
                               alt="Enhanced"
-                              className="w-full h-full object-cover"
+                              fill={true}
+                              className="object-cover"
                             />
                             <motion.button
                               whileHover={{ scale: 1.1 }}
@@ -665,7 +638,7 @@ export function AIStudioClient() {
                       </>
                     ) : (
                       <>
-                        <MagnetIcon className="w-6 h-6" />
+                        <Wand2 className="w-6 h-6" />
                         Aprimorar Agora!
                       </>
                     )}
@@ -988,10 +961,11 @@ export function AIStudioClient() {
                       >
                         {removeBgImage ? (
                           <>
-                            <img
+                            <Image
                               src={removeBgImage}
                               alt="Original"
-                              className="w-full h-full object-cover"
+                              fill={true}
+                              className="object-cover"
                             />
                             <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <p className="text-white font-semibold">Clique para trocar</p>
@@ -1022,10 +996,11 @@ export function AIStudioClient() {
                         {removeBgResult ? (
                           <>
                             <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20" />
-                            <img
+                            <Image
                               src={removeBgResult}
                               alt="No Background"
-                              className="relative w-full h-full object-cover"
+                              fill={true}
+                              className="object-contain" // 'object-contain' is usually better for logos/cutouts
                             />
                             <motion.button
                               whileHover={{ scale: 1.1 }}
