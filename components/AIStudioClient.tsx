@@ -2,26 +2,15 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { useUser } from '@clerk/nextjs'
-import { useAction, useQuery } from 'convex/react'
-import { motion, AnimatePresence } from 'framer-motion'
+import { useAction } from 'convex/react'
 import { api } from '@/convex/_generated/api'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Mic, Volume2, Video, Upload, Download, Loader2, Wand2, Copy, Check,
-  Play, Pause, RefreshCw, Zap, Crown, Headphones, Camera, FileVideo
+  Play, Pause, Zap, Crown
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-
-
-// OBS: Este é o seu código frontend anterior, agora dentro de um componente cliente.
-// Nenhuma lógica interna foi alterada.
-
-type ItemType = {
-  _id: string; _creationTime: number; userId: string;
-  type: "enhanced_image" | "audio" | "transcription" | "video";
-  originalUrl?: string; resultUrl?: string; text?: string; prompt?: string;
-  storageId?: any; createdAt?: number;
-};
 
 const tabs = [
   { id: 'enhance', label: 'Aprimorar Imagem', icon: Wand2, color: 'from-purple-600 to-pink-600' },
@@ -65,9 +54,6 @@ export function AIStudioClient() {
   const speechToTextAction = useAction(api.aiStudio.speechToText)
   const generateVideoAction = useAction(api.aiStudio.generateVideo)
 
-  const currentTabType = activeTab === 'enhance' ? 'enhanced_image' : activeTab === 'tts' ? 'audio' : activeTab === 'stt' ? 'transcription' : 'video';
-  const userContent = useQuery(api.aiStudio.getUserContent, user ? { userId: user.id, type: currentTabType } : 'skip');
-
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
@@ -88,7 +74,10 @@ export function AIStudioClient() {
       } else {
         toast.error(`Erro: ${result.message}`);
       }
-    } catch (e: any) { toast.error(e.message) } finally { setLoading(false) }
+    } catch (e: unknown) {
+      if (e instanceof Error) toast.error(e.message);
+      else toast.error("Ocorreu um erro desconhecido.");
+    } finally { setLoading(false) }
   }
 
   const handleTextToSpeech = async () => {
@@ -102,7 +91,10 @@ export function AIStudioClient() {
       } else {
         toast.error(`Erro: ${result.message}`);
       }
-    } catch (e: any) { toast.error(e.message) } finally { setLoading(false) }
+    } catch (e: unknown) {
+        if (e instanceof Error) toast.error(e.message);
+        else toast.error("Ocorreu um erro desconhecido.");
+    } finally { setLoading(false) }
   }
 
   const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,7 +118,10 @@ export function AIStudioClient() {
         } else {
           toast.error(`Erro: ${result.message}`);
         }
-      } catch (e: any) { toast.error(e.message) } finally { setLoading(false) }
+      } catch (e: unknown) {
+          if (e instanceof Error) toast.error(e.message);
+          else toast.error("Ocorreu um erro desconhecido.");
+      } finally { setLoading(false) }
     }
     reader.readAsDataURL(audioFile);
   }
@@ -142,7 +137,10 @@ export function AIStudioClient() {
       } else {
         toast.error(`Erro: ${result.message}`);
       }
-    } catch (e: any) { toast.error(e.message) } finally { setLoading(false) }
+    } catch (e: unknown) {
+        if (e instanceof Error) toast.error(e.message);
+        else toast.error("Ocorreu um erro desconhecido.");
+    } finally { setLoading(false) }
   }
 
   const handleCopy = (text: string) => {
@@ -189,8 +187,7 @@ export function AIStudioClient() {
   }
 
   return (
-    // O JSX que estava na página antiga agora vive aqui
-    <div className="min-h-screen bg-gradient-to-br from-black via-gray-900 to-black text-white -m-8 -mt-2 p-4 rounded-2xl">
+    <div className="bg-gradient-to-br from-black via-gray-900 to-black text-white -m-8 -mt-2 p-4 rounded-2xl">
       <div className="fixed inset-0 overflow-hidden pointer-events-none -z-10">
         <div className="absolute top-0 left-0 w-96 h-96 bg-purple-600/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-pink-600/20 rounded-full blur-3xl animate-pulse delay-1000" />
