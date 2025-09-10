@@ -191,7 +191,7 @@ export function AIStudioClient() {
       const result = await textToSpeechAction({
         userId: user.id,
         text: ttsText,
-        voiceId: voice?.lang || 'pt-BR'
+
       })
 
       if (result.success) {
