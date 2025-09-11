@@ -180,19 +180,18 @@ export function AIStudioClient() {
 
   // FUNÇÃO DE TEXTO PARA VOZ MELHORADA
   const handleTextToSpeech = async () => {
-    if (!ttsText || !user) {
-      toast.error('💬 Digite um texto primeiro!')
-      return
-    }
+  if (!ttsText || !user) {
+    toast.error('💬 Digite um texto primeiro!')
+    return
+  }
 
-    setLoading(true)
-    try {
-      const voice = ttsVoices.find(v => v.id === selectedVoice)
-      const result = await textToSpeechAction({
-        userId: user.id,
-        text: ttsText,
+  setLoading(true)
+  try {
+    const result = await textToSpeechAction({
+      userId: user.id,
+      text: ttsText,
 
-      })
+    })
 
       if (result.success) {
         setAudioUrl(result.url!)
