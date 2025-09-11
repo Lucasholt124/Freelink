@@ -2,6 +2,8 @@ import { v } from "convex/values";
 import { mutation, query, action } from "./_generated/server";
 import { api } from "./_generated/api";
 
+
+
 // =================================================================
 // 🎯 TIPOS E INTERFACES
 // =================================================================
@@ -32,7 +34,7 @@ interface PexelsResponse {
 }
 
 // =================================================================
-// 🔒 CONFIGURAÇÃO SEGURA
+// 🔒 CONFIGURAÇÃO
 // =================================================================
 const getRemoveBgApiKey = (): string => {
   const key = process.env.REMOVE_BG_API_KEY;
@@ -43,6 +45,19 @@ const getRemoveBgApiKey = (): string => {
 const getPexelsApiKey = (): string => {
   const key = process.env.PEXELS_API_KEY;
   if (!key) console.warn("⚠️ PEXELS_API_KEY não configurado.");
+  return key || "";
+};
+
+// --- NOVAS FUNÇÕES DE CONFIGURAÇÃO ---
+const getReplicateApiKey = (): string => {
+  const key = process.env.REPLICATE_API_KEY;
+  if (!key) console.warn("⚠️ REPLICATE_API_KEY não configurado.");
+  return key || "";
+};
+
+const getElevenLabsApiKey = (): string => {
+  const key = process.env.ELEVENLABS_API_KEY;
+  if (!key) console.warn("⚠️ ELEVENLABS_API_KEY não configurado.");
   return key || "";
 };
 
@@ -63,299 +78,159 @@ const base64ToBlob = (base64: string): Blob => {
   return new Blob([byteArray], { type: contentType });
 };
 
-// Função para converter Blob para base64
-const blobToBase64 = async (blob: Blob): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-};
-
 // =================================================================
-// 1. 🎨 APRIMORADOR DE IMAGENS REAL (USANDO DEEPAI E PICWISH)
+// 1. 🎨 APRIMORADOR DE IMAGENS (COM REPLICATE)
 // =================================================================
 export const enhanceImage = action({
   args: {
     userId: v.string(),
-    imageFile: v.string(),
-    effect: v.string()
+    imageFile: v.string(), // Imagem em base64 data URL
   },
   handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
     try {
-      const imageBlob = base64ToBlob(args.imageFile);
-      let processedBlob: Blob = imageBlob;
-      let wasProcessed = false;
-
-      // Tentar diferentes APIs baseado no efeito
-      switch (args.effect) {
-        case 'upscale':
-        case 'enhance':
-        case 'sharpen':
-          // Usar DeepAI Super Resolution (gratuito com limites)
-          try {
-            const formData = new FormData();
-            formData.append('image', imageBlob);
-
-            const deepAiResponse = await fetch('https://api.deepai.org/api/torch-srgan', {
-              method: 'POST',
-              headers: {
-                'api-key': 'quickstart-QUdJIGlzIGNvbWluZy4uLi4K' // Chave pública para testes
-              },
-              body: formData
-            });
-
-            if (deepAiResponse.ok) {
-              const result = await deepAiResponse.json();
-              if (result.output_url) {
-                const imageResponse = await fetch(result.output_url);
-                processedBlob = await imageResponse.blob();
-                wasProcessed = true;
-              }
-            }
-          } catch  {
-            console.warn("DeepAI não disponível, tentando alternativa");
-          }
-          break;
-
-        case 'colorize':
-          // Usar MyHeritage AI Colorization (API pública)
-          try {
-            const formData = new FormData();
-            formData.append('image', imageBlob);
-
-            const colorizeResponse = await fetch('https://api.deepai.org/api/colorizer', {
-              method: 'POST',
-              headers: {
-                'api-key': 'quickstart-QUdJIGlzIGNvbWluZy4uLi4K'
-              },
-              body: formData
-            });
-
-            if (colorizeResponse.ok) {
-              const result = await colorizeResponse.json();
-              if (result.output_url) {
-                const imageResponse = await fetch(result.output_url);
-                processedBlob = await imageResponse.blob();
-                wasProcessed = true;
-              }
-            }
-          } catch  {
-            console.warn("Colorização não disponível");
-          }
-          break;
-
-        case 'cartoon':
-          // Usar Toonify API
-          try {
-            const formData = new FormData();
-            formData.append('image', imageBlob);
-
-            const toonifyResponse = await fetch('https://api.deepai.org/api/toonify', {
-              method: 'POST',
-              headers: {
-                'api-key': 'quickstart-QUdJIGlzIGNvbWluZy4uLi4K'
-              },
-              body: formData
-            });
-
-            if (toonifyResponse.ok) {
-              const result = await toonifyResponse.json();
-              if (result.output_url) {
-                const imageResponse = await fetch(result.output_url);
-                processedBlob = await imageResponse.blob();
-                wasProcessed = true;
-              }
-            }
-          } catch  {
-            console.warn("Toonify não disponível");
-          }
-          break;
-
-        case 'denoise':
-          // Usar Waifu2x API (gratuito e funcional)
-          try {
-            const base64Image = await blobToBase64(imageBlob);
-            const base64Data = base64Image.split(',')[1];
-
-            const waifu2xResponse = await fetch('https://api.waifu2x.net/convert', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-              },
-              body: JSON.stringify({
-                image: base64Data,
-                noise: 2, // Nível de redução de ruído
-                scale: 1  // Sem upscaling
-              })
-            });
-
-            if (waifu2xResponse.ok) {
-              processedBlob = await waifu2xResponse.blob();
-              wasProcessed = true;
-            }
-          } catch  {
-            console.warn("Waifu2x não disponível");
-          }
-          break;
+      const REPLICATE_KEY = getReplicateApiKey();
+      if (!REPLICATE_KEY) {
+        return { success: false, message: "Replicate API Key não configurada." };
       }
 
-      // Se nenhuma API funcionou, tentar API genérica de fallback
-      if (!wasProcessed) {
-        try {
-          // Replicate API (tem tier gratuito)
-          const replicateResponse = await fetch(
-            'https://api.replicate.com/v1/predictions',
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': 'Token r8_public_free_tier' // Token público de demonstração
-              },
-              body: JSON.stringify({
-                version: "9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3",
-                input: {
-                  img: args.imageFile,
-                  scale: 2,
-                  face_enhance: true
-                }
-              })
-            }
-          );
+      console.log("🚀 Iniciando aprimoramento de imagem com Replicate...");
 
-          if (replicateResponse.ok) {
-            const prediction = await replicateResponse.json();
-            // Aguardar processamento
-            await new Promise(resolve => setTimeout(resolve, 3000));
+      // 1. Iniciar a predição
+      const startResponse = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Token ${REPLICATE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          // Modelo GFPGAN para restauração geral de imagens
+          version: "9283608cc6b7be6b65a8e44983a0d59579ed491c05de5fbac35349a6d3d87465",
+          input: {
+            img: args.imageFile, // Replicate aceita data URL diretamente
+            version: "v1.4",
+            scale: 2
+          },
+        }),
+      });
 
-            const resultResponse = await fetch(
-              `https://api.replicate.com/v1/predictions/${prediction.id}`
-            );
+      const prediction = await startResponse.json();
+      if (startResponse.status !== 201) {
+        throw new Error(`Erro ao iniciar predição: ${prediction.detail}`);
+      }
 
-            if (resultResponse.ok) {
-              const result = await resultResponse.json();
-              if (result.output) {
-                const imageResponse = await fetch(result.output);
-                processedBlob = await imageResponse.blob();
-                wasProcessed = true;
-              }
-            }
-          }
-        } catch  {
-          console.warn("Replicate não disponível");
+      let finalPrediction;
+      const statusUrl = prediction.urls.get;
+
+      // 2. Aguardar o resultado (polling)
+      while (true) {
+        console.log("⏳ Verificando status da imagem...");
+        const statusResponse = await fetch(statusUrl, {
+          headers: { "Authorization": `Token ${REPLICATE_KEY}` },
+        });
+        const currentStatus = await statusResponse.json();
+
+        if (currentStatus.status === "succeeded") {
+          finalPrediction = currentStatus;
+          break;
+        } else if (currentStatus.status === "failed") {
+          throw new Error(`Processamento falhou: ${currentStatus.error}`);
         }
+        await new Promise(resolve => setTimeout(resolve, 1000));
       }
 
-      // Salvar imagem (processada ou original)
-      const storageId = await ctx.storage.store(processedBlob);
+      const enhancedImageUrl = finalPrediction.output;
+
+      const imageResponse = await fetch(enhancedImageUrl);
+      const imageBlob = await imageResponse.blob();
+      const storageId = await ctx.storage.store(imageBlob);
       const finalUrl = await ctx.storage.getUrl(storageId);
-
-      if (!finalUrl) {
-        throw new Error("Erro ao salvar imagem.");
-      }
 
       await ctx.runMutation(api.aiStudio.saveEnhancedImage, {
         userId: args.userId,
         originalUrl: args.imageFile.substring(0, 100),
-        resultUrl: finalUrl,
-        prompt: `Efeito: ${args.effect} ${wasProcessed ? '(Processado)' : '(Original)'}`,
-        storageId
+        resultUrl: finalUrl!,
+        prompt: "Aprimorado com Replicate/GFPGAN",
+        storageId: storageId
       });
 
-      return {
-        success: true,
-        url: finalUrl,
-        message: wasProcessed
-          ? "Imagem processada com sucesso!"
-          : "Processamento básico aplicado. Tente novamente em alguns instantes."
-      };
+      return { success: true, url: finalUrl!, message: "✨ Imagem aprimorada com Replicate!" };
+
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-      console.error("Erro em enhanceImage:", errorMessage);
-      return {
-        success: false,
-        message: "Erro ao processar imagem. Tente novamente."
-      };
+      console.error("Erro no enhanceImage (Replicate):", error);
+      return { success: false, message: "Erro ao aprimorar imagem com Replicate." };
     }
   },
 });
 
 // =================================================================
-// 2. 🎵 TEXTO PARA VOZ REAL (USANDO GOOGLE TTS GRATUITO)
+// 2. 🎵 TEXTO PARA VOZ (COM ELEVENLABS)
 // =================================================================
 export const textToSpeech = action({
   args: {
     userId: v.string(),
-    text: v.string()
+    text: v.string(),
   },
   handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
     try {
-      // Limitar texto para APIs gratuitas
-      const textToConvert = args.text.substring(0, 200);
+      const ELEVENLABS_KEY = getElevenLabsApiKey();
+      if (!ELEVENLABS_KEY) {
+        return { success: false, message: "ElevenLabs API Key não configurada." };
+      }
 
-      // Opção 1: ResponsiveVoice API (gratuito)
-      const responsiveVoiceUrl = `https://texttospeech.responsivevoice.org/v1/text:synthesize?text=${encodeURIComponent(textToConvert)}&lang=pt-BR&engine=g3&rate=0.5&pitch=0.5`;
+      console.log("🎤 Gerando áudio de alta qualidade com ElevenLabs...");
 
-      const response = await fetch(responsiveVoiceUrl);
+      // ID da voz "Rachel" (uma das mais populares e versáteis)
+      const voiceId = "21m00Tcm4TlvDq8ikWAM";
+      const url = `https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`;
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Accept': 'audio/mpeg',
+          'Content-Type': 'application/json',
+          'xi-api-key': ELEVENLABS_KEY,
+        },
+        body: JSON.stringify({
+          text: args.text,
+          model_id: "eleven_multilingual_v2",
+          voice_settings: {
+            stability: 0.5,
+            similarity_boost: 0.75,
+          },
+        }),
+      });
 
       if (!response.ok) {
-        // Opção 2: Google Translate TTS (não oficial mas funcional)
-        const googleTTSUrl = `https://translate.google.com/translate_tts?ie=UTF-8&q=${encodeURIComponent(textToConvert)}&tl=pt-BR&client=tw-ob`;
-
-        const googleResponse = await fetch(googleTTSUrl);
-
-        if (!googleResponse.ok) {
-          throw new Error("Serviços de TTS indisponíveis");
-        }
-
-        const audioBlob = await googleResponse.blob();
-        const storageId = await ctx.storage.store(audioBlob);
-        const url = await ctx.storage.getUrl(storageId);
-
-        if (!url) {
-          throw new Error("Erro ao salvar áudio");
-        }
-
-        await ctx.runMutation(api.aiStudio.saveAudio, {
-          userId: args.userId,
-          text: textToConvert,
-          resultUrl: url,
-          storageId
-        });
-
-        return { success: true, url };
+        const errorText = await response.text();
+        throw new Error(`Erro da API ElevenLabs: ${errorText}`);
       }
 
       const audioBlob = await response.blob();
       const storageId = await ctx.storage.store(audioBlob);
-      const url = await ctx.storage.getUrl(storageId);
-
-      if (!url) {
-        throw new Error("Erro ao salvar o áudio.");
-      }
+      const finalUrl = await ctx.storage.getUrl(storageId);
 
       await ctx.runMutation(api.aiStudio.saveAudio, {
         userId: args.userId,
-        text: textToConvert,
-        resultUrl: url,
-        storageId
+        text: args.text,
+        resultUrl: finalUrl!,
+        storageId: storageId,
       });
 
-      return { success: true, url };
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-      console.error("Erro TTS:", errorMessage);
       return {
-        success: false,
-        message: "Erro ao gerar áudio. Tente com um texto menor."
+        success: true,
+        url: finalUrl!,
+        message: "🔥 Voz neural da ElevenLabs gerada!",
       };
+
+    } catch (error) {
+      console.error("Erro no textToSpeech (ElevenLabs):", error);
+      return { success: false, message: "Erro ao gerar áudio com ElevenLabs." };
     }
   },
 });
 
 // =================================================================
-// 3. 🎤 VOZ PARA TEXTO REAL (USANDO WEB SPEECH API)
+// 3. 🎤 VOZ PARA TEXTO (WHISPER LARGE V3) - MANTIDO
 // =================================================================
 export const speechToText = action({
   args: {
@@ -366,90 +241,47 @@ export const speechToText = action({
     try {
       const audioBlob = base64ToBlob(args.audioUrl);
 
-      // Opção 1: AssemblyAI (tem tier gratuito)
-      const formData = new FormData();
-      formData.append('audio', audioBlob);
-
-      // Primeiro fazer upload do áudio
-      const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
-        method: 'POST',
-        headers: {
-          'authorization': 'free-tier-token' // Token de demonstração
-        },
-        body: formData
-      });
-
-      if (uploadResponse.ok) {
-        const { upload_url } = await uploadResponse.json();
-
-        // Solicitar transcrição
-        const transcriptResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
+      const response = await fetch(
+        'https://api-inference.huggingface.co/models/openai/whisper-large-v3',
+        {
           method: 'POST',
           headers: {
-            'authorization': 'free-tier-token',
-            'content-type': 'application/json'
+            'Content-Type': 'application/octet-stream'
           },
-          body: JSON.stringify({
-            audio_url: upload_url,
-            language_code: 'pt'
-          })
+          body: audioBlob,
+        }
+      );
+
+      if (response.ok) {
+        const result = await response.json();
+        const transcription = result.text || "Transcrição não disponível";
+
+        await ctx.runMutation(api.aiStudio.saveTranscription, {
+          userId: args.userId,
+          audioUrl: args.audioUrl.substring(0, 100),
+          transcription
         });
 
-        if (transcriptResponse.ok) {
-          const { id } = await transcriptResponse.json();
-
-          // Aguardar processamento
-          await new Promise(resolve => setTimeout(resolve, 5000));
-
-          // Buscar resultado
-          const resultResponse = await fetch(`https://api.assemblyai.com/v2/transcript/${id}`, {
-            headers: {
-              'authorization': 'free-tier-token'
-            }
-          });
-
-          if (resultResponse.ok) {
-            const result = await resultResponse.json();
-            const transcription = result.text || "Não foi possível transcrever o áudio";
-
-            await ctx.runMutation(api.aiStudio.saveTranscription, {
-              userId: args.userId,
-              audioUrl: args.audioUrl.substring(0, 100),
-              transcription
-            });
-
-            return { success: true, text: transcription };
-          }
-        }
+        return {
+          success: true,
+          text: transcription,
+          message: "✅ Transcrição realizada com Whisper V3!"
+        };
       }
 
-      // Fallback: Retornar mensagem padrão
-      const fallbackText = "Transcrição temporariamente indisponível. O áudio foi recebido mas precisa ser processado manualmente.";
-
-      await ctx.runMutation(api.aiStudio.saveTranscription, {
-        userId: args.userId,
-        audioUrl: args.audioUrl.substring(0, 100),
-        transcription: fallbackText
-      });
-
-      return {
-        success: true,
-        text: fallbackText,
-        message: "Transcrição básica realizada"
-      };
+      throw new Error("Erro na transcrição");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-      console.error("Erro STT:", errorMessage);
+      console.error("Erro STT:", error);
       return {
         success: false,
-        message: "Erro ao transcrever áudio. Tente um arquivo menor."
+        message: "Erro ao transcrever áudio"
       };
     }
   },
 });
 
 // =================================================================
-// 4. 🎬 BUSCADOR DE VÍDEOS (PEXELS OU PIXABAY)
+// 4. 🎬 GERADOR DE VÍDEOS COM IA - MANTIDO
 // =================================================================
 export const generateVideo = action({
   args: {
@@ -458,23 +290,48 @@ export const generateVideo = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
     try {
-      const PEXELS_API_KEY = getPexelsApiKey();
+      console.log(`🎬 Gerando vídeo sobre: ${args.prompt}`);
 
+      // OPÇÃO 1: Stable Video Diffusion
+      const videoGenResponse = await fetch(
+        'https://api-inference.huggingface.co/models/stabilityai/stable-video-diffusion-img2vid-xt',
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            inputs: args.prompt,
+            options: { wait_for_model: true }
+          })
+        }
+      );
+
+      if (videoGenResponse.ok) {
+        const videoBlob = await videoGenResponse.blob();
+        const storageId = await ctx.storage.store(videoBlob);
+        const videoUrl = await ctx.storage.getUrl(storageId);
+
+        await ctx.runMutation(api.aiStudio.saveVideo, {
+          userId: args.userId,
+          prompt: args.prompt,
+          resultUrl: videoUrl!
+        });
+
+        return { success: true, url: videoUrl!, message: "🚀 Vídeo gerado com IA!" };
+      }
+
+      // OPÇÃO 2: Pexels
+      const PEXELS_API_KEY = getPexelsApiKey();
       if (PEXELS_API_KEY) {
         const response = await fetch(
-          `https://api.pexels.com/videos/search?query=${encodeURIComponent(args.prompt)}&per_page=5&orientation=landscape`,
-          {
-            headers: {
-              'Authorization': PEXELS_API_KEY
-            }
-          }
+          `https://api.pexels.com/videos/search?query=${encodeURIComponent(args.prompt)}&per_page=10`,
+          { headers: { 'Authorization': PEXELS_API_KEY } }
         );
 
         if (response.ok) {
           const data = await response.json() as PexelsResponse;
-          if (data.videos?.length > 0) {
+          if (data.videos && data.videos.length > 0) {
             const video = data.videos[0];
-            const hdFile = video.video_files.find(f => f.quality === "hd" && f.width >= 1920);
+            const hdFile = video.video_files.find(f => f.quality === "hd");
             const videoUrl = hdFile?.link || video.video_files[0].link;
 
             await ctx.runMutation(api.aiStudio.saveVideo, {
@@ -483,59 +340,21 @@ export const generateVideo = action({
               resultUrl: videoUrl
             });
 
-            return { success: true, url: videoUrl };
+            return { success: true, url: videoUrl, message: "📹 Vídeo HD relevante encontrado!" };
           }
         }
       }
 
-      // Fallback: Usar Pixabay (não precisa de API key para vídeos públicos)
-      const pixabayUrl = `https://pixabay.com/api/videos/?key=23400516-2e429a8f8a28e5e932d984ee2&q=${encodeURIComponent(args.prompt)}&per_page=5`;
-
-      const pixabayResponse = await fetch(pixabayUrl);
-
-      if (pixabayResponse.ok) {
-        const pixabayData = await pixabayResponse.json();
-        if (pixabayData.hits && pixabayData.hits.length > 0) {
-          const video = pixabayData.hits[0];
-          const videoUrl = video.videos.large.url || video.videos.medium.url;
-
-          await ctx.runMutation(api.aiStudio.saveVideo, {
-            userId: args.userId,
-            prompt: args.prompt,
-            resultUrl: videoUrl
-          });
-
-          return { success: true, url: videoUrl };
-        }
-      }
-
-      // Se nada funcionou, retornar vídeo de exemplo
-      const sampleVideo = "https://storage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4";
-
-      await ctx.runMutation(api.aiStudio.saveVideo, {
-        userId: args.userId,
-        prompt: args.prompt,
-        resultUrl: sampleVideo
-      });
-
-      return {
-        success: true,
-        url: sampleVideo,
-        message: "Vídeo de demonstração carregado. Configure Pexels API para resultados reais."
-      };
+      return { success: false, message: "Configure PEXELS_API_KEY para melhores resultados" };
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-      console.error("Erro em generateVideo:", errorMessage);
-      return {
-        success: false,
-        message: "Erro ao buscar vídeo"
-      };
+      console.error("Erro em generateVideo:", error);
+      return { success: false, message: "Erro ao gerar vídeo" };
     }
   },
 });
 
 // =================================================================
-// 5. 📸 REMOVEDOR DE FUNDO (MANTENDO REMOVE.BG ORIGINAL)
+// 5. 📸 REMOVEDOR DE FUNDO - MANTIDO
 // =================================================================
 export const removeBackground = action({
   args: {
@@ -548,10 +367,7 @@ export const removeBackground = action({
       const REMOVE_BG_KEY = getRemoveBgApiKey();
 
       if (!REMOVE_BG_KEY) {
-        return {
-          success: false,
-          message: "A chave da API Remove.bg não está configurada."
-        };
+        return { success: false, message: "Configure REMOVE_BG_API_KEY no arquivo .env" };
       }
 
       const formData = new FormData();
@@ -560,39 +376,30 @@ export const removeBackground = action({
 
       const response = await fetch('https://api.remove.bg/v1.0/removebg', {
         method: 'POST',
-        headers: {
-          'X-Api-Key': REMOVE_BG_KEY
-        },
+        headers: { 'X-Api-Key': REMOVE_BG_KEY },
         body: formData
       });
 
-      if (!response.ok) {
-        console.error("Erro da API remove.bg:", await response.text());
-        throw new Error("Falha ao remover o fundo da imagem");
-      }
+      if (!response.ok) throw new Error("Erro ao remover fundo");
 
       const processedImage = await response.blob();
       const storageId = await ctx.storage.store(processedImage);
       const finalUrl = await ctx.storage.getUrl(storageId);
 
       if (finalUrl) {
-        return { success: true, url: finalUrl };
+        return { success: true, url: finalUrl, message: "✨ Fundo removido com perfeição!" };
       }
 
-      throw new Error("Falha ao salvar a imagem processada.");
+      throw new Error("Erro ao salvar imagem");
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-      console.error("Erro em removeBackground:", errorMessage);
-      return {
-        success: false,
-        message: "Erro ao remover fundo"
-      };
+      console.error("Erro em removeBackground:", error);
+      return { success: false, message: "Erro ao remover fundo" };
     }
   },
 });
 
 // =================================================================
-// MUTATIONS E QUERIES (mantém igual ao anterior)
+// MUTATIONS E QUERIES - MANTIDAS
 // =================================================================
 export const saveEnhancedImage = mutation({
   args: {
@@ -600,7 +407,7 @@ export const saveEnhancedImage = mutation({
     originalUrl: v.string(),
     resultUrl: v.string(),
     prompt: v.string(),
-    storageId: v.id("_storage")
+    storageId: v.optional(v.id("_storage"))
   },
   handler: async (ctx, args) => await ctx.db.insert("aiStudioContent", {
     userId: args.userId,

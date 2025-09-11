@@ -149,7 +149,7 @@ export function AIStudioClient() {
       const result = await enhanceImageAction({
         userId: user.id,
         imageFile: await fileToBase64(imageFile),
-        effect: selectedEffect
+
       })
 
       if (result.success) {
@@ -181,30 +181,32 @@ export function AIStudioClient() {
   // FUNÇÃO DE TEXTO PARA VOZ MELHORADA
   const handleTextToSpeech = async () => {
   if (!ttsText || !user) {
-    toast.error('💬 Digite um texto primeiro!')
-    return
+    toast.error('💬 Digite um texto primeiro!');
+    return;
   }
 
-  setLoading(true)
+  setLoading(true);
   try {
+    // A propriedade 'voice' foi removida daqui
     const result = await textToSpeechAction({
       userId: user.id,
       text: ttsText,
+    });
 
-    })
-
-      if (result.success) {
-        setAudioUrl(result.url!)
-        toast.success('🎵 Áudio criado com sucesso!')
-      } else {
-        toast.error(`❌ ${result.message}`)
-      }
-    } catch (error) {
-      console.error('Erro:', error)
-      toast.error('Erro ao gerar áudio')
-    } finally {
-      setLoading(false)
+    if (result.success) {
+      setAudioUrl(result.url!);
+      toast.success('🎵 Áudio criado com sucesso!');
+    } else {
+      toast.error(`❌ ${result.message}`);
     }
+  } catch (error) {
+    console.error('Erro:', error);
+    toast.error('Erro ao gerar áudio');
+  } finally {
+    setLoading(false);
+  }
+
+
   }
 
   // UPLOAD DE ÁUDIO MELHORADO
