@@ -137,7 +137,8 @@ aiStudioContent: defineTable({
     v.literal("enhanced_image"),
     v.literal("audio"),
     v.literal("transcription"),
-    v.literal("video")
+    v.literal("video"),
+    v.literal("chat") // Adicionado para suportar mensagens de chat
   ),
   originalUrl: v.optional(v.string()),
   resultUrl: v.optional(v.string()),

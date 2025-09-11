@@ -4,7 +4,7 @@ import { v } from "convex/values";
 import OpenAI from 'openai';
 
 // =================================================================
-// 1. ESTRUTURAS DE DADOS (Mantidas como estavam)
+// 1. ESTRUTURAS DE DADOS
 // =================================================================
 
 interface ReelContent {
@@ -432,7 +432,14 @@ export const generateOutreachMessage = action({
   "content": "Corpo da mensagem completo e persuasivo",
   "businessType": "${businessType}",
   "messageType": "${messageType}"
-}`;
+}
+
+## PSICOLOGIA DE VENDAS:
+- Crie URGÊNCIA: As pessoas agem quando percebem tempo limitado ou vagas limitadas
+- Faça a pessoa se sentir ESPECIAL: Exclusividade convence mais que lógica
+- Exale ENTUSIASMO: Sua energia é o motor da argumentação
+- Use a técnica dos 3 "SIMS": Faça a pessoa concordar com pequenas coisas primeiro
+- Controle com PERGUNTAS: Guie até o sim como se ela tivesse escolhido chegar lá`;
 
     try {
       // Tenta com Groq primeiro usando o modelo rápido
