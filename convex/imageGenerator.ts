@@ -48,90 +48,190 @@ function checkDailyLimits(userId: string, type: 'image' | 'video'): { canUse: bo
 async function generateImageWithAI(prompt: string): Promise<Blob> {
   console.log("Gerando imagem para:", prompt);
 
-  // 1. POLLINATIONS - API PRINCIPAL (SEMPRE FUNCIONA)
+  // Enriquece o prompt para melhor qualidade
+  const enhancedPrompt = `${prompt}, high quality, detailed, professional photography, 4k resolution`;
+
+  // 1. POLLINATIONS AI - MELHORADO
   try {
     console.log("Tentando Pollinations AI...");
     const seed = Math.floor(Math.random() * 999999);
-    const cleanPrompt = encodeURIComponent(prompt.replace(/[^\w\s]/gi, ' '));
-    const url = `https://image.pollinations.ai/prompt/${cleanPrompt}?width=1024&height=1024&seed=${seed}&nologo=true`;
+
+    // Mantém caracteres especiais importantes e codifica corretamente
+    const cleanPrompt = enhancedPrompt
+      .replace(/[<>]/g, '') // Remove apenas caracteres perigosos
+      .trim();
+
+    // URL com parâmetros otimizados
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(cleanPrompt)}?width=1024&height=1024&seed=${seed}&nologo=true&model=flux`;
 
     console.log("URL gerada:", url);
 
     const response = await fetch(url, {
       method: 'GET',
       headers: {
-        'Accept': 'image/*',
+        'Accept': 'image/jpeg, image/png, image/*',
+        'User-Agent': 'Mozilla/5.0 (compatible; ImageGenerator/1.0)',
       }
     });
 
-    if (response.ok && response.headers.get('content-type')?.includes('image')) {
+    if (response.ok) {
       const blob = await response.blob();
       console.log("Pollinations retornou imagem, tamanho:", blob.size);
 
-      if (blob.size > 100) {
+      if (blob.size > 1000 && blob.type.includes('image')) {
         console.log("✅ Pollinations funcionou!");
         return blob;
       }
     }
-    console.log("Pollinations falhou, status:", response.status);
   } catch (error) {
     console.error("Erro Pollinations:", error);
   }
 
-  // 2. PICSUM - FALLBACK COM IMAGEM ALEATÓRIA
+  // 2. LEXICA ART - NOVA OPÇÃO COM IA
   try {
-    console.log("Tentando Picsum como fallback...");
-    const seed = Math.floor(Math.random() * 1000);
-    const url = `https://picsum.photos/seed/${seed}/1024/1024`;
+    console.log("Tentando Lexica Art...");
 
-    const response = await fetch(url, {
-      method: 'GET',
-      headers: {
-        'Accept': 'image/*',
+    // Lexica usa busca por imagens similares ao prompt
+    const searchUrl = `https://lexica.art/api/v1/search?q=${encodeURIComponent(prompt)}`;
+
+    const searchResponse = await fetch(searchUrl);
+
+    if (searchResponse.ok) {
+      const data = await searchResponse.json();
+
+      if (data.images && data.images.length > 0) {
+        // Pega a primeira imagem mais relevante
+        const imageUrl = data.images[0].src || data.images[0].srcSmall;
+
+        if (imageUrl) {
+          const imageResponse = await fetch(imageUrl);
+
+          if (imageResponse.ok) {
+            const blob = await imageResponse.blob();
+            console.log("✅ Lexica Art funcionou!");
+            return blob;
+          }
+        }
       }
+    }
+  } catch (error) {
+    console.error("Erro Lexica:", error);
+  }
+
+  // 3. CRAIYON (DALL-E MINI) - ALTERNATIVA COM IA
+  try {
+    console.log("Tentando Craiyon...");
+
+    const craiyonResponse = await fetch('https://backend.craiyon.com/generate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        prompt: prompt,
+        version: "c4ue22fb7kb24fbaa4faeaa7",
+        token: null
+      })
     });
 
-    if (response.ok) {
-      const blob = await response.blob();
-      console.log("Picsum retornou imagem, tamanho:", blob.size);
+    if (craiyonResponse.ok) {
+      const data = await craiyonResponse.json();
 
-      if (blob.size > 100) {
-        console.log("✅ Picsum funcionou!");
+      if (data.images && data.images.length > 0) {
+        // Converte base64 para blob
+        const base64 = data.images[0];
+        const byteCharacters = atob(base64);
+        const byteNumbers = new Array(byteCharacters.length);
+
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { type: 'image/jpeg' });
+
+        console.log("✅ Craiyon funcionou!");
         return blob;
       }
     }
   } catch (error) {
-    console.error("Erro Picsum:", error);
+    console.error("Erro Craiyon:", error);
   }
 
-  // 3. PLACEHOLDER - ÚLTIMA TENTATIVA
+  // 4. STABLE DIFFUSION VIA HUGGING FACE (se disponível)
   try {
-    console.log("Usando placeholder como última opção...");
-    const url = `https://via.placeholder.com/1024x1024.png?text=${encodeURIComponent(prompt.substring(0, 20))}`;
+    console.log("Tentando Stable Diffusion...");
 
-    const response = await fetch(url);
+    const models = [
+      "stabilityai/stable-diffusion-2-1",
+      "runwayml/stable-diffusion-v1-5",
+      "CompVis/stable-diffusion-v1-4"
+    ];
+
+    for (const model of models) {
+      try {
+        const response = await fetch(
+          `https://api-inference.huggingface.co/models/${model}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              inputs: prompt,
+              parameters: {
+                width: 1024,
+                height: 1024,
+                num_inference_steps: 30,
+                guidance_scale: 7.5
+              }
+            })
+          }
+        );
+
+        if (response.ok) {
+          const blob = await response.blob();
+
+          if (blob.size > 1000) {
+            console.log("✅ Stable Diffusion funcionou!");
+            return blob;
+          }
+        }
+      } catch  {
+        continue;
+      }
+    }
+  } catch (error) {
+    console.error("Erro Stable Diffusion:", error);
+  }
+
+  // 5. FALLBACK FINAL - Usa Unsplash com busca relacionada ao prompt
+  try {
+    console.log("Usando Unsplash como fallback...");
+
+    // Extrai palavras-chave do prompt
+    const keywords = prompt.split(' ').slice(0, 3).join(',');
+    const unsplashUrl = `https://source.unsplash.com/1024x1024/?${encodeURIComponent(keywords)}`;
+
+    const response = await fetch(unsplashUrl);
 
     if (response.ok) {
       const blob = await response.blob();
-      console.log("✅ Placeholder funcionou!");
+      console.log("✅ Unsplash funcionou!");
       return blob;
     }
   } catch (error) {
-    console.error("Erro placeholder:", error);
+    console.error("Erro Unsplash:", error);
   }
 
-  // 4. CRIA UMA IMAGEM BÁSICA NO SERVIDOR (FALLBACK FINAL)
-  console.log("Criando imagem base64 como fallback final...");
+  // Último recurso - placeholder com texto do prompt
+  console.log("Criando placeholder como última opção...");
+  const placeholderUrl = `https://via.placeholder.com/1024x1024/8B5CF6/FFFFFF.png?text=${encodeURIComponent(prompt.substring(0, 30))}`;
 
-  // Imagem PNG 1x1 pixel mínima válida em base64
-  const base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
-  const bytes = atob(base64);
-  const arr = new Uint8Array(bytes.length);
-  for (let i = 0; i < bytes.length; i++) {
-    arr[i] = bytes.charCodeAt(i);
-  }
+  const response = await fetch(placeholderUrl);
+  const blob = await response.blob();
 
-  return new Blob([arr], { type: 'image/png' });
+  return blob;
 }
 
 // ============================================================

@@ -485,21 +485,22 @@ export function ImageGenerator() {
 
           {/* 🎨 TAB: CRIAR IMAGEM */}
           <TabsContent value="create" className="mt-6">
-            <div className="grid lg:grid-cols-2 gap-6">
+  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
 
               {/* Painel de Controles */}
               <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
-                <Card className="shadow-xl border-purple-200 overflow-hidden">
-                  <div className="h-2 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500" />
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-xl">
-                      <Sparkles className="w-5 h-5 text-purple-500" />
-                      Gerador de Imagens Virais
-                    </CardTitle>
-                  </CardHeader>
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="w-full"
+    >
+      <Card className="shadow-xl border-purple-200 overflow-hidden w-full">
+        <div className="h-2 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500" />
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-lg md:text-xl flex-wrap">
+            <Sparkles className="w-5 h-5 text-purple-500 flex-shrink-0" />
+            <span className="break-words">Gerador de Imagens Virais</span>
+          </CardTitle>
+        </CardHeader>
                   <CardContent>
                     <form onSubmit={handleGenerateImage} className="space-y-6">
 
@@ -628,21 +629,22 @@ export function ImageGenerator() {
               </motion.div>
 
               {/* Preview da Imagem */}
-              <motion.div
-                id="preview-section"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-              >
-                <Card className="shadow-xl border-pink-200 overflow-hidden">
-                  <div className="h-2 bg-gradient-to-r from-pink-500 via-orange-500 to-yellow-500" />
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="flex items-center gap-2 text-xl">
-                        <Eye className="w-5 h-5 text-pink-500" />
-                        Preview da Sua Criação
-                      </CardTitle>
+               <motion.div
+      id="preview-section"
+      initial={{ opacity: 0, x: 20 }}
+      animate={{ opacity: 1, x: 0 }}
+      className="w-full"
+    >
+      <Card className="shadow-xl border-pink-200 overflow-hidden w-full">
+        <div className="h-2 bg-gradient-to-r from-pink-500 via-orange-500 to-yellow-500" />
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-lg md:text-xl flex-wrap">
+              <Eye className="w-5 h-5 text-pink-500 flex-shrink-0" />
+              <span className="break-words">Preview da Sua Criação</span>
+            </CardTitle>
                       {latestImage && (
-                        <div className="flex gap-2">
+              <div className="flex gap-1 sm:gap-2 flex-shrink-0">
                           <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
                             <Button
                               size="icon"
