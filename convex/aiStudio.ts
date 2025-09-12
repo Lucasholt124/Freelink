@@ -323,124 +323,241 @@ export const chatWithMarketing = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; response?: string; message?: string }> => {
     try {
-      console.log("🤖 Processando chat de marketing...");
+      console.log("🤖 Processando chat de marketing inteligente...");
 
-      // Preparar prompt especializado em marketing
-      const marketingPrompt = `Você é um GÊNIO do Marketing Digital, especialista em:
-- Copywriting que converte
-- Estratégias de growth hacking
-- Social media marketing
-- SEO e tráfego orgânico
-- Anúncios pagos (Facebook, Google, TikTok)
-- Email marketing e automação
-- Funis de vendas
-- Psicologia do consumidor
-- Branding e posicionamento
-- Marketing de conteúdo
+      // Tentar usar Groq primeiro (mais inteligente)
+      const GROQ_KEY = process.env.GROQ_API_KEY;
 
-${args.context ? `Contexto específico: ${args.context}` : ''}
+      if (GROQ_KEY) {
+        try {
+          const systemPrompt = `Você é um ESPECIALISTA GENIAL em Marketing Digital com 20 anos de experiência.
 
-Pergunta do usuário: ${args.message}
+SUAS ESPECIALIDADES:
+• Copywriting de alta conversão
+• Estratégias de growth hacking
+• Social media marketing (Instagram, TikTok, LinkedIn, YouTube)
+• SEO e tráfego orgânico
+• Facebook Ads, Google Ads, TikTok Ads
+• Email marketing e automação
+• Funis de vendas e conversão
+• Psicologia do consumidor e gatilhos mentais
+• Branding e posicionamento de marca
+• Marketing de conteúdo e storytelling
+• Lançamentos e fórmulas de vendas
+• Métricas e análise de dados
 
-Responda de forma:
-- Clara e direta
-- Com exemplos práticos
-- Incluindo métricas quando relevante
-- Sugerindo ações específicas
-- Em português do Brasil
+REGRAS IMPORTANTES:
+1. Responda SEMPRE em português do Brasil
+2. Seja ESPECÍFICO e PRÁTICO
+3. Dê exemplos REAIS e APLICÁVEIS
+4. Inclua números, métricas e estatísticas quando relevante
+5. Sugira ferramentas específicas
+6. Forneça passo a passo quando necessário
+7. Use emojis para tornar a leitura mais agradável
+8. FOQUE APENAS no que foi perguntado
+9. Se a pergunta não for sobre marketing, redirecione educadamente para marketing`;
 
-Resposta:`;
+          const userPrompt = args.context
+            ? `[Contexto: ${args.context}]\n\nPergunta: ${args.message}`
+            : args.message;
 
-      // Usar Hugging Face sem token (modelos públicos)
-      const response = await fetch(
-        "https://api-inference.huggingface.co/models/microsoft/DialoGPT-large",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            inputs: marketingPrompt,
-            parameters: {
-              max_length: 500,
-              temperature: 0.8,
+          const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${GROQ_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "mixtral-8x7b-32768", // Modelo mais inteligente
+              messages: [
+                {
+                  role: "system",
+                  content: systemPrompt
+                },
+                {
+                  role: "user",
+                  content: userPrompt
+                }
+              ],
+              temperature: 0.7,
+              max_tokens: 2000,
               top_p: 0.9,
-              return_full_text: false,
-            }
-          }),
-        }
-      );
+              stream: false
+            }),
+          });
 
-      if (!response.ok) {
-        // Fallback para resposta gerada localmente
-        return { success: true, response: generateLocalMarketingResponse(args.message) };
+          if (response.ok) {
+            const data = await response.json();
+        const aiResponse = data.choices[0]?.message?.content || generateIntelligentMarketingResponse(args.message);
+
+            if (aiResponse) {
+              // Salvar no banco
+              await ctx.runMutation(api.aiStudio.saveChatMessage, {
+                userId: args.userId,
+                message: args.message,
+            response: aiResponse, // A resposta da IA
+            context: args.context, // O contexto original para registro
+              });
+
+              return {
+                success: true,
+                response: aiResponse,
+              };
+            }
+          }
+        } catch (groqError) {
+          console.error("Erro com Groq:", groqError);
+        }
       }
 
-      const result = await response.json();
-      const aiResponse = result[0]?.generated_text || generateLocalMarketingResponse(args.message);
+      // Fallback: Usar Hugging Face com modelo melhor
+      try {
+        const huggingFacePrompt = `Marketing Expert Assistant
 
-      // Salvar no banco
+User Question: ${args.message}
+
+Marketing Expert Response:`;
+
+        const response = await fetch(
+          "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              inputs: huggingFacePrompt,
+              parameters: {
+                max_new_tokens: 500,
+                temperature: 0.7,
+                top_p: 0.9,
+                return_full_text: false,
+                do_sample: true,
+              }
+            }),
+          }
+        );
+
+        if (response.ok) {
+          const result = await response.json();
+          let aiResponse = result[0]?.generated_text || "";
+
+          // Se a resposta for muito curta ou vazia, usar resposta inteligente local
+          if (aiResponse.length < 50) {
+            aiResponse = generateIntelligentMarketingResponse(args.message);
+          }
+
+          // Salvar no banco
+          await ctx.runMutation(api.aiStudio.saveChatMessage, {
+            userId: args.userId,
+            message: args.message,
+            response: aiResponse,
+            context: args.context,
+          });
+
+          return {
+            success: true,
+            response: aiResponse,
+          };
+        }
+      } catch (hfError) {
+        console.error("Erro com Hugging Face:", hfError);
+      }
+
+      // Último fallback: Resposta inteligente local
+      const localResponse = generateIntelligentMarketingResponse(args.message);
+
       await ctx.runMutation(api.aiStudio.saveChatMessage, {
         userId: args.userId,
         message: args.message,
-        response: aiResponse,
+        response: localResponse,
         context: args.context,
       });
 
       return {
         success: true,
-        response: aiResponse,
+        response: localResponse,
       };
 
     } catch (error) {
       console.error("Erro no chat:", error);
-      // Retornar resposta local em caso de erro
+
+      // Sempre retornar uma resposta útil
+      const fallbackResponse = generateIntelligentMarketingResponse(args.message);
       return {
         success: true,
-        response: generateLocalMarketingResponse(args.message),
+        response: fallbackResponse,
       };
     }
   },
 });
 
 // Gerador de respostas locais (fallback inteligente)
-function generateLocalMarketingResponse(message: string): string {
+function generateIntelligentMarketingResponse(message: string): string {
   const lowercaseMessage = message.toLowerCase();
 
-  // Respostas especializadas baseadas em palavras-chave
-  if (lowercaseMessage.includes('copy') || lowercaseMessage.includes('texto')) {
-    return `📝 **Estratégia de Copywriting Poderosa:**
+  // Análise mais inteligente da pergunta
+  const keywords = {
+    copy: ['copy', 'texto', 'escrever', 'headline', 'título', 'descrição', 'conteúdo'],
+    instagram: ['instagram', 'insta', 'stories', 'reels', 'feed', 'igtv'],
+    facebook: ['facebook', 'fb', 'ads', 'anúncio', 'campanha', 'público'],
+    tiktok: ['tiktok', 'tik tok', 'viral', 'trend'],
+    seo: ['seo', 'google', 'ranquear', 'palavra-chave', 'keyword', 'orgânico'],
+    email: ['email', 'e-mail', 'newsletter', 'automação', 'sequência'],
+    vendas: ['venda', 'vender', 'conversão', 'funil', 'cliente', 'fechar'],
+    estrategia: ['estratégia', 'estrategia', 'planejamento', 'plano', 'meta'],
+    metricas: ['métrica', 'metrica', 'kpi', 'roi', 'resultado', 'análise'],
+    conteudo: ['conteúdo', 'conteudo', 'post', 'publicação', 'criar'],
+    trafego: ['tráfego', 'trafego', 'visita', 'alcance', 'audiência'],
+    branding: ['marca', 'branding', 'identidade', 'posicionamento'],
+    landing: ['landing', 'página', 'pagina', 'conversão', 'lp'],
+    growth: ['growth', 'crescimento', 'escalar', 'viralizar'],
+    influencer: ['influencer', 'influenciador', 'creator', 'parceria']
+  };
 
-Para criar um copy que converte, siga esta estrutura comprovada:
+  // Identificar o tópico principal da pergunta
+  let mainTopic = null;
+  const matchedKeywords = [];
 
-**1. Headline Matadora (AIDA)**
-- Atenção: Use números, perguntas ou declarações chocantes
-- Exemplo: "Como 3 palavras aumentaram minhas vendas em 247%"
+  for (const [topic, words] of Object.entries(keywords)) {
+    for (const word of words) {
+      if (lowercaseMessage.includes(word)) {
+        mainTopic = topic;
+        matchedKeywords.push(word);
+        break;
+      }
+    }
+    if (mainTopic) break;
+  }
 
-**2. Abertura com História**
-- Conecte emocionalmente com uma história real
-- Mostre a transformação do "antes" para o "depois"
+  // Respostas específicas baseadas no tópico identificado
+  switch(mainTopic) {
+    case 'copy':
+      return `📝 **Estratégia de Copywriting Específica para sua pergunta:**
 
-**3. Pontos de Dor**
-- Liste 3-5 problemas específicos do seu público
-- Use a linguagem exata que eles usam
+      Analisando "${message}", aqui está a resposta direcionada:
 
-**4. Solução Única**
-- Apresente seu produto como A solução
-- Destaque o diferencial competitivo
 
-**5. Prova Social**
-- Depoimentos com números específicos
-- Casos de sucesso mensuráveis
+**Framework AIDA Adaptado:**
 
-**6. Oferta Irresistível**
-- Bônus que valem mais que o produto
-- Garantia que elimina o risco
-- Escassez real (tempo ou quantidade)
+**A - Atenção (Headline)**
+• Use números específicos: "Como X conseguiu Y em Z dias"
+• Perguntas provocativas: "Por que 87% falha em...?"
+• Contradições intrigantes: "O erro que aumentou minhas vendas"
 
-**7. CTA Claro**
-- Um único botão de ação
-- Verbos de comando: "Quero Transformar Minha Vida Agora"
+**I - Interesse (Abertura)**
+• História pessoal relevante em 2-3 linhas
+• Estatística chocante do seu nicho
+• Promessa clara do que vem a seguir
+
+**D - Desejo (Desenvolvimento)**
+• Liste 3-5 benefícios transformadores
+• Use bullets para facilitar leitura
+• Inclua mini-casos de sucesso
+
+**A - Ação (CTA)**
+• Verbo imperativo + benefício + urgência
+• Exemplo: "Comece sua transformação hoje - vagas limitadas"
 
 💡 **Dica de Ouro**: Teste sempre 2 versões do seu copy e meça a conversão!`;
   }

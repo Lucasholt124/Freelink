@@ -1421,7 +1421,8 @@ ${videoScript.proTips.join('\n')}
                           />
 
                           {/* Overlay com ações - SEMPRE VISÍVEL NO MOBILE */}
-                          <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-all duration-300 flex flex-col justify-end p-3`}>
+                         <div className={`absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent ${isMobile ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-all duration-300 flex flex-col justify-end p-3`}>
+
 
                             {/* Texto do Prompt */}
                             <p className="text-white text-xs mb-3 line-clamp-2 font-medium">
@@ -1492,6 +1493,7 @@ ${videoScript.proTips.join('\n')}
               )}
 
               {/* Estatísticas da Galeria */}
+
               {imageHistory.length > 0 && (
                 <motion.div
                   initial={{ y: 20, opacity: 0 }}
@@ -1599,7 +1601,7 @@ ${videoScript.proTips.join('\n')}
             Criado com 💜 para revolucionar o mundo do conteúdo digital
           </p>
           <p className="text-sm text-gray-500">
-            © 2024 - A ferramenta mais incrível do universo
+            © 2025 - A ferramenta mais incrível do universo
           </p>
         </div>
       </motion.footer>

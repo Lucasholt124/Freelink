@@ -5,15 +5,17 @@ import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
+import confetti from 'canvas-confetti';
 import {
   Sparkles, Copy, Check, Brain, Video, RefreshCcw,
   Layers, Camera, MessageSquare, Wand2, ChevronRight, Download,
   Share2, Bookmark, TrendingUp, Zap, Target, Users, Hash,
   Clock, Eye, Heart, MessageCircle, Send, BarChart3, Palette,
   FileText, Image as ImageIcon, Mail, Calendar,
-  MoreHorizontal, Trash2, Menu, ChevronLeft,
-  Search,
-  FolderOpen
+  MoreHorizontal, Trash2, Menu, ChevronLeft, Rocket,
+  Search, FolderOpen, AlertCircle,  Crown,
+  Flame,  Timer, BrainCircuit, Megaphone,
+  CheckCircle2, ChevronDown, DollarSign, Award, Activity, Briefcase
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -27,19 +29,239 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { ScrollArea } from "./scroll-area";
+
 // =================================================================
-// 1. TIPOS DE DADOS
+// 🧠 PSICOLOGIA DE VENDAS AVANÇADA
 // =================================================================
+
+const PSYCHOLOGICAL_TRIGGERS = {
+  urgency: {
+    icon: Timer,
+    title: "Urgência",
+    color: "text-red-500",
+    bgColor: "bg-red-50",
+    borderColor: "border-red-200",
+    phrases: [
+      "⏰ Últimas {X} vagas disponíveis!",
+      "🔥 Oferta válida apenas nas próximas 24h",
+      "⚡ Preço especial termina hoje às 23h59",
+      "🚨 Apenas {X} pessoas podem aproveitar isso",
+      "⏳ A porta fecha em {X} horas"
+    ]
+  },
+  exclusivity: {
+    icon: Crown,
+    title: "Exclusividade",
+    color: "text-purple-500",
+    bgColor: "bg-purple-50",
+    borderColor: "border-purple-200",
+    phrases: [
+      "👑 Convite exclusivo para você",
+      "🎯 Selecionei apenas {X} empresas como a sua",
+      "💎 Acesso VIP liberado especialmente para você",
+      "🔐 Grupo fechado de apenas {X} membros",
+      "✨ Oportunidade única e personalizada"
+    ]
+  },
+  enthusiasm: {
+    icon: Rocket,
+    title: "Entusiasmo",
+    color: "text-orange-500",
+    bgColor: "bg-orange-50",
+    borderColor: "border-orange-200",
+    phrases: [
+      "🚀 Isso está MUDANDO VIDAS!",
+      "🎉 Os resultados são IMPRESSIONANTES!",
+      "💪 Já ajudamos +{X} empresas a EXPLODIR!",
+      "🔥 Estou MUITO animado em te mostrar isso!",
+      "⚡ Prepare-se para REVOLUCIONAR seu negócio!"
+    ]
+  },
+  agreement: {
+    icon: CheckCircle2,
+    title: "Técnica dos 3 Sim",
+    color: "text-green-500",
+    bgColor: "bg-green-50",
+    borderColor: "border-green-200",
+    questions: [
+      "Você concorda que [problema comum] é frustrante?",
+      "Faz sentido que [solução óbvia] seria ideal?",
+      "Você gostaria de [benefício desejado], certo?",
+      "Imagino que [objetivo] seja importante para você, não é?",
+      "Você já percebeu que [insight] pode mudar tudo?"
+    ]
+  },
+  control: {
+    icon: Target,
+    title: "Controle por Perguntas",
+    color: "text-blue-500",
+    bgColor: "bg-blue-50",
+    borderColor: "border-blue-200",
+    questions: [
+      "O que você mais valoriza em [seu nicho]?",
+      "Qual seu maior desafio hoje com [problema]?",
+      "Como seria perfeito para você se [solução]?",
+      "O que te impede de [ação desejada] agora?",
+      "Se eu te mostrasse como [benefício], você consideraria?"
+    ]
+  }
+};
+
+const DM_TEMPLATES = {
+  instagram: {
+    cold: {
+      sequence: [
+        {
+          step: 1,
+          type: "story_reaction",
+          message: "🔥 [Reaja ao story com fogo ou palmas]",
+          wait: "Aguarde resposta ou 2-4 horas"
+        },
+        {
+          step: 2,
+          type: "first_message",
+          message: "Vi que você também é [interesse em comum]! Seu conteúdo sobre [algo específico] foi incrível! 🙌",
+          psychological: ["enthusiasm"]
+        },
+        {
+          step: 3,
+          type: "value_first",
+          message: "Aliás, notei que você [problema específico]. Já tentou [solução rápida]? Funcionou MUITO bem com [case similar]",
+          psychological: ["agreement", "control"]
+        },
+        {
+          step: 4,
+          type: "soft_pitch",
+          message: "Inclusive, estou selecionando apenas 5 [tipo de negócio] este mês para [benefício exclusivo]. Você tem 2 minutos para eu te explicar?",
+          psychological: ["urgency", "exclusivity"]
+        }
+      ]
+    },
+    warm: {
+      sequence: [
+        {
+          step: 1,
+          type: "engagement",
+          message: "[Comente genuinamente em 3-5 posts antes de enviar DM]",
+          wait: "Espalhe ao longo de 3-5 dias"
+        },
+        {
+          step: 2,
+          type: "first_message",
+          message: "Oi [nome]! Venho acompanhando seu trabalho e ADOREI [conquista específica]. Como você conseguiu [resultado]? 🤩",
+          psychological: ["enthusiasm"]
+        },
+        {
+          step: 3,
+          type: "build_rapport",
+          message: "Que incrível! Eu trabalho com [seu nicho] também. Aliás, você já passou por [problema comum]? É super frustrante né?",
+          psychological: ["agreement"]
+        },
+        {
+          step: 4,
+          type: "transition",
+          message: "Desenvolvemos uma solução que resolve exatamente isso em [tempo]. Inclusive, [empresa similar] teve [resultado]. Posso te mostrar como funciona?",
+          psychological: ["control", "exclusivity"]
+        }
+      ]
+    }
+  },
+  linkedin: {
+    cold: {
+      sequence: [
+        {
+          step: 1,
+          type: "connection_request",
+          message: "Olá [nome], admiro seu trabalho em [empresa]. Adoraria trocar insights sobre [área comum].",
+          wait: "Aguarde aceitação"
+        },
+        {
+          step: 2,
+          type: "thank_you",
+          message: "Obrigado por conectar, [nome]! Vi que você lidera [departamento] na [empresa]. Impressionante o crescimento de [métrica] que vocês alcançaram!",
+          psychological: ["enthusiasm"]
+        },
+        {
+          step: 3,
+          type: "value_question",
+          message: "Por curiosidade, como vocês lidam com [desafio específico do setor]? Pergunto porque descobrimos uma forma de [benefício mensurável].",
+          psychological: ["control", "agreement"]
+        },
+        {
+          step: 4,
+          type: "exclusive_offer",
+          message: "Estamos abrindo apenas 3 vagas este trimestre para empresas como a [empresa]. Seria possível uma conversa de 15 min esta semana? Tenho certeza que vai valer a pena.",
+          psychological: ["urgency", "exclusivity"]
+        }
+      ]
+    },
+    warm: {
+      sequence: [
+        {
+          step: 1,
+          type: "engagement",
+          message: "[Interaja com 3-5 posts ao longo de 2 semanas]",
+          wait: "Aguarde reconhecimento mútuo"
+        },
+        {
+          step: 2,
+          type: "first_message",
+          message: "Olá [nome], tenho acompanhado suas publicações sobre [tópico] e realmente aprecio sua visão sobre [insight específico]!",
+          psychological: ["enthusiasm"]
+        },
+        {
+          step: 3,
+          type: "value_share",
+          message: "Aliás, vi que comentou sobre [desafio]. Acabamos de publicar um case study resolvendo exatamente isso para [empresa similar]. Posso compartilhar com você?",
+          psychological: ["agreement", "control"]
+        },
+        {
+          step: 4,
+          type: "meeting_request",
+          message: "Inclusive, estou montando um grupo seleto de [cargo/perfil] para [benefício exclusivo]. Seria valioso trocar ideias por 15min? Tenho algumas insights específicos para sua situação.",
+          psychological: ["exclusivity", "urgency"]
+        }
+      ]
+    }
+  }
+};
+
+// =================================================================
+// TIPOS ATUALIZADOS
+// =================================================================
+
+// ✅ CORREÇÃO: Adicionada interface para o resultado da IA
+interface OutreachMessageResult {
+  title: string;
+  content: string;
+  businessType: string;
+  messageType: string;
+}
+
+interface MessageStep {
+  step: number;
+  type: string;
+  message: string;
+  psychological?: string[];
+  wait?: string;
+  alternatives?: string[];
+}
 
 interface ReelContent {
   title: string;
   hook: string;
   main_points: string[];
   cta: string;
+  viralScore?: number;
+  estimatedReach?: string;
 }
 
 interface CarouselContent {
@@ -50,12 +272,15 @@ interface CarouselContent {
     content: string;
   }[];
   cta_slide: string;
+  designTips?: string[];
 }
 
 interface ImagePostContent {
   idea: string;
   caption: string;
   image_prompt: string;
+  hashtags?: string[];
+  bestTime?: string;
 }
 
 interface StorySequenceContent {
@@ -66,6 +291,7 @@ interface StorySequenceContent {
     content: string;
     options?: string[];
   }[];
+  engagementTips?: string[];
 }
 
 interface BrainResults {
@@ -77,9 +303,13 @@ interface BrainResults {
     image_posts: ImagePostContent[];
     story_sequences: StorySequenceContent[];
   };
+  viral_strategy?: {
+    best_times: string[];
+    hashtag_strategy: string;
+    engagement_hacks: string[];
+  };
 }
 
-// Tipos adicionais para armazenamento local
 interface SavedCampaign {
   id: string;
   theme: string;
@@ -88,6 +318,11 @@ interface SavedCampaign {
   favorite?: boolean;
   notes?: string;
   scheduledItems?: ScheduledItem[];
+  performance?: {
+    views: number;
+    engagement: number;
+    conversions: number;
+  };
 }
 
 interface ScheduledItem {
@@ -98,25 +333,14 @@ interface ScheduledItem {
   time: string;
   posted: boolean;
   platform: string;
+  performance?: {
+    reach: number;
+    engagement: number;
+  };
 }
-
-interface OutreachTemplate {
-  id: string;
-  title: string;
-  content: string;
-  tags: string[];
-  lastUsed?: string;
-}
-interface OutreachMessageResult {
-  title: string;
-  content: string;
-  businessType: string;
-  messageType: string;
-}
-
 
 // =================================================================
-// 2. UTILITÁRIOS DE PERSISTÊNCIA & DADOS
+// UTILITÁRIOS DE PERSISTÊNCIA & DADOS
 // =================================================================
 
 // Funções de localStorage para persistência
@@ -191,7 +415,7 @@ function deleteCampaign(id: string): void {
 }
 
 // Templates de mensagens padrão
-const DEFAULT_OUTREACH_TEMPLATES: OutreachTemplate[] = [
+const DEFAULT_OUTREACH_TEMPLATES = [
   {
     id: "cold-outreach-1",
     title: "Abordagem Inicial",
@@ -248,26 +472,624 @@ Abraços,
   }
 ];
 
-function getOutreachTemplates(): OutreachTemplate[] {
-  try {
-    const templatesJSON = localStorage.getItem(StorageKeys.OUTREACH_TEMPLATES);
-    return templatesJSON ? JSON.parse(templatesJSON) : DEFAULT_OUTREACH_TEMPLATES;
-  } catch (error) {
-    console.error("Erro ao carregar templates:", error);
-    return DEFAULT_OUTREACH_TEMPLATES;
-  }
-}
+// =================================================================
+// 🎯 COMPONENTES REVOLUCIONÁRIOS
+// =================================================================
 
-function saveOutreachTemplates(templates: OutreachTemplate[]): void {
-  try {
-    localStorage.setItem(StorageKeys.OUTREACH_TEMPLATES, JSON.stringify(templates));
-  } catch (error) {
-    console.error("Erro ao salvar templates:", error);
-  }
-}
+// Componente de Gatilhos Psicológicos
+const PsychologicalTriggerBuilder = () => {
+  const [activeTab, setActiveTab] = useState<keyof typeof PSYCHOLOGICAL_TRIGGERS>("urgency");
+
+  return (
+    <Card className="border-2 border-purple-200 shadow-xl">
+      <CardHeader className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
+        <CardTitle className="flex items-center gap-2">
+          <BrainCircuit className="w-5 h-5" />
+          Gatilhos Psicológicos de Vendas
+        </CardTitle>
+        <CardDescription className="text-purple-100">
+          Técnicas comprovadas de persuasão e conversão
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="p-4">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as keyof typeof PSYCHOLOGICAL_TRIGGERS)}>
+          <TabsList className="grid grid-cols-5 mb-4">
+            {Object.entries(PSYCHOLOGICAL_TRIGGERS).map(([key, config]) => {
+              const Icon = config.icon;
+              return (
+                <TabsTrigger
+                  key={key}
+                  value={key}
+                  className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
+                >
+                  <Icon className="w-4 h-4" />
+                </TabsTrigger>
+              );
+            })}
+          </TabsList>
+
+          {Object.entries(PSYCHOLOGICAL_TRIGGERS).map(([key, config]) => (
+            <TabsContent key={key} value={key} className="space-y-3">
+              <Alert className={cn(config.bgColor, config.borderColor)}>
+                <config.icon className={cn("w-4 h-4", config.color)} />
+                <AlertTitle>{config.title}</AlertTitle>
+                <AlertDescription>
+                  {key === "urgency" && "Crie senso de escassez e ação imediata"}
+                  {key === "exclusivity" && "Faça a pessoa se sentir única e especial"}
+                  {key === "enthusiasm" && "Transmita energia e empolgação genuína"}
+                  {key === "agreement" && "Construa micro-compromissos progressivos"}
+                  {key === "control" && "Guie a conversa através de perguntas estratégicas"}
+                </AlertDescription>
+              </Alert>
+
+              <div className="space-y-2">
+                {"phrases" in config && config.phrases?.map((phrase, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="p-3 bg-white border rounded-lg hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(phrase);
+                      toast.success("Frase copiada! 📋");
+                      confetti({
+                        particleCount: 50,
+                        spread: 50,
+                        origin: { y: 0.8 }
+                      });
+                    }}
+                  >
+                    <p className="text-sm">{phrase}</p>
+                  </motion.div>
+                ))}
+
+                {"questions" in config && config.questions?.map((question, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ x: -20, opacity: 0 }}
+                    animate={{ x: 0, opacity: 1 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="p-3 bg-white border rounded-lg hover:shadow-md transition-all cursor-pointer"
+                    onClick={() => {
+                      navigator.clipboard.writeText(question);
+                      toast.success("Pergunta copiada! 📋");
+                    }}
+                  >
+                    <p className="text-sm">{question}</p>
+                  </motion.div>
+                ))}
+              </div>
+            </TabsContent>
+          ))}
+        </Tabs>
+      </CardContent>
+    </Card>
+  );
+};
+
+// Componente de Sequência de DM
+const DMSequenceBuilder = ({
+  platform,
+  approach,
+  businessType,
+  onSequenceReady
+}: {
+  platform: "instagram" | "linkedin";
+  approach: "cold" | "warm";
+  businessType: string;
+  onSequenceReady: (sequence: MessageStep[]) => void;
+}) => {
+  const [currentStep, setCurrentStep] = useState(0);
+  const [customizedSteps, setCustomizedSteps] = useState<MessageStep[]>([]);
+
+  const sequence = DM_TEMPLATES[platform][approach].sequence;
+
+  useEffect(() => {
+    // Personaliza a sequência com o tipo de negócio
+    const personalized = sequence.map(step => ({
+      ...step,
+      message: step.message.replace("[tipo de negócio]", businessType)
+    }));
+    setCustomizedSteps(personalized);
+    onSequenceReady(personalized);
+  }, [platform, approach, businessType, sequence, onSequenceReady]);
+
+  const handleStepEdit = (index: number, newMessage: string) => {
+    const updated = [...customizedSteps];
+    updated[index].message = newMessage;
+    setCustomizedSteps(updated);
+    onSequenceReady(updated);
+  };
+
+  const triggerSuccessAnimation = () => {
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ['#8B5CF6', '#EC4899', '#F59E0B']
+    });
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold flex items-center gap-2">
+          <MessageCircle className="w-5 h-5 text-purple-500" />
+          Sequência de Mensagens {platform === "instagram" ? "Instagram" : "LinkedIn"}
+        </h3>
+        <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white">
+          {approach === "cold" ? "Abordagem Fria" : "Abordagem Morna"}
+        </Badge>
+      </div>
+
+      <ScrollArea className="h-[500px] pr-4">
+        <div className="space-y-4">
+          {customizedSteps.map((step, index) => (
+            <motion.div
+              key={step.step}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.1 }}
+              className={cn(
+                "relative p-4 rounded-xl border-2 transition-all",
+                currentStep === index
+                  ? "border-purple-500 bg-purple-50 shadow-lg"
+                  : "border-gray-200 hover:border-purple-300"
+              )}
+            >
+              {/* Header do Step */}
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3">
+                  <div className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center text-white font-bold",
+                    currentStep === index
+                      ? "bg-gradient-to-r from-purple-500 to-pink-500"
+                      : "bg-gray-400"
+                  )}>
+                    {step.step}
+                  </div>
+                  <div>
+                    <Badge variant="outline" className="text-xs">
+                      {step.type.replace(/_/g, " ").toUpperCase()}
+                    </Badge>
+                    {step.wait && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        <Clock className="w-3 h-3 inline mr-1" />
+                        {step.wait}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setCurrentStep(index)}
+                >
+                  <ChevronRight className={cn(
+                    "w-4 h-4 transition-transform",
+                    currentStep === index && "rotate-90"
+                  )} />
+                </Button>
+              </div>
+
+              {/* Mensagem */}
+              <Textarea
+                value={step.message}
+                onChange={(e) => handleStepEdit(index, e.target.value)}
+                className="min-h-[80px] text-sm bg-white"
+                placeholder="Digite sua mensagem personalizada..."
+              />
+
+              {/* Gatilhos Psicológicos */}
+              {step.psychological && step.psychological.length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {step.psychological.map(trigger => {
+                    const config = PSYCHOLOGICAL_TRIGGERS[trigger as keyof typeof PSYCHOLOGICAL_TRIGGERS];
+                    if (!config) return null;
+                    const Icon = config.icon;
+                    return (
+                      <Badge
+                        key={trigger}
+                        variant="secondary"
+                        className={cn("text-xs", config.bgColor, config.color)}
+                      >
+                        <Icon className="w-3 h-3 mr-1" />
+                        {config.title}
+                      </Badge>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Alternativas */}
+              {step.alternatives && step.alternatives.length > 0 && ( // ✅ CORREÇÃO: Verificação de segurança
+                <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                  <p className="text-xs font-semibold text-blue-800 mb-2">
+                    💡 Alternativas:
+                  </p>
+                  <div className="space-y-1">
+                    {step.alternatives.map((alt, i) => (
+                      <p key={i} className="text-xs text-blue-700">
+                        • {alt}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Linha conectora */}
+              {index < customizedSteps.length - 1 && (
+                <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-0.5 h-8 bg-gradient-to-b from-purple-500 to-transparent" />
+              )}
+            </motion.div>
+          ))}
+        </div>
+      </ScrollArea>
+
+      {/* Botões de Ação */}
+      <div className="flex gap-3 pt-4 border-t">
+        <Button
+          className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+          onClick={() => {
+            const allMessages = customizedSteps.map(s => `Step ${s.step}: ${s.message}`).join("\n\n");
+            navigator.clipboard.writeText(allMessages);
+            toast.success("Sequência completa copiada! 🚀");
+            triggerSuccessAnimation();
+          }}
+        >
+          <Copy className="w-4 h-4 mr-2" />
+          Copiar Sequência Completa
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => {
+            const doc = customizedSteps.map(s =>
+              `PASSO ${s.step} - ${s.type.toUpperCase()}\n${s.message}\n${s.wait ? `⏰ ${s.wait}` : ''}\n`
+            ).join("\n---\n");
+
+            const blob = new Blob([doc], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `sequencia-dm-${platform}-${approach}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+          }}
+        >
+          <Download className="w-4 h-4 mr-2" />
+          Baixar
+        </Button>
+      </div>
+    </div>
+  );
+};
+
+// Componente Principal de Mensagens de Vendas
+const AdvancedOutreachSystem = () => {
+  const [platform, setPlatform] = useState<"instagram" | "linkedin">("instagram");
+  const [approach, setApproach] = useState<"cold" | "warm">("cold");
+  const [businessType, setBusinessType] = useState("");
+  const [targetProfile, setTargetProfile] = useState("");
+  const [productDescription, setProductDescription] = useState("");
+  const [pricePoint, setPricePoint] = useState("");
+  const [generatedSequence, setGeneratedSequence] = useState<MessageStep[]>([]);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [selectedTriggers, setSelectedTriggers] = useState<string[]>([]);
+  const [showPsychologyTips, setShowPsychologyTips] = useState(true);
+
+  const generateOutreachMessage = useAction(api.brain.generateOutreachMessage);
+
+  const handleGenerateAI = async () => {
+    if (!businessType || !targetProfile || !productDescription) {
+      toast.error("Preencha todos os campos obrigatórios!");
+      return;
+    }
+
+    setIsGeneratingAI(true);
+    try {
+      const customization = `
+        Negócio: ${businessType}
+        Perfil Alvo: ${targetProfile}
+        Produto: ${productDescription}
+        Preço: ${pricePoint || "Não especificado"}
+        Gatilhos: ${selectedTriggers.join(", ")}
+
+        IMPORTANTE: Use os 5 princípios psicológicos:
+        1. Crie urgência real (tempo limitado, vagas limitadas)
+        2. Faça a pessoa se sentir especial e única
+        3. Demonstre entusiasmo genuíno
+        4. Use a técnica dos 3 sim (micro-compromissos)
+        5. Controle com perguntas estratégicas
+      `;
+
+      const result = await generateOutreachMessage({
+        businessType,
+        messageType: `${platform}_${approach}`,
+        customization
+      }) as OutreachMessageResult; // ✅ CORREÇÃO: Tipagem do resultado
+
+      if (result && result.content) {
+        // Transforma o resultado em steps
+        const aiSteps: MessageStep[] = [
+          {
+            step: 1,
+            type: "ai_generated",
+            message: result.content,
+            psychological: selectedTriggers
+          }
+        ];
+
+        setGeneratedSequence(aiSteps);
+        toast.success("Mensagem gerada com IA! 🤖✨");
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
+      }
+    } catch (error) {
+      console.error("Erro ao gerar com IA:", error);
+      toast.error("Erro ao gerar mensagem. Tente novamente!");
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
+        <CardHeader>
+          <CardTitle className="text-2xl flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-xl">
+              <Megaphone className="w-6 h-6 text-white" />
+            </div>
+            Sistema Avançado de Vendas por DM
+          </CardTitle>
+          <CardDescription className="text-base">
+            Converta 10x mais usando psicologia comportamental e IA
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            {[
+              { label: "Taxa de Resposta", value: "+87%", icon: MessageCircle, color: "text-green-600" },
+              { label: "Conversão", value: "+43%", icon: TrendingUp, color: "text-blue-600" },
+              { label: "Tempo de Venda", value: "-65%", icon: Clock, color: "text-purple-600" },
+              { label: "ROI Médio", value: "12x", icon: DollarSign, color: "text-orange-600" }
+            ].map((stat, i) => (
+              <div key={i} className="bg-white p-3 rounded-lg text-center">
+                <stat.icon className={cn("w-5 h-5 mx-auto mb-1", stat.color)} />
+                <p className="text-2xl font-bold">{stat.value}</p>
+                <p className="text-xs text-muted-foreground">{stat.label}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Configuração */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Configuração da Campanha</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Plataforma */}
+            <div className="space-y-2">
+              <Label>Plataforma</Label>
+              <Select value={platform} onValueChange={(v) => setPlatform(v as "instagram" | "linkedin")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="instagram">
+                    <div className="flex items-center gap-2">
+                      <Camera className="w-4 h-4" />
+                      Instagram
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="linkedin">
+                    <div className="flex items-center gap-2">
+                      <Briefcase className="w-4 h-4" />
+                      LinkedIn
+                    </div>
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Abordagem */}
+            <div className="space-y-2">
+              <Label>Tipo de Abordagem</Label>
+              <Select value={approach} onValueChange={(v) => setApproach(v as "cold" | "warm")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="cold">
+                    ❄️ Fria (Sem contato prévio)
+                  </SelectItem>
+                  <SelectItem value="warm">
+                    🔥 Morna (Com engajamento prévio)
+                  </SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Tipo de Negócio */}
+            <div className="space-y-2">
+              <Label>Seu Negócio/Serviço *</Label>
+              <Input
+                value={businessType}
+                onChange={(e) => setBusinessType(e.target.value)}
+                placeholder="Ex: Consultoria de Marketing Digital"
+              />
+            </div>
+
+            {/* Perfil Alvo */}
+            <div className="space-y-2">
+              <Label>Perfil do Cliente Ideal *</Label>
+              <Input
+                value={targetProfile}
+                onChange={(e) => setTargetProfile(e.target.value)}
+                placeholder="Ex: Donos de e-commerce faturando 50-200k/mês"
+              />
+            </div>
+
+            {/* Produto */}
+            <div className="space-y-2">
+              <Label>O que você vende? *</Label>
+              <Textarea
+                value={productDescription}
+                onChange={(e) => setProductDescription(e.target.value)}
+                placeholder="Ex: Mentoria de 3 meses para escalar vendas online"
+                className="min-h-[80px]"
+              />
+            </div>
+
+            {/* Preço */}
+            <div className="space-y-2">
+              <Label>Faixa de Preço</Label>
+              <Input
+                value={pricePoint}
+                onChange={(e) => setPricePoint(e.target.value)}
+                placeholder="Ex: R$ 2.997 ou R$ 997/mês"
+              />
+            </div>
+          </div>
+
+          {/* Toggle de Dicas */}
+          <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Brain className="w-5 h-5 text-purple-600" />
+              <Label htmlFor="psychology-tips">Mostrar Dicas de Psicologia</Label>
+            </div>
+            <Switch
+              id="psychology-tips"
+              checked={showPsychologyTips}
+              onCheckedChange={setShowPsychologyTips}
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Gatilhos Psicológicos */}
+      {showPsychologyTips && (
+        <PsychologicalTriggerBuilder />
+      )}
+
+      {/* Sequência de Mensagens */}
+      <Card className="border-2 border-purple-200">
+        <CardHeader className="bg-gradient-to-r from-purple-100 to-pink-100">
+          <CardTitle>Sequência de Mensagens Personalizada</CardTitle>
+          <CardDescription>
+            Siga este roteiro testado e comprovado para maximizar conversões
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {businessType && targetProfile && productDescription ? (
+            <DMSequenceBuilder
+              platform={platform}
+              approach={approach}
+              businessType={businessType}
+              onSequenceReady={setGeneratedSequence}
+            />
+          ) : (
+            <Alert>
+              <AlertCircle className="w-4 h-4" />
+              <AlertTitle>Configuração Necessária</AlertTitle>
+              <AlertDescription>
+                Preencha os campos obrigatórios acima para gerar sua sequência personalizada.
+              </AlertDescription>
+            </Alert>
+          )}
+        </CardContent>
+        <CardFooter className="border-t bg-gray-50">
+          <div className="w-full flex flex-col sm:flex-row gap-3">
+            <Button
+              onClick={handleGenerateAI}
+              disabled={!businessType || !targetProfile || !productDescription || isGeneratingAI}
+              className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
+            >
+              {isGeneratingAI ? (
+                <>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  >
+                    <RefreshCcw className="w-4 h-4 mr-2" />
+                  </motion.div>
+                  Gerando com IA...
+                </>
+              ) : (
+                <>
+                  <BrainCircuit className="w-4 h-4 mr-2" />
+                  Gerar com IA Avançada
+                </>
+              )}
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setBusinessType("");
+                setTargetProfile("");
+                setProductDescription("");
+                setPricePoint("");
+                setSelectedTriggers([]);
+                setGeneratedSequence([]);
+              }}
+            >
+              <RefreshCcw className="w-4 h-4 mr-2" />
+              Limpar
+            </Button>
+          </div>
+        </CardFooter>
+      </Card>
+
+      {/* Resultados da IA */}
+      {generatedSequence.length > 0 && generatedSequence[0].type === "ai_generated" && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-green-600" />
+                Mensagem Gerada com IA
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="p-4 bg-white rounded-lg border">
+                <p className="whitespace-pre-wrap">{generatedSequence[0].message}</p>
+              </div>
+              <div className="mt-4 flex gap-2">
+                <Button
+                  onClick={() => {
+                    navigator.clipboard.writeText(generatedSequence[0].message);
+                    toast.success("Mensagem copiada! 📋");
+                  }}
+                >
+                  <Copy className="w-4 h-4 mr-2" />
+                  Copiar
+                </Button>
+                <Button variant="outline">
+                  <Share2 className="w-4 h-4 mr-2" />
+                  Compartilhar
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      )}
+    </div>
+  );
+};
 
 // =================================================================
-// 3. COMPONENTES AUXILIARES OTIMIZADOS
+// COMPONENTES AUXILIARES
 // =================================================================
 
 function AnimatedCounter({ value, duration = 2000 }: { value: number; duration?: number }) {
@@ -425,7 +1247,7 @@ function EnhancedLoadingSpinner() {
       clearInterval(progressInterval);
       clearInterval(stepInterval);
     };
-  }, []);
+  }, [steps.length]);
 
   const CurrentIcon = steps[currentStep].icon;
 
@@ -510,10 +1332,10 @@ function EnhancedLoadingSpinner() {
 }
 
 // =================================================================
-// 4. COMPONENTES DE CONTEÚDO REDESENHADOS
+// COMPONENTES DE CONTEÚDO
 // =================================================================
 
-const ReelCard = ({
+const EnhancedReelCard = ({
   reel,
   index,
   onSchedule
@@ -524,65 +1346,116 @@ const ReelCard = ({
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
+  const [showViralTips, setShowViralTips] = useState(false);
 
-  const handleSchedule = () => {
-    if (onSchedule) {
-      onSchedule("reel", index);
-      setIsSaved(true);
-    }
-  };
+  const viralScore = reel.viralScore || Math.floor(Math.random() * 30) + 70;
+  const estimatedReach = reel.estimatedReach || `${Math.floor(Math.random() * 50) + 10}k-${Math.floor(Math.random() * 100) + 50}k`;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: index * 0.1 }}
+      whileHover={{ y: -5 }}
     >
-      <Card className="overflow-hidden group hover:shadow-xl transition-all duration-300 border-2 hover:border-blue-500/50">
+      <Card className="overflow-hidden group hover:shadow-2xl transition-all duration-300 border-2 hover:border-purple-500/50">
+        <div className="h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500" />
+
         <CardHeader className="pb-3">
           <div className="flex items-start justify-between gap-3">
-            <div className="flex-1 space-y-1">
+            <div className="flex-1 space-y-2">
               <div className="flex items-center gap-2">
-                <div className="p-1.5 rounded-lg bg-blue-500/10">
-                  <Video className="w-4 h-4 text-blue-500" />
-                </div>
-                <Badge variant="secondary" className="text-xs">
+                <motion.div
+                  className="p-2 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500"
+                  animate={{ rotate: [0, 10, -10, 0] }}
+                  transition={{ repeat: Infinity, duration: 3 }}
+                >
+                  <Video className="w-4 h-4 text-white" />
+                </motion.div>
+                <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white">
                   Reel #{index + 1}
                 </Badge>
+                {viralScore > 85 && (
+                  <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse">
+                    <Flame className="w-3 h-3 mr-1" />
+                    VIRAL
+                  </Badge>
+                )}
                 {isSaved && (
-                  <Badge variant="outline" className="text-xs bg-green-500/10 text-green-600 border-green-500/20">
-                    <Calendar className="w-3 h-3 mr-1" />
-                    Agendado
+                  <Badge variant="outline" className="bg-green-50 text-green-600 border-green-300">
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Salvo
                   </Badge>
                 )}
               </div>
-              <CardTitle className="text-lg line-clamp-2 group-hover:text-blue-600 transition-colors">
+
+              <CardTitle className="text-lg line-clamp-2 group-hover:text-purple-600 transition-colors">
                 {reel.title}
               </CardTitle>
+
+              {/* Métricas de Performance */}
+              <div className="flex items-center gap-4 text-xs">
+                <div className="flex items-center gap-1">
+                  <Activity className="w-3 h-3 text-purple-500" />
+                  <span className="font-semibold">{viralScore}%</span>
+                  <span className="text-muted-foreground">viral score</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Eye className="w-3 h-3 text-blue-500" />
+                  <span className="font-semibold">{estimatedReach}</span>
+                  <span className="text-muted-foreground">alcance</span>
+                </div>
+              </div>
             </div>
+
             <div className="flex gap-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setShowViralTips(!showViralTips)}
+                    >
+                      <Zap className="w-4 h-4 text-yellow-500" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Dicas para Viralizar</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
               <CopyButton
-                textToCopy={`🎬 REEL: ${reel.title}\n\n🪝 GANCHO (3s):\n${reel.hook}\n\n📝 ROTEIRO:\n${reel.main_points.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📢 CTA:\n${reel.cta}`}
+                textToCopy={`🎬 REEL VIRAL\n\n${reel.title}\n\n🪝 GANCHO:\n${reel.hook}\n\n📝 ROTEIRO:\n${reel.main_points.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📢 CTA:\n${reel.cta}`}
               />
+
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
                     <MoreHorizontal className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={handleSchedule}>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuLabel>Ações Rápidas</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => onSchedule?.("reel", index)}>
                     <Calendar className="w-4 h-4 mr-2" />
-                    {isSaved ? "Editar agendamento" : "Agendar publicação"}
+                    Agendar publicação
                   </DropdownMenuItem>
                   <DropdownMenuItem onClick={() => setIsSaved(!isSaved)}>
                     <Bookmark className="w-4 h-4 mr-2" />
                     {isSaved ? "Remover dos salvos" : "Salvar para depois"}
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <Share2 className="w-4 h-4 mr-2" />
-                    Compartilhar
+                    <Award className="w-4 h-4 mr-2" />
+                    Marcar como favorito
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem className="text-red-600">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Excluir
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -591,34 +1464,60 @@ const ReelCard = ({
         </CardHeader>
 
         <CardContent className="space-y-3">
+          {/* Gancho Viral */}
           <motion.div
-            className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-950/20 dark:to-orange-950/20 rounded-xl border border-yellow-200/50 dark:border-yellow-800/50"
+            className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200"
             whileHover={{ scale: 1.02 }}
           >
             <div className="flex items-start gap-3">
-              <div className="p-2 bg-yellow-500/20 rounded-lg">
-                <Zap className="w-4 h-4 text-yellow-600" />
+              <div className="p-2 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg">
+                <Zap className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1">
-                <p className="text-xs font-semibold text-yellow-800 dark:text-yellow-200 mb-1">
-                  Gancho Viral (primeiros 3 segundos)
+                <p className="text-xs font-bold text-yellow-800 mb-1 uppercase tracking-wider">
+                  Gancho Matador (0-3 segundos)
                 </p>
-                <p className="text-sm font-medium">{reel.hook}</p>
+                <p className="text-sm font-semibold text-gray-900">{reel.hook}</p>
               </div>
             </div>
           </motion.div>
 
+          {/* Dicas para Viralizar */}
+          <AnimatePresence>
+            {showViralTips && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="overflow-hidden"
+              >
+                <Alert className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+                  <Rocket className="w-4 h-4 text-purple-600" />
+                  <AlertTitle className="text-purple-900">Dicas para Viralizar</AlertTitle>
+                  <AlertDescription className="mt-2 space-y-2">
+                    <p className="text-sm">✅ Poste entre 11h-13h ou 19h-21h</p>
+                    <p className="text-sm">✅ Use trending sounds do momento</p>
+                    <p className="text-sm">✅ Adicione legendas grandes e coloridas</p>
+                    <p className="text-sm">✅ Mantenha duração entre 7-15 segundos</p>
+                    <p className="text-sm">✅ Responda TODOS comentários na 1ª hora</p>
+                  </AlertDescription>
+                </Alert>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Roteiro Expandível */}
           <div className="space-y-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsExpanded(!isExpanded)}
-              className="w-full justify-between hover:bg-muted/50"
+              className="w-full justify-between hover:bg-purple-50"
             >
               <span className="text-sm font-medium">Ver roteiro completo</span>
-              <ChevronRight className={cn(
+              <ChevronDown className={cn(
                 "w-4 h-4 transition-transform",
-                isExpanded && "rotate-90"
+                isExpanded && "rotate-180"
               )} />
             </Button>
 
@@ -631,9 +1530,10 @@ const ReelCard = ({
                   className="overflow-hidden"
                 >
                   <div className="pt-2 space-y-3">
+                    {/* Pontos do Roteiro */}
                     <div className="space-y-2">
-                      <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                        Pontos Principais do Roteiro
+                      <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                        Sequência do Roteiro
                       </p>
                       {reel.main_points.map((point, idx) => (
                         <motion.div
@@ -641,27 +1541,40 @@ const ReelCard = ({
                           initial={{ x: -20, opacity: 0 }}
                           animate={{ x: 0, opacity: 1 }}
                           transition={{ delay: idx * 0.1 }}
-                          className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg"
+                          className="flex items-start gap-3 p-3 bg-gradient-to-r from-purple-50 to-pink-50 rounded-lg border border-purple-200"
                         >
-                          <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center">
-                            <span className="text-xs font-bold text-primary">{idx + 1}</span>
+                          <div className="flex-shrink-0 w-7 h-7 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center">
+                            <span className="text-xs font-bold text-white">{idx + 1}</span>
                           </div>
-                          <p className="text-sm">{point}</p>
+                          <p className="text-sm flex-1">{point}</p>
                         </motion.div>
                       ))}
                     </div>
 
-                    <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-xl">
+                    {/* CTA */}
+                    <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                       <div className="flex items-start gap-3">
-                        <div className="p-2 bg-blue-500/20 rounded-lg">
-                          <Send className="w-4 h-4 text-blue-600" />
+                        <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
+                          <Send className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1">
-                          <p className="text-xs font-semibold text-blue-800 dark:text-blue-200 mb-1">
-                            Call to Action
+                          <p className="text-xs font-bold text-blue-800 mb-1">
+                            CALL TO ACTION PODEROSO
                           </p>
                           <p className="text-sm font-medium">{reel.cta}</p>
                         </div>
+                      </div>
+                    </div>
+
+                    {/* Hashtags Sugeridas */}
+                    <div className="p-3 bg-gray-50 rounded-lg">
+                      <p className="text-xs font-bold text-gray-600 mb-2">HASHTAGS VIRAIS</p>
+                      <div className="flex flex-wrap gap-1">
+                        {['#reels', '#viral', '#fyp', '#trending', '#brasil'].map(tag => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
                       </div>
                     </div>
                   </div>
@@ -670,35 +1583,59 @@ const ReelCard = ({
             </AnimatePresence>
           </div>
 
-          <div className="flex items-center justify-between pt-2 border-t">
+          {/* Footer com Ações */}
+          <div className="flex items-center justify-between pt-3 border-t">
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
                 <Clock className="w-3 h-3" />
-                15-30s
+                7-15s ideal
               </span>
               <span className="flex items-center gap-1">
                 <TrendingUp className="w-3 h-3" />
-                Alto potencial viral
+                Alto engajamento
               </span>
             </div>
-            <Button
-              size="sm"
-              variant={isSaved ? "default" : "ghost"}
-              className={cn("h-7 text-xs", isSaved && "bg-blue-500 hover:bg-blue-600")}
-              onClick={handleSchedule}
-            >
-              {isSaved ? (
-                <>
-                  <Calendar className="w-3 h-3 mr-1" />
-                  Agendado
-                </>
-              ) : (
-                <>
-                  <Calendar className="w-3 h-3 mr-1" />
-                  Agendar
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant={isSaved ? "default" : "outline"}
+                className={cn(
+                  "h-7 text-xs",
+                  isSaved && "bg-gradient-to-r from-purple-600 to-pink-600"
+                )}
+                onClick={() => {
+                  setIsSaved(!isSaved);
+                  if (!isSaved) {
+                    confetti({
+                      particleCount: 50,
+                      spread: 50,
+                      origin: { y: 0.8 }
+                    });
+                    toast.success("Reel salvo com sucesso! 🎉");
+                  }
+                }}
+              >
+                {isSaved ? (
+                  <>
+                    <CheckCircle2 className="w-3 h-3 mr-1" />
+                    Salvo
+                  </>
+                ) : (
+                  <>
+                    <Bookmark className="w-3 h-3 mr-1" />
+                    Salvar
+                  </>
+                )}
+              </Button>
+              <Button
+                size="sm"
+                className="h-7 text-xs bg-gradient-to-r from-blue-600 to-purple-600"
+                onClick={() => onSchedule?.("reel", index)}
+              >
+                <Calendar className="w-3 h-3 mr-1" />
+                Agendar
+              </Button>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -997,459 +1934,7 @@ const StorySequenceCard = ({ seq, index }: { seq: StorySequenceContent; index: n
 };
 
 // =================================================================
-// 5. COMPONENTES DE HISTÓRICO E PLANEJAMENTO
-// =================================================================
-
-const CampaignHistory = ({
-  campaigns,
-  onSelect,
-  onDelete
-}: {
-  campaigns: SavedCampaign[];
-  onSelect: (campaign: SavedCampaign) => void;
-  onDelete: (id: string) => void;
-}) => {
-  const [searchTerm, setSearchTerm] = useState("");
-
-  const filteredCampaigns = campaigns.filter(campaign =>
-    campaign.theme.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  return (
-    <Card className="w-full">
-      <CardHeader className="pb-3">
-        <CardTitle className="text-xl">Histórico de Campanhas</CardTitle>
-        <CardDescription>
-          Acesse e gerencie suas campanhas anteriores
-        </CardDescription>
-        <div className="relative mt-2">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar campanhas..."
-            className="pl-10"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-          />
-        </div>
-      </CardHeader>
-      <CardContent className="p-0">
-        <div className="max-h-[400px] overflow-y-auto">
-          {filteredCampaigns.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">
-              <FolderOpen className="h-12 w-12 mx-auto mb-2 opacity-20" />
-              <p>Nenhuma campanha encontrada</p>
-              {searchTerm && (
-                <Button
-                  variant="link"
-                  onClick={() => setSearchTerm("")}
-                  className="mt-2"
-                >
-                  Limpar busca
-                </Button>
-              )}
-            </div>
-          ) : (
-            <div className="divide-y">
-              {filteredCampaigns.map((campaign) => (
-                <div
-                  key={campaign.id}
-                  className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
-                >
-                  <div
-                    className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer"
-                    onClick={() => onSelect(campaign)}
-                  >
-                    <div className="bg-primary/10 rounded-md p-2">
-                      <Brain className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h4 className="font-medium text-sm truncate">{campaign.theme}</h4>
-                      <div className="flex items-center gap-2 mt-1">
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(campaign.date).toLocaleDateString()}
-                        </p>
-                        {campaign.favorite && (
-                          <Badge variant="secondary" className="text-[10px] py-0 px-1">
-                            <Bookmark className="h-3 w-3 text-yellow-500 mr-1" />
-                            Favorito
-                          </Badge>
-                        )}
-                        <Badge variant="outline" className="text-[10px] py-0 px-1">
-                          {campaign.results.content_pack.reels.length +
-                            campaign.results.content_pack.carousels.length +
-                            campaign.results.content_pack.image_posts.length +
-                            campaign.results.content_pack.story_sequences.length
-                          } itens
-                        </Badge>
-                      </div>
-                    </div>
-                  </div>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={() => onSelect(campaign)}>
-                        <Eye className="h-4 w-4 mr-2" />
-                        Visualizar
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Calendar className="h-4 w-4 mr-2" />
-                        Ver agendamentos
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        className="text-destructive"
-                        onClick={() => onDelete(campaign.id)}
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Excluir
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const OutreachMessageGenerator = () => {
-  // ... (seus hooks useState, useEffect, etc. continuam aqui como antes)
-  const [messageType, setMessageType] = useState("cold");
-  const [businessType, setBusinessType] = useState("");
-  const [selectedTemplate, setSelectedTemplate] = useState<OutreachTemplate | null>(null);
-  const [customizedMessage, setCustomizedMessage] = useState("");
-  const [savedTemplates, setSavedTemplates] = useState<OutreachTemplate[]>([]);
-
-  const generateOutreachMessage = useAction(api.brain.generateOutreachMessage)
-
-  useEffect(() => {
-    const saved = getOutreachTemplates();
-    setSavedTemplates(saved);
-  }, []);
-
-  const handleTemplateSelect = (template: OutreachTemplate) => {
-    setSelectedTemplate(template);
-    setCustomizedMessage(template.content);
-  };
-
-  const handleSaveTemplate = () => {
-    if (!customizedMessage.trim()) return;
-    const newTemplate: OutreachTemplate = {
-      id: selectedTemplate?.id || generateId(),
-      title: selectedTemplate?.title || `Template ${savedTemplates.length + 1}`,
-      content: customizedMessage,
-      tags: selectedTemplate?.tags || [messageType],
-      lastUsed: new Date().toISOString()
-    };
-    const updated = selectedTemplate
-      ? savedTemplates.map(t => t.id === selectedTemplate.id ? newTemplate : t)
-      : [...savedTemplates, newTemplate];
-    setSavedTemplates(updated);
-    saveOutreachTemplates(updated);
-    toast.success("Template salvo com sucesso!");
-  };
-
-  const handleGenerateNew = async () => {
-    if (!businessType) {
-      toast.error("Por favor, selecione um tipo de negócio para a IA.");
-      return;
-    }
-
-    toast.info("Gerando nova mensagem com a IA...");
-
-    try {
-      const result = await generateOutreachMessage({
-        businessType,
-        messageType,
-        // ✅ CORREÇÃO 1: Instrução clara para a IA em vez de enviar a mensagem antiga.
-        customization: "Gerar uma mensagem completamente nova com base nas opções selecionadas."
-      }) as OutreachMessageResult;
-
-      // ✅ CORREÇÃO 2: Verificar se o conteúdo realmente existe antes de atualizar.
-      if (result && result.content && result.content.trim() !== "") {
-        setCustomizedMessage(result.content);
-        toast.success("Nova mensagem gerada com sucesso!");
-      } else {
-        // Se a IA não retornar conteúdo, o toast de sucesso não será mais exibido.
-        console.error("A IA retornou uma resposta sem conteúdo:", result);
-        toast.error("A IA não conseguiu gerar um texto válido. Tente novamente.");
-      }
-
-    } catch (error) {
-      console.error("Erro na action generateOutreachMessage:", error);
-      toast.error(error instanceof Error ? error.message : "Erro ao gerar mensagem");
-    }
-  };
-
-  return (
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Mail className="h-5 w-5 text-primary" />
-          Gerador de Mensagens de Abordagem
-        </CardTitle>
-        <CardDescription>
-          Crie mensagens personalizadas para abordar potenciais clientes
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* ✅ CORREÇÃO 1: MUDADO DE 'md:grid-cols-2' PARA 'lg:grid-cols-2' */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Coluna da Esquerda: Controles */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Mensagem</label>
-              <Select value={messageType} onValueChange={setMessageType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de mensagem" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="cold">Abordagem Inicial (Cold)</SelectItem>
-                  <SelectItem value="followup">Follow-up</SelectItem>
-                  <SelectItem value="agency">Proposta para Agências</SelectItem>
-                  <SelectItem value="offer">Oferta Especial</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Tipo de Negócio</label>
-              <Select value={businessType} onValueChange={setBusinessType}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione o tipo de negócio" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="agency">Agência</SelectItem>
-                  <SelectItem value="freelancer">Freelancer</SelectItem>
-                  <SelectItem value="ecommerce">E-commerce</SelectItem>
-                  <SelectItem value="local">Negócio Local</SelectItem>
-                  <SelectItem value="saas">SaaS / Tech</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="p-3 bg-muted rounded-lg">
-              <h4 className="text-sm font-medium mb-2">Templates Salvos</h4>
-              <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto">
-                {savedTemplates.map(template => (
-                  <Button
-                    key={template.id}
-                    variant={selectedTemplate?.id === template.id ? "default" : "outline"}
-                    className="justify-start h-auto py-2 px-3"
-                    onClick={() => handleTemplateSelect(template)}
-                  >
-                    <div className="text-left">
-                      <p className="text-sm font-medium">{template.title}</p>
-                      <p className="text-xs text-muted-foreground truncate w-full">
-                        {template.content.substring(0, 50)}...
-                      </p>
-                    </div>
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Coluna da Direita: Mensagem e Ações */}
-          <div className="flex flex-col space-y-4">
-            <label className="text-sm font-medium">Mensagem Personalizada</label>
-            <Textarea
-              value={customizedMessage}
-              onChange={(e) => setCustomizedMessage(e.target.value)}
-              placeholder="Sua mensagem personalizada aparecerá aqui..."
-              // ✅ CORREÇÃO 2: Altura responsiva para o Textarea
-              className="min-h-[200px] sm:min-h-[285px] flex-grow font-mono text-sm"
-            />
-
-            {/* ✅ CORREÇÃO 3: Layout dos botões agora é responsivo */}
-            <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button variant="outline" size="sm" onClick={handleSaveTemplate}>
-                      <Bookmark className="h-4 w-4 mr-2" />
-                      Salvar Template
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    Salvar para usar novamente
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <div className="flex flex-col-reverse sm:flex-row gap-2">
-                <Button variant="outline" size="sm" onClick={handleGenerateNew}>
-                  <RefreshCcw className="h-4 w-4 mr-2" />
-                  Regenerar
-                </Button>
-                <CopyButton textToCopy={customizedMessage} variant="default" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const ContentCalendar = ({
-  scheduledItems = [],
-  onScheduleEdit,
-
-}: {
-  scheduledItems?: ScheduledItem[],
-  onScheduleEdit?: (item: ScheduledItem) => void,
-  onScheduleDelete?: (id: string) => void
-}) => {
-
-  const today = new Date();
-  const [currentMonth, setCurrentMonth] = useState(today.getMonth());
-  const [currentYear, setCurrentYear] = useState(today.getFullYear());
-
-  const getDaysInMonth = (year: number, month: number) => {
-    return new Date(year, month + 1, 0).getDate();
-  };
-
-  const getFirstDayOfMonth = (year: number, month: number) => {
-    return new Date(year, month, 1).getDay();
-  };
-
-  // Gera os dias do calendário
-  const generateCalendarDays = () => {
-    const daysInMonth = getDaysInMonth(currentYear, currentMonth);
-    const firstDay = getFirstDayOfMonth(currentYear, currentMonth);
-    const days = [];
-
-    // Dias do mês anterior
-    for (let i = 0; i < firstDay; i++) {
-      days.push({ day: null, isPreviousMonth: true });
-    }
-
-    // Dias do mês atual
-    for (let day = 1; day <= daysInMonth; day++) {
-      const date = new Date(currentYear, currentMonth, day);
-      const dateString = date.toISOString().split('T')[0];
-
-      // Verifica se há itens agendados para este dia
-      const dayItems = scheduledItems.filter(item =>
-        item.date === dateString
-      );
-
-      days.push({
-        day,
-        date: dateString,
-        isToday:
-          today.getDate() === day &&
-          today.getMonth() === currentMonth &&
-          today.getFullYear() === currentYear,
-        items: dayItems
-      });
-    }
-
-    return days;
-  };
-
-  const calendarDays = generateCalendarDays();
-  const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-
-  return (
-    <Card className="w-full">
-      <CardHeader className="pb-3">
-        <div className="flex items-center justify-between">
-          <CardTitle>Calendário de Conteúdo</CardTitle>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => {
-              if (currentMonth === 0) {
-                setCurrentMonth(11);
-                setCurrentYear(currentYear - 1);
-              } else {
-                setCurrentMonth(currentMonth - 1);
-              }
-            }}>
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
-            <span className="text-sm font-medium">
-              {monthNames[currentMonth]} {currentYear}
-            </span>
-            <Button variant="outline" size="sm" onClick={() => {
-              if (currentMonth === 11) {
-                setCurrentMonth(0);
-                setCurrentYear(currentYear + 1);
-              } else {
-                setCurrentMonth(currentMonth + 1);
-              }
-            }}>
-              <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-7 gap-1">
-          {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
-            <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
-              {day}
-            </div>
-          ))}
-          {calendarDays.map((dayData, i) => (
-            <div
-              key={i}
-              className={cn(
-                "h-20 sm:h-24 p-1 border rounded-md relative overflow-hidden",
-                dayData.isPreviousMonth && "opacity-30 bg-muted",
-                dayData.isToday && "border-primary/50 bg-primary/5",
-                !dayData.day && "bg-muted/50"
-              )}
-            >
-              {dayData.day && (
-                <>
-                  <div className="text-xs text-right mb-1">{dayData.day}</div>
-                  <div className="overflow-y-auto max-h-[calc(100%-20px)]">
-                    {dayData.items?.map((item) => (
-                      <div
-                        key={item.id}
-                        className="text-[10px] mb-1 px-1 py-0.5 rounded-sm bg-primary/10 text-primary truncate cursor-pointer"
-                        onClick={() => onScheduleEdit?.(item)}
-                      >
-                        {item.time.substring(0, 5)} - {item.contentType}
-                      </div>
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          ))}
-        </div>
-      </CardContent>
-      <CardFooter className="border-t p-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-blue-500"></div>
-            <span>Reels</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-purple-500"></div>
-            <span>Carrosséis</span>
-          </div>
-          <div className="flex items-center gap-1">
-            <div className="w-2 h-2 rounded-full bg-pink-500"></div>
-            <span>Posts</span>
-          </div>
-        </div>
-      </CardFooter>
-    </Card>
-  );
-};
-
-// =================================================================
-// 6. COMPONENTE PRINCIPAL OTIMIZADO
+// COMPONENTE PRINCIPAL
 // =================================================================
 
 export default function FreelinkBrainTool() {
@@ -1457,7 +1942,7 @@ export default function FreelinkBrainTool() {
   const [results, setResults] = useState<BrainResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("reels");
-  const [mainView, setMainView] = useState<"generator" | "planner" | "outreach" | "history">("generator");
+  const [mainView, setMainView] = useState<"generator" | "planner" | "outreach" | "psychology">("generator");
   const [savedCampaigns, setSavedCampaigns] = useState<SavedCampaign[]>([]);
   const [currentCampaignId, setCurrentCampaignId] = useState<string | null>(null);
   const [isNewCampaignSaved, setIsNewCampaignSaved] = useState(false);
@@ -1468,6 +1953,7 @@ export default function FreelinkBrainTool() {
     type: "reel" | "carousel" | "image_post" | "story_sequence";
     index: number;
   } | null>(null);
+  const [showViralMode, setShowViralMode] = useState(true);
 
   const inputRef = useRef<HTMLInputElement>(null);
   const generateIdeas = useAction(api.brain.generateContentIdeas);
@@ -1524,6 +2010,11 @@ export default function FreelinkBrainTool() {
 
       setIsLoading(false);
       toast.success("Sua campanha de conteúdo está pronta! ✨");
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 }
+      });
     } catch (error) {
       setIsLoading(false);
       toast.error(error instanceof Error ? error.message : "Erro ao gerar conteúdo");
@@ -1615,6 +2106,11 @@ export default function FreelinkBrainTool() {
     setIsScheduleDialogOpen(false);
     setCurrentScheduleItem(null);
     toast.success("Conteúdo agendado com sucesso!");
+    confetti({
+      particleCount: 50,
+      spread: 50,
+      origin: { y: 0.6 }
+    });
   };
 
   const contentCounts = results ? {
@@ -1629,187 +2125,350 @@ export default function FreelinkBrainTool() {
   } : null;
 
   return (
-    <div className="w-full max-w-6xl mx-auto space-y-6 pb-20">
-      {/* Barra de navegação superior */}
-      <div className="sticky top-0 z-20 bg-background/95 backdrop-blur-lg border-b mb-6">
-        <div className="container py-3 flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3">
-            <h1 className="font-bold text-xl sm:text-2xl flex items-center">
-              <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Freelink<span className="font-black">Brain</span>
-              </span>
-              <Badge variant="outline" className="ml-2 hidden sm:flex">PRO</Badge>
-            </h1>
+    <div className="w-full min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+      {/* Header Revolucionário */}
+      <motion.div
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-purple-200 shadow-lg"
+      >
+        <div className="container py-3 px-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <motion.div
+                animate={{ rotate: [0, 10, -10, 0] }}
+                transition={{ repeat: Infinity, duration: 3 }}
+              >
+                <h1 className="font-black text-2xl sm:text-3xl flex items-center">
+                  <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                    Freelink<span className="text-purple-800">Brain</span>
+                  </span>
+                </h1>
+              </motion.div>
 
-            <Tabs value={mainView} className="hidden sm:block">
-              <TabsList>
-                <TabsTrigger
-                  value="generator"
-                  onClick={() => setMainView("generator")}
-                  className="flex items-center gap-1"
-                >
-                  <Sparkles className="w-3.5 h-3.5" />
-                  <span>Gerador</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="planner"
-                  onClick={() => setMainView("planner")}
-                  className="flex items-center gap-1"
-                >
-                  <Calendar className="w-3.5 h-3.5" />
-                  <span>Planner</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="outreach"
-                  onClick={() => setMainView("outreach")}
-                  className="flex items-center gap-1"
-                >
-                  <Mail className="w-3.5 h-3.5" />
-                  <span>Mensagens</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+              <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg">
+                <Crown className="w-3 h-3 mr-1" />
+                PRO
+              </Badge>
 
-          <div className="flex items-center gap-2">
-            <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Clock className="w-4 h-4" />
-                  <span className="hidden sm:inline">Histórico</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
-                <SheetHeader className="mb-4">
-                  <SheetTitle>Histórico de Campanhas</SheetTitle>
-                  <SheetDescription>
-                    Acesse suas campanhas anteriores
-                  </SheetDescription>
-                </SheetHeader>
-                <CampaignHistory
-                  campaigns={savedCampaigns}
-                  onSelect={handleCampaignSelect}
-                  onDelete={handleCampaignDelete}
-                />
-              </SheetContent>
-            </Sheet>
+              {showViralMode && (
+                <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse">
+                  <Flame className="w-3 h-3 mr-1" />
+                  MODO VIRAL
+                </Badge>
+              )}
+            </div>
 
-            <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
-              <DialogContent className="sm:max-w-md">
-                <DialogHeader>
-                  <DialogTitle>Agendar Publicação</DialogTitle>
-                  <DialogDescription>
-                    Escolha quando este conteúdo será publicado
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Data</label>
-                      <Input
-                        id="schedule-date"
-                        type="date"
-                        min={new Date().toISOString().split('T')[0]}
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label className="text-sm font-medium">Horário</label>
-                      <Input id="schedule-time" type="time" />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Plataforma</label>
-                    <Select defaultValue="instagram">
-                      <SelectTrigger>
-                        <SelectValue placeholder="Selecione a plataforma" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="instagram">Instagram</SelectItem>
-                        <SelectItem value="tiktok">TikTok</SelectItem>
-                        <SelectItem value="facebook">Facebook</SelectItem>
-                        <SelectItem value="linkedin">LinkedIn</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
-                    Cancelar
-                  </Button>
-                  <Button onClick={() => {
-                    const dateInput = document.getElementById('schedule-date') as HTMLInputElement;
-                    const timeInput = document.getElementById('schedule-time') as HTMLInputElement;
-                    const date = dateInput?.value;
-                    const time = timeInput?.value;
-
-                    if (!date || !time) {
-                      toast.error("Por favor, selecione data e horário.");
-                      return;
-                    }
-
-                    handleScheduleSave(date, time, "instagram");
-                  }}>
-                    Agendar
-                  </Button>
-                </DialogFooter>
-              </DialogContent>
-            </Dialog>
-
-            {/* Menu móvel */}
-            <Sheet>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="icon" className="sm:hidden">
-                  <Menu className="w-4 h-4" />
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left">
-                <SheetHeader className="mb-4">
-                  <SheetTitle>Menu</SheetTitle>
-                </SheetHeader>
-                <div className="grid gap-2">
-                  <Button
-                    variant={mainView === "generator" ? "default" : "outline"}
-                    className="justify-start"
+            {/* Navegação Principal */}
+            <div className="hidden lg:flex items-center gap-2">
+              <Tabs value={mainView} className="w-auto">
+                <TabsList className="bg-white/80 backdrop-blur">
+                  <TabsTrigger
+                    value="generator"
                     onClick={() => setMainView("generator")}
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
                   >
                     <Sparkles className="w-4 h-4 mr-2" />
-                    Gerador de Conteúdo
-                  </Button>
-                  <Button
-                    variant={mainView === "planner" ? "default" : "outline"}
-                    className="justify-start"
+                    Gerador
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="psychology"
+                    onClick={() => setMainView("psychology")}
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
+                  >
+                    <BrainCircuit className="w-4 h-4 mr-2" />
+                    Psicologia
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="planner"
                     onClick={() => setMainView("planner")}
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
                   >
                     <Calendar className="w-4 h-4 mr-2" />
-                    Planejador de Conteúdo
-                  </Button>
-                  <Button
-                    variant={mainView === "outreach" ? "default" : "outline"}
-                    className="justify-start"
+                    Planner
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="outreach"
                     onClick={() => setMainView("outreach")}
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
                   >
                     <Mail className="w-4 h-4 mr-2" />
-                    Mensagens de Abordagem
+                    Vendas DM
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            {/* Ações */}
+            <div className="flex items-center gap-2">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => setShowViralMode(!showViralMode)}
+                      className={cn(
+                        "relative",
+                        showViralMode && "text-orange-500"
+                      )}
+                    >
+                      <Flame className="w-5 h-5" />
+                      {showViralMode && (
+                        <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full animate-ping" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{showViralMode ? "Desativar" : "Ativar"} Modo Viral</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsHistorySidebarOpen(true)}
+                className="gap-2"
+              >
+                <Clock className="w-4 h-4" />
+                <span className="hidden sm:inline">Histórico</span>
+              </Button>
+
+              {/* Menu Mobile */}
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="icon" className="lg:hidden">
+                    <Menu className="w-4 h-4" />
                   </Button>
-                  <Separator className="my-2" />
-                  <Button
-                    variant="outline"
-                    className="justify-start"
-                    onClick={() => setIsHistorySidebarOpen(true)}
-                  >
-                    <Clock className="w-4 h-4 mr-2" />
-                    Histórico de Campanhas
-                  </Button>
-                </div>
-              </SheetContent>
-            </Sheet>
+                </SheetTrigger>
+                <SheetContent side="left" className="w-[300px]">
+                  <SheetHeader>
+                    <SheetTitle>Menu</SheetTitle>
+                  </SheetHeader>
+                  <div className="grid gap-2 mt-4">
+                    <Button
+                      variant={mainView === "generator" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => {
+                        setMainView("generator");
+                      }}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Gerador de Conteúdo
+                    </Button>
+                    <Button
+                      variant={mainView === "psychology" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => {
+                        setMainView("psychology");
+                      }}
+                    >
+                      <BrainCircuit className="w-4 h-4 mr-2" />
+                      Psicologia de Vendas
+                    </Button>
+                    <Button
+                      variant={mainView === "planner" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => {
+                        setMainView("planner");
+                      }}
+                    >
+                      <Calendar className="w-4 h-4 mr-2" />
+                      Planejador
+                    </Button>
+                    <Button
+                      variant={mainView === "outreach" ? "default" : "outline"}
+                      className="justify-start"
+                      onClick={() => {
+                        setMainView("outreach");
+                      }}
+                    >
+                      <Mail className="w-4 h-4 mr-2" />
+                      Vendas por DM
+                    </Button>
+                  </div>
+                </SheetContent>
+              </Sheet>
+            </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
-      <div className="px-4 pb-20">
+      {/* Histórico */}
+      <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
+        <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
+          <SheetHeader className="mb-4">
+            <SheetTitle>Histórico de Campanhas</SheetTitle>
+            <SheetDescription>
+              Acesse suas campanhas anteriores
+            </SheetDescription>
+          </SheetHeader>
+
+          {/* Componente de Histórico */}
+          <div className="space-y-4">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar campanhas..."
+                className="pl-10"
+              />
+            </div>
+
+            <div className="max-h-[500px] overflow-y-auto">
+              {savedCampaigns.length === 0 ? (
+                <div className="p-6 text-center text-muted-foreground">
+                  <FolderOpen className="h-12 w-12 mx-auto mb-2 opacity-20" />
+                  <p>Nenhuma campanha encontrada</p>
+                </div>
+              ) : (
+                <div className="divide-y">
+                  {savedCampaigns.map((campaign) => (
+                    <div
+                      key={campaign.id}
+                      className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors"
+                    >
+                      <div
+                        className="flex items-start gap-3 flex-1 min-w-0 cursor-pointer"
+                        onClick={() => handleCampaignSelect(campaign)}
+                      >
+                        <div className="bg-primary/10 rounded-md p-2">
+                          <Brain className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-medium text-sm truncate">{campaign.theme}</h4>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className="text-xs text-muted-foreground">
+                              {new Date(campaign.date).toLocaleDateString()}
+                            </p>
+                            {campaign.favorite && (
+                              <Badge variant="secondary" className="text-[10px] py-0 px-1">
+                                <Bookmark className="h-3 w-3 text-yellow-500 mr-1" />
+                                Favorito
+                              </Badge>
+                            )}
+                            <Badge variant="outline" className="text-[10px] py-0 px-1">
+                              {campaign.results.content_pack.reels.length +
+                                campaign.results.content_pack.carousels.length +
+                                campaign.results.content_pack.image_posts.length +
+                                campaign.results.content_pack.story_sequences.length
+                              } itens
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem onClick={() => handleCampaignSelect(campaign)}>
+                            <Eye className="h-4 w-4 mr-2" />
+                            Visualizar
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>
+                            <Calendar className="h-4 w-4 mr-2" />
+                            Ver agendamentos
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            className="text-destructive"
+                            onClick={() => handleCampaignDelete(campaign.id)}
+                          >
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* Modal de Agendamento */}
+      <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Agendar Publicação</DialogTitle>
+            <DialogDescription>
+              Escolha quando este conteúdo será publicado
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Data</label>
+                <Input
+                  id="schedule-date"
+                  type="date"
+                  min={new Date().toISOString().split('T')[0]}
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Horário</label>
+                <Input id="schedule-time" type="time" />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Plataforma</label>
+              <Select defaultValue="instagram">
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione a plataforma" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="instagram">Instagram</SelectItem>
+                  <SelectItem value="tiktok">TikTok</SelectItem>
+                  <SelectItem value="facebook">Facebook</SelectItem>
+                  <SelectItem value="linkedin">LinkedIn</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsScheduleDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={() => {
+              const dateInput = document.getElementById('schedule-date') as HTMLInputElement;
+              const timeInput = document.getElementById('schedule-time') as HTMLInputElement;
+              const date = dateInput?.value;
+              const time = timeInput?.value;
+
+              if (!date || !time) {
+                toast.error("Por favor, selecione data e horário.");
+                return;
+              }
+
+              handleScheduleSave(date, time, "instagram");
+            }}>
+              Agendar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Conteúdo Principal */}
+      <div className="container px-4 py-8">
         <AnimatePresence mode="wait">
-          {/* Gerador de Conteúdo */}
+          {/* View: Psicologia de Vendas */}
+          {mainView === "psychology" && (
+            <motion.div
+              key="psychology"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+            >
+              <AdvancedOutreachSystem />
+            </motion.div>
+          )}
+
+          {/* View: Gerador de Conteúdo */}
           {mainView === "generator" && (
             <motion.div
               key="generator"
@@ -1828,7 +2487,7 @@ export default function FreelinkBrainTool() {
                   className="space-y-6"
                 >
                   {/* Header com métricas */}
-                 <div className="lg:sticky top-[57px] z-10 bg-background/80 backdrop-blur-lg border-b">
+                  <div className="lg:sticky top-[57px] z-10 bg-background/80 backdrop-blur-lg border-b">
                     <div className="py-4 space-y-4">
                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                         <div className="flex-1">
@@ -1930,27 +2589,27 @@ export default function FreelinkBrainTool() {
                         </div>
                         <Separator className="my-2 h-px bg-muted" />
                         <div className="flex items-start gap-3">
-  <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
-  <div className="flex-1">
-    <p className="text-xs font-semibold text-muted-foreground uppercase">
-      Público-Alvo
-    </p>
-    <div className="text-sm">
-      {typeof results.target_audience_suggestion === 'string'
-        ? results.target_audience_suggestion
-        : (
-          <ul className="list-disc list-inside space-y-1">
-            {Object.entries(results.target_audience_suggestion).map(([key, value]) => (
-              <li key={key}>
-                <strong className="capitalize">{key.replace(/_/g, ' ')}:</strong> {Array.isArray(value) ? value.join(', ') : String(value)}
-              </li>
-            ))}
-          </ul>
-        )
-      }
-    </div>
-  </div>
-</div>
+                          <Users className="w-4 h-4 text-muted-foreground mt-0.5" />
+                          <div className="flex-1">
+                            <p className="text-xs font-semibold text-muted-foreground uppercase">
+                              Público-Alvo
+                            </p>
+                            <div className="text-sm">
+                              {typeof results.target_audience_suggestion === 'string'
+                                ? results.target_audience_suggestion
+                                : (
+                                  <ul className="list-disc list-inside space-y-1">
+                                    {Object.entries(results.target_audience_suggestion).map(([key, value]) => (
+                                      <li key={key}>
+                                        <strong className="capitalize">{key.replace(/_/g, ' ')}:</strong> {Array.isArray(value) ? value.join(', ') : String(value)}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                )
+                              }
+                            </div>
+                          </div>
+                        </div>
                       </CardContent>
                     </Card>
 
@@ -1987,34 +2646,34 @@ export default function FreelinkBrainTool() {
                       </div>
 
                       <div className="mt-6 space-y-4">
-                     <TabsContent value="reels" className="mt-0 space-y-4">
-  {results.content_pack?.reels?.map((reel, i) => (
-    <ReelCard
-      key={i}
-      reel={reel}
-      index={i}
-      onSchedule={handleScheduleContent}
-    />
-  ))}
-</TabsContent>
+                        <TabsContent value="reels" className="mt-0 space-y-4">
+                          {results.content_pack?.reels?.map((reel, i) => (
+                            <EnhancedReelCard
+                              key={i}
+                              reel={reel}
+                              index={i}
+                              onSchedule={handleScheduleContent}
+                            />
+                          ))}
+                        </TabsContent>
 
                         <TabsContent value="carousels" className="mt-0 space-y-4">
-  {results.content_pack?.carousels?.map((carousel, i) => (
-    <CarouselViewer key={i} carousel={carousel} index={i} />
-  ))}
-</TabsContent>
+                          {results.content_pack?.carousels?.map((carousel, i) => (
+                            <CarouselViewer key={i} carousel={carousel} index={i} />
+                          ))}
+                        </TabsContent>
 
                         <TabsContent value="image_posts" className="mt-0 space-y-4">
-  {results.content_pack?.image_posts?.map((post, i) => (
-    <ImagePostCard key={i} post={post} index={i} />
-  ))}
-</TabsContent>
+                          {results.content_pack?.image_posts?.map((post, i) => (
+                            <ImagePostCard key={i} post={post} index={i} />
+                          ))}
+                        </TabsContent>
 
                         <TabsContent value="story_sequences" className="mt-0 space-y-4">
-  {results.content_pack?.story_sequences?.map((seq, i) => (
-    <StorySequenceCard key={i} seq={seq} index={i} />
-  ))}
-</TabsContent>
+                          {results.content_pack?.story_sequences?.map((seq, i) => (
+                            <StorySequenceCard key={i} seq={seq} index={i} />
+                          ))}
+                        </TabsContent>
                       </div>
                     </Tabs>
                   </div>
@@ -2159,7 +2818,8 @@ export default function FreelinkBrainTool() {
                                 "Fórmula de lançamento digital",
                                 "Estratégia de conteúdo para e-commerce",
                                 "Marketing para serviços locais",
-                                "Automação de marketing"
+                                "Automação de marketing",
+                                "Estratégia de conteúdo para e-commerce"
                               ].map((example) => (
                                 <motion.div
                                   key={example}
@@ -2244,7 +2904,7 @@ export default function FreelinkBrainTool() {
             </motion.div>
           )}
 
-          {/* Planejador de Conteúdo */}
+          {/* View: Planejador */}
           {mainView === "planner" && (
             <motion.div
               key="planner"
@@ -2268,11 +2928,62 @@ export default function FreelinkBrainTool() {
                     </Button>
                   </div>
 
-                  <ContentCalendar
-                    scheduledItems={scheduledItems}
-                    onScheduleEdit={() => {}}
-                    onScheduleDelete={() => {}}
-                  />
+                  {/* Calendar Component */}
+                  <Card className="w-full">
+                    <CardHeader className="pb-3">
+                      <div className="flex items-center justify-between">
+                        <CardTitle>Calendário de Conteúdo</CardTitle>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm">
+                            <ChevronLeft className="h-4 w-4" />
+                          </Button>
+                          <span className="text-sm font-medium">
+                            Setembro 2025
+                          </span>
+                          <Button variant="outline" size="sm">
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="grid grid-cols-7 gap-1">
+                        {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
+                          <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
+                            {day}
+                          </div>
+                        ))}
+                        {Array(35).fill(0).map((_, i) => (
+                          <div
+                            key={i}
+                            className={cn(
+                              "h-20 sm:h-24 p-1 border rounded-md relative overflow-hidden",
+                              i === 15 && "border-primary/50 bg-primary/5"
+                            )}
+                          >
+                            <div className="text-xs text-right mb-1">{(i - 4) > 0 && (i - 4) <= 30 ? i - 4 : ""}</div>
+                            <div className="overflow-y-auto max-h-[calc(100%-20px)]">
+                              {i === 10 && (
+                                <div className="text-[10px] mb-1 px-1 py-0.5 rounded-sm bg-blue-500/10 text-blue-500 truncate cursor-pointer">
+                                  10:00 - Reel
+                                </div>
+                              )}
+                              {i === 15 && (
+                                <div className="text-[10px] mb-1 px-1 py-0.5 rounded-sm bg-purple-500/10 text-purple-500 truncate cursor-pointer">
+                                  14:00 - Carrossel
+                                </div>
+                              )}
+                              {i === 22 && (
+                                <div className="text-[10px] mb-1 px-1 py-0.5 rounded-sm bg-pink-500/10 text-pink-500 truncate cursor-pointer">
+                                  16:30 - Post
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
                 </>
               ) : (
                 <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
@@ -2293,7 +3004,7 @@ export default function FreelinkBrainTool() {
             </motion.div>
           )}
 
-          {/* Mensagens de Abordagem */}
+          {/* View: Outreach */}
           {mainView === "outreach" && (
             <motion.div
               key="outreach"
@@ -2317,11 +3028,132 @@ export default function FreelinkBrainTool() {
                 </Select>
               </div>
 
-              <OutreachMessageGenerator />
+              {/* Componente de Mensagens */}
+              <Card className="w-full">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 text-primary" />
+                    Gerador de Mensagens de Abordagem
+                  </CardTitle>
+                  <CardDescription>
+                    Crie mensagens personalizadas para abordar potenciais clientes
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Coluna da Esquerda: Controles */}
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Tipo de Mensagem</label>
+                        <Select defaultValue="cold">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo de mensagem" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="cold">Abordagem Inicial (Cold)</SelectItem>
+                            <SelectItem value="followup">Follow-up</SelectItem>
+                            <SelectItem value="agency">Proposta para Agências</SelectItem>
+                            <SelectItem value="offer">Oferta Especial</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <label className="text-sm font-medium">Tipo de Negócio</label>
+                        <Select defaultValue="agency">
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o tipo de negócio" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="agency">Agência</SelectItem>
+                            <SelectItem value="freelancer">Freelancer</SelectItem>
+                            <SelectItem value="ecommerce">E-commerce</SelectItem>
+                            <SelectItem value="local">Negócio Local</SelectItem>
+                            <SelectItem value="saas">SaaS / Tech</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="p-3 bg-muted rounded-lg">
+                        <h4 className="text-sm font-medium mb-2">Templates Salvos</h4>
+                        <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto">
+                          {DEFAULT_OUTREACH_TEMPLATES.map(template => (
+                            <Button
+                              key={template.id}
+                              variant="outline"
+                              className="justify-start h-auto py-2 px-3"
+                            >
+                              <div className="text-left">
+                                <p className="text-sm font-medium">{template.title}</p>
+                                <p className="text-xs text-muted-foreground truncate w-full">
+                                  {template.content.substring(0, 50)}...
+                                </p>
+                              </div>
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Coluna da Direita: Mensagem e Ações */}
+                    <div className="flex flex-col space-y-4">
+                      <label className="text-sm font-medium">Mensagem Personalizada</label>
+                      <Textarea
+                        placeholder="Sua mensagem personalizada aparecerá aqui..."
+                        className="min-h-[200px] sm:min-h-[285px] flex-grow font-mono text-sm"
+                        defaultValue={DEFAULT_OUTREACH_TEMPLATES[0].content}
+                      />
+
+                      <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button variant="outline" size="sm">
+                                <Bookmark className="h-4 w-4 mr-2" />
+                                Salvar Template
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              Salvar para usar novamente
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+
+                        <div className="flex flex-col-reverse sm:flex-row gap-2">
+                          <Button variant="outline" size="sm">
+                            <RefreshCcw className="h-4 w-4 mr-2" />
+                            Regenerar
+                          </Button>
+                          <Button variant="default" size="sm">
+                            <Copy className="h-4 w-4 mr-2" />
+                            Copiar
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Footer */}
+      <motion.footer
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        className="mt-20 py-8 border-t bg-gradient-to-r from-purple-50 to-pink-50"
+      >
+        <div className="max-w-7xl mx-auto px-4 text-center">
+          <p className="text-gray-600 mb-2">
+            Criado com 💜 para revolucionar o mundo do conteúdo digital
+          </p>
+          <p className="text-sm text-gray-500">
+            © 2025 - A ferramenta mais incrível do universo
+          </p>
+        </div>
+      </motion.footer>
     </div>
   );
 }
