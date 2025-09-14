@@ -199,6 +199,7 @@ export default function BillingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+
   useEffect(() => {
     const success = searchParams.get("success");
     const canceled = searchParams.get("canceled");
