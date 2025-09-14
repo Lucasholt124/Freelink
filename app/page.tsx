@@ -320,7 +320,15 @@ export default function LandingPage() {
               </div>
               <div className="bg-gradient-to-br from-purple-700 to-blue-700 p-2 rounded-3xl shadow-2xl">
                 <video
-                  src="/Explicaçao.mp4"
+                  src="/GravaçãodeTela.mp4"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                  preload="auto"
+                  width="100%"
+                  height="100%"
+                  style={{ objectFit: 'cover' }}
                   poster="/Painel.png"
                   controls
                   className="rounded-2xl w-full shadow-lg"
