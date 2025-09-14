@@ -47,7 +47,4 @@ package-lock.json
 /.clerk/
 
 /lib/generated/prisma
-public/Explicaçao.mp4
-*.mp4
-public/videos/
-public/*.mp4
+
