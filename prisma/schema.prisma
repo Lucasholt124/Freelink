@@ -1,0 +1,45 @@
+// Em prisma/schema.prisma
+// (Substitua o arquivo inteiro)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Link {
+  id        String   @id @default(cuid())
+  url       String
+  title     String?
+  userId    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clicks    Click[]
+
+  @@map("Links")
+}
+
+model Click {
+  // =======================================================
+  // A CORREÇÃO DEFINITIVA ESTÁ AQUI
+  // =======================================================
+  // Alinhamos o tipo do 'id' com o que seu banco de dados espera (SERIAL -> Int)
+  id            Int      @id @default(autoincrement())
+  timestamp     DateTime @default(now())
+  profileUserId String
+  linkId        String
+  visitorId     String
+  country       String?
+  region        String?
+  city          String?
+  referrer      String?
+  userAgent     String?
+
+  link          Link     @relation(fields: [linkId], references: [id], onDelete: Cascade)
+
+  @@map("clicks")
+}
