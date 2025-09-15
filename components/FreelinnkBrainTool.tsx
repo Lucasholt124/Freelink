@@ -2125,39 +2125,41 @@ export default function FreelinkBrainTool() {
   } : null;
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-      {/* Header Revolucionário */}
-      <motion.div
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-purple-200 shadow-lg"
-      >
-        <div className="container py-3 px-4">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3">
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ repeat: Infinity, duration: 3 }}
-              >
-                <h1 className="font-black text-2xl sm:text-3xl flex items-center">
-                  <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-                    Freelink<span className="text-purple-800">Brain</span>
-                  </span>
-                </h1>
-              </motion.div>
+  <div className="w-full min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+  {/* Header Revolucionário - Removido sticky para melhor navegação mobile */}
+  <motion.div
+    initial={{ y: -100 }}
+    animate={{ y: 0 }}
+    className="relative bg-white/90 backdrop-blur-xl border-b border-purple-200 shadow-lg"
+  >
+    <div className="container py-3 px-4">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ repeat: Infinity, duration: 3 }}
+          >
+            <h1 className="font-black text-xl sm:text-2xl md:text-3xl flex items-center">
+              <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                Freelink<span className="text-purple-800">Brain</span>
+              </span>
+            </h1>
+          </motion.div>
 
-              <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg">
-                <Crown className="w-3 h-3 mr-1" />
-                PRO
+          <div className="flex items-center gap-2">
+            <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg text-xs sm:text-sm">
+              <Crown className="w-3 h-3 mr-1" />
+              PRO
+            </Badge>
+
+            {showViralMode && (
+              <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse text-xs sm:text-sm">
+                <Flame className="w-3 h-3 mr-1" />
+                MODO VIRAL
               </Badge>
-
-              {showViralMode && (
-                <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse">
-                  <Flame className="w-3 h-3 mr-1" />
-                  MODO VIRAL
-                </Badge>
-              )}
-            </div>
+            )}
+          </div>
+        </div>
 
             {/* Navegação Principal */}
             <div className="hidden lg:flex items-center gap-2">
