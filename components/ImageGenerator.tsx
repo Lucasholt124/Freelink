@@ -286,59 +286,61 @@ export function ImageGenerator() {
   // ========== 🎯 RENDERIZAÇÃO PERFEITA ==========
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+  <div className="w-full min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
 
-      {/* 🎯 HEADER REVOLUCIONÁRIO */}
-      <motion.div
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className="sticky top-0 z-50 bg-white/90 backdrop-blur-xl border-b border-purple-200 shadow-lg"
-      >
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
-                <ArrowLeft className="w-5 h-5 mr-2" />
-                <span className="hidden sm:inline font-medium">Voltar</span>
-              </Link>
+  {/* 🎯 HEADER REVOLUCIONÁRIO - Removido sticky para melhor navegação mobile */}
+  <motion.div
+    initial={{ y: -100 }}
+    animate={{ y: 0 }}
+    className="relative bg-white/90 backdrop-blur-xl border-b border-purple-200 shadow-lg"
+  >
+    <div className="max-w-7xl mx-auto px-4 py-3">
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+        <div className="flex items-center gap-3 sm:gap-4 w-full sm:w-auto justify-between sm:justify-start">
+          <Link href="/dashboard" className="flex items-center text-gray-600 hover:text-purple-600 transition-colors">
+            <ArrowLeft className="w-5 h-5 mr-1 sm:mr-2" />
+            <span className="text-sm sm:text-base font-medium">Voltar</span>
+          </Link>
 
-              <motion.div
-                animate={{ rotate: [0, 10, -10, 0] }}
-                transition={{ repeat: Infinity, duration: 3 }}
-              >
-                <Badge className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 text-white border-0 shadow-lg">
-                  <Crown className="w-4 h-4 mr-1" />
-                  Premium
-                </Badge>
-              </motion.div>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-4">
-              {usageStats && (
-                <div className="flex items-center gap-2 text-sm">
-                  <Badge variant="outline" className="border-purple-300">
-                    <Sparkles className="w-3 h-3 mr-1" />
-                    <span className="hidden sm:inline">Imagens:</span> {usageStats.geminiImagesRemaining}
-                  </Badge>
-                  <Badge variant="outline" className="border-pink-300">
-                    <Film className="w-3 h-3 mr-1" />
-                    <span className="hidden sm:inline">Roteiros:</span> {usageStats.geminiVideosRemaining}
-                  </Badge>
-                </div>
-              )}
-
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowTutorial(true)}
-                className="hover:bg-purple-100"
-              >
-                <BookOpen className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{ repeat: Infinity, duration: 3 }}
+          >
+            <Badge className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 text-white border-0 shadow-lg text-xs sm:text-sm">
+              <Crown className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
+              Premium
+            </Badge>
+          </motion.div>
         </div>
-      </motion.div>
+
+        <div className="flex items-center gap-2 sm:gap-4">
+          {usageStats && (
+            <div className="flex items-center gap-2 text-xs sm:text-sm">
+              <Badge variant="outline" className="border-purple-300 px-2 py-1">
+                <Sparkles className="w-3 h-3 mr-1" />
+                <span className="sm:hidden">{usageStats.geminiImagesRemaining}</span>
+                <span className="hidden sm:inline">Imagens: {usageStats.geminiImagesRemaining}</span>
+              </Badge>
+              <Badge variant="outline" className="border-pink-300 px-2 py-1">
+                <Film className="w-3 h-3 mr-1" />
+                <span className="sm:hidden">{usageStats.geminiVideosRemaining}</span>
+                <span className="hidden sm:inline">Roteiros: {usageStats.geminiVideosRemaining}</span>
+              </Badge>
+            </div>
+          )}
+
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowTutorial(true)}
+            className="hover:bg-purple-100 h-8 w-8 sm:h-10 sm:w-10"
+          >
+            <BookOpen className="w-4 h-4" />
+          </Button>
+        </div>
+      </div>
+    </div>
+  </motion.div>
 
       {/* 🎓 TUTORIAL MODAL */}
       <Dialog open={showTutorial} onOpenChange={setShowTutorial}>
