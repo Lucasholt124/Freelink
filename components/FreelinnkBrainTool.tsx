@@ -2490,22 +2490,22 @@ export default function FreelinkBrainTool() {
                   {/* Header com métricas */}
                   <div className="lg:sticky top-[57px] z-10 bg-background/80 backdrop-blur-lg border-b">
                     <div className="py-4 space-y-4">
-                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                              Campanha Pronta!
-                            </h2>
-                            {isNewCampaignSaved && (
-                              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
-                                <Check className="w-3 h-3 mr-1" />
-                                Salva
-                              </Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Tema: <span className="font-semibold text-foreground">{theme}</span>
-                          </p>
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex-1">
+        <div className="flex items-center gap-2">
+          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            Campanha Pronta!
+          </h2>
+          {isNewCampaignSaved && (
+            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+              <Check className="w-3 h-3 mr-1" />
+              Salva
+            </Badge>
+          )}
+        </div>
+        <p className="text-sm text-muted-foreground mt-1">
+          Tema: <span className="font-semibold text-foreground">{theme}</span>
+        </p>
                         </div>
                         <div className="flex gap-2 w-full sm:w-auto">
                           <Button
@@ -3051,12 +3051,13 @@ export default function FreelinkBrainTool() {
           {/* View: Outreach */}
           {mainView === "outreach" && (
             <motion.div
-              key="outreach"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
+    key="outreach"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="space-y-6"
+  >
+    <AdvancedOutreachSystem />
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">Mensagens de Abordagem</h2>
                 <Select defaultValue="cold">
@@ -3148,32 +3149,33 @@ export default function FreelinkBrainTool() {
                         defaultValue={DEFAULT_OUTREACH_TEMPLATES[0].content}
                       />
 
-                      <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
-                        <TooltipProvider>
-                          <Tooltip>
-                            <TooltipTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Bookmark className="h-4 w-4 mr-2" />
-                                Salvar Template
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent>
-                              Salvar para usar novamente
-                            </TooltipContent>
-                          </Tooltip>
-                        </TooltipProvider>
+                    <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
+  <TooltipProvider>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button variant="outline" size="sm">
+          <Bookmark className="h-4 w-4 mr-2" />
+          Salvar Template
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>
+        Salvar para usar novamente
+      </TooltipContent>
+    </Tooltip>
+  </TooltipProvider>
 
-                        <div className="flex flex-col-reverse sm:flex-row gap-2">
-                          <Button variant="outline" size="sm">
-                            <RefreshCcw className="h-4 w-4 mr-2" />
-                            Regenerar
-                          </Button>
-                          <Button variant="default" size="sm">
-                            <Copy className="h-4 w-4 mr-2" />
-                            Copiar
-                          </Button>
-                        </div>
-                      </div>
+  <div className="flex flex-col-reverse sm:flex-row gap-2">
+    {/* O botão "Regenerar" está aqui, mas não faz nada. Vamos conectar o "Gerar com IA" que está no componente principal. */}
+    <Button variant="outline" size="sm" onClick={() => { /* Lógica de regenerar aqui, se houver */ }}>
+      <RefreshCcw className="h-4 w-4 mr-2" />
+      Regenerar
+    </Button>
+    <Button variant="default" size="sm">
+      <Copy className="h-4 w-4 mr-2" />
+      Copiar
+    </Button>
+  </div>
+</div>
                     </div>
                   </div>
                 </CardContent>
