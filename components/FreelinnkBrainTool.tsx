@@ -2193,8 +2193,7 @@ export default function FreelinkBrainTool() {
                     onClick={() => setMainView("outreach")}
                     className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
                   >
-                    <Mail className="w-4 h-4 mr-2" />
-                    Vendas DM
+
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
@@ -3070,118 +3069,32 @@ export default function FreelinkBrainTool() {
                 </Select>
               </div>
 
-              {/* Componente de Mensagens */}
-              <Card className="w-full">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Mail className="h-5 w-5 text-primary" />
-                    Gerador de Mensagens de Abordagem
-                  </CardTitle>
-                  <CardDescription>
-                    Crie mensagens personalizadas para abordar potenciais clientes
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Coluna da Esquerda: Controles */}
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Tipo de Mensagem</label>
-                        <Select defaultValue="cold">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o tipo de mensagem" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="cold">Abordagem Inicial (Cold)</SelectItem>
-                            <SelectItem value="followup">Follow-up</SelectItem>
-                            <SelectItem value="agency">Proposta para Agências</SelectItem>
-                            <SelectItem value="offer">Oferta Especial</SelectItem>
-                          </SelectContent>
-                        </Select>
+              {/* ✅ CORREÇÃO: Renderiza os templates padrão */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {DEFAULT_OUTREACH_TEMPLATES.map((template) => (
+                  <Card key={template.id} className="hover:shadow-lg transition-shadow">
+                    <CardHeader>
+                      <CardTitle className="text-base">{template.title}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground line-clamp-3">{template.content.substring(0, 100)}...</p>
+                    </CardContent>
+                    <CardFooter className="flex justify-between items-center">
+                       <div className="flex flex-wrap gap-1">
+                        {template.tags.map(tag => (
+                          <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                        ))}
                       </div>
+                      <CopyButton textToCopy={template.content} />
+                    </CardFooter>
+                  </Card>
+                ))}
+              </div>
 
-                      <div className="space-y-2">
-                        <label className="text-sm font-medium">Tipo de Negócio</label>
-                        <Select defaultValue="agency">
-                          <SelectTrigger>
-                            <SelectValue placeholder="Selecione o tipo de negócio" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="agency">Agência</SelectItem>
-                            <SelectItem value="freelancer">Freelancer</SelectItem>
-                            <SelectItem value="ecommerce">E-commerce</SelectItem>
-                            <SelectItem value="local">Negócio Local</SelectItem>
-                            <SelectItem value="saas">SaaS / Tech</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-
-                      <div className="p-3 bg-muted rounded-lg">
-                        <h4 className="text-sm font-medium mb-2">Templates Salvos</h4>
-                        <div className="grid grid-cols-1 gap-2 max-h-[200px] overflow-y-auto">
-                          {DEFAULT_OUTREACH_TEMPLATES.map(template => (
-                            <Button
-                              key={template.id}
-                              variant="outline"
-                              className="justify-start h-auto py-2 px-3"
-                            >
-                              <div className="text-left">
-                                <p className="text-sm font-medium">{template.title}</p>
-                                <p className="text-xs text-muted-foreground truncate w-full">
-                                  {template.content.substring(0, 50)}...
-                                </p>
-                              </div>
-                            </Button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Coluna da Direita: Mensagem e Ações */}
-                    <div className="flex flex-col space-y-4">
-                      <label className="text-sm font-medium">Mensagem Personalizada</label>
-                      <Textarea
-                        placeholder="Sua mensagem personalizada aparecerá aqui..."
-                        className="min-h-[200px] sm:min-h-[285px] flex-grow font-mono text-sm"
-                        defaultValue={DEFAULT_OUTREACH_TEMPLATES[0].content}
-                      />
-
-                    <div className="flex flex-col-reverse sm:flex-row sm:justify-between gap-2">
-  <TooltipProvider>
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="outline" size="sm">
-          <Bookmark className="h-4 w-4 mr-2" />
-          Salvar Template
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>
-        Salvar para usar novamente
-      </TooltipContent>
-    </Tooltip>
-  </TooltipProvider>
-
-  <div className="flex flex-col-reverse sm:flex-row gap-2">
-    {/* O botão "Regenerar" está aqui, mas não faz nada. Vamos conectar o "Gerar com IA" que está no componente principal. */}
-    <Button variant="outline" size="sm" onClick={() => { /* Lógica de regenerar aqui, se houver */ }}>
-      <RefreshCcw className="h-4 w-4 mr-2" />
-      Regenerar
-    </Button>
-    <Button variant="default" size="sm">
-      <Copy className="h-4 w-4 mr-2" />
-      Copiar
-    </Button>
-  </div>
-</div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
-
       {/* Footer */}
       <motion.footer
         initial={{ opacity: 0 }}
