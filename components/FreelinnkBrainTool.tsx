@@ -2073,17 +2073,17 @@ export default function FreelinkBrainTool() {
     setIsScheduleDialogOpen(true);
   };
 
-  const handleScheduleSave = (date: string, time: string, platform: string) => {
+   const handleScheduleSave = (date: string, time: string, platform: string) => {
     if (!currentScheduleItem || !currentCampaignId) return;
 
-    const newScheduledItem: ScheduledItem = {
+    const newScheduledItem = {
       id: generateId(),
       contentType: currentScheduleItem.type,
       contentIndex: currentScheduleItem.index,
       date,
       time,
       posted: false,
-      platform
+      platform,
     };
 
     const updatedScheduledItems = [...scheduledItems, newScheduledItem];
@@ -2094,9 +2094,8 @@ export default function FreelinkBrainTool() {
     if (campaign) {
       const updatedCampaign = {
         ...campaign,
-        scheduledItems: updatedScheduledItems
+        scheduledItems: updatedScheduledItems,
       };
-
       saveCampaign(updatedCampaign);
       setSavedCampaigns(prev =>
         prev.map(c => c.id === currentCampaignId ? updatedCampaign : c)
@@ -2105,11 +2104,11 @@ export default function FreelinkBrainTool() {
 
     setIsScheduleDialogOpen(false);
     setCurrentScheduleItem(null);
-    toast.success("Conteúdo agendado com sucesso!");
+    toast.success("Conteúdo agendado com sucesso! 🎉");
     confetti({
       particleCount: 50,
       spread: 50,
-      origin: { y: 0.6 }
+      origin: { y: 0.6 },
     });
   };
 
@@ -2908,45 +2907,45 @@ export default function FreelinkBrainTool() {
 
           {/* View: Planejador */}
           {mainView === "planner" && (
-            <motion.div
-              key="planner"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
-            >
-              {currentCampaignId ? (
-                <>
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-2xl font-bold">Planejador de Conteúdo</h2>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setMainView("generator")}
-                      className="gap-2"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                      Voltar para Campanha
-                    </Button>
-                  </div>
+  <motion.div
+    key="planner"
+    initial={{ opacity: 0 }}
+    animate={{ opacity: 1 }}
+    exit={{ opacity: 0 }}
+    className="space-y-6"
+  >
+               {currentCampaignId ? (
+      <>
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Planejador de Conteúdo</h2>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setMainView("generator")}
+            className="gap-2"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Voltar para Campanha
+          </Button>
+        </div>
 
                   {/* Calendar Component */}
-                  <Card className="w-full">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <CardTitle>Calendário de Conteúdo</CardTitle>
-                        <div className="flex items-center gap-2">
-                          <Button variant="outline" size="sm">
-                            <ChevronLeft className="h-4 w-4" />
-                          </Button>
-                          <span className="text-sm font-medium">
-                            Setembro 2025
-                          </span>
-                          <Button variant="outline" size="sm">
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
+                   <Card className="w-full">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle>Calendário de Conteúdo</CardTitle>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm">
+                  <ChevronLeft className="h-4 w-4" />
+                </Button>
+                <span className="text-sm font-medium">
+                  {new Date().toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                </span>
+                <Button variant="outline" size="sm">
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
                     </CardHeader>
                     <CardContent>
                       <div className="grid grid-cols-7 gap-1">
