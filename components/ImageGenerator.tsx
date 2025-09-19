@@ -131,6 +131,7 @@ export function ImageGenerator() {
   const generateVideo = useAction(api.imageGenerator.generateVideoScript);
   const imageHistory = useQuery(api.imageGenerator.getImagesForUser) ?? [];
   const usageStats = useQuery(api.imageGenerator.getUsageStats);
+  const [downloadingImages, setDownloadingImages] = useState<Set<string>>(new Set());
 
   // ========== 📱 DETECTAR MOBILE ==========
   useEffect(() => {
@@ -161,62 +162,107 @@ export function ImageGenerator() {
     setTimeout(() => setCopiedText(null), 2000);
   }, []);
 
-  const handleDownload = async (url: string, filename?: string) => {
-    try {
-      toast.loading("Preparando download...");
-      const response = await fetch(url);
-      const blob = await response.blob();
-      const downloadUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = downloadUrl;
-      a.download = filename || `imagem-viral-${Date.now()}.png`;
-      document.body.appendChild(a);
-      a.click();
+ const handleDownload = async (url: string, filename?: string) => {
+  // Previne downloads duplicados
+  if (downloadingImages.has(url)) {
+    toast.warning("Download já em andamento!");
+    return;
+  }
+
+  // Adiciona URL ao set de downloads em andamento
+  setDownloadingImages(prev => new Set(prev).add(url));
+
+  // Armazena o ID do toast de loading
+  const loadingToastId = toast.loading("Preparando download...");
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Falha ao baixar imagem");
+    }
+
+    const blob = await response.blob();
+    const downloadUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = downloadUrl;
+    a.download = filename || `imagem-viral-${Date.now()}.png`;
+
+    document.body.appendChild(a);
+    a.click();
+
+    // Pequeno delay para garantir que o download iniciou
+    setTimeout(() => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(downloadUrl);
-      toast.success("Download concluído! 🎉");
-      triggerConfetti();
-    } catch (error) {
-      console.error("Erro ao baixar:", error);
-      toast.error("Erro ao baixar. Tente novamente!");
-    }
-  };
+    }, 100);
 
-  const handleShare = async (url: string, text: string) => {
-    if (navigator.share && isMobile) {
-      try {
-        await navigator.share({
-          title: '🚀 Criado com IA Revolucionária',
-          text: `${text}\n\nCriado com a ferramenta mais incrível do mundo!`,
-          url
-        });
-        toast.success("Compartilhado com sucesso! 🚀");
-      } catch (error) {
-        if ((error as Error).name !== 'AbortError') {
-          navigator.clipboard.writeText(url);
-          toast.success("Link copiado! 📋");
-        }
-      }
-    } else {
-      navigator.clipboard.writeText(url);
-      toast.success("Link copiado para compartilhar! 📋");
-    }
-  };
+    // Cancela o toast de loading antes de mostrar sucesso
+    toast.dismiss(loadingToastId);
+    toast.success("Download concluído! 🎉");
+    triggerConfetti();
 
-  const toggleLikeImage = useCallback((imageId: string) => {
-    setLikedImages(prev => {
+  } catch (error) {
+    console.error("Erro ao baixar:", error);
+    // Cancela o toast de loading em caso de erro
+    toast.dismiss(loadingToastId);
+    toast.error("Erro ao baixar. Tente novamente!");
+  } finally {
+    // Remove URL do set de downloads após conclusão
+    setDownloadingImages(prev => {
       const newSet = new Set(prev);
-      if (newSet.has(imageId)) {
-        newSet.delete(imageId);
-        toast.success("Removido dos favoritos");
-      } else {
-        newSet.add(imageId);
-        toast.success("Adicionado aos favoritos! ❤️");
-        triggerConfetti();
-      }
+      newSet.delete(url);
       return newSet;
     });
-  }, []);
+  }
+};
+
+const handleShare = async (url: string, text: string) => {
+  if (navigator.share && isMobile) {
+    try {
+      await navigator.share({
+        title: '🚀 Criado com IA Revolucionária',
+        text: `${text}\n\nCriado com a ferramenta mais incrível do mundo!`,
+        url
+      });
+      toast.success("Compartilhado com sucesso! 🚀");
+    } catch (error) {
+      if ((error as Error).name !== 'AbortError') {
+        try {
+          await navigator.clipboard.writeText(url);
+          toast.success("Link copiado! 📋");
+        } catch (clipError) {
+          console.error("Erro ao copiar:", clipError);
+          toast.error("Erro ao compartilhar");
+        }
+      }
+    }
+  } else {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success("Link copiado para compartilhar! 📋");
+    } catch (error) {
+      console.error("Erro ao copiar:", error);
+      toast.error("Erro ao copiar link");
+    }
+  }
+};
+
+const toggleLikeImage = useCallback((imageId: string) => {
+  setLikedImages(prev => {
+    const newSet = new Set(prev);
+    if (newSet.has(imageId)) {
+      newSet.delete(imageId);
+      toast.success("Removido dos favoritos");
+    } else {
+      newSet.add(imageId);
+      toast.success("Adicionado aos favoritos! ❤️");
+      triggerConfetti();
+    }
+    return newSet;
+  });
+}, []);
 
   // ========== 🎨 GERAR IMAGEM ==========
   const handleGenerateImage = async (e: React.FormEvent) => {

@@ -134,6 +134,7 @@ export function AIStudioClient() {
   const [selectedEffect, setSelectedEffect] = useState('super-resolution')
   const [showTutorial, setShowTutorial] = useState(true)
   const [enhanceStrength, setEnhanceStrength] = useState(100)
+  const [downloadingAssets, setDownloadingAssets] = useState<Set<string>>(new Set());
 
   // Estados do Chat Marketing
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
@@ -459,25 +460,73 @@ export function AIStudioClient() {
   }
 
   const downloadAsset = async (url: string, filename: string) => {
-    try {
-      toast.loading('Preparando download...')
-      const response = await fetch(url)
-      const blob = await response.blob()
-      const blobUrl = window.URL.createObjectURL(blob)
-      const a = document.createElement('a')
-      a.href = blobUrl
-      a.download = filename
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(blobUrl)
-      a.remove()
-      toast.dismiss()
-      toast.success('✅ Download concluído!')
-    } catch (error) {
-      console.error('Erro no download:', error)
-      toast.error('Erro ao baixar arquivo')
-    }
+  // Previne downloads duplicados
+  if (downloadingAssets.has(url)) {
+    toast.warning("Download já em andamento!");
+    return;
   }
+
+  // Adiciona URL ao set de downloads em andamento
+  setDownloadingAssets(prev => new Set(prev).add(url));
+
+  // Armazena o ID do toast de loading
+  const loadingToastId = toast.loading("Preparando download...");
+
+  try {
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error("Falha ao baixar arquivo");
+    }
+
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.style.display = 'none';
+    a.href = blobUrl;
+    a.download = filename;
+
+    document.body.appendChild(a);
+    a.click();
+
+    // Pequeno delay para garantir que o download iniciou
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    }, 100);
+
+    // Cancela o toast de loading antes de mostrar sucesso
+    toast.dismiss(loadingToastId);
+    toast.success("✅ Download concluído!");
+
+    // Efeito de confete (opcional)
+    const confettiColors = ['#8B5CF6', '#EC4899', '#10B981', '#F59E0B'];
+    for(let i = 0; i < 30; i++) {
+      setTimeout(() => {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.animationDelay = Math.random() * 3 + 's';
+        confetti.style.backgroundColor = confettiColors[Math.floor(Math.random() * confettiColors.length)];
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 3000);
+      }, i * 30);
+    }
+
+  } catch (error) {
+    console.error('Erro no download:', error);
+    // Cancela o toast de loading em caso de erro
+    toast.dismiss(loadingToastId);
+    toast.error('Erro ao baixar arquivo. Tente novamente!');
+  } finally {
+    // Remove URL do set de downloads após conclusão
+    setDownloadingAssets(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(url);
+      return newSet;
+    });
+  }
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900 text-white">
@@ -779,13 +828,20 @@ export function AIStudioClient() {
                               className="object-cover"
                             />
                             <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => downloadAsset(enhancedImage, 'enhanced-image-4k.png')}
-                              className="absolute bottom-4 right-4 p-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow"
-                            >
-                              <Download className="w-5 h-5" />
-                            </motion.button>
+  whileHover={{ scale: 1.1 }}
+  whileTap={{ scale: 0.9 }}
+  onClick={() => downloadAsset(enhancedImage, 'enhanced-image-4k.png')}
+  disabled={downloadingAssets.has(enhancedImage)}
+  className={`absolute bottom-4 right-4 p-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow ${
+    downloadingAssets.has(enhancedImage) ? 'opacity-50 cursor-not-allowed' : ''
+  }`}
+>
+  {downloadingAssets.has(enhancedImage) ? (
+    <Loader2 className="w-5 h-5 animate-spin" />
+  ) : (
+    <Download className="w-5 h-5" />
+  )}
+</motion.button>
                             <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
                               <CheckCircle className="w-3 h-3" />
                               Aprimorado
@@ -1141,12 +1197,19 @@ export function AIStudioClient() {
                           <p className="text-sm text-gray-400">Pronto para download</p>
                         </div>
                         <button
-                          onClick={() => downloadAsset(videoUrl, 'video.mp4')}
-                          className="px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg text-white font-semibold hover:shadow-lg transition-shadow flex items-center gap-2"
-                        >
-                          <Download className="w-4 h-4" />
-                          Baixar HD
-                        </button>
+  onClick={() => downloadAsset(videoUrl, 'video.mp4')}
+  disabled={downloadingAssets.has(videoUrl)}
+  className={`px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg text-white font-semibold hover:shadow-lg transition-shadow flex items-center gap-2 ${
+    downloadingAssets.has(videoUrl) ? 'opacity-50 cursor-not-allowed' : ''
+  }`}
+>
+  {downloadingAssets.has(videoUrl) ? (
+    <Loader2 className="w-4 h-4 animate-spin" />
+  ) : (
+    <Download className="w-4 h-4" />
+  )}
+  Baixar HD
+</button>
                       </div>
                     </motion.div>
                   )}
@@ -1241,14 +1304,21 @@ export function AIStudioClient() {
                               fill={true}
                               className="object-contain"
                             />
-                            <motion.button
-                              whileHover={{ scale: 1.1 }}
-                              whileTap={{ scale: 0.9 }}
-                              onClick={() => downloadAsset(removeBgResult, 'no-background.png')}
-                              className="absolute bottom-4 right-4 p-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow"
-                            >
-                              <Download className="w-5 h-5" />
-                            </motion.button>
+                           <motion.button
+  whileHover={{ scale: 1.1 }}
+  whileTap={{ scale: 0.9 }}
+  onClick={() => downloadAsset(removeBgResult, 'no-background.png')}
+  disabled={downloadingAssets.has(removeBgResult)}
+  className={`absolute bottom-4 right-4 p-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow ${
+    downloadingAssets.has(removeBgResult) ? 'opacity-50 cursor-not-allowed' : ''
+  }`}
+>
+  {downloadingAssets.has(removeBgResult) ? (
+    <Loader2 className="w-5 h-5 animate-spin" />
+  ) : (
+    <Download className="w-5 h-5" />
+  )}
+</motion.button>
                           </>
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center text-gray-600">
