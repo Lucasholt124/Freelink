@@ -2488,8 +2488,8 @@ export default function FreelinkBrainTool() {
                   className="space-y-6"
                 >
                   {/* Header com métricas */}
-                  <div className="lg:sticky top-[57px] z-10 bg-background/80 backdrop-blur-lg border-b">
-                    <div className="py-4 space-y-4">
+                 <div className="bg-background/80 backdrop-blur-lg border-b">
+  <div className="py-4 space-y-4">
     <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
       <div className="flex-1">
         <div className="flex items-center gap-2">
@@ -2506,68 +2506,66 @@ export default function FreelinkBrainTool() {
         <p className="text-sm text-muted-foreground mt-1">
           Tema: <span className="font-semibold text-foreground">{theme}</span>
         </p>
-                        </div>
-                        <div className="flex gap-2 w-full sm:w-auto">
-                          <Button
-                            onClick={handleGenerateNew}
-                            variant="outline"
-                            className="flex-1 sm:flex-initial gap-2"
-                          >
-                            <RefreshCcw className="w-4 h-4" />
-                            Novo Tema
-                          </Button>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button
-                                variant="default"
-                                className="flex-1 sm:flex-initial gap-2"
-                              >
-                                <Download className="w-4 h-4" />
-                                Exportar
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
-                                <FileText className="w-4 h-4 mr-2" />
-                                Exportar como PDF
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Share2 className="w-4 h-4 mr-2" />
-                                Compartilhar link
-                              </DropdownMenuItem>
-                              <DropdownMenuItem>
-                                <Calendar className="w-4 h-4 mr-2" />
-                                Agendar todos
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-                      </div>
-
-                      {/* Contadores animados */}
-                      <div className="grid grid-cols-5 gap-2">
-                        <div className="text-center p-2 bg-muted/50 rounded-lg">
-                          <p className="text-2xl font-bold text-primary">
-                            <AnimatedCounter value={contentCounts?.total || 0} />
-                          </p>
-                          <p className="text-xs text-muted-foreground">Total</p>
-                        </div>
-                        {[
-                          { key: "reels", icon: Video, color: "text-blue-500" },
-                          { key: "carousels", icon: Layers, color: "text-purple-500" },
-                          { key: "image_posts", icon: Camera, color: "text-pink-500" },
-                          { key: "story_sequences", icon: MessageSquare, color: "text-indigo-500" }
-                        ].map(({ key, icon: Icon, color }) => (
-                          <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
-                            <Icon className={cn("w-4 h-4 mx-auto mb-1", color)} />
-                            <p className="text-lg font-bold">
-                              <AnimatedCounter value={contentCounts?.[key as keyof typeof contentCounts] || 0} />
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
+      </div>
+      <div className="flex gap-2 w-full sm:w-auto">
+        <Button
+          onClick={handleGenerateNew}
+          variant="outline"
+          className="flex-1 sm:flex-initial gap-2"
+        >
+          <RefreshCcw className="w-4 h-4" />
+          Novo Tema
+        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              variant="default"
+              className="flex-1 sm:flex-initial gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Exportar
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem>
+              <FileText className="w-4 h-4 mr-2" />
+              Exportar como PDF
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Share2 className="w-4 h-4 mr-2" />
+              Compartilhar link
+            </DropdownMenuItem>
+            <DropdownMenuItem>
+              <Calendar className="w-4 h-4 mr-2" />
+              Agendar todos
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+    </div>
+    <div className="grid grid-cols-5 gap-2">
+      <div className="text-center p-2 bg-muted/50 rounded-lg">
+        <p className="text-2xl font-bold text-primary">
+          <AnimatedCounter value={contentCounts?.total || 0} />
+        </p>
+        <p className="text-xs text-muted-foreground">Total</p>
+      </div>
+      {[
+        { key: "reels", icon: Video, color: "text-blue-500" },
+        { key: "carousels", icon: Layers, color: "text-purple-500" },
+        { key: "image_posts", icon: Camera, color: "text-pink-500" },
+        { key: "story_sequences", icon: MessageSquare, color: "text-indigo-500" }
+      ].map(({ key, icon: Icon, color }) => (
+        <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
+          <Icon className={cn("w-4 h-4 mx-auto mb-1", color)} />
+          <p className="text-lg font-bold">
+            <AnimatedCounter value={contentCounts?.[key as keyof typeof contentCounts] || 0} />
+          </p>
+        </div>
+      ))}
+    </div>
+  </div>
+</div>
 
                   {/* Cards de resumo */}
                   <div className="space-y-4">
@@ -3057,7 +3055,6 @@ export default function FreelinkBrainTool() {
     exit={{ opacity: 0 }}
     className="space-y-6"
   >
-    <AdvancedOutreachSystem />
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">Mensagens de Abordagem</h2>
                 <Select defaultValue="cold">
