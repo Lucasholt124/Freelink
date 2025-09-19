@@ -2074,43 +2074,43 @@ export default function FreelinkBrainTool() {
   };
 
    const handleScheduleSave = (date: string, time: string, platform: string) => {
-    if (!currentScheduleItem || !currentCampaignId) return;
+  if (!currentScheduleItem || !currentCampaignId) return;
 
-    const newScheduledItem = {
-      id: generateId(),
-      contentType: currentScheduleItem.type,
-      contentIndex: currentScheduleItem.index,
-      date,
-      time,
-      posted: false,
-      platform,
-    };
-
-    const updatedScheduledItems = [...scheduledItems, newScheduledItem];
-    setScheduledItems(updatedScheduledItems);
-
-    // Atualiza a campanha no localStorage
-    const campaign = savedCampaigns.find(c => c.id === currentCampaignId);
-    if (campaign) {
-      const updatedCampaign = {
-        ...campaign,
-        scheduledItems: updatedScheduledItems,
-      };
-      saveCampaign(updatedCampaign);
-      setSavedCampaigns(prev =>
-        prev.map(c => c.id === currentCampaignId ? updatedCampaign : c)
-      );
-    }
-
-    setIsScheduleDialogOpen(false);
-    setCurrentScheduleItem(null);
-    toast.success("Conteúdo agendado com sucesso! 🎉");
-    confetti({
-      particleCount: 50,
-      spread: 50,
-      origin: { y: 0.6 },
-    });
+  const newScheduledItem = {
+    id: generateId(),
+    contentType: currentScheduleItem.type,
+    contentIndex: currentScheduleItem.index,
+    date,
+    time,
+    posted: false,
+    platform,
   };
+
+  const updatedScheduledItems = [...scheduledItems, newScheduledItem];
+  setScheduledItems(updatedScheduledItems);
+
+  // Atualiza a campanha no localStorage
+  const campaign = savedCampaigns.find(c => c.id === currentCampaignId);
+  if (campaign) {
+    const updatedCampaign = {
+      ...campaign,
+      scheduledItems: updatedScheduledItems,
+    };
+    saveCampaign(updatedCampaign);
+    setSavedCampaigns(prev =>
+      prev.map(c => c.id === currentCampaignId ? updatedCampaign : c)
+    );
+  }
+
+  setIsScheduleDialogOpen(false);
+  setCurrentScheduleItem(null);
+  toast.success("Conteúdo agendado com sucesso! 🎉");
+  confetti({
+    particleCount: 50,
+    spread: 50,
+    origin: { y: 0.6 },
+  });
+};
 
   const contentCounts = results ? {
     reels: results.content_pack.reels.length,
@@ -2906,7 +2906,7 @@ export default function FreelinkBrainTool() {
           )}
 
           {/* View: Planejador */}
-          {mainView === "planner" && (
+       {mainView === "planner" && (
   <motion.div
     key="planner"
     initial={{ opacity: 0 }}
@@ -2914,7 +2914,7 @@ export default function FreelinkBrainTool() {
     exit={{ opacity: 0 }}
     className="space-y-6"
   >
-               {currentCampaignId ? (
+    {currentCampaignId ? (
       <>
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Planejador de Conteúdo</h2>
@@ -2929,8 +2929,8 @@ export default function FreelinkBrainTool() {
           </Button>
         </div>
 
-                  {/* Calendar Component */}
-                   <Card className="w-full">
+        {/* Calendar Component */}
+        <Card className="w-full">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <CardTitle>Calendário de Conteúdo</CardTitle>
@@ -2946,64 +2946,107 @@ export default function FreelinkBrainTool() {
                 </Button>
               </div>
             </div>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-7 gap-1">
-                        {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
-                          <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
-                            {day}
-                          </div>
-                        ))}
-                        {Array(35).fill(0).map((_, i) => (
-                          <div
-                            key={i}
-                            className={cn(
-                              "h-20 sm:h-24 p-1 border rounded-md relative overflow-hidden",
-                              i === 15 && "border-primary/50 bg-primary/5"
-                            )}
-                          >
-                            <div className="text-xs text-right mb-1">{(i - 4) > 0 && (i - 4) <= 30 ? i - 4 : ""}</div>
-                            <div className="overflow-y-auto max-h-[calc(100%-20px)]">
-                              {i === 10 && (
-                                <div className="text-[10px] mb-1 px-1 py-0.5 rounded-sm bg-blue-500/10 text-blue-500 truncate cursor-pointer">
-                                  10:00 - Reel
-                                </div>
-                              )}
-                              {i === 15 && (
-                                <div className="text-[10px] mb-1 px-1 py-0.5 rounded-sm bg-purple-500/10 text-purple-500 truncate cursor-pointer">
-                                  14:00 - Carrossel
-                                </div>
-                              )}
-                              {i === 22 && (
-                                <div className="text-[10px] mb-1 px-1 py-0.5 rounded-sm bg-pink-500/10 text-pink-500 truncate cursor-pointer">
-                                  16:30 - Post
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </>
-              ) : (
-                <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-                  <Calendar className="w-16 h-16 text-muted-foreground/20 mb-4" />
-                  <h3 className="text-xl font-semibold mb-2">Nenhuma campanha ativa</h3>
-                  <p className="text-muted-foreground max-w-md mb-6">
-                    Gere uma campanha de conteúdo primeiro para visualizar o planejador.
-                  </p>
-                  <Button
-                    onClick={() => setMainView("generator")}
-                    className="gap-2"
-                  >
-                    <Sparkles className="w-4 h-4" />
-                    Gerar Campanha
-                  </Button>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-7 gap-1">
+              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
+                <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
+                  {day}
                 </div>
-              )}
-            </motion.div>
-          )}
+              ))}
+              {Array(35).fill(0).map((_, i) => {
+                // Lógica de renderização dinâmica dos dias
+                const date = new Date();
+                const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+                const startingDay = firstDayOfMonth.getDay();
+                const day = i - startingDay + 1;
+                const isCurrentMonth = day > 0 && day <= new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+                const dayString = isCurrentMonth ? `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}` : null;
+                const scheduledForDay = scheduledItems.filter(item => item.date === dayString);
+
+                return (
+                  <div
+                    key={i}
+                    className={cn(
+                      "h-20 sm:h-24 p-1 border rounded-md relative overflow-hidden",
+                      isCurrentMonth ? "bg-white" : "bg-gray-50 text-muted-foreground/50",
+                      new Date().getDate() === day && isCurrentMonth && "border-primary/50 bg-primary/5"
+                    )}
+                  >
+                    <div className="text-xs text-right mb-1">
+                      {isCurrentMonth ? day : ""}
+                    </div>
+                    {isCurrentMonth && (
+                      <div className="overflow-y-auto max-h-[calc(100%-20px)] space-y-1">
+                        {scheduledForDay.map(item => {
+                          let icon = null;
+                          let bgColor = "bg-gray-200";
+                          let textColor = "text-gray-800";
+                          let itemLabel = '';
+                          switch (item.contentType) {
+                            case "reel":
+                              icon = <Video className="w-3 h-3" />;
+                              bgColor = "bg-blue-500/10";
+                              textColor = "text-blue-500";
+                              itemLabel = 'Reel';
+                              break;
+                            case "carousel":
+                              icon = <Layers className="w-3 h-3" />;
+                              bgColor = "bg-purple-500/10";
+                              textColor = "text-purple-500";
+                              itemLabel = 'Carrossel';
+                              break;
+                            case "image_post":
+                              icon = <Camera className="w-3 h-3" />;
+                              bgColor = "bg-pink-500/10";
+                              textColor = "text-pink-500";
+                              itemLabel = 'Post';
+                              break;
+                            case "story_sequence":
+                              icon = <MessageSquare className="w-3 h-3" />;
+                              bgColor = "bg-indigo-500/10";
+                              textColor = "text-indigo-500";
+                              itemLabel = 'Story';
+                              break;
+                          }
+                          return (
+                            <div
+                              key={item.id}
+                              className={cn("text-[10px] mb-1 px-1 py-0.5 rounded-sm truncate cursor-pointer", bgColor, textColor)}
+                            >
+                              <span className="flex items-center gap-1">
+                                {icon} {item.time} - {itemLabel}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </CardContent>
+        </Card>
+      </>
+    ) : (
+      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+        <Calendar className="w-16 h-16 text-muted-foreground/20 mb-4" />
+        <h3 className="text-xl font-semibold mb-2">Nenhuma campanha ativa</h3>
+        <p className="text-muted-foreground max-w-md mb-6">
+          Gere uma campanha de conteúdo primeiro para visualizar o planejador.
+        </p>
+        <Button
+          onClick={() => setMainView("generator")}
+          className="gap-2"
+        >
+          <Sparkles className="w-4 h-4" />
+          Gerar Campanha
+        </Button>
+      </div>
+    )}
+  </motion.div>
+)}
 
           {/* View: Outreach */}
           {mainView === "outreach" && (
