@@ -37,16 +37,20 @@ export async function GET(req: Request) {
       orderBy: { timestamp: 'desc' },
     });
 
+    // ✅ CORREÇÃO: Incluindo createdAt e outros campos necessários
     const formattedData = {
       link: {
         id: link.id,
         url: link.url,
+        createdAt: link.createdAt.getTime(), // ← Adicionado este campo
       },
       clicks: clicks.map(click => ({
         id: click.id,
         timestamp: click.timestamp.getTime(),
         country: click.country,
         visitorId: click.visitorId,
+        userAgent: click.userAgent, // ✅ CORREÇÃO: Usar o campo que existe
+        referrer: click.referrer,
       })),
     };
 

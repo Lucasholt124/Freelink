@@ -96,26 +96,74 @@ export const getClicksForLink = action({
                 orderBy: { timestamp: "desc" },
             });
 
-            // =======================================================
-            // CORREÇÃO DEFINITIVA DO TIPO APLICADA AQUI
-            // =======================================================
-            const serializableClicks = clicks.map((click: {
-                id: number; // <-- O ID agora é um NÚMERO
-                timestamp: Date;
-                country: string | null;
-                // Adicione outros campos se precisar deles no frontend
-            }) => ({
+            // ✅ CORREÇÃO: Removida a tipagem explícita incorreta e os campos inexistentes.
+            // O tipo de `click` é inferido corretamente a partir do resultado do Prisma.
+            const serializableClicks = clicks.map((click) => ({
                 id: click.id,
                 timestamp: click.timestamp.getTime(),
                 country: click.country,
+                visitorId: click.visitorId,
+                // Os campos device, browser e os não existem no schema do Prisma.
+                // A informação está contida em `userAgent`.
+                userAgent: click.userAgent,
+                referrer: click.referrer,
             }));
 
-            return { link, clicks: serializableClicks };
+            // ✅ CORREÇÃO: Retornando o link completo com createdAt
+            const serializableLink = {
+                id: link.id,
+                url: link.url,
+                title: link.title,
+                createdAt: link.createdAt.getTime(), // ← Adicionado
+            };
+
+            return {
+                link: serializableLink,
+                clicks: serializableClicks
+            };
         } catch(error) {
             console.error("Erro ao buscar cliques do link:", error);
-            return null;
+            throw new Error(error instanceof Error ? error.message : "Erro ao buscar dados do link");
         } finally {
             await prisma.$disconnect();
         }
     },
+});
+
+// --- ACTION para deletar um link ---
+export const deleteShortLink = action({
+  args: { shortLinkId: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Não autenticado.");
+
+    try {
+      // Verificar se o link pertence ao usuário
+      const link = await prisma.link.findFirst({
+        where: {
+          id: args.shortLinkId,
+          userId: identity.subject
+        },
+      });
+
+      if (!link) throw new Error("Link não encontrado ou acesso negado.");
+
+      // Deletar todos os cliques primeiro
+      await prisma.click.deleteMany({
+        where: { linkId: args.shortLinkId }
+      });
+
+      // Deletar o link
+      await prisma.link.delete({
+        where: { id: args.shortLinkId }
+      });
+
+      return { success: true, message: "Link deletado com sucesso" };
+    } catch(error) {
+      console.error("Erro ao deletar link:", error);
+      throw new Error(error instanceof Error ? error.message : "Erro ao deletar link");
+    } finally {
+      await prisma.$disconnect();
+    }
+  },
 });
