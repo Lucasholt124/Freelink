@@ -55,12 +55,11 @@ interface BrainResults {
 // 2. CONFIGURAÇÃO ATUALIZADA COM MODELOS CORRETOS
 // =================================================================
 
-// Modelos disponíveis no Groq (atualizados)
 const GROQ_MODELS = {
-  primary: 'llama-3.3-70b-versatile',     // Modelo principal mais recente
-  fallback: 'llama-3.1-70b-versatile',    // Fallback se o principal falhar
-  fast: 'llama-3.1-8b-instant',           // Modelo rápido para respostas simples
-  alternative: 'mixtral-8x7b-32768'       // Alternativa Mixtral
+  primary: 'llama-3.3-70b-versatile',
+  fallback: 'llama-3.1-70b-versatile',
+  fast: 'llama-3.1-8b-instant',
+  alternative: 'mixtral-8x7b-32768'
 };
 
 const groq = new OpenAI({
@@ -72,9 +71,6 @@ const openai = process.env.OPENAI_API_KEY ? new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 }) : null;
 
-/**
- * Função de parse de JSON robusta
- */
 function parseAiJsonResponse<T>(text: string): T {
   try {
     const jsonStart = text.indexOf('{');
@@ -114,7 +110,6 @@ function parseAiJsonResponse<T>(text: string): T {
   }
 }
 
-// Função para melhorar o prompt
 function enhancePrompt(prompt: string, theme: string): string {
   return `
 # MISSÃO CRÍTICA: CRIAR CONTEÚDO QUE TRANSFORME VIDAS E NEGÓCIOS
@@ -199,7 +194,6 @@ async function generateWithGroq(theme: string): Promise<BrainResults> {
 
   const prompt = enhancePrompt(basePrompt, theme);
 
-  // Lista de modelos para tentar em ordem
   const modelsToTry = [
     GROQ_MODELS.primary,
     GROQ_MODELS.fallback,
@@ -209,7 +203,6 @@ async function generateWithGroq(theme: string): Promise<BrainResults> {
 
   let lastError: unknown = null;
 
-  // Tenta cada modelo em sequência
   for (const model of modelsToTry) {
     try {
       console.log(`🔄 Tentando gerar com modelo: ${model}...`);
@@ -240,18 +233,15 @@ async function generateWithGroq(theme: string): Promise<BrainResults> {
       console.error(`❌ Erro com modelo ${model}:`, error);
       lastError = error;
 
-      // Se for erro de modelo descontinuado, tenta o próximo
       if (error instanceof Error && error.message.includes('decommissioned')) {
         console.log(`⚠️ Modelo ${model} foi descontinuado, tentando próximo...`);
         continue;
       }
 
-      // Para outros erros, também tenta o próximo modelo
       continue;
     }
   }
 
-  // Se todos os modelos Groq falharem, tenta OpenAI
   if (openai) {
     try {
       console.log("🔄 Tentando gerar com OpenAI como fallback final...");
@@ -261,12 +251,10 @@ async function generateWithGroq(theme: string): Promise<BrainResults> {
     }
   }
 
-  // Se tudo falhar, usa fallback estático
   console.error("❌ Todos os modelos falharam. Último erro:", lastError);
   throw new Error(`Falha ao gerar conteúdo com todos os modelos disponíveis`);
 }
 
-// Função de fallback com OpenAI
 async function generateWithOpenAI(theme: string): Promise<BrainResults> {
   if (!openai) {
     throw new Error("OpenAI não está configurada.");
@@ -287,7 +275,7 @@ async function generateWithOpenAI(theme: string): Promise<BrainResults> {
 
   try {
     const response = await openai.chat.completions.create({
-        model: 'gpt-4-turbo-preview', // Modelo mais recente
+        model: 'gpt-4-turbo-preview',
         response_format: { type: 'json_object' },
         messages: [
             { role: 'system', content: 'Você é um diretor criativo especializado em marketing de conteúdo viral. Responda EXCLUSIVAMENTE em JSON válido.' },
@@ -309,7 +297,6 @@ async function generateWithOpenAI(theme: string): Promise<BrainResults> {
   }
 }
 
-// Conteúdo de fallback melhorado
 function generateFallbackContent(theme: string): BrainResults {
     return {
         theme_summary: `Estratégia revolucionária para dominar ${theme} e se destacar no mercado`,
@@ -442,11 +429,10 @@ export const generateOutreachMessage = action({
 - Controle com PERGUNTAS: Guie até o sim como se ela tivesse escolhido chegar lá`;
 
     try {
-      // Tenta com Groq primeiro usando o modelo rápido
       if (process.env.GROQ_API_KEY) {
         try {
           const response = await groq.chat.completions.create({
-            model: GROQ_MODELS.fast, // Usa modelo rápido para mensagens
+            model: GROQ_MODELS.fast,
             response_format: { type: 'json_object' },
             messages: [
               {
@@ -467,7 +453,6 @@ export const generateOutreachMessage = action({
         }
       }
 
-      // Fallback para OpenAI
       if (openai) {
         const response = await openai.chat.completions.create({
           model: 'gpt-3.5-turbo',

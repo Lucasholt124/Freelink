@@ -13,8 +13,8 @@ import {
   Clock, Eye, Heart, MessageCircle, Send, BarChart3, Palette,
   FileText, Image as ImageIcon, Mail, Calendar,
   MoreHorizontal, Trash2, Menu, ChevronLeft, Rocket,
-  Search, FolderOpen, AlertCircle,  Crown,
-  Flame,  Timer, BrainCircuit, Megaphone,
+  Search, FolderOpen, AlertCircle, Crown,
+  Flame, Timer, BrainCircuit, Megaphone,
   CheckCircle2, ChevronDown, DollarSign, Award, Activity, Briefcase
 } from "lucide-react";
 
@@ -32,7 +32,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
@@ -238,7 +237,6 @@ const DM_TEMPLATES = {
 // TIPOS ATUALIZADOS
 // =================================================================
 
-// ✅ CORREÇÃO: Adicionada interface para o resultado da IA
 interface OutreachMessageResult {
   title: string;
   content: string;
@@ -343,7 +341,6 @@ interface ScheduledItem {
 // UTILITÁRIOS DE PERSISTÊNCIA & DADOS
 // =================================================================
 
-// Funções de localStorage para persistência
 const StorageKeys = {
   CAMPAIGNS: "freelink_brain_campaigns",
   CURRENT_CAMPAIGN: "freelink_brain_current_campaign",
@@ -359,12 +356,11 @@ function saveCampaign(campaign: SavedCampaign): void {
     const existingCampaignsJSON = localStorage.getItem(StorageKeys.CAMPAIGNS) || "[]";
     const existingCampaigns: SavedCampaign[] = JSON.parse(existingCampaignsJSON);
 
-    // Se já existe com esse ID, atualize
     const existingIndex = existingCampaigns.findIndex(c => c.id === campaign.id);
     if (existingIndex >= 0) {
       existingCampaigns[existingIndex] = campaign;
     } else {
-      existingCampaigns.unshift(campaign); // Adiciona ao início
+      existingCampaigns.unshift(campaign);
     }
 
     localStorage.setItem(StorageKeys.CAMPAIGNS, JSON.stringify(existingCampaigns));
@@ -403,7 +399,6 @@ function deleteCampaign(id: string): void {
     const updatedCampaigns = existingCampaigns.filter(c => c.id !== id);
     localStorage.setItem(StorageKeys.CAMPAIGNS, JSON.stringify(updatedCampaigns));
 
-    // Se a campanha atual foi excluída, limpe-a
     const currentCampaign = getCurrentCampaign();
     if (currentCampaign && currentCampaign.id === id) {
       localStorage.removeItem(StorageKeys.CURRENT_CAMPAIGN);
@@ -414,7 +409,6 @@ function deleteCampaign(id: string): void {
   }
 }
 
-// Templates de mensagens padrão
 const DEFAULT_OUTREACH_TEMPLATES = [
   {
     id: "cold-outreach-1",
@@ -476,7 +470,6 @@ Abraços,
 // 🎯 COMPONENTES REVOLUCIONÁRIOS
 // =================================================================
 
-// Componente de Gatilhos Psicológicos
 const PsychologicalTriggerBuilder = () => {
   const [activeTab, setActiveTab] = useState<keyof typeof PSYCHOLOGICAL_TRIGGERS>("urgency");
 
@@ -568,7 +561,6 @@ const PsychologicalTriggerBuilder = () => {
   );
 };
 
-// Componente de Sequência de DM
 const DMSequenceBuilder = ({
   platform,
   approach,
@@ -586,7 +578,6 @@ const DMSequenceBuilder = ({
   const sequence = DM_TEMPLATES[platform][approach].sequence;
 
   useEffect(() => {
-    // Personaliza a sequência com o tipo de negócio
     const personalized = sequence.map(step => ({
       ...step,
       message: step.message.replace("[tipo de negócio]", businessType)
@@ -638,7 +629,6 @@ const DMSequenceBuilder = ({
                   : "border-gray-200 hover:border-purple-300"
               )}
             >
-              {/* Header do Step */}
               <div className="flex items-start justify-between mb-3">
                 <div className="flex items-center gap-3">
                   <div className={cn(
@@ -673,7 +663,6 @@ const DMSequenceBuilder = ({
                 </Button>
               </div>
 
-              {/* Mensagem */}
               <Textarea
                 value={step.message}
                 onChange={(e) => handleStepEdit(index, e.target.value)}
@@ -681,7 +670,6 @@ const DMSequenceBuilder = ({
                 placeholder="Digite sua mensagem personalizada..."
               />
 
-              {/* Gatilhos Psicológicos */}
               {step.psychological && step.psychological.length > 0 && (
                 <div className="mt-3 flex flex-wrap gap-2">
                   {step.psychological.map(trigger => {
@@ -702,8 +690,7 @@ const DMSequenceBuilder = ({
                 </div>
               )}
 
-              {/* Alternativas */}
-              {step.alternatives && step.alternatives.length > 0 && ( // ✅ CORREÇÃO: Verificação de segurança
+              {step.alternatives && step.alternatives.length > 0 && (
                 <div className="mt-3 p-3 bg-blue-50 rounded-lg">
                   <p className="text-xs font-semibold text-blue-800 mb-2">
                     💡 Alternativas:
@@ -718,7 +705,6 @@ const DMSequenceBuilder = ({
                 </div>
               )}
 
-              {/* Linha conectora */}
               {index < customizedSteps.length - 1 && (
                 <div className="absolute -bottom-4 left-1/2 transform -translate-x-1/2 w-0.5 h-8 bg-gradient-to-b from-purple-500 to-transparent" />
               )}
@@ -727,7 +713,6 @@ const DMSequenceBuilder = ({
         </div>
       </ScrollArea>
 
-      {/* Botões de Ação */}
       <div className="flex gap-3 pt-4 border-t">
         <Button
           className="flex-1 bg-gradient-to-r from-purple-600 to-pink-600"
@@ -765,7 +750,6 @@ const DMSequenceBuilder = ({
   );
 };
 
-// Componente Principal de Mensagens de Vendas
 const AdvancedOutreachSystem = () => {
   const [platform, setPlatform] = useState<"instagram" | "linkedin">("instagram");
   const [approach, setApproach] = useState<"cold" | "warm">("cold");
@@ -807,10 +791,9 @@ const AdvancedOutreachSystem = () => {
         businessType,
         messageType: `${platform}_${approach}`,
         customization
-      }) as OutreachMessageResult; // ✅ CORREÇÃO: Tipagem do resultado
+      }) as OutreachMessageResult;
 
       if (result && result.content) {
-        // Transforma o resultado em steps
         const aiSteps: MessageStep[] = [
           {
             step: 1,
@@ -838,7 +821,6 @@ const AdvancedOutreachSystem = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-pink-50">
         <CardHeader>
           <CardTitle className="text-2xl flex items-center gap-3">
@@ -869,14 +851,12 @@ const AdvancedOutreachSystem = () => {
         </CardContent>
       </Card>
 
-      {/* Configuração */}
       <Card>
         <CardHeader>
           <CardTitle>Configuração da Campanha</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Plataforma */}
             <div className="space-y-2">
               <Label>Plataforma</Label>
               <Select value={platform} onValueChange={(v) => setPlatform(v as "instagram" | "linkedin")}>
@@ -900,7 +880,6 @@ const AdvancedOutreachSystem = () => {
               </Select>
             </div>
 
-            {/* Abordagem */}
             <div className="space-y-2">
               <Label>Tipo de Abordagem</Label>
               <Select value={approach} onValueChange={(v) => setApproach(v as "cold" | "warm")}>
@@ -918,7 +897,6 @@ const AdvancedOutreachSystem = () => {
               </Select>
             </div>
 
-            {/* Tipo de Negócio */}
             <div className="space-y-2">
               <Label>Seu Negócio/Serviço *</Label>
               <Input
@@ -928,7 +906,6 @@ const AdvancedOutreachSystem = () => {
               />
             </div>
 
-            {/* Perfil Alvo */}
             <div className="space-y-2">
               <Label>Perfil do Cliente Ideal *</Label>
               <Input
@@ -938,7 +915,6 @@ const AdvancedOutreachSystem = () => {
               />
             </div>
 
-            {/* Produto */}
             <div className="space-y-2">
               <Label>O que você vende? *</Label>
               <Textarea
@@ -949,7 +925,6 @@ const AdvancedOutreachSystem = () => {
               />
             </div>
 
-            {/* Preço */}
             <div className="space-y-2">
               <Label>Faixa de Preço</Label>
               <Input
@@ -960,7 +935,6 @@ const AdvancedOutreachSystem = () => {
             </div>
           </div>
 
-          {/* Toggle de Dicas */}
           <div className="flex items-center justify-between p-4 bg-purple-50 rounded-lg">
             <div className="flex items-center gap-3">
               <Brain className="w-5 h-5 text-purple-600" />
@@ -975,12 +949,10 @@ const AdvancedOutreachSystem = () => {
         </CardContent>
       </Card>
 
-      {/* Gatilhos Psicológicos */}
       {showPsychologyTips && (
         <PsychologicalTriggerBuilder />
       )}
 
-      {/* Sequência de Mensagens */}
       <Card className="border-2 border-purple-200">
         <CardHeader className="bg-gradient-to-r from-purple-100 to-pink-100">
           <CardTitle>Sequência de Mensagens Personalizada</CardTitle>
@@ -1048,7 +1020,6 @@ const AdvancedOutreachSystem = () => {
         </CardFooter>
       </Card>
 
-      {/* Resultados da IA */}
       {generatedSequence.length > 0 && generatedSequence[0].type === "ai_generated" && (
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -1183,7 +1154,7 @@ function ShareButton({ content }: { content: string }) {
           title: 'Conteúdo do FreelinkBrain',
           text: content,
         });
-      } catch  {
+      } catch {
         console.log('Compartilhamento cancelado');
       }
     } else {
@@ -1393,7 +1364,6 @@ const EnhancedReelCard = ({
                 {reel.title}
               </CardTitle>
 
-              {/* Métricas de Performance */}
               <div className="flex items-center gap-4 text-xs">
                 <div className="flex items-center gap-1">
                   <Activity className="w-3 h-3 text-purple-500" />
@@ -1464,7 +1434,6 @@ const EnhancedReelCard = ({
         </CardHeader>
 
         <CardContent className="space-y-3">
-          {/* Gancho Viral */}
           <motion.div
             className="p-4 bg-gradient-to-r from-yellow-50 to-orange-50 rounded-xl border border-yellow-200"
             whileHover={{ scale: 1.02 }}
@@ -1482,7 +1451,6 @@ const EnhancedReelCard = ({
             </div>
           </motion.div>
 
-          {/* Dicas para Viralizar */}
           <AnimatePresence>
             {showViralTips && (
               <motion.div
@@ -1506,7 +1474,6 @@ const EnhancedReelCard = ({
             )}
           </AnimatePresence>
 
-          {/* Roteiro Expandível */}
           <div className="space-y-2">
             <Button
               variant="ghost"
@@ -1530,7 +1497,6 @@ const EnhancedReelCard = ({
                   className="overflow-hidden"
                 >
                   <div className="pt-2 space-y-3">
-                    {/* Pontos do Roteiro */}
                     <div className="space-y-2">
                       <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                         Sequência do Roteiro
@@ -1551,7 +1517,6 @@ const EnhancedReelCard = ({
                       ))}
                     </div>
 
-                    {/* CTA */}
                     <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl">
                       <div className="flex items-start gap-3">
                         <div className="p-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg">
@@ -1566,7 +1531,6 @@ const EnhancedReelCard = ({
                       </div>
                     </div>
 
-                    {/* Hashtags Sugeridas */}
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <p className="text-xs font-bold text-gray-600 mb-2">HASHTAGS VIRAIS</p>
                       <div className="flex flex-wrap gap-1">
@@ -1583,7 +1547,6 @@ const EnhancedReelCard = ({
             </AnimatePresence>
           </div>
 
-          {/* Footer com Ações */}
           <div className="flex items-center justify-between pt-3 border-t">
             <div className="flex items-center gap-4 text-xs text-muted-foreground">
               <span className="flex items-center gap-1">
@@ -1958,7 +1921,6 @@ export default function FreelinkBrainTool() {
   const inputRef = useRef<HTMLInputElement>(null);
   const generateIdeas = useAction(api.brain.generateContentIdeas);
 
-  // Carregar dados do localStorage na inicialização
   useEffect(() => {
     const campaigns = getSavedCampaigns();
     setSavedCampaigns(campaigns);
@@ -1992,7 +1954,6 @@ export default function FreelinkBrainTool() {
       const data = await generateIdeas({ theme });
       setResults(data);
 
-      // Gera uma nova campanha e salva localmente
       const newCampaign: SavedCampaign = {
         id: generateId(),
         theme,
@@ -2004,7 +1965,6 @@ export default function FreelinkBrainTool() {
       setCurrentCampaignId(newCampaign.id);
       saveCampaign(newCampaign);
 
-      // Atualiza a lista de campanhas
       setSavedCampaigns(prev => [newCampaign, ...prev]);
       setIsNewCampaignSaved(true);
 
@@ -2073,7 +2033,7 @@ export default function FreelinkBrainTool() {
     setIsScheduleDialogOpen(true);
   };
 
-   const handleScheduleSave = (date: string, time: string, platform: string) => {
+    const handleScheduleSave = (date: string, time: string, platform: string) => {
   if (!currentScheduleItem || !currentCampaignId) return;
 
   const newScheduledItem = {
@@ -2089,7 +2049,6 @@ export default function FreelinkBrainTool() {
   const updatedScheduledItems = [...scheduledItems, newScheduledItem];
   setScheduledItems(updatedScheduledItems);
 
-  // Atualiza a campanha no localStorage
   const campaign = savedCampaigns.find(c => c.id === currentCampaignId);
   if (campaign) {
     const updatedCampaign = {
@@ -2125,7 +2084,6 @@ export default function FreelinkBrainTool() {
 
   return (
   <div className="w-full min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
-  {/* Header Revolucionário - Removido sticky para melhor navegação mobile */}
   <motion.div
     initial={{ y: -100 }}
     animate={{ y: 0 }}
@@ -2160,7 +2118,6 @@ export default function FreelinkBrainTool() {
           </div>
         </div>
 
-            {/* Navegação Principal */}
             <div className="hidden lg:flex items-center gap-2">
               <Tabs value={mainView} className="w-auto">
                 <TabsList className="bg-white/80 backdrop-blur">
@@ -2193,13 +2150,13 @@ export default function FreelinkBrainTool() {
                     onClick={() => setMainView("outreach")}
                     className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
                   >
-
+                    <Mail className="w-4 h-4 mr-2" />
+                    Vendas DM
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
 
-            {/* Ações */}
             <div className="flex items-center gap-2">
               <TooltipProvider>
                 <Tooltip>
@@ -2235,7 +2192,6 @@ export default function FreelinkBrainTool() {
                 <span className="hidden sm:inline">Histórico</span>
               </Button>
 
-              {/* Menu Mobile */}
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="icon" className="lg:hidden">
@@ -2295,7 +2251,6 @@ export default function FreelinkBrainTool() {
         </div>
       </motion.div>
 
-      {/* Histórico */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
         <SheetContent side="right" className="w-full sm:w-[400px] overflow-y-auto">
           <SheetHeader className="mb-4">
@@ -2305,7 +2260,6 @@ export default function FreelinkBrainTool() {
             </SheetDescription>
           </SheetHeader>
 
-          {/* Componente de Histórico */}
           <div className="space-y-4">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -2391,7 +2345,6 @@ export default function FreelinkBrainTool() {
         </SheetContent>
       </Sheet>
 
-      {/* Modal de Agendamento */}
       <Dialog open={isScheduleDialogOpen} onOpenChange={setIsScheduleDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -2453,10 +2406,8 @@ export default function FreelinkBrainTool() {
         </DialogContent>
       </Dialog>
 
-      {/* Conteúdo Principal */}
       <div className="container px-4 py-8">
         <AnimatePresence mode="wait">
-          {/* View: Psicologia de Vendas */}
           {mainView === "psychology" && (
             <motion.div
               key="psychology"
@@ -2468,7 +2419,6 @@ export default function FreelinkBrainTool() {
             </motion.div>
           )}
 
-          {/* View: Gerador de Conteúdo */}
           {mainView === "generator" && (
             <motion.div
               key="generator"
@@ -2486,87 +2436,85 @@ export default function FreelinkBrainTool() {
                   animate={{ opacity: 1 }}
                   className="space-y-6"
                 >
-                  {/* Header com métricas */}
-                 <div className="bg-background/80 backdrop-blur-lg border-b">
-  <div className="py-4 space-y-4">
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-      <div className="flex-1">
-        <div className="flex items-center gap-2">
-          <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Campanha Pronta!
-          </h2>
-          {isNewCampaignSaved && (
-            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
-              <Check className="w-3 h-3 mr-1" />
-              Salva
-            </Badge>
-          )}
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Tema: <span className="font-semibold text-foreground">{theme}</span>
-        </p>
-      </div>
-      <div className="flex gap-2 w-full sm:w-auto">
-        <Button
-          onClick={handleGenerateNew}
-          variant="outline"
-          className="flex-1 sm:flex-initial gap-2"
-        >
-          <RefreshCcw className="w-4 h-4" />
-          Novo Tema
-        </Button>
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              variant="default"
-              className="flex-1 sm:flex-initial gap-2"
-            >
-              <Download className="w-4 h-4" />
-              Exportar
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem>
-              <FileText className="w-4 h-4 mr-2" />
-              Exportar como PDF
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Share2 className="w-4 h-4 mr-2" />
-              Compartilhar link
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Calendar className="w-4 h-4 mr-2" />
-              Agendar todos
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    </div>
-    <div className="grid grid-cols-5 gap-2">
-      <div className="text-center p-2 bg-muted/50 rounded-lg">
-        <p className="text-2xl font-bold text-primary">
-          <AnimatedCounter value={contentCounts?.total || 0} />
-        </p>
-        <p className="text-xs text-muted-foreground">Total</p>
-      </div>
-      {[
-        { key: "reels", icon: Video, color: "text-blue-500" },
-        { key: "carousels", icon: Layers, color: "text-purple-500" },
-        { key: "image_posts", icon: Camera, color: "text-pink-500" },
-        { key: "story_sequences", icon: MessageSquare, color: "text-indigo-500" }
-      ].map(({ key, icon: Icon, color }) => (
-        <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
-          <Icon className={cn("w-4 h-4 mx-auto mb-1", color)} />
-          <p className="text-lg font-bold">
-            <AnimatedCounter value={contentCounts?.[key as keyof typeof contentCounts] || 0} />
-          </p>
-        </div>
-      ))}
-    </div>
-  </div>
-</div>
+                  <div className="bg-background/80 backdrop-blur-lg border-b">
+                    <div className="py-4 space-y-4">
+                      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                              Campanha Pronta!
+                            </h2>
+                            {isNewCampaignSaved && (
+                              <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-500/20">
+                                <Check className="w-3 h-3 mr-1" />
+                                Salva
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Tema: <span className="font-semibold text-foreground">{theme}</span>
+                          </p>
+                        </div>
+                        <div className="flex gap-2 w-full sm:w-auto">
+                          <Button
+                            onClick={handleGenerateNew}
+                            variant="outline"
+                            className="flex-1 sm:flex-initial gap-2"
+                          >
+                            <RefreshCcw className="w-4 h-4" />
+                            Novo Tema
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                variant="default"
+                                className="flex-1 sm:flex-initial gap-2"
+                              >
+                                <Download className="w-4 h-4" />
+                                Exportar
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem>
+                                <FileText className="w-4 h-4 mr-2" />
+                                Exportar como PDF
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Share2 className="w-4 h-4 mr-2" />
+                                Compartilhar link
+                              </DropdownMenuItem>
+                              <DropdownMenuItem>
+                                <Calendar className="w-4 h-4 mr-2" />
+                                Agendar todos
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-5 gap-2">
+                        <div className="text-center p-2 bg-muted/50 rounded-lg">
+                          <p className="text-2xl font-bold text-primary">
+                            <AnimatedCounter value={contentCounts?.total || 0} />
+                          </p>
+                          <p className="text-xs text-muted-foreground">Total</p>
+                        </div>
+                        {[
+                          { key: "reels", icon: Video, color: "text-blue-500" },
+                          { key: "carousels", icon: Layers, color: "text-purple-500" },
+                          { key: "image_posts", icon: Camera, color: "text-pink-500" },
+                          { key: "story_sequences", icon: MessageSquare, color: "text-indigo-500" }
+                        ].map(({ key, icon: Icon, color }) => (
+                          <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
+                            <Icon className={cn("w-4 h-4 mx-auto mb-1", color)} />
+                            <p className="text-lg font-bold">
+                              <AnimatedCounter value={contentCounts?.[key as keyof typeof contentCounts] || 0} />
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
 
-                  {/* Cards de resumo */}
                   <div className="space-y-4">
                     <Card className="border-2 border-blue-500/20 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20">
                       <CardHeader className="pb-3">
@@ -2614,7 +2562,6 @@ export default function FreelinkBrainTool() {
                     <ContentMetrics />
                   </div>
 
-                  {/* Tabs de conteúdo */}
                   <div>
                     <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
                       <div className="overflow-x-auto scrollbar-hide">
@@ -2683,7 +2630,6 @@ export default function FreelinkBrainTool() {
                   animate={{ opacity: 1 }}
                   className="space-y-8"
                 >
-                  {/* Hero Section */}
                   <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 p-1">
                     <div className="relative bg-background rounded-[calc(1.5rem-4px)] p-8 sm:p-12">
                       <motion.div
@@ -2765,7 +2711,6 @@ export default function FreelinkBrainTool() {
                     </div>
                   </div>
 
-                  {/* Input Section */}
                   <motion.div
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
@@ -2842,7 +2787,6 @@ export default function FreelinkBrainTool() {
                     </Card>
                   </motion.div>
 
-                  {/* Features Grid */}
                   <motion.div
                     className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4"
                     initial={{ y: 20, opacity: 0 }}
@@ -2902,158 +2846,154 @@ export default function FreelinkBrainTool() {
             </motion.div>
           )}
 
-          {/* View: Planejador */}
-       {mainView === "planner" && (
-  <motion.div
-    key="planner"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="space-y-6"
-  >
-    {currentCampaignId ? (
-      <>
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Planejador de Conteúdo</h2>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setMainView("generator")}
-            className="gap-2"
+          {mainView === "planner" && (
+          <motion.div
+            key="planner"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="space-y-6"
           >
-            <ChevronLeft className="w-4 h-4" />
-            Voltar para Campanha
-          </Button>
-        </div>
+            {currentCampaignId ? (
+              <>
+                <div className="flex items-center justify-between">
+                  <h2 className="text-2xl font-bold">Planejador de Conteúdo</h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setMainView("generator")}
+                    className="gap-2"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    Voltar para Campanha
+                  </Button>
+                </div>
 
-        {/* Calendar Component */}
-        <Card className="w-full">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle>Calendário de Conteúdo</CardTitle>
-              <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm">
-                  <ChevronLeft className="h-4 w-4" />
-                </Button>
-                <span className="text-sm font-medium">
-                  {new Date().toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
-                </span>
-                <Button variant="outline" size="sm">
-                  <ChevronRight className="h-4 w-4" />
+                <Card className="w-full">
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <CardTitle>Calendário de Conteúdo</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Button variant="outline" size="sm">
+                          <ChevronLeft className="h-4 w-4" />
+                        </Button>
+                        <span className="text-sm font-medium">
+                          {new Date().toLocaleString('pt-BR', { month: 'long', year: 'numeric' })}
+                        </span>
+                        <Button variant="outline" size="sm">
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-7 gap-1">
+                      {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
+                        <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
+                          {day}
+                        </div>
+                      ))}
+                      {Array(35).fill(0).map((_, i) => {
+                        const date = new Date();
+                        const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+                        const startingDay = firstDayOfMonth.getDay();
+                        const day = i - startingDay + 1;
+                        const isCurrentMonth = day > 0 && day <= new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
+                        const dayString = isCurrentMonth ? `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}` : null;
+                        const scheduledForDay = scheduledItems.filter(item => item.date === dayString);
+
+                        return (
+                          <div
+                            key={i}
+                            className={cn(
+                              "h-20 sm:h-24 p-1 border rounded-md relative overflow-hidden",
+                              isCurrentMonth ? "bg-white" : "bg-gray-50 text-muted-foreground/50",
+                              new Date().getDate() === day && isCurrentMonth && "border-primary/50 bg-primary/5"
+                            )}
+                          >
+                            <div className="text-xs text-right mb-1">
+                              {isCurrentMonth ? day : ""}
+                            </div>
+                            {isCurrentMonth && (
+                              <div className="overflow-y-auto max-h-[calc(100%-20px)] space-y-1">
+                                {scheduledForDay.map(item => {
+                                  let icon = null;
+                                  let bgColor = "bg-gray-200";
+                                  let textColor = "text-gray-800";
+                                  let itemLabel = '';
+                                  switch (item.contentType) {
+                                    case "reel":
+                                      icon = <Video className="w-3 h-3" />;
+                                      bgColor = "bg-blue-500/10";
+                                      textColor = "text-blue-500";
+                                      itemLabel = 'Reel';
+                                      break;
+                                    case "carousel":
+                                      icon = <Layers className="w-3 h-3" />;
+                                      bgColor = "bg-purple-500/10";
+                                      textColor = "text-purple-500";
+                                      itemLabel = 'Carrossel';
+                                      break;
+                                    case "image_post":
+                                      icon = <Camera className="w-3 h-3" />;
+                                      bgColor = "bg-pink-500/10";
+                                      textColor = "text-pink-500";
+                                      itemLabel = 'Post';
+                                      break;
+                                    case "story_sequence":
+                                      icon = <MessageSquare className="w-3 h-3" />;
+                                      bgColor = "bg-indigo-500/10";
+                                      textColor = "text-indigo-500";
+                                      itemLabel = 'Story';
+                                      break;
+                                  }
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      className={cn("text-[10px] mb-1 px-1 py-0.5 rounded-sm truncate cursor-pointer", bgColor, textColor)}
+                                    >
+                                      <span className="flex items-center gap-1">
+                                        {icon} {item.time} - {itemLabel}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </CardContent>
+                </Card>
+              </>
+            ) : (
+              <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
+                <Calendar className="w-16 h-16 text-muted-foreground/20 mb-4" />
+                <h3 className="text-xl font-semibold mb-2">Nenhuma campanha ativa</h3>
+                <p className="text-muted-foreground max-w-md mb-6">
+                  Gere uma campanha de conteúdo primeiro para visualizar o planejador.
+                </p>
+                <Button
+                  onClick={() => setMainView("generator")}
+                  className="gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Gerar Campanha
                 </Button>
               </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-7 gap-1">
-              {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map(day => (
-                <div key={day} className="text-center text-xs font-medium text-muted-foreground py-2">
-                  {day}
-                </div>
-              ))}
-              {Array(35).fill(0).map((_, i) => {
-                // Lógica de renderização dinâmica dos dias
-                const date = new Date();
-                const firstDayOfMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-                const startingDay = firstDayOfMonth.getDay();
-                const day = i - startingDay + 1;
-                const isCurrentMonth = day > 0 && day <= new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
-                const dayString = isCurrentMonth ? `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${day.toString().padStart(2, '0')}` : null;
-                const scheduledForDay = scheduledItems.filter(item => item.date === dayString);
+            )}
+          </motion.div>
+        )}
 
-                return (
-                  <div
-                    key={i}
-                    className={cn(
-                      "h-20 sm:h-24 p-1 border rounded-md relative overflow-hidden",
-                      isCurrentMonth ? "bg-white" : "bg-gray-50 text-muted-foreground/50",
-                      new Date().getDate() === day && isCurrentMonth && "border-primary/50 bg-primary/5"
-                    )}
-                  >
-                    <div className="text-xs text-right mb-1">
-                      {isCurrentMonth ? day : ""}
-                    </div>
-                    {isCurrentMonth && (
-                      <div className="overflow-y-auto max-h-[calc(100%-20px)] space-y-1">
-                        {scheduledForDay.map(item => {
-                          let icon = null;
-                          let bgColor = "bg-gray-200";
-                          let textColor = "text-gray-800";
-                          let itemLabel = '';
-                          switch (item.contentType) {
-                            case "reel":
-                              icon = <Video className="w-3 h-3" />;
-                              bgColor = "bg-blue-500/10";
-                              textColor = "text-blue-500";
-                              itemLabel = 'Reel';
-                              break;
-                            case "carousel":
-                              icon = <Layers className="w-3 h-3" />;
-                              bgColor = "bg-purple-500/10";
-                              textColor = "text-purple-500";
-                              itemLabel = 'Carrossel';
-                              break;
-                            case "image_post":
-                              icon = <Camera className="w-3 h-3" />;
-                              bgColor = "bg-pink-500/10";
-                              textColor = "text-pink-500";
-                              itemLabel = 'Post';
-                              break;
-                            case "story_sequence":
-                              icon = <MessageSquare className="w-3 h-3" />;
-                              bgColor = "bg-indigo-500/10";
-                              textColor = "text-indigo-500";
-                              itemLabel = 'Story';
-                              break;
-                          }
-                          return (
-                            <div
-                              key={item.id}
-                              className={cn("text-[10px] mb-1 px-1 py-0.5 rounded-sm truncate cursor-pointer", bgColor, textColor)}
-                            >
-                              <span className="flex items-center gap-1">
-                                {icon} {item.time} - {itemLabel}
-                              </span>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-      </>
-    ) : (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center">
-        <Calendar className="w-16 h-16 text-muted-foreground/20 mb-4" />
-        <h3 className="text-xl font-semibold mb-2">Nenhuma campanha ativa</h3>
-        <p className="text-muted-foreground max-w-md mb-6">
-          Gere uma campanha de conteúdo primeiro para visualizar o planejador.
-        </p>
-        <Button
-          onClick={() => setMainView("generator")}
-          className="gap-2"
-        >
-          <Sparkles className="w-4 h-4" />
-          Gerar Campanha
-        </Button>
-      </div>
-    )}
-  </motion.div>
-)}
-
-          {/* View: Outreach */}
           {mainView === "outreach" && (
             <motion.div
-    key="outreach"
-    initial={{ opacity: 0 }}
-    animate={{ opacity: 1 }}
-    exit={{ opacity: 0 }}
-    className="space-y-6"
-  >
+              key="outreach"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="space-y-6"
+            >
               <div className="flex items-center justify-between">
                 <h2 className="text-2xl font-bold">Mensagens de Abordagem</h2>
                 <Select defaultValue="cold">
@@ -3069,7 +3009,6 @@ export default function FreelinkBrainTool() {
                 </Select>
               </div>
 
-              {/* ✅ CORREÇÃO: Renderiza os templates padrão */}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {DEFAULT_OUTREACH_TEMPLATES.map((template) => (
                   <Card key={template.id} className="hover:shadow-lg transition-shadow">
@@ -3081,10 +3020,10 @@ export default function FreelinkBrainTool() {
                     </CardContent>
                     <CardFooter className="flex justify-between items-center">
                        <div className="flex flex-wrap gap-1">
-                        {template.tags.map(tag => (
-                          <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
-                        ))}
-                      </div>
+                         {template.tags.map(tag => (
+                           <Badge key={tag} variant="secondary" className="text-xs">{tag}</Badge>
+                         ))}
+                       </div>
                       <CopyButton textToCopy={template.content} />
                     </CardFooter>
                   </Card>
@@ -3095,7 +3034,6 @@ export default function FreelinkBrainTool() {
           )}
         </AnimatePresence>
       </div>
-      {/* Footer */}
       <motion.footer
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
