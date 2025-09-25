@@ -52,6 +52,8 @@
     "date-fns-tz": "^3.2.0",
     "framer-motion": "^12.23.12",
     "geist": "^1.4.2",
+    "groq": "^4.10.1",
+    "groq-sdk": "^0.32.0",
     "html-to-image": "^1.11.13",
     "jspdf": "^3.0.2",
     "lucide-react": "^0.539.0",
