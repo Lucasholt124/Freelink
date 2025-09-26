@@ -1,21 +1,16 @@
-// /convex/imageGenerator.ts - VERSÃO FINAL CORRIGIDA
+// /convex/imageGenerator.ts - VERSÃO FINAL CORRIGIDA E LIMPA
 
 import { action, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
-// ✅ CORREÇÃO: Importar o SDK correto da Groq
 import Groq from 'groq-sdk';
 import { internal } from "./_generated/api";
-
 
 // ============================================================
 // 🔥 CONFIGURAÇÃO DA API KEY
 // ============================================================
 
-// Adicione sua API key da Stability AI no painel do Convex em Settings > Environment Variables
-// Nome da variável: STABILITY_API_KEY
 const stabilityApiKey = process.env.STABILITY_API_KEY;
 
-// ✅ CORREÇÃO: Inicializar a API da Groq corretamente usando o SDK
 const groq = process.env.GROQ_API_KEY ? new Groq({
     apiKey: process.env.GROQ_API_KEY,
 }) : null;
@@ -309,6 +304,7 @@ async function generateViralScript(topic: string, style: string, duration: numbe
         throw new Error("GROQ_API_KEY não está configurada no backend.");
     }
 
+    // ✅ CORREÇÃO: Usar um prompt mais robusto para a IA
     const prompt = `
         Você é um Produtor de Conteúdo Viral e Roteirista de Hollywood. Sua missão é criar um roteiro de vídeo que seja explosivo, envolvente e que gere resultados para o tema: "${topic}".
 
@@ -387,7 +383,8 @@ async function generateViralScript(topic: string, style: string, duration: numbe
     try {
         console.log("🎬 Enviando prompt para Groq...");
         const chatCompletion = await groq.chat.completions.create({
-            model: "llama-3.1-70b-versatile",
+            // ✅ CORREÇÃO: Usar um modelo da Groq que NÃO está descontinuado
+            model: "llama-3.3-70b-versatile",
             messages: [
                 { role: 'system', content: 'Você é um produtor de conteúdo viral. Responda APENAS com um objeto JSON válido.' },
                 { role: 'user', content: prompt },
@@ -405,6 +402,9 @@ async function generateViralScript(topic: string, style: string, duration: numbe
         console.log("✅ Roteiro gerado com sucesso pela IA!");
 
         const script = JSON.parse(scriptText) as VideoScript;
+
+        // As lógicas de fallback para tutoriais e dicas podem ser mantidas,
+        // mas com um prompt robusto, a IA deve gerar os conteúdos corretamente.
 
         if (!script.canvaSteps || script.canvaSteps.length === 0) {
             script.canvaSteps = ["A IA não gerou tutoriais de Canva, mas você pode usar o editor de vídeo para adicionar texto e música!", "DICA: Siga os passos do CapCut para ter uma ideia!"];
@@ -520,7 +520,6 @@ export const generateVideoScript = action({
         try {
             console.log("🎬 Gerando roteiro para:", args.topic);
 
-            // ✅ CORREÇÃO: Chama a função de IA de verdade
             const script = await generateViralScript(
                 args.topic,
                 args.style,

@@ -253,15 +253,15 @@ REGRAS IMPORTANTES:
 
           if (response.ok) {
             const data = await response.json();
-        const aiResponse = data.choices[0]?.message?.content || generateIntelligentMarketingResponse(args.message);
+            const aiResponse = data.choices[0]?.message?.content || generateIntelligentMarketingResponse(args.message);
 
             if (aiResponse) {
               // Salvar no banco
               await ctx.runMutation(api.aiStudio.saveChatMessage, {
                 userId: args.userId,
                 message: args.message,
-            response: aiResponse, // A resposta da IA
-            context: args.context, // O contexto original para registro
+                response: aiResponse, // A resposta da IA
+                context: args.context, // O contexto original para registro
               });
 
               return {
@@ -400,7 +400,7 @@ function generateIntelligentMarketingResponse(message: string): string {
     case 'copy':
       return `📝 **Estratégia de Copywriting Específica para sua pergunta:**
 
-      Analisando "${message}", aqui está a resposta direcionada:
+Analisando "${message}", aqui está a resposta direcionada:
 
 
 **Framework AIDA Adaptado:**
