@@ -180,7 +180,8 @@ export const enhanceImage = action({
 // =================================================================
 // 2. 💬 CHAT DE MARKETING GENIAL (SEM TOKEN)
 // =================================================================
-export const chatWithMarketing = action({
+// Substitua a função chatWithMarketing por chatWithAI:
+export const chatWithAI = action({
   args: {
     userId: v.string(),
     message: v.string(),
@@ -188,39 +189,33 @@ export const chatWithMarketing = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; response?: string; message?: string }> => {
     try {
-      console.log("🤖 Processando chat de marketing inteligente...");
+      console.log("🤖 Processando chat com assistente de IA...");
 
-      // Tentar usar Groq primeiro (mais inteligente)
       const GROQ_KEY = process.env.GROQ_API_KEY;
 
       if (GROQ_KEY) {
         try {
-          const systemPrompt = `Você é um ESPECIALISTA GENIAL em Marketing Digital com 20 anos de experiência.
+          const systemPrompt = `Você é um assistente de IA amigável, útil e conhecedor.
 
-SUAS ESPECIALIDADES:
-• Copywriting de alta conversão
-• Estratégias de growth hacking
-• Social media marketing (Instagram, TikTok, LinkedIn, YouTube)
-• SEO e tráfego orgânico
-• Facebook Ads, Google Ads, TikTok Ads
-• Email marketing e automação
-• Funis de vendas e conversão
-• Psicologia do consumidor e gatilhos mentais
-• Branding e posicionamento de marca
-• Marketing de conteúdo e storytelling
-• Lançamentos e fórmulas de vendas
-• Métricas e análise de dados
+SUAS CAPACIDADES:
+• Conversação natural e empática
+• Explicações claras e didáticas
+• Ajuda com estudos e pesquisas
+• Suporte para projetos criativos
+• Assistência em programação
+• Análise e resolução de problemas
+• Redação e revisão de textos
+• Brainstorming e geração de ideias
 
 REGRAS IMPORTANTES:
 1. Responda SEMPRE em português do Brasil
-2. Seja ESPECÍFICO e PRÁTICO
-3. Dê exemplos REAIS e APLICÁVEIS
-4. Inclua números, métricas e estatísticas quando relevante
-5. Sugira ferramentas específicas
-6. Forneça passo a passo quando necessário
-7. Use emojis para tornar a leitura mais agradável
-8. FOQUE APENAS no que foi perguntado
-9. Se a pergunta não for sobre marketing, redirecione educadamente para marketing`;
+2. Seja claro, objetivo e amigável
+3. Use exemplos quando apropriado
+4. Forneça informações precisas e úteis
+5. Admita quando não souber algo
+6. Use emojis moderadamente para tornar a conversa mais agradável
+7. Adapte o tom baseado no contexto da pergunta
+8. Seja criativo mas mantenha a precisão`;
 
           const userPrompt = args.context
             ? `[Contexto: ${args.context}]\n\nPergunta: ${args.message}`
@@ -233,7 +228,7 @@ REGRAS IMPORTANTES:
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              model: "mixtral-8x7b-32768", // Modelo mais inteligente
+              model: "mixtral-8x7b-32768",
               messages: [
                 {
                   role: "system",
@@ -256,12 +251,11 @@ REGRAS IMPORTANTES:
             const aiResponse = data.choices[0]?.message?.content || generateIntelligentMarketingResponse(args.message);
 
             if (aiResponse) {
-              // Salvar no banco
               await ctx.runMutation(api.aiStudio.saveChatMessage, {
                 userId: args.userId,
                 message: args.message,
-                response: aiResponse, // A resposta da IA
-                context: args.context, // O contexto original para registro
+                response: aiResponse,
+                context: args.context,
               });
 
               return {
@@ -275,61 +269,7 @@ REGRAS IMPORTANTES:
         }
       }
 
-      // Fallback: Usar Hugging Face com modelo melhor
-      try {
-        const huggingFacePrompt = `Marketing Expert Assistant
-
-User Question: ${args.message}
-
-Marketing Expert Response:`;
-
-        const response = await fetch(
-          "https://api-inference.huggingface.co/models/mistralai/Mixtral-8x7B-Instruct-v0.1",
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              inputs: huggingFacePrompt,
-              parameters: {
-                max_new_tokens: 500,
-                temperature: 0.7,
-                top_p: 0.9,
-                return_full_text: false,
-                do_sample: true,
-              }
-            }),
-          }
-        );
-
-        if (response.ok) {
-          const result = await response.json();
-          let aiResponse = result[0]?.generated_text || "";
-
-          // Se a resposta for muito curta ou vazia, usar resposta inteligente local
-          if (aiResponse.length < 50) {
-            aiResponse = generateIntelligentMarketingResponse(args.message);
-          }
-
-          // Salvar no banco
-          await ctx.runMutation(api.aiStudio.saveChatMessage, {
-            userId: args.userId,
-            message: args.message,
-            response: aiResponse,
-            context: args.context,
-          });
-
-          return {
-            success: true,
-            response: aiResponse,
-          };
-        }
-      } catch (hfError) {
-        console.error("Erro com Hugging Face:", hfError);
-      }
-
-      // Último fallback: Resposta inteligente local
+      // Fallback para resposta local inteligente
       const localResponse = generateIntelligentMarketingResponse(args.message);
 
       await ctx.runMutation(api.aiStudio.saveChatMessage, {
@@ -346,8 +286,6 @@ Marketing Expert Response:`;
 
     } catch (error) {
       console.error("Erro no chat:", error);
-
-      // Sempre retornar uma resposta útil
       const fallbackResponse = generateIntelligentMarketingResponse(args.message);
       return {
         success: true,
@@ -357,8 +295,9 @@ Marketing Expert Response:`;
   },
 });
 
+
 // Gerador de respostas locais (fallback inteligente)
-function generateIntelligentMarketingResponse(message: string): string {
+function generateIntelligentMarketingResponse(message: string): string { // A função genérica foi removida pois não era utilizada.
   const lowercaseMessage = message.toLowerCase();
 
   // Análise mais inteligente da pergunta

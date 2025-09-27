@@ -9,8 +9,9 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Mic, MessageSquare, Video, Upload, Download, Loader2, Wand2, Copy, Check,
   Zap, Crown, FileAudio, Heart, Star, Rocket, Send,
-  Camera, Film, Brain, Bot, Share2, TrendingUp, DollarSign, Target,
-  Lightbulb, CheckCircle, Globe, Megaphone, ShoppingBag, Code, Briefcase
+  Camera, Film, Brain, Bot, Share2,
+  Lightbulb, CheckCircle,  Code,
+  HelpCircle, Palette, BookOpen, BarChart, PenTool
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -28,10 +29,10 @@ const tabs = [
   },
   {
     id: 'chat',
-    label: 'Chat Marketing',
+    label: 'Chat com IA',
     icon: MessageSquare,
     color: 'from-blue-600 to-cyan-600',
-    description: 'Gênio do marketing digital ao seu dispor'
+    description: 'Assistente de IA inteligente'
   },
   {
     id: 'stt',
@@ -99,17 +100,17 @@ const enhanceEffects = [
 ];
 
 // =================================================================
-// 💬 TEMPLATES DE CHAT MARKETING
+// 💬 TEMPLATES DE CHAT ASSISTENTE
 // =================================================================
 const chatTemplates = [
-  { id: 'copy', label: '✍️ Copywriting', icon: Code },
-  { id: 'strategy', label: '📈 Estratégia', icon: TrendingUp },
-  { id: 'social', label: '📱 Social Media', icon: Globe },
-  { id: 'ads', label: '💰 Anúncios', icon: DollarSign },
-  { id: 'email', label: '📧 E-mail Marketing', icon: Megaphone },
-  { id: 'seo', label: '🔍 SEO', icon: Target },
-  { id: 'content', label: '📝 Conteúdo', icon: Briefcase },
-  { id: 'ecommerce', label: '🛒 E-commerce', icon: ShoppingBag },
+  { id: 'general', label: '💬 Conversa', icon: MessageSquare },
+  { id: 'help', label: '❓ Ajuda', icon: HelpCircle },
+  { id: 'creative', label: '🎨 Criativo', icon: Palette },
+  { id: 'study', label: '📚 Estudos', icon: BookOpen },
+  { id: 'code', label: '💻 Código', icon: Code },
+  { id: 'ideas', label: '💡 Ideias', icon: Lightbulb },
+  { id: 'analysis', label: '📊 Análise', icon: BarChart },
+  { id: 'writing', label: '✍️ Escrita', icon: PenTool },
 ];
 
 // =================================================================
@@ -136,12 +137,12 @@ export function AIStudioClient() {
   const [enhanceStrength, setEnhanceStrength] = useState(100)
   const [downloadingAssets, setDownloadingAssets] = useState<Set<string>>(new Set());
 
-  // Estados do Chat Marketing
+  // Estados do Chat Assistente
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       role: 'assistant',
-      content: '👋 Olá! Sou seu Gênio do Marketing Digital! 🚀\n\nPosso ajudar você com:\n• 📝 Copywriting que converte\n• 📊 Estratégias de marketing\n• 💰 Anúncios que vendem\n• 📱 Conteúdo viral\n• 🎯 SEO e tráfego\n\nComo posso revolucionar seu marketing hoje?',
+      content: '👋 Olá! Sou seu assistente de IA! 🤖\n\nPosso ajudar você com:\n• 💬 Conversas e dúvidas gerais\n• 📚 Pesquisas e estudos\n• 💡 Brainstorming de ideias\n• ✍️ Redação e revisão de textos\n• 💻 Programação e tecnologia\n• 🎨 Projetos criativos\n\nComo posso ajudar você hoje?',
       timestamp: new Date()
     }
   ])
@@ -168,13 +169,13 @@ export function AIStudioClient() {
 
   // Actions
   const enhanceImageAction = useAction(api.aiStudio.enhanceImage)
-  const chatWithAIAction = useAction(api.aiStudio.chatWithMarketing)
+  const chatWithAIAction = useAction(api.aiStudio.chatWithAI)
   const speechToTextAction = useAction(api.aiStudio.speechToText)
   const generateVideoAction = useAction(api.aiStudio.generateVideo)
   const removeBackgroundAction = useAction(api.aiStudio.removeBackground)
 
   // =================================================================
-  // 💬 FUNÇÕES DO CHAT MARKETING
+  // 💬 FUNÇÕES DO CHAT ASSISTENTE
   // =================================================================
 
   const scrollToBottom = () => {
@@ -200,7 +201,7 @@ export function AIStudioClient() {
     setIsTyping(true)
 
     try {
-      const context = selectedTemplate ? `Como especialista em ${selectedTemplate}, ` : ''
+      const context = selectedTemplate ? `Como assistente especializado em ${selectedTemplate}, ` : ''
       const result = await chatWithAIAction({
         userId: user.id,
         message: context + chatInput,
@@ -231,29 +232,29 @@ export function AIStudioClient() {
     let promptSuggestion = ''
 
     switch(template) {
-      case 'copy':
-        promptSuggestion = 'Crie um copy persuasivo para...'
+      case 'general':
+        promptSuggestion = 'Vamos conversar sobre...'
         break
-      case 'strategy':
-        promptSuggestion = 'Desenvolva uma estratégia de marketing para...'
+      case 'help':
+        promptSuggestion = 'Preciso de ajuda com...'
         break
-      case 'social':
-        promptSuggestion = 'Crie um calendário de conteúdo para Instagram sobre...'
+      case 'creative':
+        promptSuggestion = 'Tenho uma ideia criativa sobre...'
         break
-      case 'ads':
-        promptSuggestion = 'Escreva um anúncio do Facebook para...'
+      case 'study':
+        promptSuggestion = 'Quero aprender sobre...'
         break
-      case 'email':
-        promptSuggestion = 'Crie uma sequência de e-mails para...'
+      case 'code':
+        promptSuggestion = 'Como posso programar...'
         break
-      case 'seo':
-        promptSuggestion = 'Otimize o SEO para...'
+      case 'ideas':
+        promptSuggestion = 'Preciso de ideias para...'
         break
-      case 'content':
-        promptSuggestion = 'Crie um roteiro de vídeo sobre...'
+      case 'analysis':
+        promptSuggestion = 'Analise para mim...'
         break
-      case 'ecommerce':
-        promptSuggestion = 'Crie uma descrição de produto para...'
+      case 'writing':
+        promptSuggestion = 'Escreva um texto sobre...'
         break
     }
 
@@ -883,23 +884,23 @@ export function AIStudioClient() {
                 </div>
               )}
 
-              {/* ABA CHAT MARKETING - REVOLUCIONÁRIA */}
+              {/* ABA CHAT ASSISTENTE - ATUALIZADA */}
               {activeTab === 'chat' && (
                 <div className="space-y-6">
                   <div className="text-center">
                     <Bot className="w-16 h-16 mx-auto mb-4 text-blue-400 animate-pulse" />
                     <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                      Gênio do Marketing Digital
+                      Assistente de IA
                     </h2>
                     <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                      IA especializada em estratégias de marketing que convertem
+                      Seu assistente inteligente para qualquer necessidade
                     </p>
                   </div>
 
                   {/* TEMPLATES RÁPIDOS */}
                   <div>
                     <label className="block text-sm font-medium text-gray-300 mb-3">
-                      🎯 Especialidades (clique para ativar)
+                      🎯 Escolha um tópico (opcional)
                     </label>
                     <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
                       {chatTemplates.map(template => (
@@ -947,7 +948,7 @@ export function AIStudioClient() {
                               <div className="flex items-center gap-2 mb-2">
                                 <Bot className="w-5 h-5 text-blue-400" />
                                 <span className="text-sm font-semibold text-blue-400">
-                                  Marketing Genius
+                                  AI Assistant
                                 </span>
                               </div>
                             )}
@@ -995,7 +996,7 @@ export function AIStudioClient() {
                           value={chatInput}
                           onChange={(e) => setChatInput(e.target.value)}
                           onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                          placeholder="Digite sua pergunta sobre marketing..."
+                          placeholder="Digite sua pergunta ou mensagem..."
                           className="flex-1 p-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none transition-colors"
                         />
                         <motion.button
@@ -1011,10 +1012,10 @@ export function AIStudioClient() {
                       <div className="mt-3 flex flex-wrap gap-2">
                         <span className="text-xs text-gray-500">Sugestões:</span>
                         {[
-                          'Como criar um copy que converte?',
-                          'Estratégia para Instagram',
-                          'Melhores horários para postar',
-                          'Como aumentar engajamento?'
+                          'Como funciona a inteligência artificial?',
+                          'Me ajude com uma ideia criativa',
+                          'Explique de forma simples',
+                          'O que você recomenda?'
                         ].map(suggestion => (
                           <button
                             key={suggestion}
@@ -1035,10 +1036,10 @@ export function AIStudioClient() {
                       Dicas para melhores resultados:
                     </h3>
                     <ul className="text-sm text-gray-300 space-y-1">
-                      <li>• Seja específico sobre seu nicho e público-alvo</li>
-                      <li>• Peça exemplos práticos e casos de uso</li>
-                      <li>• Solicite métricas e KPIs relevantes</li>
-                      <li>• Use os templates para respostas especializadas</li>
+                      <li>• Seja claro e específico em suas perguntas</li>
+                      <li>• Forneça contexto quando necessário</li>
+                      <li>• Peça exemplos se precisar de clareza</li>
+                      <li>• Use os tópicos para respostas direcionadas</li>
                     </ul>
                   </div>
                 </div>
