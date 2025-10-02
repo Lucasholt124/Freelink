@@ -3,8 +3,6 @@
 
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { fetchQuery } from 'convex/nextjs';
-import { api } from '@/convex/_generated/api';
 import OpenAI from 'openai';
 
 // Força a rota a rodar no ambiente Node.js da Vercel
@@ -69,31 +67,33 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { offer, audience } = body;
+    const { offer, audience, username, bio } = body;
 
     if (!offer || !audience) {
         return new NextResponse(JSON.stringify({ error: 'Os campos "oferta" e "público-alvo" são obrigatórios.' }), { status: 400 });
     }
 
-    const instagramConnection = await fetchQuery(api.connections.get, { provider: 'instagram' });
+    // ============================================================
+    // CORREÇÃO: Removendo dependência da conexão individual do Instagram
+    // Agora sempre usamos os dados fornecidos manualmente
+    // ============================================================
 
-    if (instagramConnection?.accessToken) {
-        const userInfoUrl = `https://graph.instagram.com/me?fields=id,username,biography&access_token=${instagramConnection.accessToken}`;
-        const userInfoResponse = await fetch(userInfoUrl);
-        const userInfo = await userInfoResponse.json();
+    // Verificar se username e bio foram fornecidos
+    if (!username || !bio) {
+        // Se não foram fornecidos, usar valores padrão
+        const defaultUsername = "usuario";
+        const defaultBio = "Bio não fornecida";
 
-        if (!userInfoResponse.ok) {
-            throw new Error(userInfo.error?.message || "Falha ao buscar dados do perfil no Instagram.");
-        }
-        const { username, biography: bio } = userInfo;
-        return generateAnalysis(username, bio, offer, audience);
-    } else {
-        const { username, bio } = body;
-        if (!username || !bio) {
-            return new NextResponse(JSON.stringify({ error: 'Conexão com Instagram não encontrada e dados manuais não fornecidos.' }), { status: 403 });
-        }
-        return generateAnalysis(username, bio, offer, audience);
+        return generateAnalysis(
+            username || defaultUsername,
+            bio || defaultBio,
+            offer,
+            audience
+        );
     }
+
+    // Gerar análise com os dados fornecidos
+    return generateAnalysis(username, bio, offer, audience);
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro interno.";
