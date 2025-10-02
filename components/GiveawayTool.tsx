@@ -78,6 +78,8 @@ import {
 } from "./ui/dropdown-menu";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@radix-ui/react-accordion";
 
+// Componente para suporte a URL do Instagram (usando conta admin)
+
 // Types
 type Winner =
   | FunctionReturnType<typeof api.giveaways.runInstagramGiveaway>
@@ -855,41 +857,34 @@ function parseInstagramComments(text: string): { username: string, text: string 
   );
 
 // Componente para suporte a URL do Instagram
+// Componente para suporte a URL do Instagram (usando conta admin)
 function InstagramURLSupport({ onCommentsLoaded }: { onCommentsLoaded: (comments: string) => void }) {
   const [url, setUrl] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isConnected, setIsConnected] = useState(false);
-  const [connectionStatus, setConnectionStatus] = useState<"idle" | "connecting" | "connected" | "error">("idle");
+  const [connectionStatus, setConnectionStatus] = useState<"loading" | "connected" | "disconnected">("loading");
 
-  // Verificar se o usuário está conectado ao Instagram
+  // Verificar status da conexão com o Instagram
   useEffect(() => {
-    const checkConnection = async () => {
+    async function checkConnection() {
       try {
-        const response = await fetch('/api/instagram/check-connection');
-        const data = await response.json();
-        setIsConnected(data.connected);
-        setConnectionStatus(data.connected ? "connected" : "idle");
+        const response = await fetch('/api/instagram/status');
+        if (response.ok) {
+          const data = await response.json();
+          setConnectionStatus(data.connected ? "connected" : "disconnected");
+        } else {
+          setConnectionStatus("disconnected");
+        }
       } catch (error) {
-        console.error("Erro ao verificar conexão com Instagram:", error);
-        setConnectionStatus("error");
+        console.error("Erro ao verificar conexão:", error);
+        setConnectionStatus("disconnected");
       }
-    };
+    }
 
     checkConnection();
   }, []);
-   const connectToInstagram = async () => {
-    setConnectionStatus("connecting");
-    try {
-      // Redirecionar para a rota de autenticação do Instagram
-      window.location.href = '/api/connect/instagram';
-    } catch (error) {
-      console.error("Erro ao conectar com Instagram:", error);
-      setConnectionStatus("error");
-    }
-  };
 
-  // Buscar comentários reais usando a API
-  const fetchRealComments = async () => {
+  // Buscar comentários usando a conta conectada do admin
+  const fetchComments = async () => {
     if (!url) {
       toast.error("Por favor, insira uma URL do Instagram válida");
       return;
@@ -906,7 +901,7 @@ function InstagramURLSupport({ onCommentsLoaded }: { onCommentsLoaded: (comments
         return;
       }
 
-      // Chamar a API para buscar comentários
+      // Chamar a API que usa as credenciais do admin
       const response = await fetch('/api/instagram/comments', {
         method: 'POST',
         headers: {
@@ -915,12 +910,27 @@ function InstagramURLSupport({ onCommentsLoaded }: { onCommentsLoaded: (comments
         body: JSON.stringify({ postId }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Erro ao buscar comentários");
+        // Tratar erros específicos
+        if (response.status === 503) {
+          throw new Error("O sistema não está conectado ao Instagram. Aguarde até que o administrador configure a conexão.");
+        } else if (response.status === 403) {
+          throw new Error("Sem permissão para acessar este post. Certifique-se de que ele seja público.");
+        } else if (response.status === 404) {
+          throw new Error("Post não encontrado. Verifique se a URL está correta.");
+        } else {
+          throw new Error(data.error || "Erro ao buscar comentários");
+        }
       }
 
-      const data = await response.json();
+      if (data.comments.length === 0) {
+        toast.info("Nenhum comentário encontrado neste post.");
+        setIsLoading(false);
+        setUrl("");
+        return;
+      }
 
       // Formatar comentários para o formato esperado pelo sorteador
       const formattedComments = data.comments.map((comment: { username: string; text: string }) => {
@@ -928,53 +938,100 @@ function InstagramURLSupport({ onCommentsLoaded }: { onCommentsLoaded: (comments
       }).join('\n');
 
       onCommentsLoaded(formattedComments);
-      toast.success(`${data.comments.length} comentários carregados com sucesso!`);
+      toast.success(`✅ ${data.comments.length} comentários carregados com sucesso!`);
+
+      // Limpar URL após sucesso
+      setUrl("");
+
     } catch (error) {
       console.error("Erro ao buscar comentários:", error);
-      toast.error(error instanceof Error ? error.message : "Erro ao buscar comentários");
+
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar comentários";
+
+      toast.error(errorMessage, {
+        duration: 5000,
+        action: {
+          label: "Ver alternativas",
+          onClick: () => {
+            // Scroll para as instruções manuais
+            const instructions = document.querySelector('[data-instructions]');
+            instructions?.scrollIntoView({ behavior: 'smooth' });
+          }
+        }
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
+  // Função para colar e buscar automaticamente
+  const handlePaste = async (e: React.ClipboardEvent<HTMLInputElement>) => {
+    const pastedUrl = e.clipboardData.getData('text');
+
+    // Verificar se é uma URL do Instagram válida
+    if (pastedUrl.includes('instagram.com/p/') || pastedUrl.includes('instagram.com/reel/')) {
+      setUrl(pastedUrl);
+      // Aguardar o estado atualizar
+      setTimeout(() => {
+        fetchComments();
+      }, 100);
+    }
+  };
+
   return (
-     <div className="space-y-3 mb-4">
-      {/* Status da conexão com Instagram */}
-      {connectionStatus === "connected" ? (
-        <div className="bg-green-50 dark:bg-green-900/20 p-3 rounded-lg border border-green-200 dark:border-green-800/50 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <div className="bg-green-100 dark:bg-green-800/50 p-2 rounded-full">
+    <div className="space-y-3 mb-4">
+      {/* Banner de status - Sistema conectado ou desconectado */}
+      {connectionStatus === "loading" ? (
+        <div className="bg-gray-50 dark:bg-gray-800/50 p-4 rounded-lg border border-gray-200 dark:border-gray-700/50 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="bg-gray-100 dark:bg-gray-700/50 p-2.5 rounded-full flex-shrink-0">
+              <Loader2 className="w-5 h-5 text-gray-500 dark:text-gray-400 animate-spin" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-gray-700 dark:text-gray-300">
+                Verificando conexão com o Instagram...
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : connectionStatus === "connected" ? (
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800/50 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="bg-green-100 dark:bg-green-800/50 p-2.5 rounded-full flex-shrink-0">
               <Instagram className="w-5 h-5 text-green-600 dark:text-green-400" />
             </div>
-            <div>
-              <p className="font-medium text-green-800 dark:text-green-400">Conectado ao Instagram</p>
-              <p className="text-xs text-green-600 dark:text-green-500">Você pode buscar comentários de qualquer post</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-green-800 dark:text-green-400">
+                  Sistema Conectado ao Instagram
+                </p>
+                <div className="flex items-center">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                </div>
+              </div>
+              <p className="text-sm text-green-600 dark:text-green-500 mt-1">
+                Cole a URL de qualquer post público e busque os comentários automaticamente
+              </p>
             </div>
           </div>
         </div>
       ) : (
-        <div className="bg-amber-50 dark:bg-amber-900/20 p-3 rounded-lg border border-amber-200 dark:border-amber-800/50">
-          <div className="flex items-center gap-2">
-            <div className="bg-amber-100 dark:bg-amber-800/50 p-2 rounded-full">
-              <Instagram className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-900/20 dark:to-orange-900/20 p-4 rounded-lg border border-amber-200 dark:border-amber-800/50 shadow-sm">
+          <div className="flex items-start gap-3">
+            <div className="bg-amber-100 dark:bg-amber-800/50 p-2.5 rounded-full flex-shrink-0">
+              <AlertCircle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
             </div>
-            <div>
-              <p className="font-medium text-amber-800 dark:text-amber-400">Conecte-se ao Instagram</p>
-              <p className="text-xs text-amber-600 dark:text-amber-500">Conecte sua conta para buscar comentários automaticamente</p>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <p className="font-semibold text-amber-800 dark:text-amber-400">
+                  Instagram Não Conectado
+                </p>
+              </div>
+              <p className="text-sm text-amber-700 dark:text-amber-500 mt-1">
+                O sistema não está conectado ao Instagram. Por favor, use o método manual abaixo ou entre em contato com o administrador.
+              </p>
             </div>
           </div>
-
-          <Button
-            onClick={connectToInstagram}
-            disabled={connectionStatus === "connecting"}
-            className="w-full mt-3 bg-gradient-to-r from-pink-500 to-amber-500 hover:from-pink-600 hover:to-amber-600 text-white"
-          >
-            {connectionStatus === "connecting" ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Conectando...</>
-            ) : (
-              <><Instagram className="w-4 h-4 mr-2" /> Conectar ao Instagram</>
-            )}
-          </Button>
         </div>
       )}
 
@@ -984,32 +1041,80 @@ function InstagramURLSupport({ onCommentsLoaded }: { onCommentsLoaded: (comments
           <Instagram className="w-4 h-4 mr-2" />
           URL da publicação do Instagram
         </Label>
+
         <div className="flex flex-col sm:flex-row gap-2">
-          <Input
-            id="instagram-url"
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            placeholder="https://www.instagram.com/p/CodExemplo123/"
-            className="flex-1"
-          />
+          <div className="relative flex-1">
+            <Input
+              id="instagram-url"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              onPaste={handlePaste}
+              placeholder="https://www.instagram.com/p/CodExemplo123/"
+              className="pr-10"
+              disabled={isLoading || connectionStatus === "disconnected"}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && url && !isLoading && connectionStatus === "connected") {
+                  fetchComments();
+                }
+              }}
+            />
+            {url && !isLoading && (
+              <button
+                onClick={() => setUrl("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                aria-label="Limpar URL"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
           <Button
-            onClick={fetchRealComments}
-            disabled={isLoading || !url || !isConnected}
-            className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white sm:w-auto w-full"
+            onClick={fetchComments}
+            disabled={isLoading || !url || connectionStatus === "disconnected"}
+            className="bg-gradient-to-r from-pink-500 to-purple-500 hover:from-pink-600 hover:to-purple-600 text-white sm:w-auto w-full disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? (
-              <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Buscando...</>
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Buscando...
+              </>
             ) : (
-              <><Download className="w-4 h-4 mr-2" /> Buscar Comentários</>
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Buscar Comentários
+              </>
             )}
           </Button>
         </div>
+
+        <p className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+          <Info className="w-3 h-3" />
+          {connectionStatus === "connected"
+            ? "Cole a URL e pressione Enter ou clique em Buscar Comentários"
+            : "Utilize o método manual enquanto o Instagram não estiver conectado"}
+        </p>
       </div>
 
-      {/* Exibir métodos alternativos se não estiver conectado */}
-      {!isConnected && (
+      {/* Dicas rápidas */}
+      <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3 border border-blue-200 dark:border-blue-800/50">
+        <div className="flex items-start gap-2">
+          <HelpCircle className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-blue-700 dark:text-blue-300 space-y-1">
+            <p className="font-medium">Dicas:</p>
+            <ul className="list-disc list-inside space-y-1 text-xs">
+              <li>Funciona com posts e reels públicos</li>
+              <li>Busca todos os comentários automaticamente (com paginação)</li>
+              <li>Se não funcionar, use o método manual abaixo</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      {/* Instruções alternativas (método manual) */}
+      <div data-instructions>
         <InstagramInstructions />
-      )}
+      </div>
     </div>
   );
 }

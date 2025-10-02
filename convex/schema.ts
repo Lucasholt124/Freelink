@@ -36,6 +36,8 @@ export default defineSchema({
     tokenExpiresAt: v.optional(v.number()),
     accessToken: v.string(),
     refreshToken: v.optional(v.string()),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   }).index("by_user_provider", ["userId", "provider"]),
 
   shortLinks: defineTable({
