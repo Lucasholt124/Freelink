@@ -1,6 +1,29 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
+// ✅ NOVA QUERY ADICIONADA AQUI
+export const get = query({
+  args: { provider: v.string() },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+
+    // Se o usuário não estiver logado, não há conexão para buscar.
+    if (!identity) {
+      return null;
+    }
+
+    // Busca a conexão para o usuário atual e o provedor especificado.
+    const connection = await ctx.db
+      .query("connections")
+      .withIndex("by_user_provider", (q) =>
+        q.eq("userId", identity.subject).eq("provider", args.provider)
+      )
+      .first();
+
+    return connection;
+  },
+});
+
 // ID do admin - defina aqui ou use variável de ambiente
 const ADMIN_USER_ID = "user_2pDsdfaGFASDFasd"; // SUBSTITUA pelo seu ID de admin do Clerk
 
