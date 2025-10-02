@@ -5,31 +5,37 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Instagram, ShieldCheck, AlertCircle, CheckCircle, Loader2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
-export default function AdminInstagramPage() {
+
+// IMPORTANTE: Substitua pelo seu ID de admin do Clerk
+const ADMIN_USER_ID = "user_2pDsdfaGFASDFasd"; // SUBSTITUA AQUI PELO SEU ID!
+
+function AdminInstagramContent() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isAdmin, setIsAdmin] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
 
-  // Verificar se o usuário é admin
-  const isUserAdmin = useQuery(api.connections.isUserAdmin,
-    user?.id ? { userId: user.id } : "skip"
-  );
+  // Removi a query isUserAdmin que não estava sendo usada
+  // Verificação está sendo feita diretamente com ADMIN_USER_ID
 
   // Buscar token existente
   const adminToken = useQuery(api.connections.getAdminInstagramToken);
 
   useEffect(() => {
-    // Redireciona se o carregamento terminou e o usuário não é admin
-    if (isLoaded && isUserAdmin === false) {
-      toast.error("Acesso negado. Apenas administradores podem acessar esta página.");
-      router.push("/");
+    if (isLoaded && user) {
+      if (user.id === ADMIN_USER_ID) {
+        setIsAdmin(true);
+      } else {
+        toast.error("Acesso negado. Apenas administradores podem acessar esta página.");
+        router.push("/");
+      }
     }
-  }, [isLoaded, isUserAdmin, router]);
+  }, [user, isLoaded, router]);
 
   useEffect(() => {
     // Verificar status da conexão
@@ -46,7 +52,7 @@ export default function AdminInstagramPage() {
     window.location.href = "/api/connect/instagram";
   };
 
-  if (!isLoaded || isUserAdmin === undefined) {
+  if (!isLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Loader2 className="w-8 h-8 animate-spin" />
@@ -54,7 +60,7 @@ export default function AdminInstagramPage() {
     );
   }
 
-  if (!isUserAdmin) {
+  if (!isAdmin) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <Card className="max-w-md">
@@ -189,11 +195,25 @@ export default function AdminInstagramPage() {
 
           {/* Debug Info - só para ajudar */}
           <div className="bg-gray-50 dark:bg-gray-900/50 p-3 rounded text-xs text-gray-600 dark:text-gray-400">
-            <p><strong>Seu User ID:</strong> {user?.id ?? "Carregando..."}</p>
-            <p><strong>É admin (via backend)?</strong> {isUserAdmin === undefined ? "Verificando..." : (isUserAdmin ? "Sim" : "Não")}</p>
+            <p><strong>Seu User ID:</strong> {user?.id || "Não disponível"}</p>
+            <p><strong>Admin ID configurado:</strong> {ADMIN_USER_ID}</p>
+            <p><strong>É admin?</strong> {isAdmin ? "Sim" : "Não"}</p>
           </div>
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// Componente principal com Suspense
+export default function AdminInstagramPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex items-center justify-center min-h-screen">
+        <Loader2 className="w-8 h-8 animate-spin" />
+      </div>
+    }>
+      <AdminInstagramContent />
+    </Suspense>
   );
 }
