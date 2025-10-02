@@ -25,7 +25,7 @@ export const get = query({
 });
 
 // ID do admin - defina aqui ou use variável de ambiente
-const ADMIN_USER_ID = "user_2pDsdfaGFASDFasd"; // SUBSTITUA pelo seu ID de admin do Clerk
+const ADMIN_USER_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI"; // SUBSTITUA pelo seu ID de admin do Clerk
 
 export const saveInstagramToken = mutation({
   args: {
