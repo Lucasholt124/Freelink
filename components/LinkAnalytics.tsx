@@ -4,15 +4,16 @@ import Link from "next/link";
 import { useUser } from "@clerk/nextjs";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { motion } from "framer-motion";
 import {
-  MapPin, BarChart3, Clock, ChevronRight, ArrowLeft, MousePointer,
+  MapPin,  Clock, ChevronRight, ArrowLeft, MousePointer,
   Users, Globe, TrendingUp, Eye, Smartphone, Monitor, Tablet,
-   Activity,  Share2, Timer, Target,
-  Zap,  RefreshCw, ExternalLink, Wifi, Signal
+  Activity,  Target, Instagram, Facebook, Twitter,
+   RefreshCw, ExternalLink,  MessageCircle,
+  Youtube, Linkedin,  CheckCircle, Chrome, Crown
 } from "lucide-react";
 
 import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
-import { MetricCard } from "./MetricCard";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
 import { CountryChart } from "./CountryChart";
 import { CityChart } from "./CityChart";
@@ -22,7 +23,81 @@ import { LockedFeatureCard } from "./LockedFeatureCard";
 import { UpgradeCallToAction } from "./UpgradeCallToAction";
 import { NoDataState } from "./NoDataState";
 
-const formatUrl = (url: string) => {
+// Tipos
+interface TrafficSource {
+  name: string;
+  clicks: number;
+  icon: string;
+  percentage?: number;
+}
+
+interface DeviceData {
+  desktop: number;
+  mobile: number;
+  tablet: number;
+}
+
+interface BrowserData {
+  name: string;
+  count: number;
+  percentage: number;
+}
+
+interface RecentActivity {
+  time: string;
+  action: string;
+  location: string;
+  timestamp?: Date;
+}
+
+interface EngagementMetrics {
+  clicksPerVisitor: number;
+  returnRate: number;
+  uniqueVisitorRate: number;
+}
+
+// Card de Métrica Customizado para aceitar string ou number
+interface CustomMetricCardProps {
+  title: string;
+  value: number | string;
+  icon: React.ReactNode;
+  color: "blue" | "purple" | "green" | "orange" | "pink" | "yellow";
+}
+
+function CustomMetricCard({ title, value, icon, color }: CustomMetricCardProps) {
+  const colorClasses = {
+    blue: 'bg-blue-100 text-blue-600 border-blue-200',
+    purple: 'bg-purple-100 text-purple-600 border-purple-200',
+    green: 'bg-green-100 text-green-600 border-green-200',
+    orange: 'bg-orange-100 text-orange-600 border-orange-200',
+    pink: 'bg-pink-100 text-pink-600 border-pink-200',
+    yellow: 'bg-yellow-100 text-yellow-600 border-yellow-200',
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      whileHover={{ scale: 1.02, y: -2 }}
+      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300"
+    >
+      <div className="flex items-start gap-4">
+        <div className={`p-3 rounded-xl ${colorClasses[color]} border`}>
+          {icon}
+        </div>
+        <div className="flex-1">
+          <h3 className="text-sm font-medium text-gray-600">{title}</h3>
+          <p className="text-2xl font-bold text-gray-900 mt-1">
+            {typeof value === 'number' ? formatNumber(value) : value}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Formatadores
+const formatUrl = (url: string): string => {
   try {
     return new URL(url).hostname.replace("www.", "");
   } catch {
@@ -30,368 +105,311 @@ const formatUrl = (url: string) => {
   }
 };
 
-const formatNumber = (num: number) => {
+const formatNumber = (num: number): string => {
   if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
   if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return num.toString();
+  return new Intl.NumberFormat('pt-BR').format(num);
 };
 
-const formatPercentage = (value: number) => {
+const formatPercentage = (value: number): string => {
   return `${value.toFixed(1)}%`;
 };
 
-// --- Cabeçalho da Página ---
+// Header
 function PageHeader({ linkTitle, linkUrl }: { linkTitle: string; linkUrl: string }) {
   const router = useRouter();
-  return (
-    <header className="space-y-4">
-      <nav className="flex items-center text-sm text-gray-500 select-none">
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-1 hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-purple-500 rounded"
-          aria-label="Voltar"
-        >
-          <ArrowLeft className="w-4 h-4" /> Voltar
-        </button>
-        <ChevronRight className="w-4 h-4 mx-2" aria-hidden="true" />
-        <Link
-          href="/dashboard"
-          className="hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-500 rounded"
-        >
-          Painel
-        </Link>
-        <ChevronRight className="w-4 h-4 mx-2" aria-hidden="true" />
-        <span className="font-semibold text-gray-800 truncate">{`Análises`}</span>
-      </nav>
-      <div>
-        <h1
-          className="text-3xl md:text-4xl font-bold text-gray-900 truncate"
-          title={linkTitle}
-        >
-          {linkTitle}
-        </h1>
-        <a
-          href={linkUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="text-gray-500 hover:text-blue-600 break-all transition-colors"
-          aria-label={`Abrir link ${formatUrl(linkUrl)} em nova aba`}
-        >
-          {formatUrl(linkUrl)}
-        </a>
-      </div>
-    </header>
-  );
-}
+  const [copied, setCopied] = useState(false);
 
-// --- Card de Taxa de Conversão ---
-function ConversionRateCard({ rate, trend }: { rate: number; trend: number }) {
-  const isPositive = trend >= 0;
-  return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-      <div className="flex items-start justify-between">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-green-100 rounded-xl">
-            <Target className="w-6 h-6 text-green-600" />
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-600">Taxa de Conversão</h3>
-            <p className="text-2xl font-bold text-gray-900">{formatPercentage(rate)}</p>
-          </div>
-        </div>
-        <div className={`flex items-center gap-1 text-sm ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
-          <TrendingUp className={`w-4 h-4 ${!isPositive && 'rotate-180'}`} />
-          <span>{Math.abs(trend)}%</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- Card de Taxa de Rejeição ---
-function BounceRateCard({ rate, avgTime }: { rate: number; avgTime: string }) {
-  return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-      <div className="flex items-center gap-4">
-        <div className="p-3 bg-yellow-100 rounded-xl">
-          <RefreshCw className="w-6 h-6 text-yellow-600" />
-        </div>
-        <div className="flex-1">
-          <h3 className="text-sm font-medium text-gray-600">Taxa de Rejeição</h3>
-          <p className="text-2xl font-bold text-gray-900">{formatPercentage(rate)}</p>
-          <p className="text-xs text-gray-500 mt-1">Tempo médio: {avgTime}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- Card de Dispositivos ---
-function DevicesCard({ devices }: { devices: { desktop: number; mobile: number; tablet: number } }) {
-  const total = devices.desktop + devices.mobile + devices.tablet;
-  return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Dispositivos</h3>
-      <div className="space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Monitor className="w-4 h-4 text-gray-600" />
-            <span className="text-sm text-gray-600">Desktop</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold">{formatPercentage((devices.desktop / total) * 100)}</span>
-            <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-blue-500" style={{ width: `${(devices.desktop / total) * 100}%` }} />
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Smartphone className="w-4 h-4 text-gray-600" />
-            <span className="text-sm text-gray-600">Mobile</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold">{formatPercentage((devices.mobile / total) * 100)}</span>
-            <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-purple-500" style={{ width: `${(devices.mobile / total) * 100}%` }} />
-            </div>
-          </div>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Tablet className="w-4 h-4 text-gray-600" />
-            <span className="text-sm text-gray-600">Tablet</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="text-sm font-bold">{formatPercentage((devices.tablet / total) * 100)}</span>
-            <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div className="h-full bg-green-500" style={{ width: `${(devices.tablet / total) * 100}%` }} />
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- Card de Fontes de Tráfego ---
-function TrafficSourcesCard({ sources }: { sources: Array<{ name: string; clicks: number; icon: string }> }) {
-  const total = sources.reduce((acc, source) => acc + source.clicks, 0);
-
-  const getIcon = (icon: string) => {
-    switch(icon) {
-      case 'direct': return <ExternalLink className="w-4 h-4" />;
-      case 'social': return <Share2 className="w-4 h-4" />;
-      case 'search': return <Globe className="w-4 h-4" />;
-      default: return <Wifi className="w-4 h-4" />;
-    }
+  const handleCopyUrl = () => {
+    navigator.clipboard.writeText(linkUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Fontes de Tráfego</h3>
-      <div className="space-y-3">
-        {sources.map((source, index) => (
-          <div key={index} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {getIcon(source.icon)}
-              <span className="text-sm text-gray-600">{source.name}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold">{formatNumber(source.clicks)}</span>
-              <span className="text-xs text-gray-500">({formatPercentage((source.clicks / total) * 100)})</span>
-            </div>
-          </div>
-        ))}
+    <motion.header
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="space-y-4 mb-8"
+    >
+      <nav className="flex items-center justify-between">
+        <div className="flex items-center text-sm text-gray-500">
+          <button
+            onClick={() => router.back()}
+            className="flex items-center gap-1 hover:text-gray-900 transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span className="hidden sm:inline">Voltar</span>
+          </button>
+          <ChevronRight className="w-4 h-4 mx-2" />
+          <Link
+            href="/dashboard"
+            className="hover:text-gray-900 transition-colors px-2 py-1 rounded hover:bg-gray-100"
+          >
+            Painel
+          </Link>
+          <ChevronRight className="w-4 h-4 mx-2" />
+          <span className="font-semibold text-gray-800">Análises</span>
+        </div>
+      </nav>
+
+      <div>
+        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+          {linkTitle}
+        </h1>
+        <div className="flex items-center gap-2">
+          <a
+            href={linkUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1"
+          >
+            {formatUrl(linkUrl)}
+            <ExternalLink className="w-3 h-3" />
+          </a>
+          <button
+            onClick={handleCopyUrl}
+            className="p-1 hover:bg-gray-100 rounded transition-colors"
+          >
+            {copied ? (
+              <CheckCircle className="w-4 h-4 text-green-500" />
+            ) : (
+              <ExternalLink className="w-4 h-4 text-gray-400" />
+            )}
+          </button>
+        </div>
       </div>
-    </div>
+    </motion.header>
   );
 }
 
-// --- Card de Performance por Hora ---
-function HourlyPerformanceCard({ data }: { data: Array<{ hour_of_day: number; total_clicks: number }> }) {
-  // Encontrar o horário de pico
-  const maxClicks = Math.max(...data.map(item => item.total_clicks));
+// Card de Origem Social
+function SocialOriginCard({ trafficSources }: { trafficSources: TrafficSource[] }) {
+  const [selectedSource, setSelectedSource] = useState<string | null>(null);
 
-  // Criar array completo de 24 horas
-  const fullDayData = Array.from({ length: 24 }, (_, hour) => {
-    const hourData = data.find(d => d.hour_of_day === hour);
-    return {
-      hour: `${hour.toString().padStart(2, '0')}h`,
-      clicks: hourData?.total_clicks || 0,
-      peak: hourData?.total_clicks === maxClicks
-    };
-  });
+  const getSocialIcon = (source: string): React.ReactNode => {
+    const sourceLower = source.toLowerCase();
+    if (sourceLower.includes('facebook')) return <Facebook className="w-5 h-5 text-blue-600" />;
+    if (sourceLower.includes('instagram')) return <Instagram className="w-5 h-5 text-pink-600" />;
+    if (sourceLower.includes('twitter')) return <Twitter className="w-5 h-5 text-sky-500" />;
+    if (sourceLower.includes('linkedin')) return <Linkedin className="w-5 h-5 text-blue-700" />;
+    if (sourceLower.includes('youtube')) return <Youtube className="w-5 h-5 text-red-600" />;
+    if (sourceLower.includes('whatsapp')) return <MessageCircle className="w-5 h-5 text-green-600" />;
+    if (source === 'Direto') return <ExternalLink className="w-5 h-5 text-gray-600" />;
+    return <Globe className="w-5 h-5 text-gray-500" />;
+  };
 
-  // Mostrar apenas algumas horas representativas (0h, 4h, 8h, 12h, 16h, 20h)
-  const representativeHours = fullDayData.filter((_, index) => index % 4 === 0);
+  const totalClicks = trafficSources.reduce((sum, source) => sum + source.clicks, 0);
 
   return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Performance por Hora</h3>
-      <div className="grid grid-cols-6 gap-1">
-        {representativeHours.map((item, index) => (
-          <div
-            key={index}
-            className={`p-2 rounded text-center ${
-              item.peak ? 'bg-purple-500 text-white' : 'bg-gray-100'
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+    >
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Fontes de Tráfego</h3>
+
+      <div className="space-y-3">
+        {trafficSources.map((source) => (
+          <motion.div
+            key={source.name}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            onClick={() => setSelectedSource(selectedSource === source.name ? null : source.name)}
+            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+              selectedSource === source.name
+                ? 'border-purple-500 bg-purple-50'
+                : 'border-gray-200 hover:bg-gray-50'
             }`}
           >
-            <div className="text-xs font-medium">{item.hour}</div>
-            <div className="text-xs">{item.clicks}</div>
-          </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                {getSocialIcon(source.name)}
+                <div>
+                  <p className="font-medium text-sm text-gray-900">{source.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {formatPercentage(source.percentage || ((source.clicks / totalClicks) * 100))}
+                  </p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="font-bold text-gray-900">{formatNumber(source.clicks)}</p>
+                <p className="text-xs text-gray-500">cliques</p>
+              </div>
+            </div>
+          </motion.div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
+// Card de Dispositivos
+function DevicesCard({ devices }: { devices: DeviceData }) {
+  const total = devices.desktop + devices.mobile + devices.tablet;
 
-// --- Card de Últimas Atividades ---
-function RecentActivityCard({ activities }: { activities: Array<{ time: string; action: string; location: string }> }) {
+  if (total === 0) return null;
+
+  const deviceData = [
+    { name: 'Desktop', count: devices.desktop, icon: Monitor, color: '#3B82F6' },
+    { name: 'Mobile', count: devices.mobile, icon: Smartphone, color: '#8B5CF6' },
+    { name: 'Tablet', count: devices.tablet, icon: Tablet, color: '#10B981' }
+  ].filter(d => d.count > 0);
+
   return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Atividade Recente</h3>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+    >
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Dispositivos</h3>
       <div className="space-y-3">
-        {activities.map((activity, index) => (
-          <div key={index} className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0">
+        {deviceData.map((device) => {
+          const Icon = device.icon;
+          const percentage = (device.count / total) * 100;
+
+          return (
+            <motion.div
+              key={device.name}
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              className="flex items-center justify-between"
+            >
+              <div className="flex items-center gap-2">
+                <Icon className="w-4 h-4 text-gray-600" />
+                <span className="text-sm text-gray-600">{device.name}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-bold">{formatPercentage(percentage)}</span>
+                <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: `${percentage}%` }}
+                    transition={{ duration: 0.5 }}
+                    className="h-full"
+                    style={{ backgroundColor: device.color }}
+                  />
+                </div>
+              </div>
+            </motion.div>
+          );
+        })}
+      </div>
+    </motion.div>
+  );
+}
+
+// Card de Atividades Recentes
+function RecentActivityCard({ activities }: { activities: RecentActivity[] }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+    >
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-lg font-semibold text-gray-800">Atividade Recente</h3>
+        <motion.div
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="w-2 h-2 bg-green-500 rounded-full"
+        />
+      </div>
+
+      <div className="space-y-3">
+        {activities.slice(0, 5).map((activity, idx) => (
+          <motion.div
+            key={`${activity.time}-${idx}`}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: idx * 0.05 }}
+            className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0"
+          >
             <div className="p-1.5 bg-blue-100 rounded-full">
               <Activity className="w-3 h-3 text-blue-600" />
             </div>
             <div className="flex-1">
               <p className="text-sm text-gray-800">{activity.action}</p>
-              <div className="flex items-center gap-2 mt-1">
-                <span className="text-xs text-gray-500">{activity.time}</span>
-                <span className="text-xs text-gray-400">•</span>
-                <span className="text-xs text-gray-500">{activity.location}</span>
+              <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
+                <span>{activity.time}</span>
+                <span>•</span>
+                <span>{activity.location}</span>
               </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
+// Card de Browsers
+function BrowsersCard({ browsers }: { browsers: BrowserData[] }) {
+  const getBrowserIcon = (): React.ReactNode => {
+    return <Chrome className="w-4 h-4" />;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+    >
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Navegadores</h3>
+      <div className="space-y-2">
+        {browsers.slice(0, 5).map((browser) => (
+          <div key={browser.name} className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              {getBrowserIcon()}
+              <span className="text-sm text-gray-600">{browser.name}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-bold">{formatNumber(browser.count)}</span>
+              <span className="text-xs text-gray-500">
+                ({formatPercentage(browser.percentage)})
+              </span>
             </div>
           </div>
         ))}
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-// --- Card de Velocidade de Carregamento ---
-function PerformanceMetricsCard({ metrics }: { metrics: { loadTime: number; responseTime: number; uptime: number } }) {
+// Card de Engajamento
+function EngagementCard({ engagement }: { engagement: EngagementMetrics }) {
   return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Métricas de Performance</h3>
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Zap className="w-4 h-4 text-yellow-500" />
-            <span className="text-sm text-gray-600">Tempo de Carregamento</span>
-          </div>
-          <span className="text-sm font-bold text-gray-900">{metrics.loadTime}ms</span>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+    >
+      <h3 className="text-lg font-semibold text-gray-800 mb-4">Engajamento</h3>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="text-center p-3 bg-blue-50 rounded-lg">
+          <Eye className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+          <p className="text-xs text-gray-600">Cliques/Visitante</p>
+          <p className="text-lg font-bold">{engagement.clicksPerVisitor.toFixed(1)}</p>
         </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Timer className="w-4 h-4 text-blue-500" />
-            <span className="text-sm text-gray-600">Tempo de Resposta</span>
-          </div>
-          <span className="text-sm font-bold text-gray-900">{metrics.responseTime}ms</span>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Signal className="w-4 h-4 text-green-500" />
-            <span className="text-sm text-gray-600">Uptime</span>
-          </div>
-          <span className="text-sm font-bold text-gray-900">{formatPercentage(metrics.uptime)}</span>
+        <div className="text-center p-3 bg-green-50 rounded-lg">
+          <Users className="w-5 h-5 text-green-600 mx-auto mb-1" />
+          <p className="text-xs text-gray-600">Taxa Retorno</p>
+          <p className="text-lg font-bold">{formatPercentage(engagement.returnRate)}</p>
         </div>
       </div>
-    </div>
+    </motion.div>
   );
 }
 
-// --- Card de Comparação com Período Anterior ---
-function ComparisonCard({ current, previous, metric }: { current: number; previous: number; metric: string }) {
-  const change = ((current - previous) / previous) * 100;
-  const isPositive = change >= 0;
-
-  return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-      <h3 className="text-sm font-medium text-gray-600 mb-2">{metric}</h3>
-      <div className="flex items-end justify-between">
-        <div>
-          <p className="text-3xl font-bold text-gray-900">{formatNumber(current)}</p>
-          <p className="text-sm text-gray-500 mt-1">vs {formatNumber(previous)} anterior</p>
-        </div>
-        <div className={`flex items-center gap-1 px-2 py-1 rounded-lg ${
-          isPositive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
-        }`}>
-          <TrendingUp className={`w-4 h-4 ${!isPositive && 'rotate-180'}`} />
-          <span className="text-sm font-semibold">{formatPercentage(Math.abs(change))}</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- Card de Engajamento ---
-function EngagementCard({ metrics }: { metrics: { avgTimeOnPage: string; pagesPerSession: number; returnRate: number } }) {
-  return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md">
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Métricas de Engajamento</h3>
-      <div className="grid grid-cols-3 gap-4">
-        <div className="text-center">
-          <Clock className="w-6 h-6 text-blue-500 mx-auto mb-2" />
-          <p className="text-xs text-gray-600">Tempo Médio</p>
-          <p className="text-lg font-bold">{metrics.avgTimeOnPage}</p>
-        </div>
-        <div className="text-center">
-          <Eye className="w-6 h-6 text-purple-500 mx-auto mb-2" />
-          <p className="text-xs text-gray-600">Páginas/Sessão</p>
-          <p className="text-lg font-bold">{metrics.pagesPerSession}</p>
-        </div>
-        <div className="text-center">
-          <Users className="w-6 h-6 text-green-500 mx-auto mb-2" />
-          <p className="text-xs text-gray-600">Taxa de Retorno</p>
-          <p className="text-lg font-bold">{formatPercentage(metrics.returnRate)}</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// --- Card de Horário de Pico ---
-function PeakHourCard({ peakHour }: { peakHour: number | null }) {
-  return (
-    <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-md flex items-center gap-6">
-      <div className="p-4 bg-orange-100 rounded-xl">
-        <Clock className="w-8 h-8 text-orange-600" />
-      </div>
-      <div>
-        <h3 className="text-lg font-bold text-gray-800">Horário de Pico</h3>
-        <p className="text-4xl font-extrabold text-orange-500">
-          {peakHour !== null ? `${String(peakHour).padStart(2, "0")}:00` : "N/A"}
-        </p>
-        <p className="text-sm text-gray-500 mt-1">
-          {peakHour !== null
-            ? "Horário com o maior número de cliques."
-            : "Dados insuficientes."}
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// --- Componente Principal ---
-export default function LinkAnalytics({
-  analytics,
-}: {
-  analytics: LinkAnalyticsData;
-}) {
+// Componente Principal
+export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsData }) {
   const { user, isLoaded } = useUser();
   const [plan, setPlan] = useState<"free" | "pro" | "ultra">("free");
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
     if (isLoaded && user) {
-      const userPlan =
-        (user.publicMetadata.subscriptionPlan as "free" | "pro" | "ultra") ||
-        "free";
+      const userPlan = (user.publicMetadata.subscriptionPlan as "free" | "pro" | "ultra") || "free";
       setPlan(userPlan);
       setIsAdmin(user.id === "user_301NTkVsE3v48SXkoCEp0XOXifI");
     }
@@ -399,36 +417,6 @@ export default function LinkAnalytics({
 
   const hasAnalyticsAccess = plan === "pro" || plan === "ultra" || isAdmin;
   const hasUltraFeaturesAccess = plan === "ultra" || isAdmin;
-
-  // Mock data para demonstração - substitua com dados reais do backend
-  const mockData = {
-    conversionRate: 3.5,
-    conversionTrend: 0.8,
-    bounceRate: 45.2,
-    avgSessionTime: "2m 45s",
-    devices: { desktop: 450, mobile: 320, tablet: 80 },
-    trafficSources: [
-      { name: "Direto", clicks: 420, icon: "direct" },
-      { name: "Social Media", clicks: 280, icon: "social" },
-      { name: "Pesquisa", clicks: 150, icon: "search" }
-    ],
-    recentActivities: [
-      { time: "Há 2 min", action: "Clique no link", location: "São Paulo, BR" },
-      { time: "Há 5 min", action: "Clique no link", location: "Rio de Janeiro, BR" },
-      { time: "Há 12 min", action: "Clique no link", location: "Lisboa, PT" }
-    ],
-    performanceMetrics: { loadTime: 245, responseTime: 89, uptime: 99.9 },
-    engagement: { avgTimeOnPage: "3m 12s", pagesPerSession: 2.4, returnRate: 28.5 },
-    hourlyData: [
-      { hour: "00h", clicks: 12, peak: false },
-      { hour: "04h", clicks: 5, peak: false },
-      { hour: "08h", clicks: 45, peak: false },
-      { hour: "12h", clicks: 78, peak: true },
-      { hour: "16h", clicks: 62, peak: false },
-      { hour: "20h", clicks: 54, peak: false }
-    ],
-    comparison: { current: 850, previous: 720 }
-  };
 
   if (!isLoaded) {
     return (
@@ -443,131 +431,213 @@ export default function LinkAnalytics({
   }
 
   return (
-    <div className="space-y-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <PageHeader linkTitle={analytics.linkTitle} linkUrl={analytics.linkUrl} />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <PageHeader linkTitle={analytics.linkTitle} linkUrl={analytics.linkUrl} />
 
-      {analytics.totalClicks === 0 ? (
-        <NoDataState />
-      ) : (
-        <div className="space-y-10">
-          {/* Métricas principais */}
-          <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            <MetricCard
-              title="Total de cliques"
-              value={analytics.totalClicks}
-              icon={<MousePointer className="w-6 h-6" />}
-              color="blue"
-            />
-            <MetricCard
-              title="Visitantes Únicos"
-              value={analytics.uniqueUsers}
-              icon={<Users className="w-6 h-6" />}
-              color="purple"
-            />
-            <MetricCard
-              title="Países Alcançados"
-              value={analytics.countriesReached}
-              icon={<Globe className="w-6 h-6" />}
-              color="green"
-            />
-            <ComparisonCard
-              current={mockData.comparison.current}
-              previous={mockData.comparison.previous}
-              metric="Crescimento Mensal"
-            />
-          </section>
-
-          {/* Cards de Performance e Conversão */}
-          <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            <ConversionRateCard
-              rate={mockData.conversionRate}
-              trend={mockData.conversionTrend}
-            />
-            <BounceRateCard
-              rate={mockData.bounceRate}
-              avgTime={mockData.avgSessionTime}
-            />
-            <EngagementCard metrics={mockData.engagement} />
-          </section>
-
-          {/* Gráfico de tendência diária */}
-          {analytics.dailyData?.length > 0 && (
-            <section>
-              <DailyPerformanceChart data={analytics.dailyData} />
-            </section>
-          )}
-
-          {/* Análises detalhadas - 3 colunas */}
-          <section className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            {/* Coluna 1: Dispositivos e Fontes */}
-            <div className="space-y-6">
-              <DevicesCard devices={mockData.devices} />
-              <TrafficSourcesCard sources={mockData.trafficSources} />
-              <PerformanceMetricsCard metrics={mockData.performanceMetrics} />
+        {analytics.totalClicks === 0 ? (
+          <NoDataState />
+        ) : (
+          <div className="space-y-8">
+            {/* Métricas Principais */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <CustomMetricCard
+                title="Total de Cliques"
+                value={analytics.totalClicks}
+                icon={<MousePointer className="w-5 h-5" />}
+                color="blue"
+              />
+              <CustomMetricCard
+                title="Visitantes Únicos"
+                value={analytics.uniqueUsers}
+                icon={<Users className="w-5 h-5" />}
+                color="purple"
+              />
+              <CustomMetricCard
+                title="Países"
+                value={analytics.countriesReached}
+                icon={<Globe className="w-5 h-5" />}
+                color="green"
+              />
+              <CustomMetricCard
+                title="Taxa de Conversão"
+                value={`${analytics.conversionRate?.toFixed(1) || 0}%`}
+                icon={<Target className="w-5 h-5" />}
+                color="orange"
+              />
             </div>
 
-            {/* Coluna 2: Geografia e Horários */}
-            <div className="space-y-6">
-              {analytics.countryData?.length > 0 && (
-                <CountryChart data={analytics.countryData} />
+            {/* Taxa de Rejeição e Comparação */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CustomMetricCard
+                title="Taxa de Rejeição"
+                value={`${analytics.bounceRate?.toFixed(1) || 0}%`}
+                icon={<RefreshCw className="w-5 h-5" />}
+                color="yellow"
+              />
+              {analytics.comparison && (
+                <CustomMetricCard
+                  title="Crescimento Mensal"
+                  value={`${analytics.comparison.percentageChange > 0 ? '+' : ''}${analytics.comparison.percentageChange.toFixed(1)}%`}
+                  icon={<TrendingUp className="w-5 h-5" />}
+                  color="pink"
+                />
               )}
+            </div>
 
-              {hasUltraFeaturesAccess ? (
-                <>
-                  <PeakHourCard peakHour={analytics.peakHour} />
-                  <HourlyPerformanceCard data={analytics.hourlyData} />
-                  {analytics.hourlyData?.length > 0 && (
-                    <HourlyChart data={analytics.hourlyData} />
-                  )}
-                </>
-              ) : (
-                <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-md">
+            {/* Gráfico Principal */}
+            {analytics.dailyData && analytics.dailyData.length > 0 && (
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <DailyPerformanceChart data={analytics.dailyData} />
+              </div>
+            )}
+
+            {/* Grid de Análises */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Coluna 1 */}
+              <div className="space-y-6">
+                {/* Fontes de Tráfego - PRO e ULTRA */}
+                {analytics.trafficSources && analytics.trafficSources.length > 0 && (
+                  <SocialOriginCard trafficSources={analytics.trafficSources} />
+                )}
+
+                {/* Dispositivos - PRO e ULTRA */}
+                {analytics.devices && (
+                  <DevicesCard devices={analytics.devices} />
+                )}
+
+                {/* Navegadores - ULTRA apenas */}
+                {hasUltraFeaturesAccess && analytics.browsers && analytics.browsers.length > 0 && (
+                  <BrowsersCard browsers={analytics.browsers} />
+                )}
+              </div>
+
+              {/* Coluna 2 */}
+              <div className="space-y-6">
+                {/* Países */}
+                {analytics.countryData && analytics.countryData.length > 0 && (
+                  <CountryChart data={analytics.countryData} />
+                )}
+
+                {/* Horários - ULTRA apenas */}
+                {hasUltraFeaturesAccess ? (
+                  <>
+                    {analytics.hourlyData && analytics.hourlyData.length > 0 && (
+                      <HourlyChart data={analytics.hourlyData} />
+                    )}
+                    {analytics.peakHour !== null && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-3 bg-orange-100 rounded-xl">
+                            <Clock className="w-6 h-6 text-orange-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-sm font-medium text-gray-600">Horário de Pico</h3>
+                            <p className="text-2xl font-bold text-gray-900">
+                              {String(analytics.peakHour).padStart(2, "0")}:00
+                            </p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    )}
+                  </>
+                ) : (
                   <LockedFeatureCard
                     title="Análise de Horários"
-                    icon={<BarChart3 className="w-8 h-8 text-gray-400" />}
+                    icon={<Clock className="w-8 h-8 text-gray-400" />}
                     requiredPlan="Ultra"
-                    description="Descubra os horários de pico de engajamento."
+                    description="Veja os horários de pico"
                   />
-                </div>
-              )}
-            </div>
+                )}
+              </div>
 
-            {/* Coluna 3: Localização e Atividades */}
-            <div className="space-y-6">
-              {hasUltraFeaturesAccess ? (
-                <>
-                  {analytics.regionData?.length > 0 && (
-                    <RegionChart data={analytics.regionData} />
-                  )}
-                  {analytics.cityData?.length > 0 && (
-                    <CityChart data={analytics.cityData} />
-                  )}
-                  <RecentActivityCard activities={mockData.recentActivities} />
-                </>
-              ) : (
-                <>
-                  <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-md">
-                    <LockedFeatureCard
-                      title="Análise Geográfica Detalhada"
-                      icon={<MapPin className="w-8 h-8 text-gray-400" />}
-                      requiredPlan="Ultra"
-                      description="Veja cliques por cidade e estado."
-                    />
-                  </div>
-                  <div className="p-6 bg-white rounded-2xl border border-gray-200 shadow-md">
+              {/* Coluna 3 */}
+              <div className="space-y-6">
+                {/* Funcionalidades ULTRA */}
+                {hasUltraFeaturesAccess ? (
+                  <>
+                    {/* Atividades Recentes */}
+                    {analytics.recentActivities && analytics.recentActivities.length > 0 && (
+                      <RecentActivityCard activities={analytics.recentActivities} />
+                    )}
+
+                    {/* Cidades */}
+                    {analytics.cityData && analytics.cityData.length > 0 && (
+                      <CityChart data={analytics.cityData} />
+                    )}
+
+                    {/* Regiões */}
+                    {analytics.regionData && analytics.regionData.length > 0 && (
+                      <RegionChart data={analytics.regionData} />
+                    )}
+
+                    {/* Engajamento */}
+                    {analytics.engagement && (
+                      <EngagementCard engagement={analytics.engagement} />
+                    )}
+                  </>
+                ) : (
+                  <>
                     <LockedFeatureCard
                       title="Atividade em Tempo Real"
                       icon={<Activity className="w-8 h-8 text-gray-400" />}
                       requiredPlan="Ultra"
-                      description="Monitore atividades em tempo real."
+                      description="Monitore atividades ao vivo"
                     />
-                  </div>
-                </>
-              )}
+                    <LockedFeatureCard
+                      title="Análise Geográfica"
+                      icon={<MapPin className="w-8 h-8 text-gray-400" />}
+                      requiredPlan="Ultra"
+                      description="Cidades e regiões detalhadas"
+                    />
+                    <LockedFeatureCard
+                      title="Métricas de Engajamento"
+                      icon={<Crown className="w-8 h-8 text-gray-400" />}
+                      requiredPlan="Ultra"
+                      description="Análise profunda de engajamento"
+                    />
+                  </>
+                )}
+              </div>
             </div>
-          </section>
-        </div>
-      )}
+
+            {/* Sistemas Operacionais - ULTRA */}
+            {hasUltraFeaturesAccess && analytics.operatingSystems && analytics.operatingSystems.length > 0 && (
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Sistemas Operacionais</h3>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                  {analytics.operatingSystems.map((os) => (
+                    <div key={os.name} className="text-center">
+                      <p className="text-sm font-medium text-gray-900">{os.name}</p>
+                      <p className="text-2xl font-bold text-gray-700">{formatNumber(os.count)}</p>
+                      <p className="text-xs text-gray-500">{formatPercentage(os.percentage)}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Top Referrers - ULTRA */}
+            {hasUltraFeaturesAccess && analytics.referrers && analytics.referrers.length > 0 && (
+              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Referências</h3>
+                <div className="space-y-2">
+                  {analytics.referrers.slice(0, 10).map((referrer) => (
+                    <div key={referrer.source} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                      <span className="text-sm text-gray-700 truncate max-w-[70%]">{referrer.source}</span>
+                      <span className="text-sm font-bold text-gray-900">{formatNumber(referrer.count)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
