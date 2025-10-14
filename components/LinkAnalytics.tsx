@@ -10,7 +10,8 @@ import {
   Users, Globe, TrendingUp, Eye, Smartphone, Monitor, Tablet,
   Activity,  Target, Instagram, Facebook, Twitter,
    RefreshCw, ExternalLink,  MessageCircle,
-  Youtube, Linkedin,  CheckCircle, Chrome, Crown
+  Youtube, Linkedin,  CheckCircle, Chrome, Crown,
+  Menu, X
 } from "lucide-react";
 
 import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
@@ -56,7 +57,6 @@ interface EngagementMetrics {
   uniqueVisitorRate: number;
 }
 
-// Card de Métrica Customizado para aceitar string ou number
 interface CustomMetricCardProps {
   title: string;
   value: number | string;
@@ -64,6 +64,36 @@ interface CustomMetricCardProps {
   color: "blue" | "purple" | "green" | "orange" | "pink" | "yellow";
 }
 
+// Formatadores
+const formatUrl = (url: string): string => {
+  try {
+    const hostname = new URL(url).hostname.replace("www.", "");
+    // Truncar URLs muito longas em mobile
+    if (typeof window !== 'undefined' && window.innerWidth < 640 && hostname.length > 20) {
+      return hostname.substring(0, 20) + '...';
+    }
+    return hostname;
+  } catch {
+    return url.length > 20 ? url.substring(0, 20) + '...' : url;
+  }
+};
+
+const formatNumber = (num: number): string => {
+  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
+  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
+  return new Intl.NumberFormat('pt-BR').format(num);
+};
+
+const formatPercentage = (value: number): string => {
+  return `${value.toFixed(1)}%`;
+};
+
+const truncateText = (text: string, maxLength: number): string => {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength) + '...';
+};
+
+// Card de Métrica Responsivo
 function CustomMetricCard({ title, value, icon, color }: CustomMetricCardProps) {
   const colorClasses = {
     blue: 'bg-blue-100 text-blue-600 border-blue-200',
@@ -79,15 +109,19 @@ function CustomMetricCard({ title, value, icon, color }: CustomMetricCardProps) 
       initial={{ opacity: 0, scale: 0.9 }}
       animate={{ opacity: 1, scale: 1 }}
       whileHover={{ scale: 1.02, y: -2 }}
-      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300"
+      className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm hover:shadow-lg transition-all duration-300"
     >
-      <div className="flex items-start gap-4">
-        <div className={`p-3 rounded-xl ${colorClasses[color]} border`}>
-          {icon}
+      <div className="flex items-start gap-3 sm:gap-4">
+        <div className={`p-2 sm:p-3 rounded-lg sm:rounded-xl ${colorClasses[color]} border flex-shrink-0`}>
+          <div className="w-4 h-4 sm:w-5 sm:h-5">
+            {icon}
+          </div>
         </div>
-        <div className="flex-1">
-          <h3 className="text-sm font-medium text-gray-600">{title}</h3>
-          <p className="text-2xl font-bold text-gray-900 mt-1">
+        <div className="flex-1 min-w-0">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-600 truncate">
+            {title}
+          </h3>
+          <p className="text-lg sm:text-2xl font-bold text-gray-900 mt-0.5 sm:mt-1 truncate">
             {typeof value === 'number' ? formatNumber(value) : value}
           </p>
         </div>
@@ -96,29 +130,11 @@ function CustomMetricCard({ title, value, icon, color }: CustomMetricCardProps) 
   );
 }
 
-// Formatadores
-const formatUrl = (url: string): string => {
-  try {
-    return new URL(url).hostname.replace("www.", "");
-  } catch {
-    return url;
-  }
-};
-
-const formatNumber = (num: number): string => {
-  if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
-  if (num >= 1000) return `${(num / 1000).toFixed(1)}K`;
-  return new Intl.NumberFormat('pt-BR').format(num);
-};
-
-const formatPercentage = (value: number): string => {
-  return `${value.toFixed(1)}%`;
-};
-
-// Header
+// Header Responsivo
 function PageHeader({ linkTitle, linkUrl }: { linkTitle: string; linkUrl: string }) {
   const router = useRouter();
   const [copied, setCopied] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleCopyUrl = () => {
     navigator.clipboard.writeText(linkUrl);
@@ -130,51 +146,61 @@ function PageHeader({ linkTitle, linkUrl }: { linkTitle: string; linkUrl: string
     <motion.header
       initial={{ opacity: 0, y: -20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-4 mb-8"
+      className="space-y-3 sm:space-y-4 mb-6 sm:mb-8"
     >
+      {/* Navigation - Mobile optimized */}
       <nav className="flex items-center justify-between">
-        <div className="flex items-center text-sm text-gray-500">
+        <div className="flex items-center text-xs sm:text-sm text-gray-500 overflow-x-auto">
           <button
             onClick={() => router.back()}
-            className="flex items-center gap-1 hover:text-gray-900 transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-2 py-1"
+            className="flex items-center gap-1 hover:text-gray-900 transition-all focus:outline-none focus:ring-2 focus:ring-purple-500 rounded px-1.5 sm:px-2 py-1 flex-shrink-0"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ArrowLeft className="w-3 h-3 sm:w-4 sm:h-4" />
             <span className="hidden sm:inline">Voltar</span>
           </button>
-          <ChevronRight className="w-4 h-4 mx-2" />
+          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 mx-1 sm:mx-2 flex-shrink-0" />
           <Link
             href="/dashboard"
-            className="hover:text-gray-900 transition-colors px-2 py-1 rounded hover:bg-gray-100"
+            className="hover:text-gray-900 transition-colors px-1.5 sm:px-2 py-1 rounded hover:bg-gray-100"
           >
             Painel
           </Link>
-          <ChevronRight className="w-4 h-4 mx-2" />
-          <span className="font-semibold text-gray-800">Análises</span>
+          <ChevronRight className="w-3 h-3 sm:w-4 sm:h-4 mx-1 sm:mx-2 flex-shrink-0" />
+          <span className="font-semibold text-gray-800 truncate">Análises</span>
         </div>
+
+        {/* Mobile menu button */}
+        <button
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="sm:hidden p-2 hover:bg-gray-100 rounded-lg"
+        >
+          {mobileMenuOpen ? <X className="w-4 h-4" /> : <Menu className="w-4 h-4" />}
+        </button>
       </nav>
 
+      {/* Title Section - Mobile optimized */}
       <div>
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 mb-2">
+        <h1 className="text-xl sm:text-2xl lg:text-4xl font-bold text-gray-900 mb-1 sm:mb-2 truncate pr-2">
           {linkTitle}
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 overflow-x-auto">
           <a
             href={linkUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1"
+            className="text-xs sm:text-sm text-gray-500 hover:text-blue-600 transition-colors flex items-center gap-1 truncate"
           >
-            {formatUrl(linkUrl)}
-            <ExternalLink className="w-3 h-3" />
+            <span className="truncate">{formatUrl(linkUrl)}</span>
+            <ExternalLink className="w-3 h-3 flex-shrink-0" />
           </a>
           <button
             onClick={handleCopyUrl}
-            className="p-1 hover:bg-gray-100 rounded transition-colors"
+            className="p-1 hover:bg-gray-100 rounded transition-colors flex-shrink-0"
           >
             {copied ? (
-              <CheckCircle className="w-4 h-4 text-green-500" />
+              <CheckCircle className="w-3 h-3 sm:w-4 sm:h-4 text-green-500" />
             ) : (
-              <ExternalLink className="w-4 h-4 text-gray-400" />
+              <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400" />
             )}
           </button>
         </div>
@@ -183,68 +209,84 @@ function PageHeader({ linkTitle, linkUrl }: { linkTitle: string; linkUrl: string
   );
 }
 
-// Card de Origem Social
+// Card de Origem Social Responsivo
 function SocialOriginCard({ trafficSources }: { trafficSources: TrafficSource[] }) {
   const [selectedSource, setSelectedSource] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
   const getSocialIcon = (source: string): React.ReactNode => {
     const sourceLower = source.toLowerCase();
-    if (sourceLower.includes('facebook')) return <Facebook className="w-5 h-5 text-blue-600" />;
-    if (sourceLower.includes('instagram')) return <Instagram className="w-5 h-5 text-pink-600" />;
-    if (sourceLower.includes('twitter')) return <Twitter className="w-5 h-5 text-sky-500" />;
-    if (sourceLower.includes('linkedin')) return <Linkedin className="w-5 h-5 text-blue-700" />;
-    if (sourceLower.includes('youtube')) return <Youtube className="w-5 h-5 text-red-600" />;
-    if (sourceLower.includes('whatsapp')) return <MessageCircle className="w-5 h-5 text-green-600" />;
-    if (source === 'Direto') return <ExternalLink className="w-5 h-5 text-gray-600" />;
-    return <Globe className="w-5 h-5 text-gray-500" />;
+    const iconClass = "w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0";
+    if (sourceLower.includes('facebook')) return <Facebook className={`${iconClass} text-blue-600`} />;
+    if (sourceLower.includes('instagram')) return <Instagram className={`${iconClass} text-pink-600`} />;
+    if (sourceLower.includes('twitter')) return <Twitter className={`${iconClass} text-sky-500`} />;
+    if (sourceLower.includes('linkedin')) return <Linkedin className={`${iconClass} text-blue-700`} />;
+    if (sourceLower.includes('youtube')) return <Youtube className={`${iconClass} text-red-600`} />;
+    if (sourceLower.includes('whatsapp')) return <MessageCircle className={`${iconClass} text-green-600`} />;
+    if (source === 'Direto') return <ExternalLink className={`${iconClass} text-gray-600`} />;
+    return <Globe className={`${iconClass} text-gray-500`} />;
   };
 
   const totalClicks = trafficSources.reduce((sum, source) => sum + source.clicks, 0);
+  const displayedSources = showAll ? trafficSources : trafficSources.slice(0, 3);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+      className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm"
     >
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Fontes de Tráfego</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Fontes de Tráfego</h3>
 
-      <div className="space-y-3">
-        {trafficSources.map((source) => (
+      <div className="space-y-2 sm:space-y-3">
+        {displayedSources.map((source) => (
           <motion.div
             key={source.name}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             onClick={() => setSelectedSource(selectedSource === source.name ? null : source.name)}
-            className={`p-3 rounded-lg border cursor-pointer transition-all ${
+            className={`p-2.5 sm:p-3 rounded-lg border cursor-pointer transition-all ${
               selectedSource === source.name
                 ? 'border-purple-500 bg-purple-50'
                 : 'border-gray-200 hover:bg-gray-50'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
                 {getSocialIcon(source.name)}
-                <div>
-                  <p className="font-medium text-sm text-gray-900">{source.name}</p>
+                <div className="min-w-0 flex-1">
+                  <p className="font-medium text-xs sm:text-sm text-gray-900 truncate">
+                    {truncateText(source.name, 15)}
+                  </p>
                   <p className="text-xs text-gray-500">
                     {formatPercentage(source.percentage || ((source.clicks / totalClicks) * 100))}
                   </p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="font-bold text-gray-900">{formatNumber(source.clicks)}</p>
+              <div className="text-right flex-shrink-0">
+                <p className="font-bold text-sm sm:text-base text-gray-900">
+                  {formatNumber(source.clicks)}
+                </p>
                 <p className="text-xs text-gray-500">cliques</p>
               </div>
             </div>
           </motion.div>
         ))}
       </div>
+
+      {trafficSources.length > 3 && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="w-full mt-3 py-2 text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium"
+        >
+          {showAll ? 'Ver menos' : `Ver mais ${trafficSources.length - 3} fontes`}
+        </button>
+      )}
     </motion.div>
   );
 }
 
-// Card de Dispositivos
+// Card de Dispositivos Responsivo
 function DevicesCard({ devices }: { devices: DeviceData }) {
   const total = devices.desktop + devices.mobile + devices.tablet;
 
@@ -260,10 +302,10 @@ function DevicesCard({ devices }: { devices: DeviceData }) {
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+      className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm"
     >
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Dispositivos</h3>
-      <div className="space-y-3">
+      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Dispositivos</h3>
+      <div className="space-y-2.5 sm:space-y-3">
         {deviceData.map((device) => {
           const Icon = device.icon;
           const percentage = (device.count / total) * 100;
@@ -273,15 +315,17 @@ function DevicesCard({ devices }: { devices: DeviceData }) {
               key={device.name}
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
-              className="flex items-center justify-between"
+              className="flex items-center justify-between gap-2"
             >
-              <div className="flex items-center gap-2">
-                <Icon className="w-4 h-4 text-gray-600" />
-                <span className="text-sm text-gray-600">{device.name}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <Icon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-600 flex-shrink-0" />
+                <span className="text-xs sm:text-sm text-gray-600">{device.name}</span>
               </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-bold">{formatPercentage(percentage)}</span>
-                <div className="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <span className="text-xs sm:text-sm font-bold">
+                  {formatPercentage(percentage)}
+                </span>
+                <div className="w-16 sm:w-24 h-1.5 sm:h-2 bg-gray-200 rounded-full overflow-hidden">
                   <motion.div
                     initial={{ width: 0 }}
                     animate={{ width: `${percentage}%` }}
@@ -299,72 +343,91 @@ function DevicesCard({ devices }: { devices: DeviceData }) {
   );
 }
 
-// Card de Atividades Recentes
+// Card de Atividades Recentes Responsivo
 function RecentActivityCard({ activities }: { activities: RecentActivity[] }) {
+  const [showAll, setShowAll] = useState(false);
+  const displayedActivities = showAll ? activities : activities.slice(0, 3);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+      className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm"
     >
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold text-gray-800">Atividade Recente</h3>
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
+        <h3 className="text-base sm:text-lg font-semibold text-gray-800">Atividade Recente</h3>
         <motion.div
           animate={{ scale: [1, 1.2, 1] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="w-2 h-2 bg-green-500 rounded-full"
+          className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-green-500 rounded-full"
         />
       </div>
 
-      <div className="space-y-3">
-        {activities.slice(0, 5).map((activity, idx) => (
+      <div className="space-y-2.5 sm:space-y-3">
+        {displayedActivities.map((activity, idx) => (
           <motion.div
             key={`${activity.time}-${idx}`}
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ delay: idx * 0.05 }}
-            className="flex items-start gap-3 pb-3 border-b border-gray-100 last:border-0"
+            className="flex items-start gap-2 sm:gap-3 pb-2.5 sm:pb-3 border-b border-gray-100 last:border-0"
           >
-            <div className="p-1.5 bg-blue-100 rounded-full">
-              <Activity className="w-3 h-3 text-blue-600" />
+            <div className="p-1 sm:p-1.5 bg-blue-100 rounded-full flex-shrink-0">
+              <Activity className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-blue-600" />
             </div>
-            <div className="flex-1">
-              <p className="text-sm text-gray-800">{activity.action}</p>
-              <div className="flex items-center gap-2 mt-1 text-xs text-gray-500">
-                <span>{activity.time}</span>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs sm:text-sm text-gray-800 truncate">
+                {truncateText(activity.action, 30)}
+              </p>
+              <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1 text-xs text-gray-500">
+                <span className="truncate max-w-[60px] sm:max-w-none">{activity.time}</span>
                 <span>•</span>
-                <span>{activity.location}</span>
+                <span className="truncate max-w-[100px] sm:max-w-[150px]">
+                  {activity.location}
+                </span>
               </div>
             </div>
           </motion.div>
         ))}
       </div>
+
+      {activities.length > 3 && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="w-full mt-3 py-2 text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium"
+        >
+          {showAll ? 'Ver menos' : `Ver mais ${activities.length - 3} atividades`}
+        </button>
+      )}
     </motion.div>
   );
 }
 
-// Card de Browsers
+// Card de Browsers Responsivo
 function BrowsersCard({ browsers }: { browsers: BrowserData[] }) {
-  const getBrowserIcon = (): React.ReactNode => {
-    return <Chrome className="w-4 h-4" />;
-  };
+  const [showAll, setShowAll] = useState(false);
+  const displayedBrowsers = showAll ? browsers : browsers.slice(0, 3);
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+      className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm"
     >
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Navegadores</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Navegadores</h3>
       <div className="space-y-2">
-        {browsers.slice(0, 5).map((browser) => (
-          <div key={browser.name} className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {getBrowserIcon()}
-              <span className="text-sm text-gray-600">{browser.name}</span>
+        {displayedBrowsers.map((browser) => (
+          <div key={browser.name} className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <Chrome className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0" />
+              <span className="text-xs sm:text-sm text-gray-600 truncate">
+                {truncateText(browser.name, 15)}
+              </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-bold">{formatNumber(browser.count)}</span>
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
+              <span className="text-xs sm:text-sm font-bold">
+                {formatNumber(browser.count)}
+              </span>
               <span className="text-xs text-gray-500">
                 ({formatPercentage(browser.percentage)})
               </span>
@@ -372,29 +435,65 @@ function BrowsersCard({ browsers }: { browsers: BrowserData[] }) {
           </div>
         ))}
       </div>
+
+      {browsers.length > 3 && (
+        <button
+          onClick={() => setShowAll(!showAll)}
+          className="w-full mt-3 py-2 text-xs sm:text-sm text-purple-600 hover:text-purple-700 font-medium"
+        >
+          {showAll ? 'Ver menos' : `Ver mais ${browsers.length - 3} navegadores`}
+        </button>
+      )}
     </motion.div>
   );
 }
 
-// Card de Engajamento
+// Card de Engajamento Responsivo
 function EngagementCard({ engagement }: { engagement: EngagementMetrics }) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
+      className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm"
     >
-      <h3 className="text-lg font-semibold text-gray-800 mb-4">Engajamento</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="text-center p-3 bg-blue-50 rounded-lg">
-          <Eye className="w-5 h-5 text-blue-600 mx-auto mb-1" />
+      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Engajamento</h3>
+      <div className="grid grid-cols-2 gap-3 sm:gap-4">
+        <div className="text-center p-2.5 sm:p-3 bg-blue-50 rounded-lg">
+          <Eye className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600 mx-auto mb-1" />
           <p className="text-xs text-gray-600">Cliques/Visitante</p>
-          <p className="text-lg font-bold">{engagement.clicksPerVisitor.toFixed(1)}</p>
+          <p className="text-base sm:text-lg font-bold mt-1">
+            {engagement.clicksPerVisitor.toFixed(1)}
+          </p>
         </div>
-        <div className="text-center p-3 bg-green-50 rounded-lg">
-          <Users className="w-5 h-5 text-green-600 mx-auto mb-1" />
+        <div className="text-center p-2.5 sm:p-3 bg-green-50 rounded-lg">
+          <Users className="w-4 h-4 sm:w-5 sm:h-5 text-green-600 mx-auto mb-1" />
           <p className="text-xs text-gray-600">Taxa Retorno</p>
-          <p className="text-lg font-bold">{formatPercentage(engagement.returnRate)}</p>
+          <p className="text-base sm:text-lg font-bold mt-1">
+            {formatPercentage(engagement.returnRate)}
+          </p>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// Card de Horário de Pico Responsivo
+function PeakHourCard({ peakHour }: { peakHour: number }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm"
+    >
+      <div className="flex items-center gap-3">
+        <div className="p-2.5 sm:p-3 bg-orange-100 rounded-lg sm:rounded-xl flex-shrink-0">
+          <Clock className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600" />
+        </div>
+        <div className="min-w-0">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-600">Horário de Pico</h3>
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">
+            {String(peakHour).padStart(2, "0")}:00
+          </p>
         </div>
       </div>
     </motion.div>
@@ -432,76 +531,78 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-purple-50">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8">
         <PageHeader linkTitle={analytics.linkTitle} linkUrl={analytics.linkUrl} />
 
         {analytics.totalClicks === 0 ? (
           <NoDataState />
         ) : (
-          <div className="space-y-8">
-            {/* Métricas Principais */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+            {/* Métricas Principais - Grid Responsivo */}
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <CustomMetricCard
                 title="Total de Cliques"
                 value={analytics.totalClicks}
-                icon={<MousePointer className="w-5 h-5" />}
+                icon={<MousePointer />}
                 color="blue"
               />
               <CustomMetricCard
                 title="Visitantes Únicos"
                 value={analytics.uniqueUsers}
-                icon={<Users className="w-5 h-5" />}
+                icon={<Users />}
                 color="purple"
               />
               <CustomMetricCard
                 title="Países"
                 value={analytics.countriesReached}
-                icon={<Globe className="w-5 h-5" />}
+                icon={<Globe />}
                 color="green"
               />
               <CustomMetricCard
                 title="Taxa de Conversão"
                 value={`${analytics.conversionRate?.toFixed(1) || 0}%`}
-                icon={<Target className="w-5 h-5" />}
+                icon={<Target />}
                 color="orange"
               />
             </div>
 
-            {/* Taxa de Rejeição e Comparação */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Taxa de Rejeição e Comparação - Grid Responsivo */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
               <CustomMetricCard
                 title="Taxa de Rejeição"
                 value={`${analytics.bounceRate?.toFixed(1) || 0}%`}
-                icon={<RefreshCw className="w-5 h-5" />}
+                icon={<RefreshCw />}
                 color="yellow"
               />
               {analytics.comparison && (
                 <CustomMetricCard
                   title="Crescimento Mensal"
                   value={`${analytics.comparison.percentageChange > 0 ? '+' : ''}${analytics.comparison.percentageChange.toFixed(1)}%`}
-                  icon={<TrendingUp className="w-5 h-5" />}
+                  icon={<TrendingUp />}
                   color="pink"
                 />
               )}
             </div>
 
-            {/* Gráfico Principal */}
+            {/* Gráfico Principal - Scrollável em mobile */}
             {analytics.dailyData && analytics.dailyData.length > 0 && (
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <DailyPerformanceChart data={analytics.dailyData} />
+              <div className="bg-white p-3 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm overflow-x-auto">
+                <div className="min-w-[400px]">
+                  <DailyPerformanceChart data={analytics.dailyData} />
+                </div>
               </div>
             )}
 
-            {/* Grid de Análises */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Grid de Análises - Stack em mobile */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
               {/* Coluna 1 */}
-              <div className="space-y-6">
-                {/* Fontes de Tráfego - PRO e ULTRA */}
+              <div className="space-y-4 sm:space-y-6">
+                {/* Fontes de Tráfego */}
                 {analytics.trafficSources && analytics.trafficSources.length > 0 && (
                   <SocialOriginCard trafficSources={analytics.trafficSources} />
                 )}
 
-                {/* Dispositivos - PRO e ULTRA */}
+                {/* Dispositivos */}
                 {analytics.devices && (
                   <DevicesCard devices={analytics.devices} />
                 )}
@@ -513,42 +614,30 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
               </div>
 
               {/* Coluna 2 */}
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Países */}
                 {analytics.countryData && analytics.countryData.length > 0 && (
-                  <CountryChart data={analytics.countryData} />
+                  <div className="overflow-x-auto">
+                    <CountryChart data={analytics.countryData} />
+                  </div>
                 )}
 
                 {/* Horários - ULTRA apenas */}
                 {hasUltraFeaturesAccess ? (
                   <>
                     {analytics.hourlyData && analytics.hourlyData.length > 0 && (
-                      <HourlyChart data={analytics.hourlyData} />
+                      <div className="overflow-x-auto">
+                        <HourlyChart data={analytics.hourlyData} />
+                      </div>
                     )}
                     {analytics.peakHour !== null && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm"
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="p-3 bg-orange-100 rounded-xl">
-                            <Clock className="w-6 h-6 text-orange-600" />
-                          </div>
-                          <div>
-                            <h3 className="text-sm font-medium text-gray-600">Horário de Pico</h3>
-                            <p className="text-2xl font-bold text-gray-900">
-                              {String(analytics.peakHour).padStart(2, "0")}:00
-                            </p>
-                          </div>
-                        </div>
-                      </motion.div>
+                      <PeakHourCard peakHour={analytics.peakHour} />
                     )}
                   </>
                 ) : (
                   <LockedFeatureCard
                     title="Análise de Horários"
-                    icon={<Clock className="w-8 h-8 text-gray-400" />}
+                    icon={<Clock className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />}
                     requiredPlan="Ultra"
                     description="Veja os horários de pico"
                   />
@@ -556,7 +645,7 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
               </div>
 
               {/* Coluna 3 */}
-              <div className="space-y-6">
+              <div className="space-y-4 sm:space-y-6">
                 {/* Funcionalidades ULTRA */}
                 {hasUltraFeaturesAccess ? (
                   <>
@@ -567,12 +656,16 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
 
                     {/* Cidades */}
                     {analytics.cityData && analytics.cityData.length > 0 && (
-                      <CityChart data={analytics.cityData} />
+                      <div className="overflow-x-auto">
+                        <CityChart data={analytics.cityData} />
+                      </div>
                     )}
 
                     {/* Regiões */}
                     {analytics.regionData && analytics.regionData.length > 0 && (
-                      <RegionChart data={analytics.regionData} />
+                      <div className="overflow-x-auto">
+                        <RegionChart data={analytics.regionData} />
+                      </div>
                     )}
 
                     {/* Engajamento */}
@@ -581,55 +674,72 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
                     )}
                   </>
                 ) : (
-                  <>
+                  <div className="space-y-4">
                     <LockedFeatureCard
                       title="Atividade em Tempo Real"
-                      icon={<Activity className="w-8 h-8 text-gray-400" />}
+                      icon={<Activity className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />}
                       requiredPlan="Ultra"
                       description="Monitore atividades ao vivo"
                     />
                     <LockedFeatureCard
                       title="Análise Geográfica"
-                      icon={<MapPin className="w-8 h-8 text-gray-400" />}
+                      icon={<MapPin className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />}
                       requiredPlan="Ultra"
                       description="Cidades e regiões detalhadas"
                     />
                     <LockedFeatureCard
                       title="Métricas de Engajamento"
-                      icon={<Crown className="w-8 h-8 text-gray-400" />}
+                      icon={<Crown className="w-6 h-6 sm:w-8 sm:h-8 text-gray-400" />}
                       requiredPlan="Ultra"
                       description="Análise profunda de engajamento"
                     />
-                  </>
+                  </div>
                 )}
               </div>
             </div>
 
-            {/* Sistemas Operacionais - ULTRA */}
+            {/* Sistemas Operacionais - ULTRA - Mobile Optimized */}
             {hasUltraFeaturesAccess && analytics.operatingSystems && analytics.operatingSystems.length > 0 && (
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Sistemas Operacionais</h3>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+              <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">
+                  Sistemas Operacionais
+                </h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
                   {analytics.operatingSystems.map((os) => (
                     <div key={os.name} className="text-center">
-                      <p className="text-sm font-medium text-gray-900">{os.name}</p>
-                      <p className="text-2xl font-bold text-gray-700">{formatNumber(os.count)}</p>
-                      <p className="text-xs text-gray-500">{formatPercentage(os.percentage)}</p>
+                      <p className="text-xs sm:text-sm font-medium text-gray-900 truncate">
+                        {truncateText(os.name, 10)}
+                      </p>
+                      <p className="text-lg sm:text-2xl font-bold text-gray-700 mt-1">
+                        {formatNumber(os.count)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {formatPercentage(os.percentage)}
+                      </p>
                     </div>
                   ))}
                 </div>
               </div>
             )}
 
-            {/* Top Referrers - ULTRA */}
+            {/* Top Referrers - ULTRA - Mobile Optimized */}
             {hasUltraFeaturesAccess && analytics.referrers && analytics.referrers.length > 0 && (
-              <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm">
-                <h3 className="text-lg font-semibold text-gray-800 mb-4">Top Referências</h3>
-                <div className="space-y-2">
+              <div className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm">
+                <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">
+                  Top Referências
+                </h3>
+                <div className="space-y-2 max-h-[300px] overflow-y-auto">
                   {analytics.referrers.slice(0, 10).map((referrer) => (
-                    <div key={referrer.source} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                      <span className="text-sm text-gray-700 truncate max-w-[70%]">{referrer.source}</span>
-                      <span className="text-sm font-bold text-gray-900">{formatNumber(referrer.count)}</span>
+                    <div
+                      key={referrer.source}
+                      className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0 gap-2"
+                    >
+                      <span className="text-xs sm:text-sm text-gray-700 truncate flex-1">
+                        {truncateText(referrer.source, 30)}
+                      </span>
+                      <span className="text-xs sm:text-sm font-bold text-gray-900 flex-shrink-0">
+                        {formatNumber(referrer.count)}
+                      </span>
                     </div>
                   ))}
                 </div>
