@@ -17,6 +17,7 @@ import { getUserSubscriptionPlan } from "@/lib/subscription";
 import DashboardMetrics from "@/components/DashboardMetrics";
 import SkeletonDashboard from "@/components/SkeletonDashboard";
 import DashboardToast from "@/components/DashboardToast";
+import RealTimeClock from "@/components/RealTimeClock";
 import { Button } from "@/components/ui/button";
 import {
   Card, CardContent, CardDescription, CardFooter,
@@ -25,13 +26,37 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
-// === SISTEMA INTELIGENTE DE MENSAGENS DINÂMICAS (VERSÃO AVANÇADA) ===
+// === SISTEMA INTELIGENTE DE MENSAGENS DINÂMICAS (VERSÃO CORRIGIDA PARA SERGIPE) ===
 function getDynamicGreeting() {
-    const hour = new Date().getHours();
-    if (hour < 6) return { text: "Noite de conquistas", icon: <Moon className="w-5 h-5" />, gradient: "from-indigo-600 to-purple-600" };
-    if (hour < 12) return { text: "Manhã de vitórias", icon: <Sunrise className="w-5 h-5" />, gradient: "from-orange-500 to-yellow-500" };
-    if (hour < 18) return { text: "Tarde produtiva", icon: <Coffee className="w-5 h-5" />, gradient: "from-blue-500 to-cyan-500" };
-    return { text: "Noite épica", icon: <Sparkle className="w-5 h-5" />, gradient: "from-purple-600 to-pink-600" };
+  // Obtém o horário de Sergipe (UTC-3)
+  const sergipeTime = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Maceio" }));
+  const hour = sergipeTime.getHours();
+
+  if (hour >= 0 && hour < 6) {
+    return {
+      text: "Madrugada produtiva",
+      icon: <Moon className="w-5 h-5" />,
+      gradient: "from-indigo-600 to-purple-600"
+    };
+  } else if (hour >= 6 && hour < 12) {
+    return {
+      text: "Bom dia",
+      icon: <Sunrise className="w-5 h-5" />,
+      gradient: "from-orange-500 to-yellow-500"
+    };
+  } else if (hour >= 12 && hour < 18) {
+    return {
+      text: "Tarde produtiva",
+      icon: <Coffee className="w-5 h-5" />,
+      gradient: "from-blue-500 to-cyan-500"
+    };
+  } else {
+    return {
+      text: "Noite de conquistas",
+      icon: <Sparkle className="w-5 h-5" />,
+      gradient: "from-purple-600 to-pink-600"
+    };
+  }
 }
 
 function getMotivationalMessage(clicks: number, plan: string) {
@@ -60,11 +85,10 @@ function getAchievementBadges(clicks: number, plan: string) {
     if (clicks > 10000) badges.push({ icon: "⚡", text: "10K Legend" });
     if (plan === "ultra") badges.push({ icon: "🌟", text: "Ultra Elite" });
     if (plan === "pro") badges.push({ icon: "🚀", text: "Pro Power" });
-    return badges.slice(-3); // Pega as 3 últimas
+    return badges.slice(-3);
 }
 
 function getClickStreak(clicks: number): { days: number; message: string; color: string } {
-  // Simula streak baseado em cliques
   const streakDays = Math.min(Math.floor(clicks / 50), 100);
   if (streakDays >= 30) return { days: streakDays, message: "Sequência épica!", color: "from-yellow-500 to-orange-500" };
   if (streakDays >= 7) return { days: streakDays, message: "Mantendo ritmo!", color: "from-green-500 to-emerald-500" };
@@ -77,7 +101,7 @@ function getConversionRate(clicks: number, views: number): string {
   return ((clicks / views) * 100).toFixed(1);
 }
 
-// === COMPONENTES ULTRA PREMIUM (VERSÃO AVANÇADA) ===
+// === COMPONENTES ULTRA PREMIUM (VERSÃO CORRIGIDA) ===
 
 function MentorIaWidget({ userPlan }: { userPlan: string }) {
   const isLocked = userPlan === "free";
@@ -103,12 +127,12 @@ function MentorIaWidget({ userPlan }: { userPlan: string }) {
             <div className="relative flex-shrink-0">
               <div className="absolute -inset-3 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 rounded-2xl blur-lg opacity-75 animate-pulse"></div>
               <div className="relative bg-gradient-to-br from-blue-500/40 to-purple-600/40 p-4 rounded-2xl backdrop-blur-xl border border-white/30 shadow-2xl">
-                <ImageIcon className="w-8 h-8 sm:w-10 sm:h-10 text-blue-100 drop-shadow-lg" />
+                <ImageIcon className="w-8 h-8 sm:w-10 sm:h-10 text-white drop-shadow-lg" />
               </div>
             </div>
             <div className="flex-grow">
               <div className="flex items-center gap-2 flex-wrap mb-1">
-                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black bg-gradient-to-r from-white via-blue-200 to-purple-300 bg-clip-text text-transparent leading-tight">Mentor.IA</h2>
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white leading-tight">Mentor.IA</h2>
                 <Badge className="bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-blue-100 border border-blue-400/40 text-xs font-black px-2 py-0.5 backdrop-blur-sm">NEW</Badge>
               </div>
               <div className="flex items-center gap-2 mt-2">
@@ -132,7 +156,7 @@ function MentorIaWidget({ userPlan }: { userPlan: string }) {
                     <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${item.color} drop-shadow`} />
                   </div>
                   <div className="flex-grow">
-                    <span className="font-bold text-sm sm:text-base text-white/95 group-hover/item:text-white transition-colors drop-shadow">{item.text}</span>
+                    <span className="font-bold text-sm sm:text-base text-white group-hover/item:text-white transition-colors drop-shadow">{item.text}</span>
                     <p className="text-xs text-white/60 font-semibold mt-0.5">{item.detail}</p>
                   </div>
                   <CheckCircle2 className="w-4 h-4 text-green-400 opacity-0 group-hover/item:opacity-100 transition-opacity" />
@@ -143,13 +167,13 @@ function MentorIaWidget({ userPlan }: { userPlan: string }) {
           <div className="relative z-10 mt-auto flex flex-col sm:flex-row justify-between items-center gap-4">
             <div className="flex items-center gap-2 bg-gradient-to-r from-red-500/30 to-pink-500/30 px-4 py-2 rounded-full border border-red-400/40 backdrop-blur-sm shadow-lg">
               <Heart className="w-4 h-4 text-red-300 animate-pulse drop-shadow" />
-              <span className="text-xs sm:text-sm font-black text-red-100 drop-shadow"> +538.492 criadas </span>
+              <span className="text-xs sm:text-sm font-black text-white drop-shadow"> +538.492 criadas </span>
             </div>
             <Link href={isLocked ? "/dashboard/billing" : "/dashboard/mentor-ia"} className="w-full sm:w-auto">
               <Button className="w-full sm:w-auto relative group/btn bg-gradient-to-r from-white via-blue-50 to-purple-50 text-slate-900 hover:from-yellow-400 hover:via-orange-500 hover:to-red-500 hover:text-white font-black px-6 sm:px-8 py-3 sm:py-4 rounded-2xl transition-all duration-500 transform hover:scale-110 shadow-2xl text-sm sm:text-base overflow-hidden">
                 <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
                 <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-2xl blur-xl opacity-0 group-hover/btn:opacity-80 transition-all duration-500"></div>
-                <span className="relative flex items-center justify-center gap-2 font-black drop-shadow-lg">
+                <span className="relative flex items-center justify-center gap-2 font-black">
                   <Play className="w-4 h-4 sm:w-5 sm:h-5 group-hover/btn:scale-110 transition-transform" />
                   {isLocked ? "DESBLOQUEAR AGORA" : "CRIAR IMAGEM"}
                   <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover/btn:translate-x-2 transition-transform" />
@@ -176,7 +200,7 @@ function FreelinkBrainWidget({ userPlan }: { userPlan: string }) {
           </Badge>
         </div>
       </div>
-      <div className="relative bg-gradient-to-br from-slate-50 via-emerald-50 to-cyan-50 dark:from-slate-950 dark:via-emerald-950 dark:to-cyan-950 p-6 sm:p-8 rounded-3xl shadow-2xl transition-all duration-700 group-hover:shadow-emerald-500/50 group-hover:-translate-y-3 group-hover:scale-[1.03] flex flex-col h-full border-2 border-emerald-200 dark:border-emerald-800 overflow-hidden">
+      <div className="relative bg-white dark:bg-slate-950 p-6 sm:p-8 rounded-3xl shadow-2xl transition-all duration-700 group-hover:shadow-emerald-500/50 group-hover:-translate-y-3 group-hover:scale-[1.03] flex flex-col h-full border-2 border-emerald-200 dark:border-emerald-800 overflow-hidden">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.15),transparent_50%)]"></div>
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(6,182,212,0.15),transparent_50%)]"></div>
         <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-cyan-500/10 to-transparent rounded-full blur-3xl"></div>
@@ -191,8 +215,8 @@ function FreelinkBrainWidget({ userPlan }: { userPlan: string }) {
             <div className="flex-grow">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight">
-                  <span className="bg-gradient-to-r from-slate-900 to-emerald-800 dark:from-white dark:to-emerald-200 bg-clip-text text-transparent">Freelink</span>
-                  <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">Brain</span>
+                  <span className="text-slate-900 dark:text-white">Freelink</span>
+                  <span className="text-emerald-600">Brain</span>
                 </h2>
                 <Badge className="bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-400/40 text-xs font-black px-2 py-0.5">HOT</Badge>
               </div>
@@ -202,8 +226,8 @@ function FreelinkBrainWidget({ userPlan }: { userPlan: string }) {
               </div>
             </div>
           </div>
-          <div className="bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-900/40 dark:to-cyan-900/40 rounded-2xl p-5 sm:p-6 border-2 border-emerald-200 dark:border-emerald-800 mb-6 flex-grow shadow-lg">
-            <h3 className="font-black text-base sm:text-lg mb-5 flex items-center text-slate-800 dark:text-slate-100 drop-shadow-sm">
+          <div className="bg-emerald-50 dark:bg-emerald-900/40 rounded-2xl p-5 sm:p-6 border-2 border-emerald-200 dark:border-emerald-800 mb-6 flex-grow shadow-lg">
+            <h3 className="font-black text-base sm:text-lg mb-5 flex items-center text-slate-800 dark:text-white drop-shadow-sm">
               <Zap className="w-5 h-5 mr-2 text-emerald-500 animate-pulse drop-shadow" /> Viral em 3 Cliques
             </h3>
             <div className="space-y-4">
@@ -218,7 +242,7 @@ function FreelinkBrainWidget({ userPlan }: { userPlan: string }) {
                     <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${item.color} drop-shadow`} />
                   </div>
                   <div className="flex-grow">
-                    <span className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-200 group-hover/item:text-slate-900 dark:group-hover/item:text-white transition-colors drop-shadow-sm">{item.text}</span>
+                    <span className="font-bold text-sm sm:text-base text-slate-800 dark:text-white group-hover/item:text-slate-900 dark:group-hover/item:text-white transition-colors drop-shadow-sm">{item.text}</span>
                     <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-0.5">{item.metric}</p>
                   </div>
                   <TrendingUp className="w-4 h-4 text-green-500 opacity-0 group-hover/item:opacity-100 transition-opacity" />
@@ -253,7 +277,7 @@ function UsageStatsCard({ clicksUsed = 0, maxClicks = 1000, userPlan = "free" }:
   const motivation = getMotivationalMessage(clicksUsed, userPlan);
   const streak = getClickStreak(clicksUsed);
   return (
-    <Card className="shadow-2xl border-0 bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 overflow-hidden relative group hover:shadow-blue-500/40 transition-all duration-700 hover:-translate-y-2">
+    <Card className="shadow-2xl border-0 bg-white dark:bg-slate-950 overflow-hidden relative group hover:shadow-blue-500/40 transition-all duration-700 hover:-translate-y-2">
       <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
       <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${motivation.color} shadow-lg`}></div>
       <CardHeader className="pb-4 relative z-10">
@@ -262,7 +286,7 @@ function UsageStatsCard({ clicksUsed = 0, maxClicks = 1000, userPlan = "free" }:
             <div className={`p-2.5 rounded-xl bg-gradient-to-r ${motivation.color} shadow-xl animate-pulse`}>
               <BarChart3 className="w-5 h-5 text-white drop-shadow-lg" />
             </div>
-            <span className="bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent font-black">Power Status</span>
+            <span className="text-slate-900 dark:text-white font-black">Power Status</span>
           </CardTitle>
           {userPlan === "ultra" ? (
             <Badge className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white border-0 font-black shadow-xl px-3 py-1.5 text-xs sm:text-sm animate-pulse">
@@ -326,24 +350,24 @@ function UsageStatsCard({ clicksUsed = 0, maxClicks = 1000, userPlan = "free" }:
           </div>
         )}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 p-4 rounded-2xl border-2 border-blue-200 dark:border-blue-800 hover:scale-105 transition-all duration-300 shadow-lg group">
+          <div className="bg-blue-50 dark:bg-blue-950/50 p-4 rounded-2xl border-2 border-blue-200 dark:border-blue-800 hover:scale-105 transition-all duration-300 shadow-lg group">
             <div className="flex gap-2 items-center text-blue-600 dark:text-blue-400 mb-2">
               <LinkIcon className="w-4 h-4 group-hover:rotate-12 transition-transform" />
               <span className="font-black text-xs sm:text-sm">Links</span>
             </div>
-            <p className="font-black text-xl sm:text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+            <p className="font-black text-xl sm:text-2xl text-blue-600">
               {userPlan !== "free" ? "∞" : "10"}
             </p>
             <p className="text-xs text-blue-600/70 dark:text-blue-400/70 font-semibold mt-1">
               {userPlan !== "free" ? "Ilimitados" : "Grátis"}
             </p>
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 p-4 rounded-2xl border-2 border-purple-200 dark:border-purple-800 hover:scale-105 transition-all duration-300 shadow-lg group">
+          <div className="bg-purple-50 dark:bg-purple-950/50 p-4 rounded-2xl border-2 border-purple-200 dark:border-purple-800 hover:scale-105 transition-all duration-300 shadow-lg group">
             <div className="flex gap-2 items-center text-purple-600 dark:text-purple-400 mb-2">
               <BarChart2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span className="font-black text-xs sm:text-sm">Analytics</span>
             </div>
-            <p className="font-black text-xl sm:text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            <p className="font-black text-xl sm:text-2xl text-purple-600">
               {userPlan === "ultra" ? "MAX" : userPlan === "pro" ? "PRO" : "Basic"}
             </p>
             <p className="text-xs text-purple-600/70 dark:text-purple-400/70 font-semibold mt-1">
@@ -377,13 +401,13 @@ function QuickLinksCard({ userPlan }: { userPlan: string }) {
     { title: "Sorteios Ultra", href: "/dashboard/giveaway", icon: Gift, desc: "Monetize sua audiência", locked: userPlan !== "ultra", gradient: "from-purple-500 to-pink-600", bgGradient: "from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30", borderColor: "border-purple-300 dark:border-purple-700", count: "Premium" },
   ];
   return (
-    <Card className="shadow-2xl border-0 bg-gradient-to-br from-white via-slate-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-purple-950 overflow-hidden hover:shadow-purple-500/30 transition-all duration-700">
+    <Card className="shadow-2xl border-0 bg-white dark:bg-slate-950 overflow-hidden hover:shadow-purple-500/30 transition-all duration-700">
       <CardHeader className="pb-4">
-        <CardTitle className="text-xl sm:text-2xl bg-gradient-to-r from-slate-900 to-purple-700 dark:from-white dark:to-purple-200 bg-clip-text text-transparent font-black flex items-center gap-2">
+        <CardTitle className="text-xl sm:text-2xl text-slate-900 dark:text-white font-black flex items-center gap-2">
           <Lightning className="w-6 h-6 text-yellow-500 animate-pulse drop-shadow-lg" />
           Ações Rápidas
         </CardTitle>
-        <CardDescription className="font-bold text-sm">Ferramentas que geram resultados reais</CardDescription>
+        <CardDescription className="font-bold text-sm text-slate-600 dark:text-slate-400">Ferramentas que geram resultados reais</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {quickLinks.map((link, index) => (
@@ -476,7 +500,7 @@ function ExclusiveFeaturesCard({ userPlan }: { userPlan: string }) {
   return (
     <div className="relative group">
       <div className={`absolute -inset-1 bg-gradient-to-r ${currentFeatures.gradient} rounded-3xl blur-2xl opacity-30 group-hover:opacity-70 transition-all duration-1000 animate-pulse`}></div>
-      <Card className={`relative bg-gradient-to-br ${currentFeatures.bgGradient} border-0 rounded-3xl p-6 sm:p-10 shadow-2xl transition-all duration-700 group-hover:shadow-3xl group-hover:-translate-y-3 overflow-hidden`}>
+      <Card className={`relative ${currentFeatures.bgGradient} border-0 rounded-3xl p-6 sm:p-10 shadow-2xl transition-all duration-700 group-hover:shadow-3xl group-hover:-translate-y-3 overflow-hidden`}>
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-10 right-10 w-40 h-40 bg-gradient-to-br from-white to-transparent rounded-full blur-3xl animate-pulse"></div>
           <div className="absolute bottom-10 left-10 w-32 h-32 bg-gradient-to-br from-white to-transparent rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
@@ -489,7 +513,7 @@ function ExclusiveFeaturesCard({ userPlan }: { userPlan: string }) {
             </div>
           </div>
           <div className="flex-grow text-center lg:text-left">
-            <h3 className="text-3xl sm:text-4xl font-black mb-3 bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent leading-tight drop-shadow-sm">
+            <h3 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-3 leading-tight drop-shadow-sm">
               {currentFeatures.title}
             </h3>
             <p className="text-base sm:text-xl font-bold text-slate-700 dark:text-slate-300 mb-8 drop-shadow-sm">
@@ -502,7 +526,7 @@ function ExclusiveFeaturesCard({ userPlan }: { userPlan: string }) {
                     <span className="text-lg">{feature.icon}</span>
                   </div>
                   <div className="text-left">
-                    <span className="font-black text-sm sm:text-base text-slate-800 dark:text-slate-200 block drop-shadow-sm">{feature.text}</span>
+                    <span className="font-black text-sm sm:text-base text-slate-800 dark:text-white block drop-shadow-sm">{feature.text}</span>
                     <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold">{feature.detail}</span>
                   </div>
                 </div>
@@ -523,7 +547,7 @@ function ExclusiveFeaturesCard({ userPlan }: { userPlan: string }) {
             {!currentFeatures.cta && (
               <div className="flex items-center justify-center lg:justify-start gap-3 bg-gradient-to-r from-yellow-400/30 to-orange-500/30 px-6 py-4 rounded-2xl border-2 border-yellow-400/50 shadow-lg backdrop-blur-sm">
                 <Trophy className="w-6 h-6 text-yellow-600 dark:text-yellow-400 animate-bounce" />
-                <span className="font-black text-lg text-slate-800 dark:text-slate-200 drop-shadow-sm"> Você alcançou o nível máximo! 🎉 </span>
+                <span className="font-black text-lg text-slate-800 dark:text-white drop-shadow-sm"> Você alcançou o nível máximo! 🎉 </span>
               </div>
             )}
           </div>
@@ -543,7 +567,7 @@ function LiveStatsWidget({ analytics }: { analytics: { totalClicks?: number; tot
   return (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
       {stats.map((stat, i) => (
-        <Card key={i} className="relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group">
+        <Card key={i} className="relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group bg-white dark:bg-slate-950">
           <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-5 group-hover:opacity-15 transition-opacity duration-500`}></div>
           <CardContent className="p-6 relative z-10">
             <div className="flex items-center justify-between mb-4">
@@ -556,7 +580,7 @@ function LiveStatsWidget({ analytics }: { analytics: { totalClicks?: number; tot
               </Badge>
             </div>
             <p className="text-sm font-bold text-slate-600 dark:text-slate-400 mb-2">{stat.label}</p>
-            <p className={`text-3xl sm:text-4xl font-black bg-gradient-to-r ${stat.color} bg-clip-text text-transparent drop-shadow-sm`}>
+            <p className={`text-3xl sm:text-4xl font-black text-slate-900 dark:text-white drop-shadow-sm`}>
               {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
             </p>
             <div className="mt-4 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
@@ -569,7 +593,6 @@ function LiveStatsWidget({ analytics }: { analytics: { totalClicks?: number; tot
   );
 }
 
-// ESTE É O COMPONENTE REINTEGRADO DO SEU PRIMEIRO CÓDIGO
 function DailyMotivationCard({ userPlan, clicksUsed }: { userPlan: string; clicksUsed: number }) {
   const greeting = getDynamicGreeting();
   const badges = getAchievementBadges(clicksUsed, userPlan);
@@ -588,14 +611,14 @@ function DailyMotivationCard({ userPlan, clicksUsed }: { userPlan: string; click
                 {greeting.icon}
               </div>
               <div>
-                <h3 className="text-2xl sm:text-3xl font-black">{greeting.text}</h3>
-                <p className="text-sm sm:text-base font-bold opacity-80">Continue sua revolução digital!</p>
+                <h3 className="text-2xl sm:text-3xl font-black text-white">{greeting.text}</h3>
+                <p className="text-sm sm:text-base font-bold text-white/90">Continue sua revolução digital!</p>
               </div>
             </div>
 
             {badges.length > 0 && (
               <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
-                <span className="text-xs font-bold opacity-70 flex items-center gap-1">
+                <span className="text-xs font-bold text-white/80 flex items-center gap-1">
                   <Award className="w-4 h-4" />
                   Últimas conquistas:
                 </span>
@@ -618,12 +641,17 @@ function DailyMotivationCard({ userPlan, clicksUsed }: { userPlan: string; click
             </div>
           </div>
         </div>
+
+        {/* Relógio em tempo real importado */}
+        <div className="mt-6 flex justify-center sm:justify-start">
+          <RealTimeClock />
+        </div>
       </CardContent>
     </Card>
   );
 }
 
-// === COMPONENTE PRINCIPAL DO DASHBOARD (VERSÃO FUSION) ===
+// === COMPONENTE PRINCIPAL DO DASHBOARD ===
 
 export default async function DashboardOverviewPage() {
   const user = await currentUser();
@@ -657,7 +685,7 @@ export default async function DashboardOverviewPage() {
               </div>
             </div>
             <div>
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-to-r from-slate-900 via-blue-800 to-purple-800 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent leading-tight mb-2">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black text-slate-900 dark:text-white leading-tight mb-2">
                 Olá, {user.firstName || user.username}!
                 <span className="inline-block animate-bounce ml-3 text-3xl sm:text-4xl lg:text-5xl">🚀</span>
               </h1>
@@ -671,7 +699,6 @@ export default async function DashboardOverviewPage() {
           </div>
         </header>
 
-        {/* CARD DO PRIMEIRO CÓDIGO REINTEGRADO AQUI */}
         <DailyMotivationCard userPlan={userPlan} clicksUsed={clicksUsed} />
 
         <LiveStatsWidget analytics={analytics} />
@@ -693,17 +720,17 @@ export default async function DashboardOverviewPage() {
             <UsageStatsCard clicksUsed={clicksUsed} maxClicks={1000} userPlan={userPlan} />
             <QuickLinksCard userPlan={userPlan} />
 
-            <Card className="bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-950/30 dark:to-cyan-950/30 border-2 border-emerald-300 dark:border-emerald-700 shadow-xl hover:shadow-2xl transition-all duration-500">
+            <Card className="bg-emerald-50 dark:bg-emerald-950/30 border-2 border-emerald-300 dark:border-emerald-700 shadow-xl hover:shadow-2xl transition-all duration-500">
               <CardContent className="p-6">
                 <div className="flex items-center gap-3 mb-4">
                   <Target className="w-6 h-6 text-emerald-600 dark:text-emerald-400 animate-pulse" />
-                  <h3 className="font-black text-lg bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+                  <h3 className="font-black text-lg text-emerald-800 dark:text-emerald-200">
                     Desafio do Dia
                   </h3>
                 </div>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between p-3 bg-white/60 dark:bg-slate-800/60 rounded-xl backdrop-blur-sm">
-                    <span className="font-bold text-sm">Criar 3 links virais</span>
+                    <span className="font-bold text-sm text-slate-800 dark:text-white">Criar 3 links virais</span>
                     <Badge className="bg-emerald-500 text-white border-0 font-black">+50 XP</Badge>
                   </div>
                   <Progress value={33} className="h-2 bg-slate-200 dark:bg-slate-700" />
