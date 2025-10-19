@@ -2,16 +2,15 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { currentUser } from "@clerk/nextjs/server";
 import {
-   BrainCircuit, LinkIcon,
-  Zap, Gift, Sparkles, Target,
-  ChevronRight,  Rocket, Star,
-  Crown, Flame, Heart,
+  BrainCircuit, LinkIcon, Zap, Gift, Sparkles, Target,
+  ChevronRight, Rocket, Crown, Flame, Heart,
   Trophy, Diamond, Infinity, ArrowRight, Play,
   Layers, Globe, Magnet, Workflow, Plus, Bolt,
-  Type,
-  Instagram,
-  Palette,
-  ImageIcon
+  Type, Instagram, Palette, ImageIcon, TrendingUp,
+  Eye, MousePointerClick, BarChart3, Sparkle, Award,
+  PartyPopper, Sunrise, Moon, Coffee, Activity,
+  Zap as Lightning, CheckCircle2, AlertCircle, TrendingDown,
+  BarChart2,
 } from "lucide-react";
 import { fetchAnalytics } from "@/lib/analytics-server";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
@@ -19,170 +18,141 @@ import DashboardMetrics from "@/components/DashboardMetrics";
 import SkeletonDashboard from "@/components/SkeletonDashboard";
 import DashboardToast from "@/components/DashboardToast";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card, CardContent, CardDescription, CardFooter,
+  CardHeader, CardTitle
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
-// --- Componentes Otimizados para Responsividade ---
+// === SISTEMA INTELIGENTE DE MENSAGENS DINÂMICAS (VERSÃO AVANÇADA) ===
+function getDynamicGreeting() {
+    const hour = new Date().getHours();
+    if (hour < 6) return { text: "Noite de conquistas", icon: <Moon className="w-5 h-5" />, gradient: "from-indigo-600 to-purple-600" };
+    if (hour < 12) return { text: "Manhã de vitórias", icon: <Sunrise className="w-5 h-5" />, gradient: "from-orange-500 to-yellow-500" };
+    if (hour < 18) return { text: "Tarde produtiva", icon: <Coffee className="w-5 h-5" />, gradient: "from-blue-500 to-cyan-500" };
+    return { text: "Noite épica", icon: <Sparkle className="w-5 h-5" />, gradient: "from-purple-600 to-pink-600" };
+}
+
+function getMotivationalMessage(clicks: number, plan: string) {
+  if (plan === "ultra") {
+    if (clicks > 10000) return { text: "VOCÊ É IMPARÁVEL! 🔥", subtext: `${clicks.toLocaleString()} cliques dominados`, color: "from-yellow-400 via-orange-500 to-red-500", intensity: "🔥🔥🔥" };
+    if (clicks > 5000) return { text: "LENDÁRIO ATIVADO! ⚡", subtext: "Performance extraordinária", color: "from-purple-500 via-pink-500 to-red-500", intensity: "⚡⚡⚡" };
+    if (clicks > 1000) return { text: "MASTER LEVEL ALCANÇADO! 👑", subtext: "Você está no topo", color: "from-blue-500 via-purple-500 to-pink-500", intensity: "👑👑" };
+    return { text: "ULTRA MODE ATIVO! 💎", subtext: "Potencial ilimitado liberado", color: "from-indigo-500 via-purple-500 to-pink-500", intensity: "💎" };
+  }
+  if (plan === "pro") {
+    if (clicks > 5000) return { text: "CRESCIMENTO EXPLOSIVO! 🚀", subtext: "Próximo nivel: Ultra", color: "from-emerald-500 via-green-500 to-cyan-500", intensity: "🚀🚀" };
+    if (clicks > 1000) return { text: "PERFORMANCE PRO DOMINANDO! 💪", subtext: "Continue assim, campeão", color: "from-blue-500 via-indigo-500 to-purple-500", intensity: "💪💪" };
+    return { text: "PRO POWER ATIVADO! ⚡", subtext: "Evolução em progresso acelerado", color: "from-cyan-500 via-blue-500 to-indigo-500", intensity: "⚡" };
+  }
+  if (clicks > 500) return { text: "QUASE PRO! 🎯", subtext: `Faltam ${1000 - clicks} cliques`, color: "from-orange-500 via-amber-500 to-yellow-500", intensity: "🎯" };
+  if (clicks > 100) return { text: "CRESCENDO RÁPIDO! 📈", subtext: "Momentum perfeito", color: "from-green-500 via-emerald-500 to-teal-500", intensity: "📈" };
+  return { text: "INÍCIO FORTE!", subtext: "Sua jornada lendária começou", color: "from-blue-500 via-purple-500 to-pink-500", intensity: "💪" };
+}
+
+function getAchievementBadges(clicks: number, plan: string) {
+    const badges = [];
+    if (clicks > 100) badges.push({ icon: "🎯", text: "Primeira Centena" });
+    if (clicks > 500) badges.push({ icon: "🔥", text: "Meio Milhar" });
+    if (clicks > 1000) badges.push({ icon: "💎", text: "Mil Cliques" });
+    if (clicks > 5000) badges.push({ icon: "👑", text: "5K Master" });
+    if (clicks > 10000) badges.push({ icon: "⚡", text: "10K Legend" });
+    if (plan === "ultra") badges.push({ icon: "🌟", text: "Ultra Elite" });
+    if (plan === "pro") badges.push({ icon: "🚀", text: "Pro Power" });
+    return badges.slice(-3); // Pega as 3 últimas
+}
+
+function getClickStreak(clicks: number): { days: number; message: string; color: string } {
+  // Simula streak baseado em cliques
+  const streakDays = Math.min(Math.floor(clicks / 50), 100);
+  if (streakDays >= 30) return { days: streakDays, message: "Sequência épica!", color: "from-yellow-500 to-orange-500" };
+  if (streakDays >= 7) return { days: streakDays, message: "Mantendo ritmo!", color: "from-green-500 to-emerald-500" };
+  if (streakDays >= 3) return { days: streakDays, message: "Ganhando momentum!", color: "from-blue-500 to-cyan-500" };
+  return { days: streakDays, message: "Começando forte!", color: "from-purple-500 to-pink-500" };
+}
+
+function getConversionRate(clicks: number, views: number): string {
+  if (views === 0) return "0.0";
+  return ((clicks / views) * 100).toFixed(1);
+}
+
+// === COMPONENTES ULTRA PREMIUM (VERSÃO AVANÇADA) ===
 
 function MentorIaWidget({ userPlan }: { userPlan: string }) {
   const isLocked = userPlan === "free";
-
   return (
-   <div className="relative group h-full">
-  <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 rounded-3xl blur opacity-30 group-hover:opacity-60 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
-  {isLocked && (
-    <div className="absolute -top-3 -right-3 z-20 animate-bounce">
-      <div className="relative">
-        <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-sm opacity-60"></div>
-        <Badge className="relative bg-gradient-to-r from-yellow-500 to-orange-600 text-white border-0 px-3 py-1.5 sm:px-4 sm:py-2 font-bold shadow-2xl">
-          <Crown className="w-4 h-4 mr-1.5 animate-spin" style={{ animationDuration: '3s' }} />
-          ULTRA UNLOCK
-        </Badge>
-      </div>
-    </div>
-  )}
-  <div className="relative bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 p-6 sm:p-8 rounded-3xl shadow-2xl text-white transition-all duration-700 group-hover:shadow-blue-500/25 group-hover:shadow-2xl group-hover:-translate-y-2 group-hover:scale-105 flex flex-col h-full border border-blue-400/30 overflow-hidden">
-    <div className="absolute inset-0 opacity-10">
-      <div className="absolute top-10 left-10 w-20 h-20 bg-white/20 rounded-full blur-xl animate-pulse"></div>
-      <div className="absolute bottom-10 right-10 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
-    </div>
-    <div className="relative z-10 flex-grow flex flex-col">
-      <div className="flex items-center gap-4 sm:gap-6 mb-6">
-        <div className="relative flex-shrink-0">
-          <div className="absolute -inset-2 bg-gradient-to-r from-blue-400 to-purple-600 rounded-2xl blur opacity-60 animate-pulse"></div>
-          <div className="relative bg-gradient-to-br from-white/20 to-white/10 p-3 sm:p-4 rounded-2xl backdrop-blur-sm border border-white/20">
-            {/* Ícone atualizado para representar imagem/criação */}
-            <ImageIcon className="w-7 h-7 sm:w-8 sm:h-8 animate-pulse" />
+    <div className="relative group h-full min-h-[440px]">
+      <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-3xl blur-xl opacity-30 group-hover:opacity-75 transition-all duration-700 animate-pulse"></div>
+      {isLocked && (
+        <div className="absolute -top-4 -right-4 z-30 animate-bounce">
+          <div className="relative">
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-full blur-md opacity-80 animate-pulse"></div>
+            <Badge className="relative bg-gradient-to-r from-yellow-500 via-orange-500 to-red-600 text-white border-0 px-4 py-2 font-black shadow-2xl text-xs sm:text-sm backdrop-blur-sm">
+              <Crown className="w-4 h-4 mr-1.5 animate-spin" style={{ animationDuration: '3s' }} /> UNLOCK PRO
+            </Badge>
           </div>
         </div>
-        <div>
-          <h2 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-white via-blue-200 to-purple-200 bg-clip-text text-transparent">Mentor.IA</h2>
-          <div className="flex items-center gap-2 mt-1">
-            <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse" />
-            {/* Subtítulo atualizado */}
-            <p className="text-blue-200 font-medium text-xs sm:text-sm">Seu estúdio de criação visual</p>
-          </div>
-        </div>
-      </div>
-      <div className="bg-gradient-to-r from-white/10 to-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 backdrop-blur-sm mb-6 flex-grow">
-        <h3 className="font-bold text-md sm:text-lg mb-4 flex items-center">
-          <Bolt className="w-5 h-5 mr-2 text-yellow-400 animate-pulse" />
-          {/* Título da lista atualizado */}
-          Crie imagens únicas com IA
-        </h3>
-        <div className="space-y-3">
-          {/* Lista de features atualizada para o Gerador de Imagens */}
-          {[
-            { icon: Type, text: "Transforme qualquer texto em arte", color: "text-blue-400" },
-            { icon: Instagram, text: "Visuais para posts e stories", color: "text-purple-400" },
-            { icon: Palette, text: "Estilos de arte ilimitados", color: "text-pink-400" }
-          ].map((item, i) => (
-            <div key={i} className="flex items-center gap-3 group/item">
-              <div className="bg-gradient-to-r from-white/20 to-white/10 p-2 rounded-xl group-hover/item:scale-110 transition-transform flex-shrink-0">
-                <item.icon className={`w-4 h-4 ${item.color}`} />
-              </div>
-              <span className="font-medium text-sm sm:text-base group-hover/item:text-white transition-colors">{item.text}</span>
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="relative z-10 mt-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-        <div className="flex items-center gap-2">
-          <Heart className="w-4 h-4 text-red-400 animate-pulse" />
-          {/* Prova social atualizada */}
-          <span className="text-xs sm:text-sm font-bold bg-gradient-to-r from-red-400 to-pink-400 bg-clip-text text-transparent">
-            500.000+ imagens já criadas
-          </span>
-        </div>
-        <Link href={isLocked ? "/dashboard/billing" : "/dashboard/mentor-ia"} className="w-full sm:w-auto">
-          <Button className="w-full sm:w-auto relative group/btn bg-gradient-to-r from-white to-blue-50 text-slate-900 hover:from-yellow-400 hover:to-orange-500 hover:text-white font-black px-6 py-3 rounded-2xl transition-all duration-300 transform hover:scale-110 shadow-2xl text-sm sm:text-base">
-            <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-2xl blur opacity-0 group-hover/btn:opacity-60 transition duration-300"></div>
-            <span className="relative flex items-center justify-center gap-2">
-              <Play className="w-4 h-4" />
-              {isLocked ? "DESBLOQUEAR" : "CRIAR AGORA"}
-              <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
-            </span>
-          </Button>
-        </Link>
-      </div>
-    </div>
-  </div>
-</div>
-  );
-}
-
-function FreelinkBrainWidget({ userPlan }: { userPlan: string }) {
-    const isLocked = userPlan === "free";
-  return (
-    <div className="relative group h-full">
-      <div className="absolute -inset-0.5 bg-gradient-to-r from-emerald-600 via-cyan-600 to-emerald-600 rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-1000 animate-pulse"></div>
-      <div className="absolute -top-3 -right-3 z-20">
-        <div className="relative animate-bounce" style={{ animationDelay: '0.5s' }}>
-          <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 to-cyan-500 rounded-full blur-sm opacity-60"></div>
-          <Badge className="relative bg-gradient-to-r from-emerald-500 to-cyan-600 text-white border-0 px-3 py-1.5 sm:px-4 sm:py-2 font-bold shadow-xl">
-            <Sparkles className="w-4 h-4 mr-1.5 animate-spin" />
-            VIRAL AI
-          </Badge>
-        </div>
-      </div>
-      <div className="relative bg-gradient-to-br from-slate-50 via-emerald-50 to-cyan-50 dark:from-slate-900 dark:via-emerald-950 dark:to-cyan-950 p-6 sm:p-8 rounded-3xl shadow-2xl transition-all duration-700 group-hover:shadow-emerald-500/25 group-hover:-translate-y-2 group-hover:scale-105 flex flex-col h-full border border-emerald-200 dark:border-emerald-800 overflow-hidden">
-        {/* Efeito de partículas removido para melhor performance em mobile, substituído por gradiente sutil */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(0,128,128,0.05),transparent_40%)]"></div>
+      )}
+      <div className="relative bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950 p-6 sm:p-8 rounded-3xl shadow-2xl text-white transition-all duration-700 group-hover:shadow-blue-500/50 group-hover:-translate-y-3 group-hover:scale-[1.03] flex flex-col h-full border border-blue-400/30 overflow-hidden backdrop-blur-sm">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(96,165,250,0.2),transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.2),transparent_50%)]"></div>
+        <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-pink-500/10 to-transparent rounded-full blur-3xl"></div>
         <div className="relative z-10 flex-grow flex flex-col">
           <div className="flex items-center gap-4 sm:gap-6 mb-6">
             <div className="relative flex-shrink-0">
-              <div className="absolute -inset-2 bg-gradient-to-r from-emerald-400 to-cyan-600 rounded-2xl blur opacity-40 animate-pulse"></div>
-              <div className="relative bg-gradient-to-br from-emerald-100 to-cyan-100 dark:from-emerald-900 dark:to-cyan-900 p-3 sm:p-4 rounded-2xl">
-                <BrainCircuit className="w-7 h-7 sm:w-8 sm:h-8 text-emerald-600 dark:text-emerald-400 animate-pulse" />
+              <div className="absolute -inset-3 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 rounded-2xl blur-lg opacity-75 animate-pulse"></div>
+              <div className="relative bg-gradient-to-br from-blue-500/40 to-purple-600/40 p-4 rounded-2xl backdrop-blur-xl border border-white/30 shadow-2xl">
+                <ImageIcon className="w-8 h-8 sm:w-10 sm:h-10 text-blue-100 drop-shadow-lg" />
               </div>
             </div>
-            <div>
-              <h2 className="text-2xl sm:text-3xl font-black">
-                <span className="bg-gradient-to-r from-slate-900 to-emerald-800 dark:from-white dark:to-emerald-200 bg-clip-text text-transparent">Freelink</span>
-                <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">Brain</span>
-              </h2>
-              <div className="flex items-center gap-2 mt-1">
-                <Infinity className="w-4 h-4 text-cyan-500 animate-spin" style={{ animationDuration: '3s' }} />
-                <p className="text-emerald-700 dark:text-emerald-300 font-bold text-xs sm:text-sm">IA que pensa como viral</p>
+            <div className="flex-grow">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black bg-gradient-to-r from-white via-blue-200 to-purple-300 bg-clip-text text-transparent leading-tight">Mentor.IA</h2>
+                <Badge className="bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-blue-100 border border-blue-400/40 text-xs font-black px-2 py-0.5 backdrop-blur-sm">NEW</Badge>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <Sparkles className="w-4 h-4 text-yellow-400 animate-pulse drop-shadow-lg" />
+                <p className="text-blue-200 font-black text-sm sm:text-base drop-shadow">Gerador de Imagens IA</p>
               </div>
             </div>
           </div>
-          <div className="bg-gradient-to-r from-emerald-50 to-cyan-50 dark:from-emerald-900/20 dark:to-cyan-900/20 rounded-2xl p-4 sm:p-6 border border-emerald-200 dark:border-emerald-800 mb-6 flex-grow">
-            <h3 className="font-bold text-md sm:text-lg mb-4 flex items-center text-slate-800 dark:text-slate-200">
-              <Zap className="w-5 h-5 mr-2 text-emerald-500 animate-pulse" />
-              Conteúdo viral em 3 cliques
+          <div className="bg-gradient-to-br from-white/15 to-white/5 rounded-2xl p-5 sm:p-6 border border-white/20 backdrop-blur-md mb-6 flex-grow shadow-inner">
+            <h3 className="font-black text-base sm:text-lg mb-5 flex items-center text-white drop-shadow">
+              <Bolt className="w-5 h-5 mr-2 text-yellow-400 animate-pulse drop-shadow-lg" /> Crie Arte Profissional
             </h3>
-            <div className="space-y-3">
+            <div className="space-y-4">
               {[
-                { icon: Magnet, text: "Títulos com 10x engajamento", color: "text-emerald-600" },
-                { icon: Workflow, text: "Scripts de Reels virais", color: "text-cyan-600" },
-                { icon: Diamond, text: "Prompts testados por 50k+", color: "text-purple-600" },
-                { icon: Globe, text: "Gerador de Mensagens de Abordagem", color: "text-purple-600" }
+                { icon: Type, text: "Texto vira arte em 5 segundos", color: "text-blue-300", bg: "from-blue-500/30 to-blue-600/30", detail: "GPT-4 Vision" },
+                { icon: Instagram, text: "Posts virais automaticamente", color: "text-purple-300", bg: "from-purple-500/30 to-purple-600/30", detail: "IA Treinada" },
+                { icon: Palette, text: "Milhares de estilos únicos", color: "text-pink-300", bg: "from-pink-500/30 to-pink-600/30", detail: "Ilimitado" }
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 group/item">
-                  <div className="bg-white dark:bg-slate-700 p-2 rounded-xl shadow-md group-hover/item:scale-110 transition-transform flex-shrink-0">
-                    <item.icon className={`w-4 h-4 ${item.color}`} />
+                <div key={i} className="flex items-center gap-3 group/item hover:translate-x-2 transition-all duration-300">
+                  <div className={`bg-gradient-to-r ${item.bg} p-2.5 rounded-xl shadow-lg group-hover/item:scale-110 group-hover/item:rotate-3 transition-all duration-300 border border-white/20 flex-shrink-0`}>
+                    <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${item.color} drop-shadow`} />
                   </div>
-                  <span className="font-semibold text-sm sm:text-base text-slate-700 dark:text-slate-300 group-hover/item:text-slate-900 dark:group-hover/item:text-white transition-colors">{item.text}</span>
+                  <div className="flex-grow">
+                    <span className="font-bold text-sm sm:text-base text-white/95 group-hover/item:text-white transition-colors drop-shadow">{item.text}</span>
+                    <p className="text-xs text-white/60 font-semibold mt-0.5">{item.detail}</p>
+                  </div>
+                  <CheckCircle2 className="w-4 h-4 text-green-400 opacity-0 group-hover/item:opacity-100 transition-opacity" />
                 </div>
               ))}
             </div>
           </div>
           <div className="relative z-10 mt-auto flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Trophy className="w-4 h-4 text-yellow-500 animate-pulse" />
-              <span className="text-xs sm:text-sm font-bold bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
-                Top #1 Brain AI
-              </span>
+            <div className="flex items-center gap-2 bg-gradient-to-r from-red-500/30 to-pink-500/30 px-4 py-2 rounded-full border border-red-400/40 backdrop-blur-sm shadow-lg">
+              <Heart className="w-4 h-4 text-red-300 animate-pulse drop-shadow" />
+              <span className="text-xs sm:text-sm font-black text-red-100 drop-shadow"> +538.492 criadas </span>
             </div>
-            <Link href={isLocked ? "/dashboard/billing" : "/dashboard/brain"} className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto relative group/btn bg-gradient-to-r from-emerald-500 to-cyan-600 hover:from-emerald-600 hover:to-cyan-700 text-white font-black px-6 py-3 rounded-2xl transition-all duration-300 transform hover:scale-110 shadow-2xl text-sm sm:text-base">
-                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 to-cyan-500 rounded-2xl blur opacity-0 group-hover/btn:opacity-60 transition duration-300"></div>
-                <span className="relative flex items-center justify-center gap-2">
-                  <BrainCircuit className="w-4 h-4" />
-                  {isLocked ? "ATIVAR" : "ENTRAR"}
-                  <ArrowRight className="w-4 h-4 group-hover/btn:translate-x-1 transition-transform" />
+            <Link href={isLocked ? "/dashboard/billing" : "/dashboard/mentor-ia"} className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto relative group/btn bg-gradient-to-r from-white via-blue-50 to-purple-50 text-slate-900 hover:from-yellow-400 hover:via-orange-500 hover:to-red-500 hover:text-white font-black px-6 sm:px-8 py-3 sm:py-4 rounded-2xl transition-all duration-500 transform hover:scale-110 shadow-2xl text-sm sm:text-base overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-2xl blur-xl opacity-0 group-hover/btn:opacity-80 transition-all duration-500"></div>
+                <span className="relative flex items-center justify-center gap-2 font-black drop-shadow-lg">
+                  <Play className="w-4 h-4 sm:w-5 sm:h-5 group-hover/btn:scale-110 transition-transform" />
+                  {isLocked ? "DESBLOQUEAR AGORA" : "CRIAR IMAGEM"}
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover/btn:translate-x-2 transition-transform" />
                 </span>
               </Button>
             </Link>
@@ -193,59 +163,205 @@ function FreelinkBrainWidget({ userPlan }: { userPlan: string }) {
   );
 }
 
-function UsageStatsCard({ clicksUsed = 0, maxClicks = 100, userPlan = "free" }: { clicksUsed: number; maxClicks: number; userPlan: string; }) {
-  const percentUsed = userPlan === "free" ? Math.min(100, Math.round((clicksUsed / maxClicks) * 100)) : 100;
-
+function FreelinkBrainWidget({ userPlan }: { userPlan: string }) {
+  const isLocked = userPlan === "free";
   return (
-    <Card className="shadow-xl border-0 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 overflow-hidden relative group hover:shadow-2xl transition-all duration-500">
-      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    <div className="relative group h-full min-h-[440px]">
+      <div className="absolute -inset-1 bg-gradient-to-r from-emerald-600 via-cyan-600 to-teal-600 rounded-3xl blur-xl opacity-30 group-hover:opacity-75 transition-all duration-700 animate-pulse"></div>
+      <div className="absolute -top-4 -right-4 z-30 animate-bounce" style={{ animationDelay: '0.2s' }}>
+        <div className="relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-emerald-400 via-cyan-500 to-teal-500 rounded-full blur-md opacity-80 animate-pulse"></div>
+          <Badge className="relative bg-gradient-to-r from-emerald-500 via-cyan-500 to-teal-600 text-white border-0 px-4 py-2 font-black shadow-2xl text-xs sm:text-sm backdrop-blur-sm">
+            <Sparkles className="w-4 h-4 mr-1.5 animate-spin" style={{ animationDuration: '2s' }} /> VIRAL AI
+          </Badge>
+        </div>
+      </div>
+      <div className="relative bg-gradient-to-br from-slate-50 via-emerald-50 to-cyan-50 dark:from-slate-950 dark:via-emerald-950 dark:to-cyan-950 p-6 sm:p-8 rounded-3xl shadow-2xl transition-all duration-700 group-hover:shadow-emerald-500/50 group-hover:-translate-y-3 group-hover:scale-[1.03] flex flex-col h-full border-2 border-emerald-200 dark:border-emerald-800 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(16,185,129,0.15),transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(6,182,212,0.15),transparent_50%)]"></div>
+        <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-cyan-500/10 to-transparent rounded-full blur-3xl"></div>
+        <div className="relative z-10 flex-grow flex flex-col">
+          <div className="flex items-center gap-4 sm:gap-6 mb-6">
+            <div className="relative flex-shrink-0">
+              <div className="absolute -inset-3 bg-gradient-to-r from-emerald-400 via-cyan-500 to-teal-500 rounded-2xl blur-lg opacity-60 animate-pulse"></div>
+              <div className="relative bg-gradient-to-br from-emerald-100 to-cyan-100 dark:from-emerald-900 dark:to-cyan-900 p-4 rounded-2xl shadow-2xl border-2 border-emerald-300 dark:border-emerald-700">
+                <BrainCircuit className="w-8 h-8 sm:w-10 sm:h-10 text-emerald-600 dark:text-emerald-400 drop-shadow-lg" />
+              </div>
+            </div>
+            <div className="flex-grow">
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h2 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight">
+                  <span className="bg-gradient-to-r from-slate-900 to-emerald-800 dark:from-white dark:to-emerald-200 bg-clip-text text-transparent">Freelink</span>
+                  <span className="bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">Brain</span>
+                </h2>
+                <Badge className="bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-400/40 text-xs font-black px-2 py-0.5">HOT</Badge>
+              </div>
+              <div className="flex items-center gap-2 mt-2">
+                <Infinity className="w-4 h-4 text-cyan-500 drop-shadow" style={{ animation: 'spin 4s linear infinite' }} />
+                <p className="text-emerald-700 dark:text-emerald-300 font-black text-sm sm:text-base drop-shadow-sm">IA Criadora de Virais</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-900/40 dark:to-cyan-900/40 rounded-2xl p-5 sm:p-6 border-2 border-emerald-200 dark:border-emerald-800 mb-6 flex-grow shadow-lg">
+            <h3 className="font-black text-base sm:text-lg mb-5 flex items-center text-slate-800 dark:text-slate-100 drop-shadow-sm">
+              <Zap className="w-5 h-5 mr-2 text-emerald-500 animate-pulse drop-shadow" /> Viral em 3 Cliques
+            </h3>
+            <div className="space-y-4">
+              {[
+                { icon: Magnet, text: "Títulos com 10x+ engajamento", color: "text-emerald-600 dark:text-emerald-400", bg: "from-emerald-500/30 to-emerald-600/30", metric: "+1.234%" },
+                { icon: Workflow, text: "Scripts de Reels que explodem", color: "text-cyan-600 dark:text-cyan-400", bg: "from-cyan-500/30 to-cyan-600/30", metric: "Testado" },
+                { icon: Diamond, text: "Prompts validados por 50k+", color: "text-purple-600 dark:text-purple-400", bg: "from-purple-500/30 to-purple-600/30", metric: "50.847" },
+                { icon: Globe, text: "Mensagens de alta conversão", color: "text-blue-600 dark:text-blue-400", bg: "from-blue-500/30 to-blue-600/30", metric: "Premium" }
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 group/item hover:translate-x-2 transition-all duration-300">
+                  <div className={`bg-gradient-to-r ${item.bg} p-2.5 rounded-xl shadow-lg group-hover/item:scale-110 group-hover/item:rotate-3 transition-all duration-300 border border-slate-300 dark:border-slate-600 flex-shrink-0`}>
+                    <item.icon className={`w-4 h-4 sm:w-5 sm:h-5 ${item.color} drop-shadow`} />
+                  </div>
+                  <div className="flex-grow">
+                    <span className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-200 group-hover/item:text-slate-900 dark:group-hover/item:text-white transition-colors drop-shadow-sm">{item.text}</span>
+                    <p className="text-xs text-slate-600 dark:text-slate-400 font-semibold mt-0.5">{item.metric}</p>
+                  </div>
+                  <TrendingUp className="w-4 h-4 text-green-500 opacity-0 group-hover/item:opacity-100 transition-opacity" />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="relative z-10 mt-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div className="flex items-center gap-2 bg-gradient-to-r from-yellow-400/30 to-orange-500/30 px-4 py-2 rounded-full border-2 border-yellow-400/50 shadow-lg backdrop-blur-sm">
+              <Trophy className="w-4 h-4 text-yellow-600 dark:text-yellow-400 animate-pulse drop-shadow" />
+              <span className="text-xs sm:text-sm font-black text-yellow-700 dark:text-yellow-300 drop-shadow-sm"> #1 Brain AI </span>
+            </div>
+            <Link href={isLocked ? "/dashboard/billing" : "/dashboard/brain"} className="w-full sm:w-auto">
+              <Button className="w-full sm:w-auto relative group/btn bg-gradient-to-r from-emerald-500 via-cyan-500 to-teal-500 hover:from-emerald-600 hover:via-cyan-600 hover:to-teal-600 text-white font-black px-6 sm:px-8 py-3 sm:py-4 rounded-2xl transition-all duration-500 transform hover:scale-110 shadow-2xl text-sm sm:text-base overflow-hidden">
+                <div className="absolute -inset-1 bg-gradient-to-r from-emerald-400 via-cyan-400 to-teal-400 rounded-2xl blur-xl opacity-0 group-hover/btn:opacity-80 transition-all duration-500"></div>
+                <span className="relative flex items-center justify-center gap-2 font-black drop-shadow-lg">
+                  <BrainCircuit className="w-4 h-4 sm:w-5 sm:h-5 group-hover/btn:scale-110 transition-transform" />
+                  {isLocked ? "ATIVAR BRAIN" : "ABRIR BRAIN"}
+                  <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5 group-hover/btn:translate-x-2 transition-transform" />
+                </span>
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function UsageStatsCard({ clicksUsed = 0, maxClicks = 1000, userPlan = "free" }: { clicksUsed: number; maxClicks: number; userPlan: string }) {
+  const percentUsed = userPlan === "free" ? Math.min(100, Math.round((clicksUsed / maxClicks) * 100)) : 100;
+  const motivation = getMotivationalMessage(clicksUsed, userPlan);
+  const streak = getClickStreak(clicksUsed);
+  return (
+    <Card className="shadow-2xl border-0 bg-gradient-to-br from-white via-slate-50 to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950 overflow-hidden relative group hover:shadow-blue-500/40 transition-all duration-700 hover:-translate-y-2">
+      <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 via-purple-600/5 to-pink-600/5 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+      <div className={`absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r ${motivation.color} shadow-lg`}></div>
       <CardHeader className="pb-4 relative z-10">
-        <CardTitle className="text-lg sm:text-xl flex justify-between items-center">
-          <span className="bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent font-black">Power Status</span>
+        <div className="flex justify-between items-start mb-3">
+          <CardTitle className="text-xl sm:text-2xl flex items-center gap-3">
+            <div className={`p-2.5 rounded-xl bg-gradient-to-r ${motivation.color} shadow-xl animate-pulse`}>
+              <BarChart3 className="w-5 h-5 text-white drop-shadow-lg" />
+            </div>
+            <span className="bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent font-black">Power Status</span>
+          </CardTitle>
           {userPlan === "ultra" ? (
-            <Badge className="relative bg-gradient-to-r from-purple-600 to-pink-600 text-white border-0 font-black shadow-lg"><Crown className="w-4 h-4 mr-1.5" />ULTRA</Badge>
+            <Badge className="bg-gradient-to-r from-purple-600 via-pink-600 to-red-600 text-white border-0 font-black shadow-xl px-3 py-1.5 text-xs sm:text-sm animate-pulse">
+              <Crown className="w-4 h-4 mr-1.5" />ULTRA
+            </Badge>
           ) : userPlan === "pro" ? (
-            <Badge className="relative bg-gradient-to-r from-blue-600 to-indigo-600 text-white border-0 font-black shadow-lg"><Rocket className="w-4 h-4 mr-1.5" />PRO</Badge>
+            <Badge className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 text-white border-0 font-black shadow-xl px-3 py-1.5 text-xs sm:text-sm">
+              <Rocket className="w-4 h-4 mr-1.5" />PRO
+            </Badge>
           ) : (
-            <Badge variant="outline" className="font-bold">Iniciante</Badge>
+            <Badge variant="outline" className="font-bold border-2 text-xs sm:text-sm backdrop-blur-sm">Iniciante</Badge>
           )}
-        </CardTitle>
-        <CardDescription className="font-medium text-sm">Período: {new Date().toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}</CardDescription>
+        </div>
+        <div className={`bg-gradient-to-r ${motivation.color} bg-clip-text text-transparent space-y-1`}>
+          <p className="font-black text-lg sm:text-xl flex items-center gap-2">
+            {motivation.text}
+            <span className="text-2xl">{motivation.intensity}</span>
+          </p>
+          <p className="text-sm font-bold opacity-90">{motivation.subtext}</p>
+        </div>
       </CardHeader>
       <CardContent className="space-y-6 relative z-10">
         <div className="space-y-3">
-          <div className="flex justify-between text-sm font-semibold">
-            <span className="text-slate-600 dark:text-slate-400">Poder Utilizado</span>
-            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent font-black">
-              {clicksUsed} / {userPlan !== "free" ? "∞" : maxClicks}
+          <div className="flex justify-between text-sm font-bold">
+            <span className="text-slate-600 dark:text-slate-400 flex items-center gap-2">
+              <Activity className="w-4 h-4" /> Poder Utilizado
+            </span>
+            <span className={`bg-gradient-to-r ${motivation.color} bg-clip-text text-transparent font-black text-base sm:text-lg`}>
+              {clicksUsed.toLocaleString()} / {userPlan !== "free" ? "∞" : maxClicks.toLocaleString()}
             </span>
           </div>
-          <Progress value={percentUsed} className="h-3 bg-slate-200 dark:bg-slate-700" />
-        </div>
-        <div className="grid grid-cols-2 gap-4">
-          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 p-4 rounded-2xl border border-blue-200 dark:border-blue-800 hover:scale-105 transition-transform">
-            <div className="flex gap-2 items-center text-blue-600 dark:text-blue-400 mb-2">
-              <LinkIcon className="w-4 h-4" />
-              <span className="font-bold text-sm">Links</span>
-            </div>
-            <p className="font-black text-md sm:text-lg">{userPlan !== "free" ? "Ilimitados" : "10"}</p>
+          <div className="relative">
+            <Progress value={percentUsed} className="h-4 bg-slate-200 dark:bg-slate-800 shadow-inner" />
+            <div className={`absolute inset-0 bg-gradient-to-r ${motivation.color} opacity-20 rounded-full blur-sm pointer-events-none`}></div>
           </div>
-          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 p-4 rounded-2xl border border-purple-200 dark:border-purple-800 hover:scale-105 transition-transform">
-            <div className="flex gap-2 items-center text-purple-600 dark:text-purple-400 mb-2">
-              <Target className="w-4 h-4" />
-              <span className="font-bold text-sm">Analytics</span>
+          <div className="flex justify-between items-center">
+            <p className="text-xs text-slate-500 dark:text-slate-400 font-medium">
+              {userPlan === "free" ? `${(maxClicks - clicksUsed).toLocaleString()} restantes` : "Poder ilimitado ⚡"}
+            </p>
+            {percentUsed > 80 && userPlan === "free" && (
+              <Badge className="bg-red-500/20 text-red-700 dark:text-red-400 border border-red-500/30 text-xs font-bold animate-pulse">
+                <AlertCircle className="w-3 h-3 mr-1" /> Limite próximo
+              </Badge>
+            )}
+          </div>
+        </div>
+        {streak.days > 0 && (
+          <div className={`bg-gradient-to-r ${streak.color} p-4 rounded-2xl shadow-lg border border-white/20`}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="bg-white/20 p-2 rounded-xl backdrop-blur-sm">
+                  <Flame className="w-5 h-5 text-white drop-shadow-lg" />
+                </div>
+                <div>
+                  <p className="text-white font-black text-lg">{streak.days} dias</p>
+                  <p className="text-white/90 text-xs font-bold">{streak.message}</p>
+                </div>
+              </div>
+              <Trophy className="w-6 h-6 text-white/80 animate-pulse" />
             </div>
-            <p className="font-black text-md sm:text-lg">{userPlan === "ultra" ? "Máximo" : userPlan === "pro" ? "Pro" : "Básico"}</p>
+          </div>
+        )}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 p-4 rounded-2xl border-2 border-blue-200 dark:border-blue-800 hover:scale-105 transition-all duration-300 shadow-lg group">
+            <div className="flex gap-2 items-center text-blue-600 dark:text-blue-400 mb-2">
+              <LinkIcon className="w-4 h-4 group-hover:rotate-12 transition-transform" />
+              <span className="font-black text-xs sm:text-sm">Links</span>
+            </div>
+            <p className="font-black text-xl sm:text-2xl bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              {userPlan !== "free" ? "∞" : "10"}
+            </p>
+            <p className="text-xs text-blue-600/70 dark:text-blue-400/70 font-semibold mt-1">
+              {userPlan !== "free" ? "Ilimitados" : "Grátis"}
+            </p>
+          </div>
+          <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/50 dark:to-pink-950/50 p-4 rounded-2xl border-2 border-purple-200 dark:border-purple-800 hover:scale-105 transition-all duration-300 shadow-lg group">
+            <div className="flex gap-2 items-center text-purple-600 dark:text-purple-400 mb-2">
+              <BarChart2 className="w-4 h-4 group-hover:scale-110 transition-transform" />
+              <span className="font-black text-xs sm:text-sm">Analytics</span>
+            </div>
+            <p className="font-black text-xl sm:text-2xl bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              {userPlan === "ultra" ? "MAX" : userPlan === "pro" ? "PRO" : "Basic"}
+            </p>
+            <p className="text-xs text-purple-600/70 dark:text-purple-400/70 font-semibold mt-1">
+              {userPlan === "ultra" ? "Avançado" : userPlan === "pro" ? "Completo" : "Básico"}
+            </p>
           </div>
         </div>
       </CardContent>
       {userPlan === "free" && (
         <CardFooter className="pt-0 relative z-10">
           <Link href="/dashboard/billing" className="w-full">
-            <Button className="w-full group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-black rounded-2xl py-5 text-md sm:text-lg transition-all duration-300 hover:scale-105">
-              <span className="mr-2">🚀 Upgrade para</span>
-              <span className="text-yellow-300 font-black">PRO</span>
-              <ChevronRight className="w-5 h-5 ml-auto transition-transform group-hover:translate-x-1" />
+            <Button className="w-full group bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white font-black rounded-2xl py-6 text-base sm:text-lg transition-all duration-500 hover:scale-105 shadow-2xl overflow-hidden">
+              <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+              <span className="relative flex items-center justify-center gap-2 drop-shadow-lg">
+                <Rocket className="w-5 h-5 animate-bounce" />
+                Upgrade para <span className="text-yellow-300 font-black ml-1">PRO</span>
+                <ChevronRight className="w-5 h-5 ml-auto transition-transform group-hover:translate-x-2" />
+              </span>
             </Button>
           </Link>
         </CardFooter>
@@ -256,35 +372,52 @@ function UsageStatsCard({ clicksUsed = 0, maxClicks = 100, userPlan = "free" }: 
 
 function QuickLinksCard({ userPlan }: { userPlan: string }) {
   const quickLinks = [
-    { title: "Meus Links", href: "/dashboard/links", icon: Layers, desc: "Gerencie seu império", gradient: "from-blue-500 to-indigo-500", bgGradient: "from-blue-50 to-indigo-50 dark:from-blue-950/20 dark:to-indigo-950/20" },
-    { title: "Criar Link", href: "/dashboard/new-link", icon: Plus, desc: "Novo link viral", highlight: true, gradient: "from-emerald-500 to-cyan-500", bgGradient: "from-emerald-50 to-cyan-50 dark:from-emerald-950/20 dark:to-cyan-950/20" },
-    { title: "Sorteios Ultra", href: "/dashboard/giveaway", icon: Gift, desc: "Monetize sua audiência", locked: userPlan !== "ultra", gradient: "from-purple-500 to-pink-500", bgGradient: "from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20" },
+    { title: "Meus Links", href: "/dashboard/links", icon: Layers, desc: "Gerencie seu império", gradient: "from-blue-500 to-indigo-600", bgGradient: "from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30", borderColor: "border-blue-300 dark:border-blue-700", count: "Gerenciar" },
+    { title: "Criar Link", href: "/dashboard/new-link", icon: Plus, desc: "Novo link viral agora", highlight: true, gradient: "from-emerald-500 to-cyan-600", bgGradient: "from-emerald-50 to-cyan-50 dark:from-emerald-950/30 dark:to-cyan-950/30", borderColor: "border-emerald-400 dark:border-emerald-600", count: "Popular" },
+    { title: "Sorteios Ultra", href: "/dashboard/giveaway", icon: Gift, desc: "Monetize sua audiência", locked: userPlan !== "ultra", gradient: "from-purple-500 to-pink-600", bgGradient: "from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30", borderColor: "border-purple-300 dark:border-purple-700", count: "Premium" },
   ];
-
   return (
-    <Card className="shadow-xl border-0 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 overflow-hidden">
+    <Card className="shadow-2xl border-0 bg-gradient-to-br from-white via-slate-50 to-purple-50 dark:from-slate-950 dark:via-slate-900 dark:to-purple-950 overflow-hidden hover:shadow-purple-500/30 transition-all duration-700">
       <CardHeader className="pb-4">
-        <CardTitle className="text-lg sm:text-xl bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent font-black">🚀 Ações Poderosas</CardTitle>
-        <CardDescription className="font-semibold text-sm">Ferramentas que geram resultados</CardDescription>
+        <CardTitle className="text-xl sm:text-2xl bg-gradient-to-r from-slate-900 to-purple-700 dark:from-white dark:to-purple-200 bg-clip-text text-transparent font-black flex items-center gap-2">
+          <Lightning className="w-6 h-6 text-yellow-500 animate-pulse drop-shadow-lg" />
+          Ações Rápidas
+        </CardTitle>
+        <CardDescription className="font-bold text-sm">Ferramentas que geram resultados reais</CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {quickLinks.map((link, index) => (
           <Link key={index} href={link.locked ? "/dashboard/billing" : link.href}>
-            <div className={`relative group p-4 rounded-2xl transition-all duration-300 hover:scale-105 hover:shadow-lg border ${link.highlight ? `border-emerald-200 dark:border-emerald-800` : `border-slate-200 dark:border-slate-700`} ${link.bgGradient}`}>
+            <div className={`relative group/link p-5 rounded-2xl transition-all duration-300 hover:scale-[1.02] hover:shadow-xl border-2 ${link.borderColor} ${link.bgGradient} overflow-hidden`}>
+              <div className={`absolute inset-0 bg-gradient-to-r ${link.gradient} opacity-0 group-hover/link:opacity-10 transition-opacity duration-300`}></div>
               {link.locked && (
-                <div className="absolute -top-2 -right-2 z-10">
-                  <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold animate-pulse">ULTRA</Badge>
+                <div className="absolute -top-2 -right-2 z-10 animate-bounce">
+                  <Badge className="bg-gradient-to-r from-purple-500 via-pink-500 to-red-500 text-white text-xs font-black shadow-xl px-2 py-1">
+                    <Crown className="w-3 h-3 mr-1" /> ULTRA
+                  </Badge>
                 </div>
               )}
-              <div className="flex items-center gap-4">
-                <div className={`p-3 rounded-2xl bg-gradient-to-r ${link.gradient} shadow-md group-hover:scale-110 transition-transform`}>
-                  <link.icon className="w-5 h-5 text-white" />
+              {link.highlight && (
+                <div className="absolute -top-2 -right-2 z-10">
+                  <Badge className="bg-gradient-to-r from-yellow-400 to-orange-500 text-white text-xs font-black shadow-xl px-2 py-1 animate-pulse">
+                    HOT 🔥
+                  </Badge>
+                </div>
+              )}
+              <div className="relative flex items-center gap-4">
+                <div className={`p-3 sm:p-4 rounded-2xl bg-gradient-to-r ${link.gradient} shadow-xl group-hover/link:scale-110 group-hover/link:rotate-6 transition-all duration-300 flex-shrink-0`}>
+                  <link.icon className="w-5 h-5 sm:w-6 sm:h-6 text-white drop-shadow-lg" />
                 </div>
                 <div className="flex-grow">
-                  <p className="font-black text-base">{link.title}</p>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 font-medium">{link.desc}</p>
+                  <div className="flex items-center gap-2 mb-1">
+                    <p className="font-black text-base sm:text-lg text-slate-900 dark:text-white drop-shadow-sm">{link.title}</p>
+                    <Badge className="bg-slate-200/50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 border-0 text-xs font-bold px-2 py-0">
+                      {link.count}
+                    </Badge>
+                  </div>
+                  <p className="text-sm text-slate-600 dark:text-slate-400 font-semibold">{link.desc}</p>
                 </div>
-                <ArrowRight className="w-5 h-5 text-slate-400 group-hover:text-slate-600 dark:group-hover:text-slate-200 transition-colors group-hover:translate-x-1" />
+                <ArrowRight className="w-5 h-5 text-slate-400 group-hover/link:text-slate-900 dark:group-hover/link:text-white transition-all group-hover/link:translate-x-2 flex-shrink-0" />
               </div>
             </div>
           </Link>
@@ -295,62 +428,202 @@ function QuickLinksCard({ userPlan }: { userPlan: string }) {
 }
 
 function ExclusiveFeaturesCard({ userPlan }: { userPlan: string }) {
-    const features = {
-        free: {
-  title: "🎯 Desbloqueie o Poder ULTRA",
-  description: "Transforme seu perfil com imagens profissionais",
-  features: [
-    "🖼️ Gerador de Imagens IA Ilimitado",
-    "⚡ FreelinkBrain Premium",
-    "📊 Analytics Profundos",
-    "🎨 Marca Própria"
-  ],
-  cta: "ATIVAR SUPERPODERES",
-  icon: <Rocket className="w-10 h-10 sm:w-12 sm:h-12 text-blue-500" />,
-  gradient: "from-blue-500 via-indigo-500 to-purple-500",
-  bgGradient: "from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/20 dark:via-indigo-950/20 dark:to-purple-950/20"
-},
-        pro: { title: "👑 Evolua para ULTRA Master", description: "Domine completamente sua audiência", features: ["🤖 Automação Total", "🎁 Engine de Sorteios", "🎯 Tracking Avançado", "⭐ Suporte VIP 24/7"], cta: "VIRAR ULTRA MASTER", icon: <Crown className="w-10 h-10 sm:w-12 sm:h-12 text-purple-500" />, gradient: "from-purple-500 via-pink-500 to-red-500", bgGradient: "from-purple-50 via-pink-50 to-red-50 dark:from-purple-950/20 dark:via-pink-950/20 dark:to-red-950/20" },
-        ultra: { title: "💎 Você É Um ULTRA Master!", description: "Status máximo desbloqueado", features: ["🌟 Acesso Total Premium", "🚀 Recursos Futuros", "💬 Canal VIP Direto", "🔥 API Exclusiva"], cta: null, icon: <Diamond className="w-10 h-10 sm:w-12 sm:h-12 text-purple-500" />, gradient: "from-yellow-400 via-orange-500 to-red-500", bgGradient: "from-yellow-50 via-orange-50 to-red-50 dark:from-yellow-950/20 dark:via-orange-950/20 dark:to-red-950/20" }
-    };
-    const currentFeatures = features[userPlan as keyof typeof features] || features.free;
-    return (
-        <div className="relative group">
-            <div className={`absolute -inset-0.5 bg-gradient-to-r ${currentFeatures.gradient} rounded-3xl blur opacity-20 group-hover:opacity-40 transition duration-1000 animate-pulse`}></div>
-            <Card className={`relative bg-gradient-to-br ${currentFeatures.bgGradient} border-0 rounded-3xl p-6 sm:p-8 shadow-2xl transition-all duration-700 group-hover:shadow-3xl group-hover:-translate-y-1`}>
-                <div className="absolute inset-0 opacity-5"><div className="absolute top-4 right-4 w-32 h-32 bg-gradient-to-br from-white to-transparent rounded-full blur-2xl"></div><div className="absolute bottom-4 left-4 w-24 h-24 bg-gradient-to-br from-white to-transparent rounded-full blur-xl"></div></div>
-                <div className="relative z-10 flex flex-col md:flex-row gap-6 md:gap-8 items-center">
-                    <div className="relative flex-shrink-0">
-                        <div className={`absolute -inset-2 bg-gradient-to-r ${currentFeatures.gradient} rounded-3xl blur opacity-40 animate-pulse`}></div>
-                        <div className="relative bg-white dark:bg-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl">{currentFeatures.icon}</div>
-                    </div>
-                    <div className="flex-grow text-center md:text-left">
-                        <h3 className="text-2xl sm:text-3xl font-black mb-2 bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent">{currentFeatures.title}</h3>
-                        <p className="text-base sm:text-lg font-bold text-slate-700 dark:text-slate-300 mb-6">{currentFeatures.description}</p>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 mb-6">
-                            {currentFeatures.features.map((feature, i) => (
-                                <div key={i} className="flex items-center gap-3 group/feature">
-                                    <div className={`w-7 h-7 rounded-xl bg-gradient-to-r ${currentFeatures.gradient} flex items-center justify-center shadow-lg group-hover/feature:scale-110 transition-transform flex-shrink-0`}><Zap className="w-4 h-4 text-white" /></div>
-                                    <span className="font-bold text-sm sm:text-base text-slate-800 dark:text-slate-200">{feature}</span>
-                                </div>
-                            ))}
-                        </div>
-                        {currentFeatures.cta && (
-                            <Link href="/dashboard/billing">
-                                <Button className={`w-full sm:w-auto bg-gradient-to-r ${currentFeatures.gradient} hover:opacity-90 text-white font-black px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg rounded-2xl transition-all duration-300 transform hover:scale-110 shadow-2xl`}>
-                                    <span className="flex items-center justify-center gap-3"><Rocket className="w-5 h-5" />{currentFeatures.cta}<ArrowRight className="w-5 h-5" /></span>
-                                </Button>
-                            </Link>
-                        )}
-                    </div>
-                </div>
-            </Card>
+  const features = {
+    free: {
+      title: "🚀 Desbloqueie Superpoderes",
+      description: "Transforme seu perfil em uma máquina de resultados",
+      features: [
+        { icon: "🖼️", text: "Gerador de Imagens IA Ilimitado", detail: "DALL-E 3 + Stable Diffusion" },
+        { icon: "⚡", text: "FreelinkBrain Premium Completo", detail: "1000+ Prompts Virais" },
+        { icon: "📊", text: "Analytics Ultra Profundos", detail: "Dashboard Avançado" },
+        { icon: "🎨", text: "White Label Personalizado", detail: "Sua Marca" }
+      ],
+      cta: "ATIVAR PODER PRO AGORA",
+      icon: <Rocket className="w-12 h-12 sm:w-14 sm:h-14 text-blue-500 animate-bounce" />,
+      gradient: "from-blue-500 via-indigo-600 to-purple-600",
+      bgGradient: "from-blue-50 via-indigo-50 to-purple-50 dark:from-blue-950/30 dark:via-indigo-950/30 dark:to-purple-950/30"
+    },
+    pro: {
+      title: "👑 Evolua para ULTRA Elite",
+      description: "Domine completamente sua audiência digital",
+      features: [
+        { icon: "🤖", text: "Automação Total Inteligente", detail: "Workflow Automático" },
+        { icon: "🎁", text: "Engine de Sorteios Viral", detail: "Sistema Completo" },
+        { icon: "🎯", text: "Tracking Real-Time Avançado", detail: "Live Updates" },
+        { icon: "⭐", text: "Suporte VIP Prioritário 24/7", detail: "Atendimento Exclusivo" }
+      ],
+      cta: "VIRAR ULTRA MASTER",
+      icon: <Crown className="w-12 h-12 sm:w-14 sm:h-14 text-purple-500 animate-pulse" />,
+      gradient: "from-purple-500 via-pink-600 to-red-600",
+      bgGradient: "from-purple-50 via-pink-50 to-red-50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-red-950/30"
+    },
+    ultra: {
+      title: "💎 Você é ULTRA Master!",
+      description: "Status máximo desbloqueado - Você chegou ao topo absoluto!",
+      features: [
+        { icon: "🌟", text: "Acesso Total Premium Vitalício", detail: "Forever Access" },
+        { icon: "🚀", text: "Recursos Futuros em Preview", detail: "Beta Tester" },
+        { icon: "💬", text: "Canal VIP Direto com Fundador", detail: "WhatsApp Exclusivo" },
+        { icon: "🔥", text: "API Exclusiva Developers", detail: "Full Access" }
+      ],
+      cta: null,
+      icon: <Diamond className="w-12 h-12 sm:w-14 sm:h-14 text-purple-500" style={{ animation: 'spin 6s linear infinite' }} />,
+      gradient: "from-yellow-400 via-orange-500 to-red-600",
+      bgGradient: "from-yellow-50 via-orange-50 to-red-50 dark:from-yellow-950/30 dark:via-orange-950/30 dark:to-red-950/30"
+    }
+  };
+  const currentFeatures = features[userPlan as keyof typeof features] || features.free;
+  return (
+    <div className="relative group">
+      <div className={`absolute -inset-1 bg-gradient-to-r ${currentFeatures.gradient} rounded-3xl blur-2xl opacity-30 group-hover:opacity-70 transition-all duration-1000 animate-pulse`}></div>
+      <Card className={`relative bg-gradient-to-br ${currentFeatures.bgGradient} border-0 rounded-3xl p-6 sm:p-10 shadow-2xl transition-all duration-700 group-hover:shadow-3xl group-hover:-translate-y-3 overflow-hidden`}>
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-10 right-10 w-40 h-40 bg-gradient-to-br from-white to-transparent rounded-full blur-3xl animate-pulse"></div>
+          <div className="absolute bottom-10 left-10 w-32 h-32 bg-gradient-to-br from-white to-transparent rounded-full blur-2xl animate-pulse" style={{ animationDelay: '1s' }}></div>
         </div>
-    );
+        <div className="relative z-10 flex flex-col lg:flex-row gap-6 lg:gap-10 items-center">
+          <div className="relative flex-shrink-0">
+            <div className={`absolute -inset-4 bg-gradient-to-r ${currentFeatures.gradient} rounded-3xl blur-2xl opacity-60 animate-pulse`}></div>
+            <div className="relative bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 shadow-2xl border-4 border-white/60 backdrop-blur-sm">
+              {currentFeatures.icon}
+            </div>
+          </div>
+          <div className="flex-grow text-center lg:text-left">
+            <h3 className="text-3xl sm:text-4xl font-black mb-3 bg-gradient-to-r from-slate-900 to-slate-700 dark:from-white dark:to-slate-200 bg-clip-text text-transparent leading-tight drop-shadow-sm">
+              {currentFeatures.title}
+            </h3>
+            <p className="text-base sm:text-xl font-bold text-slate-700 dark:text-slate-300 mb-8 drop-shadow-sm">
+              {currentFeatures.description}
+            </p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              {currentFeatures.features.map((feature, i) => (
+                <div key={i} className="flex items-start gap-3 group/feature hover:translate-x-2 transition-all duration-300">
+                  <div className={`w-10 h-10 rounded-xl bg-gradient-to-r ${currentFeatures.gradient} flex items-center justify-center shadow-xl group-hover/feature:scale-110 group-hover/feature:rotate-12 transition-all duration-300 flex-shrink-0`}>
+                    <span className="text-lg">{feature.icon}</span>
+                  </div>
+                  <div className="text-left">
+                    <span className="font-black text-sm sm:text-base text-slate-800 dark:text-slate-200 block drop-shadow-sm">{feature.text}</span>
+                    <span className="text-xs text-slate-600 dark:text-slate-400 font-semibold">{feature.detail}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+            {currentFeatures.cta && (
+              <Link href="/dashboard/billing">
+                <Button className={`w-full lg:w-auto bg-gradient-to-r ${currentFeatures.gradient} hover:opacity-90 text-white font-black px-8 sm:px-12 py-4 sm:py-6 text-lg sm:text-xl rounded-2xl transition-all duration-500 transform hover:scale-110 shadow-2xl overflow-hidden group/btn`}>
+                  <div className="absolute inset-0 bg-white/20 translate-y-full group-hover/btn:translate-y-0 transition-transform duration-500"></div>
+                  <span className="relative flex items-center justify-center gap-3 drop-shadow-lg">
+                    <Rocket className="w-6 h-6 animate-bounce" />
+                    {currentFeatures.cta}
+                    <ArrowRight className="w-6 h-6 group-hover/btn:translate-x-2 transition-transform" />
+                  </span>
+                </Button>
+              </Link>
+            )}
+            {!currentFeatures.cta && (
+              <div className="flex items-center justify-center lg:justify-start gap-3 bg-gradient-to-r from-yellow-400/30 to-orange-500/30 px-6 py-4 rounded-2xl border-2 border-yellow-400/50 shadow-lg backdrop-blur-sm">
+                <Trophy className="w-6 h-6 text-yellow-600 dark:text-yellow-400 animate-bounce" />
+                <span className="font-black text-lg text-slate-800 dark:text-slate-200 drop-shadow-sm"> Você alcançou o nível máximo! 🎉 </span>
+              </div>
+            )}
+          </div>
+        </div>
+      </Card>
+    </div>
+  );
 }
 
+function LiveStatsWidget({ analytics }: { analytics: { totalClicks?: number; totalViews?: number } }) {
+  const conversionRate = getConversionRate(analytics?.totalClicks || 0, analytics?.totalViews || 0);
+  const stats = [
+    { label: "Visualizações", value: analytics?.totalViews || 0, icon: Eye, color: "from-blue-500 to-indigo-600", change: "+12.5%", trend: "up" },
+    { label: "Cliques Totais", value: analytics?.totalClicks || 0, icon: MousePointerClick, color: "from-emerald-500 to-cyan-600", change: "+24.3%", trend: "up" },
+    { label: "Taxa Conversão", value: `${conversionRate}%`, icon: TrendingUp, color: "from-purple-500 to-pink-600", change: "+8.7%", trend: "up" },
+  ];
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      {stats.map((stat, i) => (
+        <Card key={i} className="relative overflow-hidden border-0 shadow-xl hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 group">
+          <div className={`absolute inset-0 bg-gradient-to-br ${stat.color} opacity-5 group-hover:opacity-15 transition-opacity duration-500`}></div>
+          <CardContent className="p-6 relative z-10">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`p-3 rounded-xl bg-gradient-to-r ${stat.color} shadow-lg group-hover:scale-110 group-hover:rotate-6 transition-all duration-300`}>
+                <stat.icon className="w-5 h-5 text-white drop-shadow-lg" />
+              </div>
+              <Badge className={`${stat.trend === 'up' ? 'bg-green-500/20 text-green-700 dark:text-green-400 border-green-500/30' : 'bg-red-500/20 text-red-700 dark:text-red-400 border-red-500/30'} border font-black text-xs px-2 py-1`}>
+                {stat.trend === 'up' ? <TrendingUp className="w-3 h-3 mr-1 inline" /> : <TrendingDown className="w-3 h-3 mr-1 inline" />}
+                {stat.change}
+              </Badge>
+            </div>
+            <p className="text-sm font-bold text-slate-600 dark:text-slate-400 mb-2">{stat.label}</p>
+            <p className={`text-3xl sm:text-4xl font-black bg-gradient-to-r ${stat.color} bg-clip-text text-transparent drop-shadow-sm`}>
+              {typeof stat.value === 'number' ? stat.value.toLocaleString() : stat.value}
+            </p>
+            <div className="mt-4 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div className={`h-full bg-gradient-to-r ${stat.color} rounded-full transition-all duration-1000`} style={{ width: '70%' }}></div>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
+  );
+}
 
-// --- Componente Principal com Layout Responsivo ---
+// ESTE É O COMPONENTE REINTEGRADO DO SEU PRIMEIRO CÓDIGO
+function DailyMotivationCard({ userPlan, clicksUsed }: { userPlan: string; clicksUsed: number }) {
+  const greeting = getDynamicGreeting();
+  const badges = getAchievementBadges(clicksUsed, userPlan);
+
+  return (
+    <Card className="relative overflow-hidden border-0 shadow-2xl bg-gradient-to-br from-slate-900 via-purple-900 to-pink-900 text-white">
+      <div className="absolute inset-0 opacity-10">
+        <div className="absolute top-0 left-0 w-full h-full" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,.05) 10px, rgba(255,255,255,.05) 20px)' }}></div>
+      </div>
+
+      <CardContent className="p-6 sm:p-8 relative z-10">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+          <div className="text-center sm:text-left flex-grow">
+            <div className="flex items-center justify-center sm:justify-start gap-3 mb-4">
+              <div className={`p-3 rounded-xl bg-gradient-to-r ${greeting.gradient} shadow-xl`}>
+                {greeting.icon}
+              </div>
+              <div>
+                <h3 className="text-2xl sm:text-3xl font-black">{greeting.text}</h3>
+                <p className="text-sm sm:text-base font-bold opacity-80">Continue sua revolução digital!</p>
+              </div>
+            </div>
+
+            {badges.length > 0 && (
+              <div className="flex flex-wrap gap-2 justify-center sm:justify-start">
+                <span className="text-xs font-bold opacity-70 flex items-center gap-1">
+                  <Award className="w-4 h-4" />
+                  Últimas conquistas:
+                </span>
+                {badges.map((badge, i) => (
+                  <Badge key={i} className="bg-white/20 text-white border border-white/30 font-bold text-xs px-3 py-1 hover:scale-110 transition-transform">
+                    <span className="mr-1">{badge.icon}</span>
+                    {badge.text}
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex-shrink-0">
+            <div className="relative">
+              <div className="absolute -inset-2 bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full blur-lg opacity-60 animate-pulse"></div>
+              <div className="relative bg-gradient-to-r from-yellow-400 to-orange-500 p-6 rounded-full shadow-2xl">
+                <PartyPopper className="w-10 h-10 sm:w-12 sm:h-12 text-white animate-bounce" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// === COMPONENTE PRINCIPAL DO DASHBOARD (VERSÃO FUSION) ===
 
 export default async function DashboardOverviewPage() {
   const user = await currentUser();
@@ -362,48 +635,52 @@ export default async function DashboardOverviewPage() {
   ]);
 
   const userPlan = planDetails.plan || "free";
+  const clicksUsed = analytics?.totalClicks || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950">
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-0 left-0 w-1/2 h-1/2 md:w-96 md:h-96 bg-gradient-to-br from-blue-400/10 to-purple-600/10 rounded-full blur-3xl animate-pulse"></div>
-        <div className="absolute bottom-0 right-0 w-1/2 h-1/2 md:w-96 md:h-96 bg-gradient-to-tl from-emerald-400/10 to-cyan-600/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-0 left-0 w-[800px] h-[800px] bg-gradient-to-br from-blue-400/10 via-purple-400/10 to-pink-400/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-0 right-0 w-[600px] h-[600px] bg-gradient-to-tl from-emerald-400/10 via-cyan-400/10 to-teal-400/10 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[1000px] h-[1000px] bg-gradient-to-r from-yellow-400/5 via-orange-400/5 to-red-400/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '4s' }}></div>
       </div>
 
       <div className="relative z-10 space-y-8 sm:space-y-12 p-4 sm:p-6 lg:p-8 max-w-screen-2xl mx-auto">
         <DashboardToast />
 
         <header className="text-center md:text-left">
-          <div className="inline-flex flex-col md:flex-row items-center gap-4 mb-4">
+          <div className="inline-flex flex-col md:flex-row items-center gap-4 mb-6">
             <div className="relative flex-shrink-0">
-              <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl blur opacity-60 animate-pulse"></div>
-              <div className="relative bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-2xl">
-                <Globe className="w-8 h-8 text-white" />
+              <div className="absolute -inset-2 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl blur-lg opacity-70 animate-pulse"></div>
+              <div className="relative bg-gradient-to-r from-blue-500 via-purple-600 to-pink-600 p-4 rounded-2xl shadow-2xl">
+                <Globe className="w-10 h-10 text-white" />
               </div>
             </div>
             <div>
-              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black bg-gradient-to-r from-slate-900 via-blue-800 to-purple-800 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent leading-tight">
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-black bg-gradient-to-r from-slate-900 via-blue-800 to-purple-800 dark:from-white dark:via-blue-200 dark:to-purple-200 bg-clip-text text-transparent leading-tight mb-2">
                 Olá, {user.firstName || user.username}!
-                <span className="inline-block animate-bounce ml-2 text-2xl sm:text-3xl lg:text-4xl via-black dark:via-white text-slate-600">🚀</span>
+                <span className="inline-block animate-bounce ml-3 text-3xl sm:text-4xl lg:text-5xl">🚀</span>
               </h1>
-              <p className="text-lg sm:text-xl font-bold text-slate-600 dark:text-slate-400 mt-2">
+              <p className="text-xl sm:text-2xl font-black text-slate-600 dark:text-slate-400">
                 Seu império digital está
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 to-cyan-600 ml-2">
-                  revolucionando
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-600 via-cyan-600 to-blue-600 ml-2">
+                  revolucionando tudo
                 </span>
               </p>
             </div>
           </div>
         </header>
 
+        {/* CARD DO PRIMEIRO CÓDIGO REINTEGRADO AQUI */}
+        <DailyMotivationCard userPlan={userPlan} clicksUsed={clicksUsed} />
+
+        <LiveStatsWidget analytics={analytics} />
+
         <Suspense fallback={<SkeletonDashboard />}>
           <DashboardMetrics analytics={analytics} plan={userPlan} />
         </Suspense>
 
-        {/* Grid principal adaptativo */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-
-          {/* Coluna principal (ocupa 2/3 em telas grandes) */}
           <div className="lg:col-span-2 space-y-8">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <MentorIaWidget userPlan={userPlan} />
@@ -412,37 +689,41 @@ export default async function DashboardOverviewPage() {
             <ExclusiveFeaturesCard userPlan={userPlan} />
           </div>
 
-          {/* Sidebar (ocupa 1/3 em telas grandes, empilha em telas menores) */}
           <div className="space-y-8">
-            <UsageStatsCard
-              clicksUsed={analytics?.totalClicks || 0}
-              maxClicks= {1000}
-              userPlan={userPlan}
-            />
+            <UsageStatsCard clicksUsed={clicksUsed} maxClicks={1000} userPlan={userPlan} />
             <QuickLinksCard userPlan={userPlan} />
-            <Card className="bg-gradient-to-br from-slate-900 to-purple-900 text-white border-0 shadow-2xl">
+
+            <Card className="bg-gradient-to-br from-emerald-50 to-cyan-50 dark:from-emerald-950/30 dark:to-cyan-950/30 border-2 border-emerald-300 dark:border-emerald-700 shadow-xl hover:shadow-2xl transition-all duration-500">
               <CardContent className="p-6">
-                <div className="text-center">
-                  <Star className="w-10 h-10 sm:w-12 sm:h-12 text-yellow-400 mx-auto mb-4 animate-pulse" />
-                  <h3 className="text-lg sm:text-xl font-black mb-2">Status Viral</h3>
-                  <div className="text-2xl sm:text-3xl font-black text-yellow-400 mb-2">
-                    {userPlan === "ultra" ? "LENDÁRIO" : userPlan === "pro" ? "ÉPICO" : "INICIANTE"}
+                <div className="flex items-center gap-3 mb-4">
+                  <Target className="w-6 h-6 text-emerald-600 dark:text-emerald-400 animate-pulse" />
+                  <h3 className="font-black text-lg bg-gradient-to-r from-emerald-600 to-cyan-600 bg-clip-text text-transparent">
+                    Desafio do Dia
+                  </h3>
+                </div>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between p-3 bg-white/60 dark:bg-slate-800/60 rounded-xl backdrop-blur-sm">
+                    <span className="font-bold text-sm">Criar 3 links virais</span>
+                    <Badge className="bg-emerald-500 text-white border-0 font-black">+50 XP</Badge>
                   </div>
-                  <p className="text-sm opacity-80">
-                    {userPlan === "ultra" ? "Você domina completamente o jogo!" : "Sua jornada épica está começando!"}
-                  </p>
+                  <Progress value={33} className="h-2 bg-slate-200 dark:bg-slate-700" />
+                  <p className="text-xs font-bold text-slate-600 dark:text-slate-400">1/3 completo • 66% restante</p>
                 </div>
               </CardContent>
             </Card>
           </div>
         </div>
 
-        <footer className="text-center py-8 sm:py-12">
-          <div className="inline-flex items-center gap-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-3 sm:px-8 sm:py-4 rounded-2xl font-black text-base sm:text-lg shadow-2xl">
-            <Flame className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse" />
-            <span>Sua revolução digital acontece HOJE!</span>
-            <Bolt className="w-5 h-5 sm:w-6 sm:h-6 animate-bounce" />
+        <footer className="text-center py-12">
+          <div className="relative inline-flex items-center gap-4 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white px-8 sm:px-12 py-4 sm:py-6 rounded-3xl font-black text-lg sm:text-2xl shadow-2xl hover:scale-105 transition-all duration-500 group overflow-hidden">
+            <div className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-500"></div>
+            <Flame className="w-7 h-7 sm:w-8 sm:h-8 animate-pulse relative z-10" />
+            <span className="relative z-10">Sua revolução digital acontece HOJE!</span>
+            <Bolt className="w-7 h-7 sm:w-8 sm:h-8 animate-bounce relative z-10" />
           </div>
+          <p className="mt-6 text-sm sm:text-base font-bold text-slate-600 dark:text-slate-400">
+            Cada clique é um passo mais perto da sua meta 🎯
+          </p>
         </footer>
       </div>
     </div>
