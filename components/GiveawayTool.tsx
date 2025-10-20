@@ -20,6 +20,7 @@ import {
   X,
   RefreshCw,
   Share2,
+  Trash2,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -49,20 +50,67 @@ type GiveawayData = {
   participants: Participant[];
   createdAt: string;
   isActive: boolean;
+  method?: GiveawayMethod;
 };
 
 // Storage helpers
 const STORAGE_KEY = 'freelinnk_giveaways';
+const ACTIVE_GIVEAWAY_KEY = 'freelinnk_active_giveaway';
+const CURRENT_STATE_KEY = 'freelinnk_current_state';
+
+// Salvar sorteio ativo
+const setActiveGiveaway = (giveawayId: string | null) => {
+  if (typeof window === 'undefined') return;
+  if (giveawayId) {
+    localStorage.setItem(ACTIVE_GIVEAWAY_KEY, giveawayId);
+  } else {
+    localStorage.removeItem(ACTIVE_GIVEAWAY_KEY);
+  }
+};
+
+// Obter sorteio ativo
+const getActiveGiveawayId = (): string | null => {
+  if (typeof window === 'undefined') return null;
+  return localStorage.getItem(ACTIVE_GIVEAWAY_KEY);
+};
+
+// Salvar estado atual completo
+const saveCurrentState = (state: {
+  selectedMethod: GiveawayMethod;
+  currentGiveaway: GiveawayData | null;
+  participants: Participant[];
+  winner: Winner;
+}) => {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(CURRENT_STATE_KEY, JSON.stringify(state));
+};
+
+// Recuperar estado atual completo
+const getCurrentState = () => {
+  if (typeof window === 'undefined') return null;
+  const state = localStorage.getItem(CURRENT_STATE_KEY);
+  return state ? JSON.parse(state) : null;
+};
+
+// Limpar estado atual
+const clearCurrentState = () => {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(CURRENT_STATE_KEY);
+  localStorage.removeItem(ACTIVE_GIVEAWAY_KEY);
+};
 
 const saveGiveaway = (giveaway: GiveawayData) => {
   if (typeof window === 'undefined') return;
+
   const giveaways = getAllGiveaways();
   const index = giveaways.findIndex(g => g.id === giveaway.id);
+
   if (index >= 0) {
     giveaways[index] = giveaway;
   } else {
     giveaways.push(giveaway);
   }
+
   localStorage.setItem(STORAGE_KEY, JSON.stringify(giveaways));
 };
 
@@ -77,9 +125,14 @@ const getAllGiveaways = (): GiveawayData[] => {
   return data ? JSON.parse(data) : [];
 };
 
+const deleteGiveaway = (id: string) => {
+  if (typeof window === 'undefined') return;
+  const giveaways = getAllGiveaways().filter(g => g.id !== id);
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(giveaways));
+};
+
 // QR Code Generator usando API pública
 async function generateRealQRCode(text: string): Promise<string> {
-  // Usar API pública que funciona sempre
   const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(text)}`;
   return qrApiUrl;
 }
@@ -92,6 +145,7 @@ function AnimatedCounter({ value }: { value: number }) {
     const duration = 800;
     const increment = value / (duration / 50);
     let current = 0;
+
     const timer = setInterval(() => {
       current += increment;
       if (current >= value) {
@@ -101,6 +155,7 @@ function AnimatedCounter({ value }: { value: number }) {
         setCount(Math.floor(current));
       }
     }, 50);
+
     return () => clearInterval(timer);
   }, [value]);
 
@@ -133,7 +188,7 @@ const toast = {
   },
 };
 
-// Confetti
+// Confetti function
 function launchConfetti() {
   const colors = ['#ff0000', '#ffff00', '#00ff00', '#0000ff', '#ff00ff', '#ffa500'];
   const confettiCount = 50;
@@ -157,14 +212,8 @@ function launchConfetti() {
       document.body.appendChild(confetti);
 
       const animation = confetti.animate([
-        {
-          transform: `translateY(0) rotate(0deg)`,
-          opacity: 1
-        },
-        {
-          transform: `translateY(${window.innerHeight + 100}px) rotate(${Math.random() * 720}deg)`,
-          opacity: 0
-        }
+        { transform: `translateY(0) rotate(0deg)`, opacity: 1 },
+        { transform: `translateY(${window.innerHeight + 100}px) rotate(${Math.random() * 720}deg)`, opacity: 0 }
       ], {
         duration: Math.random() * 2000 + 2000,
         easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
@@ -198,7 +247,6 @@ function ParticipationModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     if (!formData.name || !formData.identifier) {
       toast.error("Preencha todos os campos!");
       return;
@@ -362,7 +410,7 @@ function InstructionsPanel({
         "Acompanhe em tempo real os participantes",
         "Clique em 'Sortear Vencedor' quando quiser"
       ],
-      tips: "💡 O link salva os participantes localmente no navegador!"
+      tips: "💡 O link salva os participantes permanentemente no navegador!"
     },
     qrcode: {
       title: "Como usar o QR Code",
@@ -411,7 +459,6 @@ function InstructionsPanel({
               <h4 className="font-bold text-sm text-blue-900 dark:text-blue-100">
                 {content.title}
               </h4>
-
               <div className="space-y-2">
                 {content.steps.map((step, i) => (
                   <div key={i} className="flex items-start gap-2 text-sm">
@@ -422,7 +469,6 @@ function InstructionsPanel({
                   </div>
                 ))}
               </div>
-
               <div className="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-lg p-3 mt-3">
                 <p className="text-xs text-yellow-800 dark:text-yellow-200">
                   {content.tips}
@@ -438,13 +484,24 @@ function InstructionsPanel({
 
 // Smart Link Generator
 function SmartLinkGenerator({
-  onGenerate
+  onGenerate,
+  existingGiveaway,
+  onContinue
 }: {
   onGenerate: (id: string, data: GiveawayData) => void;
+  existingGiveaway?: GiveawayData | null;
+  onContinue?: () => void;
 }) {
-  const [giveawayData, setGiveawayData] = useState<GiveawayData | null>(null);
-  const [title, setTitle] = useState("");
+  const [giveawayData, setGiveawayData] = useState<GiveawayData | null>(existingGiveaway || null);
+  const [title, setTitle] = useState(existingGiveaway?.title || "");
   const [showInstructions, setShowInstructions] = useState(false);
+
+  useEffect(() => {
+    if (existingGiveaway) {
+      setGiveawayData(existingGiveaway);
+      setTitle(existingGiveaway.title);
+    }
+  }, [existingGiveaway]);
 
   const generateLink = () => {
     if (!title.trim()) {
@@ -457,11 +514,13 @@ function SmartLinkGenerator({
       title: title.trim(),
       participants: [],
       createdAt: new Date().toISOString(),
-      isActive: true
+      isActive: true,
+      method: 'link'
     };
 
     saveGiveaway(newGiveaway);
     setGiveawayData(newGiveaway);
+    setActiveGiveaway(newGiveaway.id);
     onGenerate(newGiveaway.id, newGiveaway);
     toast.success("Link criado com sucesso!");
   };
@@ -480,6 +539,28 @@ function SmartLinkGenerator({
     const text = `🎁 Participe do sorteio: ${giveawayData?.title}\n\nClique no link para participar:\n${shareUrl}`;
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
+
+  // Show continue option if there's an existing giveaway
+  if (existingGiveaway && !giveawayData) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-purple-50 dark:bg-purple-900/20 rounded-xl p-4 border-2 border-purple-200 dark:border-purple-800">
+          <h3 className="font-bold text-purple-900 dark:text-purple-100 mb-2">
+            Sorteio em andamento encontrado!
+          </h3>
+          <p className="text-sm text-purple-700 dark:text-purple-300 mb-4">
+            {existingGiveaway.title} - {existingGiveaway.participants.length} participantes
+          </p>
+          <button
+            onClick={onContinue}
+            className="w-full bg-purple-600 text-white py-3 rounded-xl font-medium hover:bg-purple-700 transition-all"
+          >
+            Continuar sorteio anterior
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -504,7 +585,6 @@ function SmartLinkGenerator({
               onKeyPress={(e) => e.key === 'Enter' && generateLink()}
             />
           </div>
-
           <button
             onClick={generateLink}
             className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
@@ -565,15 +645,29 @@ function SmartLinkGenerator({
 
 // QR Code Generator
 function QRCodeGeneratorComponent({
-  onGenerate
+  onGenerate,
+  existingGiveaway,
+  onContinue
 }: {
   onGenerate: (id: string, data: GiveawayData) => void;
+  existingGiveaway?: GiveawayData | null;
+  onContinue?: () => void;
 }) {
   const [qrCode, setQrCode] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
-  const [giveawayData, setGiveawayData] = useState<GiveawayData | null>(null);
-  const [title, setTitle] = useState("");
+  const [giveawayData, setGiveawayData] = useState<GiveawayData | null>(existingGiveaway || null);
+  const [title, setTitle] = useState(existingGiveaway?.title || "");
+
+  useEffect(() => {
+    if (existingGiveaway) {
+      setGiveawayData(existingGiveaway);
+      setTitle(existingGiveaway.title);
+      // Regenerate QR code if needed
+      const targetUrl = `${window.location.origin}${window.location.pathname}?sorteio=${existingGiveaway.id}`;
+      generateRealQRCode(targetUrl).then(setQrCode);
+    }
+  }, [existingGiveaway]);
 
   const generateQR = async () => {
     if (!title.trim()) {
@@ -588,10 +682,12 @@ function QRCodeGeneratorComponent({
       title: title.trim(),
       participants: [],
       createdAt: new Date().toISOString(),
-      isActive: true
+      isActive: true,
+      method: 'qrcode'
     };
 
     saveGiveaway(newGiveaway);
+    setActiveGiveaway(newGiveaway.id);
 
     const targetUrl = `${window.location.origin}${window.location.pathname}?sorteio=${newGiveaway.id}`;
     const qrDataUrl = await generateRealQRCode(targetUrl);
@@ -610,6 +706,28 @@ function QRCodeGeneratorComponent({
     link.click();
     toast.success("QR Code baixado!");
   };
+
+  // Show continue option if there's an existing giveaway
+  if (existingGiveaway && !giveawayData && !qrCode) {
+    return (
+      <div className="space-y-4">
+        <div className="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-4 border-2 border-blue-200 dark:border-blue-800">
+          <h3 className="font-bold text-blue-900 dark:text-blue-100 mb-2">
+            Sorteio em andamento encontrado!
+          </h3>
+          <p className="text-sm text-blue-700 dark:text-blue-300 mb-4">
+            {existingGiveaway.title} - {existingGiveaway.participants.length} participantes
+          </p>
+          <button
+            onClick={onContinue}
+            className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all"
+          >
+            Continuar sorteio anterior
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -634,7 +752,6 @@ function QRCodeGeneratorComponent({
               onKeyPress={(e) => e.key === 'Enter' && generateQR()}
             />
           </div>
-
           <button
             onClick={generateQR}
             disabled={isGenerating}
@@ -660,11 +777,9 @@ function QRCodeGeneratorComponent({
                 className="w-full max-w-xs mx-auto bg-white"
               />
             </div>
-
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               QR Code funcional - Teste com sua câmera!
             </p>
-
             <button
               onClick={downloadQR}
               className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
@@ -707,7 +822,6 @@ function WinnerDisplay({
       <p className="text-sm text-gray-500 mb-6">
         Sorteado entre {winner.total} participantes
       </p>
-
       <div className="flex flex-col sm:flex-row gap-3 justify-center">
         <button
           onClick={onNewDraw}
@@ -739,8 +853,9 @@ export default function GiveawayTool() {
   const [showParticipationModal, setShowParticipationModal] = useState(false);
   const [urlGiveaway, setUrlGiveaway] = useState<GiveawayData | null>(null);
 
-  // Check URL parameter on load
+  // Load saved state on mount
   useEffect(() => {
+    // Check URL parameter first
     const urlParams = new URLSearchParams(window.location.search);
     const sorteioId = urlParams.get('sorteio');
 
@@ -751,18 +866,71 @@ export default function GiveawayTool() {
         setShowParticipationModal(true);
         // Clean URL
         window.history.replaceState({}, document.title, window.location.pathname);
+        return; // Don't load saved state if accessing via URL
+      }
+    }
+
+    // Load saved state
+    const savedState = getCurrentState();
+    if (savedState) {
+      setSelectedMethod(savedState.selectedMethod);
+      if (savedState.currentGiveaway) {
+        // Reload fresh data from storage
+        const freshGiveaway = getGiveaway(savedState.currentGiveaway.id);
+        if (freshGiveaway) {
+          setCurrentGiveaway(freshGiveaway);
+          setParticipants(freshGiveaway.participants);
+          if (freshGiveaway.method) {
+            setSelectedMethod(freshGiveaway.method);
+          }
+        }
+      }
+      if (savedState.winner) {
+        setWinner(savedState.winner);
+      }
+    }
+
+    // Check for active giveaway
+    const activeGiveawayId = getActiveGiveawayId();
+    if (activeGiveawayId && !savedState?.currentGiveaway) {
+      const activeGiveaway = getGiveaway(activeGiveawayId);
+      if (activeGiveaway) {
+        setCurrentGiveaway(activeGiveaway);
+        setParticipants(activeGiveaway.participants);
+        if (activeGiveaway.method) {
+          setSelectedMethod(activeGiveaway.method);
+        }
       }
     }
   }, []);
+
+  // Save state whenever it changes
+  useEffect(() => {
+    if (currentGiveaway || winner) {
+      saveCurrentState({
+        selectedMethod,
+        currentGiveaway,
+        participants,
+        winner
+      });
+    }
+  }, [selectedMethod, currentGiveaway, participants, winner]);
 
   // Real-time participant polling
   useEffect(() => {
     if (!currentGiveaway?.id) return;
 
+    // Save current giveaway whenever participants change
+    if (currentGiveaway) {
+      const updatedGiveaway = { ...currentGiveaway, participants };
+      saveGiveaway(updatedGiveaway);
+    }
+
     const interval = setInterval(() => {
       const giveaway = getGiveaway(currentGiveaway.id);
       if (giveaway && giveaway.participants.length !== participants.length) {
         setParticipants(giveaway.participants);
+        setCurrentGiveaway(giveaway);
         if (giveaway.participants.length > participants.length) {
           toast.success("Novo participante entrou!");
         }
@@ -770,10 +938,11 @@ export default function GiveawayTool() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [currentGiveaway?.id, participants.length]);
+  }, [currentGiveaway?.id, participants]);
 
   const handleGenerateGiveaway = (id: string, data: GiveawayData) => {
     setCurrentGiveaway(data);
+    setActiveGiveaway(id);
     const giveaway = getGiveaway(id);
     if (giveaway) {
       setParticipants(giveaway.participants);
@@ -799,18 +968,18 @@ export default function GiveawayTool() {
       count++;
       if (count > 15) {
         clearInterval(drumRoll);
-
         const randomIndex = Math.floor(Math.random() * participants.length);
         const selectedWinner = participants[randomIndex];
 
-        setWinner({
+        const winnerData = {
           name: selectedWinner.name,
           identifier: selectedWinner.identifier,
           timestamp: new Date().toISOString(),
           method: selectedMethod,
           total: participants.length
-        });
+        };
 
+        setWinner(winnerData);
         launchConfetti();
         setIsLoading(false);
       }
@@ -818,9 +987,27 @@ export default function GiveawayTool() {
   };
 
   const resetGiveaway = () => {
+    if (currentGiveaway) {
+      deleteGiveaway(currentGiveaway.id);
+    }
+    clearCurrentState();
     setCurrentGiveaway(null);
     setParticipants([]);
     setWinner(null);
+    toast.success("Sorteio excluído!");
+  };
+
+  const continueExistingGiveaway = () => {
+    if (currentGiveaway) {
+      const fresh = getGiveaway(currentGiveaway.id);
+      if (fresh) {
+        setCurrentGiveaway(fresh);
+        setParticipants(fresh.participants);
+        if (fresh.method) {
+          setSelectedMethod(fresh.method);
+        }
+      }
+    }
   };
 
   return (
@@ -854,7 +1041,6 @@ export default function GiveawayTool() {
             <p className="text-purple-100 mt-2 text-center text-sm sm:text-base">
               Links e QR Codes reais que funcionam!
             </p>
-
             <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 max-w-xs mx-auto">
               <div className="flex items-center justify-center gap-3">
                 <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
@@ -866,13 +1052,18 @@ export default function GiveawayTool() {
                 </div>
               </div>
             </div>
+            {currentGiveaway && (
+              <div className="mt-4 text-center">
+                <p className="text-sm text-purple-200">Sorteio ativo:</p>
+                <p className="font-bold">{currentGiveaway.title}</p>
+              </div>
+            )}
           </div>
         </motion.div>
 
         {/* Method Selection */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4 sm:p-6">
           <h2 className="text-lg font-bold mb-4">Escolha o método:</h2>
-
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => setSelectedMethod("link")}
@@ -887,7 +1078,6 @@ export default function GiveawayTool() {
               <h3 className="font-bold text-sm">Link Único</h3>
               <p className="text-xs text-gray-600 mt-1">Compartilhável</p>
             </button>
-
             <button
               onClick={() => setSelectedMethod("qrcode")}
               className={clsx(
@@ -912,11 +1102,18 @@ export default function GiveawayTool() {
           className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4 sm:p-6"
         >
           {selectedMethod === "link" && (
-            <SmartLinkGenerator onGenerate={handleGenerateGiveaway} />
+            <SmartLinkGenerator
+              onGenerate={handleGenerateGiveaway}
+              existingGiveaway={currentGiveaway?.method === 'link' ? currentGiveaway : null}
+              onContinue={continueExistingGiveaway}
+            />
           )}
-
           {selectedMethod === "qrcode" && (
-            <QRCodeGeneratorComponent onGenerate={handleGenerateGiveaway} />
+            <QRCodeGeneratorComponent
+              onGenerate={handleGenerateGiveaway}
+              existingGiveaway={currentGiveaway?.method === 'qrcode' ? currentGiveaway : null}
+              onContinue={continueExistingGiveaway}
+            />
           )}
         </motion.div>
 
@@ -942,7 +1139,10 @@ export default function GiveawayTool() {
             {showParticipants && (
               <div className="max-h-60 overflow-y-auto space-y-2 mb-4">
                 {participants.map((p) => (
-                  <div key={p.id} className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg flex items-center justify-between">
+                  <div
+                    key={p.id}
+                    className="p-3 bg-gray-50 dark:bg-gray-900 rounded-lg flex items-center justify-between"
+                  >
                     <div>
                       <p className="font-medium">{p.name}</p>
                       <p className="text-xs text-gray-500">{p.identifier}</p>
@@ -965,12 +1165,12 @@ export default function GiveawayTool() {
                   <><Trophy className="w-5 h-5" /> Sortear Vencedor</>
                 )}
               </button>
-
               <button
                 onClick={resetGiveaway}
-                className="px-4 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-bold hover:bg-gray-200 dark:hover:bg-gray-600"
+                className="px-4 bg-red-100 dark:bg-red-900 text-red-700 dark:text-red-300 rounded-xl font-bold hover:bg-red-200 dark:hover:bg-red-800"
+                title="Excluir sorteio"
               >
-                <RefreshCw className="w-5 h-5" />
+                <Trash2 className="w-5 h-5" />
               </button>
             </div>
           </motion.div>
@@ -978,7 +1178,10 @@ export default function GiveawayTool() {
 
         {/* Winner Display */}
         {winner && (
-          <WinnerDisplay winner={winner} onNewDraw={() => setWinner(null)} />
+          <WinnerDisplay
+            winner={winner}
+            onNewDraw={() => setWinner(null)}
+          />
         )}
       </div>
     </div>
