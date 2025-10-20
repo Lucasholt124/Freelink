@@ -3,33 +3,47 @@ import { auth } from "@clerk/nextjs/server";
 import { users } from "@clerk/clerk-sdk-node";
 import Stripe from "stripe";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-07-30.basil",
-});
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 export async function POST() {
   const { userId } = await auth();
-  if (!userId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  if (!userId) {
+    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+  }
 
   const user = await users.getUser(userId);
-  const stripeCustomerId = user.privateMetadata?.stripeCustomerId as string | undefined;
-  if (!stripeCustomerId) return NextResponse.json({ error: "Usuário não possui assinatura" }, { status: 400 });
+  const stripeCustomerId = user.privateMetadata?.stripeCustomerId as string;
 
-  // Busca a assinatura ativa
-  const subscriptions = await stripe.subscriptions.list({
-    customer: stripeCustomerId,
-    status: "all",
-    limit: 10,
-  });
+  if (!stripeCustomerId) {
+    return NextResponse.json({ error: "Usuário não possui assinatura" }, { status: 400 });
+  }
 
-  const subscription = subscriptions.data.find(
-    (sub) => sub.status === "active" || sub.status === "trialing"
-  );
+  try {
+    const subscriptions = await stripe.subscriptions.list({
+      customer: stripeCustomerId,
+      status: "all",
+      limit: 10,
+    });
 
-  if (!subscription) return NextResponse.json({ error: "Assinatura não encontrada" }, { status: 404 });
+    const subscription = subscriptions.data.find(
+      (sub) => sub.status === "active" || sub.status === "trialing"
+    );
 
-  // Cancela ao fim do período
-  await stripe.subscriptions.update(subscription.id, { cancel_at_period_end: true });
+    if (!subscription) {
+      return NextResponse.json({ error: "Assinatura não encontrada" }, { status: 404 });
+    }
 
-  return NextResponse.json({ success: true });
+    await stripe.subscriptions.update(subscription.id, {
+      cancel_at_period_end: true
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Assinatura será cancelada ao final do período"
+    });
+
+  } catch (error) {
+    console.error("Erro:", error);
+    return NextResponse.json({ error: "Erro ao cancelar" }, { status: 500 });
+  }
 }
