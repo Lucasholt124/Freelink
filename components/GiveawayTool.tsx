@@ -920,31 +920,29 @@ export default function GiveawayTool() {
   }, [selectedMethod, currentGiveaway, participants, winner]);
 
   // Real-time participant polling
-  const currentGiveawayId = currentGiveaway?.id;
 
   useEffect(() => {
-    if (!currentGiveawayId) return;
+  if (!currentGiveaway?.id) return;
 
-    // Save current giveaway whenever participants change (use stored giveaway to avoid referencing outer object)
-    const storedGiveaway = getGiveaway(currentGiveawayId);
-    if (storedGiveaway) {
-      const updatedGiveaway = { ...storedGiveaway, participants };
-      saveGiveaway(updatedGiveaway);
-    }
+  // Save current giveaway whenever participants change
+  if (currentGiveaway) {
+    const updatedGiveaway = { ...currentGiveaway, participants };
+    saveGiveaway(updatedGiveaway);
+  }
 
-    const interval = setInterval(() => {
-      const giveaway = getGiveaway(currentGiveawayId);
-      if (giveaway && giveaway.participants.length !== participants.length) {
-        setParticipants(giveaway.participants);
-        setCurrentGiveaway(giveaway);
-        if (giveaway.participants.length > participants.length) {
-          toast.success("Novo participante entrou!");
-        }
+  const interval = setInterval(() => {
+    const giveaway = getGiveaway(currentGiveaway.id);
+    if (giveaway && giveaway.participants.length !== participants.length) {
+      setParticipants(giveaway.participants);
+      setCurrentGiveaway(giveaway);
+      if (giveaway.participants.length > participants.length) {
+        toast.success("Novo participante entrou!");
       }
-    }, 2000);
+    }
+  }, 2000);
 
-    return () => clearInterval(interval);
-  }, [currentGiveawayId, participants]);
+  return () => clearInterval(interval);
+}, [currentGiveaway, participants]);
 
   const handleGenerateGiveaway = (id: string, data: GiveawayData) => {
     setCurrentGiveaway(data);
