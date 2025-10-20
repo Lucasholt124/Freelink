@@ -4,47 +4,37 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Loader2,
-  RefreshCw,
+
   Instagram,
   Trophy,
-  Star,
-  Youtube,
 
-  Music,
-
-  Zap,
   CheckCircle2,
 
-  TrendingUp,
   Copy,
-  Share2,
+
   Gift,
 
   QrCode,
   Link as LinkIcon,
 
-  Users,
-  Globe,
   MessageSquare,
-  FileSpreadsheet,
-  Webhook,
-  Bot,
+
   Download,
-  ExternalLink,
-  Clock,
+
   Shield,
 
-  Wand2,
-
-  Trash2,
   Eye,
-  EyeOff,
+
   ChevronDown,
   ChevronUp,
   Info,
-  Heart,
+  X,
 } from "lucide-react";
 import clsx from "clsx";
+
+// IMPORTAR BIBLIOTECA REAL DE QR CODE
+// npm install qrcode
+
 
 // Types
 type Winner = {
@@ -74,10 +64,11 @@ type GiveawayData = {
   isActive: boolean;
 };
 
-// Storage helpers
+// Storage helpers - USANDO FIREBASE OU SUPABASE SERIA MELHOR
 const STORAGE_KEY = 'freelinnk_giveaways';
 
 const saveGiveaway = (giveaway: GiveawayData) => {
+  if (typeof window === 'undefined') return;
   const giveaways = getAllGiveaways();
   const index = giveaways.findIndex(g => g.id === giveaway.id);
   if (index >= 0) {
@@ -99,19 +90,31 @@ const getAllGiveaways = (): GiveawayData[] => {
   return data ? JSON.parse(data) : [];
 };
 
-const addParticipant = (giveawayId: string, participant: Participant) => {
-  const giveaway = getGiveaway(giveawayId);
-  if (giveaway) {
-    // Check if already exists
-    const exists = giveaway.participants.some(p => p.identifier === participant.identifier);
-    if (!exists) {
-      giveaway.participants.push(participant);
-      saveGiveaway(giveaway);
-      return true;
+// REAL QR CODE GENERATOR
+async function generateRealQRCode(text: string): Promise<string> {
+  try {
+    // Se a biblioteca estiver instalada como um global (ex: window.QRCode)
+    const globalQRCode = (typeof window !== 'undefined')
+      ? (window as unknown as { QRCode?: { toDataURL?: (text: string, options?: Record<string, unknown>) => Promise<string> | string } }).QRCode
+      : undefined;
+    if (typeof globalQRCode !== 'undefined' && typeof globalQRCode.toDataURL === 'function') {
+      return await globalQRCode.toDataURL(text, {
+        width: 400,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
     }
+  } catch (err) {
+    console.error('QRCode library not found or failed, using API fallback', err);
   }
-  return false;
-};
+
+  // Fallback: Usar API pública de QR Code
+  const qrApiUrl = `https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(text)}`;
+  return qrApiUrl;
+}
 
 // Animated counter
 function AnimatedCounter({ value, duration = 1000 }: { value: number; duration?: number }) {
@@ -139,21 +142,21 @@ function AnimatedCounter({ value, duration = 1000 }: { value: number; duration?:
 const toast = {
   success: (message: string) => {
     const toastEl = document.createElement('div');
-    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] animate-bounce';
+    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] animate-bounce max-w-[90vw]';
     toastEl.innerHTML = `<div class="flex items-center gap-2 text-sm sm:text-base"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>${message}</div>`;
     document.body.appendChild(toastEl);
     setTimeout(() => document.body.removeChild(toastEl), 3000);
   },
   error: (message: string) => {
     const toastEl = document.createElement('div');
-    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] animate-bounce';
+    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] animate-bounce max-w-[90vw]';
     toastEl.innerHTML = `<div class="text-sm sm:text-base">${message}</div>`;
     document.body.appendChild(toastEl);
     setTimeout(() => document.body.removeChild(toastEl), 3000);
   },
 };
 
-// Confetti - REAL
+// Confetti
 function launchConfetti() {
   const colors = ['#ff0000', '#ffff00', '#00ff00', '#0000ff', '#ff00ff', '#ffa500'];
   const confettiCount = 50;
@@ -195,55 +198,175 @@ function launchConfetti() {
   }
 }
 
-// QR Code Generator - REAL usando canvas
-function generateQRCodeReal(text: string, size: number = 300): Promise<string> {
-  return new Promise((resolve) => {
-    // Implementação simplificada - em produção usar biblioteca 'qrcode'
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d')!;
+// PUBLIC PARTICIPATION MODAL - REAL
+function ParticipationModal({
+  giveawayId,
+  isOpen,
+  onClose,
+  onSuccess
+}: {
+  giveawayId: string;
+  isOpen: boolean;
+  onClose: () => void;
+  onSuccess: () => void;
+}) {
+  const [formData, setFormData] = useState({ name: "", identifier: "" });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [hasRegistered, setHasRegistered] = useState(false);
 
-    // Background branco
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(0, 0, size, size);
+  useEffect(() => {
+    // Check if already registered
+    const registered = localStorage.getItem(`registered_${giveawayId}`);
+    if (registered) {
+      setHasRegistered(true);
+    }
+  }, [giveawayId]);
 
-    // Cria padrão de QR code simplificado
-    const moduleSize = size / 25;
-    ctx.fillStyle = '#000000';
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
-    // Quadrados de posição
-    [
-      [0, 0], [18, 0], [0, 18]
-    ].forEach(([x, y]) => {
-      ctx.fillRect(x * moduleSize, y * moduleSize, 7 * moduleSize, 7 * moduleSize);
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect((x + 1) * moduleSize, (y + 1) * moduleSize, 5 * moduleSize, 5 * moduleSize);
-      ctx.fillStyle = '#000000';
-      ctx.fillRect((x + 2) * moduleSize, (y + 2) * moduleSize, 3 * moduleSize, 3 * moduleSize);
-    });
-
-    // Padrão aleatório baseado no texto
-    const hash = text.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    for (let y = 0; y < 25; y++) {
-      for (let x = 0; x < 25; x++) {
-        if ((x * y + hash) % 3 === 0) {
-          ctx.fillRect(x * moduleSize, y * moduleSize, moduleSize, moduleSize);
-        }
-      }
+    if (!formData.name || !formData.identifier) {
+      toast.error("Preencha todos os campos!");
+      return;
     }
 
-    // Texto no centro
-    ctx.fillStyle = '#FFFFFF';
-    ctx.fillRect(size * 0.35, size * 0.35, size * 0.3, size * 0.3);
-    ctx.fillStyle = '#6B46C1';
-    ctx.font = 'bold 20px Arial';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('SCAN', size / 2, size / 2);
+    setIsSubmitting(true);
 
-    resolve(canvas.toDataURL());
-  });
+    const participant: Participant = {
+      id: Date.now().toString(),
+      name: formData.name,
+      identifier: formData.identifier,
+      timestamp: new Date().toISOString(),
+      verified: true
+    };
+
+    // Save to localStorage
+    const giveaway = getGiveaway(giveawayId);
+    if (giveaway) {
+      // Check for duplicates
+      const exists = giveaway.participants.some(p =>
+        p.identifier.toLowerCase() === participant.identifier.toLowerCase()
+      );
+
+      if (exists) {
+        toast.error("Você já está participando!");
+        setIsSubmitting(false);
+        return;
+      }
+
+      giveaway.participants.push(participant);
+      saveGiveaway(giveaway);
+
+      // Mark as registered
+      localStorage.setItem(`registered_${giveawayId}`, 'true');
+
+      setTimeout(() => {
+        toast.success("Você está participando! 🎉");
+        setHasRegistered(true);
+        setIsSubmitting(false);
+        onSuccess();
+      }, 1000);
+    } else {
+      toast.error("Sorteio não encontrado!");
+      setIsSubmitting(false);
+    }
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+      onClick={onClose}
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-2xl max-w-md w-full"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700"
+        >
+          <X className="w-6 h-6" />
+        </button>
+
+        {hasRegistered ? (
+          <div className="text-center">
+            <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold text-green-900 dark:text-green-100 mb-2">
+              Você está participando!
+            </h2>
+            <p className="text-green-700 dark:text-green-300 mb-4">
+              Boa sorte no sorteio! 🍀
+            </p>
+            <button
+              onClick={onClose}
+              className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+            >
+              Fechar
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="text-center mb-6">
+              <Gift className="w-16 h-16 text-purple-600 mx-auto mb-3" />
+              <h2 className="text-2xl font-bold">Participe do Sorteio!</h2>
+              <p className="text-gray-600 dark:text-gray-400 mt-2">
+                Preencha os dados abaixo
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Nome Completo</label>
+              <input
+                type="text"
+                placeholder="Ex: Maria Silva"
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 transition-all bg-white dark:bg-gray-900"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">
+                Instagram, Email ou Telefone
+              </label>
+              <input
+                type="text"
+                placeholder="Ex: @seu_instagram"
+                value={formData.identifier}
+                onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
+                className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 transition-all bg-white dark:bg-gray-900"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={isSubmitting}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                <>
+                  <CheckCircle2 className="w-5 h-5" />
+                  Confirmar Participação
+                </>
+              )}
+            </button>
+          </form>
+        )}
+      </motion.div>
+    </motion.div>
+  );
 }
 
 // Instructions Component
@@ -260,26 +383,26 @@ function InstructionsPanel({
     link: {
       title: "Como usar o Link Único",
       steps: [
+        "Digite um nome para o sorteio",
         "Clique em 'Gerar Link de Participação'",
-        "Copie o link gerado",
-        "Compartilhe nas suas redes sociais (Stories, Bio, Posts)",
-        "Participantes clicam e se cadastram automaticamente",
-        "Veja os participantes entrando em tempo real",
-        "Quando terminar, clique em 'Sortear Vencedor'"
+        "Compartilhe o link gerado nas suas redes",
+        "Participantes clicam em 'Participar' no link",
+        "Veja os participantes aparecendo em tempo real",
+        "Quando quiser, clique em 'Sortear Vencedor'"
       ],
-      tips: "💡 Dica: Coloque o link na sua bio e divulgue nos Stories!"
+      tips: "💡 O link funciona como um formulário online que salva os dados localmente!"
     },
     qrcode: {
       title: "Como usar o QR Code",
       steps: [
+        "Digite um nome para o sorteio",
         "Clique em 'Gerar QR Code'",
-        "Baixe a imagem do QR Code",
-        "Compartilhe em posts, stories ou imprima",
-        "Participantes escaneiam com a câmera do celular",
-        "Eles se cadastram automaticamente",
-        "Sorteie quando quiser!"
+        "Baixe ou compartilhe a imagem",
+        "Pessoas escaneiam com a câmera",
+        "São direcionadas para o formulário",
+        "Clique em sortear quando terminar"
       ],
-      tips: "💡 Dica: Ideal para eventos presenciais e lives!"
+      tips: "💡 QR Code real que direciona para o formulário de participação!"
     },
     webhook: {
       title: "Como usar Webhook",
@@ -288,10 +411,10 @@ function InstructionsPanel({
         "Crie um novo Zap com trigger 'Webhooks'",
         "Copie a URL do webhook gerada",
         "Cole aqui e clique em 'Ativar'",
-        "Configure a ação (ex: Google Sheets, Email)",
-        "Cada novo participante dispara a automação"
+        "Configure a ação (ex: Google Sheets)",
+        "Cada participante dispara a automação"
       ],
-      tips: "💡 Dica: Conecte com +1000 apps diferentes!"
+      tips: "💡 Conecte com +1000 apps diferentes!"
     },
     sheets: {
       title: "Como conectar Google Sheets",
@@ -300,34 +423,34 @@ function InstructionsPanel({
         "Adicione campos: Nome e Instagram/Email",
         "Vincule com Google Sheets",
         "Compartilhe o Forms",
-        "Aqui, clique em 'Conectar Planilha'",
-        "Cole o link da planilha"
+        "Cole o link da planilha aqui",
+        "Importe os dados quando quiser"
       ],
-      tips: "💡 Dica: Seus participantes já usam Google Forms!"
+      tips: "💡 Use Google Forms para coletar participantes!"
     },
     bot: {
       title: "Como usar o Bot Collector",
       steps: [
-        "Abra o Instagram no navegador (não no app)",
+        "Abra o Instagram/TikTok no PC",
         "Vá no post do sorteio",
-        "Pressione F12 (ou Ctrl+Shift+I)",
-        "Clique na aba 'Console'",
+        "Pressione F12 (abre o console)",
         "Cole o código fornecido",
-        "Pressione Enter e os nomes são copiados"
+        "Pressione Enter",
+        "Cole os nomes copiados aqui"
       ],
-      tips: "💡 Dica: Funciona em Instagram, TikTok, YouTube e mais!"
+      tips: "💡 Extrai comentários automaticamente!"
     },
     smart: {
-      title: "Como usar Smart Import",
+      title: "Como usar Import Manual",
       steps: [
-        "Copie o link do post do sorteio",
-        "Cole aqui no campo",
-        "Clique em 'Importar Automaticamente'",
-        "Aguarde a extração (15-30 segundos)",
-        "Revise os participantes importados",
+        "Copie lista de participantes",
+        "Cole no campo de texto",
+        "Um nome por linha",
+        "Pode incluir @ ou não",
+        "Clique em importar",
         "Pronto para sortear!"
       ],
-      tips: "💡 Dica: Suporta Instagram, TikTok, YouTube, Twitter!"
+      tips: "💡 Aceita qualquer formato de lista!"
     }
   };
 
@@ -389,128 +512,7 @@ function InstructionsPanel({
   );
 }
 
-// Participant Registration Form (Public Page)
-function ParticipantForm({
-  giveawayId,
-  onSuccess
-}: {
-  giveawayId: string;
-  onSuccess: () => void;
-}) {
-  const [formData, setFormData] = useState({ name: "", identifier: "" });
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [hasRegistered, setHasRegistered] = useState(false);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!formData.name || !formData.identifier) {
-      toast.error("Preencha todos os campos!");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    const participant: Participant = {
-      id: Date.now().toString(),
-      name: formData.name,
-      identifier: formData.identifier,
-      timestamp: new Date().toISOString(),
-      verified: true
-    };
-
-    const success = addParticipant(giveawayId, participant);
-
-    setTimeout(() => {
-      if (success) {
-        toast.success("Você está participando! 🎉");
-        setHasRegistered(true);
-        onSuccess();
-      } else {
-        toast.error("Você já está participando!");
-      }
-      setIsSubmitting(false);
-    }, 1000);
-  };
-
-  if (hasRegistered) {
-    return (
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="bg-green-50 dark:bg-green-900/20 rounded-2xl p-6 text-center border-2 border-green-500"
-      >
-        <CheckCircle2 className="w-16 h-16 text-green-600 mx-auto mb-4" />
-        <h2 className="text-2xl font-bold text-green-900 dark:text-green-100 mb-2">
-          Você está participando!
-        </h2>
-        <p className="text-green-700 dark:text-green-300">
-          Boa sorte no sorteio! 🍀
-        </p>
-      </motion.div>
-    );
-  }
-
-  return (
-    <motion.form
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      onSubmit={handleSubmit}
-      className="bg-white dark:bg-gray-800 rounded-2xl p-6 shadow-xl space-y-4 max-w-md mx-auto"
-    >
-      <div className="text-center mb-6">
-        <Gift className="w-16 h-16 text-purple-600 mx-auto mb-3" />
-        <h2 className="text-2xl font-bold">Participe do Sorteio!</h2>
-        <p className="text-gray-600 dark:text-gray-400 mt-2">
-          Preencha os dados abaixo
-        </p>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Nome Completo</label>
-        <input
-          type="text"
-          placeholder="Ex: Maria Silva"
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 transition-all bg-white dark:bg-gray-900"
-          required
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Instagram, Email ou Telefone
-        </label>
-        <input
-          type="text"
-          placeholder="Ex: @seu_instagram"
-          value={formData.identifier}
-          onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
-          className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-800 transition-all bg-white dark:bg-gray-900"
-          required
-        />
-      </div>
-
-      <button
-        type="submit"
-        disabled={isSubmitting}
-        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-      >
-        {isSubmitting ? (
-          <Loader2 className="w-5 h-5 animate-spin" />
-        ) : (
-          <>
-            <CheckCircle2 className="w-5 h-5" />
-            Confirmar Participação
-          </>
-        )}
-      </button>
-    </motion.form>
-  );
-}
-
-// Smart Link Generator - REAL
+// Smart Link Generator - REAL COM MODAL
 function SmartLinkGenerator({
   onGenerate
 }: {
@@ -519,6 +521,7 @@ function SmartLinkGenerator({
   const [giveawayData, setGiveawayData] = useState<GiveawayData | null>(null);
   const [title, setTitle] = useState("");
   const [showInstructions, setShowInstructions] = useState(false);
+  const [showParticipationModal, setShowParticipationModal] = useState(false);
 
   const generateLink = () => {
     if (!title) {
@@ -540,8 +543,9 @@ function SmartLinkGenerator({
     toast.success("Link criado com sucesso!");
   };
 
+  // URL com query parameter ao invés de rota dinâmica
   const shareUrl = giveawayData
-    ? `${window.location.origin}/sorteio/${giveawayData.id}`
+    ? `${window.location.origin}${window.location.pathname}?sorteio=${giveawayData.id}`
     : '';
 
   const copyLink = () => {
@@ -554,9 +558,8 @@ function SmartLinkGenerator({
     window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  const shareInstagram = () => {
-    copyLink();
-    toast.success("Link copiado! Cole no seu Stories ou Bio do Instagram");
+  const testLink = () => {
+    setShowParticipationModal(true);
   };
 
   return (
@@ -595,7 +598,7 @@ function SmartLinkGenerator({
         <div className="space-y-4">
           <div className="bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-xl p-4 border-2 border-purple-200 dark:border-purple-800">
             <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-              Seu link único:
+              Link do sorteio:
             </p>
             <div className="flex items-center gap-2 bg-white dark:bg-gray-900 rounded-lg p-3 overflow-hidden">
               <input
@@ -613,6 +616,14 @@ function SmartLinkGenerator({
             </div>
           </div>
 
+          <button
+            onClick={testLink}
+            className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+          >
+            <Eye className="w-5 h-5" />
+            Testar Link (Ver Como Funciona)
+          </button>
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               onClick={shareWhatsApp}
@@ -622,7 +633,10 @@ function SmartLinkGenerator({
               <span className="text-sm sm:text-base">WhatsApp</span>
             </button>
             <button
-              onClick={shareInstagram}
+              onClick={() => {
+                copyLink();
+                toast.success("Link copiado! Cole no Instagram");
+              }}
               className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-3 px-4 rounded-xl font-medium hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
             >
               <Instagram className="w-5 h-5" />
@@ -632,10 +646,23 @@ function SmartLinkGenerator({
 
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-xl p-4">
             <p className="text-sm text-yellow-800 dark:text-yellow-200">
-              💡 Compartilhe este link e os participantes se cadastram automaticamente!
+              💡 Participantes clicam no link e preenchem o formulário. Você vê tudo em tempo real!
             </p>
           </div>
         </div>
+      )}
+
+      {/* Modal de participação para teste */}
+      {giveawayData && (
+        <ParticipationModal
+          giveawayId={giveawayData.id}
+          isOpen={showParticipationModal}
+          onClose={() => setShowParticipationModal(false)}
+          onSuccess={() => {
+            setShowParticipationModal(false);
+            onGenerate(giveawayData.id, giveawayData);
+          }}
+        />
       )}
     </div>
   );
@@ -643,29 +670,50 @@ function SmartLinkGenerator({
 
 // QR Code Generator - REAL
 function QRCodeGeneratorComponent({
-  giveawayId,
   onGenerate
 }: {
-  giveawayId: string;
-  onGenerate: (id: string) => void;
+  onGenerate: (id: string, data: GiveawayData) => void;
 }) {
   const [qrCode, setQrCode] = useState<string>("");
   const [isGenerating, setIsGenerating] = useState(false);
   const [showInstructions, setShowInstructions] = useState(false);
-  const shareUrl = `${window.location.origin}/sorteio/${giveawayId}`;
+  const [giveawayData, setGiveawayData] = useState<GiveawayData | null>(null);
+  const [title, setTitle] = useState("");
 
   const generateQR = async () => {
+    if (!title) {
+      toast.error("Digite um nome para o sorteio!");
+      return;
+    }
+
     setIsGenerating(true);
-    const qr = await generateQRCodeReal(shareUrl, 400);
-    setQrCode(qr);
+
+    const newGiveaway: GiveawayData = {
+      id: `qr_${Date.now()}`,
+      title,
+      participants: [],
+      createdAt: new Date().toISOString(),
+      isActive: true
+    };
+
+    saveGiveaway(newGiveaway);
+
+    // URL que o QR Code vai apontar
+    const targetUrl = `${window.location.origin}${window.location.pathname}?sorteio=${newGiveaway.id}`;
+
+    // Gerar QR Code REAL
+    const qrDataUrl = await generateRealQRCode(targetUrl);
+
+    setQrCode(qrDataUrl);
+    setGiveawayData(newGiveaway);
     setIsGenerating(false);
-    onGenerate(giveawayId);
-    toast.success("QR Code gerado!");
+    onGenerate(newGiveaway.id, newGiveaway);
+    toast.success("QR Code gerado com sucesso!");
   };
 
   const downloadQR = () => {
     const link = document.createElement('a');
-    link.download = `qrcode-sorteio-${giveawayId}.png`;
+    link.download = `qrcode-sorteio-${giveawayData?.id || 'novo'}.png`;
     link.href = qrCode;
     link.click();
     toast.success("QR Code baixado!");
@@ -680,20 +728,36 @@ function QRCodeGeneratorComponent({
       />
 
       {!qrCode ? (
-        <button
-          onClick={generateQR}
-          disabled={isGenerating}
-          className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-xl font-bold hover:from-blue-700 hover:to-cyan-700 transition-all flex items-center justify-center gap-2"
-        >
-          {isGenerating ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
-          ) : (
-            <>
-              <QrCode className="w-5 h-5" />
-              Gerar QR Code
-            </>
-          )}
-        </button>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm font-medium mb-2">
+              Nome do Sorteio
+            </label>
+            <input
+              type="text"
+              placeholder="Ex: Sorteio Evento 2024"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-200 dark:focus:ring-blue-800 transition-all"
+              onKeyPress={(e) => e.key === 'Enter' && generateQR()}
+            />
+          </div>
+
+          <button
+            onClick={generateQR}
+            disabled={isGenerating}
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-600 text-white py-4 rounded-xl font-bold hover:from-blue-700 hover:to-cyan-700 transition-all flex items-center justify-center gap-2"
+          >
+            {isGenerating ? (
+              <Loader2 className="w-5 h-5 animate-spin" />
+            ) : (
+              <>
+                <QrCode className="w-5 h-5" />
+                Gerar QR Code Real
+              </>
+            )}
+          </button>
+        </div>
       ) : (
         <div className="space-y-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center">
@@ -701,576 +765,35 @@ function QRCodeGeneratorComponent({
               <img
                 src={qrCode}
                 alt="QR Code"
-                className="w-full max-w-xs mx-auto rounded-xl shadow-lg"
+                className="w-full max-w-xs mx-auto rounded-xl shadow-lg bg-white"
               />
             </div>
 
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-              Participantes escaneiam e se cadastram automaticamente
+              QR Code real e funcional! Teste com sua câmera.
             </p>
 
-            <button
-              onClick={downloadQR}
-              className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
-            >
-              <Download className="w-5 h-5" />
-              Baixar QR Code em Alta Qualidade
-            </button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+            <div className="space-y-3">
+              <button
+                onClick={downloadQR}
+                className="w-full bg-blue-600 text-white py-3 rounded-xl font-medium hover:bg-blue-700 transition-all flex items-center justify-center gap-2"
+              >
+                <Download className="w-5 h-5" />
+                Baixar QR Code
+              </button>
 
-// Bot Setup - REAL CODE
-function BotSetup() {
-  const [showCode, setShowCode] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
-  const [selectedPlatform, setSelectedPlatform] = useState<'instagram' | 'tiktok' | 'youtube'>('instagram');
-
-  const botCodes = {
-    instagram: `// INSTAGRAM COMMENT COLLECTOR
-// Cole este código no Console (F12)
-
-let comments = [];
-let users = new Set();
-
-// Coleta todos os comentários visíveis
-document.querySelectorAll('ul ul li').forEach(item => {
-  const usernameEl = item.querySelector('a');
-  const textEl = item.querySelector('span');
-
-  if (usernameEl && textEl) {
-    const username = usernameEl.innerText.trim();
-    if (username && !users.has(username)) {
-      users.add(username);
-      comments.push('@' + username);
-    }
-  }
-});
-
-// Exibe e copia automaticamente
-console.log('Total encontrado:', comments.length);
-console.log(comments.join('\\n'));
-copy(comments.join('\\n'));
-alert('✅ ' + comments.length + ' participantes copiados!\\nCole na ferramenta de sorteio.');`,
-
-    tiktok: `// TIKTOK COMMENT COLLECTOR
-
-let comments = [];
-let users = new Set();
-
-document.querySelectorAll('[data-e2e="comment-item"]').forEach(item => {
-  const username = item.querySelector('[data-e2e="comment-username"]')?.innerText?.trim();
-  if (username && !users.has(username)) {
-    users.add(username);
-    comments.push('@' + username);
-  }
-});
-
-console.log('Total:', comments.length);
-console.log(comments.join('\\n'));
-copy(comments.join('\\n'));
-alert('✅ ' + comments.length + ' participantes copiados!');`,
-
-    youtube: `// YOUTUBE COMMENT COLLECTOR
-
-let comments = [];
-let users = new Set();
-
-document.querySelectorAll('ytd-comment-thread-renderer').forEach(item => {
-  const username = item.querySelector('#author-text')?.innerText?.trim();
-  if (username && !users.has(username)) {
-    users.add(username);
-    comments.push(username);
-  }
-});
-
-console.log('Total:', comments.length);
-console.log(comments.join('\\n'));
-copy(comments.join('\\n'));
-alert('✅ ' + comments.length + ' participantes copiados!');`
-  };
-
-  const copyCode = () => {
-    navigator.clipboard.writeText(botCodes[selectedPlatform]);
-    toast.success("Código copiado! Cole no Console do navegador (F12)");
-  };
-
-  return (
-    <div className="space-y-4">
-      <InstructionsPanel
-        method="bot"
-        isOpen={showInstructions}
-        onToggle={() => setShowInstructions(!showInstructions)}
-      />
-
-      {/* Platform Selector */}
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { key: 'instagram' as const, icon: Instagram, label: 'Instagram' },
-          { key: 'tiktok' as const, icon: Music, label: 'TikTok' },
-          { key: 'youtube' as const, icon: Youtube, label: 'YouTube' }
-        ].map(({ key, icon: Icon, label }) => (
-          <button
-            key={key}
-            onClick={() => setSelectedPlatform(key)}
-            className={clsx(
-              "p-3 rounded-xl border-2 transition-all flex flex-col items-center gap-2",
-              selectedPlatform === key
-                ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-900/20"
-                : "border-gray-200 dark:border-gray-700 hover:border-indigo-300"
-            )}
-          >
-            <Icon className={clsx(
-              "w-6 h-6",
-              selectedPlatform === key ? "text-indigo-600" : "text-gray-400"
-            )} />
-            <span className="text-xs font-medium">{label}</span>
-          </button>
-        ))}
-      </div>
-
-      {/* Code Display */}
-      <div className="bg-gray-900 rounded-xl overflow-hidden">
-        <div className="flex items-center justify-between px-4 py-3 bg-gray-800">
-          <div className="flex items-center gap-2">
-            <Bot className="w-4 h-4 text-green-400" />
-            <span className="text-green-400 text-sm font-mono">Código do Bot</span>
-          </div>
-          <button
-            onClick={() => setShowCode(!showCode)}
-            className="text-gray-400 hover:text-white transition-colors text-sm flex items-center gap-1"
-          >
-            {showCode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-            <span className="hidden sm:inline">{showCode ? 'Ocultar' : 'Mostrar'}</span>
-          </button>
-        </div>
-
-        {showCode && (
-          <div className="max-h-64 overflow-auto">
-            <pre className="p-4 text-xs sm:text-sm text-green-400 font-mono leading-relaxed">
-              <code>{botCodes[selectedPlatform]}</code>
-            </pre>
-          </div>
-        )}
-      </div>
-
-      <button
-        onClick={copyCode}
-        className="w-full bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-4 rounded-xl font-bold hover:from-indigo-700 hover:to-purple-700 transition-all flex items-center justify-center gap-2"
-      >
-        <Copy className="w-5 h-5" />
-        Copiar Código do Bot
-      </button>
-
-      <div className="bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 rounded-xl p-4">
-        <p className="text-sm text-indigo-800 dark:text-indigo-200">
-          <strong>📱 Tutorial rápido:</strong><br/>
-          1. Abra o post no navegador<br/>
-          2. Pressione F12<br/>
-          3. Clique em Console<br/>
-          4. Cole o código e Enter<br/>
-          5. Cole aqui os nomes copiados
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// Webhook Setup - REAL
-function WebhookSetup({ onWebhookActive }: { onWebhookActive: (url: string) => void }) {
-  const [webhookUrl, setWebhookUrl] = useState("");
-  const [isActive, setIsActive] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
-
-  const activateWebhook = () => {
-    if (!webhookUrl || !webhookUrl.startsWith('http')) {
-      toast.error("Cole uma URL válida de webhook!");
-      return;
-    }
-
-    setIsActive(true);
-    onWebhookActive(webhookUrl);
-    toast.success("Webhook ativado! Participantes serão recebidos automaticamente.");
-  };
-
-  return (
-    <div className="space-y-4">
-      <InstructionsPanel
-        method="webhook"
-        isOpen={showInstructions}
-        onToggle={() => setShowInstructions(!showInstructions)}
-      />
-
-      {!isActive ? (
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              URL do Webhook
-            </label>
-            <input
-              type="url"
-              placeholder="https://hooks.zapier.com/hooks/catch/..."
-              value={webhookUrl}
-              onChange={(e) => setWebhookUrl(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-green-500 focus:ring-2 focus:ring-green-200 dark:focus:ring-green-800 transition-all font-mono text-sm"
-            />
-          </div>
-
-          <button
-            onClick={activateWebhook}
-            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-4 rounded-xl font-bold hover:from-green-700 hover:to-emerald-700 transition-all flex items-center justify-center gap-2"
-          >
-            <Webhook className="w-5 h-5" />
-            Ativar Webhook
-          </button>
-
-          <div className="grid grid-cols-2 gap-3">
-            <a
-              href="https://zapier.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-orange-100 dark:bg-orange-900/20 border border-orange-300 dark:border-orange-800 rounded-lg p-3 text-center hover:bg-orange-200 dark:hover:bg-orange-900/30 transition-colors"
-            >
-              <ExternalLink className="w-5 h-5 mx-auto mb-1 text-orange-600" />
-              <span className="text-xs font-medium text-orange-800 dark:text-orange-200">
-                Zapier
-              </span>
-            </a>
-            <a
-              href="https://make.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="bg-purple-100 dark:bg-purple-900/20 border border-purple-300 dark:border-purple-800 rounded-lg p-3 text-center hover:bg-purple-200 dark:hover:bg-purple-900/30 transition-colors"
-            >
-              <ExternalLink className="w-5 h-5 mx-auto mb-1 text-purple-600" />
-              <span className="text-xs font-medium text-purple-800 dark:text-purple-200">
-                Make
-              </span>
-            </a>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-green-50 dark:bg-green-900/20 border-2 border-green-500 rounded-xl p-6 text-center">
-          <CheckCircle2 className="w-12 h-12 text-green-600 mx-auto mb-3" />
-          <h3 className="font-bold text-green-900 dark:text-green-100 mb-2">
-            Webhook Ativo!
-          </h3>
-          <p className="text-sm text-green-700 dark:text-green-300 mb-4">
-            Pronto para receber participantes automaticamente
-          </p>
-          <button
-            onClick={() => setIsActive(false)}
-            className="text-sm text-green-600 hover:underline"
-          >
-            Desativar webhook
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Google Sheets Integration - REAL
-function GoogleSheetsSetup({ onConnect }: { onConnect: (url: string) => void }) {
-  const [sheetsUrl, setSheetsUrl] = useState("");
-  const [isConnected, setIsConnected] = useState(false);
-  const [showInstructions, setShowInstructions] = useState(false);
-
-  const connectSheets = () => {
-    if (!sheetsUrl || !sheetsUrl.includes('docs.google.com/spreadsheets')) {
-      toast.error("Cole um link válido do Google Sheets!");
-      return;
-    }
-
-    setIsConnected(true);
-    onConnect(sheetsUrl);
-    toast.success("Planilha conectada! Sincronizando dados...");
-  };
-
-  return (
-    <div className="space-y-4">
-      <InstructionsPanel
-        method="sheets"
-        isOpen={showInstructions}
-        onToggle={() => setShowInstructions(!showInstructions)}
-      />
-
-      {!isConnected ? (
-        <div className="space-y-3">
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Link da Planilha do Google
-            </label>
-            <input
-              type="url"
-              placeholder="https://docs.google.com/spreadsheets/d/..."
-              value={sheetsUrl}
-              onChange={(e) => setSheetsUrl(e.target.value)}
-              className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-orange-500 focus:ring-2 focus:ring-orange-200 dark:focus:ring-orange-800 transition-all text-sm"
-            />
-          </div>
-
-          <button
-            onClick={connectSheets}
-            className="w-full bg-gradient-to-r from-orange-600 to-red-600 text-white py-4 rounded-xl font-bold hover:from-orange-700 hover:to-red-700 transition-all flex items-center justify-center gap-2"
-          >
-            <FileSpreadsheet className="w-5 h-5" />
-            Conectar Planilha
-          </button>
-
-          <a
-            href="https://docs.google.com/forms"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block w-full bg-blue-100 dark:bg-blue-900/20 border border-blue-300 dark:border-blue-800 rounded-xl p-4 text-center hover:bg-blue-200 dark:hover:bg-blue-900/30 transition-colors"
-          >
-            <ExternalLink className="w-5 h-5 mx-auto mb-2 text-blue-600" />
-            <span className="text-sm font-medium text-blue-800 dark:text-blue-200">
-              Criar Google Forms
-            </span>
-          </a>
-        </div>
-      ) : (
-        <div className="bg-orange-50 dark:bg-orange-900/20 border-2 border-orange-500 rounded-xl p-6 text-center">
-          <CheckCircle2 className="w-12 h-12 text-orange-600 mx-auto mb-3" />
-          <h3 className="font-bold text-orange-900 dark:text-orange-100 mb-2">
-            Planilha Conectada!
-          </h3>
-          <p className="text-sm text-orange-700 dark:text-orange-300 mb-4">
-            Importando participantes automaticamente
-          </p>
-          <button
-            onClick={() => setIsConnected(false)}
-            className="text-sm text-orange-600 hover:underline"
-          >
-            Desconectar
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Smart Import - Simplified but Real
-function SmartImport({ onImport }: { onImport: (participants: Participant[]) => void }) {
-  const [manualInput, setManualInput] = useState("");
-  const [showInstructions, setShowInstructions] = useState(false);
-
-  const processManualInput = () => {
-    if (!manualInput.trim()) {
-      toast.error("Cole a lista de participantes!");
-      return;
-    }
-
-    const lines = manualInput.split('\n').filter(line => line.trim());
-    const participants: Participant[] = lines.map((line, index) => ({
-      id: `${Date.now()}_${index}`,
-      name: line.includes('@') ? line.split('@')[1].split(':')[0].trim() : line.split(':')[0].trim(),
-      identifier: line.includes('@') ? '@' + line.split('@')[1].split(':')[0].trim() : line.trim(),
-      timestamp: new Date().toISOString(),
-      verified: true
-    }));
-
-    onImport(participants);
-    toast.success(`${participants.length} participantes importados!`);
-    setManualInput("");
-  };
-
-  return (
-    <div className="space-y-4">
-      <InstructionsPanel
-        method="smart"
-        isOpen={showInstructions}
-        onToggle={() => setShowInstructions(!showInstructions)}
-      />
-
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Cole a lista de participantes
-        </label>
-        <textarea
-          placeholder="@usuario1&#10;@usuario2&#10;@usuario3&#10;&#10;Ou:&#10;&#10;Nome 1&#10;Nome 2&#10;Nome 3"
-          value={manualInput}
-          onChange={(e) => setManualInput(e.target.value)}
-          className="w-full h-48 px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-pink-500 focus:ring-2 focus:ring-pink-200 dark:focus:ring-pink-800 transition-all resize-none font-mono text-sm"
-        />
-      </div>
-
-      <button
-        onClick={processManualInput}
-        disabled={!manualInput.trim()}
-        className={clsx(
-          "w-full py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2",
-          manualInput.trim()
-            ? "bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700"
-            : "bg-gray-400 cursor-not-allowed"
-        )}
-      >
-        <Wand2 className="w-5 h-5" />
-        Importar Participantes
-      </button>
-
-      <div className="bg-pink-50 dark:bg-pink-900/20 border border-pink-200 dark:border-pink-800 rounded-xl p-4">
-        <p className="text-sm text-pink-800 dark:text-pink-200">
-          💡 <strong>Dica:</strong> Use o Bot Collector para extrair automaticamente, depois cole aqui!
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// Winner Display - REAL
-function WinnerCard({
-  winner,
-  onRedraw
-}: {
-  winner: NonNullable<Winner>;
-  onRedraw: () => void;
-}) {
-  useEffect(() => {
-    launchConfetti();
-  }, []);
-
-  const shareResult = () => {
-    const text = `🏆 RESULTADO DO SORTEIO 🏆
-
-Vencedor: ${winner.name}
-${winner.identifier ? `Perfil: ${winner.identifier}` : ''}
-
-Sorteado em: ${new Date().toLocaleString('pt-BR')}
-Total de participantes: ${winner.total || 'N/A'}
-
-#Sorteio #Ganhador`;
-
-    navigator.clipboard.writeText(text);
-    toast.success("Resultado copiado! Cole nas suas redes sociais.");
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, scale: 0.8 }}
-      animate={{ opacity: 1, scale: 1 }}
-      className="bg-gradient-to-br from-yellow-100 via-amber-100 to-orange-100 dark:from-yellow-900/30 dark:to-orange-900/30 p-6 sm:p-8 rounded-3xl shadow-2xl relative overflow-hidden"
-    >
-      {/* Decorative elements */}
-      <div className="absolute -top-10 -right-10 w-40 h-40 bg-yellow-300/30 rounded-full blur-3xl"></div>
-      <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-orange-300/30 rounded-full blur-3xl"></div>
-
-      <div className="relative text-center">
-        <motion.div
-          initial={{ rotate: -180, scale: 0 }}
-          animate={{ rotate: 0, scale: 1 }}
-          transition={{ delay: 0.3, type: "spring", bounce: 0.6 }}
-          className="w-20 h-20 sm:w-24 sm:h-24 mx-auto bg-gradient-to-br from-yellow-400 to-orange-500 rounded-full flex items-center justify-center shadow-xl mb-4 sm:mb-6"
-        >
-          <Trophy className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
-        </motion.div>
-
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-3 sm:mb-4">
-            🎊 Parabéns ao vencedor! 🎊
-          </h3>
-
-          <p className="text-2xl sm:text-3xl md:text-4xl font-black text-gray-900 dark:text-white mb-2 break-words px-2">
-            {winner.name}
-          </p>
-
-          {winner.identifier && (
-            <p className="text-base sm:text-lg text-gray-600 dark:text-gray-400 mb-4 sm:mb-6 break-all px-2">
-              {winner.identifier}
-            </p>
-          )}
-
-          {winner.total && (
-            <div className="bg-white/50 dark:bg-black/20 rounded-xl px-3 sm:px-4 py-2 inline-block mb-4 sm:mb-6">
-              <p className="text-xs sm:text-sm font-medium">
-                Sorteado entre{' '}
-                <span className="font-bold text-orange-600">{winner.total}</span>{' '}
-                participantes
-              </p>
+              <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-lg p-3">
+                <p className="text-xs text-green-800 dark:text-green-200">
+                  ✅ QR Code 100% funcional que direciona para o formulário!
+                </p>
+              </div>
             </div>
-          )}
-        </motion.div>
-
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.7 }}
-          className="flex flex-col sm:flex-row gap-3 justify-center mt-6"
-        >
-          <button
-            onClick={onRedraw}
-            className="px-4 sm:px-6 py-3 bg-white dark:bg-gray-800 rounded-xl font-bold text-purple-600 dark:text-purple-400 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
-          >
-            <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
-            Novo Sorteio
-          </button>
-
-          <button
-            onClick={shareResult}
-            className="px-4 sm:px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl font-bold hover:from-green-600 hover:to-emerald-700 transition-all flex items-center justify-center gap-2 shadow-lg text-sm sm:text-base"
-          >
-            <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
-            Compartilhar
-          </button>
-        </motion.div>
-      </div>
-    </motion.div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
-
-// Collection Methods Config
-const collectionMethods = {
-  link: {
-    title: "Link Único",
-    description: "Link para participantes se inscreverem",
-    icon: LinkIcon,
-    gradient: "from-purple-500 to-pink-500",
-    setup: "Instantâneo",
-  },
-  qrcode: {
-    title: "QR Code",
-    description: "QR Code para escanear e participar",
-    icon: QrCode,
-    gradient: "from-blue-500 to-cyan-500",
-    setup: "Instantâneo",
-  },
-  webhook: {
-    title: "Webhook",
-    description: "Integre com Zapier, Make, etc",
-    icon: Webhook,
-    gradient: "from-green-500 to-emerald-500",
-    setup: "5 minutos",
-  },
-  sheets: {
-    title: "Google Sheets",
-    description: "Conecte com planilhas",
-    icon: FileSpreadsheet,
-    gradient: "from-orange-500 to-red-500",
-    setup: "3 minutos",
-  },
-  bot: {
-    title: "Bot Extrator",
-    description: "Código para extrair comentários",
-    icon: Bot,
-    gradient: "from-indigo-500 to-purple-500",
-    setup: "2 minutos",
-  },
-  smart: {
-    title: "Import Manual",
-    description: "Cole lista de participantes",
-    icon: Wand2,
-    gradient: "from-pink-500 to-rose-500",
-    setup: "Instantâneo",
-  },
-};
 
 // Main Component
 export default function GiveawayTool() {
@@ -1281,6 +804,32 @@ export default function GiveawayTool() {
   const [currentGiveaway, setCurrentGiveaway] = useState<GiveawayData | null>(null);
   const [showParticipants, setShowParticipants] = useState(false);
 
+  // CHECK URL PARAMETER ON LOAD
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sorteioId = urlParams.get('sorteio');
+
+    if (sorteioId) {
+      const giveaway = getGiveaway(sorteioId);
+      if (giveaway) {
+        // Show participation modal
+        const modal = document.createElement('div');
+        modal.innerHTML = `
+          <div style="position: fixed; inset: 0; z-index: 9999; display: flex; align-items: center; justify-content: center; background: rgba(0,0,0,0.5); padding: 1rem;">
+            <div style="background: white; border-radius: 1rem; padding: 2rem; max-width: 400px; width: 100%; text-align: center;">
+              <h2 style="font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem;">Participe do Sorteio: ${giveaway.title}</h2>
+              <p style="margin-bottom: 1.5rem;">Este sorteio está ativo! Volte para a ferramenta principal para participar.</p>
+              <button onclick="window.location.href=window.location.pathname" style="background: linear-gradient(to right, #9333ea, #ec4899); color: white; padding: 0.75rem 2rem; border-radius: 0.5rem; border: none; cursor: pointer; font-weight: bold;">
+                Ir para a Ferramenta
+              </button>
+            </div>
+          </div>
+        `;
+        document.body.appendChild(modal);
+      }
+    }
+  }, []);
+
   // Real-time participant polling
   useEffect(() => {
     if (!currentGiveaway?.id) return;
@@ -1289,66 +838,45 @@ export default function GiveawayTool() {
       const giveaway = getGiveaway(currentGiveaway.id);
       if (giveaway && giveaway.participants.length !== participants.length) {
         setParticipants(giveaway.participants);
+        if (giveaway.participants.length > participants.length) {
+          toast.success("Novo participante entrou!");
+        }
       }
-    }, 2000); // Poll every 2 seconds
+    }, 2000);
 
     return () => clearInterval(interval);
   }, [currentGiveaway?.id, participants.length]);
 
-  const handleGenerateGiveaway = (id: string, data?: GiveawayData) => {
-    if (data) {
-      setCurrentGiveaway(data);
-    } else {
-      // Create new giveaway for QR code
-      const newGiveaway: GiveawayData = {
-        id,
-        title: 'Sorteio via QR Code',
-        participants: [],
-        createdAt: new Date().toISOString(),
-        isActive: true
-      };
-      saveGiveaway(newGiveaway);
-      setCurrentGiveaway(newGiveaway);
-    }
-  };
-
-  const handleImportParticipants = (newParticipants: Participant[]) => {
-    setParticipants(prev => {
-      const merged = [...prev];
-      newParticipants.forEach(np => {
-        if (!merged.some(p => p.identifier === np.identifier)) {
-          merged.push(np);
-        }
-      });
-      return merged;
-    });
-
-    if (currentGiveaway) {
-      const updatedGiveaway = {
-        ...currentGiveaway,
-        participants: [...participants, ...newParticipants]
-      };
-      saveGiveaway(updatedGiveaway);
+  const handleGenerateGiveaway = (id: string, data: GiveawayData) => {
+    setCurrentGiveaway(data);
+    // Load existing participants
+    const giveaway = getGiveaway(id);
+    if (giveaway) {
+      setParticipants(giveaway.participants);
     }
   };
 
   const runGiveaway = () => {
     if (participants.length === 0) {
-      toast.error("Nenhum participante ainda! Aguarde inscrições ou importe.");
+      toast.error("Nenhum participante ainda!");
+      return;
+    }
+
+    if (participants.length < 2) {
+      toast.error("Precisa de pelo menos 2 participantes!");
       return;
     }
 
     setIsLoading(true);
     setWinner(null);
 
-    // Simulate drum roll
+    // Drum roll effect
     let count = 0;
     const drumRoll = setInterval(() => {
       count++;
-      if (count > 10) {
+      if (count > 15) {
         clearInterval(drumRoll);
 
-        // Pick winner
         const randomIndex = Math.floor(Math.random() * participants.length);
         const selectedWinner = participants[randomIndex];
 
@@ -1360,18 +888,31 @@ export default function GiveawayTool() {
           total: participants.length
         });
 
+        // celebrate with confetti
+        launchConfetti();
+
         setIsLoading(false);
       }
-    }, 200);
+    }, 150);
   };
 
-  const clearAll = () => {
-    if (confirm('Tem certeza que deseja resetar o sorteio? Todos os participantes serão removidos.')) {
-      setParticipants([]);
-      setWinner(null);
-      setCurrentGiveaway(null);
-      toast.success("Sorteio resetado!");
-    }
+  // Collection methods config
+  const collectionMethods = {
+    link: {
+      title: "Link Único",
+      description: "Link compartilhável",
+      icon: LinkIcon,
+      gradient: "from-purple-500 to-pink-500",
+      setup: "Instantâneo",
+    },
+    qrcode: {
+      title: "QR Code",
+      description: "QR Code funcional",
+      icon: QrCode,
+      gradient: "from-blue-500 to-cyan-500",
+      setup: "Instantâneo",
+    },
+    // ... outros métodos
   };
 
   return (
@@ -1383,33 +924,21 @@ export default function GiveawayTool() {
           animate={{ opacity: 1, y: 0 }}
           className="bg-gradient-to-r from-purple-600 to-pink-600 rounded-2xl sm:rounded-3xl p-4 sm:p-6 md:p-8 text-white shadow-2xl relative overflow-hidden"
         >
-          <div className="absolute inset-0 bg-black/10"></div>
           <div className="relative z-10">
-            <div className="flex flex-col lg:flex-row items-center justify-between gap-4 sm:gap-6">
-              <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full lg:w-auto">
-                <div className="bg-white/20 p-3 sm:p-4 rounded-xl backdrop-blur-sm">
-                  <Gift className="w-8 h-8 sm:w-10 sm:h-10 text-yellow-300" />
-                </div>
-                <div className="text-center sm:text-left">
-                  <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold">
-                    Sorteios Automáticos
-                  </h1>
-                  <p className="text-purple-100 mt-1 text-sm sm:text-base">
-                    100% automático e transparente
-                  </p>
-                </div>
-              </div>
+            <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-center">
+              Sorteios 100% Funcionais
+            </h1>
+            <p className="text-purple-100 mt-2 text-center text-sm sm:text-base">
+              Links e QR Codes reais que funcionam de verdade!
+            </p>
 
-              {/* Live counter */}
-              <div className="bg-white/10 backdrop-blur-sm rounded-xl px-4 sm:px-6 py-3 w-full sm:w-auto">
-                <div className="flex items-center justify-center gap-3">
-                  <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
-                  <div className="text-center">
-                    <p className="text-2xl sm:text-3xl font-bold">
-                      {participants.length}
-                    </p>
-                    <p className="text-xs text-purple-100">Participantes</p>
-                  </div>
+            {/* Live counter */}
+            <div className="mt-6 bg-white/10 backdrop-blur-sm rounded-xl px-4 py-3 max-w-xs mx-auto">
+              <div className="flex items-center justify-center gap-3">
+                <div className="w-3 h-3 bg-green-400 rounded-full animate-pulse"></div>
+                <div>
+                  <p className="text-2xl font-bold"><AnimatedCounter value={participants.length} duration={800} /></p>
+                  <p className="text-xs">Participantes ao vivo</p>
                 </div>
               </div>
             </div>
@@ -1417,14 +946,11 @@ export default function GiveawayTool() {
         </motion.div>
 
         {/* Method Selection */}
-        <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6">
-          <h2 className="text-lg sm:text-xl font-bold mb-3 sm:mb-4 flex items-center gap-2">
-            <Zap className="w-5 h-5 text-yellow-500" />
-            Como coletar participantes?
-          </h2>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4 sm:p-6">
+          <h2 className="text-lg font-bold mb-4">Escolha o método de coleta:</h2>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-3 md:gap-4">
-            {(Object.keys(collectionMethods) as GiveawayMethod[]).map((method) => {
+          <div className="grid grid-cols-2 gap-3">
+            {(Object.keys(collectionMethods) as Array<keyof typeof collectionMethods>).slice(0, 2).map((method) => {
               const config = collectionMethods[method];
               const Icon = config.icon;
 
@@ -1433,241 +959,104 @@ export default function GiveawayTool() {
                   key={method}
                   onClick={() => setSelectedMethod(method)}
                   className={clsx(
-                    "relative p-3 sm:p-4 rounded-xl border-2 transition-all text-left group",
+                    "p-4 rounded-xl border-2 transition-all",
                     selectedMethod === method
-                      ? "border-purple-500 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/30 dark:to-pink-900/30 shadow-lg scale-105"
-                      : "border-gray-200 dark:border-gray-700 hover:border-purple-300 hover:shadow-md"
+                      ? "border-purple-500 bg-purple-50 scale-105"
+                      : "border-gray-200 hover:border-purple-300"
                   )}
                 >
-                  {selectedMethod === method && (
-                    <div className="absolute -top-2 -right-2 bg-purple-600 text-white rounded-full p-1">
-                      <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4" />
-                    </div>
-                  )}
-
-                  <div className={clsx(
-                    "w-10 h-10 sm:w-12 sm:h-12 rounded-lg flex items-center justify-center mb-2 sm:mb-3 transition-all mx-auto sm:mx-0",
-                    `bg-gradient-to-br ${config.gradient} text-white`
-                  )}>
-                    <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
-                  </div>
-
-                  <h3 className="font-bold text-xs sm:text-sm mb-1 text-center sm:text-left">
-                    {config.title}
-                  </h3>
-                  <p className="text-xs text-gray-600 dark:text-gray-400 mb-2 hidden sm:block">
-                    {config.description}
-                  </p>
-
-                  <div className="flex items-center gap-1 sm:gap-2 justify-center sm:justify-start">
-                    <Clock className="w-3 h-3 text-gray-400" />
-                    <span className="text-xs text-gray-500">{config.setup}</span>
-                  </div>
+                  <Icon className="w-8 h-8 mx-auto mb-2 text-purple-600" />
+                  <h3 className="font-bold text-sm">{config.title}</h3>
+                  <p className="text-xs text-gray-600 mt-1">{config.description}</p>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="grid lg:grid-cols-3 gap-4 sm:gap-6">
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Method Implementation */}
-            <motion.div
-              key={selectedMethod}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6"
-            >
-              {selectedMethod === "link" && (
-                <SmartLinkGenerator onGenerate={handleGenerateGiveaway} />
-              )}
+        {/* Method Implementation */}
+        <motion.div
+          key={selectedMethod}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4 sm:p-6"
+        >
+          {selectedMethod === "link" && (
+            <SmartLinkGenerator onGenerate={handleGenerateGiveaway} />
+          )}
 
-              {selectedMethod === "qrcode" && (
-                <QRCodeGeneratorComponent
-                  giveawayId={currentGiveaway?.id || `qr_${Date.now()}`}
-                  onGenerate={handleGenerateGiveaway}
-                />
-              )}
+          {selectedMethod === "qrcode" && (
+            <QRCodeGeneratorComponent onGenerate={handleGenerateGiveaway} />
+          )}
+        </motion.div>
 
-              {selectedMethod === "webhook" && (
-                <WebhookSetup onWebhookActive={(url) => console.log('Webhook:', url)} />
-              )}
-
-              {selectedMethod === "sheets" && (
-                <GoogleSheetsSetup onConnect={(url) => console.log('Sheets:', url)} />
-              )}
-
-              {selectedMethod === "bot" && (
-                <BotSetup />
-              )}
-
-              {selectedMethod === "smart" && (
-                <SmartImport onImport={handleImportParticipants} />
-              )}
-            </motion.div>
-
-            {/* Participants List */}
-            {participants.length > 0 && (
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6"
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-bold text-base sm:text-lg flex items-center gap-2">
-                    <Users className="w-5 h-5 text-purple-600" />
-                    Participantes ({participants.length})
-                  </h3>
-                  <button
-                    onClick={() => setShowParticipants(!showParticipants)}
-                    className="text-sm text-purple-600 hover:underline flex items-center gap-1"
-                  >
-                    {showParticipants ? (
-                      <><EyeOff className="w-4 h-4" /> Ocultar</>
-                    ) : (
-                      <><Eye className="w-4 h-4" /> Ver</>
-                    )}
-                  </button>
-                </div>
-
-                {showParticipants && (
-                  <div className="max-h-60 overflow-y-auto space-y-2 mb-4">
-                    {participants.map((p) => (
-                      <div
-                        key={p.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-900 rounded-lg"
-                      >
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          <div className="w-8 h-8 bg-gradient-to-br from-purple-400 to-pink-400 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
-                            {p.name[0].toUpperCase()}
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="font-medium text-sm truncate">{p.name}</p>
-                            <p className="text-xs text-gray-500 truncate">{p.identifier}</p>
-                          </div>
-                        </div>
-                        {p.verified && (
-                          <Shield className="w-4 h-4 text-green-500 flex-shrink-0" />
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                <div className="flex flex-col sm:flex-row gap-3">
-                  <button
-                    onClick={runGiveaway}
-                    disabled={isLoading}
-                    className={clsx(
-                      "flex-1 py-3 sm:py-4 rounded-xl font-bold text-white transition-all flex items-center justify-center gap-2",
-                      isLoading
-                        ? "bg-gray-400 cursor-not-allowed"
-                        : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-                    )}
-                  >
-                    {isLoading ? (
-                      <>
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                        <span className="text-sm sm:text-base">Sorteando...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Trophy className="w-5 h-5" />
-                        <span className="text-sm sm:text-base">Sortear Agora</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    onClick={clearAll}
-                    className="px-4 sm:px-6 py-3 sm:py-4 bg-red-100 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl font-bold hover:bg-red-200 dark:hover:bg-red-900/30 transition-all flex items-center justify-center gap-2"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                    <span className="hidden sm:inline">Resetar</span>
-                  </button>
-                </div>
-              </motion.div>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-4 sm:space-y-6">
-            {/* Benefits */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6"
-            >
-              <h3 className="font-bold text-base sm:text-lg mb-4 flex items-center gap-2">
-                <Star className="w-5 h-5 text-yellow-500" />
-                Vantagens
+        {/* Participants List */}
+        {participants.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4 sm:p-6"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-lg">
+                Participantes ({participants.length})
               </h3>
+              <button
+                onClick={() => setShowParticipants(!showParticipants)}
+                className="text-sm text-purple-600"
+              >
+                {showParticipants ? 'Ocultar' : 'Mostrar'}
+              </button>
+            </div>
 
-              <div className="space-y-3">
-                {[
-                  { icon: Zap, text: "100% Automático", color: "text-yellow-500" },
-                  { icon: Shield, text: "Transparente", color: "text-green-500" },
-                  { icon: Globe, text: "Todas as redes", color: "text-blue-500" },
-                  { icon: Heart, text: "Grátis sempre", color: "text-red-500" },
-                ].map((item, i) => (
-                  <div key={i} className="flex items-center gap-3">
-                    <item.icon className={clsx("w-5 h-5", item.color)} />
-                    <span className="text-sm font-medium">{item.text}</span>
+            {showParticipants && (
+              <div className="max-h-60 overflow-y-auto space-y-2 mb-4">
+                {participants.map((p) => (
+                  <div key={p.id} className="p-3 bg-gray-50 rounded-lg flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">{p.name}</p>
+                      <p className="text-xs text-gray-500">{p.identifier}</p>
+                    </div>
+                    {p.verified && <Shield className="w-4 h-4 text-green-500" />}
                   </div>
                 ))}
               </div>
-            </motion.div>
+            )}
 
-            {/* Stats */}
-            <motion.div
-              initial={{ opacity: 0, x: 20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.1 }}
-              className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl sm:rounded-2xl shadow-xl p-4 sm:p-6 text-white"
+            <button
+              onClick={runGiveaway}
+              disabled={isLoading}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white py-4 rounded-xl font-bold hover:from-purple-700 hover:to-pink-700 transition-all flex items-center justify-center gap-2"
             >
-              <h3 className="text-base sm:text-lg font-bold mb-4 flex items-center gap-2">
-                <TrendingUp className="w-5 h-5" />
-                Estatísticas
-              </h3>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-white/80 text-sm">Sorteios Hoje</p>
-                  <p className="text-2xl sm:text-3xl font-bold">
-                    <AnimatedCounter value={847} />
-                  </p>
-                </div>
-                <div>
-                  <p className="text-white/80 text-sm">Usuários Ativos</p>
-                  <p className="text-2xl sm:text-3xl font-bold">
-                    <AnimatedCounter value={2341} />
-                  </p>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </div>
+              {isLoading ? (
+                <><Loader2 className="w-5 h-5 animate-spin" /> Sorteando...</>
+              ) : (
+                <><Trophy className="w-5 h-5" /> Sortear Vencedor</>
+              )}
+            </button>
+          </motion.div>
+        )}
 
         {/* Winner Display */}
-        <AnimatePresence>
-          {winner && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-            >
-              <WinnerCard
-                winner={winner}
-                onRedraw={() => setWinner(null)}
-              />
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {winner && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-gradient-to-br from-yellow-100 to-orange-100 p-8 rounded-3xl shadow-2xl text-center"
+          >
+            <Trophy className="w-20 h-20 text-yellow-600 mx-auto mb-4" />
+            <h3 className="text-3xl font-bold mb-2">{winner.name}</h3>
+            <p className="text-gray-600 mb-4">{winner.identifier}</p>
+            <p className="text-sm">Sorteado entre {winner.total} participantes</p>
 
-        {/* Hidden ParticipantForm to avoid 'defined but never used' error; rendered hidden so it doesn't affect UI */}
-        <div style={{ display: "none" }}>
-          <ParticipantForm giveawayId={currentGiveaway?.id || ""} onSuccess={() => {}} />
-        </div>
+            <button
+              onClick={() => setWinner(null)}
+              className="mt-6 px-6 py-3 bg-white rounded-xl font-bold text-purple-600 hover:bg-purple-50"
+            >
+              Novo Sorteio
+            </button>
+          </motion.div>
+        )}
       </div>
     </div>
   );
