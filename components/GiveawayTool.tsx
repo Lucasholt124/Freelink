@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 import {
   Loader2,
   Instagram,
@@ -770,12 +771,15 @@ function QRCodeGeneratorComponent({
       ) : (
         <div className="space-y-4">
           <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 text-center">
-            <div className="bg-gradient-to-br from-blue-50 to-cyan-50 dark:from-blue-900/30 dark:to-cyan-900/30 rounded-xl p-6 mb-4">
-              <img
+              <Image
                 src={qrCode}
                 alt="QR Code"
+                width={400}
+                height={400}
+                unoptimized
                 className="w-full max-w-xs mx-auto bg-white"
               />
+
             </div>
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
               QR Code funcional - Teste com sua câmera!
@@ -788,7 +792,6 @@ function QRCodeGeneratorComponent({
               Baixar QR Code
             </button>
           </div>
-        </div>
       )}
     </div>
   );
@@ -917,17 +920,20 @@ export default function GiveawayTool() {
   }, [selectedMethod, currentGiveaway, participants, winner]);
 
   // Real-time participant polling
-  useEffect(() => {
-    if (!currentGiveaway?.id) return;
+  const currentGiveawayId = currentGiveaway?.id;
 
-    // Save current giveaway whenever participants change
-    if (currentGiveaway) {
-      const updatedGiveaway = { ...currentGiveaway, participants };
+  useEffect(() => {
+    if (!currentGiveawayId) return;
+
+    // Save current giveaway whenever participants change (use stored giveaway to avoid referencing outer object)
+    const storedGiveaway = getGiveaway(currentGiveawayId);
+    if (storedGiveaway) {
+      const updatedGiveaway = { ...storedGiveaway, participants };
       saveGiveaway(updatedGiveaway);
     }
 
     const interval = setInterval(() => {
-      const giveaway = getGiveaway(currentGiveaway.id);
+      const giveaway = getGiveaway(currentGiveawayId);
       if (giveaway && giveaway.participants.length !== participants.length) {
         setParticipants(giveaway.participants);
         setCurrentGiveaway(giveaway);
@@ -938,7 +944,7 @@ export default function GiveawayTool() {
     }, 2000);
 
     return () => clearInterval(interval);
-  }, [currentGiveaway?.id, participants]);
+  }, [currentGiveawayId, participants]);
 
   const handleGenerateGiveaway = (id: string, data: GiveawayData) => {
     setCurrentGiveaway(data);
