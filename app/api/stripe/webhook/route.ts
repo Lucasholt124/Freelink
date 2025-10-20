@@ -2,9 +2,8 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { users } from "@clerk/clerk-sdk-node";
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2025-07-30.basil", // Use uma versão atual da API
-});
+// CORREÇÃO: Remover versão específica da API
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
 
 // Interface para tipar os metadados do Clerk de forma segura
 interface ClerkMetadata {
@@ -16,6 +15,7 @@ interface ClerkMetadata {
     stripeCustomerId?: string;
   };
 }
+
 // Função auxiliar centralizada para atualizar os metadados do Clerk
 async function updateUserClerkMetadata(userId: string, metadata: ClerkMetadata) {
   try {
@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     return new NextResponse("Webhook Error", { status: 400 });
   }
 
-  console.log(" Stripe Webhook Recebido:", event.type);
+  console.log("📨 Stripe Webhook Recebido:", event.type);
 
   // Mapeamento centralizado de Price IDs para Planos
   // Adicione TODOS os seus Price IDs aqui (mensais e anuais)
@@ -90,7 +90,6 @@ export async function POST(req: Request) {
       const invoice = event.data.object as Stripe.Invoice;
       // Correção: O ID da assinatura está no item da fatura, não diretamente na fatura.
       const subscriptionId = invoice.lines.data[0]?.subscription;
-
 
       if (!subscriptionId) {
         console.log("➡️ Ignorando invoice.payment_succeeded sem subscriptionId (ex: pagamento único).");
