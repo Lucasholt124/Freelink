@@ -1,0 +1,21 @@
+# .vercelignore
+.git
+.next/cache
+node_modules
+.env*.local
+README.md
+.vscode
+.DS_Store
+*.log
+coverage
+.nyc_output
+.github
+.husky
+cypress
+tests
+__tests__
+*.test.*
+*.spec.*
+.dockerignore
+Dockerfile
+docker-compose.yml

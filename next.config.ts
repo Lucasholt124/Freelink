@@ -14,6 +14,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
+  // Adicione estas configurações para Vercel
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
+  },
+
+  // Otimizações adicionais
+  compress: true,
+  poweredByHeader: false,
+  productionBrowserSourceMaps: false,
 };
 
 export default nextConfig;
