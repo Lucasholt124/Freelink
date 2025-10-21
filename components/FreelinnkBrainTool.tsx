@@ -1762,12 +1762,12 @@ export default function FreelinkBrainTool() {
   	Melhores Horários para Postar
   	</p>
   	<div className="flex flex-wrap gap-2">
-  	{results.viral_strategy.best_times.map(time => (
-  	<Badge key={time} variant="secondary" className="bg-purple-100 text-purple-800">
-  	<Clock className="w-3 h-3 mr-1.5" />
-  	{time}
-  	</Badge>
-  	))}
+  	{(results.viral_strategy?.best_times ?? []).map(time => (
+  <Badge key={time} variant="secondary" className="bg-purple-100 text-purple-800">
+    <Clock className="w-3 h-3 mr-1.5" />
+    {time}
+  </Badge>
+))}
   	</div>
   	</div>
 
@@ -1778,7 +1778,9 @@ export default function FreelinkBrainTool() {
   	<p className="text-xs font-semibold text-muted-foreground uppercase">
   	Estratégia de Hashtag
   	</p>
-  	<p className="text-sm">{results.viral_strategy.hashtag_strategy}</p>
+  	<p className="text-sm">
+  {results.viral_strategy?.hashtag_strategy ?? "Nenhuma estratégia de hashtag definida."}
+</p>
   	</div>
   	</div>
 
@@ -1788,9 +1790,9 @@ export default function FreelinkBrainTool() {
   	Hacks de Engajamento
   	</p>
   	<ul className="space-y-1 list-disc list-inside">
-  	{results.viral_strategy.engagement_hacks.map((hack, i) => (
-  	<li key={i} className="text-sm">{hack}</li>
-  	))}
+  	{(results.viral_strategy?.engagement_hacks ?? []).map((hack, i) => (
+  <li key={i} className="text-sm">{hack}</li>
+))}
   	</ul>
   	</div>
   	</CardContent>
