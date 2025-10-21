@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Gift,
@@ -66,11 +67,10 @@ const toast = {
   },
 };
 
-export default function PublicGiveawayPage({
-  params
-}: {
-  params: { id: string }
-}) {
+export default function PublicGiveawayPage() {
+  const params = useParams();
+  const giveawayId = params?.id as string;
+
   const [giveaway, setGiveaway] = useState<GiveawayData | null>(null);
   const [formData, setFormData] = useState({ name: "", identifier: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -78,13 +78,18 @@ export default function PublicGiveawayPage({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    if (!giveawayId) {
+      setLoading(false);
+      return;
+    }
+
     const loadGiveaway = () => {
-      const data = getGiveaway(params.id);
+      const data = getGiveaway(giveawayId);
       if (data) {
         setGiveaway(data);
       }
 
-      const registered = localStorage.getItem(`registered_${params.id}`);
+      const registered = localStorage.getItem(`registered_${giveawayId}`);
       if (registered) {
         setHasRegistered(true);
       }
@@ -97,7 +102,7 @@ export default function PublicGiveawayPage({
     // Poll for updates
     const interval = setInterval(loadGiveaway, 5000);
     return () => clearInterval(interval);
-  }, [params.id]);
+  }, [giveawayId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -140,7 +145,7 @@ export default function PublicGiveawayPage({
     };
 
     saveGiveaway(updatedGiveaway);
-    localStorage.setItem(`registered_${params.id}`, 'true');
+    localStorage.setItem(`registered_${giveawayId}`, 'true');
 
     setTimeout(() => {
       toast.success("Você está participando! 🎉");
