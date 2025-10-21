@@ -25,6 +25,7 @@ import type * as lib_fetchLinkAnalytics from "../lib/fetchLinkAnalytics.js";
 import type * as lib_getBaseUrl from "../lib/getBaseUrl.js";
 import type * as lib_links from "../lib/links.js";
 import type * as lib_usernames from "../lib/usernames.js";
+import type * as publicGiveaways from "../publicGiveaways.js";
 import type * as shareAchievements from "../shareAchievements.js";
 import type * as shortLinks from "../shortLinks.js";
 import type * as tracking from "../tracking.js";
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   "lib/getBaseUrl": typeof lib_getBaseUrl;
   "lib/links": typeof lib_links;
   "lib/usernames": typeof lib_usernames;
+  publicGiveaways: typeof publicGiveaways;
   shareAchievements: typeof shareAchievements;
   shortLinks: typeof shortLinks;
   tracking: typeof tracking;

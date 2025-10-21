@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion } from "framer-motion";
+import { useConvex, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import {
   Gift,
   CheckCircle2,
@@ -26,30 +28,6 @@ type GiveawayData = {
   isActive: boolean;
 };
 
-const STORAGE_KEY = 'freelinnk_giveaways';
-
-const getGiveaway = (id: string): GiveawayData | null => {
-  if (typeof window === 'undefined') return null;
-  const data = localStorage.getItem(STORAGE_KEY);
-  const giveaways = data ? JSON.parse(data) : [];
-  return giveaways.find((g: GiveawayData) => g.id === id) || null;
-};
-
-const saveGiveaway = (giveaway: GiveawayData) => {
-  if (typeof window === 'undefined') return;
-  const data = localStorage.getItem(STORAGE_KEY);
-  const giveaways = data ? JSON.parse(data) : [];
-  const index = giveaways.findIndex((g: GiveawayData) => g.id === giveaway.id);
-
-  if (index >= 0) {
-    giveaways[index] = giveaway;
-  } else {
-    giveaways.push(giveaway);
-  }
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(giveaways));
-};
-
 const toast = {
   success: (message: string) => {
     const toastEl = document.createElement('div');
@@ -71,6 +49,9 @@ export default function PublicGiveawayPage() {
   const params = useParams();
   const giveawayId = params?.id as string;
 
+  const convex = useConvex();
+  const addParticipantMutation = useMutation(api.publicGiveaways.addParticipant);
+
   const [giveaway, setGiveaway] = useState<GiveawayData | null>(null);
   const [formData, setFormData] = useState({ name: "", identifier: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -83,18 +64,25 @@ export default function PublicGiveawayPage() {
       return;
     }
 
-    const loadGiveaway = () => {
-      const data = getGiveaway(giveawayId);
-      if (data) {
-        setGiveaway(data);
-      }
+    const loadGiveaway = async () => {
+      try {
+        const data = await convex.query(api.publicGiveaways.getGiveaway, {
+          giveawayId: giveawayId
+        });
 
-      const registered = localStorage.getItem(`registered_${giveawayId}`);
-      if (registered) {
-        setHasRegistered(true);
-      }
+        if (data) {
+          setGiveaway(data as GiveawayData);
+        }
 
-      setLoading(false);
+        const registered = localStorage.getItem(`registered_${giveawayId}`);
+        if (registered) {
+          setHasRegistered(true);
+        }
+      } catch (error) {
+        console.error("Erro ao carregar sorteio:", error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadGiveaway();
@@ -102,7 +90,7 @@ export default function PublicGiveawayPage() {
     // Poll for updates
     const interval = setInterval(loadGiveaway, 5000);
     return () => clearInterval(interval);
-  }, [giveawayId]);
+  }, [giveawayId, convex]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -119,39 +107,30 @@ export default function PublicGiveawayPage() {
 
     setIsSubmitting(true);
 
-    const participant: Participant = {
-      id: Date.now().toString(),
-      name: formData.name,
-      identifier: formData.identifier,
-      timestamp: new Date().toISOString(),
-      verified: true
-    };
+    try {
+      await addParticipantMutation({
+        giveawayId: giveaway.id,
+        participant: {
+          id: Date.now().toString(),
+          name: formData.name,
+          identifier: formData.identifier,
+          timestamp: new Date().toISOString(),
+          verified: true
+        }
+      });
 
-    // Check if already participating
-    const exists = giveaway.participants.some(p =>
-      p.identifier.toLowerCase() === participant.identifier.toLowerCase()
-    );
-
-    if (exists) {
-      toast.error("Você já está participando!");
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Add participant
-    const updatedGiveaway = {
-      ...giveaway,
-      participants: [...giveaway.participants, participant]
-    };
-
-    saveGiveaway(updatedGiveaway);
-    localStorage.setItem(`registered_${giveawayId}`, 'true');
-
-    setTimeout(() => {
+      localStorage.setItem(`registered_${giveawayId}`, 'true');
       toast.success("Você está participando! 🎉");
       setHasRegistered(true);
+    } catch (error: unknown) {
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("Ocorreu um erro desconhecido ao participar.");
+      }
+    } finally {
       setIsSubmitting(false);
-    }, 1000);
+    }
   };
 
   if (loading) {

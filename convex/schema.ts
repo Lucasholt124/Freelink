@@ -120,35 +120,49 @@ export default defineSchema({
     })),
   }).index("by_user", ["userId"]),
 
-  // ▼▼▼ AQUI ESTÁ A CORREÇÃO ▼▼▼
-  // A tabela foi movida para DENTRO do objeto principal do schema.
   generatedImages: defineTable({
     userId: v.string(),
     prompt: v.string(),
     imageUrl: v.string(),
     storageId: v.id("_storage"),
-    method: v.optional(v.string()), // 'premium' ou 'free'
+    method: v.optional(v.string()),
     createdAt: v.optional(v.number()),
   }).index("by_user", ["userId"]),
-  // ▲▲▲ FIM DA CORREÇÃO ▲▲▲
 
-  // Adicione esta tabela ao seu schema existente
-aiStudioContent: defineTable({
-  userId: v.string(),
-  type: v.union(
-    v.literal("enhanced_image"),
-    v.literal("audio"),
-    v.literal("transcription"),
-    v.literal("video"),
-    v.literal("chat") // Adicionado para suportar mensagens de chat
-  ),
-  originalUrl: v.optional(v.string()),
-  resultUrl: v.optional(v.string()),
-  text: v.optional(v.string()),
-  prompt: v.optional(v.string()),
-  storageId: v.optional(v.id("_storage")),
-  createdAt: v.optional(v.number()),
-}).index("by_user", ["userId"])
-  .index("by_user_and_type", ["userId", "type"]),
+  aiStudioContent: defineTable({
+    userId: v.string(),
+    type: v.union(
+      v.literal("enhanced_image"),
+      v.literal("audio"),
+      v.literal("transcription"),
+      v.literal("video"),
+      v.literal("chat")
+    ),
+    originalUrl: v.optional(v.string()),
+    resultUrl: v.optional(v.string()),
+    text: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+    storageId: v.optional(v.id("_storage")),
+    createdAt: v.optional(v.number()),
+  }).index("by_user", ["userId"])
+    .index("by_user_and_type", ["userId", "type"]),
 
+  // NOVA TABELA PARA SORTEIOS PÚBLICOS
+  publicGiveaways: defineTable({
+    giveawayId: v.string(),
+    title: v.string(),
+    createdBy: v.string(),
+    participants: v.array(v.object({
+      id: v.string(),
+      name: v.string(),
+      identifier: v.string(),
+      timestamp: v.string(),
+      verified: v.optional(v.boolean()),
+    })),
+    isActive: v.boolean(),
+    method: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  }).index("by_giveaway_id", ["giveawayId"])
+    .index("by_creator", ["createdBy"]),
 });
