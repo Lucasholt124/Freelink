@@ -76,7 +76,7 @@ interface StorySequenceContent {
   theme: string;
   slides: {
     slide_number: number;
-    type: "Poll" | "Quiz" | "Q&A" | "Link" | "Text";
+    type: "Poll" | "Quiz" | "Q&A" | "Link" | "Text"; // Deve ser em Inglês
     content: string;
     options?: string[];
   }[];
@@ -85,14 +85,14 @@ interface StorySequenceContent {
 
 interface BrainResults {
   theme_summary: string;
-  target_audience_suggestion: string;
+  target_audience_suggestion: string; // Esperamos que seja string
   content_pack: {
     reels: ReelContent[];
     carousels: CarouselContent[];
-    image_posts: ImagePostContent[];
-    story_sequences: StorySequenceContent[];
+    image_posts: ImagePostContent[]; // Nome em Inglês
+    story_sequences: StorySequenceContent[]; // Nome em Inglês
   };
-  viral_strategy: { // NOVO PLAYBOOK
+  viral_strategy: {
     best_times: string[];
     hashtag_strategy: string;
     engagement_hacks: string[];
@@ -969,6 +969,8 @@ const StorySequenceCard = ({
   index: number;
   onSchedule?: (type: "story_sequence", index: number) => void;
 }) => {
+  // *** CORREÇÃO AQUI ***
+  // As chaves DEVEM ser em Inglês para bater com os dados do backend
   const iconMap = {
     Poll: { icon: BarChart3, color: "text-blue-500", bg: "bg-blue-500/10" },
     Quiz: { icon: Brain, color: "text-purple-500", bg: "bg-purple-500/10" },
@@ -976,6 +978,7 @@ const StorySequenceCard = ({
     Link: { icon: Share2, color: "text-orange-500", bg: "bg-orange-500/10" },
     Text: { icon: FileText, color: "text-pink-500", bg: "bg-pink-500/10" }
   };
+
   const fullTextToCopy = `📱 SEQUÊNCIA DE STORIES: ${seq.theme}\n\n${seq.slides.map(s => `${s.type.toUpperCase()}: ${s.content}${s.options ? '\nOpções: ' + s.options.join(' | ') : ''}`).join('\n\n')}\n\n💡 DICAS:\n${seq.engagement_tips.join('\n')}`;
 
   return (
@@ -1016,7 +1019,9 @@ const StorySequenceCard = ({
   	<CardContent>
   	<div className="space-y-3">
   	{seq.slides.map((slide) => {
-  	const slideConfig = iconMap[slide.type];
+    // *** CORREÇÃO AQUI ***
+    // Garante que o 'slide.type' (ex: "Poll") existe no 'iconMap'
+  	const slideConfig = iconMap[slide.type] || iconMap["Text"]; // Fallback para "Text"
   	const Icon = slideConfig.icon;
 
   	return (
@@ -1276,14 +1281,14 @@ export default function FreelinkBrainTool() {
 
   // Contagem de conteúdo para os badges
   const contentCounts = results ? {
-    reels: results.content_pack.reels.length,
-    carousels: results.content_pack.carousels.length,
-    image_posts: results.content_pack.image_posts.length,
-    story_sequences: results.content_pack.story_sequences.length,
-    total: results.content_pack.reels.length +
-           results.content_pack.carousels.length +
-          	results.content_pack.image_posts.length +
-          	results.content_pack.story_sequences.length
+    reels: results.content_pack?.reels?.length ?? 0,
+    carousels: results.content_pack?.carousels?.length ?? 0,
+    image_posts: results.content_pack?.image_posts?.length ?? 0,
+    story_sequences: results.content_pack?.story_sequences?.length ?? 0,
+    total: (results.content_pack?.reels?.length ?? 0) +
+           (results.content_pack?.carousels?.length ?? 0) +
+           (results.content_pack?.image_posts?.length ?? 0) +
+           (results.content_pack?.story_sequences?.length ?? 0)
   } : null;
 
   return (
@@ -1476,10 +1481,10 @@ export default function FreelinkBrainTool() {
   	{new Date(campaign.date).toLocaleDateString()}
   	</p>
   	<Badge variant="outline" className="text-[10px] py-0 px-1.5">
-  	{campaign.results.content_pack.reels.length +
-  	campaign.results.content_pack.carousels.length +
-  	campaign.results.content_pack.image_posts.length +
-  	campaign.results.content_pack.story_sequences.length
+  	{(campaign.results.content_pack?.reels?.length ?? 0) +
+     (campaign.results.content_pack?.carousels?.length ?? 0) +
+     (campaign.results.content_pack?.image_posts?.length ?? 0) +
+     (campaign.results.content_pack?.story_sequences?.length ?? 0)
   	} itens
   	</Badge>
   	{campaign.scheduledItems && campaign.scheduledItems.length > 0 && (
@@ -1555,16 +1560,16 @@ export default function FreelinkBrainTool() {
   	<div className="space-y-2">
   	<Label htmlFor="schedule-platform">Plataforma</Label>
   	<Select defaultValue="instagram">
-  <SelectTrigger>
-    <SelectValue placeholder="Selecione a plataforma" />
-  </SelectTrigger>
-  <SelectContent>
-    <SelectItem value="instagram">Instagram</SelectItem>
-    <SelectItem value="tiktok">TikTok</SelectItem>
-    <SelectItem value="facebook">Facebook</SelectItem>
-    <SelectItem value="linkedin">LinkedIn</SelectItem>
-  </SelectContent>
-</Select>
+    <SelectTrigger>
+      <SelectValue placeholder="Selecione a plataforma" />
+    </SelectTrigger>
+    <SelectContent>
+      <SelectItem value="instagram">Instagram</SelectItem>
+      <SelectItem value="tiktok">TikTok</SelectItem>
+      <SelectItem value="facebook">Facebook</SelectItem>
+      <SelectItem value="linkedin">LinkedIn</SelectItem>
+    </SelectContent>
+  </Select>
   	</div>
   	</div>
   	<DialogFooter>
@@ -1578,11 +1583,12 @@ export default function FreelinkBrainTool() {
 
   	  const dateInput = document.getElementById('schedule-date') as HTMLInputElement;
   	  const timeInput = document.getElementById('schedule-time') as HTMLInputElement;
-  	  const platformInput = document.getElementById('schedule-platform')?.querySelector('[role="combobox"] span');
+      // Correção: Seleciona o elemento correto do Select
+  	  const platformTrigger = document.querySelector('[data-radix-collection-item] > span');
 
   	  const date = dateInput?.value;
   	  const time = timeInput?.value;
-  	  const platform = platformInput?.textContent || "instagram";
+      const platform = platformTrigger?.textContent || "instagram";
 
   	  if (!date || !time) {
   	  toast.error("Por favor, selecione data e horário.");
@@ -1733,17 +1739,24 @@ export default function FreelinkBrainTool() {
   	</div>
   	</div>
   	<Separator className="my-2 h-px bg-muted" />
+
+    {/* *** CORREÇÃO AQUI (React Error #31) *** */}
   	<div className="flex items-start gap-3">
   	<Users className="w-4 h-4 text-muted-foreground mt-0.5" />
   	<div className="flex-1">
   	<p className="text-xs font-semibold text-muted-foreground uppercase">
   	Público-Alvo
   	</p>
+    {/* Renderiza 'target_audience_suggestion' com segurança */}
   	<p className="text-sm">
-  	{results.target_audience_suggestion}
-  	</p>
+      {typeof results.target_audience_suggestion === 'string'
+        ? results.target_audience_suggestion
+        : "Descrição do público-alvo não disponível como texto."
+      }
+    </p>
   	</div>
   	</div>
+
   	</CardContent>
   	</Card>
 
@@ -1756,25 +1769,28 @@ export default function FreelinkBrainTool() {
   	</CardTitle>
   	</CardHeader>
   	<CardContent className="space-y-4">
-  	{/* Melhores Horários */}
+
+  	{/* *** CORREÇÃO AQUI (TypeError) *** */}
+    {/* Melhores Horários */}
   	<div>
   	<p className="text-xs font-semibold text-muted-foreground uppercase mb-2">
   	Melhores Horários para Postar
   	</p>
   	<div className="flex flex-wrap gap-2">
-  	{results.viral_strategy && results.viral_strategy.best_times && results.viral_strategy.best_times.length > 0 ? (
-  	results.viral_strategy.best_times.map(time => (
+    {/* Adicionado '?? []' para evitar crash se 'best_times' não existir */}
+  	{(results.viral_strategy?.best_times ?? []).map(time => (
   	<Badge key={time} variant="secondary" className="bg-purple-100 text-purple-800">
   	<Clock className="w-3 h-3 mr-1.5" />
   	{time}
   	</Badge>
-  	))
-  	) : (
-  	<Badge variant="secondary" className="bg-purple-100 text-purple-800">
-  	<Clock className="w-3 h-3 mr-1.5" />
-  	12:00h - 20:00h
-  	</Badge>
-  	)}
+  	))}
+    {/* Fallback caso esteja vazio */}
+    {(results.viral_strategy?.best_times ?? []).length === 0 && (
+      <Badge variant="secondary" className="bg-purple-100 text-purple-800">
+        <Clock className="w-3 h-3 mr-1.5" />
+        12:00h - 20:00h
+      </Badge>
+    )}
   	</div>
   	</div>
 
@@ -1785,9 +1801,8 @@ export default function FreelinkBrainTool() {
   	<p className="text-xs font-semibold text-muted-foreground uppercase">
   	Estratégia de Hashtag
   	</p>
-  	<p className="text-sm">
-  	{results.viral_strategy?.hashtag_strategy || "Use hashtags relevantes ao seu nicho e combine com hashtags virais"}
-  	</p>
+    {/* Adicionado '??' para fallback */}
+  	<p className="text-sm">{results.viral_strategy?.hashtag_strategy ?? "Use hashtags de nicho e volume médio."}</p>
   	</div>
   	</div>
 
@@ -1797,17 +1812,14 @@ export default function FreelinkBrainTool() {
   	Hacks de Engajamento
   	</p>
   	<ul className="space-y-1 list-disc list-inside">
-  	{results.viral_strategy && results.viral_strategy.engagement_hacks && results.viral_strategy.engagement_hacks.length > 0 ? (
-  	results.viral_strategy.engagement_hacks.map((hack, i) => (
+    {/* Adicionado '?? []' para evitar crash */}
+  	{(results.viral_strategy?.engagement_hacks ?? []).map((hack, i) => (
   	<li key={i} className="text-sm">{hack}</li>
-  	))
-  	) : (
-  	<>
-  	<li className="text-sm">Responda todos os comentários nas primeiras horas</li>
-  	<li className="text-sm">Use CTAs que incentivem salvamento e compartilhamento</li>
-  	<li className="text-sm">Crie posts que peçam opinião do público</li>
-  	</>
-  	)}
+  	))}
+    {/* Fallback caso esteja vazio */}
+    {(results.viral_strategy?.engagement_hacks ?? []).length === 0 && (
+       <li className="text-sm">Responda comentários com perguntas.</li>
+    )}
   	</ul>
   	</div>
   	</CardContent>
@@ -1845,6 +1857,8 @@ export default function FreelinkBrainTool() {
   	</div>
 
   	<div className="mt-6 space-y-4">
+    {/* *** CORREÇÃO AQUI *** */}
+    {/* Adicionado '?' para acesso seguro, caso 'content_pack' não exista */}
   	<TabsContent value="reels" className="mt-0 space-y-4">
   	{results.content_pack?.reels?.map((reel, i) => (
   	<EnhancedReelCard
