@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
+import { useConvex, useMutation, useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import {
   Loader2,
   Instagram,
   Trophy,
-
   Copy,
-
   QrCode,
   Link as LinkIcon,
   MessageSquare,
@@ -18,7 +18,6 @@ import {
   ChevronDown,
   ChevronUp,
   Info,
-
   RefreshCw,
   Share2,
   Trash2,
@@ -54,83 +53,8 @@ type GiveawayData = {
   method?: GiveawayMethod;
 };
 
-// Storage helpers
-const STORAGE_KEY = 'freelinnk_giveaways';
+// Storage helpers (mantém como fallback/cache local)
 const ACTIVE_GIVEAWAY_KEY = 'freelinnk_active_giveaway';
-const CURRENT_STATE_KEY = 'freelinnk_current_state';
-
-// Save active giveaway
-const setActiveGiveaway = (giveawayId: string | null) => {
-  if (typeof window === 'undefined') return;
-  if (giveawayId) {
-    localStorage.setItem(ACTIVE_GIVEAWAY_KEY, giveawayId);
-  } else {
-    localStorage.removeItem(ACTIVE_GIVEAWAY_KEY);
-  }
-};
-
-// Get active giveaway
-const getActiveGiveawayId = (): string | null => {
-  if (typeof window === 'undefined') return null;
-  return localStorage.getItem(ACTIVE_GIVEAWAY_KEY);
-};
-
-// Save current state
-const saveCurrentState = (state: {
-  selectedMethod: GiveawayMethod;
-  currentGiveaway: GiveawayData | null;
-  participants: Participant[];
-  winner: Winner;
-}) => {
-  if (typeof window === 'undefined') return;
-  localStorage.setItem(CURRENT_STATE_KEY, JSON.stringify(state));
-};
-
-// Get current state
-const getCurrentState = () => {
-  if (typeof window === 'undefined') return null;
-  const state = localStorage.getItem(CURRENT_STATE_KEY);
-  return state ? JSON.parse(state) : null;
-};
-
-// Clear current state
-const clearCurrentState = () => {
-  if (typeof window === 'undefined') return;
-  localStorage.removeItem(CURRENT_STATE_KEY);
-  localStorage.removeItem(ACTIVE_GIVEAWAY_KEY);
-};
-
-const saveGiveaway = (giveaway: GiveawayData) => {
-  if (typeof window === 'undefined') return;
-
-  const giveaways = getAllGiveaways();
-  const index = giveaways.findIndex(g => g.id === giveaway.id);
-
-  if (index >= 0) {
-    giveaways[index] = giveaway;
-  } else {
-    giveaways.push(giveaway);
-  }
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(giveaways));
-};
-
-const getGiveaway = (id: string): GiveawayData | null => {
-  const giveaways = getAllGiveaways();
-  return giveaways.find(g => g.id === id) || null;
-};
-
-const getAllGiveaways = (): GiveawayData[] => {
-  if (typeof window === 'undefined') return [];
-  const data = localStorage.getItem(STORAGE_KEY);
-  return data ? JSON.parse(data) : [];
-};
-
-const deleteGiveaway = (id: string) => {
-  if (typeof window === 'undefined') return;
-  const giveaways = getAllGiveaways().filter(g => g.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(giveaways));
-};
 
 // QR Code generator using public API
 async function generateRealQRCode(text: string): Promise<string> {
@@ -320,6 +244,7 @@ function SmartLinkGenerator({
   const [giveawayData, setGiveawayData] = useState<GiveawayData | null>(existingGiveaway || null);
   const [title, setTitle] = useState(existingGiveaway?.title || "");
   const [showInstructions, setShowInstructions] = useState(false);
+  const saveGiveawayMutation = useMutation(api.publicGiveaways.saveGiveaway);
 
   useEffect(() => {
     if (existingGiveaway) {
@@ -328,7 +253,7 @@ function SmartLinkGenerator({
     }
   }, [existingGiveaway]);
 
-  const generateLink = () => {
+  const generateLink = async () => {
     if (!title.trim()) {
       toast.error("Digite um nome para o sorteio!");
       return;
@@ -343,11 +268,24 @@ function SmartLinkGenerator({
       method: 'link'
     };
 
-    saveGiveaway(newGiveaway);
-    setGiveawayData(newGiveaway);
-    setActiveGiveaway(newGiveaway.id);
-    onGenerate(newGiveaway.id, newGiveaway);
-    toast.success("Link criado com sucesso!");
+    try {
+      // Salvar no Convex
+      await saveGiveawayMutation({
+        giveawayId: newGiveaway.id,
+        title: newGiveaway.title,
+        participants: [],
+        isActive: true,
+        method: 'link'
+      });
+
+      setGiveawayData(newGiveaway);
+      localStorage.setItem(ACTIVE_GIVEAWAY_KEY, newGiveaway.id);
+      onGenerate(newGiveaway.id, newGiveaway);
+      toast.success("Link criado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar sorteio:", error);
+      toast.error("Erro ao criar sorteio. Tente novamente.");
+    }
   };
 
   // Generate PUBLIC shareable URL
@@ -483,6 +421,7 @@ function QRCodeGeneratorComponent({
   const [showInstructions, setShowInstructions] = useState(false);
   const [giveawayData, setGiveawayData] = useState<GiveawayData | null>(existingGiveaway || null);
   const [title, setTitle] = useState(existingGiveaway?.title || "");
+  const saveGiveawayMutation = useMutation(api.publicGiveaways.saveGiveaway);
 
   useEffect(() => {
     if (existingGiveaway) {
@@ -511,18 +450,31 @@ function QRCodeGeneratorComponent({
       method: 'qrcode'
     };
 
-    saveGiveaway(newGiveaway);
-    setActiveGiveaway(newGiveaway.id);
+    try {
+      // Salvar no Convex
+      await saveGiveawayMutation({
+        giveawayId: newGiveaway.id,
+        title: newGiveaway.title,
+        participants: [],
+        isActive: true,
+        method: 'qrcode'
+      });
 
-    // Generate QR Code with PUBLIC URL
-    const targetUrl = `${window.location.origin}/giveaway/${newGiveaway.id}`;
-    const qrDataUrl = await generateRealQRCode(targetUrl);
+      // Generate QR Code with PUBLIC URL
+      const targetUrl = `${window.location.origin}/giveaway/${newGiveaway.id}`;
+      const qrDataUrl = await generateRealQRCode(targetUrl);
 
-    setQrCode(qrDataUrl);
-    setGiveawayData(newGiveaway);
-    setIsGenerating(false);
-    onGenerate(newGiveaway.id, newGiveaway);
-    toast.success("QR Code gerado com sucesso!");
+      setQrCode(qrDataUrl);
+      setGiveawayData(newGiveaway);
+      localStorage.setItem(ACTIVE_GIVEAWAY_KEY, newGiveaway.id);
+      onGenerate(newGiveaway.id, newGiveaway);
+      toast.success("QR Code gerado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao salvar sorteio:", error);
+      toast.error("Erro ao criar sorteio. Tente novamente.");
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const downloadQR = () => {
@@ -621,7 +573,7 @@ function QRCodeGeneratorComponent({
   );
 }
 
-// Winner Display
+// Winner Display (sem mudanças)
 function WinnerDisplay({
   winner,
   onNewDraw
@@ -678,85 +630,53 @@ export default function GiveawayTool() {
   const [currentGiveaway, setCurrentGiveaway] = useState<GiveawayData | null>(null);
   const [showParticipants, setShowParticipants] = useState(true);
 
-  // Load saved state on mount - ONLY for creator
-  useEffect(() => {
-    // Load saved state for creator
-    const savedState = getCurrentState();
-    if (savedState) {
-      setSelectedMethod(savedState.selectedMethod);
-      if (savedState.currentGiveaway) {
-        // Reload fresh data from storage
-        const freshGiveaway = getGiveaway(savedState.currentGiveaway.id);
-        if (freshGiveaway) {
-          setCurrentGiveaway(freshGiveaway);
-          setParticipants(freshGiveaway.participants);
-          if (freshGiveaway.method) {
-            setSelectedMethod(freshGiveaway.method);
-          }
-        }
-      }
-      if (savedState.winner) {
-        setWinner(savedState.winner);
-      }
-    }
+  const convex = useConvex();
+  const userGiveaways = useQuery(api.publicGiveaways.getUserGiveaways);
+  const deleteGiveawayMutation = useMutation(api.publicGiveaways.deleteGiveaway);
 
-    // Check for active giveaway
-    const activeGiveawayId = getActiveGiveawayId();
-    if (activeGiveawayId && !savedState?.currentGiveaway) {
-      const activeGiveaway = getGiveaway(activeGiveawayId);
-      if (activeGiveaway) {
-        setCurrentGiveaway(activeGiveaway);
-        setParticipants(activeGiveaway.participants);
-        if (activeGiveaway.method) {
-          setSelectedMethod(activeGiveaway.method);
+  // Load saved state and sync with Convex
+  useEffect(() => {
+    const activeGiveawayId = localStorage.getItem(ACTIVE_GIVEAWAY_KEY);
+    if (activeGiveawayId && userGiveaways) {
+      const giveaway = userGiveaways.find(g => g.id === activeGiveawayId);
+      if (giveaway) {
+        setCurrentGiveaway(giveaway as GiveawayData);
+        setParticipants(giveaway.participants as Participant[]);
+        if (giveaway.method) {
+          setSelectedMethod(giveaway.method as GiveawayMethod);
         }
       }
     }
-  }, []);
+  }, [userGiveaways]);
 
-  // Save state whenever it changes
-  useEffect(() => {
-    if (currentGiveaway || winner) {
-      saveCurrentState({
-        selectedMethod,
-        currentGiveaway,
-        participants,
-        winner
-      });
-    }
-  }, [selectedMethod, currentGiveaway, participants, winner]);
-
-  // Real-time participants polling
+  // Poll for participants updates
   useEffect(() => {
     if (!currentGiveaway?.id) return;
 
-    // Save current giveaway whenever participants change
-    if (currentGiveaway) {
-      const updatedGiveaway = { ...currentGiveaway, participants };
-      saveGiveaway(updatedGiveaway);
-    }
+    const pollParticipants = async () => {
+      try {
+        const data = await convex.query(api.publicGiveaways.getGiveaway, {
+          giveawayId: currentGiveaway.id
+        });
 
-    const interval = setInterval(() => {
-      const giveaway = getGiveaway(currentGiveaway.id);
-      if (giveaway && giveaway.participants.length !== participants.length) {
-        setParticipants(giveaway.participants);
-        setCurrentGiveaway(giveaway);
-        if (giveaway.participants.length > participants.length) {
-          toast.success("Novo participante entrou!");
+        if (data && data.participants.length !== participants.length) {
+          setParticipants(data.participants as Participant[]);
+          if (data.participants.length > participants.length) {
+            toast.success("Novo participante entrou!");
+          }
         }
+      } catch (error) {
+        console.error("Erro ao buscar participantes:", error);
       }
-    }, 2000);
+    };
 
+    const interval = setInterval(pollParticipants, 3000);
     return () => clearInterval(interval);
-  }, [currentGiveaway, participants]);
+  }, [currentGiveaway, participants, convex]);
 
   const handleGenerateGiveaway = (id: string, data: GiveawayData) => {
     setCurrentGiveaway(data);
-    setActiveGiveaway(id);
-    const giveaway = getGiveaway(id);
-    if (giveaway) {
-      setParticipants(giveaway.participants);
-    }
+    localStorage.setItem(ACTIVE_GIVEAWAY_KEY, id);
   };
 
   const runGiveaway = () => {
@@ -796,26 +716,27 @@ export default function GiveawayTool() {
     }, 150);
   };
 
-  const resetGiveaway = () => {
+  const resetGiveaway = async () => {
     if (currentGiveaway) {
-      deleteGiveaway(currentGiveaway.id);
+      try {
+        await deleteGiveawayMutation({ giveawayId: currentGiveaway.id });
+        localStorage.removeItem(ACTIVE_GIVEAWAY_KEY);
+        setCurrentGiveaway(null);
+        setParticipants([]);
+        setWinner(null);
+        toast.success("Sorteio excluído!");
+      } catch  {
+        toast.error("Erro ao excluir sorteio");
+      }
     }
-    clearCurrentState();
-    setCurrentGiveaway(null);
-    setParticipants([]);
-    setWinner(null);
-    toast.success("Sorteio excluído!");
   };
 
   const continueExistingGiveaway = () => {
+    // Implementação para continuar sorteio existente
     if (currentGiveaway) {
-      const fresh = getGiveaway(currentGiveaway.id);
-      if (fresh) {
-        setCurrentGiveaway(fresh);
-        setParticipants(fresh.participants);
-        if (fresh.method) {
-          setSelectedMethod(fresh.method);
-        }
+      setParticipants(currentGiveaway.participants);
+      if (currentGiveaway.method) {
+        setSelectedMethod(currentGiveaway.method);
       }
     }
   };
