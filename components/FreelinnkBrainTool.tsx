@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect, Fragment, forwardRef } from "react";
+import { useState, useRef, useEffect, Fragment } from "react";
 import { useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
@@ -32,22 +32,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Label } from "@/components/ui/label";
-// Fallback/implementação local de ScrollArea para evitar import ausente
-// Exportamos como named export para manter compatibilidade com o restante do arquivo.
-export const ScrollArea = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
-  ({ children, className = "", ...props }, ref) => {
-	return (
-	  <div
-		ref={ref}
-		className={cn("overflow-auto", className)}
-		{...props}
-	  >
-		{children}
-	  </div>
-	);
-  }
-);
-ScrollArea.displayName = "ScrollArea";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 
 // Verificação segura para SSR
