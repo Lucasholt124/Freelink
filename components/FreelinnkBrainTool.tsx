@@ -1762,12 +1762,19 @@ export default function FreelinkBrainTool() {
   	Melhores Horários para Postar
   	</p>
   	<div className="flex flex-wrap gap-2">
-  	{(results.viral_strategy?.best_times ?? []).map(time => (
-  <Badge key={time} variant="secondary" className="bg-purple-100 text-purple-800">
-    <Clock className="w-3 h-3 mr-1.5" />
-    {time}
-  </Badge>
-))}
+  	{results.viral_strategy && results.viral_strategy.best_times && results.viral_strategy.best_times.length > 0 ? (
+  	results.viral_strategy.best_times.map(time => (
+  	<Badge key={time} variant="secondary" className="bg-purple-100 text-purple-800">
+  	<Clock className="w-3 h-3 mr-1.5" />
+  	{time}
+  	</Badge>
+  	))
+  	) : (
+  	<Badge variant="secondary" className="bg-purple-100 text-purple-800">
+  	<Clock className="w-3 h-3 mr-1.5" />
+  	12:00h - 20:00h
+  	</Badge>
+  	)}
   	</div>
   	</div>
 
@@ -1779,8 +1786,8 @@ export default function FreelinkBrainTool() {
   	Estratégia de Hashtag
   	</p>
   	<p className="text-sm">
-  {results.viral_strategy?.hashtag_strategy ?? "Nenhuma estratégia de hashtag definida."}
-</p>
+  	{results.viral_strategy?.hashtag_strategy || "Use hashtags relevantes ao seu nicho e combine com hashtags virais"}
+  	</p>
   	</div>
   	</div>
 
@@ -1790,9 +1797,17 @@ export default function FreelinkBrainTool() {
   	Hacks de Engajamento
   	</p>
   	<ul className="space-y-1 list-disc list-inside">
-  	{(results.viral_strategy?.engagement_hacks ?? []).map((hack, i) => (
-  <li key={i} className="text-sm">{hack}</li>
-))}
+  	{results.viral_strategy && results.viral_strategy.engagement_hacks && results.viral_strategy.engagement_hacks.length > 0 ? (
+  	results.viral_strategy.engagement_hacks.map((hack, i) => (
+  	<li key={i} className="text-sm">{hack}</li>
+  	))
+  	) : (
+  	<>
+  	<li className="text-sm">Responda todos os comentários nas primeiras horas</li>
+  	<li className="text-sm">Use CTAs que incentivem salvamento e compartilhamento</li>
+  	<li className="text-sm">Crie posts que peçam opinião do público</li>
+  	</>
+  	)}
   	</ul>
   	</div>
   	</CardContent>
