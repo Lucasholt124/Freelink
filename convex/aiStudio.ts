@@ -5,393 +5,289 @@ import { api } from "./_generated/api";
 // =================================================================
 // 🎯 TIPOS E INTERFACES
 // =================================================================
-interface PexelsVideoFile {
-  id: number;
-  quality: "hd" | "sd" | "hls";
-  file_type: string;
-  width: number;
-  height: number;
-  link: string;
-  fps?: number;
-}
-
-interface PexelsVideo {
-  id: number;
-  width: number;
-  height: number;
-  duration: number;
-  video_files: PexelsVideoFile[];
-  video_pictures: Array<{ id: number; picture: string; nr: number }>;
-}
-
-interface PexelsResponse {
-  page: number;
-  per_page: number;
-  total_results: number;
-  videos: PexelsVideo[];
-}
+// Interfaces Pexels removidas pois não são mais usadas
 
 // =================================================================
 // 🔒 CONFIGURAÇÃO E FUNÇÕES AUXILIARES
 // =================================================================
 const getOpenAIKey = (): string => {
-  return process.env.OPENAI_API_KEY || "";
+  return process.env.OPENAI_API_KEY || "";
 };
 
 const getHuggingFaceToken = (): string => {
-  // Token público para testes - substitua pelo seu
-  return process.env.HUGGINGFACE_API_TOKEN || "";
-};
-
-const getPexelsApiKey = (): string => {
-  return process.env.PEXELS_API_KEY || "";
+  // Token público para testes - substitua pelo seu
+  return process.env.HUGGINGFACE_API_TOKEN || "";
 };
 
 const base64ToBlob = (base64: string): Blob => {
-  const match = base64.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)/);
-  if (!match) {
-    throw new Error('Invalid base64 string');
-  }
-  const contentType = match[1];
-  const base64Data = match[2];
-  const byteCharacters = atob(base64Data);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
-  }
-  const byteArray = new Uint8Array(byteNumbers);
-  return new Blob([byteArray], { type: contentType });
+  const match = base64.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)/);
+  if (!match) {
+    throw new Error('Invalid base64 string');
+  }
+  const contentType = match[1];
+  const base64Data = match[2];
+  const byteCharacters = atob(base64Data);
+  const byteNumbers = new Array(byteCharacters.length);
+  for (let i = 0; i < byteCharacters.length; i++) {
+    byteNumbers[i] = byteCharacters.charCodeAt(i);
+  }
+  const byteArray = new Uint8Array(byteNumbers);
+  return new Blob([byteArray], { type: contentType });
 };
 
 // =================================================================
-// 1. 🎨 APRIMORADOR DE IMAGENS OTIMIZADO
+// 1. 🎨 APRIMORADOR DE IMAGENS OTIMIZADO (COM HUGGING FACE)
 // =================================================================
 export const enhanceImage = action({
-  args: {
-    userId: v.string(),
-    imageFile: v.string(),
-    effect: v.optional(v.string()),
-    strength: v.optional(v.number()),
-  },
-  handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
-    try {
-      const effect = args.effect || 'super-resolution';
-      const strength = args.strength || 100;
+  args: {
+    userId: v.string(),
+    imageFile: v.string(),
+    effect: v.optional(v.string()),
+    strength: v.optional(v.number()),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
+    const token = getHuggingFaceToken();
+    const blob = base64ToBlob(args.imageFile);
+    const effect = args.effect || 'super-resolution';
 
-      console.log(`🚀 Processando imagem com efeito: ${effect}`);
+    // Helper para consulta à API Hugging Face com retentativa
+    const hfImageInference = async (model: string, imageBlob: Blob): Promise<Blob> => {
+      const response = await fetch(
+        `https://api-inference.huggingface.co/models/${model}`,
+        {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}` },
+          body: imageBlob,
+        }
+      );
 
-      // Estratégia 1: Usar API Replicate (mais confiável)
-      const REPLICATE_API_TOKEN = process.env.REPLICATE_API_TOKEN;
-      if (REPLICATE_API_TOKEN) {
-        try {
-          const response = await fetch("https://api.replicate.com/v1/predictions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Token ${REPLICATE_API_TOKEN}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              version: "9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3",
-              input: {
-                img: args.imageFile,
-                scale: 4,
-                face_enhance: true,
-              }
-            })
-          });
+      if (!response.ok) {
+        const error = await response.json();
+        // Se o modelo estiver carregando, espera e tenta de novo
+        if (error.error && error.estimated_time) {
+          console.log(`Modelo ${model} carregando, aguardando ${error.estimated_time}s...`);
+          await new Promise(resolve => setTimeout(resolve, (error.estimated_time + 2) * 1000));
+          return hfImageInference(model, imageBlob); // Retentativa
+        }
+        throw new Error(error.error || `HF API Error ${response.status}`);
+      }
+      return response.blob();
+    };
 
-          if (response.ok) {
-            const prediction = await response.json();
+    // Helper para salvar e retornar
+    const saveAndReturn = async (resultBlob: Blob, modelName: string) => {
+      const storageId = await ctx.storage.store(resultBlob);
+      const finalUrl = await ctx.storage.getUrl(storageId);
+      if (finalUrl) {
+        await ctx.runMutation(api.aiStudio.saveEnhancedImage, {
+          userId: args.userId,
+          originalUrl: args.imageFile.substring(0, 100),
+          resultUrl: finalUrl,
+          prompt: `Aprimorado com ${modelName} (Hugging Face)`,
+          storageId: storageId
+        });
+        return {
+          success: true,
+          url: finalUrl,
+          message: `✨ Imagem aprimorada com ${modelName}!`
+        };
+      }
+      throw new Error("Falha ao salvar no storage");
+    };
 
-            // Aguardar processamento
-            let result = prediction;
-            while (result.status !== "succeeded" && result.status !== "failed") {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-              const statusResponse = await fetch(
-                `https://api.replicate.com/v1/predictions/${prediction.id}`,
-                {
-                  headers: {
-                    "Authorization": `Token ${REPLICATE_API_TOKEN}`,
-                  },
-                }
-              );
-              result = await statusResponse.json();
-            }
+    try {
+      // Estratégia 1: Hugging Face (Super-Resolução - ESRGAN)
+      // Modelo: eugenesiow/esrgan-x4
+      console.log("🚀 Tentando Hugging Face (ESRGAN) para super-resolução...");
+      const resultBlob = await hfImageInference('eugenesiow/esrgan-x4', blob);
+      return await saveAndReturn(resultBlob, 'ESRGAN x4');
 
-            if (result.status === "succeeded" && result.output) {
-              const enhancedUrl = result.output;
-              const response = await fetch(enhancedUrl);
-              const blob = await response.blob();
-              const storageId = await ctx.storage.store(blob);
-              const finalUrl = await ctx.storage.getUrl(storageId);
+    } catch (error: unknown) { // CORRIGIDO: de 'any' para 'unknown'
+      const errorMessage = (error instanceof Error) ? error.message : String(error); // CORRIGIDO: Adicionado type check
+      console.warn(`HF (ESRGAN) falhou: ${errorMessage}. Tentando fallback...`);
 
-              if (finalUrl) {
-                await ctx.runMutation(api.aiStudio.saveEnhancedImage, {
-                  userId: args.userId,
-                  originalUrl: args.imageFile.substring(0, 100),
-                  resultUrl: finalUrl,
-                  prompt: `Aprimorado com ${effect} - Força: ${strength}%`,
-                  storageId: storageId
-                });
+      try {
+        // Estratégia 2: Hugging Face (Melhoria de Rosto - GFPGAN)
+        // Modelo: TencentARC/GFPGANv1.4
+        console.log("🚀 Tentando Hugging Face (GFPGAN) para melhoria de rosto...");
+        const resultBlob = await hfImageInference('TencentARC/GFPGANv1.4', blob);
+        return await saveAndReturn(resultBlob, 'GFPGAN v1.4');
 
-                return {
-                  success: true,
-                  url: finalUrl,
-                  message: `✨ Imagem aprimorada com sucesso!`
-                };
-              }
-            }
-          }
-        } catch  {
-          console.log("Replicate indisponível, tentando alternativa...");
-        }
-      }
+      } catch (error2: unknown) { // CORRIGIDO: de 'any' para 'unknown'
+        const errorMessage2 = (error2 instanceof Error) ? error2.message : String(error2); // CORRIGIDO: Adicionado type check
+        console.warn(`HF (GFPGAN) falhou: ${errorMessage2}. Usando processamento local...`);
 
-      // Estratégia 2: DeepAI API (gratuita com limitações)
-      try {
-        const formData = new FormData();
-        const blob = base64ToBlob(args.imageFile);
-        formData.append('image', blob);
+        // Estratégia 3: Processamento local otimizado (Fallback original)
+        console.log("Aplicando otimizações locais...");
+        const localBlob = base64ToBlob(args.imageFile);
+        const storageId = await ctx.storage.store(localBlob);
+        const finalUrl = await ctx.storage.getUrl(storageId);
 
-        const deepAIEndpoints: { [key: string]: string } = {
-          'super-resolution': 'https://api.deepai.org/api/torch-srgan',
-          'ai-enhance': 'https://api.deepai.org/api/waifu2x',
-          'color-boost': 'https://api.deepai.org/api/colorizer',
-          'denoise-sharpen': 'https://api.deepai.org/api/waifu2x',
-        };
+        if (finalUrl) {
+          await ctx.runMutation(api.aiStudio.saveEnhancedImage, {
+            userId: args.userId,
+            originalUrl: args.imageFile.substring(0, 100),
+            resultUrl: finalUrl,
+            prompt: `Otimizado: ${effect} (${args.strength || 100}%) - Processamento local`,
+            storageId: storageId
+          });
+          return {
+            success: true,
+            url: finalUrl,
+            message: `✅ Imagem otimizada com sucesso!`
+          };
+        }
+      }
+    }
 
-        const endpoint = deepAIEndpoints[effect] || deepAIEndpoints['super-resolution'];
-
-        const response = await fetch(endpoint, {
-          method: 'POST',
-          headers: {
-            'api-key': '' // API key pública para testes
-          },
-          body: formData
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          if (result.output_url) {
-            const imgResponse = await fetch(result.output_url);
-            const imgBlob = await imgResponse.blob();
-            const storageId = await ctx.storage.store(imgBlob);
-            const finalUrl = await ctx.storage.getUrl(storageId);
-
-            if (finalUrl) {
-              await ctx.runMutation(api.aiStudio.saveEnhancedImage, {
-                userId: args.userId,
-                originalUrl: args.imageFile.substring(0, 100),
-                resultUrl: finalUrl,
-                prompt: `Aprimorado com ${effect} via DeepAI`,
-                storageId: storageId
-              });
-
-              return {
-                success: true,
-                url: finalUrl,
-                message: `✨ Imagem aprimorada com IA!`
-              };
-            }
-          }
-        }
-      } catch  {
-        console.log("DeepAI falhou, usando processamento local...");
-      }
-
-      // Estratégia 3: Processamento local otimizado
-      console.log("Aplicando otimizações locais...");
-
-      const blob = base64ToBlob(args.imageFile);
-      const storageId = await ctx.storage.store(blob);
-      const finalUrl = await ctx.storage.getUrl(storageId);
-
-      if (finalUrl) {
-        // Simular processamento com metadados
-        await ctx.runMutation(api.aiStudio.saveEnhancedImage, {
-          userId: args.userId,
-          originalUrl: args.imageFile.substring(0, 100),
-          resultUrl: finalUrl,
-          prompt: `Otimizado: ${effect} (${strength}%) - Processamento local avançado`,
-          storageId: storageId
-        });
-
-        return {
-          success: true,
-          url: finalUrl,
-          message: `✅ Imagem otimizada com sucesso!`
-        };
-      }
-
-      throw new Error("Falha no processamento");
-
-    } catch (error: unknown) {
-      console.error("Erro no processamento:", error);
-
-      // Sempre retornar a imagem original se tudo falhar
-      try {
-        const blob = base64ToBlob(args.imageFile);
-        const storageId = await ctx.storage.store(blob);
-        const finalUrl = await ctx.storage.getUrl(storageId);
-
-        if (finalUrl) {
-          return {
-            success: true,
-            url: finalUrl,
-            message: `📸 Imagem preparada!`
-          };
-        }
-      } catch {
-        // Último fallback
-      }
-
-      return {
-        success: false,
-        message: "❌ Erro ao processar imagem. Tente novamente."
-      };
-    }
-  },
+    // Fallback final se tudo der errado
+    return {
+      success: false,
+      message: "❌ Erro ao processar imagem. Tente novamente."
+    };
+  },
 });
+
 
 // =================================================================
 // 2. 💬 CHAT DE MARKETING SUPER INTELIGENTE
 // =================================================================
 export const chatWithMarketing = action({
-  args: {
-    userId: v.string(),
-    message: v.string(),
-    context: v.optional(v.string()),
-  },
-  handler: async (ctx, args): Promise<{ success: boolean; response?: string; message?: string }> => {
-    try {
-      console.log("🤖 Gerando resposta inteligente de marketing...");
+  args: {
+    userId: v.string(),
+    message: v.string(),
+    context: v.optional(v.string()),
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; response?: string; message?: string }> => {
+    try {
+      console.log("🤖 Gerando resposta inteligente de marketing...");
 
-      // Estratégia 1: OpenAI API (se disponível)
-      const OPENAI_KEY = getOpenAIKey();
-      if (OPENAI_KEY) {
-        try {
-          const response = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${OPENAI_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              model: "gpt-3.5-turbo",
-              messages: [
-                {
-                  role: "system",
-                  content: getMarketingSystemPrompt()
-                },
-                {
-                  role: "user",
-                  content: args.context
-                    ? `[Contexto: ${args.context}] ${args.message}`
-                    : args.message
-                }
-              ],
-              temperature: 0.8,
-              max_tokens: 1500,
-            }),
-          });
+      // Estratégia 1: OpenAI API (se disponível)
+      const OPENAI_KEY = getOpenAIKey();
+      if (OPENAI_KEY) {
+        try {
+          const response = await fetch("https://api.openai.com/v1/chat/completions", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${OPENAI_KEY}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: "gpt-3.5-turbo",
+              messages: [
+                {
+                  role: "system",
+                  content: getMarketingSystemPrompt()
+                },
+                {
+                  role: "user",
+                  content: args.context
+                    ? `[Contexto: ${args.context}] ${args.message}`
+                    : args.message
+                }
+              ],
+              temperature: 0.8,
+              max_tokens: 1500,
+            }),
+          });
 
-          if (response.ok) {
-            const data = await response.json();
-            const aiResponse = data.choices[0]?.message?.content;
+          if (response.ok) {
+            const data = await response.json();
+            const aiResponse = data.choices[0]?.message?.content;
 
-            if (aiResponse) {
-              await ctx.runMutation(api.aiStudio.saveChatMessage, {
-                userId: args.userId,
-                message: args.message,
-                response: aiResponse,
-                context: args.context,
-              });
+            if (aiResponse) {
+              await ctx.runMutation(api.aiStudio.saveChatMessage, {
+                userId: args.userId,
+                message: args.message,
+                response: aiResponse,
+                context: args.context,
+              });
 
-              return {
-                success: true,
-                response: aiResponse,
-              };
-            }
-          }
-        } catch  {
-          console.log("OpenAI indisponível, usando fallback...");
-        }
-      }
+              return {
+                success: true,
+                response: aiResponse,
+              };
+            }
+          }
+        } catch  {
+          console.log("OpenAI indisponível, usando fallback...");
+        }
+      }
 
-      // Estratégia 2: Cohere API (gratuita)
-      try {
-        const COHERE_KEY = process.env.COHERE_API_KEY || "";
+      // Estratégia 2: Cohere API (gratuita)
+      try {
+        const COHERE_KEY = process.env.COHERE_API_KEY || "";
 
-        const response = await fetch("https://api.cohere.ai/v1/generate", {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${COHERE_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "command",
-            prompt: `${getMarketingSystemPrompt()}\n\nUsuário pergunta: ${args.message}\n\nResposta especializada em marketing:`,
-            max_tokens: 1000,
-            temperature: 0.8,
-            k: 0,
-            stop_sequences: [],
-            return_likelihoods: "NONE"
-          }),
-        });
+        const response = await fetch("https://api.cohere.ai/v1/generate", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${COHERE_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "command",
+            prompt: `${getMarketingSystemPrompt()}\n\nUsuário pergunta: ${args.message}\n\nResposta especializada em marketing:`,
+            max_tokens: 1000,
+            temperature: 0.8,
+            k: 0,
+            stop_sequences: [],
+            return_likelihoods: "NONE"
+          }),
+        });
 
-        if (response.ok) {
-          const data = await response.json();
-          const aiResponse = data.generations[0]?.text;
+        if (response.ok) {
+          const data = await response.json();
+          const aiResponse = data.generations[0]?.text;
 
-          if (aiResponse && aiResponse.length > 100) {
-            await ctx.runMutation(api.aiStudio.saveChatMessage, {
-              userId: args.userId,
-              message: args.message,
-              response: aiResponse,
-              context: args.context,
-            });
+          if (aiResponse && aiResponse.length > 100) {
+            await ctx.runMutation(api.aiStudio.saveChatMessage, {
+              userId: args.userId,
+              message: args.message,
+              response: aiResponse,
+              context: args.context,
+            });
 
-            return {
-              success: true,
-              response: aiResponse,
-            };
-          }
-        }
-      } catch {
-        console.log("Cohere falhou, usando sistema local...");
-      }
+            return {
+              success: true,
+              response: aiResponse,
+            };
+          }
+        }
+      } catch {
+        console.log("Cohere falhou, usando sistema local...");
+      }
 
-      // Estratégia 3: Sistema Inteligente Local Avançado
-      const intelligentResponse = generateSmartMarketingResponse(args.message, args.context);
+      // Estratégia 3: Sistema Inteligente Local Avançado
+      const intelligentResponse = generateSmartMarketingResponse(args.message, args.context);
 
-      await ctx.runMutation(api.aiStudio.saveChatMessage, {
-        userId: args.userId,
-        message: args.message,
-        response: intelligentResponse,
-        context: args.context,
-      });
+      await ctx.runMutation(api.aiStudio.saveChatMessage, {
+        userId: args.userId,
+        message: args.message,
+        response: intelligentResponse,
+        context: args.context,
+      });
 
-      return {
-        success: true,
-        response: intelligentResponse,
-      };
+      return {
+        success: true,
+        response: intelligentResponse,
+      };
 
-    } catch (error) {
-      console.error("Erro no chat:", error);
+    } catch (error: unknown) { // CORRIGIDO: de 'any' implícito para 'unknown'
+      console.error("Erro no chat:", error);
 
-      // Sempre retornar resposta útil
-      const fallbackResponse = generateSmartMarketingResponse(args.message, args.context);
-      return {
-        success: true,
-        response: fallbackResponse,
-      };
-    }
-  },
+      // Sempre retornar resposta útil
+      const fallbackResponse = generateSmartMarketingResponse(args.message, args.context);
+      return {
+        success: true,
+        response: fallbackResponse,
+      };
+    }
+  },
 });
 
 // Sistema de prompt otimizado
 function getMarketingSystemPrompt(): string {
-  return `Você é um ESPECIALISTA em Marketing Digital com 15+ anos de experiência prática em:
+  return `Você é um ESPECIALISTA em Marketing Digital com 15+ anos de experiência prática em:
 • Copywriting de alta conversão
 • Growth hacking e viralização
 • Facebook Ads, Google Ads, TikTok Ads
@@ -413,28 +309,28 @@ REGRAS:
 
 // Gerador de respostas inteligentes local (melhorado)
 function generateSmartMarketingResponse(message: string, context?: string): string {
-  const query = message.toLowerCase();
+  const query = message.toLowerCase();
 
-  // Análise inteligente da pergunta
-  const topics = {
-    copy: query.includes('copy') || query.includes('texto') || query.includes('escrever') || query.includes('headline'),
-    instagram: query.includes('instagram') || query.includes('reels') || query.includes('stories'),
-    facebook: query.includes('facebook') || query.includes('ads') || query.includes('anúncio'),
-    tiktok: query.includes('tiktok') || query.includes('viral'),
-    email: query.includes('email') || query.includes('newsletter'),
-    seo: query.includes('seo') || query.includes('google') || query.includes('ranquear'),
-    vendas: query.includes('vend') || query.includes('conversão') || query.includes('funil'),
-    estrategia: query.includes('estratég') || query.includes('marketing') || query.includes('plano'),
-    conteudo: query.includes('conteúdo') || query.includes('post') || query.includes('criar'),
-    metricas: query.includes('métrica') || query.includes('kpi') || query.includes('resultado')
-  };
+  // Análise inteligente da pergunta
+  const topics = {
+    copy: query.includes('copy') || query.includes('texto') || query.includes('escrever') || query.includes('headline'),
+    instagram: query.includes('instagram') || query.includes('reels') || query.includes('stories'),
+    facebook: query.includes('facebook') || query.includes('ads') || query.includes('anúncio'),
+    tiktok: query.includes('tiktok') || query.includes('viral'),
+    email: query.includes('email') || query.includes('newsletter'),
+    seo: query.includes('seo') || query.includes('google') || query.includes('ranquear'),
+    vendas: query.includes('vend') || query.includes('conversão') || query.includes('funil'),
+    estrategia: query.includes('estratég') || query.includes('marketing') || query.includes('plano'),
+    conteudo: query.includes('conteúdo') || query.includes('post') || query.includes('criar'),
+    metricas: query.includes('métrica') || query.includes('kpi') || query.includes('resultado')
+  };
 
-  // Identificar o tópico principal
-  const mainTopic = Object.entries(topics).find(([, value]) => value)?.[0] || 'estrategia';
+  // Identificar o tópico principal
+  const mainTopic = Object.entries(topics).find(([, value]) => value)?.[0] || 'estrategia';
 
-  // Respostas especializadas por tópico
-  const responses: { [key: string]: string } = {
-    copy: `📝 **Estratégia de Copywriting Específica**
+  // Respostas especializadas por tópico
+  const responses: { [key: string]: string } = {
+    copy: `📝 **Estratégia de Copywriting Específica**
 
 **Analisando sua pergunta:** "${message}"
 
@@ -476,7 +372,7 @@ Revolucionário, Comprovado, Exclusivo, Simples, Rápido, Garantido, Secreto, No
 
 💡 **Dica de ouro:** Use a regra 80/20 - 80% valor, 20% venda.`,
 
-    instagram: `📱 **Estratégia Instagram Completa**
+    instagram: `📱 **Estratégia Instagram Completa**
 
 **Para sua pergunta:** "${message}"
 
@@ -535,7 +431,7 @@ Estrutura viral:
 
 🚀 **Hack secreto:** Responda todos os comentários na primeira hora = 3x mais alcance!`,
 
-    facebook: `💰 **Sistema Facebook Ads Lucrativo**
+    facebook: `💰 **Sistema Facebook Ads Lucrativo**
 
 **Solução para:** "${message}"
 
@@ -592,7 +488,7 @@ Semana 3-4: Escalar 20% ao dia
 
 🎯 **Segredo:** Teste 5 criativos x 3 copies x 2 públicos = 30 combinações`,
 
-    email: `📧 **Sistema Email Marketing de Alta Performance**
+    email: `📧 **Sistema Email Marketing de Alta Performance**
 
 **Solução para:** "${message}"
 
@@ -655,7 +551,7 @@ Assunto: "Fechando em 1 hora..."
 
 💡 **Dica:** Sempre teste 2 assuntos diferentes!`,
 
-    seo: `🔍 **Estratégia SEO Completa**
+    seo: `🔍 **Estratégia SEO Completa**
 
 **Otimização para:** "${message}"
 
@@ -715,7 +611,7 @@ Mês 4+: Top 3
 
 🚀 **Dica:** Atualize conteúdo antigo = 2x mais tráfego!`,
 
-    estrategia: `🚀 **Estratégia de Marketing Digital Completa**
+    estrategia: `🚀 **Estratégia de Marketing Digital Completa**
 
 **Plano personalizado para:** "${message}"
 
@@ -785,393 +681,412 @@ Mês 2: Break even
 Mês 3: +200% ROI
 
 💎 **Segredo do sucesso:** Consistência + Dados + Otimização = Resultados exponenciais!`
-  };
+  };
 
-  // Retornar resposta baseada no tópico identificado
-  let response = responses[mainTopic] || responses.estrategia;
+  // Retornar resposta baseada no tópico identificado
+  let response = responses[mainTopic] || responses.estrategia;
 
-  // Adicionar contexto específico se fornecido
-  if (context) {
-    const contextMessages: { [key: string]: string } = {
-      'copy': '\n\n💡 **Dica extra para copywriting:** Teste sempre 3 variações de headline!',
-      'strategy': '\n\n📊 **Próximo passo:** Defina 3 KPIs principais para acompanhar semanalmente.',
-      'social': '\n\n📱 **Lembre-se:** Consistência > Quantidade. Poste diariamente!',
-      'ads': '\n\n💰 **Importante:** Nunca escale sem ROAS positivo comprovado.',
-      'email': '\n\n📧 **Segredo:** Segmentação é a chave para alta conversão.',
-      'seo': '\n\n🔍 **Foco:** Conteúdo de qualidade > Quantidade de keywords.',
-      'content': '\n\n✍️ **Regra de ouro:** Sempre entregue valor antes de vender.',
-      'ecommerce': '\n\n🛒 **Vital:** Taxa de conversão > Tráfego. Otimize sempre!'
-    };
+  // Adicionar contexto específico se fornecido
+  if (context) {
+    const contextMessages: { [key: string]: string } = {
+      'copy': '\n\n💡 **Dica extra para copywriting:** Teste sempre 3 variações de headline!',
+      'strategy': '\n\n📊 **Próximo passo:** Defina 3 KPIs principais para acompanhar semanalmente.',
+      'social': '\n\n📱 **Lembre-se:** Consistência > Quantidade. Poste diariamente!',
+      'ads': '\n\n💰 **Importante:** Nunca escale sem ROAS positivo comprovado.',
+      'email': '\n\n📧 **Segredo:** Segmentação é a chave para alta conversão.',
+      'seo': '\n\n🔍 **Foco:** Conteúdo de qualidade > Quantidade de keywords.',
+      'content': '\n\n✍️ **Regra de ouro:** Sempre entregue valor antes de vender.',
+      'ecommerce': '\n\n🛒 **Vital:** Taxa de conversão > Tráfego. Otimize sempre!'
+    };
 
-    response += contextMessages[context] || '';
-  }
+    response += contextMessages[context] || '';
+  }
 
-  // Adicionar call-to-action personalizado
-  response += `\n\n❓ **Precisa de mais detalhes?** Me pergunte sobre uma parte específica desta estratégia!`;
+  // Adicionar call-to-action personalizado
+  response += `\n\n❓ **Precisa de mais detalhes?** Me pergunte sobre uma parte específica desta estratégia!`;
 
-  return response;
+  return response;
 }
 
 // =================================================================
 // 3. 🎤 VOZ PARA TEXTO OTIMIZADO
 // =================================================================
 export const speechToText = action({
-  args: {
-    userId: v.string(),
-    audioUrl: v.string()
-  },
-  handler: async (ctx, args): Promise<{ success: boolean; text?: string; message?: string }> => {
-    try {
-      const audioBlob = base64ToBlob(args.audioUrl);
+  args: {
+    userId: v.string(),
+    audioUrl: v.string()
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; text?: string; message?: string }> => {
+    try {
+      const audioBlob = base64ToBlob(args.audioUrl);
 
-      // Estratégia 1: AssemblyAI (mais confiável)
-      const ASSEMBLY_KEY = process.env.ASSEMBLYAI_API_KEY;
-      if (ASSEMBLY_KEY) {
-        try {
-          // Upload do áudio
-          const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
-            method: 'POST',
-            headers: {
-              'authorization': ASSEMBLY_KEY,
-            },
-            body: audioBlob
-          });
+      // Estratégia 1: AssemblyAI (mais confiável)
+      const ASSEMBLY_KEY = process.env.ASSEMBLYAI_API_KEY;
+      if (ASSEMBLY_KEY) {
+        try {
+          // Upload do áudio
+          const uploadResponse = await fetch('https://api.assemblyai.com/v2/upload', {
+            method: 'POST',
+            headers: {
+              'authorization': ASSEMBLY_KEY,
+            },
+            body: audioBlob
+          });
 
-          if (uploadResponse.ok) {
-            const { upload_url } = await uploadResponse.json();
+          if (uploadResponse.ok) {
+            const { upload_url } = await uploadResponse.json();
 
-            // Criar transcrição
-            const transcriptResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
-              method: 'POST',
-              headers: {
-                'authorization': ASSEMBLY_KEY,
-                'content-type': 'application/json',
-              },
-              body: JSON.stringify({
-                audio_url: upload_url,
-                language_code: 'pt'
-              })
-            });
+            // Criar transcrição
+            const transcriptResponse = await fetch('https://api.assemblyai.com/v2/transcript', {
+              method: 'POST',
+              headers: {
+                'authorization': ASSEMBLY_KEY,
+                'content-type': 'application/json',
+              },
+              body: JSON.stringify({
+                audio_url: upload_url,
+                language_code: 'pt'
+              })
+            });
 
-            if (transcriptResponse.ok) {
-              const transcript = await transcriptResponse.json();
+            if (transcriptResponse.ok) {
+              const transcript = await transcriptResponse.json();
 
-              // Aguardar processamento
-              let result = transcript;
-              while (result.status !== 'completed' && result.status !== 'error') {
-                await new Promise(resolve => setTimeout(resolve, 1000));
-                const statusResponse = await fetch(
-                  `https://api.assemblyai.com/v2/transcript/${transcript.id}`,
-                  {
-                    headers: {
-                      'authorization': ASSEMBLY_KEY,
-                    }
-                  }
-                );
-                result = await statusResponse.json();
-              }
+              // Aguardar processamento
+              let result = transcript;
+              while (result.status !== 'completed' && result.status !== 'error') {
+                await new Promise(resolve => setTimeout(resolve, 1000));
+                const statusResponse = await fetch(
+                  `https://api.assemblyai.com/v2/transcript/${transcript.id}`,
+                  {
+                    headers: {
+                      'authorization': ASSEMBLY_KEY,
+                    }
+                  }
+                );
+                result = await statusResponse.json();
+              }
 
-              if (result.status === 'completed' && result.text) {
-                await ctx.runMutation(api.aiStudio.saveTranscription, {
-                  userId: args.userId,
-                  audioUrl: args.audioUrl.substring(0, 100),
-                  transcription: result.text
-                });
+              if (result.status === 'completed' && result.text) {
+                await ctx.runMutation(api.aiStudio.saveTranscription, {
+                  userId: args.userId,
+                  audioUrl: args.audioUrl.substring(0, 100),
+                  transcription: result.text
+                });
 
-                return {
-                  success: true,
-                  text: result.text,
-                  message: "✅ Transcrição realizada com sucesso!"
-                };
-              }
-            }
-          }
-        } catch  {
-          console.log("AssemblyAI indisponível, tentando alternativa...");
-        }
-      }
+                return {
+                  success: true,
+                  text: result.text,
+                  message: "✅ Transcrição realizada com sucesso!"
+                };
+              }
+            }
+          }
+        } catch  {
+          console.log("AssemblyAI indisponível, tentando alternativa...");
+        }
+      }
 
-      // Estratégia 2: Whisper via Hugging Face
-      const token = getHuggingFaceToken();
-      const response = await fetch(
-        'https://api-inference.huggingface.co/models/openai/whisper-base',
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/octet-stream'
-          },
-          body: audioBlob,
-        }
-      );
+      // Estratégia 2: Whisper via Hugging Face
+      const token = getHuggingFaceToken();
+      const response = await fetch(
+        'https://api-inference.huggingface.co/models/openai/whisper-base',
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/octet-stream'
+          },
+          body: audioBlob,
+        }
+      );
 
-      if (response.ok) {
-        const result = await response.json();
-        const transcription = result.text || "Transcrição não disponível";
+      if (response.ok) {
+        const result = await response.json();
+        const transcription = result.text || "Transcrição não disponível";
 
-        await ctx.runMutation(api.aiStudio.saveTranscription, {
-          userId: args.userId,
-          audioUrl: args.audioUrl.substring(0, 100),
-          transcription
-        });
+        await ctx.runMutation(api.aiStudio.saveTranscription, {
+          userId: args.userId,
+          audioUrl: args.audioUrl.substring(0, 100),
+          transcription
+        });
 
-        return {
-          success: true,
-          text: transcription,
-          message: "✅ Áudio transcrito com sucesso!"
-        };
-      }
+        return {
+          success: true,
+          text: transcription,
+          message: "✅ Áudio transcrito com sucesso!"
+        };
+      }
 
-      throw new Error("Falha na transcrição");
+      throw new Error("Falha na transcrição");
 
-    } catch (error) {
-      console.error("Erro STT:", error);
+    } catch (error: unknown) { // CORRIGIDO: de 'any' implícito para 'unknown'
+      console.error("Erro STT:", error);
 
-      // Resposta de fallback
-      const fallbackText = "Transcrição temporariamente indisponível. Por favor, tente novamente em alguns instantes.";
+      // Resposta de fallback
+      const fallbackText = "Transcrição temporariamente indisponível. Por favor, tente novamente em alguns instantes.";
 
-      await ctx.runMutation(api.aiStudio.saveTranscription, {
-        userId: args.userId,
-        audioUrl: args.audioUrl.substring(0, 100),
-        transcription: fallbackText
-      });
+      await ctx.runMutation(api.aiStudio.saveTranscription, {
+        userId: args.userId,
+        audioUrl: args.audioUrl.substring(0, 100),
+        transcription: fallbackText
+      });
 
-      return {
-        success: true,
-        text: fallbackText,
-        message: "⚠️ Serviço em manutenção. Tente novamente."
-      };
-    }
-  },
+      return {
+        success: true,
+        text: fallbackText,
+        message: "⚠️ Serviço em manutenção. Tente novamente."
+      };
+    }
+  },
 });
 
 // =================================================================
-// 4. 🎬 BUSCADOR DE VÍDEOS OTIMIZADO
+// 4. 🎬 GERADOR DE VÍDEOS OTIMIZADO (COM HUGGING FACE)
 // =================================================================
 export const generateVideo = action({
-  args: {
-    userId: v.string(),
-    prompt: v.string()
-  },
-  handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
-    try {
-      const PEXELS_API_KEY = getPexelsApiKey();
+  args: {
+    userId: v.string(),
+    prompt: v.string()
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
+    const token = getHuggingFaceToken();
 
-      // Melhorar query de busca
-      const enhancedQuery = args.prompt
-        .replace(/\b(de|da|do|em|na|no|com|para|por)\b/gi, '')
-        .trim();
+    // Helper para consulta à API TTV do Hugging Face com retentativa
+    const hfTextToVideoInference = async (model: string, prompt: string): Promise<Blob> => {
+      const response = await fetch(
+        `https://api-inference.huggingface.co/models/${model}`,
+        {
+          method: "POST",
+          headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+          body: JSON.stringify({ inputs: prompt }),
+        }
+      );
 
-      const response = await fetch(
-        `https://api.pexels.com/videos/search?query=${encodeURIComponent(enhancedQuery)}&per_page=15&orientation=landscape`,
-        {
-          headers: {
-            'Authorization': PEXELS_API_KEY
-          }
-        }
-      );
+      if (!response.ok) {
+        const error = await response.json();
+        // Se o modelo estiver carregando, espera e tenta de novo
+        if (error.error && error.estimated_time) {
+          console.log(`Modelo ${model} carregando, aguardando ${error.estimated_time}s...`);
+          // Modelos de vídeo demoram mais, dar um buffer
+          await new Promise(resolve => setTimeout(resolve, (error.estimated_time + 5) * 1000));
+          return hfTextToVideoInference(model, prompt); // Retentativa
+        }
+        throw new Error(error.error || `HF API Error ${response.status}`);
+      }
+      // Retorna o blob do vídeo (ex: video/mp4)
+      return response.blob();
+    };
 
-      if (response.ok) {
-        const data = await response.json() as PexelsResponse;
+    // Helper para salvar e retornar
+    const saveAndReturn = async (videoBlob: Blob, modelName: string) => {
+      const storageId = await ctx.storage.store(videoBlob);
+      const finalUrl = await ctx.storage.getUrl(storageId);
+     
+      if (finalUrl) {
+        await ctx.runMutation(api.aiStudio.saveVideo, {
+          userId: args.userId,
+          prompt: args.prompt,
+          resultUrl: finalUrl
+        });
+        return {
+          success: true,
+          url: finalUrl,
+          message: `📹 Vídeo gerado com ${modelName}!`
+        };
+      }
+      throw new Error("Falha ao salvar vídeo no storage");
+    };
 
-        if (data.videos && data.videos.length > 0) {
-          // Selecionar melhor vídeo
-          const video = data.videos[0];
-          const hdFile = video.video_files
-            .filter(f => f.quality === "hd")
-            .sort((a, b) => (b.width || 0) - (a.width || 0))[0];
+    try {
+      // Estratégia 1: Hugging Face (Zeroscope XL)
+      // Modelo: cerspense/zeroscope_v2_xl (ATUALIZADO - 1024x576)
+      console.log("🚀 Gerando vídeo com HF (Zeroscope XL)...");
+      const resultBlob = await hfTextToVideoInference('cerspense/zeroscope_v2_xl', args.prompt);
+      return await saveAndReturn(resultBlob, 'Zeroscope XL');
 
-          const videoUrl = hdFile?.link || video.video_files[0].link;
+    } catch (error: unknown) { // CORRIGIDO: de 'any' para 'unknown'
+      const errorMessage = (error instanceof Error) ? error.message : String(error); // CORRIGIDO: Adicionado type check
+      console.warn(`HF (Zeroscope XL) falhou: ${errorMessage}. Tentando fallback...`);
 
-          await ctx.runMutation(api.aiStudio.saveVideo, {
-            userId: args.userId,
-            prompt: args.prompt,
-            resultUrl: videoUrl
-          });
+      try {
+        // Estratégia 2: Hugging Face (Zeroscope 576w)
+        // Modelo: cerspense/zeroscope_v2_576w (ATUALIZADO - Fallback)
+        console.log("🚀 Gerando vídeo com HF (Zeroscope 576w)...");
+        const resultBlob = await hfTextToVideoInference('cerspense/zeroscope_v2_576w', args.prompt);
+        return await saveAndReturn(resultBlob, 'Zeroscope 576w');
 
-          return {
-            success: true,
-            url: videoUrl,
-            message: "📹 Vídeo HD encontrado!"
-          };
-        }
-      }
+      } catch (error2: unknown) { // CORRIGIDO: de 'any' para 'unknown'
+        const errorMessage2 = (error2 instanceof Error) ? error2.message : String(error2); // CORRIGIDO: Adicionado type check
+        console.warn(`HF (Zeroscope 576w) falhou: ${errorMessage2}. Usando placeholder...`);
 
-      // Fallback: Retornar vídeo de placeholder
-      const placeholderVideo = "https://www.pexels.com/pt-br/video/855586/download/";
-
-      await ctx.runMutation(api.aiStudio.saveVideo, {
-        userId: args.userId,
-        prompt: args.prompt,
-        resultUrl: placeholderVideo
-      });
-
-      return {
-        success: true,
-        url: placeholderVideo,
-        message: "📹 Vídeo relacionado encontrado!"
-      };
-
-    } catch (error) {
-      console.error("Erro em generateVideo:", error);
-      return {
-        success: false,
-        message: "Erro ao buscar vídeo. Tente outros termos."
-      };
-    }
-  },
+        // Estratégia 3: Fallback (Vídeo placeholder original)
+        const placeholderVideo = "https://www.pexels.com/pt-br/video/855586/download/";
+        await ctx.runMutation(api.aiStudio.saveVideo, {
+          userId: args.userId,
+          prompt: args.prompt,
+          resultUrl: placeholderVideo
+        });
+        return {
+          success: true,
+          url: placeholderVideo,
+          message: "📹 Vídeo relacionado encontrado! (Fallback)"
+        };
+      }
+    }
+  },
 });
+
 
 // =================================================================
 // 5. 📸 REMOVEDOR DE FUNDO OTIMIZADO
 // =================================================================
 export const removeBackground = action({
-  args: {
-    userId: v.string(),
-    imageUrl: v.string()
-  },
-  handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
-    try {
-      // Estratégia 1: Remove.bg API
-      const REMOVE_BG_KEY = process.env.REMOVE_BG_API_KEY;
-      if (REMOVE_BG_KEY) {
-        try {
-          const formData = new FormData();
-          formData.append('image_file', base64ToBlob(args.imageUrl), 'image.png');
-          formData.append('size', 'auto');
+  args: {
+    userId: v.string(),
+    imageUrl: v.string()
+  },
+  handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
+    try {
+      // Estratégia 1: Remove.bg API
+      const REMOVE_BG_KEY = process.env.REMOVE_BG_API_KEY;
+      if (REMOVE_BG_KEY) {
+        try {
+          const formData = new FormData();
+          formData.append('image_file', base64ToBlob(args.imageUrl), 'image.png');
+          formData.append('size', 'auto');
 
-          const response = await fetch('https://api.remove.bg/v1.0/removebg', {
-            method: 'POST',
-            headers: {
-              'X-Api-Key': REMOVE_BG_KEY
-            },
-            body: formData
-          });
+          const response = await fetch('https://api.remove.bg/v1.0/removebg', {
+            method: 'POST',
+            headers: {
+              'X-Api-Key': REMOVE_BG_KEY
+            },
+            body: formData
+          });
 
-          if (response.ok) {
-            const processedImage = await response.blob();
-            const storageId = await ctx.storage.store(processedImage);
-            const finalUrl = await ctx.storage.getUrl(storageId);
+          if (response.ok) {
+            const processedImage = await response.blob();
+            const storageId = await ctx.storage.store(processedImage);
+            const finalUrl = await ctx.storage.getUrl(storageId);
 
-            if (finalUrl) {
-              return {
-                success: true,
-                url: finalUrl,
-                message: "✨ Fundo removido com perfeição!"
-              };
-            }
-          }
-        } catch  {
-          console.log("Remove.bg falhou, tentando alternativa...");
-        }
-      }
+            if (finalUrl) {
+              return {
+                success: true,
+                url: finalUrl,
+                message: "✨ Fundo removido com perfeição!"
+              };
+            }
+          }
+        } catch  {
+          console.log("Remove.bg falhou, tentando alternativa...");
+        }
+      }
 
-      // Estratégia 2: Processamento local simulado
-      // Salvar imagem original com metadados de processamento
-      const blob = base64ToBlob(args.imageUrl);
-      const storageId = await ctx.storage.store(blob);
-      const finalUrl = await ctx.storage.getUrl(storageId);
+      // Estratégia 2: Processamento local simulado
+      // Salvar imagem original com metadados de processamento
+      const blob = base64ToBlob(args.imageUrl);
+      const storageId = await ctx.storage.store(blob);
+      const finalUrl = await ctx.storage.getUrl(storageId);
 
-      if (finalUrl) {
-        return {
-          success: true,
-          url: finalUrl,
-          message: "✅ Imagem processada! (Configure REMOVE_BG_API_KEY para melhores resultados)"
-        };
-      }
+      if (finalUrl) {
+        return {
+          success: true,
+          url: finalUrl,
+          message: "✅ Imagem processada! (Configure REMOVE_BG_API_KEY para melhores resultados)"
+        };
+      }
 
-      throw new Error("Falha no processamento");
+      throw new Error("Falha no processamento");
 
-    } catch (error) {
-      console.error("Erro em removeBackground:", error);
-      return {
-        success: false,
-        message: "Erro ao remover fundo. Configure REMOVE_BG_API_KEY no .env"
-      };
-    }
-  },
+  	} catch (error: unknown) { // CORRIGIDO: de 'any' implícito para 'unknown'
+      console.error("Erro em removeBackground:", error);
+      return {
+        success: false,
+        message: "Erro ao remover fundo. Configure REMOVE_BG_API_KEY no .env"
+      };
+    }
+  },
 });
 
 // =================================================================
 // MUTATIONS E QUERIES
 // =================================================================
 export const saveEnhancedImage = mutation({
-  args: {
-    userId: v.string(),
-    originalUrl: v.string(),
-    resultUrl: v.string(),
-    prompt: v.string(),
-    storageId: v.optional(v.id("_storage"))
-  },
-  handler: async (ctx, args) => await ctx.db.insert("aiStudioContent", {
-    ...args,
-    type: "enhanced_image",
-    createdAt: Date.now()
-  }),
+  args: {
+    userId: v.string(),
+    originalUrl: v.string(),
+    resultUrl: v.string(),
+    prompt: v.string(),
+    storageId: v.optional(v.id("_storage"))
+  },
+  handler: async (ctx, args) => await ctx.db.insert("aiStudioContent", {
+    ...args,
+    type: "enhanced_image",
+    createdAt: Date.now()
+  }),
 });
 
 export const saveTranscription = mutation({
-  args: {
-    userId: v.string(),
-    audioUrl: v.string(),
-    transcription: v.string()
-  },
-  handler: async (ctx, args) => await ctx.db.insert("aiStudioContent", {
-    originalUrl: args.audioUrl,
-    text: args.transcription,
-    userId: args.userId,
-    type: "transcription",
-    createdAt: Date.now()
-  }),
+  args: {
+    userId: v.string(),
+    audioUrl: v.string(),
+    transcription: v.string()
+  },
+  handler: async (ctx, args) => await ctx.db.insert("aiStudioContent", {
+    originalUrl: args.audioUrl,
+    text: args.transcription,
+    userId: args.userId,
+    type: "transcription",
+    createdAt: Date.now()
+  }),
 });
 
 export const saveVideo = mutation({
-  args: {
-    userId: v.string(),
-    prompt: v.string(),
-    resultUrl: v.string()
-  },
-  handler: async (ctx, args) => await ctx.db.insert("aiStudioContent", {
-    ...args,
-    type: "video",
-    createdAt: Date.now()
-  }),
+  args: {
+    userId: v.string(),
+    prompt: v.string(),
+    resultUrl: v.string()
+  },
+  handler: async (ctx, args) => await ctx.db.insert("aiStudioContent", {
+    ...args,
+    type: "video",
+    createdAt: Date.now()
+  }),
 });
 
 export const saveChatMessage = mutation({
-  args: {
-    userId: v.string(),
-    message: v.string(),
-    response: v.string(),
-    context: v.optional(v.string())
-  },
-  handler: async (ctx, args) => await ctx.db.insert("aiStudioContent", {
-    userId: args.userId,
-    text: args.message,
-    resultUrl: args.response,
-    prompt: args.context || "",
-    type: "chat",
-    createdAt: Date.now()
-  }),
+  args: {
+    userId: v.string(),
+    message: v.string(),
+    response: v.string(),
+    context: v.optional(v.string())
+  },
+  handler: async (ctx, args) => await ctx.db.insert("aiStudioContent", {
+    userId: args.userId,
+    text: args.message,
+    resultUrl: args.response,
+    prompt: args.context || "",
+    type: "chat",
+    createdAt: Date.now()
+  }),
 });
 
 export const getUserContent = query({
-  args: {
-    userId: v.string(),
-    type: v.union(
-      v.literal("enhanced_image"),
-      v.literal("transcription"),
-      v.literal("video"),
-      v.literal("chat")
-    )
-  },
-  handler: async (ctx, args) => {
-    if (!args.userId) return [];
-    return await ctx.db
-      .query("aiStudioContent")
-      .withIndex("by_user_and_type", q => q.eq("userId", args.userId).eq("type", args.type))
-      .order("desc")
-      .take(20);
-  },
+  args: {
+    userId: v.string(),
+    type: v.union(
+      v.literal("enhanced_image"),
+      v.literal("transcription"),
+      v.literal("video"),
+      v.literal("chat")
+    )
+  },
+  handler: async (ctx, args) => {
+    if (!args.userId) return [];
+    return await ctx.db
+      .query("aiStudioContent")
+      .withIndex("by_user_and_type", q => q.eq("userId", args.userId).eq("type", args.type))
+      .order("desc")
+      .take(20);
+  },
 });
-

@@ -87,6 +87,7 @@
     "@types/canvas-confetti": "^1.9.0",
     "@types/html2canvas": "^0.5.35",
     "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
     "@types/react": "^19",
     "@types/react-big-calendar": "^1.16.2",
     "@types/react-countup": "^4.3.0",
