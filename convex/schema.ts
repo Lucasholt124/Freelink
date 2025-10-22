@@ -21,6 +21,14 @@ export default defineSchema({
     profilePictureStorageId: v.optional(v.id("_storage")),
     description: v.optional(v.string()),
     accentColor: v.optional(v.string()),
+    // NOVOS CAMPOS PARA BACKGROUND
+    backgroundType: v.optional(v.union(v.literal("color"), v.literal("gradient"), v.literal("image"))),
+    backgroundStyle: v.optional(v.union(v.literal("full"), v.literal("header"))),
+    backgroundColor1: v.optional(v.string()),
+    backgroundColor2: v.optional(v.string()),
+    backgroundImageStorageId: v.optional(v.id("_storage")),
+    backgroundImageBlur: v.optional(v.number()),
+    backgroundImageOpacity: v.optional(v.number()),
   }).index("by_user_id", ["userId"]),
 
   tracking: defineTable({

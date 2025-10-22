@@ -322,11 +322,25 @@ export default function PublicPageContent({
   };
 
   useEffect(() => {
-    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    setIsDarkMode(prefersDark);
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  setIsDarkMode(prefersDark);
 
-    if (!userLocation) {
-      fetch('https://ipapi.co/json/')
+  // Carrega configurações de background do Convex
+  if (customizations) {
+    setBackgroundConfig({
+      type: customizations.backgroundType || "color",
+      style: customizations.backgroundStyle || "full",
+      color1: customizations.backgroundColor1 || "#f3f4f6",
+      color2: customizations.backgroundColor2 || "#e5e7eb",
+      imageUrl: customizations.backgroundImageUrl || "",
+      imageBlur: customizations.backgroundImageBlur || 0,
+      imageOpacity: customizations.backgroundImageOpacity || 100,
+    });
+  }
+
+  // Busca localização do usuário (opcional)
+  if (!userLocation) {
+    fetch('https://ipapi.co/json/')
       .then(res => res.json())
       .then(data => {
         if (data.country_name) {
@@ -334,48 +348,37 @@ export default function PublicPageContent({
         }
       })
       .catch(() => {});
-    }
+  }
 
-    if (customizations?.userId) {
-      const savedBg = localStorage.getItem(`bgConfig_${customizations.userId}`);
-      if (savedBg) {
-        try {
-          const loadedConfig = JSON.parse(savedBg);
-          setBackgroundConfig(prevConfig => ({
-            ...prevConfig,
-            ...loadedConfig
-          }));
-        } catch (e) {
-          console.error("Erro ao carregar configurações de fundo:", e);
-        }
-      }
-    }
+  // Carrega reações e cliques salvos localmente
+  const savedReactions = localStorage.getItem(`reactions_${username}`);
+  if (savedReactions) {
+    setLinkReactions(JSON.parse(savedReactions));
+  }
 
-    const savedReactions = localStorage.getItem(`reactions_${username}`);
-    if (savedReactions) {
-      setLinkReactions(JSON.parse(savedReactions));
-    }
+  const savedClicks = localStorage.getItem(`clicks_${username}`);
+  if (savedClicks) {
+    setClickCounts(JSON.parse(savedClicks));
+  }
 
-    const savedClicks = localStorage.getItem(`clicks_${username}`);
-    if (savedClicks) {
-      setClickCounts(JSON.parse(savedClicks));
-    }
+  // Incrementa visualizações
+  const stats = JSON.parse(localStorage.getItem(`stats_${username}`) || '{}');
+  stats.views = (stats.views || 0) + 1;
+  localStorage.setItem(`stats_${username}`, JSON.stringify(stats));
 
-    const stats = JSON.parse(localStorage.getItem(`stats_${username}`) || '{}');
-    stats.views = (stats.views || 0) + 1;
-    localStorage.setItem(`stats_${username}`, JSON.stringify(stats));
+  // Gera QR Code
+  QRCode.toDataURL(profileUrl, {
+    width: 256,
+    margin: 2,
+    color: {
+      dark: userAccentColor,
+      light: '#FFFFFF',
+    },
+  }).then(setQrCodeDataUrl);
 
-    QRCode.toDataURL(profileUrl, {
-      width: 256,
-      margin: 2,
-      color: {
-        dark: userAccentColor,
-        light: '#FFFFFF',
-      },
-    }).then(setQrCodeDataUrl);
-
-    setTimeout(() => setIsLoading(false), 800);
-  }, [profileUrl, username, userAccentColor, customizations?.userId, userLocation]);
+  // Remove loading após 800ms
+  setTimeout(() => setIsLoading(false), 800);
+}, [profileUrl, username, userAccentColor, customizations, userLocation]);
 
   const handleShare = async () => {
     confetti({

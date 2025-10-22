@@ -24,6 +24,9 @@ export default function CustomizationForm() {
   const removeProfilePicture = useMutation(
     api.lib.customizations.removeProfilePicture,
   );
+  const removeBackgroundImage = useMutation(
+    api.lib.customizations.removeBackgroundImage,
+  );
 
   const existingCustomizations = useQuery(
     api.lib.customizations.getUserCustomizations,
@@ -55,23 +58,19 @@ export default function CustomizationForm() {
         description: existingCustomizations.description || "",
         accentColor: existingCustomizations.accentColor || "#6366f1",
       });
-    }
 
-    if (user) {
-      const savedBg = localStorage.getItem(`bgConfig_${user.id}`);
-      if (savedBg) {
-        try {
-          const loadedConfig = JSON.parse(savedBg);
-          setBackgroundConfig(prevConfig => ({
-            ...prevConfig,
-            ...loadedConfig,
-          }));
-        } catch (e) {
-          console.error("Erro ao carregar configurações:", e);
-        }
-      }
+      // Carrega configurações de background do Convex
+      setBackgroundConfig({
+        type: existingCustomizations.backgroundType || "color",
+        style: existingCustomizations.backgroundStyle || "full",
+        color1: existingCustomizations.backgroundColor1 || "#f3f4f6",
+        color2: existingCustomizations.backgroundColor2 || "#e5e7eb",
+        imageUrl: existingCustomizations.backgroundImageUrl || "",
+        imageBlur: existingCustomizations.backgroundImageBlur || 0,
+        imageOpacity: existingCustomizations.backgroundImageOpacity || 100,
+      });
     }
-  }, [existingCustomizations, user]);
+  }, [existingCustomizations]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -82,9 +81,13 @@ export default function CustomizationForm() {
         await updateCustomizations({
           description: formData.description || undefined,
           accentColor: formData.accentColor || undefined,
+          backgroundType: backgroundConfig.type,
+          backgroundStyle: backgroundConfig.style,
+          backgroundColor1: backgroundConfig.color1,
+          backgroundColor2: backgroundConfig.color2,
+          backgroundImageBlur: backgroundConfig.imageBlur,
+          backgroundImageOpacity: backgroundConfig.imageOpacity,
         });
-
-        localStorage.setItem(`bgConfig_${user.id}`, JSON.stringify(backgroundConfig));
 
         toast.success("Personalizações salvas com sucesso!");
       } catch (error) {
@@ -162,35 +165,29 @@ export default function CustomizationForm() {
 
     startUploadingBg(async () => {
       try {
-        const reader = new FileReader();
-        reader.onloadend = () => {
-          const base64 = reader.result as string;
+        const uploadUrl = await generateUploadUrl();
 
-          const img = new window.Image();
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            const ctx = canvas.getContext('2d');
+        const uploadResult = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
 
-            const maxWidth = 1920;
-            const scale = img.width > maxWidth ? maxWidth / img.width : 1;
-            canvas.width = img.width * scale;
-            canvas.height = img.height * scale;
+        if (!uploadResult.ok) {
+          throw new Error("Falha no upload da imagem de fundo.");
+        }
 
-            ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        const { storageId } = await uploadResult.json();
 
-            const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8);
+        await updateCustomizations({
+          backgroundType: "image",
+          backgroundImageStorageId: storageId,
+          backgroundStyle: backgroundConfig.style,
+          backgroundImageBlur: backgroundConfig.imageBlur,
+          backgroundImageOpacity: backgroundConfig.imageOpacity,
+        });
 
-            setBackgroundConfig(prev => ({
-              ...prev,
-              type: 'image',
-              imageUrl: compressedBase64
-            }));
-
-            toast.success("Imagem de fundo carregada!");
-          };
-          img.src = base64;
-        };
-        reader.readAsDataURL(file);
+        toast.success("Imagem de fundo atualizada com sucesso!");
       } catch (error) {
         console.error("Erro ao processar imagem:", error);
         toast.error("Erro ao processar imagem");
@@ -214,13 +211,21 @@ export default function CustomizationForm() {
     });
   };
 
-  const handleRemoveBackgroundImage = () => {
-    setBackgroundConfig(prev => ({
-      ...prev,
-      type: 'color',
-      imageUrl: ''
-    }));
-    toast.success("Imagem de fundo removida!");
+  const handleRemoveBackgroundImage = async () => {
+    startTransition(async () => {
+      try {
+        await removeBackgroundImage();
+        setBackgroundConfig(prev => ({
+          ...prev,
+          type: 'color',
+          imageUrl: ''
+        }));
+        toast.success("Imagem de fundo removida!");
+      } catch (error) {
+        console.error("Falha ao remover imagem de fundo:", error);
+        toast.error("Falha ao remover imagem de fundo");
+      }
+    });
   };
 
   const handleInputChange = (field: string, value: string) => {
