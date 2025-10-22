@@ -13,7 +13,8 @@ import {
 
   FaEnvelope,  FaFacebook, FaGithub, FaGlobe,  FaInstagram,
    FaLinkedin, FaTiktok,  FaTwitch, FaTwitter, FaYoutube, FaThreads, FaBluesky, FaMastodon,
-   FaSpotify
+   FaSpotify,
+   FaWhatsapp
 } from "react-icons/fa6";
 import QRCode from 'qrcode';
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
@@ -235,7 +236,7 @@ function getLinkIcon(url: string) {
   const iconMap = [
     { match: ['youtube.com', 'youtu.be'], icon: <FaYoutube className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF0000]" /> },
     { match: ['instagram.com'], icon: <FaInstagram className="w-5 h-5 sm:w-6 sm:h-6 text-[#E1306C]" /> },
-    { match: ['facebook.com', 'fb.com'], icon: <FaFacebook className="w-5 h-5 sm:w-6 sm:h-6 text-[#1877F3]" /> },
+    { match: ['facebook.com', 'fb.com', 'www.facebook.com', 'm.facebook.com', 'messenger.com'], icon: <FaFacebook className="w-5 h-5 sm:w-6 sm:h-6 text-[#1877F3]" /> },
     { match: ['twitter.com', 'x.com'], icon: <FaTwitter className="w-5 h-5 sm:w-6 sm:h-6 text-[#1DA1F2]" /> },
     { match: ['linkedin.com'], icon: <FaLinkedin className="w-5 h-5 sm:w-6 sm:h-6 text-[#0077B5]" /> },
     { match: ['tiktok.com'], icon: <FaTiktok className="w-5 h-5 sm:w-6 sm:h-6 text-[#000000]" /> },
@@ -246,6 +247,8 @@ function getLinkIcon(url: string) {
     { match: ['spotify.com'], icon: <FaSpotify className="w-5 h-5 sm:w-6 sm:h-6 text-[#1DB954]" /> },
     { match: ['twitch.tv'], icon: <FaTwitch className="w-5 h-5 sm:w-6 sm:h-6 text-[#9147FF]" /> },
     { match: ['mailto:'], icon: <FaEnvelope className="w-5 h-5 sm:w-6 sm:h-6 text-[#EA4335]" /> },
+    { match: ['whatsapp', 'wa.me', 'api.whatsapp.com', 'web.whatsapp.com', 'chat.whatsapp.com', 'wa.link', 'whatsapp.com', 'web.whatsapp.com', 'web.whatsapp.com'], icon: <FaWhatsapp className="w-5 h-5 sm:w-6 sm:h-6 text-[#25D366]" /> },
+
   ];
 
   for (const item of iconMap) {
@@ -866,7 +869,7 @@ export default function PublicPageContent({
                         Crie sua página com recursos exclusivos!
                       </p>
                     </div>
-                    <Link href="/signup">
+                    <Link href="/">
                       <motion.button
                         whileHover={{ scale: 1.1 }}
                         whileTap={{ scale: 0.95 }}
