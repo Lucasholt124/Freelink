@@ -79,9 +79,9 @@ export const navItems: NavItem[] = [
   {
     label: "Ferramentas de IA",
     subItems: [
-      { href: "/dashboard/mentor-ia", icon: Wand2, label: "Mentor.IA", pro: true },
+      { href: "/dashboard/mentor-ia", icon: Wand2, label: "Mentor.IA", ultra: true },
       { href: "/dashboard/brain", icon: BrainCircuit, label: "FreelinkBrain", pro: true, new: true },
-       { href: "/dashboard/ai-studio", icon: BrainCircuit, label: "AI Studio", pro: true, new: true },
+       { href: "/dashboard/ai-studio", icon: BrainCircuit, label: "AI Studio", ultra: true, new: true },
     ]
   },
   {
