@@ -1,40 +1,53 @@
 import { NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { users } from "@clerk/clerk-sdk-node";
-import Stripe from "stripe";
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!);
+import { auth, clerkClient } from "@clerk/nextjs/server";
+import { stripe } from "@/lib/stripe";
 
 export async function POST() {
-  const { userId } = await auth();
-  if (!userId) {
-    return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
-  }
-
-  const user = await users.getUser(userId);
-  const stripeCustomerId = user.privateMetadata?.stripeCustomerId as string;
-
-  if (!stripeCustomerId) {
-    return NextResponse.json({ error: "Usuário não possui assinatura" }, { status: 400 });
-  }
-
   try {
+    const { userId } = await auth();
+    if (!userId) {
+      return NextResponse.json(
+        { error: "Não autenticado" },
+        { status: 401 }
+      );
+    }
+
+    // CORREÇÃO: Obter o cliente do Clerk
+    const clerk = await clerkClient();
+    const user = await clerk.users.getUser(userId);
+    const stripeCustomerId = user.privateMetadata?.stripeCustomerId as string;
+
+    if (!stripeCustomerId) {
+      return NextResponse.json(
+        { error: "Usuário não possui assinatura" },
+        { status: 400 }
+      );
+    }
+
     const subscriptions = await stripe.subscriptions.list({
       customer: stripeCustomerId,
-      status: "all",
-      limit: 10,
+      status: "active",
+      limit: 1,
     });
 
-    const subscription = subscriptions.data.find(
-      (sub) => sub.status === "active" || sub.status === "trialing"
-    );
-
-    if (!subscription) {
-      return NextResponse.json({ error: "Assinatura não encontrada" }, { status: 404 });
+    if (subscriptions.data.length === 0) {
+      return NextResponse.json(
+        { error: "Nenhuma assinatura ativa encontrada" },
+        { status: 404 }
+      );
     }
+
+    const subscription = subscriptions.data[0];
 
     await stripe.subscriptions.update(subscription.id, {
       cancel_at_period_end: true
+    });
+
+    await clerk.users.updateUser(userId, {
+      publicMetadata: {
+        ...user.publicMetadata,
+        subscriptionStatus: "canceling"
+      },
     });
 
     return NextResponse.json({
@@ -43,7 +56,10 @@ export async function POST() {
     });
 
   } catch (error) {
-    console.error("Erro:", error);
-    return NextResponse.json({ error: "Erro ao cancelar" }, { status: 500 });
+    console.error("Erro ao cancelar assinatura:", error);
+    return NextResponse.json(
+      { error: "Erro ao cancelar assinatura" },
+      { status: 500 }
+    );
   }
 }

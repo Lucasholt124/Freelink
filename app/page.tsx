@@ -152,7 +152,7 @@ const analyticsFeatures = [
 const pricingPlans = [
   {
     name: "Starter",
-    price: "19",
+    price: "14,90",
     cents: "90",
     period: "/mês",
     description: "Perfeito para começar",
@@ -198,7 +198,7 @@ const pricingPlans = [
 const competitors = [
   {
     feature: "Preço mensal",
-    freelinnk: "R$ 19,90",
+    freelinnk: "R$ 14,90",
     linktree: "US$ 5 + IOF",
     beacons: "US$ 10 + IOF",
   },

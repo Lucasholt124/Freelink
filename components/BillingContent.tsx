@@ -100,8 +100,8 @@ const plans: Plan[] = [
     id: "pro",
     name: "Pro",
     tagline: "Para criadores que querem impulsionar seu engajamento com o poder da IA.",
-    monthlyPrice: "R$19,90",
-    yearlyPrice: "R$199",
+    monthlyPrice: "R$14,90",
+    yearlyPrice: "R$149",
     priceDetails: "/mês",
     popularFeatures: [
       "🧠 IA que gera ideias virais para conteúdo",
