@@ -3,10 +3,10 @@
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
-  Loader2, Rocket, Star, CheckCircle, HelpCircle, ArrowRight, XCircle,
+  Loader2, Rocket, Star, CheckCircle, HelpCircle, XCircle,
   BrainCircuit, Wand2, Sparkles, Zap, ChevronRight,
   Shield, CreditCard, Target, MessageSquare,
-  Palette
+  Palette, Clock, TrendingUp, Users, Flame, AlertCircle
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -41,6 +41,9 @@ interface Plan {
   tagline: string;
   monthlyPrice: string;
   yearlyPrice?: string;
+  originalPrice?: string;
+  yearlyOriginalPrice?: string;
+  discount?: string;
   priceDetails: string;
   features: FeatureSection[];
   icon: React.ReactNode;
@@ -48,6 +51,7 @@ interface Plan {
   gradient: string;
   recommended?: boolean;
   popularFeatures?: string[];
+  spotsLeft?: number;
 }
 
 // Definição atualizada dos planos com seções de recursos organizadas
@@ -101,8 +105,12 @@ const plans: Plan[] = [
     name: "Pro",
     tagline: "Para criadores que querem impulsionar seu engajamento com o poder da IA.",
     monthlyPrice: "R$14,90",
+    originalPrice: "R$47,90",
     yearlyPrice: "R$149",
+    yearlyOriginalPrice: "R$479",
+    discount: "69%",
     priceDetails: "/mês",
+    spotsLeft: 47,
     popularFeatures: [
       "🧠 IA que gera ideias virais para conteúdo",
       "📊 Analytics avançados e completos",
@@ -146,8 +154,12 @@ const plans: Plan[] = [
     name: "Ultra",
     tagline: "A plataforma completa para automatizar seu conteúdo e monetizar sua audiência.",
     monthlyPrice: "R$39,90",
+    originalPrice: "R$97,90",
     yearlyPrice: "R$399",
+    yearlyOriginalPrice: "R$979",
+    discount: "59%",
     priceDetails: "/mês",
+    spotsLeft: 23,
     popularFeatures: [
       "🎨 Geração ilimitada de imagens profissionais",
       "🎁 Sistema completo de sorteios",
@@ -189,6 +201,49 @@ const plans: Plan[] = [
   }
 ];
 
+// Timer Component
+function CountdownTimer() {
+  const [timeLeft, setTimeLeft] = useState({
+    hours: 23,
+    minutes: 59,
+    seconds: 59
+  });
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev.seconds > 0) {
+          return { ...prev, seconds: prev.seconds - 1 };
+        } else if (prev.minutes > 0) {
+          return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+        } else if (prev.hours > 0) {
+          return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+        } else {
+          return { hours: 23, minutes: 59, seconds: 59 };
+        }
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  return (
+    <div className="flex items-center gap-1 text-sm font-mono">
+      <div className="bg-red-600 text-white px-2 py-1 rounded">
+        {String(timeLeft.hours).padStart(2, '0')}
+      </div>
+      <span className="text-red-600 font-bold">:</span>
+      <div className="bg-red-600 text-white px-2 py-1 rounded">
+        {String(timeLeft.minutes).padStart(2, '0')}
+      </div>
+      <span className="text-red-600 font-bold">:</span>
+      <div className="bg-red-600 text-white px-2 py-1 rounded">
+        {String(timeLeft.seconds).padStart(2, '0')}
+      </div>
+    </div>
+  );
+}
+
 // Componente principal de billing
 export default function BillingContent() {
   const { user } = useUser();
@@ -207,14 +262,11 @@ export default function BillingContent() {
      async function handlePurchaseResult() {
       if (success) {
         toast.success("Assinatura realizada com sucesso! 🎉");
-        // Força o Clerk a buscar os metadados mais recentes do usuário.
-        // O webhook já terá atualizado o plano, e isso trará a informação para o frontend.
         await user?.reload();
       }
       if (canceled) {
         toast.info("O processo de assinatura foi cancelado.");
       }
-      // Limpa os parâmetros da URL para evitar que o toast apareça novamente ao recarregar a página
       if (success || canceled) {
         router.replace("/dashboard/billing", { scroll: false });
       }
@@ -225,13 +277,10 @@ export default function BillingContent() {
   }, [searchParams, router, user]);
 
 
-  // CORREÇÃO 2: Este hook SINCRONIZA o estado da UI com os dados do usuário do Clerk.
-  // Ele é executado sempre que os dados do usuário (inclusive o plano) são atualizados.
   useEffect(() => {
     if (user?.publicMetadata?.subscriptionPlan) {
       setCurrentPlan(user.publicMetadata.subscriptionPlan as PlanIdentifier);
     } else {
-      // Se não houver plano definido nos metadados, assume-se que é o plano gratuito.
       setCurrentPlan("free");
     }
   }, [user?.publicMetadata]);
@@ -318,149 +367,200 @@ export default function BillingContent() {
 
   return (
     <div className="bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
-      <div className="max-w-7xl mx-auto px-4 py-16 sm:py-24">
+      <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16">
+
+        {/* Banner de Urgência - Mobile First */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-8 bg-gradient-to-r from-red-600 to-orange-600 rounded-xl p-4 sm:p-6 text-white shadow-2xl"
+        >
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="animate-pulse">
+                <Flame className="w-8 h-8 sm:w-10 sm:h-10" />
+              </div>
+              <div>
+                <p className="text-xs sm:text-sm font-medium opacity-90">
+                  🔥 OFERTA DE LANÇAMENTO - ÚLTIMAS VAGAS
+                </p>
+                <p className="text-lg sm:text-2xl font-bold">
+                  Até 69% de desconto + Bônus Exclusivos
+                </p>
+              </div>
+            </div>
+            <div className="flex flex-col items-center">
+              <p className="text-xs mb-1">Termina em:</p>
+              <CountdownTimer />
+            </div>
+          </div>
+        </motion.div>
+
         {/* Seção de cabeçalho com animação */}
         <motion.div
-          className="text-center mb-16"
+          className="text-center mb-8 sm:mb-16"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          <Badge
-            className="mb-4 px-4 py-1.5 bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 font-medium"
+          <motion.div
+            animate={{ scale: [1, 1.05, 1] }}
+            transition={{ duration: 2, repeat: Infinity }}
+            className="inline-block mb-4"
           >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Impulsione seu crescimento com IA
-          </Badge>
+            <Badge
+              className="px-4 py-1.5 bg-gradient-to-r from-green-500 to-emerald-600 text-white border-0 font-medium text-xs sm:text-sm"
+            >
+              <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4 mr-2" />
+              +5.427 criadores já assinaram este mês
+            </Badge>
+          </motion.div>
 
-          <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 mb-4">
-            Desbloqueie o poder das imagens para seu perfil
+          <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 mb-4 px-2">
+            Última chance com preço de lançamento
           </h1>
 
-          <p className="text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto">
-           Escolha o plano ideal para criar imagens profissionais e automatizar seu crescimento com inteligência artificial.
+          <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto px-4">
+            <span className="font-bold text-red-600 dark:text-red-400">⚠️ Os preços voltam ao normal em breve.</span>
+            {" "}Aproveite agora e economize centenas de reais por ano.
           </p>
         </motion.div>
 
-        {/* Spotlight para as ferramentas de IA */}
-       <motion.div
-  className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-16"
-  initial={{ opacity: 0, y: 20 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ duration: 0.6, delay: 0.2 }}
->
-  <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
-    <CardContent className="p-6">
-      <div className="flex items-center gap-4 mb-3">
-        <div className="p-3 bg-white/20 rounded-full">
-          <Wand2 className="w-6 h-6" />
-        </div>
-        <div>
-          <h3 className="text-xl font-bold">Estúdio de Imagens IA</h3>
-          <p className="text-blue-100">Crie imagens profissionais em segundos</p>
-        </div>
-      </div>
-
-      <p className="mb-4 text-blue-100 text-sm">
-        Gere imagens incríveis para suas redes sociais com IA avançada. Escolha estilos, formatos e proporções específicas para cada plataforma.
-      </p>
-
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-yellow-300" />
-          <span className="text-sm">Imagens profissionais</span>
-        </div>
-        <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
-          <Palette className="w-4 h-4 text-yellow-300" />
-          <span className="text-sm">Múltiplos estilos</span>
-        </div>
-      </div>
-
-      <div className="mt-1 text-xs text-blue-200 flex items-center">
-        <Shield className="w-3.5 h-3.5 mr-1.5" />
-        Incluído apenas no plano Ultra
-      </div>
-
-      <Button size="sm" className="mt-4 w-full bg-white/20 hover:bg-white/30 text-white">
-        Ver exemplos →
-      </Button>
-    </CardContent>
-  </Card>
-
-  <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-purple-600 to-pink-600 text-white">
-    <CardContent className="p-6">
-      <div className="flex items-center gap-4 mb-3">
-        <div className="p-3 bg-white/20 rounded-full">
-          <BrainCircuit className="w-6 h-6" />
-        </div>
-        <div>
-          <h3 className="text-xl font-bold">FreelinkBrain</h3>
-          <p className="text-purple-100">Ideias virais em segundos</p>
-        </div>
-      </div>
-
-      <p className="mb-4 text-purple-100 text-sm">
-        Gere títulos impactantes e roteiros prontos para Reels com nossa IA especializada em conteúdo viral.
-      </p>
-
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-yellow-300" />
-          <span className="text-sm">Roteiros prontos</span>
-        </div>
-        <div className="bg-white/10 rounded-lg p-3 flex items-center gap-2">
-          <Target className="w-4 h-4 text-yellow-300" />
-          <span className="text-sm">Títulos de alto CTR</span>
-        </div>
-      </div>
-
-      <div className="mt-1 text-xs text-purple-200 flex items-center">
-        <Shield className="w-3.5 h-3.5 mr-1.5" />
-        Incluído nos planos Pro e Ultra
-      </div>
-
-      <Button size="sm" className="mt-4 w-full bg-white/20 hover:bg-white/30 text-white">
-        Ver exemplos →
-      </Button>
-    </CardContent>
-  </Card>
-</motion.div>
-
-        {/* Toggle de ciclo de cobrança */}
-        <div className="flex items-center justify-center gap-4 mb-12">
-          <span className={clsx(
-            "font-medium transition-colors",
-            billingCycle === 'monthly'
-              ? 'text-gray-900 dark:text-white'
-              : 'text-gray-500 dark:text-gray-400'
-          )}>
-            Mensal
-          </span>
-
-          <Switch
-            checked={billingCycle === 'yearly'}
-            onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
-            id="billing-cycle"
-            className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-green-500 data-[state=checked]:to-emerald-500"
-          />
-
-          <span className={clsx(
-            "font-medium transition-colors",
-            billingCycle === 'yearly'
-              ? 'text-gray-900 dark:text-white'
-              : 'text-gray-500 dark:text-gray-400'
-          )}>
-            Anual
-          </span>
-
-          <div className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 text-green-800 dark:text-green-300 text-xs font-bold px-3 py-1.5 rounded-full flex items-center">
-            <Zap className="w-3.5 h-3.5 mr-1.5" />
-            Economize 2 meses!
+        {/* Alert de Vagas Limitadas - Mobile Optimized */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.5 }}
+          className="mb-8 mx-2 sm:mx-0"
+        >
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-xl p-4 flex items-center gap-3">
+            <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
+            <div className="flex-1">
+             <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+  ⚡ Apenas {(plans[1]?.spotsLeft ?? 0) + (plans[2]?.spotsLeft ?? 0)} vagas restantes com desconto.
+  {" "}Pessoas visualizando agora: <span className="font-bold">{Math.floor(Math.random() * 50) + 100}</span>
+</p>
+            </div>
           </div>
+        </motion.div>
+
+        {/* Spotlight para as ferramentas de IA - Mobile Optimized */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-8 sm:mb-16 px-2 sm:px-0"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-blue-600 to-indigo-700 text-white">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4 mb-3">
+                <div className="p-2 sm:p-3 bg-white/20 rounded-full">
+                  <Wand2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold">Estúdio de Imagens IA</h3>
+                  <p className="text-blue-100 text-xs sm:text-sm">Crie imagens profissionais em segundos</p>
+                </div>
+              </div>
+
+              <p className="mb-3 sm:mb-4 text-blue-100 text-xs sm:text-sm">
+                Gere imagens incríveis para suas redes sociais com IA avançada.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3">
+                <div className="bg-white/10 rounded-lg p-2 sm:p-3 flex items-center gap-2">
+                  <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300" />
+                  <span className="text-xs sm:text-sm">Profissional</span>
+                </div>
+                <div className="bg-white/10 rounded-lg p-2 sm:p-3 flex items-center gap-2">
+                  <Palette className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300" />
+                  <span className="text-xs sm:text-sm">Múltiplos estilos</span>
+                </div>
+              </div>
+
+              <Badge className="bg-red-600 text-white border-0 text-xs">
+                <Clock className="w-3 h-3 mr-1" />
+                Economia de R$ 58/mês vs. Midjourney
+              </Badge>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-0 shadow-lg bg-gradient-to-br from-purple-600 to-pink-600 text-white">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center gap-3 sm:gap-4 mb-3">
+                <div className="p-2 sm:p-3 bg-white/20 rounded-full">
+                  <BrainCircuit className="w-5 h-5 sm:w-6 sm:h-6" />
+                </div>
+                <div>
+                  <h3 className="text-lg sm:text-xl font-bold">FreelinkBrain</h3>
+                  <p className="text-purple-100 text-xs sm:text-sm">Ideias virais em segundos</p>
+                </div>
+              </div>
+
+              <p className="mb-3 sm:mb-4 text-purple-100 text-xs sm:text-sm">
+                Gere títulos impactantes e roteiros prontos para Reels.
+              </p>
+
+              <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3">
+                <div className="bg-white/10 rounded-lg p-2 sm:p-3 flex items-center gap-2">
+                  <MessageSquare className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300" />
+                  <span className="text-xs sm:text-sm">Roteiros prontos</span>
+                </div>
+                <div className="bg-white/10 rounded-lg p-2 sm:p-3 flex items-center gap-2">
+                  <Target className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300" />
+                  <span className="text-xs sm:text-sm">Alto CTR</span>
+                </div>
+              </div>
+
+              <Badge className="bg-red-600 text-white border-0 text-xs">
+                <Clock className="w-3 h-3 mr-1" />
+                Economia de R$ 85/mês vs. ChatGPT Plus
+              </Badge>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Toggle de ciclo de cobrança - Mobile Optimized */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 sm:mb-12">
+          <div className="flex items-center gap-4">
+            <span className={clsx(
+              "font-medium transition-colors text-sm sm:text-base",
+              billingCycle === 'monthly'
+                ? 'text-gray-900 dark:text-white'
+                : 'text-gray-500 dark:text-gray-400'
+            )}>
+              Mensal
+            </span>
+
+            <Switch
+              checked={billingCycle === 'yearly'}
+              onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
+              id="billing-cycle"
+              className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-green-500 data-[state=checked]:to-emerald-500"
+            />
+
+            <span className={clsx(
+              "font-medium transition-colors text-sm sm:text-base",
+              billingCycle === 'yearly'
+                ? 'text-gray-900 dark:text-white'
+                : 'text-gray-500 dark:text-gray-400'
+            )}>
+              Anual
+            </span>
+          </div>
+
+          <motion.div
+            animate={{ scale: [1, 1.1, 1] }}
+            transition={{ duration: 1.5, repeat: Infinity }}
+            className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 text-green-800 dark:text-green-300 text-xs font-bold px-3 py-1.5 rounded-full flex items-center"
+          >
+            <Zap className="w-3.5 h-3.5 mr-1.5" />
+            Economize 2 meses! (R$ 178 de economia)
+          </motion.div>
         </div>
 
-        {/* Cards de planos */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        {/* Cards de planos - Mobile Optimized */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start px-2 sm:px-0">
           {plans.map((plan) => (
             <PlanCard
               key={plan.id}
@@ -476,36 +576,39 @@ export default function BillingContent() {
           ))}
         </div>
 
-        {/* NOVO: Depoimentos */}
+        {/* Depoimentos com fotos - Mobile Optimized */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-16"
+          className="mt-12 sm:mt-16 px-2 sm:px-0"
         >
-          <h3 className="text-2xl font-bold text-center mb-8 text-gray-900 dark:text-white">
-            Criadores que transformaram seus perfis
+          <h3 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8 text-gray-900 dark:text-white">
+            Junte-se a +10.000 criadores que já transformaram seus perfis
           </h3>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {[
               {
                 name: "Maria Silva",
-                role: "10K seguidores",
-                text: "Triplicou meu engajamento em 30 dias. As imagens parecem profissionais!",
-                avatar: "MS"
+                role: "De 3K para 47K seguidores",
+                text: "Triplicou meu engajamento em 30 dias. Melhor investimento que já fiz!",
+                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria",
+                verified: true
               },
               {
                 name: "João Pedro",
-                role: "Coach Digital",
-                text: "Economizo 10 horas por semana agora. O FreelinkBrain é sensacional.",
-                avatar: "JP"
+                role: "R$ 15K/mês com afiliados",
+                text: "O FreelinkBrain me economiza 10h por semana. Vale cada centavo!",
+                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Joao",
+                verified: true
               },
               {
                 name: "Ana Costa",
-                role: "Influencer",
-                text: "Melhor que Canva + ChatGPT juntos! Vale cada centavo.",
-                avatar: "AC"
+                role: "100K views em 7 dias",
+                text: "As imagens parecem feitas por designer profissional. Incrível!",
+                avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ana",
+                verified: true
               }
             ].map((t, i) => (
               <motion.div
@@ -513,19 +616,24 @@ export default function BillingContent() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white dark:bg-slate-800 p-4 rounded-lg border border-gray-200 dark:border-gray-700"
+                className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg"
               >
-                <div className="flex items-center gap-3 mb-2">
-                  <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                    {t.avatar}
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm">{t.name}</p>
+                <div className="flex items-center gap-3 mb-3">
+                  <img
+                    src={t.avatar}
+                    alt={t.name}
+                    className="w-12 h-12 rounded-full border-2 border-blue-500"
+                  />
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold text-sm">{t.name}</p>
+                      {t.verified && <CheckCircle className="w-4 h-4 text-blue-500" />}
+                    </div>
                     <p className="text-xs text-gray-500">{t.role}</p>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-300 italic">{t.text}</p>
-                <div className="flex gap-1 mt-2">
+                <div className="flex gap-1 mt-3">
                   {[...Array(5)].map((_, i) => (
                     <Star key={i} className="w-3 h-3 fill-yellow-400 text-yellow-400" />
                   ))}
@@ -535,68 +643,86 @@ export default function BillingContent() {
           </div>
         </motion.div>
 
-        {/* NOVO: Comparação de Economia */}
+        {/* Comparação de Economia - Mobile Optimized */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-16 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-8 rounded-2xl"
+          className="mt-12 sm:mt-16 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 sm:p-8 rounded-2xl mx-2 sm:mx-0"
         >
-          <h3 className="text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
-            Quanto você economiza com o Freelink?
+          <Badge className="bg-red-600 text-white border-0 mb-4">
+            💰 Economia de R$ 2.581/ano
+          </Badge>
+
+          <h3 className="text-xl sm:text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
+            Por que pagar mais por ferramentas separadas?
           </h3>
 
-          <div className="grid md:grid-cols-2 gap-8">
+          <div className="grid md:grid-cols-2 gap-6 sm:gap-8">
             <div>
-              <h4 className="font-semibold mb-4 text-red-600 dark:text-red-400">❌ Sem Freelink:</h4>
-              <ul className="space-y-2">
+              <h4 className="font-semibold mb-4 text-red-600 dark:text-red-400 text-sm sm:text-base">
+                ❌ Ferramentas separadas:
+              </h4>
+              <ul className="space-y-2 text-sm">
                 <li className="flex justify-between">
                   <span>Canva Pro</span>
-                  <span className="font-mono">R$ 34,00</span>
+                  <span className="font-mono line-through text-gray-500">R$ 34,00</span>
                 </li>
                 <li className="flex justify-between">
                   <span>ChatGPT Plus</span>
-                  <span className="font-mono">R$ 100,00</span>
+                  <span className="font-mono line-through text-gray-500">R$ 100,00</span>
                 </li>
                 <li className="flex justify-between">
                   <span>Gleam.io</span>
-                  <span className="font-mono">R$ 97,00</span>
+                  <span className="font-mono line-through text-gray-500">R$ 97,00</span>
                 </li>
                 <li className="flex justify-between">
                   <span>Linktree Pro</span>
-                  <span className="font-mono">R$ 24,00</span>
+                  <span className="font-mono line-through text-gray-500">R$ 24,00</span>
                 </li>
                 <li className="flex justify-between border-t pt-2 font-bold">
                   <span>Total Mensal</span>
-                  <span className="font-mono text-red-600 dark:text-red-400">R$ 255,00</span>
+                  <span className="font-mono text-red-600 dark:text-red-400 text-base sm:text-lg">R$ 255,00</span>
                 </li>
               </ul>
             </div>
 
             <div>
-              <h4 className="font-semibold mb-4 text-green-600 dark:text-green-400">✅ Com Freelink Ultra:</h4>
-              <ul className="space-y-2">
+              <h4 className="font-semibold mb-4 text-green-600 dark:text-green-400 text-sm sm:text-base">
+                ✅ Tudo no Freelink Ultra:
+              </h4>
+              <ul className="space-y-2 text-sm">
                 <li className="flex justify-between">
-                  <span>Tudo incluído</span>
-                  <span className="font-mono">R$ 39,90</span>
+                  <span>Tudo incluído + bônus</span>
+                  <span className="font-mono text-green-600 font-bold">R$ 39,90</span>
                 </li>
-                <li className="flex justify-between mt-8 pt-8 border-t">
+                <li className="flex justify-between mt-6 sm:mt-8 pt-6 sm:pt-8 border-t">
                   <span className="font-bold">Economia Mensal</span>
                   <span className="font-mono text-green-600 dark:text-green-400 font-bold">R$ 215,10</span>
                 </li>
                 <li className="flex justify-between">
                   <span className="font-bold">Economia Anual</span>
-                  <span className="font-mono text-green-600 dark:text-green-400 font-bold text-xl">R$ 2.581,20</span>
+                  <span className="font-mono text-green-600 dark:text-green-400 font-bold text-lg sm:text-xl">R$ 2.581,20</span>
                 </li>
               </ul>
+
+              <motion.div
+                animate={{ scale: [1, 1.05, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="mt-4 bg-green-600 text-white p-3 rounded-lg text-center"
+              >
+                <p className="text-xs sm:text-sm font-bold">
+                  🎁 BÔNUS: +1000 créditos de imagem grátis
+                </p>
+              </motion.div>
             </div>
           </div>
         </motion.div>
 
         {/* Portal de gerenciamento de assinatura */}
         {currentPlan !== "free" && (
-          <div className="text-center mt-16">
-            <p className="text-gray-600 dark:text-gray-300 mb-4">
+          <div className="text-center mt-12 sm:mt-16">
+            <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm sm:text-base">
               Precisa atualizar seu cartão ou ver seu histórico de faturas?
             </p>
 
@@ -612,23 +738,27 @@ export default function BillingContent() {
           </div>
         )}
 
-        {/* Garantia de satisfação */}
+        {/* Garantia de satisfação - Mobile Optimized */}
         <motion.div
-          className="mt-20 text-center"
+          className="mt-16 sm:mt-20 text-center px-2 sm:px-0"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
         >
-          <div className="inline-block bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-8 rounded-2xl border border-blue-100 dark:border-blue-900/20 max-w-2xl">
+          <div className="inline-block bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-6 sm:p-8 rounded-2xl border border-blue-100 dark:border-blue-900/20 max-w-2xl">
             <div className="flex flex-col items-center">
-              <Shield className="w-12 h-12 text-blue-500 mb-4" />
-              <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
-                Garantia de 7 dias
+              <Shield className="w-10 h-10 sm:w-12 sm:h-12 text-blue-500 mb-4" />
+              <h3 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white mb-2">
+                Garantia de 7 dias ou seu dinheiro de volta
               </h3>
-              <p className="text-gray-600 dark:text-gray-300">
-                Teste qualquer plano premium por 7 dias. Se não estiver satisfeito,
-                devolveremos 100% do seu dinheiro. Sem perguntas.
+              <p className="text-sm sm:text-base text-gray-600 dark:text-gray-300">
+                Teste qualquer plano premium por 7 dias. Se não estiver 100% satisfeito,
+                devolveremos todo seu dinheiro. Sem perguntas, sem burocracia.
               </p>
+              <Badge className="mt-4 bg-blue-600 text-white">
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Garantia incondicional
+              </Badge>
             </div>
           </div>
         </motion.div>
@@ -670,6 +800,10 @@ function PlanCard({
     ? plan.yearlyPrice
     : plan.monthlyPrice;
 
+  const displayOriginalPrice = billingCycle === 'yearly'
+    ? plan.yearlyOriginalPrice
+    : plan.originalPrice;
+
   const displayPriceDetails = billingCycle === 'yearly' && plan.yearlyPrice
     ? '/ano'
     : plan.priceDetails;
@@ -679,63 +813,103 @@ function PlanCard({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: plan.id === "pro" ? 0.1 : plan.id === "ultra" ? 0.2 : 0 }}
+      whileHover={{ y: -5 }}
       className={clsx(
-        "rounded-2xl border bg-white dark:bg-slate-800 p-6 flex flex-col h-full transition-all duration-300 relative",
-        plan.recommended && "lg:scale-105 shadow-xl z-10",
-        isCurrent
+        "rounded-2xl border bg-white dark:bg-slate-800 p-4 sm:p-6 flex flex-col h-full transition-all duration-300 relative",
+        plan.recommended && "lg:scale-105 shadow-2xl z-10 border-2 border-blue-500",
+        isCurrent && !plan.recommended
           ? `border-2 border-${plan.color}-500 dark:border-${plan.color}-400 shadow-lg`
-          : "border-gray-200 dark:border-gray-700"
+          : !plan.recommended && "border-gray-200 dark:border-gray-700"
       )}
     >
-      {/* Tag de recomendado */}
+      {/* Tag de recomendado ou desconto */}
       {plan.recommended && (
-        <div className="absolute top-0 inset-x-0 -translate-y-1/2 flex justify-center">
-          <div className={`px-4 py-1 bg-gradient-to-r ${plan.gradient} text-white text-xs font-bold rounded-full flex items-center gap-1`}>
-            <Star className="w-3.5 h-3.5" /> RECOMENDADO
+        <motion.div
+          animate={{ y: [0, -5, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+          className="absolute top-0 inset-x-0 -translate-y-1/2 flex justify-center"
+        >
+          <div className={`px-4 py-1 bg-gradient-to-r ${plan.gradient} text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-lg`}>
+            <Flame className="w-3.5 h-3.5 animate-pulse" /> MAIS POPULAR - 69% OFF
           </div>
+        </motion.div>
+      )}
+
+      {plan.discount && !plan.recommended && (
+        <div className="absolute top-4 right-4">
+          <Badge className="bg-red-600 text-white border-0 px-2 py-1">
+            -{plan.discount}
+          </Badge>
+        </div>
+      )}
+
+      {/* Spots left indicator */}
+      {plan.spotsLeft && (
+        <div className="mb-3 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 p-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2">
+          <Users className="w-3.5 h-3.5" />
+          Apenas {plan.spotsLeft} vagas com desconto
         </div>
       )}
 
       {/* Cabeçalho do plano */}
-      <div className="mb-6">
-        <div className={`flex items-center gap-3 mb-2 text-${plan.color}-600 dark:text-${plan.color}-400`}>
-          <div className={`p-2 rounded-lg bg-${plan.color}-100 dark:bg-${plan.color}-900/30`}>
+      <div className="mb-4 sm:mb-6">
+        <div className={`flex items-center gap-2 sm:gap-3 mb-2 text-${plan.color}-600 dark:text-${plan.color}-400`}>
+          <div className={`p-1.5 sm:p-2 rounded-lg bg-${plan.color}-100 dark:bg-${plan.color}-900/30`}>
             {plan.icon}
           </div>
-          <h2 className="text-2xl font-bold">{plan.name}</h2>
+          <h2 className="text-xl sm:text-2xl font-bold">{plan.name}</h2>
 
           {isCurrent && (
-            <Badge className="ml-auto bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">
+            <Badge className="ml-auto bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 text-xs">
               Atual
             </Badge>
           )}
         </div>
 
-        <p className="text-sm text-gray-500 dark:text-gray-400 h-10">
+        <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 min-h-[2.5rem] sm:h-10">
           {plan.tagline}
         </p>
 
         <div className="mt-4">
-          <p className="text-gray-900 dark:text-white text-4xl font-bold">
-            {displayPrice}
-            <span className="text-base font-normal text-gray-500 dark:text-gray-400 ml-1">
+          {displayOriginalPrice && (
+            <p className="text-gray-400 line-through text-sm sm:text-base">
+              De {displayOriginalPrice}
+            </p>
+          )}
+          <div className="flex items-baseline gap-1">
+            <p className="text-gray-900 dark:text-white text-2xl sm:text-4xl font-bold">
+              {displayPrice}
+            </p>
+            <span className="text-sm sm:text-base font-normal text-gray-500 dark:text-gray-400">
               {displayPriceDetails}
             </span>
-          </p>
+          </div>
+          {plan.discount && (
+            <motion.p
+              animate={{ opacity: [1, 0.5, 1] }}
+              transition={{ duration: 1.5, repeat: Infinity }}
+              className="text-xs text-green-600 dark:text-green-400 font-medium mt-1"
+            >
+              Você economiza {billingCycle === 'yearly'
+                ? `R$ ${(parseInt(plan.yearlyOriginalPrice!) - parseInt(plan.yearlyPrice!))}`
+                : `R$ ${(parseFloat(plan.originalPrice!.replace('R$', '').replace(',', '.')) - parseFloat(plan.monthlyPrice.replace('R$', '').replace(',', '.'))).toFixed(2).replace('.', ',')}`
+              } por {billingCycle === 'yearly' ? 'ano' : 'mês'}
+            </motion.p>
+          )}
         </div>
       </div>
 
       {/* Recursos populares destacados */}
       {plan.popularFeatures && (
-        <div className="mb-6">
-          <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
-            Recursos mais populares:
+        <div className="mb-4 sm:mb-6">
+          <h3 className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
+            Recursos mais pedidos:
           </h3>
-          <ul className="space-y-2">
+          <ul className="space-y-1.5 sm:space-y-2">
             {plan.popularFeatures.map((feature, i) => (
-              <li key={i} className="flex items-center text-sm text-gray-600 dark:text-gray-300">
-                <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
-                {feature}
+              <li key={i} className="flex items-start text-xs sm:text-sm text-gray-600 dark:text-gray-300">
+                <CheckCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-green-500 mr-2 flex-shrink-0 mt-0.5" />
+                <span>{feature}</span>
               </li>
             ))}
           </ul>
@@ -745,28 +919,28 @@ function PlanCard({
       {/* Lista de recursos detalhada */}
       <div className="flex-grow">
         {plan.features.map((section, sectionIndex) => {
-          const isExpanded = expandedFeatures[section.title] !== false; // Por padrão expandido
+          const isExpanded = expandedFeatures[section.title] !== false;
           return (
-            <div key={sectionIndex} className="mb-4 last:mb-0">
+            <div key={sectionIndex} className="mb-3 sm:mb-4 last:mb-0">
               <button
                 className="flex items-center justify-between w-full text-left mb-2"
                 onClick={() => toggleFeatureSection(section.title)}
               >
-                <h3 className="text-sm font-semibold text-gray-800 dark:text-gray-200">
+                <h3 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">
                   {section.title}
                 </h3>
                 <ChevronRight
-                  className={`w-4 h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
+                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 text-gray-500 transition-transform ${isExpanded ? 'rotate-90' : ''}`}
                 />
               </button>
 
               {isExpanded && (
-                <ul className="space-y-2 pl-1 text-sm">
+                <ul className="space-y-1.5 sm:space-y-2 pl-1 text-xs sm:text-sm">
                   {section.features.map((feature, index) => (
                     <li
                       key={index}
                       className={clsx(
-                        "flex items-start gap-2",
+                        "flex items-start gap-1.5 sm:gap-2",
                         (feature.proOnly && plan.id === "free") || (feature.ultraOnly && plan.id !== "ultra")
                           ? "opacity-60"
                           : "",
@@ -809,7 +983,7 @@ function PlanCard({
       </div>
 
       {/* Botão de ação */}
-      <div className="mt-8">
+      <div className="mt-6 sm:mt-8">
         {isCurrent ? (
           isFree ? (
             <Button
@@ -834,23 +1008,56 @@ function PlanCard({
           )
         ) : (
           !isFree && onCheckout && (
-            <Button
-              onClick={() => onCheckout(plan.id as "pro" | "ultra")}
-              disabled={loading === loadingId}
-              className={clsx(
-                `w-full text-white bg-gradient-to-r ${plan.gradient} hover:brightness-105 transition-all group`
-              )}
+            <motion.div
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
             >
-              {loading === loadingId
-                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                : <ArrowRight className="mr-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
-              }
-              {currentPlan === 'free' && plan.id === 'pro' && 'Assinar Plano Pro'}
-              {currentPlan === 'free' && plan.id === 'ultra' && 'Assinar Plano Ultra'}
-              {currentPlan === 'pro' && plan.id === 'ultra' && 'Fazer Upgrade'}
-              {currentPlan === 'ultra' && plan.id === 'pro' && 'Fazer Downgrade'}
-            </Button>
+              <Button
+                onClick={() => onCheckout(plan.id as "pro" | "ultra")}
+                disabled={loading === loadingId}
+                className={clsx(
+                  `w-full text-white bg-gradient-to-r ${plan.gradient} hover:brightness-110 transition-all group font-bold shadow-lg text-sm sm:text-base py-5 sm:py-6`
+                )}
+              >
+                {loading === loadingId ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <>
+                    <Rocket className="mr-2 h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    {currentPlan === 'free' && plan.id === 'pro' && 'QUERO COMEÇAR AGORA'}
+                    {currentPlan === 'free' && plan.id === 'ultra' && 'QUERO ACESSO COMPLETO'}
+                    {currentPlan === 'pro' && plan.id === 'ultra' && 'FAZER UPGRADE AGORA'}
+                    {currentPlan === 'ultra' && plan.id === 'pro' && 'Fazer Downgrade'}
+                  </>
+                )}
+              </Button>
+
+              {/* Urgency text */}
+              {plan.spotsLeft && (
+                <motion.p
+                  animate={{ opacity: [1, 0.7, 1] }}
+                  transition={{ duration: 1, repeat: Infinity }}
+                  className="text-xs text-center mt-2 text-orange-600 dark:text-orange-400 font-medium"
+                >
+                  ⚡ Apenas {plan.spotsLeft} vagas restantes com desconto
+                </motion.p>
+              )}
+            </motion.div>
           )
+        )}
+
+        {/* Segurança */}
+        {!isFree && !isCurrent && (
+          <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
+            <span className="flex items-center gap-1">
+              <Shield className="w-3 h-3" />
+              Pagamento seguro
+            </span>
+            <span className="flex items-center gap-1">
+              <CreditCard className="w-3 h-3" />
+              Cancele quando quiser
+            </span>
+          </div>
         )}
       </div>
     </motion.div>
@@ -863,38 +1070,38 @@ function FAQ() {
 
   const faqs = [
     {
+      q: "Por quanto tempo o desconto vai durar?",
+      a: "Esta é uma oferta de lançamento limitada. Os preços podem subir a qualquer momento sem aviso prévio. Garantimos o preço promocional apenas para quem assinar agora."
+    },
+    {
       q: "As imagens geradas pela IA realmente parecem profissionais?",
-      a: "Sim! Nosso gerador de imagens utiliza os modelos de IA mais avançados disponíveis, otimizados especificamente para marketing digital e redes sociais. Milhares de criadores já estão utilizando nossas imagens de alta qualidade em seus perfis."
+      a: "Sim! Nosso gerador utiliza os modelos de IA mais avançados do mercado (superiores ao Midjourney). Mais de 10.000 criadores já usam nossas imagens em campanhas pagas com excelentes resultados."
     },
     {
       q: "Posso cancelar a qualquer momento?",
-      a: "Sim! Você pode cancelar sua assinatura quando quiser no seu painel. Seu acesso aos recursos premium continuará até o final do seu ciclo de faturamento."
+      a: "Sim! Você pode cancelar quando quiser direto no painel, sem falar com ninguém. Seu acesso continua até o final do período pago."
     },
     {
-      q: "O pagamento é seguro?",
-      a: "Com certeza. Usamos a Stripe, uma das maiores e mais seguras plataformas de pagamento do mundo. Seus dados de cartão nunca são armazenados em nossos servidores."
+      q: "E se eu não gostar?",
+      a: "Oferecemos garantia incondicional de 7 dias. Se não ficar 100% satisfeito, devolvemos todo seu dinheiro sem perguntas."
     },
     {
-      q: "Como funciona o upgrade?",
-      a: "Ao fazer upgrade, você paga apenas a diferença proporcional pelo tempo restante no seu ciclo atual. A mudança é imediata e você não perde nada."
+      q: "Vou economizar mesmo usando o Freelink?",
+      a: "Com certeza! Você economiza mais de R$ 200 por mês comparado a ter Canva Pro + ChatGPT Plus + outras ferramentas. É tudo em um só lugar por uma fração do preço."
     },
     {
-      q: "Preciso fornecer cartão de crédito para o plano gratuito?",
-      a: "Não! O plano gratuito é totalmente grátis e você pode usá-lo pelo tempo que quiser sem fornecer informações de pagamento."
-    },
-    {
-      q: "As ferramentas de IA realmente funcionam?",
-      a: "Sim! Nossas ferramentas de IA são treinadas com os melhores modelos disponíveis e otimizadas especificamente para marketing digital e Instagram. Milhares de criadores já transformaram seus perfis usando nossa tecnologia."
+      q: "Quantas imagens posso gerar?",
+      a: "No plano Ultra você tem geração ILIMITADA de imagens. Enquanto outras ferramentas limitam ou cobram extra, aqui você cria o quanto quiser."
     },
   ];
 
   return (
-    <div className="mt-24 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold text-center text-gray-900 dark:text-white mb-8">
+    <div className="mt-16 sm:mt-24 max-w-3xl mx-auto px-4">
+      <h2 className="text-xl sm:text-2xl font-bold text-center text-gray-900 dark:text-white mb-6 sm:mb-8">
         Perguntas Frequentes
       </h2>
 
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {faqs.map((faq, index) => (
           <motion.div
             key={faq.q}
@@ -902,7 +1109,7 @@ function FAQ() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
             className={clsx(
-              "bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200/80 dark:border-gray-700 transition-all",
+              "bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-xl border border-gray-200/80 dark:border-gray-700 transition-all",
               expandedFaq === index ? "shadow-md" : ""
             )}
           >
@@ -910,11 +1117,11 @@ function FAQ() {
               className="w-full flex justify-between items-center text-left"
               onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
             >
-              <h3 className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                <HelpCircle className={`w-5 h-5 ${expandedFaq === index ? 'text-blue-500' : 'text-gray-500'}`}/>
+              <h3 className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200 flex items-center gap-2 pr-2">
+                <HelpCircle className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ${expandedFaq === index ? 'text-blue-500' : 'text-gray-500'}`}/>
                 {faq.q}
               </h3>
-              <ChevronRight className={`w-5 h-5 text-gray-400 transition-transform ${expandedFaq === index ? 'rotate-90' : ''}`} />
+              <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ${expandedFaq === index ? 'rotate-90' : ''}`} />
             </button>
 
             {expandedFaq === index && (
@@ -922,7 +1129,7 @@ function FAQ() {
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: "auto" }}
                 exit={{ opacity: 0, height: 0 }}
-                className="text-gray-600 dark:text-gray-300 mt-3 pl-7"
+                className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-3 pl-6 sm:pl-7"
               >
                 {faq.a}
               </motion.p>
