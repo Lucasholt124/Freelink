@@ -92,7 +92,7 @@ const plans: Plan[] = [
         title: "Marketing e Monetização",
         features: [
           { text: "Personalização básica", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
-          { text: "Ferramenta de sorteios", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
+          { text: "Ferramenta de sorteios", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Rastreamento avançado (Pixel, GA4)", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
           { text: "Remover marca Freelink", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true }
         ]

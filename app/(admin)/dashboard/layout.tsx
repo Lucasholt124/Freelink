@@ -88,7 +88,7 @@ export const navItems: NavItem[] = [
     label: "Marketing",
     subItems: [
       { href: "/dashboard/shortener", icon: Scissors, label: "Encurtador" },
-      { href: "/dashboard/giveaway", icon: Gift, label: "Sorteios", ultra: true },
+      { href: "/dashboard/giveaway", icon: Gift, label: "Sorteios", pro: true },
       { href: "/dashboard/tracking", icon: Target, label: "Rastreamento", ultra: true, new: true },
     ]
   },
