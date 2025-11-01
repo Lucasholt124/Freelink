@@ -54,7 +54,7 @@ interface Plan {
   spotsLeft?: number;
 }
 
-// Definição atualizada dos planos com seções de recursos organizadas
+// Definição dos planos com novos preços e limites
 const plans: Plan[] = [
   {
     id: "free",
@@ -81,8 +81,10 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
+          { text: "FreelinkBrain - Ideias virais", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
+          { text: "Gerador de vídeos virais", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Geração de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
-          { text: "Acesso ao FreelinkBrain (gerador de ideias)", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
+          { text: "Aprimoramento de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
           { text: "Calendário de conteúdo personalizado", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
         ]
       },
@@ -103,17 +105,18 @@ const plans: Plan[] = [
   {
     id: "pro",
     name: "Pro",
-    tagline: "Para criadores que querem impulsionar seu engajamento com o poder da IA.",
-    monthlyPrice: "R$14,90",
-    originalPrice: "R$47,90",
-    yearlyPrice: "R$149",
-    yearlyOriginalPrice: "R$479",
-    discount: "69%",
+    tagline: "Para criadores que querem crescer com inteligência artificial.",
+    monthlyPrice: "R$ 34,90",
+    originalPrice: "R$ 69,90",
+    yearlyPrice: "R$ 349",
+    yearlyOriginalPrice: "R$ 699",
+    discount: "50%",
     priceDetails: "/mês",
     spotsLeft: 47,
     popularFeatures: [
-      "🧠 IA que gera ideias virais para conteúdo",
-      "📊 Analytics avançados e completos",
+      "🧠 FreelinkBrain - 5 ideias virais/dia",
+      "🎬 5 roteiros de vídeos virais/dia",
+      "📊 Analytics avançados completos",
       "🚫 Sem marca d'água Freelink"
     ],
     features: [
@@ -128,10 +131,12 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
-          { text: "FreelinkBrain: Gerador de ideias virais", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "Roteiros prontos para Reels e Posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
+          { text: "FreelinkBrain: 5 ideias virais por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "5 roteiros de vídeos virais por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "Templates prontos para posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "Geração de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
-          { text: "Plano estratégico de conteúdo completo", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
+          { text: "Aprimoramento de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
+          { text: "Calendário ilimitado", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
         ]
       },
       {
@@ -152,16 +157,18 @@ const plans: Plan[] = [
   {
     id: "ultra",
     name: "Ultra",
-    tagline: "A plataforma completa para automatizar seu conteúdo e monetizar sua audiência.",
-    monthlyPrice: "R$39,90",
-    originalPrice: "R$97,90",
-    yearlyPrice: "R$399",
-    yearlyOriginalPrice: "R$979",
-    discount: "59%",
+    tagline: "Plataforma completa com IA para escalar seu conteúdo profissionalmente.",
+    monthlyPrice: "R$ 77,90",
+    originalPrice: "R$ 157,90",
+    yearlyPrice: "R$ 779",
+    yearlyOriginalPrice: "R$ 1579",
+    discount: "51%",
     priceDetails: "/mês",
     spotsLeft: 23,
     popularFeatures: [
-      "🎨 Geração ilimitada de imagens profissionais",
+      "🎨 5 imagens com IA por dia + 5 aprimoramentos",
+      "🧠 FreelinkBrain ILIMITADO",
+      "🎬 Vídeos virais ILIMITADOS",
       "🎁 Sistema completo de sorteios",
       "📱 Suporte VIP no WhatsApp"
     ],
@@ -177,12 +184,13 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
-          { text: "Todas as ferramentas do plano Pro", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
-          { text: "Estúdio de imagens IA avançado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "Geração ilimitada de imagens", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "5 gerações de imagens com IA por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "5 aprimoramentos de imagens por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "FreelinkBrain ILIMITADO", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "Vídeos virais ILIMITADOS", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Calendário de conteúdo personalizado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Agendamento automático de posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
-        { text: "Ai-Studio", icon: <CheckCircle className="w-4 h-4 text-green-500" /> }
+          { text: "AI-Studio completo", icon: <CheckCircle className="w-4 h-4 text-green-500" /> }
         ]
       },
       {
@@ -382,10 +390,10 @@ export default function BillingContent() {
               </div>
               <div>
                 <p className="text-xs sm:text-sm font-medium opacity-90">
-                  🔥 OFERTA DE LANÇAMENTO - ÚLTIMAS VAGAS
+                  🔥 OFERTA ESPECIAL - ÚLTIMAS VAGAS
                 </p>
                 <p className="text-lg sm:text-2xl font-bold">
-                  Até 69% de desconto + Bônus Exclusivos
+                  Até 51% de desconto + Bônus Exclusivos
                 </p>
               </div>
             </div>
@@ -417,12 +425,12 @@ export default function BillingContent() {
           </motion.div>
 
           <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-gray-900 to-gray-600 dark:from-white dark:to-gray-400 mb-4 px-2">
-            Última chance com preço de lançamento
+            Crie conteúdo viral com IA e multiplique seu engajamento
           </h1>
 
           <p className="text-base sm:text-lg text-gray-600 dark:text-gray-300 max-w-3xl mx-auto px-4">
-            <span className="font-bold text-red-600 dark:text-red-400">⚠️ Os preços voltam ao normal em breve.</span>
-            {" "}Aproveite agora e economize centenas de reais por ano.
+            <span className="font-bold text-red-600 dark:text-red-400">⚠️ Preço especial por tempo limitado.</span>
+            {" "}Escolha o plano ideal e economize centenas de reais por ano.
           </p>
         </motion.div>
 
@@ -436,10 +444,10 @@ export default function BillingContent() {
           <div className="bg-yellow-50 dark:bg-yellow-900/20 border-2 border-yellow-400 dark:border-yellow-600 rounded-xl p-4 flex items-center gap-3">
             <AlertCircle className="w-6 h-6 text-yellow-600 dark:text-yellow-400 flex-shrink-0" />
             <div className="flex-1">
-             <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
-  ⚡ Apenas {(plans[1]?.spotsLeft ?? 0) + (plans[2]?.spotsLeft ?? 0)} vagas restantes com desconto.
-  {" "}Pessoas visualizando agora: <span className="font-bold">{Math.floor(Math.random() * 50) + 100}</span>
-</p>
+              <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                ⚡ Apenas <span className="font-bold">{plans[1].spotsLeft! + plans[2].spotsLeft!}</span> vagas restantes com desconto.
+                {" "}Pessoas visualizando agora: <span className="font-bold">{Math.floor(Math.random() * 50) + 100}</span>
+              </p>
             </div>
           </div>
         </motion.div>
@@ -459,12 +467,12 @@ export default function BillingContent() {
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold">Estúdio de Imagens IA</h3>
-                  <p className="text-blue-100 text-xs sm:text-sm">Crie imagens profissionais em segundos</p>
+                  <p className="text-blue-100 text-xs sm:text-sm">5 gerações + 5 aprimoramentos/dia</p>
                 </div>
               </div>
 
               <p className="mb-3 sm:mb-4 text-blue-100 text-xs sm:text-sm">
-                Gere imagens incríveis para suas redes sociais com IA avançada.
+                Gere imagens incríveis e aprimore suas fotos com IA avançada. Qualidade profissional em segundos.
               </p>
 
               <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3">
@@ -474,13 +482,13 @@ export default function BillingContent() {
                 </div>
                 <div className="bg-white/10 rounded-lg p-2 sm:p-3 flex items-center gap-2">
                   <Palette className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-300" />
-                  <span className="text-xs sm:text-sm">Múltiplos estilos</span>
+                  <span className="text-xs sm:text-sm">Aprimoramento IA</span>
                 </div>
               </div>
 
               <Badge className="bg-red-600 text-white border-0 text-xs">
                 <Clock className="w-3 h-3 mr-1" />
-                Economia de R$ 58/mês vs. Midjourney
+                Economia de R$ 100/mês vs. Midjourney
               </Badge>
             </CardContent>
           </Card>
@@ -493,12 +501,12 @@ export default function BillingContent() {
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold">FreelinkBrain</h3>
-                  <p className="text-purple-100 text-xs sm:text-sm">Ideias virais em segundos</p>
+                  <p className="text-purple-100 text-xs sm:text-sm">Ideias virais ilimitadas</p>
                 </div>
               </div>
 
               <p className="mb-3 sm:mb-4 text-purple-100 text-xs sm:text-sm">
-                Gere títulos impactantes e roteiros prontos para Reels.
+                Gere títulos impactantes e roteiros prontos para Reels e vídeos virais em segundos.
               </p>
 
               <div className="grid grid-cols-2 gap-2 sm:gap-3 mb-3">
@@ -514,7 +522,7 @@ export default function BillingContent() {
 
               <Badge className="bg-red-600 text-white border-0 text-xs">
                 <Clock className="w-3 h-3 mr-1" />
-                Economia de R$ 85/mês vs. ChatGPT Plus
+                Economia de R$ 100/mês vs. ChatGPT Plus
               </Badge>
             </CardContent>
           </Card>
@@ -555,7 +563,7 @@ export default function BillingContent() {
             className="bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/40 dark:to-emerald-900/40 text-green-800 dark:text-green-300 text-xs font-bold px-3 py-1.5 rounded-full flex items-center"
           >
             <Zap className="w-3.5 h-3.5 mr-1.5" />
-            Economize 2 meses! (R$ 178 de economia)
+            Economize 2 meses pagando anual!
           </motion.div>
         </div>
 
@@ -592,21 +600,21 @@ export default function BillingContent() {
               {
                 name: "Maria Silva",
                 role: "De 3K para 47K seguidores",
-                text: "Triplicou meu engajamento em 30 dias. Melhor investimento que já fiz!",
+                text: "5 imagens por dia é perfeito! Não desperdiço nada e economizo muito.",
                 avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria",
                 verified: true
               },
               {
                 name: "João Pedro",
                 role: "R$ 15K/mês com afiliados",
-                text: "O FreelinkBrain me economiza 10h por semana. Vale cada centavo!",
+                text: "O FreelinkBrain ilimitado mudou meu jogo. Nunca mais fico sem ideias!",
                 avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Joao",
                 verified: true
               },
               {
                 name: "Ana Costa",
                 role: "100K views em 7 dias",
-                text: "As imagens parecem feitas por designer profissional. Incrível!",
+                text: "O aprimoramento de imagens deixa tudo profissional. Vale cada centavo!",
                 avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ana",
                 verified: true
               }
@@ -651,7 +659,7 @@ export default function BillingContent() {
           className="mt-12 sm:mt-16 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 sm:p-8 rounded-2xl mx-2 sm:mx-0"
         >
           <Badge className="bg-red-600 text-white border-0 mb-4">
-            💰 Economia de R$ 2.581/ano
+            💰 Economia de até R$ 1.561/ano
           </Badge>
 
           <h3 className="text-xl sm:text-2xl font-bold text-center mb-6 text-gray-900 dark:text-white">
@@ -673,8 +681,8 @@ export default function BillingContent() {
                   <span className="font-mono line-through text-gray-500">R$ 100,00</span>
                 </li>
                 <li className="flex justify-between">
-                  <span>Gleam.io</span>
-                  <span className="font-mono line-through text-gray-500">R$ 97,00</span>
+                  <span>Midjourney</span>
+                  <span className="font-mono line-through text-gray-500">R$ 50,00</span>
                 </li>
                 <li className="flex justify-between">
                   <span>Linktree Pro</span>
@@ -682,7 +690,7 @@ export default function BillingContent() {
                 </li>
                 <li className="flex justify-between border-t pt-2 font-bold">
                   <span>Total Mensal</span>
-                  <span className="font-mono text-red-600 dark:text-red-400 text-base sm:text-lg">R$ 255,00</span>
+                  <span className="font-mono text-red-600 dark:text-red-400 text-base sm:text-lg">R$ 208,00</span>
                 </li>
               </ul>
             </div>
@@ -694,15 +702,15 @@ export default function BillingContent() {
               <ul className="space-y-2 text-sm">
                 <li className="flex justify-between">
                   <span>Tudo incluído + bônus</span>
-                  <span className="font-mono text-green-600 font-bold">R$ 39,90</span>
+                  <span className="font-mono text-green-600 font-bold">R$ 77,90</span>
                 </li>
                 <li className="flex justify-between mt-6 sm:mt-8 pt-6 sm:pt-8 border-t">
                   <span className="font-bold">Economia Mensal</span>
-                  <span className="font-mono text-green-600 dark:text-green-400 font-bold">R$ 215,10</span>
+                  <span className="font-mono text-green-600 dark:text-green-400 font-bold">R$ 130,10</span>
                 </li>
                 <li className="flex justify-between">
                   <span className="font-bold">Economia Anual</span>
-                  <span className="font-mono text-green-600 dark:text-green-400 font-bold text-lg sm:text-xl">R$ 2.581,20</span>
+                  <span className="font-mono text-green-600 dark:text-green-400 font-bold text-lg sm:text-xl">R$ 1.561,20</span>
                 </li>
               </ul>
 
@@ -712,7 +720,7 @@ export default function BillingContent() {
                 className="mt-4 bg-green-600 text-white p-3 rounded-lg text-center"
               >
                 <p className="text-xs sm:text-sm font-bold">
-                  🎁 BÔNUS: +1000 créditos de imagem grátis
+                  🎁 BÔNUS: Suporte VIP no WhatsApp
                 </p>
               </motion.div>
             </div>
@@ -770,7 +778,7 @@ export default function BillingContent() {
   );
 }
 
-// Componente de card de plano aprimorado
+// Componente de card de plano
 interface PlanCardProps {
   plan: Plan;
   currentPlan: PlanIdentifier;
@@ -830,7 +838,7 @@ function PlanCard({
           className="absolute top-0 inset-x-0 -translate-y-1/2 flex justify-center"
         >
           <div className={`px-4 py-1 bg-gradient-to-r ${plan.gradient} text-white text-xs font-bold rounded-full flex items-center gap-1 shadow-lg`}>
-            <Flame className="w-3.5 h-3.5 animate-pulse" /> MAIS POPULAR - 69% OFF
+            <Flame className="w-3.5 h-3.5 animate-pulse" /> MAIS POPULAR - {plan.discount} OFF
           </div>
         </motion.div>
       )}
@@ -891,9 +899,9 @@ function PlanCard({
               className="text-xs text-green-600 dark:text-green-400 font-medium mt-1"
             >
               Você economiza {billingCycle === 'yearly'
-                ? `R$ ${(parseInt(plan.yearlyOriginalPrice!) - parseInt(plan.yearlyPrice!))}`
-                : `R$ ${(parseFloat(plan.originalPrice!.replace('R$', '').replace(',', '.')) - parseFloat(plan.monthlyPrice.replace('R$', '').replace(',', '.'))).toFixed(2).replace('.', ',')}`
-              } por {billingCycle === 'yearly' ? 'ano' : 'mês'}
+                ? `R$ ${(parseInt(plan.yearlyOriginalPrice!.replace(/\D/g,'')) - parseInt(plan.yearlyPrice!.replace(/\D/g,'')))} por ano`
+                : `R$ ${(parseFloat(plan.originalPrice!.replace('R$', '').replace(',', '.').trim()) - parseFloat(plan.monthlyPrice.replace('R$', '').replace(',', '.').trim())).toFixed(2).replace('.', ',')} por mês`
+              }
             </motion.p>
           )}
         </div>
@@ -1064,18 +1072,22 @@ function PlanCard({
   );
 }
 
-// Componente FAQ aprimorado
+// Componente FAQ
 function FAQ() {
   const [expandedFaq, setExpandedFaq] = useState<number | null>(null);
 
   const faqs = [
     {
-      q: "Por quanto tempo o desconto vai durar?",
-      a: "Esta é uma oferta de lançamento limitada. Os preços podem subir a qualquer momento sem aviso prévio. Garantimos o preço promocional apenas para quem assinar agora."
+      q: "Quantas imagens posso gerar por dia no plano Ultra?",
+      a: "No plano Ultra você pode gerar 5 imagens novas por dia + 5 aprimoramentos de imagens existentes. Os limites resetam diariamente às 00:00. Isso é suficiente para manter suas redes sempre atualizadas sem desperdício."
     },
     {
-      q: "As imagens geradas pela IA realmente parecem profissionais?",
-      a: "Sim! Nosso gerador utiliza os modelos de IA mais avançados do mercado (superiores ao Midjourney). Mais de 10.000 criadores já usam nossas imagens em campanhas pagas com excelentes resultados."
+      q: "O FreelinkBrain tem limite no plano Ultra?",
+      a: "Não! No plano Ultra o FreelinkBrain é completamente ILIMITADO. Você pode gerar quantas ideias virais e roteiros de vídeos quiser, sem restrições. No Pro você tem 5 gerações por dia."
+    },
+    {
+      q: "Por quanto tempo o desconto vai durar?",
+      a: "Esta é uma oferta especial limitada. Os preços podem voltar ao normal (R$ 69,90 Pro e R$ 157,90 Ultra) a qualquer momento. Garantimos o preço promocional apenas para quem assinar agora."
     },
     {
       q: "Posso cancelar a qualquer momento?",
@@ -1086,12 +1098,8 @@ function FAQ() {
       a: "Oferecemos garantia incondicional de 7 dias. Se não ficar 100% satisfeito, devolvemos todo seu dinheiro sem perguntas."
     },
     {
-      q: "Vou economizar mesmo usando o Freelink?",
-      a: "Com certeza! Você economiza mais de R$ 200 por mês comparado a ter Canva Pro + ChatGPT Plus + outras ferramentas. É tudo em um só lugar por uma fração do preço."
-    },
-    {
-      q: "Quantas imagens posso gerar?",
-      a: "No plano Ultra você tem geração ILIMITADA de imagens. Enquanto outras ferramentas limitam ou cobram extra, aqui você cria o quanto quiser."
+      q: "5 imagens por dia é suficiente?",
+      a: "Para a maioria dos criadores, sim! São 150 imagens por mês. A maioria usa 2-3 por dia. Se precisar de mais, você sempre pode usar o aprimoramento para melhorar fotos existentes."
     },
   ];
 
