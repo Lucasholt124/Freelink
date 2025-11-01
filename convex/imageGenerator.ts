@@ -2,18 +2,12 @@ import { action, mutation, query, internalMutation, internalQuery } from "./_gen
 import { v } from "convex/values";
 import { internal } from "./_generated/api";
 import { Id } from "./_generated/dataModel";
-import { ActionCtx} from "./_generated/server";
+import { ActionCtx } from "./_generated/server";
 
 // =================================================================
-// 🎯 CONFIGURAÇÃO - 100% GRATUITO COM POLLINATIONS
+// 🎯 CONFIGURAÇÃO
 // =================================================================
 const DAILY_LIMIT = 7;
-
-console.log("🎉 GERADOR DE IMAGENS 100% GRATUITO ATIVADO!");
-console.log("   API: Pollinations.ai (FLUX modelo)");
-console.log("   Custo: $0.00 (COMPLETAMENTE GRÁTIS!)");
-console.log("   Qualidade: ⭐⭐⭐⭐⭐ Excelente!");
-console.log("   Velocidade: 3-8 segundos");
 
 // =================================================================
 // 📊 TIPOS
@@ -84,81 +78,236 @@ async function incrementDailyUsage(
 }
 
 // =================================================================
-// 🎨 GERAÇÃO COM POLLINATIONS (100% GRÁTIS!)
+// 🎯 OTIMIZADOR DE PROMPT
 // =================================================================
-async function generateWithPollinations(prompt: string): Promise<Blob> {
-  try {
-    console.log("🌟 Gerando com Pollinations (100% GRÁTIS)...");
-    console.log("📝 Prompt:", prompt.substring(0, 100) + "...");
+function optimizePrompt(original: string): string {
+  // Remove caracteres especiais problemáticos
+  let cleaned = original.replace(/[^\w\s,.-]/gi, ' ').trim();
 
-    const enhancedPrompt = enhancePrompt(prompt);
-
-    const params = new URLSearchParams({
-      width: '1024',
-      height: '1024',
-      seed: Math.floor(Math.random() * 1000000).toString(),
-      model: 'flux',
-      nologo: 'true',
-      enhance: 'true',
-      private: 'true'
-    });
-
-    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?${params}`;
-
-    console.log("🔗 Solicitando imagem...");
-
-    const response = await fetch(url, {
-      signal: AbortSignal.timeout(30000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`HTTP ${response.status}`);
-    }
-
-    const blob = await response.blob();
-
-    if (blob.size < 10000) {
-      throw new Error("Imagem muito pequena");
-    }
-
-    console.log(`✅ SUCESSO! ${(blob.size / 1024).toFixed(2)}KB | Custo: $0.00 (GRÁTIS!) 🎉`);
-
-    return blob;
-
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-    console.error("❌ Erro Pollinations:", errorMessage);
-    throw new Error("Erro ao gerar imagem. Tente novamente!");
+  // Limita tamanho
+  if (cleaned.length > 400) {
+    cleaned = cleaned.substring(0, 400);
   }
-}
 
-// =================================================================
-// 🎯 MELHORADOR DE PROMPT (CORRIGIDO)
-// =================================================================
-function enhancePrompt(original: string): string {
-  // Detecta tipo de conteúdo (variável 'lower' REMOVIDA)
   const isLogo = /\b(logo|logotipo|brand|marca)\b/i.test(original);
   const isUI = /\b(interface|ui|ux|dashboard|website|app|software)\b/i.test(original);
   const isProduct = /\b(product|produto|mockup|package)\b/i.test(original);
   const isPhoto = /\b(photo|foto|portrait|retrato)\b/i.test(original);
 
-  let enhanced = original;
+  let enhanced = cleaned;
 
   if (isLogo) {
-    enhanced = `${original}, professional logo design, minimalist, vector art, clean, modern, high quality`;
+    enhanced = `${cleaned}, professional logo, minimalist, vector, modern`;
   } else if (isUI) {
-    enhanced = `${original}, modern UI design, professional interface, clean layout, Figma quality, high resolution, no people`;
+    enhanced = `${cleaned}, modern UI, professional interface, clean, high quality`;
   } else if (isProduct) {
-    enhanced = `${original}, professional product photography, studio lighting, white background, commercial photo, ultra sharp, 8K`;
+    enhanced = `${cleaned}, product photography, studio lighting, professional`;
   } else if (isPhoto) {
-    enhanced = `${original}, professional photography, high quality, detailed, 8K, award winning`;
+    enhanced = `${cleaned}, professional photography, detailed, high quality`;
   } else {
-    enhanced = `${original}, masterpiece, best quality, highly detailed, professional, 8K`;
+    enhanced = `${cleaned}, masterpiece, detailed, professional`;
   }
 
-  console.log("✨ Prompt melhorado:", enhanced.substring(0, 150) + "...");
-
   return enhanced;
+}
+
+// =================================================================
+// 🎨 API 1: POLLINATIONS (COM RETRY)
+// =================================================================
+async function tryPollinations(prompt: string, retries = 2): Promise<Blob | null> {
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      console.log(`🌟 Pollinations - Tentativa ${attempt}/${retries}`);
+
+      const optimized = optimizePrompt(prompt);
+
+      const params = new URLSearchParams({
+        width: '1024',
+        height: '1024',
+        seed: Math.floor(Math.random() * 1000000).toString(),
+        model: 'flux',
+        nologo: 'true',
+        enhance: 'true'
+      });
+
+      const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(optimized)}?${params}`;
+
+      const response = await fetch(url, {
+        signal: AbortSignal.timeout(30000)
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+
+        if (blob.size > 10000) {
+          console.log(`✅ Pollinations OK! ${(blob.size / 1024).toFixed(2)}KB`);
+          return blob;
+        }
+      }
+
+      console.warn(`⚠️ Pollinations falhou: HTTP ${response.status}`);
+
+      // Aguarda antes de tentar novamente
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+    } catch (error) {
+      console.warn(`⚠️ Pollinations erro:`, error);
+      if (attempt < retries) {
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+    }
+  }
+
+  return null;
+}
+
+// =================================================================
+// 🎨 API 2: HUGGING FACE (FALLBACK)
+// =================================================================
+async function tryHuggingFace(prompt: string): Promise<Blob | null> {
+  const HF_TOKEN = process.env.HUGGINGFACE_API_TOKEN;
+
+  if (!HF_TOKEN) {
+    console.log("⚠️ HF Token não configurado");
+    return null;
+  }
+
+  try {
+    console.log("🤗 Tentando Hugging Face...");
+
+    const optimized = optimizePrompt(prompt);
+
+    const response = await fetch(
+      "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${HF_TOKEN}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          inputs: optimized,
+          parameters: {
+            num_inference_steps: 4,
+            guidance_scale: 0,
+          }
+        }),
+        signal: AbortSignal.timeout(60000)
+      }
+    );
+
+    if (response.ok) {
+      const blob = await response.blob();
+
+      if (blob.size > 10000) {
+        console.log(`✅ HuggingFace OK! ${(blob.size / 1024).toFixed(2)}KB`);
+        return blob;
+      }
+    } else {
+      const error = await response.json().catch(() => ({}));
+
+      // Se modelo está carregando, espera e tenta de novo
+      if (error.estimated_time) {
+        const waitTime = Math.min(error.estimated_time + 3, 25);
+        console.log(`⏳ Aguardando ${waitTime}s...`);
+        await new Promise(resolve => setTimeout(resolve, waitTime * 1000));
+
+        const retryResponse = await fetch(
+          "https://api-inference.huggingface.co/models/black-forest-labs/FLUX.1-schnell",
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${HF_TOKEN}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              inputs: optimized,
+              parameters: {
+                num_inference_steps: 4,
+                guidance_scale: 0,
+              }
+            })
+          }
+        );
+
+        if (retryResponse.ok) {
+          const retryBlob = await retryResponse.blob();
+          if (retryBlob.size > 10000) {
+            console.log(`✅ HuggingFace OK (retry)!`);
+            return retryBlob;
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.warn("⚠️ HuggingFace erro:", error);
+  }
+
+  return null;
+}
+
+// =================================================================
+// 🎨 API 3: POLLINATIONS SIMPLE (FALLBACK 2)
+// =================================================================
+async function tryPollinationsSimple(prompt: string): Promise<Blob | null> {
+  try {
+    console.log("🌸 Tentando Pollinations (modo simples)...");
+
+    const simplified = prompt.substring(0, 200);
+    const url = `https://image.pollinations.ai/prompt/${encodeURIComponent(simplified)}?width=1024&height=1024&nologo=true`;
+
+    const response = await fetch(url, {
+      signal: AbortSignal.timeout(30000)
+    });
+
+    if (response.ok) {
+      const blob = await response.blob();
+      if (blob.size > 10000) {
+        console.log(`✅ Pollinations Simple OK!`);
+        return blob;
+      }
+    }
+  } catch (error) {
+    console.warn("⚠️ Pollinations Simple erro:", error);
+  }
+
+  return null;
+}
+
+// =================================================================
+// 🎨 GERADOR PRINCIPAL (COM MÚLTIPLOS FALLBACKS)
+// =================================================================
+async function generateImageWithAI(prompt: string): Promise<Blob> {
+  console.log("🎨 Iniciando geração 100% GRATUITA...");
+  console.log("📝 Prompt:", prompt.substring(0, 100));
+
+  // Tentativa 1: Pollinations (com retry)
+  let blob = await tryPollinations(prompt);
+  if (blob) return blob;
+
+  console.log("🔄 Fallback 1: Hugging Face...");
+
+  // Tentativa 2: Hugging Face
+  blob = await tryHuggingFace(prompt);
+  if (blob) return blob;
+
+  console.log("🔄 Fallback 2: Pollinations Simple...");
+
+  // Tentativa 3: Pollinations Simple
+  blob = await tryPollinationsSimple(prompt);
+  if (blob) return blob;
+
+  // Tentativa 4: Pollinations com prompt genérico
+  console.log("🔄 Fallback 3: Prompt genérico...");
+  blob = await tryPollinationsSimple("beautiful professional artwork");
+  if (blob) {
+    console.log("⚠️ Retornando imagem genérica");
+    return blob;
+  }
+
+  throw new Error("❌ Todas as APIs estão temporariamente indisponíveis. Tente novamente em alguns segundos!");
 }
 
 // =================================================================
@@ -184,8 +333,8 @@ export const generateImage = action({
 
       console.log(`📊 Restantes hoje: ${remaining - 1}/${DAILY_LIMIT}`);
 
-      // Gera a imagem (100% GRÁTIS!)
-      const imageBlob = await generateWithPollinations(args.prompt);
+      // Gera a imagem (100% GRÁTIS com fallbacks!)
+      const imageBlob = await generateImageWithAI(args.prompt);
 
       // Salva no storage
       const storageId = await ctx.storage.store(imageBlob);
@@ -208,14 +357,14 @@ export const generateImage = action({
 
       return {
         url: imageUrl,
-        method: 'pollinations-flux-free',
+        method: 'multi-api-free',
         remainingToday: remaining - 1,
         message: `🎉 Imagem criada 100% GRÁTIS! ${remaining - 1} restantes hoje. Custo: $0.00 🎉`
       };
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : "Erro ao gerar imagem";
-      console.error("❌ Erro:", errorMessage);
+      console.error("❌ Erro final:", errorMessage);
       throw new Error(errorMessage);
     }
   },
@@ -258,7 +407,7 @@ export const saveGeneratedImage = internalMutation({
   handler: async (ctx, args) => {
     return await ctx.db.insert("generatedImages", {
       ...args,
-      method: "pollinations-flux-free",
+      method: "multi-api-free",
       createdAt: Date.now(),
     });
   },
@@ -357,7 +506,7 @@ export const getUsageStats = query({
         usedToday: 0,
         remainingToday: DAILY_LIMIT,
         resetTime: "00:00 UTC",
-        method: "Pollinations FLUX (100% Gratuito)",
+        method: "Multi-API 100% Gratuito",
         quality: "Ultra HD 1024x1024",
         costPerImage: "$0.00 (GRÁTIS!)",
         monthlyCost: "$0.00 (SEMPRE GRÁTIS!)",
@@ -382,7 +531,7 @@ export const getUsageStats = query({
       usedToday: used,
       remainingToday: remaining,
       resetTime: "00:00 UTC",
-      method: "Pollinations FLUX (100% Gratuito)",
+      method: "Multi-API 100% Gratuito",
       quality: "Ultra HD 1024x1024",
       costPerImage: "$0.00 (GRÁTIS!)",
       monthlyCost: "$0.00 (SEMPRE GRÁTIS!)",

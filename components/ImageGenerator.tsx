@@ -658,8 +658,10 @@ export default function ImageGeneratorPage() {
                               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             />
 
-                            {/* Overlay com ações */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end p-4">
+                            {/* Overlay com ações - CORRIGIDO PARA MOBILE */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent
+                                          opacity-100 sm:opacity-0 sm:group-hover:opacity-100
+                                          transition-all duration-300 flex flex-col justify-end p-4">
                               <p className="text-white text-xs mb-3 line-clamp-2 font-medium">
                                 {image.prompt}
                               </p>
@@ -669,7 +671,7 @@ export default function ImageGeneratorPage() {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => toggleLike(image._id)}
-                                    className="h-8 w-8 bg-white/10 hover:bg-white/20"
+                                    className="h-8 w-8 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
                                   >
                                     <Heart
                                       className={`w-4 h-4 ${
@@ -683,7 +685,7 @@ export default function ImageGeneratorPage() {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => handleDownload(image.imageUrl, `ai-${image._id}.png`)}
-                                    className="h-8 w-8 bg-white/10 hover:bg-white/20"
+                                    className="h-8 w-8 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
                                   >
                                     <Download className="w-4 h-4 text-white" />
                                   </Button>
@@ -691,7 +693,7 @@ export default function ImageGeneratorPage() {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => handleShare(image.imageUrl, image.prompt)}
-                                    className="h-8 w-8 bg-white/10 hover:bg-white/20"
+                                    className="h-8 w-8 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
                                   >
                                     <Share2 className="w-4 h-4 text-white" />
                                   </Button>
@@ -699,7 +701,7 @@ export default function ImageGeneratorPage() {
                                     size="icon"
                                     variant="ghost"
                                     onClick={() => handleDelete(image._id, image.storageId)}
-                                    className="h-8 w-8 bg-red-500/20 hover:bg-red-500/40"
+                                    className="h-8 w-8 bg-red-500/20 hover:bg-red-500/40 backdrop-blur-sm"
                                   >
                                     <Trash2 className="w-4 h-4 text-white" />
                                   </Button>
@@ -708,7 +710,7 @@ export default function ImageGeneratorPage() {
                                   size="icon"
                                   variant="ghost"
                                   onClick={() => setSelectedImage(image.imageUrl)}
-                                  className="h-8 w-8 bg-white/10 hover:bg-white/20"
+                                  className="h-8 w-8 bg-white/10 hover:bg-white/20 backdrop-blur-sm"
                                 >
                                   <Maximize2 className="w-4 h-4 text-white" />
                                 </Button>
