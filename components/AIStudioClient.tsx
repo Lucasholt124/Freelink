@@ -7,157 +7,125 @@ import { useAction } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
-  Sparkles, Mic, MessageSquare, Video, Upload, Download, Loader2, Wand2, Copy, Check,
-  Zap, Crown, FileAudio, Heart, Star, Rocket, Send,
-  Camera, Film, Brain, Bot, Share2, TrendingUp, DollarSign, Target,
-  Lightbulb, CheckCircle, Globe, Megaphone, ShoppingBag, Code, Briefcase
+  Sparkles, Mic, MessageSquare, Upload, Download, Loader2, Wand2,
+  Copy, Check, Crown, FileAudio, Heart, Star, Send,
+  Camera, Bot, Share2, Trash2, RotateCcw
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 // =================================================================
-// 🎯 CONFIGURAÇÃO REVOLUCIONÁRIA DE ABAS
+// 🎯 CONFIGURAÇÃO DE ABAS
 // =================================================================
 const tabs = [
+  {
+    id: 'chat',
+    label: 'Chat IA',
+    icon: MessageSquare,
+    gradient: 'from-violet-500 via-purple-500 to-fuchsia-500',
+    description: 'Converse com inteligência artificial avançada'
+  },
   {
     id: 'enhance',
     label: 'Aprimorar Imagem',
     icon: Wand2,
-    color: 'from-purple-600 to-pink-600',
-    description: 'Transforme suas imagens em obras de arte com IA'
-  },
-  {
-    id: 'chat',
-    label: 'Chat Marketing',
-    icon: MessageSquare,
-    color: 'from-blue-600 to-cyan-600',
-    description: 'Gênio do marketing digital ao seu dispor'
+    gradient: 'from-pink-500 via-rose-500 to-red-500',
+    description: 'Transforme imagens com IA de última geração'
   },
   {
     id: 'stt',
-    label: 'Voz → Texto',
+    label: 'Áudio → Texto',
     icon: Mic,
-    color: 'from-green-600 to-emerald-600',
-    description: 'Transcreva áudios com precisão absoluta'
-  },
-  {
-    id: 'video',
-    label: 'Buscar Vídeos',
-    icon: Video,
-    color: 'from-orange-600 to-red-600',
-    description: 'Encontre vídeos perfeitos para seu projeto'
+    gradient: 'from-emerald-500 via-teal-500 to-cyan-500',
+    description: 'Transcrição instantânea com precisão perfeita'
   },
   {
     id: 'remove-bg',
     label: 'Remover Fundo',
     icon: Camera,
-    color: 'from-indigo-600 to-purple-600',
-    description: 'Remova fundos de imagens instantaneamente'
+    gradient: 'from-blue-500 via-indigo-500 to-purple-500',
+    description: 'Remoção de fundo profissional em segundos'
   },
 ];
 
 // =================================================================
-// 🎨 EFEITOS DE APRIMORAMENTO REVOLUCIONÁRIOS
+// 🎨 EFEITOS DE APRIMORAMENTO
 // =================================================================
 const enhanceEffects = [
   {
     id: 'super-resolution',
-    name: '🚀 Super Resolução 4K',
-    description: 'Aumente 4x com qualidade cinematográfica',
+    name: 'Super Resolução 4K',
+    icon: '🚀',
+    description: 'Qualidade cinematográfica',
     power: 100
   },
   {
     id: 'ai-enhance',
-    name: '✨ IA Aprimoramento Total',
-    description: 'Melhoria completa com múltiplas IAs',
+    name: 'IA Total',
+    icon: '✨',
+    description: 'Aprimoramento completo',
     power: 95
   },
   {
     id: 'professional',
-    name: '📸 Qualidade Profissional',
-    description: 'Padrão de estúdio fotográfico',
+    name: 'Profissional',
+    icon: '📸',
+    description: 'Padrão de estúdio',
     power: 90
   },
   {
-    id: 'denoise-sharpen',
-    name: '🎯 Nitidez Extrema',
-    description: 'Remove ruído e aumenta detalhes',
-    power: 85
-  },
-  {
-    id: 'color-boost',
-    name: '🌈 Cores Vibrantes HDR',
-    description: 'Cores cinematográficas vibrantes',
-    power: 80
-  },
-  {
     id: 'restore',
-    name: '🔮 Restauração Mágica',
-    description: 'Restaura fotos antigas e danificadas',
+    name: 'Restauração',
+    icon: '🔮',
+    description: 'Recupere fotos antigas',
     power: 88
   },
 ];
 
 // =================================================================
-// 💬 TEMPLATES DE CHAT MARKETING
-// =================================================================
-const chatTemplates = [
-  { id: 'copy', label: '✍️ Copywriting', icon: Code },
-  { id: 'strategy', label: '📈 Estratégia', icon: TrendingUp },
-  { id: 'social', label: '📱 Social Media', icon: Globe },
-  { id: 'ads', label: '💰 Anúncios', icon: DollarSign },
-  { id: 'email', label: '📧 E-mail Marketing', icon: Megaphone },
-  { id: 'seo', label: '🔍 SEO', icon: Target },
-  { id: 'content', label: '📝 Conteúdo', icon: Briefcase },
-  { id: 'ecommerce', label: '🛒 E-commerce', icon: ShoppingBag },
-];
-
-// =================================================================
-// 💬 MENSAGEM DO CHAT
+// 💬 INTERFACE DE MENSAGEM
 // =================================================================
 interface ChatMessage {
   id: string;
   role: 'user' | 'assistant';
   content: string;
   timestamp: Date;
-  isTyping?: boolean;
 }
 
 // =================================================================
-// 🎯 COMPONENTE PRINCIPAL REVOLUCIONÁRIO
+// 🎯 COMPONENTE PRINCIPAL
 // =================================================================
 export function AIStudioClient() {
   const { user } = useUser()
-  const [activeTab, setActiveTab] = useState('enhance')
+  const [activeTab, setActiveTab] = useState('chat')
   const [loading, setLoading] = useState(false)
   const [copied, setCopied] = useState(false)
   const [selectedEffect, setSelectedEffect] = useState('super-resolution')
-  const [showTutorial, setShowTutorial] = useState(true)
-  const [enhanceStrength, setEnhanceStrength] = useState(100)
   const [downloadingAssets, setDownloadingAssets] = useState<Set<string>>(new Set());
 
-  // Estados do Chat Marketing
+  // Estados do Chat
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
     {
       id: '1',
       role: 'assistant',
-      content: '👋 Olá! Sou seu Gênio do Marketing Digital! 🚀\n\nPosso ajudar você com:\n• 📝 Copywriting que converte\n• 📊 Estratégias de marketing\n• 💰 Anúncios que vendem\n• 📱 Conteúdo viral\n• 🎯 SEO e tráfego\n\nComo posso revolucionar seu marketing hoje?',
+      content: 'Olá! 👋 Sou sua assistente de IA. Posso ajudar com qualquer dúvida, criar conteúdo, resolver problemas e muito mais. Como posso ajudar você hoje?',
       timestamp: new Date()
     }
   ])
   const [chatInput, setChatInput] = useState('')
-  const [selectedTemplate, setSelectedTemplate] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
-  // Estados principais existentes
+  // Estados de Imagem
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState('')
   const [enhancedImage, setEnhancedImage] = useState('')
+
+  // Estados de Áudio
   const [audioFile, setAudioFile] = useState<File | null>(null)
   const [transcription, setTranscription] = useState('')
-  const [videoPrompt, setVideoPrompt] = useState('')
-  const [videoUrl, setVideoUrl] = useState('')
+
+  // Estados de Remover Fundo
   const [removeBgImage, setRemoveBgImage] = useState('')
   const [removeBgResult, setRemoveBgResult] = useState('')
 
@@ -168,15 +136,13 @@ export function AIStudioClient() {
 
   // Actions
   const enhanceImageAction = useAction(api.aiStudio.enhanceImage)
-  const chatWithAIAction = useAction(api.aiStudio.chatWithMarketing)
+  const chatWithAIAction = useAction(api.aiStudio.chatWithAI)
   const speechToTextAction = useAction(api.aiStudio.speechToText)
-  const generateVideoAction = useAction(api.aiStudio.generateVideo)
   const removeBackgroundAction = useAction(api.aiStudio.removeBackground)
 
   // =================================================================
-  // 💬 FUNÇÕES DO CHAT MARKETING
+  // 💬 FUNÇÕES DO CHAT
   // =================================================================
-
   const scrollToBottom = () => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }
@@ -200,11 +166,13 @@ export function AIStudioClient() {
     setIsTyping(true)
 
     try {
-      const context = selectedTemplate ? `Como especialista em ${selectedTemplate}, ` : ''
       const result = await chatWithAIAction({
         userId: user.id,
-        message: context + chatInput,
-        context: selectedTemplate
+        message: chatInput,
+        conversationHistory: chatMessages.slice(-10).map(m => ({
+          role: m.role,
+          content: m.content
+        }))
       })
 
       if (result.success && result.response) {
@@ -226,42 +194,20 @@ export function AIStudioClient() {
     }
   }
 
-  const handleTemplateClick = (template: string) => {
-    setSelectedTemplate(template)
-    let promptSuggestion = ''
-
-    switch(template) {
-      case 'copy':
-        promptSuggestion = 'Crie um copy persuasivo para...'
-        break
-      case 'strategy':
-        promptSuggestion = 'Desenvolva uma estratégia de marketing para...'
-        break
-      case 'social':
-        promptSuggestion = 'Crie um calendário de conteúdo para Instagram sobre...'
-        break
-      case 'ads':
-        promptSuggestion = 'Escreva um anúncio do Facebook para...'
-        break
-      case 'email':
-        promptSuggestion = 'Crie uma sequência de e-mails para...'
-        break
-      case 'seo':
-        promptSuggestion = 'Otimize o SEO para...'
-        break
-      case 'content':
-        promptSuggestion = 'Crie um roteiro de vídeo sobre...'
-        break
-      case 'ecommerce':
-        promptSuggestion = 'Crie uma descrição de produto para...'
-        break
-    }
-
-    setChatInput(promptSuggestion)
+  const clearChat = () => {
+    setChatMessages([
+      {
+        id: '1',
+        role: 'assistant',
+        content: 'Olá! 👋 Sou sua assistente de IA. Posso ajudar com qualquer dúvida, criar conteúdo, resolver problemas e muito mais. Como posso ajudar você hoje?',
+        timestamp: new Date()
+      }
+    ])
+    toast.success('Chat limpo!')
   }
 
   // =================================================================
-  // 🎨 FUNÇÃO MELHORADA DE UPLOAD DE IMAGEM
+  // 🎨 FUNÇÕES DE IMAGEM
   // =================================================================
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'enhance' | 'remove-bg' = 'enhance') => {
     const file = e.target.files?.[0]
@@ -277,70 +223,132 @@ export function AIStudioClient() {
         if (type === 'enhance') {
           setImageFile(file)
           setImagePreview(result)
-          toast.success('📸 Imagem carregada! Pronta para aprimoramento.')
+          setEnhancedImage('')
+          toast.success('📸 Imagem carregada!')
         } else {
           setRemoveBgImage(result)
-          toast.success('📸 Imagem carregada! Pronta para remover fundo.')
+          setRemoveBgResult('')
+          toast.success('📸 Imagem carregada!')
         }
       }
       reader.readAsDataURL(file)
     }
   }
 
-  // =================================================================
-  // 🚀 FUNÇÃO REVOLUCIONÁRIA DE APRIMORAMENTO
-  // =================================================================
   const handleEnhanceImage = async () => {
     if (!imageFile || !user) {
-      toast.error('📸 Por favor, envie uma imagem primeiro!')
+      toast.error('📸 Envie uma imagem primeiro!')
       return
     }
 
     setLoading(true)
-    const startTime = Date.now()
+    const toastId = toast.loading('🎨 Processando com IA...')
 
     try {
-      // Mostrar progresso
-      toast.loading('🎨 Aplicando inteligência artificial...')
-
       const result = await enhanceImageAction({
         userId: user.id,
         imageFile: await fileToBase64(imageFile),
-        effect: selectedEffect,
-        strength: enhanceStrength
+        effect: selectedEffect
       })
 
-      const processingTime = ((Date.now() - startTime) / 1000).toFixed(1)
+      toast.dismiss(toastId)
 
       if (result.success) {
         setEnhancedImage(result.url!)
-        toast.dismiss()
-        toast.success(
-          <div>
-            <p className="font-bold">🎉 Imagem Aprimorada com Sucesso!</p>
-            <p className="text-sm">Processado em {processingTime}s com {selectedEffect}</p>
-          </div>
-        )
+        toast.success('🎉 Imagem aprimorada com sucesso!')
 
         // Efeito de confete
-        const confettiColors = ['#8B5CF6', '#EC4899', '#10B981', '#F59E0B']
-        for(let i = 0; i < 50; i++) {
-          setTimeout(() => {
-            const confetti = document.createElement('div')
-            confetti.className = 'confetti'
-            confetti.style.left = Math.random() * 100 + '%'
-            confetti.style.animationDelay = Math.random() * 3 + 's'
-            confetti.style.backgroundColor = confettiColors[Math.floor(Math.random() * confettiColors.length)]
-            document.body.appendChild(confetti)
-            setTimeout(() => confetti.remove(), 3000)
-          }, i * 30)
-        }
+        createConfetti()
       } else {
-        toast.error(`❌ ${result.message}`)
+        toast.error(result.message || 'Erro ao processar')
       }
     } catch (error) {
       console.error('Erro:', error)
+      toast.dismiss(toastId)
       toast.error('Erro ao processar imagem')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // =================================================================
+  // 🎤 FUNÇÕES DE ÁUDIO
+  // =================================================================
+  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      if (file.size > 25 * 1024 * 1024) {
+        toast.error('Arquivo muito grande! Máximo 25MB.')
+        return
+      }
+      setAudioFile(file)
+      setTranscription('')
+      toast.success('🎙️ Áudio carregado!')
+    }
+  }
+
+  const handleSpeechToText = async () => {
+    if (!audioFile || !user) {
+      toast.error('🎤 Envie um áudio primeiro!')
+      return
+    }
+
+    setLoading(true)
+    const toastId = toast.loading('🎙️ Transcrevendo...')
+
+    try {
+      const result = await speechToTextAction({
+        userId: user.id,
+        audioUrl: await fileToBase64(audioFile)
+      })
+
+      toast.dismiss(toastId)
+
+      if (result.success) {
+        setTranscription(result.text!)
+        toast.success('✅ Áudio transcrito!')
+      } else {
+        toast.error(result.message || 'Erro ao transcrever')
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.dismiss(toastId)
+      toast.error('Erro ao transcrever áudio')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // =================================================================
+  // 📸 FUNÇÕES DE REMOVER FUNDO
+  // =================================================================
+  const handleRemoveBackground = async () => {
+    if (!removeBgImage || !user) {
+      toast.error('📸 Envie uma imagem primeiro!')
+      return
+    }
+
+    setLoading(true)
+    const toastId = toast.loading('✂️ Removendo fundo...')
+
+    try {
+      const result = await removeBackgroundAction({
+        userId: user.id,
+        imageUrl: removeBgImage
+      })
+
+      toast.dismiss(toastId)
+
+      if (result.success) {
+        setRemoveBgResult(result.url!)
+        toast.success('✨ Fundo removido!')
+      } else {
+        toast.error(result.message || 'Erro ao remover fundo')
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.dismiss(toastId)
+      toast.error('Erro ao remover fundo')
     } finally {
       setLoading(false)
     }
@@ -358,168 +366,47 @@ export function AIStudioClient() {
     })
   }
 
-  const handleAudioUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      if (file.size > 25 * 1024 * 1024) {
-        toast.error('Arquivo muito grande! Máximo 25MB.')
-        return
-      }
-      setAudioFile(file)
-      toast.success('📁 Arquivo de áudio carregado!')
-    }
-  }
-
-  const handleSpeechToText = async () => {
-    if (!audioFile || !user) {
-      toast.error('🎤 Envie um arquivo de áudio primeiro!')
-      return
-    }
-
-    setLoading(true)
-    try {
-      const audioBase64 = await fileToBase64(audioFile)
-      const result = await speechToTextAction({
-        userId: user.id,
-        audioUrl: audioBase64
-      })
-
-      if (result.success) {
-        setTranscription(result.text!)
-        toast.success('📝 Áudio transcrito com sucesso!')
-      } else {
-        toast.error(`❌ ${result.message}`)
-      }
-    } catch (error) {
-      console.error('Erro:', error)
-      toast.error('Erro ao transcrever áudio')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleGenerateVideo = async () => {
-    if (!videoPrompt || !user) {
-      toast.error('🎬 Descreva o vídeo que procura!')
-      return
-    }
-
-    setLoading(true)
-    try {
-      const result = await generateVideoAction({
-        userId: user.id,
-        prompt: videoPrompt
-      })
-
-      if (result.success) {
-        setVideoUrl(result.url!)
-        toast.success('🎥 Vídeo HD encontrado!')
-      } else {
-        toast.error(`❌ ${result.message}`)
-      }
-    } catch (error) {
-      console.error('Erro:', error)
-      toast.error('Erro ao buscar vídeo')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  const handleRemoveBackground = async () => {
-    if (!removeBgImage || !user) {
-      toast.error('📸 Envie uma imagem primeiro!')
-      return
-    }
-
-    setLoading(true)
-    try {
-      const result = await removeBackgroundAction({
-        userId: user.id,
-        imageUrl: removeBgImage
-      })
-
-      if (result.success) {
-        setRemoveBgResult(result.url!)
-        toast.success('✨ Fundo removido com perfeição!')
-      } else {
-        toast.error(`❌ ${result.message}`)
-      }
-    } catch (error) {
-      console.error('Erro:', error)
-      toast.error('Erro ao remover fundo')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text)
     setCopied(true)
-    toast.success('📋 Copiado para área de transferência!')
+    toast.success('📋 Copiado!')
     setTimeout(() => setCopied(false), 2000)
   }
 
   const downloadAsset = async (url: string, filename: string) => {
-    // Previne downloads duplicados
     if (downloadingAssets.has(url)) {
-      toast.warning("Download já em andamento!");
+      toast.warning("Download em andamento!");
       return;
     }
 
-    // Adiciona URL ao set de downloads em andamento
     setDownloadingAssets(prev => new Set(prev).add(url));
-
-    // Armazena o ID do toast de loading
-    const loadingToastId = toast.loading("Preparando download...");
+    const toastId = toast.loading("⬇️ Baixando...");
 
     try {
       const response = await fetch(url);
-
-      if (!response.ok) {
-        throw new Error("Falha ao baixar arquivo");
-      }
+      if (!response.ok) throw new Error("Falha ao baixar");
 
       const blob = await response.blob();
       const blobUrl = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.style.display = 'none';
       a.href = blobUrl;
       a.download = filename;
-
       document.body.appendChild(a);
       a.click();
 
-      // Pequeno delay para garantir que o download iniciou
       setTimeout(() => {
         document.body.removeChild(a);
         window.URL.revokeObjectURL(blobUrl);
       }, 100);
 
-      // Cancela o toast de loading antes de mostrar sucesso
-      toast.dismiss(loadingToastId);
+      toast.dismiss(toastId);
       toast.success("✅ Download concluído!");
-
-      // Efeito de confete (opcional)
-      const confettiColors = ['#8B5CF6', '#EC4899', '#10B981', '#F59E0B'];
-      for(let i = 0; i < 30; i++) {
-        setTimeout(() => {
-          const confetti = document.createElement('div');
-          confetti.className = 'confetti';
-          confetti.style.left = Math.random() * 100 + '%';
-          confetti.style.animationDelay = Math.random() * 3 + 's';
-          confetti.style.backgroundColor = confettiColors[Math.floor(Math.random() * confettiColors.length)];
-          document.body.appendChild(confetti);
-          setTimeout(() => confetti.remove(), 3000);
-        }, i * 30);
-      }
-
+      createConfetti();
     } catch (error) {
-      console.error('Erro no download:', error);
-      // Cancela o toast de loading em caso de erro
-      toast.dismiss(loadingToastId);
-      toast.error('Erro ao baixar arquivo. Tente novamente!');
+      console.error('Erro:', error);
+      toast.dismiss(toastId);
+      toast.error('Erro ao baixar');
     } finally {
-      // Remove URL do set de downloads após conclusão
       setDownloadingAssets(prev => {
         const newSet = new Set(prev);
         newSet.delete(url);
@@ -528,149 +415,99 @@ export function AIStudioClient() {
     }
   };
 
+  const createConfetti = () => {
+    const colors = ['#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#3B82F6'];
+    for(let i = 0; i < 40; i++) {
+      setTimeout(() => {
+        const confetti = document.createElement('div');
+        confetti.className = 'confetti';
+        confetti.style.left = Math.random() * 100 + '%';
+        confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        confetti.style.animationDelay = Math.random() * 0.5 + 's';
+        document.body.appendChild(confetti);
+        setTimeout(() => confetti.remove(), 3000);
+      }, i * 20);
+    }
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-purple-900/20 to-gray-900 text-white">
-      {/* EFEITOS DE FUNDO ANIMADOS */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-950 via-purple-950/30 to-slate-950 text-white relative overflow-hidden">
+
+      {/* EFEITOS DE FUNDO */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 -left-10 w-72 h-72 bg-purple-600/30 rounded-full blur-[100px] animate-pulse" />
-        <div className="absolute top-1/2 -right-10 w-96 h-96 bg-pink-600/30 rounded-full blur-[100px] animate-pulse delay-700" />
-        <div className="absolute bottom-0 left-1/2 w-72 h-72 bg-blue-600/30 rounded-full blur-[100px] animate-pulse delay-1000" />
+        <div className="absolute top-0 left-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-pink-500/10 rounded-full blur-3xl animate-pulse delay-1000" />
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl animate-pulse delay-500" />
       </div>
 
-      {/* CONTAINER PRINCIPAL */}
-      <div className="relative z-10 container mx-auto px-4 py-6 md:py-12 max-w-7xl">
+      {/* GRID PATTERN */}
+      <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-10 pointer-events-none" />
 
-        {/* HEADER REVOLUCIONÁRIO */}
+      {/* CONTAINER PRINCIPAL */}
+      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+
+        {/* HEADER */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-8 md:mb-16"
+          className="text-center mb-12"
         >
-          {/* BADGE PREMIUM */}
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
-            transition={{ type: "spring", delay: 0.2 }}
-            className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-purple-600/20 to-pink-600/20 rounded-full border border-purple-500/30 mb-6 backdrop-blur-sm"
+            transition={{ type: "spring", delay: 0.1 }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 mb-6"
           >
-            <Rocket className="w-5 h-5 text-purple-400 animate-pulse" />
-            <span className="text-sm font-bold text-purple-300 uppercase tracking-wider">Revolucionário</span>
-            <Crown className="w-5 h-5 text-yellow-400 animate-pulse" />
+            <Sparkles className="w-4 h-4 text-purple-400" />
+            <span className="text-sm font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+              Powered by AI
+            </span>
+            <Crown className="w-4 h-4 text-yellow-400" />
           </motion.div>
 
-          {/* TÍTULO ÉPICO */}
           <motion.h1
-            initial={{ scale: 0.5, opacity: 0 }}
+            initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            transition={{ duration: 0.5 }}
-            className="text-4xl md:text-7xl lg:text-8xl font-black mb-4 bg-clip-text text-transparent bg-gradient-to-r from-purple-400 via-pink-400 to-blue-400 leading-tight"
+            className="text-5xl md:text-7xl font-black mb-4 bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent"
           >
             AI Studio Pro
           </motion.h1>
 
-          {/* SUBTÍTULO */}
           <motion.p
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            transition={{ delay: 0.3 }}
-            className="text-lg md:text-2xl text-gray-300 max-w-3xl mx-auto mb-8"
+            transition={{ delay: 0.2 }}
+            className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto"
           >
-            A ferramenta de IA mais poderosa do mundo.
-            <span className="block text-purple-400 font-semibold mt-2">
-              Transforme suas ideias em realidade! 🚀
+            A ferramenta de IA mais avançada do mundo.
+            <span className="block text-purple-400 font-semibold mt-1">
+              Transforme suas ideias em realidade 🚀
             </span>
           </motion.p>
-
-          {/* ESTATÍSTICAS IMPRESSIONANTES */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4 }}
-            className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto mb-8"
-          >
-            {[
-              { label: 'Usuários Ativos', value: '1M+', icon: Heart },
-              { label: 'Projetos Criados', value: '10M+', icon: Star },
-              { label: 'Taxa de Sucesso', value: '99.9%', icon: Zap },
-              { label: 'Velocidade', value: '< 1s', icon: Rocket },
-            ].map((stat, index) => (
-              <motion.div
-                key={index}
-                whileHover={{ scale: 1.05 }}
-                className="bg-white/5 backdrop-blur-sm rounded-2xl p-4 border border-white/10"
-              >
-                <stat.icon className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-                <div className="text-2xl font-bold text-white">{stat.value}</div>
-                <div className="text-xs text-gray-400">{stat.label}</div>
-              </motion.div>
-            ))}
-          </motion.div>
         </motion.div>
 
-        {/* TUTORIAL INTERATIVO */}
-        <AnimatePresence>
-          {showTutorial && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.9 }}
-              className="mb-8 p-6 bg-gradient-to-r from-purple-600/10 to-pink-600/10 rounded-3xl border border-purple-500/30 backdrop-blur-sm"
-            >
-              <div className="flex justify-between items-start mb-4">
-                <h3 className="text-xl font-bold text-purple-300 flex items-center gap-2">
-                  <Brain className="w-6 h-6" />
-                  Como usar esta ferramenta revolucionária
-                </h3>
-                <button
-                  onClick={() => setShowTutorial(false)}
-                  className="text-gray-400 hover:text-white transition-colors"
-                >
-                  ✕
-                </button>
-              </div>
-              <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-4">
-                {tabs.map((tab, index) => (
-                  <motion.div
-                    key={tab.id}
-                    whileHover={{ y: -5 }}
-                    className="text-center"
-                  >
-                    <div className="w-12 h-12 mx-auto mb-2 rounded-full bg-gradient-to-r from-purple-600 to-pink-600 flex items-center justify-center text-white font-bold">
-                      {index + 1}
-                    </div>
-                    <p className="text-sm font-semibold text-gray-300">{tab.label}</p>
-                    <p className="text-xs text-gray-500 mt-1">{tab.description}</p>
-                  </motion.div>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-
-        {/* NAVEGAÇÃO DE ABAS REVOLUCIONÁRIA */}
-        <div className="flex flex-wrap justify-center gap-3 mb-8 md:mb-12">
+        {/* NAVEGAÇÃO DE ABAS */}
+        <div className="flex justify-center gap-2 md:gap-3 mb-8 overflow-x-auto pb-4">
           {tabs.map((tab) => (
             <motion.button
               key={tab.id}
-              whileHover={{ scale: 1.05, y: -2 }}
+              whileHover={{ scale: 1.05 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "relative flex items-center gap-2 px-4 md:px-6 py-3 md:py-4 rounded-2xl font-medium transition-all duration-300 group",
+                "relative flex items-center gap-2 px-4 md:px-6 py-3 rounded-2xl font-semibold transition-all duration-300 whitespace-nowrap",
                 activeTab === tab.id
-                  ? `bg-gradient-to-r ${tab.color} text-white shadow-2xl`
-                  : "bg-gray-800/50 text-gray-400 hover:bg-gray-700/50 border border-gray-700 hover:border-gray-600"
+                  ? `bg-gradient-to-r ${tab.gradient} text-white shadow-2xl shadow-purple-500/50`
+                  : "bg-white/5 backdrop-blur-sm text-gray-400 hover:text-white border border-white/10 hover:border-white/20"
               )}
             >
-              <tab.icon className={cn(
-                "w-5 h-5 transition-transform",
-                activeTab === tab.id && "animate-pulse"
-              )} />
-              <span className="hidden sm:inline font-semibold">{tab.label}</span>
+              <tab.icon className="w-5 h-5" />
+              <span className="hidden sm:inline">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent rounded-2xl"
+                  className="absolute inset-0 bg-white/10 rounded-2xl"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
               )}
             </motion.button>
@@ -684,29 +521,154 @@ export function AIStudioClient() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.3 }}
             className="max-w-5xl mx-auto"
           >
-            <div className="bg-gradient-to-br from-gray-900/90 to-gray-800/90 backdrop-blur-xl rounded-3xl border border-gray-700/50 p-6 md:p-10 shadow-2xl">
+            <div className="bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-6 md:p-8 shadow-2xl">
 
-              {/* ABA APRIMORAR IMAGEM - REVOLUCIONÁRIA */}
-              {activeTab === 'enhance' && (
-                <div className="space-y-8">
-                  <div className="text-center">
-                    <Wand2 className="w-16 h-16 mx-auto mb-4 text-purple-400 animate-pulse" />
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                      Aprimorador de Imagens com IA
-                    </h2>
-                    <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                      Tecnologia de ponta com múltiplas IAs para resultados perfeitos
-                    </p>
+              {/* ========================================= */}
+              {/* ABA CHAT IA */}
+              {/* ========================================= */}
+              {activeTab === 'chat' && (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-2xl">
+                        <Bot className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h2 className="text-2xl font-bold">Chat com IA</h2>
+                        <p className="text-sm text-gray-400">Converse naturalmente sobre qualquer assunto</p>
+                      </div>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={clearChat}
+                      className="p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
+                      title="Limpar conversa"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </motion.button>
                   </div>
 
-                  {/* SELETOR DE EFEITOS REVOLUCIONÁRIO */}
+                  {/* ÁREA DO CHAT */}
+                  <div className="bg-black/20 rounded-2xl border border-white/10 overflow-hidden">
+                    {/* Mensagens */}
+                    <div className="h-[500px] overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-transparent">
+                      {chatMessages.map((message) => (
+                        <motion.div
+                          key={message.id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className={cn(
+                            "flex",
+                            message.role === 'user' ? 'justify-end' : 'justify-start'
+                          )}
+                        >
+                          <div className={cn(
+                            "max-w-[85%] md:max-w-[75%] rounded-2xl p-4 relative group",
+                            message.role === 'user'
+                              ? "bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white"
+                              : "bg-white/10 backdrop-blur-sm border border-white/10"
+                          )}>
+                            {message.role === 'assistant' && (
+                              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/10">
+                                <Bot className="w-4 h-4 text-purple-400" />
+                                <span className="text-xs font-semibold text-purple-400">Assistente IA</span>
+                              </div>
+                            )}
+                            <p className="text-sm md:text-base whitespace-pre-wrap leading-relaxed">
+                              {message.content}
+                            </p>
+                            {message.role === 'assistant' && (
+                              <button
+                                onClick={() => handleCopy(message.content)}
+                                className="absolute top-3 right-3 p-2 bg-black/20 hover:bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
+                                title="Copiar"
+                              >
+                                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                              </button>
+                            )}
+                          </div>
+                        </motion.div>
+                      ))}
+
+                      {isTyping && (
+                        <motion.div
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          className="flex justify-start"
+                        >
+                          <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-4">
+                            <div className="flex items-center gap-2">
+                              <Bot className="w-4 h-4 text-purple-400 animate-pulse" />
+                              <div className="flex gap-1">
+                                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
+                                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-100" />
+                                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-200" />
+                              </div>
+                            </div>
+                          </div>
+                        </motion.div>
+                      )}
+                      <div ref={chatEndRef} />
+                    </div>
+
+                    {/* Input */}
+                    <div className="border-t border-white/10 p-4 bg-black/20">
+                      <div className="flex gap-3">
+                        <input
+                          type="text"
+                          value={chatInput}
+                          onChange={(e) => setChatInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.shiftKey) {
+                              e.preventDefault();
+                              handleSendMessage();
+                            }
+                          }}
+                          placeholder="Digite sua mensagem..."
+                          disabled={loading}
+                          className="flex-1 p-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
+                        />
+                        <motion.button
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                          onClick={handleSendMessage}
+                          disabled={loading || !chatInput.trim()}
+                          className="px-6 py-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-purple-500/50 transition-all"
+                        >
+                          <Send className="w-5 h-5" />
+                          <span className="hidden sm:inline">Enviar</span>
+                        </motion.button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* ========================================= */}
+              {/* ABA APRIMORAR IMAGEM */}
+              {/* ========================================= */}
+              {activeTab === 'enhance' && (
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl">
+                      <Wand2 className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">Aprimorador de Imagens</h2>
+                      <p className="text-sm text-gray-400">Transforme imagens com IA de última geração</p>
+                    </div>
+                  </div>
+
+                  {/* SELETOR DE EFEITOS */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-3">
-                      ⚡ Escolha o poder do aprimoramento
+                    <label className="block text-sm font-semibold text-gray-300 mb-3">
+                      Escolha o efeito
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {enhanceEffects.map(effect => (
                         <motion.button
                           key={effect.id}
@@ -714,94 +676,51 @@ export function AIStudioClient() {
                           whileTap={{ scale: 0.98 }}
                           onClick={() => setSelectedEffect(effect.id)}
                           className={cn(
-                            "relative p-4 rounded-xl border-2 transition-all text-left overflow-hidden",
+                            "p-4 rounded-xl border-2 transition-all text-left",
                             selectedEffect === effect.id
-                              ? "border-purple-500 bg-purple-500/20"
-                              : "border-gray-700 hover:border-gray-600 bg-gray-800/50"
+                              ? "border-pink-500 bg-pink-500/10"
+                              : "border-white/10 bg-white/5 hover:border-white/20"
                           )}
                         >
-                          {selectedEffect === effect.id && (
-                            <motion.div
-                              className="absolute inset-0 bg-gradient-to-r from-purple-600/20 to-pink-600/20"
-                              initial={{ x: '-100%' }}
-                              animate={{ x: '100%' }}
-                              transition={{ repeat: Infinity, duration: 3 }}
-                            />
-                          )}
-                          <div className="relative">
-                            <div className="font-semibold text-white mb-1">{effect.name}</div>
-                            <div className="text-xs text-gray-400">{effect.description}</div>
-                            <div className="mt-2 flex items-center gap-2">
-                              <div className="text-xs text-purple-400">Poder:</div>
-                              <div className="flex-1 h-2 bg-gray-700 rounded-full overflow-hidden">
-                                <motion.div
-                                  className="h-full bg-gradient-to-r from-purple-500 to-pink-500"
-                                  initial={{ width: 0 }}
-                                  animate={{ width: `${effect.power}%` }}
-                                  transition={{ duration: 1 }}
-                                />
-                              </div>
-                              <div className="text-xs text-white font-bold">{effect.power}%</div>
-                            </div>
-                          </div>
+                          <div className="text-2xl mb-2">{effect.icon}</div>
+                          <div className="font-semibold text-sm mb-1">{effect.name}</div>
+                          <div className="text-xs text-gray-400">{effect.description}</div>
                         </motion.button>
                       ))}
-                    </div>
-                  </div>
-
-                  {/* CONTROLE DE INTENSIDADE */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-3">
-                      🎯 Intensidade do Aprimoramento: {enhanceStrength}%
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={enhanceStrength}
-                        onChange={(e) => setEnhanceStrength(Number(e.target.value))}
-                        className="w-full h-3 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-                        style={{
-                          background: `linear-gradient(to right, #8B5CF6 0%, #EC4899 ${enhanceStrength}%, #374151 ${enhanceStrength}%, #374151 100%)`
-                        }}
-                      />
-                      <div className="flex justify-between mt-2">
-                        <span className="text-xs text-gray-500">Sutil</span>
-                        <span className="text-xs text-gray-500">Moderado</span>
-                        <span className="text-xs text-gray-500">Máximo</span>
-                      </div>
                     </div>
                   </div>
 
                   {/* ÁREA DE UPLOAD E RESULTADO */}
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-300">
-                        📤 Enviar Imagem
+                      <label className="block text-sm font-semibold text-gray-300">
+                        Imagem Original
                       </label>
                       <motion.div
-                        whileHover={{ scale: 1.02 }}
+                        whileHover={{ scale: 1.01 }}
                         onClick={() => imageInputRef.current?.click()}
-                        className="relative aspect-square rounded-2xl border-2 border-dashed border-gray-600 hover:border-purple-500 transition-all cursor-pointer group overflow-hidden bg-gray-800/50"
+                        className="relative aspect-square rounded-2xl border-2 border-dashed border-white/20 hover:border-pink-500 transition-all cursor-pointer group overflow-hidden bg-black/20"
                       >
                         {imagePreview ? (
                           <>
                             <Image
                               src={imagePreview}
                               alt="Preview"
-                              fill={true}
+                              fill
                               className="object-cover"
                             />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <p className="text-white font-semibold">Clique para trocar</p>
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <div className="text-center">
+                                <RotateCcw className="w-8 h-8 mx-auto mb-2" />
+                                <p className="font-semibold">Trocar imagem</p>
+                              </div>
                             </div>
                           </>
                         ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 group-hover:text-purple-400 transition-colors">
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 group-hover:text-pink-400 transition-colors">
                             <Upload className="w-12 h-12 mb-3" />
-                            <p className="font-semibold">Clique ou arraste</p>
-                            <p className="text-sm">JPG, PNG até 10MB</p>
+                            <p className="font-semibold">Clique para enviar</p>
+                            <p className="text-xs mt-1">JPG, PNG até 10MB</p>
                           </div>
                         )}
                       </motion.div>
@@ -815,26 +734,24 @@ export function AIStudioClient() {
                     </div>
 
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-300">
-                        ✨ Resultado Aprimorado
+                      <label className="block text-sm font-semibold text-gray-300">
+                        Resultado Aprimorado
                       </label>
-                      <div className="relative aspect-square rounded-2xl border-2 border-gray-700 bg-gray-800/50 overflow-hidden">
+                      <div className="relative aspect-square rounded-2xl border-2 border-white/10 bg-black/20 overflow-hidden">
                         {enhancedImage ? (
                           <>
                             <Image
                               src={enhancedImage}
                               alt="Enhanced"
-                              fill={true}
+                              fill
                               className="object-cover"
                             />
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
-                              onClick={() => downloadAsset(enhancedImage, 'enhanced-image-4k.png')}
+                              onClick={() => downloadAsset(enhancedImage, 'enhanced-image.png')}
                               disabled={downloadingAssets.has(enhancedImage)}
-                              className={`absolute bottom-4 right-4 p-3 bg-gradient-to-r from-purple-600 to-pink-600 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow ${
-                                downloadingAssets.has(enhancedImage) ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
+                              className="absolute bottom-4 right-4 p-3 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full text-white shadow-2xl hover:shadow-pink-500/50 transition-all disabled:opacity-50"
                             >
                               {downloadingAssets.has(enhancedImage) ? (
                                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -842,10 +759,6 @@ export function AIStudioClient() {
                                 <Download className="w-5 h-5" />
                               )}
                             </motion.button>
-                            <div className="absolute top-4 left-4 bg-green-500 text-white px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1">
-                              <CheckCircle className="w-3 h-3" />
-                              Aprimorado
-                            </div>
                           </>
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center text-gray-600">
@@ -859,224 +772,64 @@ export function AIStudioClient() {
                     </div>
                   </div>
 
-                  {/* BOTÃO DE AÇÃO ÉPICO */}
+                  {/* BOTÃO */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleEnhanceImage}
                     disabled={loading || !imageFile}
-                    className="relative w-full py-5 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-lg rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transition-all overflow-hidden group"
+                    className="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-lg rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-2xl hover:shadow-pink-500/50 transition-all"
                   >
-                    <div className="absolute inset-0 bg-gradient-to-r from-purple-700 to-pink-700 opacity-0 group-hover:opacity-100 transition-opacity" />
                     {loading ? (
                       <>
-                        <Loader2 className="w-6 h-6 animate-spin relative z-10" />
-                        <span className="relative z-10">Aplicando IA Avançada...</span>
+                        <Loader2 className="w-6 h-6 animate-spin" />
+                        Processando...
                       </>
                     ) : (
                       <>
-                        <Wand2 className="w-6 h-6 relative z-10" />
-                        <span className="relative z-10">Aprimorar com IA!</span>
+                        <Wand2 className="w-6 h-6" />
+                        Aprimorar Imagem
                       </>
                     )}
                   </motion.button>
                 </div>
               )}
 
-              {/* ABA CHAT MARKETING - REVOLUCIONÁRIA */}
-              {activeTab === 'chat' && (
-                <div className="space-y-6">
-                  <div className="text-center">
-                    <Bot className="w-16 h-16 mx-auto mb-4 text-blue-400 animate-pulse" />
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                      Gênio do Marketing Digital
-                    </h2>
-                    <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                      IA especializada em estratégias de marketing que convertem
-                    </p>
-                  </div>
-
-                  {/* TEMPLATES RÁPIDOS */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-3">
-                      🎯 Especialidades (clique para ativar)
-                    </label>
-                    <div className="grid grid-cols-4 md:grid-cols-8 gap-2">
-                      {chatTemplates.map(template => (
-                        <motion.button
-                          key={template.id}
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => handleTemplateClick(template.id)}
-                          className={cn(
-                            "p-3 rounded-xl border transition-all",
-                            selectedTemplate === template.id
-                              ? "border-blue-500 bg-blue-500/20"
-                              : "border-gray-700 hover:border-gray-600 bg-gray-800/50"
-                          )}
-                        >
-                          <template.icon className="w-5 h-5 mx-auto mb-1 text-blue-400" />
-                          <p className="text-xs text-gray-300">{template.label}</p>
-                        </motion.button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* ÁREA DO CHAT */}
-                  <div className="bg-gray-800/50 rounded-2xl border border-gray-700 overflow-hidden">
-                    {/* Mensagens */}
-                    <div className="h-[400px] overflow-y-auto p-4 space-y-4">
-                      {chatMessages.map((message, index) => (
-                        <motion.div
-                          key={message.id}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: index * 0.05 }}
-                          className={cn(
-                            "flex",
-                            message.role === 'user' ? 'justify-end' : 'justify-start'
-                          )}
-                        >
-                          <div className={cn(
-                            "max-w-[80%] p-4 rounded-2xl",
-                            message.role === 'user'
-                              ? "bg-gradient-to-r from-blue-600 to-cyan-600 text-white"
-                              : "bg-gray-700/50 border border-gray-600"
-                          )}>
-                            {message.role === 'assistant' && (
-                              <div className="flex items-center gap-2 mb-2">
-                                <Bot className="w-5 h-5 text-blue-400" />
-                                <span className="text-sm font-semibold text-blue-400">
-                                  Marketing Genius
-                                </span>
-                              </div>
-                            )}
-                            <p className="whitespace-pre-wrap text-sm md:text-base">
-                              {message.content}
-                            </p>
-                            {message.role === 'assistant' && (
-                              <button
-                                onClick={() => handleCopy(message.content)}
-                                className="mt-2 text-xs text-gray-400 hover:text-white transition-colors flex items-center gap-1"
-                              >
-                                <Copy className="w-3 h-3" />
-                                Copiar resposta
-                              </button>
-                            )}
-                          </div>
-                        </motion.div>
-                      ))}
-                      {isTyping && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex justify-start"
-                        >
-                          <div className="bg-gray-700/50 border border-gray-600 p-4 rounded-2xl">
-                            <div className="flex items-center gap-2">
-                              <Bot className="w-5 h-5 text-blue-400 animate-pulse" />
-                              <div className="flex gap-1">
-                                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce" />
-                                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-100" />
-                                <span className="w-2 h-2 bg-blue-400 rounded-full animate-bounce delay-200" />
-                              </div>
-                            </div>
-                          </div>
-                        </motion.div>
-                      )}
-                      <div ref={chatEndRef} />
-                    </div>
-
-                    {/* Input de mensagem */}
-                    <div className="border-t border-gray-700 p-4">
-                      <div className="flex gap-3">
-                        <input
-                          type="text"
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                          placeholder="Digite sua pergunta sobre marketing..."
-                          className="flex-1 p-3 bg-gray-800 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-blue-500 focus:outline-none transition-colors"
-                        />
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={handleSendMessage}
-                          disabled={loading || !chatInput.trim()}
-                          className="p-3 bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl text-white disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                          <Send className="w-5 h-5" />
-                        </motion.button>
-                      </div>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        <span className="text-xs text-gray-500">Sugestões:</span>
-                        {[
-                          'Como criar um copy que converte?',
-                          'Estratégia para Instagram',
-                          'Melhores horários para postar',
-                          'Como aumentar engajamento?'
-                        ].map(suggestion => (
-                          <button
-                            key={suggestion}
-                            onClick={() => setChatInput(suggestion)}
-                            className="text-xs px-2 py-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 hover:text-white transition-colors"
-                          >
-                            {suggestion}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Dicas de uso */}
-                  <div className="bg-gradient-to-r from-blue-600/10 to-cyan-600/10 rounded-2xl p-4 border border-blue-500/30">
-                    <h3 className="font-semibold text-blue-400 mb-2 flex items-center gap-2">
-                      <Lightbulb className="w-5 h-5" />
-                      Dicas para melhores resultados:
-                    </h3>
-                    <ul className="text-sm text-gray-300 space-y-1">
-                      <li>• Seja específico sobre seu nicho e público-alvo</li>
-                      <li>• Peça exemplos práticos e casos de uso</li>
-                      <li>• Solicite métricas e KPIs relevantes</li>
-                      <li>• Use os templates para respostas especializadas</li>
-                    </ul>
-                  </div>
-                </div>
-              )}
-
-              {/* ABA VOZ PARA TEXTO */}
+              {/* ========================================= */}
+              {/* ABA ÁUDIO PARA TEXTO */}
+              {/* ========================================= */}
               {activeTab === 'stt' && (
-                <div className="space-y-8">
-                  <div className="text-center">
-                    <Mic className="w-16 h-16 mx-auto mb-4 text-green-400 animate-pulse" />
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                      Transcritor de Áudio com IA
-                    </h2>
-                    <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                      Converta áudios em texto com precisão impressionante
-                    </p>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl">
+                      <Mic className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">Áudio para Texto</h2>
+                      <p className="text-sm text-gray-400">Transcrição instantânea com precisão perfeita</p>
+                    </div>
                   </div>
 
-                  {/* ÁREA DE UPLOAD */}
+                  {/* UPLOAD */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-3">
-                      🎙️ Enviar arquivo de áudio
+                    <label className="block text-sm font-semibold text-gray-300 mb-3">
+                      Arquivo de áudio
                     </label>
                     <motion.div
-                      whileHover={{ scale: 1.02 }}
+                      whileHover={{ scale: 1.01 }}
                       onClick={() => audioInputRef.current?.click()}
-                      className="rounded-2xl border-2 border-dashed border-gray-600 hover:border-green-500 transition-all cursor-pointer p-8 text-center bg-gray-800/50 group"
+                      className="rounded-2xl border-2 border-dashed border-white/20 hover:border-emerald-500 transition-all cursor-pointer p-10 text-center bg-black/20 group"
                     >
                       {audioFile ? (
                         <div className="space-y-2">
-                          <FileAudio className="w-12 h-12 mx-auto text-green-400" />
-                          <p className="text-white font-semibold">{audioFile.name}</p>
+                          <FileAudio className="w-12 h-12 mx-auto text-emerald-400" />
+                          <p className="font-semibold">{audioFile.name}</p>
                           <p className="text-sm text-gray-400">
                             {(audioFile.size / 1024 / 1024).toFixed(2)} MB
                           </p>
                         </div>
                       ) : (
-                        <div className="space-y-2 text-gray-400 group-hover:text-green-400 transition-colors">
+                        <div className="space-y-2 text-gray-400 group-hover:text-emerald-400 transition-colors">
                           <Upload className="w-12 h-12 mx-auto" />
                           <p className="font-semibold">Clique para enviar áudio</p>
                           <p className="text-sm">MP3, WAV, M4A até 25MB</p>
@@ -1092,35 +845,38 @@ export function AIStudioClient() {
                     />
                   </div>
 
-                  {/* RESULTADO DA TRANSCRIÇÃO */}
+                  {/* TRANSCRIÇÃO */}
                   {transcription && (
                     <motion.div
-                      initial={{ opacity: 0, y: 20 }}
+                      initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-gradient-to-r from-green-600/10 to-emerald-600/10 rounded-2xl p-6 border border-green-500/30"
+                      className="bg-emerald-500/10 rounded-2xl p-6 border border-emerald-500/30"
                     >
                       <div className="flex justify-between items-start mb-3">
-                        <h3 className="text-white font-semibold">📝 Transcrição</h3>
+                        <h3 className="font-semibold flex items-center gap-2">
+                          <FileAudio className="w-5 h-5 text-emerald-400" />
+                          Transcrição
+                        </h3>
                         <button
                           onClick={() => handleCopy(transcription)}
-                          className="p-2 bg-gray-700 rounded-lg text-gray-300 hover:text-white hover:bg-gray-600 transition-colors"
+                          className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
                         >
-                          {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                          {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
                         </button>
                       </div>
-                      <p className="text-white whitespace-pre-wrap leading-relaxed">
+                      <p className="whitespace-pre-wrap leading-relaxed text-gray-300">
                         {transcription}
                       </p>
                     </motion.div>
                   )}
 
-                  {/* BOTÃO DE AÇÃO */}
+                  {/* BOTÃO */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleSpeechToText}
                     disabled={loading || !audioFile}
-                    className="w-full py-5 bg-gradient-to-r from-green-600 to-emerald-600 text-white font-bold text-lg rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transition-all"
+                    className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-lg rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-2xl hover:shadow-emerald-500/50 transition-all"
                   >
                     {loading ? (
                       <>
@@ -1130,154 +886,59 @@ export function AIStudioClient() {
                     ) : (
                       <>
                         <Mic className="w-6 h-6" />
-                        Transcrever Áudio!
+                        Transcrever Áudio
                       </>
                     )}
                   </motion.button>
                 </div>
               )}
 
-              {/* ABA BUSCAR VÍDEOS */}
-              {activeTab === 'video' && (
-                <div className="space-y-8">
-                  <div className="text-center">
-                    <Film className="w-16 h-16 mx-auto mb-4 text-orange-400 animate-pulse" />
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                      Buscador Inteligente de Vídeos
-                    </h2>
-                    <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                      Encontre vídeos profissionais em HD para seus projetos
-                    </p>
-                  </div>
-
-                  {/* CAMPO DE BUSCA */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-3">
-                      🔍 O que você procura?
-                    </label>
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={videoPrompt}
-                        onChange={(e) => setVideoPrompt(e.target.value)}
-                        placeholder="Ex: Pôr do sol na praia, cidade futurista, natureza..."
-                        className="w-full p-4 pr-12 bg-gray-800/50 border border-gray-700 rounded-xl text-white placeholder-gray-500 focus:border-orange-500 focus:outline-none transition-colors"
-                      />
-                      <Video className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-500" />
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {['Natureza', 'Tecnologia', 'Cidade', 'Oceano', 'Montanhas', 'Espaço'].map(tag => (
-                        <button
-                          key={tag}
-                          onClick={() => setVideoPrompt(tag)}
-                          className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded-lg text-sm text-gray-300 hover:text-white transition-colors"
-                        >
-                          {tag}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* PLAYER DE VÍDEO */}
-                  {videoUrl && (
-                    <motion.div
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="rounded-2xl overflow-hidden border border-gray-700"
-                    >
-                      <video
-                        controls
-                        key={videoUrl}
-                        className="w-full"
-                        src={videoUrl}
-                      />
-                      <div className="p-4 bg-gray-800/50 flex justify-between items-center">
-                        <div>
-                          <p className="text-white font-semibold">Vídeo HD Encontrado</p>
-                          <p className="text-sm text-gray-400">Pronto para download</p>
-                        </div>
-                        <button
-                          onClick={() => downloadAsset(videoUrl, 'video.mp4')}
-                          disabled={downloadingAssets.has(videoUrl)}
-                          className={`px-4 py-2 bg-gradient-to-r from-orange-600 to-red-600 rounded-lg text-white font-semibold hover:shadow-lg transition-shadow flex items-center gap-2 ${
-                            downloadingAssets.has(videoUrl) ? 'opacity-50 cursor-not-allowed' : ''
-                          }`}
-                        >
-                          {downloadingAssets.has(videoUrl) ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Download className="w-4 h-4" />
-                          )}
-                          Baixar HD
-                        </button>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {/* BOTÃO DE AÇÃO */}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleGenerateVideo}
-                    disabled={loading || !videoPrompt}
-                    className="w-full py-5 bg-gradient-to-r from-orange-600 to-red-600 text-white font-bold text-lg rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transition-all"
-                  >
-                    {loading ? (
-                      <>
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                        Buscando vídeos...
-                      </>
-                    ) : (
-                      <>
-                        <Video className="w-6 h-6" />
-                        Buscar Vídeo HD!
-                      </>
-                    )}
-                  </motion.button>
-                </div>
-              )}
-
+              {/* ========================================= */}
               {/* ABA REMOVER FUNDO */}
+              {/* ========================================= */}
               {activeTab === 'remove-bg' && (
-                <div className="space-y-8">
-                  <div className="text-center">
-                    <Camera className="w-16 h-16 mx-auto mb-4 text-indigo-400 animate-pulse" />
-                    <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">
-                      Removedor de Fundo com IA
-                    </h2>
-                    <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                      Remova fundos de imagens instantaneamente com precisão perfeita
-                    </p>
+                <div className="space-y-6">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl">
+                      <Camera className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold">Remover Fundo</h2>
+                      <p className="text-sm text-gray-400">Remoção profissional em segundos</p>
+                    </div>
                   </div>
 
-                  {/* ÁREA DE UPLOAD E RESULTADO */}
+                  {/* UPLOAD E RESULTADO */}
                   <div className="grid md:grid-cols-2 gap-6">
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-300">
-                        📤 Imagem Original
+                      <label className="block text-sm font-semibold text-gray-300">
+                        Imagem Original
                       </label>
                       <motion.div
-                        whileHover={{ scale: 1.02 }}
+                        whileHover={{ scale: 1.01 }}
                         onClick={() => removeBgInputRef.current?.click()}
-                        className="relative aspect-square rounded-2xl border-2 border-dashed border-gray-600 hover:border-indigo-500 transition-all cursor-pointer group overflow-hidden bg-gray-800/50"
+                        className="relative aspect-square rounded-2xl border-2 border-dashed border-white/20 hover:border-blue-500 transition-all cursor-pointer group overflow-hidden bg-black/20"
                       >
                         {removeBgImage ? (
                           <>
                             <Image
                               src={removeBgImage}
                               alt="Original"
-                              fill={true}
+                              fill
                               className="object-cover"
                             />
-                            <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <p className="text-white font-semibold">Clique para trocar</p>
+                            <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <div className="text-center">
+                                <RotateCcw className="w-8 h-8 mx-auto mb-2" />
+                                <p className="font-semibold">Trocar imagem</p>
+                              </div>
                             </div>
                           </>
                         ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 group-hover:text-indigo-400 transition-colors">
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 group-hover:text-blue-400 transition-colors">
                             <Upload className="w-12 h-12 mb-3" />
-                            <p className="font-semibold">Enviar imagem</p>
-                            <p className="text-sm">JPG, PNG até 10MB</p>
+                            <p className="font-semibold">Clique para enviar</p>
+                            <p className="text-xs mt-1">JPG, PNG até 10MB</p>
                           </div>
                         )}
                       </motion.div>
@@ -1291,27 +952,30 @@ export function AIStudioClient() {
                     </div>
 
                     <div className="space-y-3">
-                      <label className="block text-sm font-medium text-gray-300">
-                        ✨ Sem Fundo
+                      <label className="block text-sm font-semibold text-gray-300">
+                        Sem Fundo
                       </label>
-                      <div className="relative aspect-square rounded-2xl border-2 border-gray-700 bg-gray-800/50 overflow-hidden">
+                      <div className="relative aspect-square rounded-2xl border-2 border-white/10 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 overflow-hidden">
                         {removeBgResult ? (
                           <>
-                            <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20" />
+                            <div
+                              className="absolute inset-0"
+                              style={{
+                                backgroundImage: 'repeating-conic-gradient(#80808020 0% 25%, transparent 0% 50%) 50% / 20px 20px'
+                              }}
+                            />
                             <Image
                               src={removeBgResult}
                               alt="No Background"
-                              fill={true}
+                              fill
                               className="object-contain"
                             />
-                           <motion.button
+                            <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}
                               onClick={() => downloadAsset(removeBgResult, 'no-background.png')}
                               disabled={downloadingAssets.has(removeBgResult)}
-                              className={`absolute bottom-4 right-4 p-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full text-white shadow-lg hover:shadow-xl transition-shadow ${
-                                downloadingAssets.has(removeBgResult) ? 'opacity-50 cursor-not-allowed' : ''
-                              }`}
+                              className="absolute bottom-4 right-4 p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all disabled:opacity-50"
                             >
                               {downloadingAssets.has(removeBgResult) ? (
                                 <Loader2 className="w-5 h-5 animate-spin" />
@@ -1332,23 +996,23 @@ export function AIStudioClient() {
                     </div>
                   </div>
 
-                  {/* BOTÃO DE AÇÃO */}
+                  {/* BOTÃO */}
                   <motion.button
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                     onClick={handleRemoveBackground}
                     disabled={loading || !removeBgImage}
-                    className="w-full py-5 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-bold text-lg rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl transition-all"
+                    className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-lg rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-2xl hover:shadow-blue-500/50 transition-all"
                   >
                     {loading ? (
                       <>
                         <Loader2 className="w-6 h-6 animate-spin" />
-                        Removendo fundo...
+                        Removendo...
                       </>
                     ) : (
                       <>
                         <Camera className="w-6 h-6" />
-                        Remover Fundo!
+                        Remover Fundo
                       </>
                     )}
                   </motion.button>
@@ -1358,47 +1022,41 @@ export function AIStudioClient() {
           </motion.div>
         </AnimatePresence>
 
-        {/* FOOTER INSPIRADOR */}
+        {/* FOOTER */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
           className="text-center mt-12 space-y-4"
         >
-          <div className="flex justify-center gap-4">
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              className="p-3 bg-gray-800/50 rounded-full text-gray-400 hover:text-white hover:bg-gray-700/50 transition-all"
-            >
-              <Share2 className="w-5 h-5" />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              className="p-3 bg-gray-800/50 rounded-full text-gray-400 hover:text-red-500 hover:bg-gray-700/50 transition-all"
-            >
-              <Heart className="w-5 h-5" />
-            </motion.button>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              className="p-3 bg-gray-800/50 rounded-full text-gray-400 hover:text-yellow-500 hover:bg-gray-700/50 transition-all"
-            >
-              <Star className="w-5 h-5" />
-            </motion.button>
+          <div className="flex justify-center gap-3">
+            {[
+              { icon: Share2, color: 'hover:text-blue-400' },
+              { icon: Heart, color: 'hover:text-red-400' },
+              { icon: Star, color: 'hover:text-yellow-400' }
+            ].map((item, i) => (
+              <motion.button
+                key={i}
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                whileTap={{ scale: 0.9 }}
+                className={cn("p-3 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 transition-all", item.color)}
+              >
+                <item.icon className="w-5 h-5" />
+              </motion.button>
+            ))}
           </div>
-          <p className="text-gray-400 text-sm">
-            Feito com 💜 para revolucionar o mundo
-          </p>
-          <p className="text-xs text-gray-600">
-            © 2025 AI Studio Pro - Transformando ideias em realidade
+          <p className="text-sm text-gray-500">
+            Feito com 💜 por AI Studio Pro
           </p>
         </motion.div>
       </div>
 
-      {/* CSS ADICIONAL PARA ANIMAÇÕES */}
+      {/* ESTILOS GLOBAIS */}
       <style jsx global>{`
         @keyframes confetti-fall {
           to {
-            transform: translateY(100vh) rotate(360deg);
+            transform: translateY(100vh) rotate(720deg);
+            opacity: 0;
           }
         }
 
@@ -1406,26 +1064,38 @@ export function AIStudioClient() {
           position: fixed;
           width: 10px;
           height: 10px;
+          top: -10px;
           animation: confetti-fall 3s linear forwards;
           z-index: 9999;
         }
 
-        .slider::-webkit-slider-thumb {
-          appearance: none;
-          width: 20px;
-          height: 20px;
-          background: linear-gradient(to right, #8B5CF6, #EC4899);
-          border-radius: 50%;
-          cursor: pointer;
+        .scrollbar-thin::-webkit-scrollbar {
+          width: 6px;
         }
 
-        .slider::-moz-range-thumb {
-          width: 20px;
-          height: 20px;
-          background: linear-gradient(to right, #8B5CF6, #EC4899);
-          border-radius: 50%;
-          cursor: pointer;
-          border: none;
+        .scrollbar-thumb-purple-500\/50::-webkit-scrollbar-thumb {
+          background-color: rgba(168, 85, 247, 0.5);
+          border-radius: 3px;
+        }
+
+        .scrollbar-track-transparent::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .delay-100 {
+          animation-delay: 100ms;
+        }
+
+        .delay-200 {
+          animation-delay: 200ms;
+        }
+
+        .delay-500 {
+          animation-delay: 500ms;
+        }
+
+        .delay-1000 {
+          animation-delay: 1000ms;
         }
       `}</style>
     </div>

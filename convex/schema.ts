@@ -1,9 +1,8 @@
-// Em /convex/schema.ts
+// /convex/schema.ts - VERSÃO CORRIGIDA
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
-  // Suas tabelas existentes (sem alterações)
   usernames: defineTable({
     userId: v.string(),
     username: v.string(),
@@ -21,7 +20,6 @@ export default defineSchema({
     profilePictureStorageId: v.optional(v.id("_storage")),
     description: v.optional(v.string()),
     accentColor: v.optional(v.string()),
-    // NOVOS CAMPOS PARA BACKGROUND
     backgroundType: v.optional(v.union(v.literal("color"), v.literal("gradient"), v.literal("image"))),
     backgroundStyle: v.optional(v.union(v.literal("full"), v.literal("header"))),
     backgroundColor1: v.optional(v.string()),
@@ -137,6 +135,21 @@ export default defineSchema({
     createdAt: v.optional(v.number()),
   }).index("by_user", ["userId"]),
 
+  // ✅ TABELA CORRIGIDA PARA ACEITAR DADOS ANTIGOS E NOVOS
+  dailyImageUsage: defineTable({
+    userId: v.string(),
+    date: v.string(), // formato: "YYYY-MM-DD"
+    count: v.number(),
+    images: v.optional(v.array(v.object({
+      imageId: v.id("generatedImages"),
+      createdAt: v.number(),
+    }))), // ✅ AGORA É OPCIONAL para aceitar registros antigos
+    lastResetAt: v.optional(v.number()),
+    createdAt: v.optional(v.number()), // ✅ Campo dos registros antigos
+    updatedAt: v.optional(v.number()), // ✅ Campo dos registros antigos
+  }).index("by_user_date", ["userId", "date"])
+    .index("by_user", ["userId"]),
+
   aiStudioContent: defineTable({
     userId: v.string(),
     type: v.union(
@@ -155,7 +168,6 @@ export default defineSchema({
   }).index("by_user", ["userId"])
     .index("by_user_and_type", ["userId", "type"]),
 
-  // NOVA TABELA PARA SORTEIOS PÚBLICOS
   publicGiveaways: defineTable({
     giveawayId: v.string(),
     title: v.string(),
