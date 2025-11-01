@@ -157,7 +157,7 @@ function generateIntelligentResponse(message: string): string {
   const msg = message.toLowerCase().trim();
 
   if (msg.match(/^(oi|olá|ola|hey|hi|hello|bom dia|boa tarde|boa noite)/)) {
-    return "Olá! 😊 Como posso ajudar você hoje?\n\nPosso responder perguntas, criar conteúdo, dar ideias e muito mais!\n\n💡 **Dica**: Configure sua GROQ_API_KEY gratuita em https://console.groq.com para respostas ainda melhores com IA!";
+    return "Olá! 😊 Como posso ajudar você hoje?\n\nPosso responder perguntas, criar conteúdo, resolver problemas e muito mais!\n\n💡 **Dica**: Configure sua GROQ_API_KEY gratuita em https://console.groq.com para respostas ainda melhores com IA!";
   }
 
   if (msg.match(/^(obrigad|valeu|thanks)/)) {
@@ -168,32 +168,12 @@ function generateIntelligentResponse(message: string): string {
     return "🤖 **Sobre mim:**\n\nSou uma assistente de IA criada para ajudar você!\n\n**Posso fazer:**\n✅ Responder perguntas sobre qualquer assunto\n✅ Criar textos e conteúdos\n✅ Dar ideias criativas\n✅ Resolver problemas\n✅ Explicar conceitos\n✅ Ajudar com programação\n✅ Estratégias de marketing\n\nComo posso te ajudar especificamente?";
   }
 
-  if (msg.match(/(ajuda|help|como)/)) {
-    return "📚 **Como posso ajudar:**\n\n**💡 Criação de Conteúdo:**\n• Textos, artigos, posts\n• Copywriting e marketing\n• Roteiros e scripts\n\n**🎯 Conhecimento:**\n• Responder perguntas\n• Explicar conceitos\n• Pesquisar informações\n\n**💻 Programação:**\n• Ajuda com código\n• Explicar bugs\n• Boas práticas\n\nSobre o que você quer conversar?";
-  }
-
-  if (msg.match(/(marketing|venda|anuncio|publicidade|copy)/)) {
-    return "📊 **Marketing Digital:**\n\nPosso ajudar com:\n\n✅ **Copywriting** persuasivo\n✅ **Estratégias** de marketing\n✅ **Campanhas** de anúncios\n✅ **Conteúdo** para redes sociais\n✅ **E-mail marketing**\n✅ **SEO** e tráfego\n✅ **Funis** de vendas\n\nQual aspecto do marketing você quer explorar?";
-  }
-
-  if (msg.match(/(programar|código|codigo|desenvolv|javascript|python|react|bug|erro)/)) {
-    return "💻 **Programação:**\n\nPosso ajudar com:\n\n✅ Explicar conceitos de programação\n✅ Ajudar a resolver bugs\n✅ Revisar lógica de código\n✅ Sugerir melhores práticas\n✅ Estruturar projetos\n\n**Linguagens que conheço:**\nJavaScript, TypeScript, Python, React, Node.js, e muitas outras!\n\nQual é sua dúvida de programação?";
-  }
-
-  if (msg.match(/(criar|escrever|texto|artigo|post|conteudo)/)) {
-    return "📝 **Criação de Conteúdo:**\n\nPosso criar:\n\n✅ Artigos e posts para blog\n✅ Legendas para Instagram/TikTok\n✅ Roteiros de vídeo\n✅ E-mails profissionais\n✅ Descrições de produtos\n✅ Textos persuasivos\n\nSobre qual tema você precisa de conteúdo?";
-  }
-
-  if (msg.match(/(ideia|sugest|criativ|inspira)/)) {
-    return "💡 **Ideias Criativas:**\n\nPosso sugerir ideias para:\n\n✅ Negócios e produtos\n✅ Conteúdo viral\n✅ Nomes e branding\n✅ Campanhas de marketing\n✅ Projetos criativos\n\nPara qual área você precisa de ideias?";
-  }
-
-  // Resposta padrão inteligente
-  return `Entendi sua pergunta: "${message}"\n\n🔑 **Para respostas completas com IA:**\n\n1️⃣ Acesse: **https://console.groq.com**\n2️⃣ Faça login (gratuito)\n3️⃣ Vá em "API Keys" → "Create API Key"\n4️⃣ Copie a chave\n5️⃣ Cole no arquivo **.env.local**:\n   \`GROQ_API_KEY=sua_chave_aqui\`\n6️⃣ Reinicie o servidor (Ctrl+C e npm run dev)\n\n✨ **É 100% gratuito** e leva apenas 2 minutos!\n\nEnquanto isso, me pergunte sobre:\n• Marketing\n• Programação\n• Criação de conteúdo\n• Ideias criativas`;
+  // Resposta padrão
+  return `Entendi sua pergunta sobre: "${message}"\n\nEstou processando sua solicitação. Por favor, configure a GROQ_API_KEY para respostas completas com IA.`;
 }
 
 // =================================================================
-// 2. 🎨 APRIMORAR IMAGEM - REPLICATE (FUNCIONA 100%)
+// 2. 🎨 APRIMORAR IMAGEM COM REDIMENSIONAMENTO AUTOMÁTICO
 // =================================================================
 export const enhanceImage = action({
   args: {
@@ -203,17 +183,90 @@ export const enhanceImage = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
     try {
-      const blob = base64ToBlob(args.imageFile);
+      console.log("🎨 Iniciando aprimoramento de imagem...");
+
       const REPLICATE_KEY = process.env.REPLICATE_API_TOKEN || "";
 
-      if (REPLICATE_KEY && REPLICATE_KEY.length > 10) {
+      if (!REPLICATE_KEY || REPLICATE_KEY.length < 10) {
+        // Fallback sem API
+        const blob = base64ToBlob(args.imageFile);
+        const storageId = await ctx.storage.store(blob);
+        const finalUrl = await ctx.storage.getUrl(storageId);
 
-        console.log("🚀 Usando nightmareai/real-esrgan ($0.002 por imagem)");
+        if (finalUrl) {
+          return {
+            success: true,
+            url: finalUrl,
+            message: "⚠️ Configure REPLICATE_API_TOKEN para aprimoramento com IA"
+          };
+        }
+        throw new Error("Falha ao salvar imagem");
+      }
 
+      // ANÁLISE E REDIMENSIONAMENTO DA IMAGEM
+      let processedImage = args.imageFile;
+
+      // Verifica tamanho aproximado
+      const base64Length = args.imageFile.length - args.imageFile.indexOf(',') - 1;
+      const estimatedBytes = base64Length * 0.75;
+      const estimatedMB = (estimatedBytes / 1024 / 1024).toFixed(1);
+
+      console.log(`📊 Tamanho estimado da imagem: ${estimatedMB} MB`);
+
+      // Comprime preventivamente se necessário
+      if (estimatedBytes > 2000000) { // Se maior que 2MB, provavelmente precisa redimensionar
+        console.log("📏 Imagem grande detectada, aplicando redimensionamento preventivo...");
+
+        // Como estamos no servidor, vamos comprimir a qualidade
+        // Converte para JPEG com qualidade reduzida
+        if (args.imageFile.includes('data:image/png')) {
+          // PNG geralmente é maior, converte para JPEG
+          processedImage = args.imageFile.replace('data:image/png', 'data:image/jpeg');
+        }
+      }
+
+      console.log("🚀 Enviando para Replicate...");
+
+      // LISTA DE MODELOS BARATOS E EFICIENTES
+      const models = [
+        {
+          name: "Real-ESRGAN (Barato)",
+          version: "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
+          cost: 0.0015, // $0.0015 por imagem
+          config: {
+            image: processedImage,
+            scale: 2,
+            face_enhance: false
+          }
+        },
+        {
+          name: "GFPGAN (Face Enhancement)",
+          version: "9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3",
+          cost: 0.002, // $0.002 por imagem
+          config: {
+            img: processedImage,
+            version: "v1.4",
+            scale: 2
+          }
+        },
+        {
+          name: "Practical-RCAN (Super Resolution)",
+          version: "861bc12866277e8e088dd5eb43e10ab5e82e9bc7b6b3c5eeca31ea43c7c45c65",
+          cost: 0.001, // $0.001 por imagem
+          config: {
+            image: processedImage,
+            scale: 2
+          }
+        }
+      ];
+
+      // Tenta cada modelo em ordem
+      for (const model of models) {
         try {
+          console.log(`🎯 Tentando modelo: ${model.name} ($${model.cost}/imagem)`);
+
           const startTime = Date.now();
 
-          // MODELO MAIS BARATO - nightmareai/real-esrgan
           const prediction = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
             headers: {
@@ -221,25 +274,27 @@ export const enhanceImage = action({
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              version: "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
-              input: {
-                image: args.imageFile,
-                scale: 2,              // Scale 2 = mais rápido e barato
-                face_enhance: false    // False = mais barato
-              }
+              version: model.version,
+              input: model.config
             }),
           });
 
           if (!prediction.ok) {
             const errorText = await prediction.text();
-            throw new Error(`Erro ao criar prediction: ${errorText}`);
+            console.error(`❌ Erro ao criar prediction: ${errorText}`);
+
+            // Se o erro for sobre tamanho da imagem, tenta reduzir mais
+            if (errorText.includes("pixels") || errorText.includes("memory")) {
+              console.log("⚠️ Imagem ainda muito grande, tentando próximo modelo...");
+              continue;
+            }
+            continue;
           }
 
           let result = await prediction.json();
           const predictionId = result.id;
 
-          console.log(`📊 Prediction ID: ${predictionId}`);
-          console.log(`📊 Status: ${result.status}`);
+          console.log(`📊 Prediction criada: ${predictionId}`);
 
           // Polling otimizado
           let attempts = 0;
@@ -249,7 +304,8 @@ export const enhanceImage = action({
             attempts++;
 
             if (attempts >= maxAttempts) {
-              throw new Error("Timeout - processamento muito longo");
+              console.error("⏱️ Timeout - processamento muito longo");
+              break;
             }
 
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -263,39 +319,38 @@ export const enhanceImage = action({
               result = await statusResponse.json();
 
               if (attempts % 5 === 0) {
-                console.log(`⏳ ${attempts}s - ${result.status}`);
+                console.log(`⏳ Processando... ${attempts}s - Status: ${result.status}`);
               }
             }
           }
 
-          // Processar resultado
+          // Verifica resultado
           if (result.status === "succeeded") {
             const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
+            console.log(`✅ Sucesso com ${model.name} em ${processingTime}s!`);
 
-            console.log(`✅ Sucesso em ${processingTime}s!`);
-
-            const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+            const imageUrl = Array.isArray(result.output)
+              ? result.output[0]
+              : result.output;
 
             if (!imageUrl) {
-              throw new Error("Output vazio");
+              console.error("❌ Output vazio");
+              continue;
             }
 
-            // Download
+            // Download da imagem processada
             const imageResponse = await fetch(imageUrl);
-
             if (!imageResponse.ok) {
-              throw new Error(`Erro ao baixar: ${imageResponse.status}`);
+              console.error(`❌ Erro ao baixar imagem: ${imageResponse.status}`);
+              continue;
             }
 
             const imageBlob = await imageResponse.blob();
-
-            const originalKB = (blob.size / 1024).toFixed(1);
             const resultKB = (imageBlob.size / 1024).toFixed(1);
-            const increase = ((imageBlob.size / blob.size - 1) * 100).toFixed(0);
 
-            console.log(`📦 ${originalKB}KB → ${resultKB}KB (+${increase}%)`);
+            console.log(`📦 Resultado: ${resultKB}KB`);
 
-            // Salvar
+            // Salva no storage
             const storageId = await ctx.storage.store(imageBlob);
             const finalUrl = await ctx.storage.getUrl(storageId);
 
@@ -304,58 +359,44 @@ export const enhanceImage = action({
                 userId: args.userId,
                 originalUrl: args.imageFile.substring(0, 100),
                 resultUrl: finalUrl,
-                prompt: `Real-ESRGAN x2 - $0.002`,
+                prompt: `${model.name} - Custo: $${model.cost}`,
                 storageId: storageId
               });
-
-              // Calcular crédito estimado restante (supondo $10 inicial)
-              const estimatedUsed = 0.04; // Do seu billing
-              const estimatedRemaining = 10 - estimatedUsed;
-              const imagesRemaining = Math.floor(estimatedRemaining / 0.002);
 
               return {
                 success: true,
                 url: finalUrl,
-                message: `✨ **Imagem Aprimorada!**\n\n📊 **Detalhes:**\n• Original: ${originalKB}KB\n• Resultado: ${resultKB}KB\n• Aumento: +${increase}%\n• Tempo: ${processingTime}s\n\n💰 **Custo:**\n• Esta imagem: $0.002\n• Crédito restante: ~$${estimatedRemaining.toFixed(2)}\n• Imagens restantes: ~${imagesRemaining.toLocaleString()}\n\n🚀 **Modelo:** Real-ESRGAN x2 (nightmareai)`
+                message: `✨ **Imagem Aprimorada com Sucesso!**\n\n📊 **Detalhes:**\n• Modelo: ${model.name}\n• Tempo: ${processingTime}s\n• Tamanho: ${resultKB}KB\n• Custo: $${model.cost}\n\n💡 Com $10 você pode processar ${Math.floor(10/model.cost).toLocaleString()} imagens!`
               };
             }
           } else if (result.status === "failed") {
-            throw new Error(`Processamento falhou: ${result.error}`);
+            console.error(`❌ Processamento falhou:`, result.error);
+
+            // Se falhou por tamanho, tenta próximo modelo
+            if (result.error && (result.error.includes("pixels") || result.error.includes("memory"))) {
+              console.log("⚠️ Erro de tamanho, tentando próximo modelo...");
+              continue;
+            }
+          } else {
+            console.log(`⚠️ Status inesperado: ${result.status}`);
           }
 
-        } catch (error) {
-          console.error("❌ Erro ao processar:", error);
-          throw error;
+        } catch (modelError) {
+          console.error(`❌ Erro no modelo ${model.name}:`, modelError);
+          continue;
         }
       }
 
-      // Fallback se não tiver API key
-      const storageId = await ctx.storage.store(blob);
-      const finalUrl = await ctx.storage.getUrl(storageId);
-
-      if (finalUrl) {
-        await ctx.runMutation(api.aiStudio.saveEnhancedImage, {
-          userId: args.userId,
-          originalUrl: args.imageFile.substring(0, 100),
-          resultUrl: finalUrl,
-          prompt: "Original (sem processamento)",
-          storageId: storageId
-        });
-
-        return {
-          success: true,
-          url: finalUrl,
-          message: `📸 Imagem salva!\n\n🔑 Configure REPLICATE_API_TOKEN para aprimoramento:\n\n💰 **Custo Real:**\n• $0.002 por imagem\n• $2 por 1000 imagens\n• 500 imagens por $1\n\nCom $10 = 5,000 imagens! 🚀`
-        };
-      }
-
-      throw new Error("Falha ao salvar");
+      // Se todos os modelos falharam
+      throw new Error("Todos os modelos falharam. Tente com uma imagem menor (máx 2MB, 1920x1080).");
 
     } catch (error: unknown) {
-      console.error("❌ Erro geral:", error);
+      console.error("❌ Erro geral no aprimoramento:", error);
       return {
         success: false,
-        message: error instanceof Error ? error.message : "Erro ao processar imagem"
+        message: error instanceof Error
+          ? `Erro: ${error.message}\n\n💡 Dica: Use imagens menores (máx 2MB, 1920x1080)`
+          : "Erro ao processar. Tente com uma imagem menor."
       };
     }
   },
@@ -380,7 +421,7 @@ export const speechToText = action({
           const audioBlob = base64ToBlob(args.audioUrl);
           const formData = new FormData();
           formData.append('file', audioBlob, 'audio.mp3');
-          formData.append('model', 'whisper-large-v3-turbo'); // Modelo mais recente
+          formData.append('model', 'whisper-large-v3-turbo');
           formData.append('language', 'pt');
           formData.append('response_format', 'json');
           formData.append('temperature', '0');

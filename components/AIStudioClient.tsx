@@ -234,43 +234,97 @@ export function AIStudioClient() {
       reader.readAsDataURL(file)
     }
   }
+// Função para redimensionar imagem no cliente
+const resizeImageBeforeUpload = (file: File, maxWidth: number = 1440, maxHeight: number = 1440): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+
+    reader.onload = (e) => {
+      const img = document.createElement('img') as HTMLImageElement; // Mais seguro
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        // Calcula novo tamanho mantendo proporção
+        if (width > height) {
+          if (width > maxWidth) {
+            height = Math.round(height * (maxWidth / width)); // Math.round para valores inteiros
+            width = maxWidth;
+          }
+        } else {
+          if (height > maxHeight) {
+            width = Math.round(width * (maxHeight / height)); // Math.round para valores inteiros
+            height = maxHeight;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        // Desenha imagem redimensionada com melhor qualidade
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, 0, 0, width, height);
+
+        // Converte para base64 com qualidade otimizada
+        const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+        console.log(`✅ Imagem redimensionada: ${img.width}x${img.height} → ${width}x${height}`);
+        resolve(resizedBase64);
+      };
+
+      img.onerror = () => reject(new Error('Failed to load image'));
+      img.src = e.target?.result as string;
+    };
+
+    reader.onerror = () => reject(new Error('Failed to read file'));
+    reader.readAsDataURL(file);
+  });
+};
 
   const handleEnhanceImage = async () => {
-    if (!imageFile || !user) {
-      toast.error('📸 Envie uma imagem primeiro!')
-      return
-    }
-
-    setLoading(true)
-    const toastId = toast.loading('🎨 Processando com IA...')
-
-    try {
-      const result = await enhanceImageAction({
-        userId: user.id,
-        imageFile: await fileToBase64(imageFile),
-        effect: selectedEffect
-      })
-
-      toast.dismiss(toastId)
-
-      if (result.success) {
-        setEnhancedImage(result.url!)
-        toast.success('🎉 Imagem aprimorada com sucesso!')
-
-        // Efeito de confete
-        createConfetti()
-      } else {
-        toast.error(result.message || 'Erro ao processar')
-      }
-    } catch (error) {
-      console.error('Erro:', error)
-      toast.dismiss(toastId)
-      toast.error('Erro ao processar imagem')
-    } finally {
-      setLoading(false)
-    }
+  if (!imageFile || !user) {
+    toast.error('📸 Envie uma imagem primeiro!')
+    return
   }
 
+  setLoading(true)
+  const toastId = toast.loading('🎨 Processando com IA...')
+
+  try {
+    // Redimensiona a imagem antes de enviar
+    const resizedImage = await resizeImageBeforeUpload(imageFile, 1440, 1440);
+
+    const result = await enhanceImageAction({
+      userId: user.id,
+      imageFile: resizedImage, // Usa a imagem redimensionada
+      effect: selectedEffect
+    })
+
+    toast.dismiss(toastId)
+
+    if (result.success) {
+      setEnhancedImage(result.url!)
+      toast.success('🎉 Imagem aprimorada com sucesso!')
+      createConfetti()
+    } else {
+      toast.error(result.message || 'Erro ao processar')
+    }
+  } catch (error) {
+    console.error('Erro:', error)
+    toast.dismiss(toastId)
+    toast.error('Erro ao processar imagem')
+  } finally {
+    setLoading(false)
+  }
+}
   // =================================================================
   // 🎤 FUNÇÕES DE ÁUDIO
   // =================================================================
@@ -323,36 +377,45 @@ export function AIStudioClient() {
   // 📸 FUNÇÕES DE REMOVER FUNDO
   // =================================================================
   const handleRemoveBackground = async () => {
-    if (!removeBgImage || !user) {
-      toast.error('📸 Envie uma imagem primeiro!')
-      return
-    }
-
-    setLoading(true)
-    const toastId = toast.loading('✂️ Removendo fundo...')
-
-    try {
-      const result = await removeBackgroundAction({
-        userId: user.id,
-        imageUrl: removeBgImage
-      })
-
-      toast.dismiss(toastId)
-
-      if (result.success) {
-        setRemoveBgResult(result.url!)
-        toast.success('✨ Fundo removido!')
-      } else {
-        toast.error(result.message || 'Erro ao remover fundo')
-      }
-    } catch (error) {
-      console.error('Erro:', error)
-      toast.dismiss(toastId)
-      toast.error('Erro ao remover fundo')
-    } finally {
-      setLoading(false)
-    }
+  if (!removeBgImage || !user) {
+    toast.error('📸 Envie uma imagem primeiro!')
+    return
   }
+
+  setLoading(true)
+  const toastId = toast.loading('✂️ Removendo fundo...')
+
+  try {
+    // Cria um arquivo temporário da imagem para redimensionar
+    const response = await fetch(removeBgImage);
+    const blob = await response.blob();
+    const file = new File([blob], "image.jpg", { type: "image/jpeg" });
+
+    // Redimensiona antes de enviar
+    const resizedImage = await resizeImageBeforeUpload(file, 1440, 1440);
+
+    const result = await removeBackgroundAction({
+      userId: user.id,
+      imageUrl: resizedImage // Usa a imagem redimensionada
+    })
+
+    toast.dismiss(toastId)
+
+    if (result.success) {
+      setRemoveBgResult(result.url!)
+      toast.success('✨ Fundo removido!')
+      createConfetti() // Adiciona confete aqui também!
+    } else {
+      toast.error(result.message || 'Erro ao remover fundo')
+    }
+  } catch (error) {
+    console.error('Erro:', error)
+    toast.dismiss(toastId)
+    toast.error('Erro ao remover fundo')
+  } finally {
+    setLoading(false)
+  }
+}
 
   // =================================================================
   // 🔧 FUNÇÕES AUXILIARES
