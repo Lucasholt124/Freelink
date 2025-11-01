@@ -69,7 +69,8 @@ interface BrainResults {
 // =================================================================
 
 const GROQ_MODELS = {
-  primary: 'llama-3.1-70b-versatile',
+  primary: 'llama-3.3-70b-versatile',
+  default: 'llama-3.1-70b-versatile',
   fallback: 'mixtral-8x7b-32768',
   fast: 'llama-3.1-8b-instant',
 };

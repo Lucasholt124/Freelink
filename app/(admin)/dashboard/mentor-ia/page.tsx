@@ -3,7 +3,8 @@ import { getUserSubscriptionPlan } from "@/lib/subscription";
 import { Wand2, Lock, Sparkles, Crown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ImageGenerator } from "@/components/ImageGenerator";
+import ImageGeneratorPage from "@/components/ImageGenerator";
+
 
 // Componente para exibir quando a funcionalidade está bloqueada
 function LockedPremiumFeature() {
@@ -87,7 +88,7 @@ export default async function ImageStudioPage() {
 
             {/* Lógica de Acesso */}
             {hasAccess ? (
-                <ImageGenerator />
+                <ImageGeneratorPage />
             ) : (
                 <LockedPremiumFeature />
             )}
