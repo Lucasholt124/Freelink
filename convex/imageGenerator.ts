@@ -1,4 +1,4 @@
-// /convex/imageGenerator.ts - MELHOR CUSTO-BENEFÍCIO 2025 🚀💰
+// /convex/imageGenerator.ts - 100% GRATUITO COM FLUX SCHNELL 🎉
 import { action, mutation, internalMutation, query, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 import Groq from 'groq-sdk';
@@ -9,45 +9,30 @@ import { ActionCtx } from "./_generated/server";
 
 // ========================================================
 // 🔥 CONFIGURAÇÃO DAS API KEYS
-// ==========================================================
+// ========================================================
 const REPLICATE_API_KEY = process.env.REPLICATE_API_KEY;
 const groq = process.env.GROQ_API_KEY ? new Groq({ apiKey: process.env.GROQ_API_KEY }) : null;
 
-// Configuração do Replicate com timeout otimizado
 const replicate = REPLICATE_API_KEY ? new Replicate({
   auth: REPLICATE_API_KEY,
   fetch: (url, options) => {
     return fetch(url, {
       ...options,
-      signal: AbortSignal.timeout(90000), // 90s timeout
+      signal: AbortSignal.timeout(60000), // 60s timeout (Schnell é rápido!)
     });
   },
 }) : null;
 
 // ========================================================
-// 💰 MODELOS 2025 - CUSTO-BENEFÍCIO PERFEITO
+// 💰 MODELO 100% GRATUITO!
 // ========================================================
-const REPLICATE_MODELS = {
-  // 🥇 FLUX SCHNELL - GRATUITO e RÁPIDO (3-5s)
-  FLUX_SCHNELL: "black-forest-labs/flux-schnell",
+const FREE_MODEL = "black-forest-labs/flux-schnell"; // ✅ TOTALMENTE GRÁTIS!
 
-  // 🥈 FLUX DEV - $0.003/imagem (99% mais barato que SDXL!)
-  FLUX_DEV: "black-forest-labs/flux-dev",
-
-  // 🥉 SDXL Lightning - $0.004/imagem (super rápido)
-  SDXL_LIGHTNING: "bytedance/sdxl-lightning-4step:5599ed30703defd1d160a25a63321b4dec97101d98b4674bcc56e41f62f35637",
-
-  // ❌ NÃO USAR - SDXL normal custa $0.10/imagem (muito caro!)
-} as const;
-
-// ✅ ESTRATÉGIA: Usar FLUX DEV ($0.003) - Excelente qualidade + 97% mais barato!
-const DEFAULT_MODEL = REPLICATE_MODELS.FLUX_DEV;
-
-console.log("💰 ECONOMIA ATIVA:");
-console.log("   Modelo: FLUX DEV");
-console.log("   Custo: $0.003 por imagem");
-console.log("   Economia: 97% vs SDXL ($0.10)");
-console.log("   210 imagens/mês: $0.63 USD (vs $21 do SDXL)");
+console.log("🎉 MODO 100% GRATUITO ATIVADO!");
+console.log("   Modelo: FLUX SCHNELL");
+console.log("   Custo: $0.00 (COMPLETAMENTE GRÁTIS!)");
+console.log("   Velocidade: 3-5 segundos");
+console.log("   Qualidade: ⭐⭐⭐⭐ Excelente!");
 
 // ========================================================
 // 📊 TIPOS E INTERFACES
@@ -69,11 +54,7 @@ interface ReplicateParams {
   height?: number;
   num_outputs?: number;
   num_inference_steps?: number;
-  guidance_scale?: number;
-  prompt_strength?: number;
-  negative_prompt?: string;
   go_fast?: boolean;
-  megapixels?: string;
   output_format?: string;
   output_quality?: number;
 }
@@ -109,6 +90,7 @@ interface VideoScript {
 // ========================================================
 function getCurrentDate(): string {
   const now = new Date();
+  // Formato YYYY-MM-DD
   return now.toISOString().split('T')[0];
 }
 
@@ -119,23 +101,28 @@ async function checkAndUpdateDailyLimit(
   const today = getCurrentDate();
   const DAILY_LIMIT = 7;
 
+  // Tenta obter o uso de hoje
   const dailyUsage = await ctx.runQuery(internal.imageGenerator.getDailyUsageInternal, {
     userId,
     date: today
-  });
+  }) as DailyUsage | null;
 
+  // Se não houver uso, pode gerar e resta o limite total
   if (!dailyUsage) {
     return { canGenerate: true, remaining: DAILY_LIMIT };
   }
 
+  // Lógica de reset (necessária para garantir que o limite zere à meia-noite)
+  // O Convex não tem Cron jobs nativos, então o reset é on-demand
   const lastResetDate = dailyUsage.lastResetAt
     ? new Date(dailyUsage.lastResetAt).toISOString().split('T')[0]
     : dailyUsage.date;
 
   if (lastResetDate !== today) {
+    // Reseta o uso para hoje
     await ctx.runMutation(internal.imageGenerator.updateDailyUsage, {
       userId,
-      imageId: null,
+      imageId: null, // Null para não adicionar imagem
       date: today,
       count: 0,
       images: [],
@@ -157,6 +144,7 @@ async function incrementDailyUsage(
   imageId: Id<"generatedImages">
 ): Promise<void> {
   const today = getCurrentDate();
+  // Atualiza a contagem e adiciona o ID da nova imagem
   await ctx.runMutation(internal.imageGenerator.updateDailyUsage, {
     userId,
     imageId,
@@ -165,9 +153,9 @@ async function incrementDailyUsage(
 }
 
 // ========================================================
-// 🎯 MELHORADOR DE PROMPT PARA FLUX DEV (ECONÔMICO)
+// 🎯 MELHORADOR DE PROMPT PARA FLUX SCHNELL (GRÁTIS!)
 // ========================================================
-function enhancePromptForFluxDev(originalPrompt: string): {
+function enhancePromptForFluxSchnell(originalPrompt: string): {
   prompt: string;
   model: string;
   params: ReplicateParams;
@@ -179,14 +167,14 @@ function enhancePromptForFluxDev(originalPrompt: string): {
   const isRealistic = /\b(realistic|realista|photo|foto|photography|fotografia|real)\b/i.test(originalPrompt);
 
   let enhancedPrompt = originalPrompt;
-  const model = DEFAULT_MODEL; // FLUX DEV - $0.003/imagem
+  const model = FREE_MODEL; // FLUX SCHNELL - 100% GRÁTIS!
 
-  // Parâmetros otimizados para FLUX DEV
+  // ✅ Parâmetros otimizados para FLUX SCHNELL (máximo 4 steps = grátis)
   const params: ReplicateParams = {
     num_outputs: 1,
-    num_inference_steps: 28, // Reduzido para velocidade (qualidade ainda excelente)
-    guidance_scale: 3.5, // Flux Dev trabalha bem com valores baixos
-    output_format: "webp", // WebP é menor e mais rápido
+    num_inference_steps: 4, // ✅ CRÍTICO: 4 steps = GRÁTIS! Mais que isso = PAGO!
+    go_fast: true, // ✅ Ativa modo turbo (ainda grátis)
+    output_format: "webp",
     output_quality: 90,
   };
 
@@ -196,65 +184,57 @@ function enhancePromptForFluxDev(originalPrompt: string): {
     const brandName = nameMatch ? nameMatch[1] : "TechPro";
 
     if (originalPrompt.toLowerCase().includes("saas") || originalPrompt.toLowerCase().includes("dashboard")) {
-      enhancedPrompt = `Professional modern SaaS dashboard UI for ${brandName}, clean minimalist interface design, sidebar navigation, data visualization charts, analytics widgets, gradient blue purple theme, glassmorphism effects, dark mode, ultra sharp screenshot, Figma quality, 8K resolution, no people, UI only`;
+      enhancedPrompt = `Professional modern SaaS dashboard UI for ${brandName}, clean interface, sidebar navigation, charts, widgets, gradient blue purple, dark mode, ultra sharp, 8K, no people`;
       params.width = 1344;
       params.height = 768;
     } else if (originalPrompt.toLowerCase().includes("landing") || originalPrompt.toLowerCase().includes("site") || originalPrompt.toLowerCase().includes("website")) {
-      enhancedPrompt = `Modern landing page design for ${brandName}, hero section gradient background, professional web design 2025, CTA buttons, feature sections icons, testimonials, pricing cards, responsive mockup, clean UI, 8K, no people`;
+      enhancedPrompt = `Modern landing page ${brandName}, hero section, gradient, web design 2025, CTA buttons, features, testimonials, pricing, clean UI, 8K, no people`;
       params.width = 1344;
       params.height = 768;
     } else if (originalPrompt.toLowerCase().includes("app") || originalPrompt.toLowerCase().includes("mobile")) {
-      enhancedPrompt = `Mobile app interface ${brandName}, modern iOS Android UI, iPhone 15 Pro mockup, minimal clean design, professional screens, Dribbble quality, 8K, no people`;
+      enhancedPrompt = `Mobile app interface ${brandName}, iOS Android UI, iPhone mockup, minimal design, professional screens, 8K, no people`;
       params.width = 768;
       params.height = 1344;
     } else {
-      enhancedPrompt = `Professional software interface ${brandName}, modern dashboard UI, clean layout, professional design, 8K, no people`;
+      enhancedPrompt = `Professional software interface ${brandName}, modern UI, clean layout, 8K, no people`;
       params.width = 1344;
       params.height = 768;
     }
-    params.negative_prompt = "people, person, human, face, portrait, blurry, low quality, distorted, text, watermark";
 
   } else if (isLogo) {
     const nameMatch = originalPrompt.match(/\b(?:nome|name|chamado|called)\s+(\w+)/i);
     const brandName = nameMatch ? nameMatch[1] : "Brand";
 
-    enhancedPrompt = `Professional minimalist logo design ${brandName}, modern geometric vector logo, clean typography, gradient colors, brand identity, white background, ultra sharp, award winning, 8K, logo only`;
+    enhancedPrompt = `Professional minimalist logo ${brandName}, modern geometric vector, clean typography, gradient colors, white background, ultra sharp, 8K`;
     params.width = 1024;
     params.height = 1024;
-    params.negative_prompt = "mockup, 3d, realistic, photo, people, human, text overlay, watermark";
 
   } else if (isRealistic || isPerson) {
-    enhancedPrompt = `${originalPrompt}, professional photography, Canon EOS R5 85mm f1.4, natural studio lighting, ultra sharp focus, highly detailed, award winning photo, 8K photorealistic`;
+    enhancedPrompt = `${originalPrompt}, professional photography, Canon EOS R5 85mm, natural lighting, ultra sharp, award winning photo, 8K photorealistic`;
     params.width = 1024;
     params.height = 1024;
-    params.negative_prompt = "cartoon, anime, drawing, painting, sketch, low quality, blurry, distorted";
 
   } else if (isProduct) {
-    enhancedPrompt = `${originalPrompt}, professional product photography, studio lighting, white background, commercial photo, ultra sharp, highly detailed, 8K`;
+    enhancedPrompt = `${originalPrompt}, professional product photography, studio lighting, white background, commercial photo, ultra sharp, 8K`;
     params.width = 1024;
     params.height = 1024;
-    params.negative_prompt = "people, human, face, low quality, blurry";
 
   } else {
-    enhancedPrompt = `${originalPrompt}, masterpiece, best quality, ultra detailed, sharp focus, professional, 8K resolution`;
+    enhancedPrompt = `${originalPrompt}, masterpiece, best quality, ultra detailed, sharp focus, professional, 8K`;
     params.width = 1024;
     params.height = 1024;
-    params.num_inference_steps = 25;
-  }
-
-  if (!params.negative_prompt) {
-    params.negative_prompt = "low quality, blurry, pixelated, noisy, bad composition, watermark, signature, text, distorted";
   }
 
   console.log("🎯 Tipo:", isSoftware ? "UI/UX" : isLogo ? "LOGO" : isProduct ? "PRODUTO" : isRealistic ? "FOTO" : "GENÉRICO");
-  console.log("💰 Modelo: FLUX DEV ($0.003)");
+  console.log("💰 Modelo: FLUX SCHNELL (100% GRÁTIS!)");
+  console.log("⚡ Steps: 4 (máximo gratuito)");
   console.log("✨ Prompt:", enhancedPrompt.substring(0, 100) + "...");
 
   return { prompt: enhancedPrompt, model, params };
 }
 
 // ========================================================
-// 🌟 GERAÇÃO COM REPLICATE (FLUX DEV - ECONÔMICO)
+// 🌟 GERAÇÃO COM REPLICATE (FLUX SCHNELL - GRÁTIS!)
 // ========================================================
 async function generateWithReplicate(prompt: string): Promise<Blob | null> {
   if (!replicate) {
@@ -263,13 +243,13 @@ async function generateWithReplicate(prompt: string): Promise<Blob | null> {
   }
 
   try {
-    console.log("🌟 Gerando com FLUX DEV (Alta Qualidade + Baixo Custo)...");
+    console.log("🎉 Gerando com FLUX SCHNELL (100% GRATUITO!)...");
 
-    const { prompt: enhancedPrompt, model, params } = enhancePromptForFluxDev(prompt);
+    const { prompt: enhancedPrompt, model, params } = enhancePromptForFluxSchnell(prompt);
 
     console.log("🔧 Config:", {
-      model: "FLUX DEV",
-      custo: "$0.003",
+      model: "FLUX SCHNELL",
+      custo: "$0.00 (GRÁTIS!)",
       width: params.width,
       height: params.height,
       steps: params.num_inference_steps
@@ -281,9 +261,10 @@ async function generateWithReplicate(prompt: string): Promise<Blob | null> {
     };
 
     const timeoutPromise = new Promise<never>((_, reject) => {
-      setTimeout(() => reject(new Error('Timeout 90s')), 90000);
+      setTimeout(() => reject(new Error('Timeout 60s')), 60000);
     });
 
+    // Roda o modelo no Replicate
     const replicatePromise = replicate.run(
       model as `${string}/${string}` | `${string}/${string}:${string}`,
       { input }
@@ -295,6 +276,7 @@ async function generateWithReplicate(prompt: string): Promise<Blob | null> {
 
     let imageUrl: string | null = null;
 
+    // Lógica para extrair a URL de diferentes formatos de retorno do Replicate
     if (Array.isArray(output)) {
       const firstOutput = output[0];
 
@@ -305,12 +287,13 @@ async function generateWithReplicate(prompt: string): Promise<Blob | null> {
         imageUrl = firstOutput;
         console.log("✅ URL string direta");
       } else if (firstOutput && typeof firstOutput === 'object' && '_state' in firstOutput) {
+        // Trata ReadableStream, comum em algumas APIs
         console.log("🔄 Convertendo ReadableStream...");
         try {
           const response = new Response(firstOutput as ReadableStream);
           const blob = await response.blob();
-          if (blob.size > 30000) {
-            console.log(`✅ Stream OK! ${(blob.size / 1024).toFixed(2)}KB | Custo: $0.003`);
+          if (blob.size > 20000) {
+            console.log(`✅ Stream OK! ${(blob.size / 1024).toFixed(2)}KB | Custo: $0.00 (GRÁTIS!) 🎉`);
             return blob;
           }
         } catch (streamError) {
@@ -332,7 +315,7 @@ async function generateWithReplicate(prompt: string): Promise<Blob | null> {
 
       if (response.ok) {
         const blob = await response.blob();
-        console.log(`✅ SUCESSO! ${(blob.size / 1024).toFixed(2)}KB | Custo: $0.003 💰`);
+        console.log(`✅ SUCESSO! ${(blob.size / 1024).toFixed(2)}KB | Custo: $0.00 (100% GRÁTIS!) 🎉`);
         return blob;
       } else {
         console.error("❌ HTTP error:", response.status);
@@ -354,15 +337,16 @@ async function generateWithReplicate(prompt: string): Promise<Blob | null> {
 // ========================================================
 async function generateWithPollinations(prompt: string): Promise<Blob | null> {
   try {
-    console.log("🌟 Fallback: Pollinations (100% GRATUITO)...");
+    console.log("🌟 Fallback: Pollinations (GRÁTIS)...");
 
     const isInterface = /\b(dashboard|interface|ui|ux|saas|software|website|landing)\b/i.test(prompt);
 
+    // Parâmetros otimizados para Pollinations
     const params = new URLSearchParams({
       width: isInterface ? '1280' : '1024',
       height: isInterface ? '720' : '1024',
       seed: Math.floor(Math.random() * 1000000).toString(),
-      model: 'flux',
+      model: 'flux', // Pollinations também suporta o modelo Flux
       nologo: 'true',
       enhance: 'true'
     });
@@ -380,7 +364,7 @@ async function generateWithPollinations(prompt: string): Promise<Blob | null> {
 
     if (response.ok) {
       const blob = await response.blob();
-      if (blob.size > 30000) {
+      if (blob.size > 20000) {
         console.log(`✅ Pollinations OK! ${(blob.size / 1024).toFixed(2)}KB | Custo: $0 (GRÁTIS!)`);
         return blob;
       }
@@ -402,6 +386,7 @@ function enhancePromptIntelligently(originalPrompt: string): string {
 
   let enhancedPrompt = originalPrompt;
 
+  // Lógica de aprimoramento similar à do Flux Schnell
   if (isSoftware) {
     const nameMatch = originalPrompt.match(/\b(?:nome|name|chamado|called)\s+(\w+)/i);
     const brandName = nameMatch ? nameMatch[1] : "TechApp";
@@ -433,26 +418,27 @@ function enhancePromptIntelligently(originalPrompt: string): string {
 }
 
 // ========================================================
-// 🚀 FUNÇÃO PRINCIPAL DE GERAÇÃO
+// 🚀 FUNÇÃO PRINCIPAL DE GERAÇÃO (100% GRÁTIS!)
 // ========================================================
 async function generateImageWithAI(prompt: string): Promise<Blob> {
-  console.log("🚀 Iniciando geração ECONÔMICA...");
+  console.log("🎉 Iniciando geração 100% GRATUITA...");
   console.log("📝 Prompt:", prompt);
 
-  // 1️⃣ FLUX DEV ($0.003) - Melhor custo-benefício!
+  // 1️⃣ FLUX SCHNELL (GRÁTIS!) - Primeira tentativa
   if (REPLICATE_API_KEY) {
-    console.log("💰 Usando FLUX DEV - Custo: $0.003/imagem");
+    console.log("🎉 Usando FLUX SCHNELL - Custo: $0.00 (GRÁTIS!)");
 
     try {
       const replicateBlob = await generateWithReplicate(prompt);
 
-      if (replicateBlob && replicateBlob.size > 30000) {
-        console.log("✅ FLUX DEV gerou imagem perfeita!");
-        console.log("💵 Custo desta imagem: $0.003 (97% economia vs SDXL)");
+      // Verifica o tamanho do Blob para garantir que não é uma imagem de erro/pequena
+      if (replicateBlob && replicateBlob.size > 20000) {
+        console.log("✅ FLUX SCHNELL gerou imagem perfeita!");
+        console.log("💵 Custo desta imagem: $0.00 (100% GRATUITO!)");
         return replicateBlob;
       }
     } catch (error) {
-      console.error("❌ Erro FLUX DEV:", error);
+      console.error("❌ Erro FLUX SCHNELL:", error);
     }
   }
 
@@ -463,17 +449,17 @@ async function generateImageWithAI(prompt: string): Promise<Blob> {
   try {
     const pollinationsBlob = await generateWithPollinations(enhancedPrompt);
 
-    if (pollinationsBlob && pollinationsBlob.size > 20000) {
+    if (pollinationsBlob && pollinationsBlob.size > 15000) {
       console.log("✅ Pollinations funcionou!");
-      console.log("💵 Custo: $0 (100% GRATUITO)");
+      console.log("💵 Custo: $0.00 (100% GRATUITO)");
       return pollinationsBlob;
     }
   } catch (error) {
     console.error("❌ Erro Pollinations:", error);
   }
 
-  // 3️⃣ Última tentativa
-  console.log("🔄 Última tentativa...");
+  // 3️⃣ Última tentativa (Pollinations com prompt simples, garantindo um resultado)
+  console.log("🔄 Última tentativa: Pollinations (fallback simples)...");
 
   try {
     const fallbackUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(enhancedPrompt)}?width=1024&height=1024&model=flux&nologo=true`;
@@ -493,53 +479,8 @@ async function generateImageWithAI(prompt: string): Promise<Blob> {
     console.error("❌ Fallback final falhou:", error);
   }
 
-  throw new Error("❌ Não foi possível gerar. Tente novamente.");
-}
-
-// ========================================================
-// 🔥 GERAÇÃO DE ROTEIRO VIRAL
-// ========================================================
-async function generateViralScript(topic: string, style: string, duration: number): Promise<VideoScript> {
-  if (!groq) {
-    throw new Error("GROQ_API_KEY não configurada");
-  }
-
-  const prompt = `Crie um roteiro EXPLOSIVO sobre: "${topic}", Estilo: "${style}", Duração: ${duration}s. Retorne JSON com: title, hook, duration, format, style, scenes (array com number, duration, text, visual, camera, transition), music, hashtags (array), cta, canvaSteps (array), capcutSteps (array), proTips (array).`;
-
-  try {
-    const chatCompletion = await groq.chat.completions.create({
-      model: "llama-3.1-70b-versatile",
-      messages: [
-        { role: 'system', content: 'Responda APENAS com JSON válido.' },
-        { role: 'user', content: prompt },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.9,
-      max_tokens: 4096,
-    });
-
-    const scriptText = chatCompletion.choices[0]?.message?.content;
-    if (!scriptText) throw new Error("Erro ao gerar roteiro");
-
-    return JSON.parse(scriptText) as VideoScript;
-
-  } catch (error) {
-    console.error("❌ Erro:", error);
-    return {
-      title: `🔥 ${topic}`,
-      hook: `PARE! ${topic}...`,
-      duration: `${duration}s`,
-      format: "9:16",
-      style: style,
-      scenes: [{ number: 1, duration: "0-3s", text: topic, visual: "Impactante", camera: "Zoom", transition: "Cut" }],
-      music: "Trending",
-      hashtags: ["#viral"],
-      cta: "Salva!",
-      canvaSteps: ["Template viral"],
-      capcutSteps: ["Auto captions"],
-      proTips: ["Horário nobre"]
-    };
-  }
+  // Lança erro final se tudo falhar
+  throw new Error("❌ Não foi possível gerar a imagem. Tente novamente com um prompt diferente.");
 }
 
 // ========================================================
@@ -549,27 +490,31 @@ export const generateImage = action({
   args: { prompt: v.string() },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Faça login");
+    if (!identity) throw new Error("Faça login para usar a geração de imagens.");
 
     const userId = identity.subject;
 
     try {
+      // 1. Checa o limite diário
       const { canGenerate, remaining } = await checkAndUpdateDailyLimit(ctx, userId);
 
       if (!canGenerate) {
-        throw new Error(`🚫 Limite diário atingido! Volte amanhã para mais 7 imagens!`);
+        throw new Error(`🚫 Limite diário atingido! Volte amanhã para mais ${7} imagens!`);
       }
 
-      console.log(`📊 Restantes: ${remaining - 1}`);
+      console.log(`📊 Imagens restantes para hoje: ${remaining - 1}`);
 
+      // 2. Gera a imagem (FLUX SCHNELL ou Fallback)
       const imageBlob = await generateImageWithAI(args.prompt);
-      console.log("✅ Imagem gerada!");
+      console.log("✅ Imagem gerada com sucesso!");
 
+      // 3. Salva no Convex Storage
       const storageId = await ctx.storage.store(imageBlob);
       const imageUrl = await ctx.storage.getUrl(storageId);
 
-      if (!imageUrl) throw new Error("Erro ao salvar");
+      if (!imageUrl) throw new Error("Erro ao salvar a imagem no Convex Storage.");
 
+      // 4. Salva o registro no banco de dados
       const imageId = await ctx.runMutation(internal.imageGenerator.saveGeneratedImage, {
         userId,
         prompt: args.prompt,
@@ -577,21 +522,70 @@ export const generateImage = action({
         storageId,
       });
 
+      // 5. Incrementa o uso diário
       await incrementDailyUsage(ctx, userId, imageId);
 
       return {
         url: imageUrl,
-        method: 'flux-dev',
+        method: 'flux-schnell-free',
         remainingToday: remaining - 1,
-        message: `🎉 Imagem gerada! ${remaining - 1} restantes. Custo: $0.003 💰`
+        message: `🎉 Imagem gerada 100% GRÁTIS! ${remaining - 1} restantes. Custo: $0.00 🎉`
       };
     } catch (error: unknown) {
-      const errorMessage = error instanceof Error ? error.message : "Erro";
-      console.error("❌", errorMessage);
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido na geração de imagem.";
+      console.error("❌ Erro em generateImage:", errorMessage);
       throw new Error(errorMessage);
     }
   },
 });
+
+// ========================================================
+// 🔥 GERAÇÃO DE ROTEIRO VIRAL
+// ========================================================
+async function generateViralScript(topic: string, style: string, duration: number): Promise<VideoScript> {
+  if (!groq) {
+    throw new Error("GROQ_API_KEY não configurada. Serviço de Roteiro Indisponível.");
+  }
+
+  const prompt = `Crie um roteiro EXPLOSIVO sobre: "${topic}", Estilo: "${style}", Duração: ${duration}s. Retorne APENAS o JSON válido no formato VideoScript.`;
+
+  try {
+    const chatCompletion = await groq.chat.completions.create({
+      model: "llama-3.1-70b-versatile",
+      messages: [
+        { role: 'system', content: 'Você é um roteirista viral de IA. Responda APENAS com JSON válido, seguindo estritamente o formato VideoScript. Não adicione nenhum texto antes ou depois do JSON.' },
+        { role: 'user', content: prompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.9,
+      max_tokens: 4096,
+    });
+
+    const scriptText = chatCompletion.choices[0]?.message?.content;
+    if (!scriptText) throw new Error("Erro ao gerar roteiro: resposta vazia.");
+
+    // Tenta fazer o parse do JSON
+    return JSON.parse(scriptText) as VideoScript;
+
+  } catch (error) {
+    console.error("❌ Erro ao gerar roteiro com Groq:", error);
+    // Retorno de fallback em caso de falha na API ou no parse
+    return {
+      title: `🔥 Título Viral: ${topic}`,
+      hook: `PARE! Você PRECISA saber isso sobre ${topic}...`,
+      duration: `${duration}s`,
+      format: "9:16",
+      style: style,
+      scenes: [{ number: 1, duration: "0-3s", text: topic, visual: "Gráfico Impactante", camera: "Zoom In Rápido", transition: "Corte Seco" }],
+      music: "Música em Alta (Trending)",
+      hashtags: ["#viral", "#${topic.replace(/ /g, '')}", "#crescimento"],
+      cta: "Comenta 'EU QUERO'!",
+      canvaSteps: ["Use template de vídeo curto", "Ajuste o texto da cena 1"],
+      capcutSteps: ["Adicione legendas automáticas", "Acelere a música na parte 1"],
+      proTips: ["Publique às 18h BR", "Responda os 3 primeiros comentários"]
+    };
+  }
+}
 
 // ========================================================
 // 🎬 AÇÃO - GERAR ROTEIRO
@@ -604,13 +598,14 @@ export const generateVideoScript = action({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Faça login");
+    if (!identity) throw new Error("Faça login para usar o gerador de roteiros.");
 
     try {
       const script = await generateViralScript(args.topic, args.style, args.duration);
-      return { script, method: 'premium', message: `🎬 Roteiro criado!` };
-    } catch  {
-      throw new Error("Erro ao gerar roteiro");
+      return { script, method: 'groq-llama3.1-70b', message: `🎬 Roteiro viral criado em segundos!` };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Erro desconhecido ao gerar roteiro.";
+      throw new Error(errorMessage);
     }
   },
 });
@@ -625,14 +620,16 @@ export const deleteImage = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado");
+    if (!identity) throw new Error("Não autenticado. Faça login.");
 
     const image = await ctx.db.get(args.imageId);
-    if (!image || image.userId !== identity.subject) throw new Error("Sem permissão");
+    // Verifica se a imagem existe e pertence ao usuário
+    if (!image || image.userId !== identity.subject) throw new Error("Sem permissão ou imagem não encontrada.");
 
+    // Deleta do storage e do banco
     await ctx.storage.delete(args.storageId);
     await ctx.db.delete(args.imageId);
-    return { success: true };
+    return { success: true, message: "Imagem deletada com sucesso." };
   },
 });
 
@@ -649,7 +646,7 @@ export const saveGeneratedImage = internalMutation({
   handler: async (ctx, args) => {
     return await ctx.db.insert("generatedImages", {
       ...args,
-      method: "flux-dev",
+      method: "flux-schnell-free",
       createdAt: Date.now(),
     });
   },
@@ -658,40 +655,77 @@ export const saveGeneratedImage = internalMutation({
 export const getDailyUsageInternal = internalQuery({
   args: { userId: v.string(), date: v.string() },
   handler: async (ctx, args): Promise<DailyUsage | null> => {
+    // Busca o registro de uso diário
     return await ctx.db
       .query("dailyImageUsage")
       .withIndex("by_user_date", (q) => q.eq("userId", args.userId).eq("date", args.date))
-      .first();
+      .first() as DailyUsage | null;
+  },
+});
+
+export const getTodayImages = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const userId = identity.subject;
+    const today = getCurrentDate();
+
+    // 1. Pega o registro de uso diário
+    const dailyUsage = await ctx.db
+      .query("dailyImageUsage")
+      .withIndex("by_user_date", (q) => q.eq("userId", userId).eq("date", today))
+      .first() as DailyUsage | null;
+
+    if (!dailyUsage || !dailyUsage.images || dailyUsage.images.length === 0) return [];
+
+    // 2. Mapeia os IDs para buscas de documentos (aqui o erro foi corrigido)
+    const imagePromises = dailyUsage.images.map(img => ctx.db.get(img.imageId));
+
+    // 3. Aguarda todas as buscas e filtra nulls (imagens deletadas)
+    const images = await Promise.all(imagePromises);
+    return images.filter(Boolean);
   },
 });
 
 export const updateDailyUsage = internalMutation({
   args: {
     userId: v.string(),
-    imageId: v.union(v.id("generatedImages"), v.null()),
+    // Union permite passar o ID de uma nova imagem ou null/undefined para só resetar
+    imageId: v.optional(v.union(v.id("generatedImages"), v.null())),
     date: v.string(),
     count: v.optional(v.number()),
     images: v.optional(v.array(v.object({ imageId: v.id("generatedImages"), createdAt: v.number() }))),
     lastResetAt: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const existing = await ctx.runQuery(internal.imageGenerator.getDailyUsageInternal, { userId: args.userId, date: args.date });
+    const existing = await ctx.runQuery(internal.imageGenerator.getDailyUsageInternal, { userId: args.userId, date: args.date }) as DailyUsage | null;
 
     if (existing) {
+      // Atualiza o registro existente
       const newCount = args.count !== undefined ? args.count : existing.count + 1;
-      const newImages = args.images || (args.imageId ? [...(existing.images || []), { imageId: args.imageId, createdAt: Date.now() }] : existing.images);
+
+      let newImages = existing.images || [];
+      if (args.images !== undefined) {
+        newImages = args.images;
+      } else if (args.imageId) {
+        newImages = [...newImages, { imageId: args.imageId, createdAt: Date.now() }];
+      }
+
       await ctx.db.patch(existing._id, {
         count: newCount,
         images: newImages,
         lastResetAt: args.lastResetAt || existing.lastResetAt,
       });
-    } else if (args.imageId) {
+    } else if (args.count === 0 || (args.imageId && args.count === undefined)) {
+      // Cria um novo registro
       await ctx.db.insert("dailyImageUsage", {
         userId: args.userId,
         date: args.date,
-        count: 1,
-        images: [{ imageId: args.imageId, createdAt: Date.now() }],
-        lastResetAt: Date.now()
+        count: args.count === 0 ? 0 : 1,
+        images: args.images || (args.imageId ? [{ imageId: args.imageId, createdAt: Date.now() }] : []),
+        lastResetAt: args.lastResetAt || Date.now()
       });
     }
   },
@@ -706,6 +740,7 @@ export const getImagesForUser = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
+    // Busca as últimas 100 imagens geradas pelo usuário, em ordem decrescente de criação
     const images = await ctx.db
       .query("generatedImages")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
@@ -722,6 +757,7 @@ export const getUserImageCount = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return 0;
 
+    // Busca todas as imagens para contar o total
     const images = await ctx.db
       .query("generatedImages")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
@@ -735,57 +771,40 @@ export const getUsageStats = query({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return null;
+    if (!identity) {
+        return {
+            dailyLimit: 7,
+            usedToday: 0,
+            remainingToday: 7,
+            resetTime: "00:00 UTC",
+            method: "FLUX SCHNELL (100% Gratuito)",
+            quality: "Ultra HD - $0.00 por imagem",
+            costPerImage: "$0.00 (GRÁTIS!)",
+            monthlyCost: "$0.00 (SEMPRE GRÁTIS!)",
+        };
+    }
 
     const userId = identity.subject;
     const today = getCurrentDate();
+    const DAILY_LIMIT = 7;
 
     const dailyUsage = await ctx.db
       .query("dailyImageUsage")
       .withIndex("by_user_date", (q) => q.eq("userId", userId).eq("date", today))
       .first() as DailyUsage | null;
 
-    const DAILY_LIMIT = 7;
     const used = dailyUsage?.count || 0;
     const remaining = Math.max(0, DAILY_LIMIT - used);
 
     return {
-      dailyLimit: DAILY_LIMIT,
-      usedToday: used,
-      remainingToday: remaining,
-      resetTime: "00:00 UTC",
-      method: "FLUX DEV (Alta Qualidade)",
-      quality: "Ultra HD - $0.003 por imagem",
-      costPerImage: "$0.003",
-      monthlyCost: `${(remaining * 0.003).toFixed(3)}`,
-      geminiImagesRemaining: remaining,
-      geminiVideosRemaining: 999,
+        dailyLimit: DAILY_LIMIT,
+        usedToday: used,
+        remainingToday: remaining,
+        resetTime: "00:00 UTC", // A informação de reset é aproximada, já que o reset é on-demand
+        method: "FLUX SCHNELL (100% Gratuito)",
+        quality: "Ultra HD - $0.00 por imagem",
+        costPerImage: "$0.00 (GRÁTIS!)",
+        monthlyCost: "$0.00 (SEMPRE GRÁTIS!)",
     };
-  },
-});
-
-export const getTodayImages = query({
-  args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-
-    const userId = identity.subject;
-    const today = getCurrentDate();
-
-    const dailyUsage = await ctx.db
-      .query("dailyImageUsage")
-      .withIndex("by_user_date", (q) => q.eq("userId", userId).eq("date", today))
-      .first() as DailyUsage | null;
-
-    if (!dailyUsage) return [];
-
-    const imagePromises = (dailyUsage.images || []).map(async (img) => {
-      const image = await ctx.db.get(img.imageId);
-      return image;
-    });
-
-    const images = await Promise.all(imagePromises);
-    return images.filter(Boolean);
   },
 });

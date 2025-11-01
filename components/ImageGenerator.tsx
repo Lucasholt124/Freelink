@@ -60,14 +60,13 @@ interface VideoScript {
 interface GenerateImageResponse {
   url: string;
   method: string;
-  remainingPremium: number;
+  remainingToday: number;
   message: string;
 }
 
 interface GenerateVideoResponse {
   script: VideoScript;
   method: string;
-  remainingPremium: number;
   message: string;
 }
 
@@ -366,13 +365,13 @@ export function ImageGenerator() {
                 <div className="flex items-center gap-2 text-xs sm:text-sm">
                   <Badge variant="outline" className="border-purple-300 px-2 py-1">
                     <Sparkles className="w-3 h-3 mr-1" />
-                    <span className="sm:hidden">{usageStats.geminiImagesRemaining}</span>
-                    <span className="hidden sm:inline">Imagens: {usageStats.geminiImagesRemaining}</span>
+                    <span className="sm:hidden">{usageStats.remainingToday}</span>
+                    <span className="hidden sm:inline">Imagens: {usageStats.remainingToday}</span>
                   </Badge>
                   <Badge variant="outline" className="border-pink-300 px-2 py-1">
                     <Film className="w-3 h-3 mr-1" />
-                    <span className="sm:hidden">{usageStats.geminiVideosRemaining}</span>
-                    <span className="hidden sm:inline">Roteiros: {usageStats.geminiVideosRemaining}</span>
+                    <span className="sm:hidden">{usageStats.remainingToday}</span>
+                    <span className="hidden sm:inline">Roteiros: {usageStats.remainingToday}</span>
                   </Badge>
                 </div>
               )}
