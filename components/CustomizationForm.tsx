@@ -6,7 +6,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Palette, Upload, X, Image as ImageIcon, Paintbrush, ImagePlus, Layout } from "lucide-react";
+import { Palette, Upload, X, Image as ImageIcon, Paintbrush, ImagePlus, Layout, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 
@@ -15,18 +15,10 @@ export default function CustomizationForm() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
 
-  const updateCustomizations = useMutation(
-    api.lib.customizations.updateCustomizations,
-  );
-  const generateUploadUrl = useMutation(
-    api.lib.customizations.generateUploadUrl,
-  );
-  const removeProfilePicture = useMutation(
-    api.lib.customizations.removeProfilePicture,
-  );
-  const removeBackgroundImage = useMutation(
-    api.lib.customizations.removeBackgroundImage,
-  );
+  const updateCustomizations = useMutation(api.lib.customizations.updateCustomizations);
+  const generateUploadUrl = useMutation(api.lib.customizations.generateUploadUrl);
+  const removeProfilePicture = useMutation(api.lib.customizations.removeProfilePicture);
+  const removeBackgroundImage = useMutation(api.lib.customizations.removeBackgroundImage);
 
   const existingCustomizations = useQuery(
     api.lib.customizations.getUserCustomizations,
@@ -37,6 +29,8 @@ export default function CustomizationForm() {
     description: "",
     accentColor: "#6366f1",
   });
+
+  const [bioError, setBioError] = useState("");
 
   const [backgroundConfig, setBackgroundConfig] = useState({
     type: "color" as "color" | "gradient" | "image",
@@ -52,6 +46,39 @@ export default function CustomizationForm() {
   const [isUploading, startUploading] = useTransition();
   const [isUploadingBg, startUploadingBg] = useTransition();
 
+  // Lista de termos proibidos/genéricos
+  const forbiddenPhrases = [
+    "bem vindo",
+    "bem-vindo",
+    "perfil oficial",
+    "!!!",
+    "clique aqui",
+    "link na bio"
+  ];
+
+  const validateBio = (text: string): boolean => {
+    if (!text.trim()) {
+      setBioError("A descrição é obrigatória");
+      return false;
+    }
+
+    if (text.length < 20) {
+      setBioError("Mínimo de 20 caracteres");
+      return false;
+    }
+
+    const lowerText = text.toLowerCase();
+    for (const phrase of forbiddenPhrases) {
+      if (lowerText.includes(phrase)) {
+        setBioError(`Evite frases genéricas como "${phrase}"`);
+        return false;
+      }
+    }
+
+    setBioError("");
+    return true;
+  };
+
   useEffect(() => {
     if (existingCustomizations) {
       setFormData({
@@ -59,7 +86,6 @@ export default function CustomizationForm() {
         accentColor: existingCustomizations.accentColor || "#6366f1",
       });
 
-      // Carrega configurações de background do Convex
       setBackgroundConfig({
         type: existingCustomizations.backgroundType || "color",
         style: existingCustomizations.backgroundStyle || "full",
@@ -76,10 +102,16 @@ export default function CustomizationForm() {
     e.preventDefault();
     if (!user) return;
 
+    // Validação obrigatória da bio
+    if (!validateBio(formData.description)) {
+      toast.error("Corrija os erros antes de salvar");
+      return;
+    }
+
     startTransition(async () => {
       try {
         await updateCustomizations({
-          description: formData.description || undefined,
+          description: formData.description,
           accentColor: formData.accentColor || undefined,
           backgroundType: backgroundConfig.type,
           backgroundStyle: backgroundConfig.style,
@@ -97,9 +129,7 @@ export default function CustomizationForm() {
     });
   };
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -147,9 +177,7 @@ export default function CustomizationForm() {
     });
   };
 
-  const handleBackgroundUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
+  const handleBackgroundUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -233,6 +261,10 @@ export default function CustomizationForm() {
       ...prev,
       [field]: value,
     }));
+
+    if (field === "description") {
+      validateBio(value);
+    }
   };
 
   const handleBgConfigChange = (field: string, value: string | number) => {
@@ -335,20 +367,40 @@ export default function CustomizationForm() {
           </div>
         </div>
 
-        {/* Descrição */}
+        {/* Descrição - REFORMULADA */}
         <div className="space-y-2">
-          <Label htmlFor="description" className="text-sm sm:text-base">Descrição</Label>
+          <Label htmlFor="description" className="text-sm sm:text-base flex items-center gap-2">
+            Proposta de Valor <span className="text-red-500">*</span>
+          </Label>
           <textarea
             id="description"
-            placeholder="Conte aos visitantes sobre você..."
+            placeholder="Ex: Designer UI/UX | Transformo ideias em experiências digitais incríveis ✨"
             value={formData.description}
             onChange={(e) => handleInputChange("description", e.target.value)}
-            className="w-full min-h-[80px] sm:min-h-[100px] px-3 py-2 text-sm sm:text-base border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-vertical"
-                        maxLength={200}
+            className={`w-full min-h-[80px] sm:min-h-[100px] px-3 py-2 text-sm sm:text-base border rounded-md focus:outline-none focus:ring-2 resize-vertical ${
+              bioError
+                ? "border-red-500 focus:ring-red-500"
+                : "border-gray-300 focus:ring-purple-500 focus:border-transparent"
+            }`}
+            maxLength={160}
+            required
           />
-          <p className="text-xs sm:text-sm text-gray-500">
-            {formData.description.length}/200 caracteres
-          </p>
+
+          {bioError && (
+            <div className="flex items-center gap-2 text-red-600 text-xs sm:text-sm">
+              <AlertCircle className="w-4 h-4" />
+              <span>{bioError}</span>
+            </div>
+          )}
+
+          <div className="flex justify-between items-center">
+            <p className="text-xs sm:text-sm text-gray-500">
+              {formData.description.length}/160 caracteres
+            </p>
+            <p className="text-[10px] sm:text-xs text-gray-400">
+              💡 Dica: Explique como você ajuda as pessoas
+            </p>
+          </div>
         </div>
 
         {/* Cor de destaque */}
@@ -360,9 +412,7 @@ export default function CustomizationForm() {
                 id="accentColor"
                 type="color"
                 value={formData.accentColor}
-                onChange={(e) =>
-                  handleInputChange("accentColor", e.target.value)
-                }
+                onChange={(e) => handleInputChange("accentColor", e.target.value)}
                 className="w-12 h-12 rounded-lg border-2 border-gray-300 cursor-pointer flex-shrink-0"
               />
               <div className="flex-1 sm:flex-initial">
@@ -375,11 +425,10 @@ export default function CustomizationForm() {
           </div>
         </div>
 
-        {/* Configuração de Background */}
+        {/* Configuração de Background - MANTIDA */}
         <div className="space-y-4 border-t pt-4 sm:pt-6">
           <Label className="text-sm sm:text-base">Visual de Fundo</Label>
 
-          {/* Seletor de tipo */}
           <div className="grid grid-cols-3 gap-2">
             <button
               type="button"
@@ -439,7 +488,6 @@ export default function CustomizationForm() {
             </button>
           </div>
 
-          {/* Configurações específicas de cada tipo */}
           {backgroundConfig.type === "color" && (
             <div className="space-y-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
               <div className="flex items-center gap-3">
@@ -511,7 +559,6 @@ export default function CustomizationForm() {
 
           {backgroundConfig.type === "image" && (
             <div className="space-y-3 p-3 sm:p-4 bg-gray-50 rounded-lg">
-              {/* Estilo da imagem */}
               <div className="space-y-2">
                 <Label className="text-xs sm:text-sm">Estilo da Imagem</Label>
                 <div className="flex gap-2">
@@ -693,7 +740,7 @@ export default function CustomizationForm() {
         <div className="pt-4">
           <Button
             type="submit"
-            disabled={isLoading || isUploading || isUploadingBg}
+            disabled={isLoading || isUploading || isUploadingBg || !!bioError}
             className="w-full bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600 text-sm sm:text-base py-5 sm:py-6"
           >
             {isLoading ? "Salvando..." : "Salvar personalizações"}

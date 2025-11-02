@@ -14,7 +14,7 @@ export const getUserCustomizations = query({
       profilePictureUrl: v.optional(v.string()),
       description: v.optional(v.string()),
       accentColor: v.optional(v.string()),
-      // NOVOS CAMPOS PARA BACKGROUND
+      // CAMPOS PARA BACKGROUND
       backgroundType: v.optional(v.union(v.literal("color"), v.literal("gradient"), v.literal("image"))),
       backgroundStyle: v.optional(v.union(v.literal("full"), v.literal("header"))),
       backgroundColor1: v.optional(v.string()),
@@ -68,7 +68,7 @@ export const getCustomizationsBySlug = query({
       profilePictureUrl: v.optional(v.string()),
       description: v.optional(v.string()),
       accentColor: v.optional(v.string()),
-      // NOVOS CAMPOS PARA BACKGROUND
+      // CAMPOS PARA BACKGROUND
       backgroundType: v.optional(v.union(v.literal("color"), v.literal("gradient"), v.literal("image"))),
       backgroundStyle: v.optional(v.union(v.literal("full"), v.literal("header"))),
       backgroundColor1: v.optional(v.string()),
@@ -141,7 +141,7 @@ export const updateCustomizations = mutation({
     profilePictureStorageId: v.optional(v.id("_storage")),
     description: v.optional(v.string()),
     accentColor: v.optional(v.string()),
-    // NOVOS ARGUMENTOS PARA BACKGROUND
+    // ARGUMENTOS PARA BACKGROUND
     backgroundType: v.optional(v.union(v.literal("color"), v.literal("gradient"), v.literal("image"))),
     backgroundStyle: v.optional(v.union(v.literal("full"), v.literal("header"))),
     backgroundColor1: v.optional(v.string()),
@@ -154,6 +154,45 @@ export const updateCustomizations = mutation({
   handler: async ({ db, auth, storage }, args) => {
     const identity = await auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+
+    // ✅ VALIDAÇÃO: Bio obrigatória com mínimo de 20 caracteres
+    if (args.description !== undefined) {
+      const trimmedDescription = args.description.trim();
+
+      if (trimmedDescription.length === 0) {
+        throw new Error("A descrição é obrigatória");
+      }
+
+      if (trimmedDescription.length < 20) {
+        throw new Error("A descrição deve ter no mínimo 20 caracteres");
+      }
+
+      if (trimmedDescription.length > 160) {
+        throw new Error("A descrição deve ter no máximo 160 caracteres");
+      }
+
+      // Lista de termos proibidos (case insensitive)
+      const forbiddenPhrases = [
+        "bem vindo",
+        "bem-vindo",
+        "perfil oficial",
+        "clique aqui",
+        "link na bio"
+      ];
+
+      const lowerDescription = trimmedDescription.toLowerCase();
+      for (const phrase of forbiddenPhrases) {
+        if (lowerDescription.includes(phrase)) {
+          throw new Error(`Evite frases genéticas como "${phrase}". Seja mais específico sobre sua proposta de valor.`);
+        }
+      }
+
+      // Verifica excesso de exclamações
+      const exclamationCount = (trimmedDescription.match(/!/g) || []).length;
+      if (exclamationCount > 2) {
+        throw new Error("Evite excesso de exclamações. Seja objetivo e profissional.");
+      }
+    }
 
     // Verifique se já existem personalizações
     const existing = await db
@@ -178,7 +217,7 @@ export const updateCustomizations = mutation({
           profilePictureStorageId: args.profilePictureStorageId,
         }),
         ...(args.description !== undefined && {
-          description: args.description,
+          description: args.description.trim(),
         }),
         ...(args.accentColor !== undefined && {
           accentColor: args.accentColor,
@@ -214,7 +253,7 @@ export const updateCustomizations = mutation({
           profilePictureStorageId: args.profilePictureStorageId,
         }),
         ...(args.description !== undefined && {
-          description: args.description,
+          description: args.description.trim(),
         }),
         ...(args.accentColor !== undefined && {
           accentColor: args.accentColor,

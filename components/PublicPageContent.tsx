@@ -2,7 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { Preloaded, usePreloadedQuery } from "convex/react";
-import { User, Share2, Link as LinkIcon, Check, Heart, Sparkles, QrCode, Moon, Sun, MapPin, Calendar, Zap, TrendingUp, Star, Download, ExternalLink, ChevronDown, Shield, Gem, Crown, Rocket } from "lucide-react";
+import { User, Share2, Link as LinkIcon, Check, Heart, Sparkles, QrCode, Moon, Sun, Calendar, Download, ExternalLink, ChevronDown, Shield, Gem, Crown, Rocket, Star } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { getBaseUrl } from "@/convex/lib/getBaseUrl";
@@ -10,15 +10,15 @@ import { useState, useEffect, useRef } from "react";
 import { trackLinkClick } from "@/lib/analytics";
 import confetti from 'canvas-confetti';
 import {
-
-  FaEnvelope,  FaFacebook, FaGithub, FaGlobe,  FaInstagram,
-   FaLinkedin, FaTiktok,  FaTwitch, FaTwitter, FaYoutube, FaThreads, FaBluesky, FaMastodon,
-   FaSpotify,
+  FaFacebook, FaGithub, FaGlobe, FaInstagram,
+  FaLinkedin, FaTiktok,  FaTwitter, FaYoutube,
    FaWhatsapp
 } from "react-icons/fa6";
 import QRCode from 'qrcode';
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
 import { SubscriptionPlanDetails } from "@/lib/subscription";
+
+// ... (manter interfaces e componentes auxiliares)
 
 interface BackgroundConfig {
   type: "color" | "gradient" | "image";
@@ -183,51 +183,7 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
   );
 }
 
-function ProfileStats({ username, accentColor }: { username: string; accentColor: string }) {
-  const [stats, setStats] = useState({
-    views: 0,
-    likes: 0,
-    shares: 0,
-    clicks: 0,
-  });
-
-  useEffect(() => {
-    const savedStats = localStorage.getItem(`stats_${username}`);
-    if (savedStats) {
-      try {
-        const loadedStats = JSON.parse(savedStats);
-        setStats(prevStats => ({
-          ...prevStats,
-          ...loadedStats,
-        }));
-      } catch (e) {
-        console.error("Erro ao carregar stats do localStorage", e);
-      }
-    }
-  }, [username]);
-
-  const statItems = [
-    { icon: TrendingUp, value: stats.views, label: "Visualizações" },
-    { icon: Heart, value: stats.likes, label: "Curtidas" },
-    { icon: Share2, value: stats.shares, label: "Compart." },
-    { icon: Zap, value: stats.clicks, label: "Cliques" },
-  ];
-
-  return (
-    <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-gray-200 dark:border-gray-700/50">
-      <div className="grid grid-cols-4 gap-2 text-center">
-        {statItems.map((item, index) => (
-          <div key={index}>
-            <p className="text-lg sm:text-2xl font-bold" style={{ color: accentColor }}>
-              {(item.value || 0).toLocaleString('pt-BR')}
-            </p>
-            <p className="text-[10px] sm:text-xs text-gray-500 dark:text-gray-400">{item.label}</p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
+// 🚫 REMOVIDO: ProfileStats - estatísticas agora são privadas
 
 function getLinkIcon(url: string) {
   if (!url) return <LinkIcon className="w-5 h-5 sm:w-6 sm:h-6" />;
@@ -236,19 +192,12 @@ function getLinkIcon(url: string) {
   const iconMap = [
     { match: ['youtube.com', 'youtu.be'], icon: <FaYoutube className="w-5 h-5 sm:w-6 sm:h-6 text-[#FF0000]" /> },
     { match: ['instagram.com'], icon: <FaInstagram className="w-5 h-5 sm:w-6 sm:h-6 text-[#E1306C]" /> },
-    { match: ['facebook.com', 'fb.com', 'www.facebook.com', 'm.facebook.com', 'messenger.com'], icon: <FaFacebook className="w-5 h-5 sm:w-6 sm:h-6 text-[#1877F3]" /> },
+    { match: ['facebook.com', 'fb.com'], icon: <FaFacebook className="w-5 h-5 sm:w-6 sm:h-6 text-[#1877F3]" /> },
     { match: ['twitter.com', 'x.com'], icon: <FaTwitter className="w-5 h-5 sm:w-6 sm:h-6 text-[#1DA1F2]" /> },
     { match: ['linkedin.com'], icon: <FaLinkedin className="w-5 h-5 sm:w-6 sm:h-6 text-[#0077B5]" /> },
     { match: ['tiktok.com'], icon: <FaTiktok className="w-5 h-5 sm:w-6 sm:h-6 text-[#000000]" /> },
-    { match: ['threads.net'], icon: <FaThreads className="w-5 h-5 sm:w-6 sm:h-6 text-[#000000]" /> },
-    { match: ['bsky.app', 'bluesky'], icon: <FaBluesky className="w-5 h-5 sm:w-6 sm:h-6 text-[#00A8E8]" /> },
-    { match: ['mastodon'], icon: <FaMastodon className="w-5 h-5 sm:w-6 sm:h-6 text-[#6364FF]" /> },
     { match: ['github.com'], icon: <FaGithub className="w-5 h-5 sm:w-6 sm:h-6 text-[#181717]" /> },
-    { match: ['spotify.com'], icon: <FaSpotify className="w-5 h-5 sm:w-6 sm:h-6 text-[#1DB954]" /> },
-    { match: ['twitch.tv'], icon: <FaTwitch className="w-5 h-5 sm:w-6 sm:h-6 text-[#9147FF]" /> },
-    { match: ['mailto:'], icon: <FaEnvelope className="w-5 h-5 sm:w-6 sm:h-6 text-[#EA4335]" /> },
-    { match: ['whatsapp', 'wa.me', 'api.whatsapp.com', 'web.whatsapp.com', 'chat.whatsapp.com', 'wa.link', 'whatsapp.com', 'web.whatsapp.com', 'web.whatsapp.com'], icon: <FaWhatsapp className="w-5 h-5 sm:w-6 sm:h-6 text-[#25D366]" /> },
-
+    { match: ['whatsapp', 'wa.me'], icon: <FaWhatsapp className="w-5 h-5 sm:w-6 sm:h-6 text-[#25D366]" /> },
   ];
 
   for (const item of iconMap) {
@@ -292,7 +241,6 @@ export default function PublicPageContent({
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
-  const [userLocation, setUserLocation] = useState<string | null>(null);
   const [joinDate] = useState<string>(customizations?._creationTime ? new Date(customizations._creationTime).getFullYear().toString() : "2024");
   const [backgroundConfig, setBackgroundConfig] = useState<BackgroundConfig>({
     type: "color",
@@ -322,63 +270,47 @@ export default function PublicPageContent({
   };
 
   useEffect(() => {
-  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-  setIsDarkMode(prefersDark);
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setIsDarkMode(prefersDark);
 
-  // Carrega configurações de background do Convex
-  if (customizations) {
-    setBackgroundConfig({
-      type: customizations.backgroundType || "color",
-      style: customizations.backgroundStyle || "full",
-      color1: customizations.backgroundColor1 || "#f3f4f6",
-      color2: customizations.backgroundColor2 || "#e5e7eb",
-      imageUrl: customizations.backgroundImageUrl || "",
-      imageBlur: customizations.backgroundImageBlur || 0,
-      imageOpacity: customizations.backgroundImageOpacity || 100,
-    });
-  }
+    if (customizations) {
+      setBackgroundConfig({
+        type: customizations.backgroundType || "color",
+        style: customizations.backgroundStyle || "full",
+        color1: customizations.backgroundColor1 || "#f3f4f6",
+        color2: customizations.backgroundColor2 || "#e5e7eb",
+        imageUrl: customizations.backgroundImageUrl || "",
+        imageBlur: customizations.backgroundImageBlur || 0,
+        imageOpacity: customizations.backgroundImageOpacity || 100,
+      });
+    }
 
-  // Busca localização do usuário (opcional)
-  if (!userLocation) {
-    fetch('https://ipapi.co/json/')
-      .then(res => res.json())
-      .then(data => {
-        if (data.country_name) {
-          setUserLocation(data.country_name);
-        }
-      })
-      .catch(() => {});
-  }
+    const savedReactions = localStorage.getItem(`reactions_${username}`);
+    if (savedReactions) {
+      setLinkReactions(JSON.parse(savedReactions));
+    }
 
-  // Carrega reações e cliques salvos localmente
-  const savedReactions = localStorage.getItem(`reactions_${username}`);
-  if (savedReactions) {
-    setLinkReactions(JSON.parse(savedReactions));
-  }
+    const savedClicks = localStorage.getItem(`clicks_${username}`);
+    if (savedClicks) {
+      setClickCounts(JSON.parse(savedClicks));
+    }
 
-  const savedClicks = localStorage.getItem(`clicks_${username}`);
-  if (savedClicks) {
-    setClickCounts(JSON.parse(savedClicks));
-  }
+    // 📊 ATUALIZAÇÃO: Incrementa views mas NÃO exibe publicamente
+    const stats = JSON.parse(localStorage.getItem(`stats_${username}`) || '{}');
+    stats.views = (stats.views || 0) + 1;
+    localStorage.setItem(`stats_${username}`, JSON.stringify(stats));
 
-  // Incrementa visualizações
-  const stats = JSON.parse(localStorage.getItem(`stats_${username}`) || '{}');
-  stats.views = (stats.views || 0) + 1;
-  localStorage.setItem(`stats_${username}`, JSON.stringify(stats));
+    QRCode.toDataURL(profileUrl, {
+      width: 256,
+      margin: 2,
+      color: {
+        dark: userAccentColor,
+        light: '#FFFFFF',
+      },
+    }).then(setQrCodeDataUrl);
 
-  // Gera QR Code
-  QRCode.toDataURL(profileUrl, {
-    width: 256,
-    margin: 2,
-    color: {
-      dark: userAccentColor,
-      light: '#FFFFFF',
-    },
-  }).then(setQrCodeDataUrl);
-
-  // Remove loading após 800ms
-  setTimeout(() => setIsLoading(false), 800);
-}, [profileUrl, username, userAccentColor, customizations, userLocation]);
+    setTimeout(() => setIsLoading(false), 800);
+  }, [profileUrl, username, userAccentColor, customizations]);
 
   const handleShare = async () => {
     confetti({
@@ -570,6 +502,7 @@ export default function PublicPageContent({
           </div>
         )}
 
+        {/* ✨ ATUALIZAÇÃO: Botões reorganizados no topo */}
         <div className="absolute top-4 left-4 right-4 flex justify-between items-center z-20">
           <motion.button
             whileHover={{ scale: 1.1 }}
@@ -579,7 +512,70 @@ export default function PublicPageContent({
           >
             {isDarkMode ? <Sun className="w-5 h-5 sm:w-6 sm:h-6" /> : <Moon className="w-5 h-5 sm:w-6 sm:h-6" />}
           </motion.button>
+
+          {/* 🔄 NOVO: Botões Share e QR no canto superior direito */}
+          <div className="flex gap-2">
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => setShowQRCode(!showQRCode)}
+              className="p-2 sm:p-3 rounded-full bg-white/20 backdrop-blur-xl text-white border border-white/30 hover:bg-white/30 transition-all duration-300"
+              title="Ver QR Code"
+            >
+              <QrCode className="w-5 h-5 sm:w-6 sm:h-6" />
+            </motion.button>
+
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={handleShare}
+              className="p-2 sm:p-3 rounded-full backdrop-blur-xl text-white border border-white/30 transition-all duration-300"
+              style={{
+                background: shared
+                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.3), rgba(5, 150, 105, 0.3))'
+                  : 'rgba(255, 255, 255, 0.2)'
+              }}
+              title={shared ? "Link copiado!" : "Compartilhar"}
+            >
+              {shared ? (
+                <Check className="w-5 h-5 sm:w-6 sm:h-6" />
+              ) : (
+                <Share2 className="w-5 h-5 sm:w-6 sm:h-6" />
+              )}
+            </motion.button>
+          </div>
         </div>
+
+        {/* 🔽 QR Code Dropdown */}
+        <AnimatePresence>
+          {showQRCode && qrCodeDataUrl && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute top-20 right-4 z-30 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl p-4"
+            >
+              <div className="flex flex-col items-center gap-3">
+                <img src={qrCodeDataUrl} alt="QR Code" className="w-48 h-48 rounded-xl" />
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.download = `${username}-qrcode.png`;
+                    link.href = qrCodeDataUrl;
+                    link.click();
+                  }}
+                  className="flex items-center gap-2 px-4 py-2 text-sm text-white rounded-xl font-semibold hover:shadow-lg transition-shadow"
+                  style={{ background: userAccentColor }}
+                >
+                  <Download className="w-4 h-4" />
+                  Baixar QR Code
+                </motion.button>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
       </motion.div>
 
       <div className="relative -mt-32 sm:-mt-40 md:-mt-48 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-12 sm:pb-16 md:pb-20">
@@ -639,6 +635,15 @@ export default function PublicPageContent({
                     {plan !== 'free' && <VerifiedBadge size="large" plan={plan} />}
                   </div>
 
+                  {/* 🎯 NOVO: Branding Freelinnk discreto */}
+                  {plan === 'free' && (
+                    <Link href={getBaseUrl() + "/"} className="group">
+                      <p className="text-[10px] text-gray-400 dark:text-gray-500 opacity-60 hover:opacity-100 transition-opacity">
+                        Powered by <span className="font-semibold group-hover:text-purple-500 transition-colors">Freelinnk</span>
+                      </p>
+                    </Link>
+                  )}
+
                   {customizations?.description && (
                     <motion.p
                       className="text-sm sm:text-base text-gray-600 dark:text-gray-400 leading-relaxed px-2"
@@ -651,12 +656,6 @@ export default function PublicPageContent({
                   )}
 
                   <div className="flex items-center justify-center gap-3 sm:gap-4 text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex-wrap">
-                    {userLocation && (
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3 sm:w-4 sm:h-4" />
-                        <span>{userLocation}</span>
-                      </div>
-                    )}
                     <div className="flex items-center gap-1">
                       <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
                       <span>Desde {joinDate}</span>
@@ -664,72 +663,7 @@ export default function PublicPageContent({
                   </div>
                 </div>
 
-                <ProfileStats username={username} accentColor={userAccentColor} />
-
-                <div className="flex gap-2 sm:gap-3 mt-4 sm:mt-6">
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={handleShare}
-                    className="flex-1 py-2.5 sm:py-3 px-3 sm:px-4 rounded-xl sm:rounded-2xl font-bold text-sm sm:text-base text-white shadow-xl transition-all duration-300"
-                    style={{
-                      background: shared ? 'linear-gradient(135deg, #10b981, #059669)' : userAccentColor
-                    }}
-                  >
-                    {shared ? (
-                      <span className="flex items-center justify-center gap-1.5 sm:gap-2">
-                        <Check className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="hidden sm:inline">Copiado!</span>
-                        <span className="sm:hidden">OK!</span>
-                      </span>
-                    ) : (
-                      <span className="flex items-center justify-center gap-1.5 sm:gap-2">
-                        <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
-                        <span className="hidden sm:inline">Compartilhar</span>
-                        <span className="sm:hidden">Share</span>
-                      </span>
-                    )}
-                  </motion.button>
-
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setShowQRCode(!showQRCode)}
-                    className="p-2.5 sm:p-3 rounded-xl sm:rounded-2xl bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors duration-300"
-                  >
-                    <QrCode className="w-4 h-4 sm:w-5 sm:h-5" />
-                  </motion.button>
-                </div>
-
-                <AnimatePresence>
-                  {showQRCode && qrCodeDataUrl && (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.8, y: -20 }}
-                      animate={{ opacity: 1, scale: 1, y: 0 }}
-                      exit={{ opacity: 0, scale: 0.8, y: -20 }}
-                      className="mt-4 p-3 sm:p-4 bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-gray-700 shadow-2xl"
-                    >
-                      <div className="flex flex-col items-center gap-2 sm:gap-3">
-                        <img src={qrCodeDataUrl} alt="QR Code" className="w-40 h-40 sm:w-48 sm:h-48 rounded-xl" />
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.download = `${username}-qrcode.png`;
-                            link.href = qrCodeDataUrl;
-                            link.click();
-                          }}
-                          className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm sm:text-base text-white rounded-xl font-semibold hover:shadow-lg transition-shadow"
-                          style={{ background: userAccentColor }}
-                        >
-                          <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                          Baixar QR Code
-                        </motion.button>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
+                {/* 🚫 REMOVIDO: <ProfileStats /> - agora é privado */}
               </motion.div>
             </div>
           </motion.aside>
@@ -803,12 +737,6 @@ export default function PublicPageContent({
                           </span>
 
                           <div className="flex items-center gap-2 flex-shrink-0">
-                            {clickCounts[link._id] && (
-                              <span className="hidden sm:inline text-xs text-gray-500 dark:text-gray-400 px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded-lg">
-                                {clickCounts[link._id]} cliques
-                              </span>
-                            )}
-
                             <motion.button
                               whileHover={{ scale: 1.1 }}
                               whileTap={{ scale: 0.9 }}

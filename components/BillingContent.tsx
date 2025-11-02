@@ -85,7 +85,7 @@ const plans: Plan[] = [
           { text: "Gerador de vídeos virais", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Geração de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
           { text: "Aprimoramento de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
-          { text: "Calendário de conteúdo personalizado", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
+          { text: "Calendário de conteúdo personalizado", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true }
         ]
       },
       {
@@ -136,7 +136,7 @@ const plans: Plan[] = [
           { text: "Templates prontos para posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "Geração de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
           { text: "Aprimoramento de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
-          { text: "Calendário ilimitado", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
+          { text: "Calendário ilimitado", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true }
         ]
       },
       {
@@ -144,7 +144,7 @@ const plans: Plan[] = [
         features: [
           { text: "Personalização completa", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "Remover marca Freelink", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
-          { text: "Ferramenta de sorteios", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
+          { text: "Ferramenta de sorteios", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Rastreamento avançado (Pixel, GA4)", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
         ]
       }
@@ -166,7 +166,7 @@ const plans: Plan[] = [
     priceDetails: "/mês",
     spotsLeft: 23,
     popularFeatures: [
-      "🎨 5 imagens com IA por dia + 5 aprimoramentos",
+      "🎨 7 imagens com IA por dia + aprimoramentos ",
       "🧠 FreelinkBrain ILIMITADO",
       "🎬 Vídeos virais ILIMITADOS",
       "🎁 Sistema completo de sorteios",
@@ -184,8 +184,8 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
-          { text: "5 gerações de imagens com IA por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "5 aprimoramentos de imagens por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "7 gerações de imagens com IA por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "aprimoramentos de imagens por dia ilimitado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "FreelinkBrain ILIMITADO", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Vídeos virais ILIMITADOS", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Calendário de conteúdo personalizado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },

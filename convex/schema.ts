@@ -1,4 +1,4 @@
-// /convex/schema.ts - VERSÃO CORRIGIDA
+// /convex/schema.ts - VERSÃO ATUALIZADA COM NOVOS CAMPOS
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -8,11 +8,16 @@ export default defineSchema({
     username: v.string(),
   }).index("by_user_id", ["userId"]).index("by_username", ["username"]),
 
+  // ✅ TABELA LINKS ATUALIZADA COM NOVOS CAMPOS
   links: defineTable({
     userId: v.string(),
     title: v.string(),
     url: v.string(),
     order: v.number(),
+    // 🆕 NOVOS CAMPOS PARA MELHORIAS
+    thumbnailStorageId: v.optional(v.id("_storage")), // Para upload de imagens personalizadas
+    isFeatured: v.optional(v.boolean()), // Destaque visual (recurso PRO)
+    badgeType: v.optional(v.union(v.literal("new"), v.literal("hot"), v.literal("popular"), v.literal("limited"))), // Badge de status (recurso PRO)
   }).index("by_user", ["userId"]).index("by_user_and_order", ["userId", "order"]),
 
   userCustomizations: defineTable({
@@ -135,7 +140,6 @@ export default defineSchema({
     createdAt: v.optional(v.number()),
   }).index("by_user", ["userId"]),
 
-  // ✅ TABELA CORRIGIDA PARA ACEITAR DADOS ANTIGOS E NOVOS
   dailyImageUsage: defineTable({
     userId: v.string(),
     date: v.string(), // formato: "YYYY-MM-DD"
@@ -143,10 +147,10 @@ export default defineSchema({
     images: v.optional(v.array(v.object({
       imageId: v.id("generatedImages"),
       createdAt: v.number(),
-    }))), // ✅ AGORA É OPCIONAL para aceitar registros antigos
+    }))),
     lastResetAt: v.optional(v.number()),
-    createdAt: v.optional(v.number()), // ✅ Campo dos registros antigos
-    updatedAt: v.optional(v.number()), // ✅ Campo dos registros antigos
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
   }).index("by_user_date", ["userId", "date"])
     .index("by_user", ["userId"]),
 

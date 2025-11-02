@@ -154,35 +154,34 @@ const analyticsFeatures = [
 // Pricing cards atualizados
 const pricingPlans = [
 {
-name: "Starter",
-price: "14,90",
-cents: "90",
+name: "Pro",
+price: "34.90",
+cents: "00",
 period: "/mês",
 description: "Perfeito para começar",
 features: [
 "1 página Freelinnk",
 "Links ilimitados",
-"Analytics completo de cliques",
-"50 imagens IA/mês",
+"Analytics avançados (dispositivos, localizações)",
 "10 roteiros virais/mês",
 "Sorteios básicos",
-"Pixel do Meta",
-"Google Analytics",
+"Tudo do plano Free",
 "Suporte por email",
+"🚫 Sem marca d'água Freelink",
 ],
 cta: "Começar agora",
 popular: false,
 },
 {
-name: "Pro",
-price: "39",
+name: "Ultra",
+price: "77",
 cents: "90",
 period: "/mês",
 description: "Para criadores sérios",
 features: [
-"3 páginas Freelinnk",
-"Tudo do Starter +",
-"200 imagens IA/mês",
+"páginas Freelinnk",
+"Tudo do Pro +",
+"250 imagens IA/mês",
 "Roteiros virais ilimitados",
 "Sorteios avançados",
 "Todos os pixels de rastreamento",
@@ -190,6 +189,7 @@ features: [
 "Remover marca d'água",
 "Domínio personalizado",
 "Suporte prioritário WhatsApp",
+
 ],
 cta: "Teste 7 dias grátis",
 popular: true,
@@ -201,7 +201,7 @@ savings: "Economize R$240/ano",
 const competitors = [
 {
 feature: "Preço mensal",
-freelinnk: "R14,90",linktree:"US14,90", linktreee:"US 5 + IOF",
+freelinnk: "R34,90",linktree:"US14,90", linktreee:"US 5 + IOF",
 beacons: "US$ 10 + IOF",
 },
 {
