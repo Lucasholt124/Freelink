@@ -1,4 +1,4 @@
-// components/brain/FreelinkBrainTool.tsx - FERRAMENTA COMPLETA (CORRIGIDA)
+// components/brain/FreelinkBrainTool.tsx - VERSÃO MOBILE-FIRST
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -35,7 +35,6 @@ import { CarouselCard, ImagePostCard, ReelCard, StoryCard } from "./brain/Conten
 // COMPONENTES AUXILIARES
 // =================================================================
 
-// Componente de Loading Spinner
 const LoadingSpinner = () => (
   <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
     <motion.div
@@ -50,13 +49,12 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// Componente de Contador Animado
 const AnimatedCounter = ({ value }: { value: number }) => {
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
     const startTime = Date.now();
-    const duration = 500; // ms
+    const duration = 500;
     const timer = setInterval(() => {
       const now = Date.now();
       const progress = Math.min((now - startTime) / duration, 1);
@@ -74,7 +72,6 @@ const AnimatedCounter = ({ value }: { value: number }) => {
   return <span>{displayValue}</span>;
 };
 
-// Tipos auxiliares
 interface BrainCampaign {
   _id: Id<"brainCampaigns">;
   _creationTime: number;
@@ -99,9 +96,6 @@ interface BrainCampaign {
 // =================================================================
 
 export default function FreelinkBrainTool() {
-  // =================================================================
-  // STATES
-  // =================================================================
   const [theme, setTheme] = useState("");
   const [results, setResults] = useState<BrainResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -116,9 +110,6 @@ export default function FreelinkBrainTool() {
 
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // =================================================================
-  // HOOKS CONVEX
-  // =================================================================
   const { generateIdeas } = useContentGeneration();
   const {
     campaigns,
@@ -129,10 +120,6 @@ export default function FreelinkBrainTool() {
 
   useScheduledPosts();
   const { isConnected: isBufferConnected } = useBufferIntegration();
-
-  // =================================================================
-  // FUNÇÕES
-  // =================================================================
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -202,7 +189,6 @@ export default function FreelinkBrainTool() {
     const content = results.content_pack[key][index];
     if (!content) return;
 
-    // Extrair caption e hashtags
     let caption = "";
     let hashtags: string[] = [];
 
@@ -251,7 +237,6 @@ export default function FreelinkBrainTool() {
     }
   };
 
-  // Contagem de conteúdo
   const contentCounts = results ? {
     reels: results.content_pack?.reels?.length ?? 0,
     carousels: results.content_pack?.carousels?.length ?? 0,
@@ -266,64 +251,66 @@ export default function FreelinkBrainTool() {
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-purple-50/30 via-pink-50/30 to-orange-50/30 dark:from-gray-950 dark:to-black">
 
-      {/* ================= HEADER ================= */}
+      {/* ================= HEADER MOBILE-OPTIMIZED ================= */}
       <motion.div
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className="sticky top-0 z-50 bg-white/90 dark:bg-gray-950/80 backdrop-blur-xl border-b border-purple-200/50 dark:border-white/10 shadow-lg"
+        className="sticky top-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-purple-200/50 dark:border-white/10 shadow-lg"
       >
-        <div className="container py-3 px-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2">
-              <motion.div
-                animate={{ rotate: [0, 5, -5, 0] }}
-                transition={{ repeat: Infinity, duration: 4 }}
-              >
-                <h1 className="font-black text-lg sm:text-xl md:text-2xl lg:text-3xl">
-                  <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-                    FreelinkBrain
-                  </span>
-                </h1>
-              </motion.div>
+        <div className="container">
+          {/* Linha Principal - MOBILE FIRST */}
+          <div className="flex items-center justify-between gap-2 py-2 sm:py-3 px-2 sm:px-4">
 
-              <div className="hidden sm:flex items-center gap-2">
-                <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg text-xs">
-                  <Crown className="w-3 h-3 mr-1" />
-                  PRO
+            {/* Logo + Badges */}
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
+              <h1 className="font-black text-base sm:text-xl md:text-2xl lg:text-3xl truncate">
+                <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                  FreelinkBrain
+                </span>
+              </h1>
+
+              {/* Badges - Versão Mini para Mobile */}
+              <div className="flex items-center gap-1">
+                <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5">
+                  <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1" />
+                  <span className="hidden sm:inline">PRO</span>
                 </Badge>
                 {showViralMode && (
-                  <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse text-xs">
-                    <Flame className="w-3 h-3 mr-1" />
-                    VIRAL
+                  <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5">
+                    <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1" />
+                    <span className="hidden sm:inline">VIRAL</span>
                   </Badge>
                 )}
               </div>
             </div>
 
+            {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-2">
               <Tabs value={mainView} className="w-auto">
-                <TabsList className="bg-gray-100 dark:bg-gray-800/50">
+                <TabsList className="bg-gray-100 dark:bg-gray-800/50 h-9">
                   <TabsTrigger
                     value="generator"
                     onClick={() => setMainView("generator")}
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-sm"
                   >
-                    <Sparkles className="w-4 h-4 mr-2" />
+                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
                     Gerador
                   </TabsTrigger>
                   <TabsTrigger
                     value="planner"
                     onClick={() => setMainView("planner")}
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white"
+                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-sm"
                   >
-                    <Calendar className="w-4 h-4 mr-2" />
+                    <Calendar className="w-3.5 h-3.5 mr-1.5" />
                     Calendário
                   </TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
 
-            <div className="flex items-center gap-2">
+            {/* Action Buttons - Compacto */}
+            <div className="flex items-center gap-1 sm:gap-2">
+              {/* Settings/Buffer Status - Smaller on Mobile */}
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -332,17 +319,17 @@ export default function FreelinkBrainTool() {
                       size="icon"
                       onClick={() => setIsSettingsOpen(true)}
                       className={cn(
-                        "relative",
+                        "relative h-8 w-8 sm:h-9 sm:w-9",
                         isBufferConnected && "bg-green-600 hover:bg-green-700"
                       )}
                     >
                       {isBufferConnected ? (
-                        <Check className="w-4 h-4" />
+                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       ) : (
-                        <Settings className="w-4 h-4" />
+                        <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       )}
                       {isBufferConnected && (
-                        <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
+                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                       )}
                     </Button>
                   </TooltipTrigger>
@@ -352,38 +339,46 @@ export default function FreelinkBrainTool() {
                 </Tooltip>
               </TooltipProvider>
 
+              {/* Histórico - Menor no Mobile */}
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => setIsHistorySidebarOpen(true)}
-                className="gap-2"
+                className="h-8 sm:h-9 px-2 sm:px-3"
               >
-                <Clock className="w-4 h-4" />
-                <span className="hidden sm:inline">Histórico</span>
+                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline text-sm">Histórico</span>
               </Button>
 
+              {/* Menu Mobile */}
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" className="lg:hidden">
+                  <Button variant="outline" size="icon" className="lg:hidden h-8 w-8 sm:h-9 sm:w-9">
                     <Menu className="w-4 h-4" />
                   </Button>
                 </SheetTrigger>
-                <SheetContent side="left" className="w-[300px]">
+                <SheetContent side="left" className="w-[280px] sm:w-[300px]">
                   <SheetHeader>
-                    <SheetTitle>Menu</SheetTitle>
+                    <SheetTitle className="flex items-center gap-2">
+                      <Brain className="w-5 h-5 text-purple-600" />
+                      Menu
+                    </SheetTitle>
+                    <SheetDescription>
+                      Navegue pelas funcionalidades
+                    </SheetDescription>
                   </SheetHeader>
-                  <div className="grid gap-2 mt-4">
+                  <div className="grid gap-3 mt-6">
                     <Button
                       variant={mainView === "generator" ? "default" : "outline"}
-                      className="justify-start"
+                      className="justify-start w-full"
                       onClick={() => setMainView("generator")}
                     >
                       <Sparkles className="w-4 h-4 mr-2" />
-                      Gerador
+                      Gerador de Conteúdo
                     </Button>
                     <Button
                       variant={mainView === "planner" ? "default" : "outline"}
-                      className="justify-start"
+                      className="justify-start w-full"
                       onClick={() => setMainView("planner")}
                     >
                       <Calendar className="w-4 h-4 mr-2" />
@@ -399,46 +394,50 @@ export default function FreelinkBrainTool() {
 
       {/* ================= SIDEBAR HISTÓRICO ================= */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-        <SheetContent side="right" className="w-full sm:w-[450px] overflow-y-auto">
-          <SheetHeader className="mb-4">
-            <SheetTitle>Histórico de Campanhas</SheetTitle>
-            <SheetDescription>
+        <SheetContent side="right" className="w-full sm:w-[400px] p-0">
+          <SheetHeader className="px-4 sm:px-6 py-4 border-b">
+            <SheetTitle className="text-lg">Histórico de Campanhas</SheetTitle>
+            <SheetDescription className="text-sm">
               Acesse suas campanhas anteriores
             </SheetDescription>
           </SheetHeader>
 
-          <ScrollArea className="h-[calc(100vh-150px)]">
+          <ScrollArea className="h-[calc(100vh-100px)]">
             {campaigns?.length === 0 ? (
-              <div className="p-6 text-center text-muted-foreground">
-                <FolderOpen className="h-12 w-12 mx-auto mb-2 opacity-20" />
-                <p>Nenhuma campanha encontrada</p>
+              <div className="p-8 text-center text-muted-foreground">
+                <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-20" />
+                <p className="text-sm">Nenhuma campanha encontrada</p>
               </div>
             ) : (
               <div className="divide-y">
                 {campaigns?.map((campaign) => (
                   <div
                     key={campaign._id}
-                    className="flex items-center justify-between p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                    className="flex items-center justify-between p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer active:bg-muted"
                     onClick={() => handleCampaignSelect(campaign)}
                   >
-                    <div className="flex items-start gap-3 flex-1">
-                      <Brain className="h-5 w-5 text-primary mt-0.5" />
-                      <div>
-                        <h4 className="font-medium text-sm">{campaign.theme}</h4>
+                    <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
+                      <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
+                      <div className="min-w-0 flex-1">
+                        <h4 className="font-medium text-sm truncate">{campaign.theme}</h4>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(campaign.createdAt).toLocaleDateString()}
+                          {new Date(campaign.createdAt).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: 'short'
+                          })}
                         </p>
                       </div>
                     </div>
                     <Button
                       variant="ghost"
                       size="icon"
+                      className="h-8 w-8 flex-shrink-0"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleCampaignDelete(campaign._id);
                       }}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
                 ))}
@@ -448,7 +447,7 @@ export default function FreelinkBrainTool() {
         </SheetContent>
       </Sheet>
 
-      {/* ================= MODAL DE AGENDAMENTO ================= */}
+      {/* ================= MODALS ================= */}
       {scheduleModalData.isOpen && scheduleModalData.campaignId && scheduleModalData.contentData && (
         <PostScheduleModal
           isOpen={scheduleModalData.isOpen}
@@ -461,97 +460,116 @@ export default function FreelinkBrainTool() {
         />
       )}
 
-      {/* ================= MODAL DE CONFIGURAÇÕES ================= */}
       <SettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
       />
 
       {/* ================= CONTEÚDO PRINCIPAL ================= */}
-      <div className="container px-4 py-8">
+      <div className="container px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         <AnimatePresence mode="wait">
 
           {/* ================= VIEW: GERADOR ================= */}
           {mainView === "generator" && (
             <motion.div
               key="generator"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="space-y-6"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-4 sm:space-y-6"
             >
               {isLoading ? (
                 <LoadingSpinner />
               ) : results && currentCampaign ? (
-                <div className="space-y-6">
-                  {/* Header dos Resultados */}
-                  <Card className="shadow-lg p-6">
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div>
-                        <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                          Campanha Pronta!
-                        </h2>
-                        <p className="text-sm text-muted-foreground mt-1">
-                          Tema: <span className="font-semibold">{theme}</span>
-                        </p>
-                      </div>
-                      <Button onClick={handleGenerateNew} variant="outline">
-                        <RefreshCcw className="w-4 h-4 mr-2" />
-                        Novo Tema
-                      </Button>
-                    </div>
-
-                    {/* Stats */}
-                    <div className="grid grid-cols-3 sm:grid-cols-5 gap-2 mt-6">
-                      <div className="text-center p-2 bg-muted/50 rounded-lg">
-                        <p className="text-2xl font-bold text-primary">
-                          <AnimatedCounter value={contentCounts?.total || 0} />
-                        </p>
-                        <p className="text-xs text-muted-foreground">Total</p>
+                <div className="space-y-4 sm:space-y-6">
+                  {/* Header dos Resultados - Mobile Optimized */}
+                  <Card className="shadow-lg p-4 sm:p-6">
+                    <div className="flex flex-col gap-3 sm:gap-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex-1 min-w-0">
+                          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            Campanha Pronta!
+                          </h2>
+                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">
+                            <span className="font-semibold">{theme}</span>
+                          </p>
+                        </div>
+                        <Button
+                          onClick={handleGenerateNew}
+                          variant="outline"
+                          size="sm"
+                          className="flex-shrink-0"
+                        >
+                          <RefreshCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+                          <span className="hidden sm:inline">Novo</span>
+                        </Button>
                       </div>
 
-                      {[
-                        { key: "reels", Icon: Video },
-                        { key: "carousels", Icon: Layers },
-                        { key: "image_posts", Icon: Camera },
-                        { key: "story_sequences", Icon: MessageSquare },
-                      ].map(({ key, Icon }) => {
-                        const typedKey = key as "reels" | "carousels" | "image_posts" | "story_sequences";
-                        return (
-                          <div key={key} className="text-center p-2 bg-muted/50 rounded-lg">
-                            <Icon className="w-4 h-4 mx-auto mb-1 text-primary" />
-                            <p className="text-lg font-bold">
-                              <AnimatedCounter value={contentCounts?.[typedKey] || 0} />
-                            </p>
-                          </div>
-                        );
-                      })}
+                      {/* Stats - Grid Responsivo */}
+                      <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
+                        <div className="text-center p-2 sm:p-3 bg-muted/50 rounded-lg">
+                          <p className="text-lg sm:text-2xl font-bold text-primary">
+                            <AnimatedCounter value={contentCounts?.total || 0} />
+                          </p>
+                          <p className="text-[0.65rem] sm:text-xs text-muted-foreground mt-0.5">Total</p>
+                        </div>
+
+                        {[
+                          { key: "reels", Icon: Video, label: "Reels" },
+                          { key: "carousels", Icon: Layers, label: "Carr." },
+                          { key: "image_posts", Icon: Camera, label: "Posts" },
+                          { key: "story_sequences", Icon: MessageSquare, label: "Stories" },
+                        ].map(({ key, Icon, label }) => {
+                          const typedKey = key as "reels" | "carousels" | "image_posts" | "story_sequences";
+                          return (
+                            <div key={key} className="text-center p-2 sm:p-3 bg-muted/50 rounded-lg">
+                              <Icon className="w-3 h-3 sm:w-4 sm:h-4 mx-auto mb-1 text-primary" />
+                              <p className="text-sm sm:text-lg font-bold">
+                                <AnimatedCounter value={contentCounts?.[typedKey] || 0} />
+                              </p>
+                              <p className="text-[0.65rem] hidden sm:block text-muted-foreground mt-0.5">{label}</p>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </Card>
 
-                  {/* Tabs de Conteúdo */}
+                  {/* Tabs de Conteúdo - Mobile Friendly */}
                   <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid grid-cols-4 w-full max-w-2xl mx-auto">
-                      <TabsTrigger value="reels">
-                        <Video className="w-4 h-4 mr-2" />
-                        Reels
+                    <TabsList className="grid grid-cols-4 w-full h-auto gap-1 bg-transparent sm:bg-muted p-0 sm:p-1">
+                      <TabsTrigger
+                        value="reels"
+                        className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm"
+                      >
+                        <Video className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline sm:ml-1.5">Reels</span>
                       </TabsTrigger>
-                      <TabsTrigger value="carousels">
-                        <Layers className="w-4 h-4 mr-2" />
-                        Carrosséis
+                      <TabsTrigger
+                        value="carousels"
+                        className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm"
+                      >
+                        <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline sm:ml-1.5">Carr.</span>
                       </TabsTrigger>
-                      <TabsTrigger value="image_posts">
-                        <Camera className="w-4 h-4 mr-2" />
-                        Posts
+                      <TabsTrigger
+                        value="image_posts"
+                        className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm"
+                      >
+                        <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline sm:ml-1.5">Posts</span>
                       </TabsTrigger>
-                      <TabsTrigger value="story_sequences">
-                        <MessageSquare className="w-4 h-4 mr-2" />
-                        Stories
+                      <TabsTrigger
+                        value="story_sequences"
+                        className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm"
+                      >
+                        <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <span className="hidden xs:inline sm:ml-1.5">Stories</span>
                       </TabsTrigger>
                     </TabsList>
 
-                    <div className="mt-6">
-                      <TabsContent value="reels" className="space-y-4">
+                    <div className="mt-4 sm:mt-6">
+                      <TabsContent value="reels" className="space-y-3 sm:space-y-4 mt-0">
                         {results.content_pack?.reels?.map((reel, i) => (
                           <ReelCard
                             key={i}
@@ -562,7 +580,7 @@ export default function FreelinkBrainTool() {
                         ))}
                       </TabsContent>
 
-                      <TabsContent value="carousels" className="space-y-4">
+                      <TabsContent value="carousels" className="space-y-3 sm:space-y-4 mt-0">
                         {results.content_pack?.carousels?.map((carousel, i) => (
                           <CarouselCard
                             key={i}
@@ -573,7 +591,7 @@ export default function FreelinkBrainTool() {
                         ))}
                       </TabsContent>
 
-                      <TabsContent value="image_posts" className="space-y-4">
+                      <TabsContent value="image_posts" className="space-y-3 sm:space-y-4 mt-0">
                         {results.content_pack?.image_posts?.map((post, i) => (
                           <ImagePostCard
                             key={i}
@@ -584,7 +602,7 @@ export default function FreelinkBrainTool() {
                         ))}
                       </TabsContent>
 
-                      <TabsContent value="story_sequences" className="space-y-4">
+                      <TabsContent value="story_sequences" className="space-y-3 sm:space-y-4 mt-0">
                         {results.content_pack?.story_sequences?.map((story, i) => (
                           <StoryCard
                             key={i}
@@ -598,26 +616,26 @@ export default function FreelinkBrainTool() {
                   </Tabs>
                 </div>
               ) : (
-                <div className="max-w-4xl mx-auto space-y-8">
-                  <Card className="shadow-2xl border-2 p-8 sm:p-12">
-                    <div className="text-center space-y-6">
-                      <Badge variant="secondary" className="px-4 py-1.5">
-                        <Sparkles className="w-4 h-4 mr-2 text-yellow-500" />
-                        Sua Máquina de Conteúdo
+                <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
+                  <Card className="shadow-2xl border-2 p-6 sm:p-8 md:p-12">
+                    <div className="text-center space-y-4 sm:space-y-6">
+                      <Badge variant="secondary" className="px-3 py-1 sm:px-4 sm:py-1.5">
+                        <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-yellow-500" />
+                        <span className="text-xs sm:text-sm">Sua Máquina de Conteúdo</span>
                       </Badge>
 
-                      <h1 className="text-4xl sm:text-5xl font-extrabold">
+                      <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight">
                         Freelink<span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Brain</span>
                       </h1>
 
-                      <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                      <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
                         Transforme um tema em uma campanha completa de conteúdo em 30 segundos
                       </p>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="mt-8 space-y-6">
+                    <form onSubmit={handleSubmit} className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
                       <div className="space-y-2">
-                        <Label className="flex items-center gap-2">
+                        <Label className="flex items-center gap-2 text-sm sm:text-base">
                           <Wand2 className="w-4 h-4 text-purple-500" />
                           Qual tema você quer dominar?
                         </Label>
@@ -626,7 +644,7 @@ export default function FreelinkBrainTool() {
                           value={theme}
                           onChange={(e) => setTheme(e.target.value)}
                           placeholder="Ex: Como vender pelo Instagram"
-                          className="text-lg py-6"
+                          className="text-base sm:text-lg py-5 sm:py-6"
                           maxLength={150}
                         />
                         <p className="text-xs text-muted-foreground text-right">
@@ -637,16 +655,16 @@ export default function FreelinkBrainTool() {
                       <Button
                         type="submit"
                         size="lg"
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600"
+                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 h-12 sm:h-14 text-base sm:text-lg"
                         disabled={isLoading || !theme.trim()}
                       >
-                        <Sparkles className="w-5 h-5 mr-2" />
+                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
                         Gerar Campanha Completa
                       </Button>
                     </form>
 
-                    <div className="mt-8">
-                      <p className="text-sm text-muted-foreground text-center mb-3">
+                    <div className="mt-6 sm:mt-8">
+                      <p className="text-xs sm:text-sm text-muted-foreground text-center mb-3">
                         Precisa de inspiração? Experimente:
                       </p>
                       <div className="flex flex-wrap gap-2 justify-center">
@@ -660,6 +678,7 @@ export default function FreelinkBrainTool() {
                             key={example}
                             variant="outline"
                             size="sm"
+                            className="text-xs sm:text-sm h-8 sm:h-9"
                             onClick={() => handleExampleClick(example)}
                           >
                             {example}
@@ -677,9 +696,9 @@ export default function FreelinkBrainTool() {
           {mainView === "planner" && (
             <motion.div
               key="planner"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
             >
               <CalendarView />
             </motion.div>
@@ -687,12 +706,13 @@ export default function FreelinkBrainTool() {
         </AnimatePresence>
       </div>
 
-      <footer className="mt-20 py-8 border-t">
-        <div className="container text-center">
-          <p className="text-gray-600 dark:text-gray-400">
+      {/* Footer - Compacto no Mobile */}
+      <footer className="mt-12 sm:mt-20 py-6 sm:py-8 border-t">
+        <div className="container text-center px-4">
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
             Criado com 💜 para revolucionar o seu conteúdo
           </p>
-          <p className="text-sm text-gray-500 mt-2">
+          <p className="text-xs sm:text-sm text-gray-500 mt-2">
             © 2025 Freelinnk - A melhor ferramenta do universo
           </p>
         </div>
