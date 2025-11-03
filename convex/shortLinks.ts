@@ -56,13 +56,7 @@ export const getLinksForUser = action({
         include: { _count: { select: { clicks: true } } }
       });
 
-      return links.map((link: {
-        id: string;
-        url: string;
-        title: string | null;
-        createdAt: Date;
-        _count: { clicks: number };
-      }) => ({
+      return links.map((link) => ({
         id: link.id,
         url: link.url,
         title: link.title,

@@ -1,23 +1,25 @@
-// /convex/schema.ts - VERSÃO ATUALIZADA COM NOVOS CAMPOS
+// convex/schema.ts - SCHEMA COMPLETO FREELINKBRAIN
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  // ============================================
+  // TABELAS EXISTENTES (mantidas)
+  // ============================================
+
   usernames: defineTable({
     userId: v.string(),
     username: v.string(),
   }).index("by_user_id", ["userId"]).index("by_username", ["username"]),
 
-  // ✅ TABELA LINKS ATUALIZADA COM NOVOS CAMPOS
   links: defineTable({
     userId: v.string(),
     title: v.string(),
     url: v.string(),
     order: v.number(),
-    // 🆕 NOVOS CAMPOS PARA MELHORIAS
-    thumbnailStorageId: v.optional(v.id("_storage")), // Para upload de imagens personalizadas
-    isFeatured: v.optional(v.boolean()), // Destaque visual (recurso PRO)
-    badgeType: v.optional(v.union(v.literal("new"), v.literal("hot"), v.literal("popular"), v.literal("limited"))), // Badge de status (recurso PRO)
+    thumbnailStorageId: v.optional(v.id("_storage")),
+    isFeatured: v.optional(v.boolean()),
+    badgeType: v.optional(v.union(v.literal("new"), v.literal("hot"), v.literal("popular"), v.literal("limited"))),
   }).index("by_user", ["userId"]).index("by_user_and_order", ["userId", "order"]),
 
   userCustomizations: defineTable({
@@ -142,7 +144,7 @@ export default defineSchema({
 
   dailyImageUsage: defineTable({
     userId: v.string(),
-    date: v.string(), // formato: "YYYY-MM-DD"
+    date: v.string(),
     count: v.number(),
     images: v.optional(v.array(v.object({
       imageId: v.id("generatedImages"),
@@ -189,4 +191,116 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
   }).index("by_giveaway_id", ["giveawayId"])
     .index("by_creator", ["createdBy"]),
+
+  // ============================================
+  // NOVAS TABELAS FREELINKBRAIN
+  // ============================================
+
+  // Campanhas de conteúdo geradas
+  brainCampaigns: defineTable({
+    userId: v.string(),
+    theme: v.string(),
+    themeSummary: v.string(),
+    targetAudience: v.string(),
+    viralStrategy: v.object({
+      best_times: v.array(v.string()),
+      hashtag_strategy: v.string(),
+      engagement_hacks: v.array(v.string()),
+    }),
+    contentPack: v.string(), // JSON stringificado
+    favorite: v.optional(v.boolean()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  }).index("by_user", ["userId"])
+    .index("by_user_created", ["userId", "createdAt"]),
+
+  // Posts agendados
+  scheduledPosts: defineTable({
+    userId: v.string(),
+    campaignId: v.id("brainCampaigns"),
+
+    contentType: v.union(
+      v.literal("reel"),
+      v.literal("carousel"),
+      v.literal("image_post"),
+      v.literal("story_sequence")
+    ),
+    contentData: v.string(), // JSON stringificado
+
+    // Mídia
+    mediaStorageId: v.optional(v.id("_storage")),
+    mediaUrl: v.optional(v.string()),
+
+    // Legenda editável
+    caption: v.string(),
+    hashtags: v.array(v.string()),
+
+    // Agendamento
+    scheduledDate: v.string(), // "YYYY-MM-DD"
+    scheduledTime: v.string(), // "HH:MM"
+    scheduledTimestamp: v.number(),
+
+    // Plataforma
+    platform: v.union(
+      v.literal("instagram"),
+      v.literal("facebook"),
+      v.literal("linkedin"),
+      v.literal("twitter")
+    ),
+
+    // Status
+    status: v.union(
+      v.literal("draft"),
+      v.literal("scheduled"),
+      v.literal("queued"),
+      v.literal("publishing"),
+      v.literal("published"),
+      v.literal("failed")
+    ),
+
+    autoPublish: v.boolean(),
+    publishedAt: v.optional(v.number()),
+    publishError: v.optional(v.string()),
+
+    // Buffer específico
+    bufferUpdateId: v.optional(v.string()), // ID do post no Buffer
+    bufferProfileId: v.optional(v.string()), // ID do perfil no Buffer
+
+    // Performance
+    performance: v.optional(v.object({
+      views: v.optional(v.number()),
+      likes: v.optional(v.number()),
+      comments: v.optional(v.number()),
+      shares: v.optional(v.number()),
+      saves: v.optional(v.number()),
+      reach: v.optional(v.number()),
+      engagement: v.optional(v.number()),
+    })),
+
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  }).index("by_user", ["userId"])
+    .index("by_campaign", ["campaignId"])
+    .index("by_user_scheduled", ["userId", "scheduledTimestamp"])
+    .index("by_status", ["status"])
+    .index("by_auto_publish", ["autoPublish", "scheduledTimestamp"]),
+
+  // Integrações sociais (Buffer)
+  socialIntegrations: defineTable({
+    userId: v.string(),
+
+    // Buffer
+    bufferAccessToken: v.optional(v.string()),
+    bufferProfiles: v.optional(v.array(v.object({
+      id: v.string(),
+      service: v.string(), // "instagram", "facebook", etc.
+      serviceName: v.string(),
+      serviceUsername: v.string(),
+      avatar: v.optional(v.string()),
+    }))),
+
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  }).index("by_user", ["userId"]),
 });
