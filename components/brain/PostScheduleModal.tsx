@@ -1,4 +1,4 @@
-// components/brain/PostScheduleModal.tsx - VERSÃO PERFEITA COM SCROLL E UPLOAD FEEDBACK
+// components/brain/PostScheduleModal.tsx - SCROLL FUNCIONANDO 100%
 "use client";
 
 import { useState, useRef } from "react";
@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import {
   Calendar,
@@ -44,6 +43,8 @@ import {
   CheckCircle2,
   FileVideo,
   FileImage,
+  MessageSquare,
+  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Id } from "@/convex/_generated/dataModel";
@@ -222,12 +223,10 @@ export default function PostScheduleModal({
       return;
     }
 
-    // Inicia o upload com feedback visual
     setIsUploading(true);
     setUploadProgress(0);
     setUploadSuccess(false);
 
-    // Simula progresso de leitura do arquivo
     const reader = new FileReader();
 
     reader.onprogress = (event) => {
@@ -240,11 +239,8 @@ export default function PostScheduleModal({
     reader.onloadend = () => {
       setMediaPreview(reader.result as string);
       setMediaFile(file);
-
-      // Completa o progresso
       setUploadProgress(100);
 
-      // Mostra sucesso
       setTimeout(() => {
         setIsUploading(false);
         setUploadSuccess(true);
@@ -252,15 +248,10 @@ export default function PostScheduleModal({
           isVideo
             ? "✅ Vídeo carregado com sucesso!"
             : "✅ Imagem carregada com sucesso!",
-          {
-            duration: 2000,
-          }
+          { duration: 2000 }
         );
 
-        // Remove indicador de sucesso após 2s
-        setTimeout(() => {
-          setUploadSuccess(false);
-        }, 2000);
+        setTimeout(() => setUploadSuccess(false), 2000);
       }, 500);
     };
 
@@ -343,9 +334,7 @@ export default function PostScheduleModal({
         autoPublish
           ? "🎉 Post agendado para publicação automática!"
           : "📅 Post adicionado ao calendário!",
-        {
-          duration: 3000,
-        }
+        { duration: 3000 }
       );
 
       onClose();
@@ -365,12 +354,13 @@ export default function PostScheduleModal({
   const PlatformIcon = PLATFORM_CONFIG[platform].icon;
 
   // ============================================
-  // PREVIEW SECTION - COM SCROLL
+  // PREVIEW SECTION - COM SCROLL FUNCIONANDO
   // ============================================
 
   const PreviewSection = () => (
-    <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black h-full flex flex-col overflow-hidden">
-      <div className="p-4 sm:p-6 border-b dark:border-gray-700 flex-shrink-0">
+    <div className="h-full flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
+      {/* Header Fixo */}
+      <div className="flex-shrink-0 p-4 sm:p-6 border-b dark:border-gray-700 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
         <h3 className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
           <Eye className="w-5 h-5 text-purple-500" />
           Preview do Post
@@ -380,11 +370,12 @@ export default function PostScheduleModal({
         </p>
       </div>
 
-      <ScrollArea className="flex-1 px-4 sm:px-6 py-4">
-        <div className="pb-4">
+      {/* Área com Scroll */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="max-w-md mx-auto space-y-4">
           <motion.div
             layout
-            className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden border-2 border-gray-200 dark:border-gray-700 w-full max-w-[320px] sm:max-w-sm mx-auto"
+            className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden border-2 border-gray-200 dark:border-gray-700"
           >
             {/* Header do Post */}
             <div className="p-3 sm:p-4 flex items-center gap-3 border-b dark:border-gray-700">
@@ -468,34 +459,29 @@ export default function PostScheduleModal({
 
                 {hashtags.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 pt-2 border-t">
-                    {hashtags.slice(0, 8).map((tag) => (
+                    {hashtags.map((tag) => (
                       <span key={tag} className="text-xs sm:text-sm text-blue-600 font-medium">
                         {tag}
                       </span>
                     ))}
-                    {hashtags.length > 8 && (
-                      <span className="text-xs sm:text-sm text-muted-foreground">
-                        +{hashtags.length - 8} mais
-                      </span>
-                    )}
                   </div>
                 )}
               </div>
 
               {/* Engagement Preview */}
               <div className="flex items-center gap-4 mt-4 pt-4 border-t text-muted-foreground">
-                <div className="flex items-center gap-1">
+                <button className="flex items-center gap-1 hover:text-foreground transition-colors">
                   <div className="w-5 h-5 rounded-full border-2 border-current" />
                   <span className="text-xs">Curtir</span>
-                </div>
-                <div className="flex items-center gap-1">
+                </button>
+                <button className="flex items-center gap-1 hover:text-foreground transition-colors">
                   <MessageSquare className="w-4 h-4" />
                   <span className="text-xs">Comentar</span>
-                </div>
-                <div className="flex items-center gap-1">
+                </button>
+                <button className="flex items-center gap-1 hover:text-foreground transition-colors">
                   <Share2 className="w-4 h-4" />
                   <span className="text-xs">Compartilhar</span>
-                </div>
+                </button>
               </div>
             </div>
           </motion.div>
@@ -505,7 +491,7 @@ export default function PostScheduleModal({
             <motion.div
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
-              className="mt-4 p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800 max-w-[320px] sm:max-w-sm mx-auto"
+              className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800"
             >
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-green-600 flex-shrink-0" />
@@ -521,7 +507,7 @@ export default function PostScheduleModal({
             </motion.div>
           )}
         </div>
-      </ScrollArea>
+      </div>
 
       <input
         ref={fileInputRef}
@@ -538,12 +524,13 @@ export default function PostScheduleModal({
   );
 
   // ============================================
-  // CONFIG SECTION - COM SCROLL PERFEITO
+  // CONFIG SECTION - COM SCROLL FUNCIONANDO
   // ============================================
 
   const ConfigSection = () => (
-    <div className="h-full flex flex-col overflow-hidden">
-      <div className="p-4 sm:p-6 border-b dark:border-gray-700 flex-shrink-0">
+    <div className="h-full flex flex-col">
+      {/* Header Fixo */}
+      <div className="flex-shrink-0 p-4 sm:p-6 border-b dark:border-gray-700 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
         <h3 className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
           <Edit className="w-5 h-5 text-blue-500" />
           Configurar Publicação
@@ -553,8 +540,9 @@ export default function PostScheduleModal({
         </p>
       </div>
 
-      <ScrollArea className="flex-1 px-4 sm:px-6">
-        <div className="space-y-5 sm:space-y-6 py-4">
+      {/* Área com Scroll */}
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+        <div className="space-y-5 sm:space-y-6">
           {/* Plataforma */}
           <div className="space-y-3">
             <Label className="text-sm font-semibold">Plataforma</Label>
@@ -625,7 +613,7 @@ export default function PostScheduleModal({
                 </span>
               </div>
               <div className="flex flex-wrap gap-2">
-                {VIRAL_HASHTAGS.general.slice(0, 6).map((tag) => (
+                {VIRAL_HASHTAGS.general.map((tag) => (
                   <Badge
                     key={tag}
                     variant="secondary"
@@ -761,10 +749,10 @@ export default function PostScheduleModal({
             </motion.div>
           )}
 
-          {/* Espaço extra no final para scroll */}
-          <div className="h-4" />
+          {/* Espaço extra para scroll */}
+          <div className="h-20" />
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 
@@ -772,15 +760,11 @@ export default function PostScheduleModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className={cn(
         "p-0 gap-0 overflow-hidden flex flex-col",
-        // Mobile - Tela cheia
         "w-full h-[100dvh] max-w-full",
-        // Tablet
         "sm:h-[90vh] sm:max-w-[600px] sm:rounded-lg",
-        // Desktop
         "lg:h-[85vh] lg:max-w-[1000px] xl:max-w-[1200px]",
       )}>
 
-        {/* Close Button - Sempre visível */}
         <Button
           variant="ghost"
           size="icon"
@@ -790,9 +774,9 @@ export default function PostScheduleModal({
           <X className="h-4 w-4" />
         </Button>
 
-        {/* ========== MOBILE LAYOUT ========== */}
+        {/* ========== MOBILE/TABLET LAYOUT ========== */}
         <div className="flex flex-col h-full lg:hidden">
-          <DialogHeader className="p-4 pb-3 pt-12 sm:pt-14 border-b flex-shrink-0">
+          <DialogHeader className="flex-shrink-0 p-4 pb-3 pt-12 sm:pt-14 border-b">
             <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
               <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
               Agendar Publicação
@@ -802,9 +786,9 @@ export default function PostScheduleModal({
           <Tabs
             value={mobileTab}
             onValueChange={(v) => setMobileTab(v as "preview" | "config")}
-            className="flex-1 flex flex-col overflow-hidden"
+            className="flex-1 flex flex-col overflow-hidden min-h-0"
           >
-            <TabsList className="grid w-full grid-cols-2 rounded-none border-b h-12 flex-shrink-0">
+            <TabsList className="flex-shrink-0 grid w-full grid-cols-2 rounded-none border-b h-12">
               <TabsTrigger value="config" className="text-xs sm:text-sm gap-2">
                 <Edit className="w-3.5 h-3.5" />
                 Configurar
@@ -815,16 +799,16 @@ export default function PostScheduleModal({
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="config" className="flex-1 m-0 overflow-hidden">
+            <TabsContent value="config" className="flex-1 m-0 overflow-hidden min-h-0">
               <ConfigSection />
             </TabsContent>
 
-            <TabsContent value="preview" className="flex-1 m-0 overflow-hidden">
+            <TabsContent value="preview" className="flex-1 m-0 overflow-hidden min-h-0">
               <PreviewSection />
             </TabsContent>
           </Tabs>
 
-          <DialogFooter className="p-3 sm:p-4 border-t flex-row gap-2 flex-shrink-0">
+          <DialogFooter className="flex-shrink-0 p-3 sm:p-4 border-t flex-row gap-2">
             <Button
               variant="ghost"
               onClick={onClose}
@@ -852,18 +836,18 @@ export default function PostScheduleModal({
           </DialogFooter>
         </div>
 
-        {/* ========== DESKTOP LAYOUT - SPLIT VIEW ========== */}
+        {/* ========== DESKTOP LAYOUT ========== */}
         <div className="hidden lg:grid lg:grid-cols-2 h-full overflow-hidden">
-          {/* Preview - Lado Esquerdo */}
           <div className="border-r dark:border-gray-700 overflow-hidden">
             <PreviewSection />
           </div>
 
-          {/* Config - Lado Direito */}
-          <div className="flex flex-col overflow-hidden">
-            <ConfigSection />
+          <div className="flex flex-col overflow-hidden min-h-0">
+            <div className="flex-1 overflow-hidden min-h-0">
+              <ConfigSection />
+            </div>
 
-            <DialogFooter className="p-6 border-t flex-shrink-0">
+            <DialogFooter className="flex-shrink-0 p-6 border-t">
               <Button variant="ghost" onClick={onClose} className="gap-2">
                 Cancelar
               </Button>
@@ -891,6 +875,3 @@ export default function PostScheduleModal({
     </Dialog>
   );
 }
-
-// Adicione estes imports que faltaram
-import { MessageSquare, Share2 } from "lucide-react";
