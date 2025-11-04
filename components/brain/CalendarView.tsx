@@ -1,7 +1,7 @@
-// components/brain/CalendarView.tsx - CALENDÁRIO VISUAL INSANO
 "use client";
 
 import { useState, useMemo } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import {
   Calendar,
@@ -16,6 +16,7 @@ import {
   AlertCircle,
   Bell,
   Loader2,
+  Edit,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,10 +26,6 @@ import { cn } from "@/lib/utils";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Doc } from "@/convex/_generated/dataModel";
-
-// ============================================
-// TIPOS
-// ============================================
 
 const CONTENT_TYPE_CONFIG = {
   reel: {
@@ -54,66 +51,26 @@ const CONTENT_TYPE_CONFIG = {
 } as const;
 
 const STATUS_CONFIG = {
-  draft: {
-    icon: AlertCircle,
-    label: "Rascunho",
-    color: "text-gray-500",
-  },
-  scheduled: {
-    icon: Calendar,
-    label: "Agendado",
-    color: "text-blue-500",
-  },
-  queued: {
-    icon: Clock,
-    label: "Na Fila",
-    color: "text-yellow-500",
-  },
-  publishing: {
-    icon: Loader2,
-    label: "Publicando",
-    color: "text-orange-500 animate-spin",
-  },
-  published: {
-    icon: Check,
-    label: "Publicado",
-    color: "text-green-500",
-  },
-  failed: {
-    icon: AlertCircle,
-    label: "Falhou",
-    color: "text-red-500",
-  },
-  notified: {
-    icon: Bell,
-    label: "Notificado",
-    color: "text-cyan-500",
-  },
-  completed: {
-    icon: Check,
-    label: "Concluído",
-    color: "text-green-500",
-  },
-  cancelled: {
-    icon: AlertCircle,
-    label: "Cancelado",
-    color: "text-gray-500",
-  },
+  draft: { icon: AlertCircle, label: "Rascunho", color: "text-gray-500" },
+  scheduled: { icon: Calendar, label: "Agendado", color: "text-blue-500" },
+  queued: { icon: Clock, label: "Na Fila", color: "text-yellow-500" },
+  publishing: { icon: Loader2, label: "Publicando", color: "text-orange-500 animate-spin" },
+  published: { icon: Check, label: "Publicado", color: "text-green-500" },
+  failed: { icon: AlertCircle, label: "Falhou", color: "text-red-500" },
+  notified: { icon: Bell, label: "Notificado", color: "text-cyan-500" },
+  completed: { icon: Check, label: "Concluído", color: "text-green-500" },
+  cancelled: { icon: AlertCircle, label: "Cancelado", color: "text-gray-500" },
 } as const;
 
 interface CalendarViewProps {
   onPostClick?: (post: Doc<"scheduledPosts">) => void;
 }
 
-// ============================================
-// COMPONENTE PRINCIPAL
-// ============================================
-
 export default function CalendarView({ onPostClick }: CalendarViewProps) {
+  const router = useRouter();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
 
-  // Calcular range de datas do mês atual
   const { startDate, endDate } = useMemo(() => {
     const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -123,13 +80,11 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
     };
   }, [currentDate]);
 
-  // Buscar posts do mês
   const posts = useQuery(api.scheduledPosts.getPostsByDateRange, {
     startDate,
     endDate,
   });
 
-  // Gerar dias do calendário
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -146,7 +101,6 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
       posts: Doc<"scheduledPosts">[];
     }> = [];
 
-    // Dias do mês anterior (padding)
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push({
         date: "",
@@ -157,11 +111,8 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
       });
     }
 
-    // Dias do mês atual
     for (let day = 1; day <= daysInMonth; day++) {
-      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(
-        day
-      ).padStart(2, "0")}`;
+      const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
       const dayPosts = posts?.filter((p) => p.scheduledDate === dateStr) || [];
       const today = new Date();
       const isToday =
@@ -181,7 +132,6 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
     return days;
   }, [currentDate, posts]);
 
-  // Handlers
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
   };
@@ -204,197 +154,233 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
     return posts?.filter((p) => p.scheduledDate === selectedDate) || [];
   }, [selectedDate, posts]);
 
+  // ✅ FUNÇÃO PARA NAVEGAR PARA DETALHES DO POST (AGORA MAIS FLEXÍVEL)
+  const handlePostClick = (post: Doc<"scheduledPosts">) => {
+    if (onPostClick) {
+      onPostClick(post);
+      return;
+    }
+    router.push(`/dashboard/brain/post/${post._id}`);
+  };
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-      {/* CALENDÁRIO */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+      {/* ========== CALENDÁRIO - MOBILE FIRST ========== */}
       <Card className="lg:col-span-2 shadow-xl border-2">
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2 text-xl capitalize">
-              <Calendar className="w-5 h-5 text-blue-500" />
+        <CardHeader className="pb-3 px-3 sm:px-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <CardTitle className="flex items-center gap-2 text-lg sm:text-xl capitalize">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />
               {monthName}
             </CardTitle>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={handleToday}>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleToday}
+                className="flex-1 sm:flex-none text-xs sm:text-sm"
+              >
                 Hoje
               </Button>
-              <Button variant="outline" size="icon" onClick={handlePrevMonth}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handlePrevMonth}
+                className="h-8 w-8 sm:h-9 sm:w-9"
+              >
                 <ChevronLeft className="w-4 h-4" />
               </Button>
-              <Button variant="outline" size="icon" onClick={handleNextMonth}>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={handleNextMonth}
+                className="h-8 w-8 sm:h-9 sm:w-9"
+              >
                 <ChevronRight className="w-4 h-4" />
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          {/* Cabeçalho dos dias da semana */}
-          <div className="grid grid-cols-7 gap-1 mb-2">
-            {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"].map((day) => (
+
+        <CardContent className="px-2 sm:px-6">
+          {/* Cabeçalho dos dias - Responsivo */}
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2">
+            {["D", "S", "T", "Q", "Q", "S", "S"].map((day, i) => (
               <div
-                key={day}
-                className="text-center text-xs font-semibold text-muted-foreground py-2"
+                key={i}
+                className="text-center text-[10px] sm:text-xs font-semibold text-muted-foreground py-1 sm:py-2"
               >
-                {day}
+                <span className="hidden sm:inline">
+                  {["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"][i]}
+                </span>
+                <span className="sm:hidden">{day}</span>
               </div>
             ))}
           </div>
 
-          {/* Grid do calendário */}
-          <div className="grid grid-cols-7 gap-1">
+          {/* Grid do calendário - MELHORADO */}
+          <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
             {calendarDays.map((day, idx) => (
-              <motion.div
+              <motion.button
                 key={idx}
-                whileHover={day.isCurrentMonth ? { scale: 1.05 } : {}}
+                type="button"
+                whileHover={day.isCurrentMonth ? { scale: 1.02 } : {}}
+                whileTap={day.isCurrentMonth ? { scale: 0.98 } : {}}
+                disabled={!day.isCurrentMonth}
                 className={cn(
-                  "min-h-[100px] p-2 border rounded-lg relative transition-all cursor-pointer",
+                  // ✅ ÁREA CLICÁVEL MAIOR
+                  "min-h-[60px] sm:min-h-[100px] p-1 sm:p-2 border rounded-md sm:rounded-lg relative transition-all",
+                  "focus:outline-none focus:ring-2 focus:ring-primary/50",
                   day.isCurrentMonth
-                    ? "bg-white dark:bg-gray-900 hover:shadow-md hover:border-primary/50"
-                    : "bg-gray-50 dark:bg-gray-950 opacity-40",
-                  day.isToday &&
-                    "border-primary/80 bg-primary/5 ring-2 ring-primary/20",
-                  selectedDate === day.date && "ring-2 ring-blue-500"
+                    ? "bg-white dark:bg-gray-900 hover:shadow-lg hover:border-primary/60 cursor-pointer active:bg-primary/5"
+                    : "bg-gray-50 dark:bg-gray-950 opacity-40 cursor-not-allowed",
+                  day.isToday && "border-primary/80 bg-primary/5 ring-2 ring-primary/30",
+                  // ✅ FEEDBACK VISUAL CLARO DE SELEÇÃO
+                  selectedDate === day.date && "ring-2 ring-blue-600 bg-blue-50 dark:bg-blue-950/30 border-blue-600"
                 )}
-                onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
+                onClick={() => {
+                  if (day.isCurrentMonth) {
+                    setSelectedDate(day.date);
+                  }
+                }}
               >
                 {day.isCurrentMonth && (
                   <>
-                    <div className="text-sm font-semibold mb-1">{day.day}</div>
-                    <ScrollArea className="h-[70px]">
-                      <div className="space-y-1">
-                        {day.posts.map((post) => {
+                    {/* Número do dia - Maior no mobile */}
+                    <div className={cn(
+                      "text-xs sm:text-sm font-semibold mb-0.5 sm:mb-1",
+                      selectedDate === day.date && "text-blue-600 dark:text-blue-400"
+                    )}>
+                      {day.day}
+                    </div>
+
+                    {/* Posts do dia - Scroll Mobile */}
+                    <ScrollArea className="h-[40px] sm:h-[70px]">
+                      <div className="space-y-0.5 sm:space-y-1">
+                        {day.posts.slice(0, 3).map((post) => {
                           const config = CONTENT_TYPE_CONFIG[post.contentType];
                           const Icon = config.icon;
-                          const StatusIcon = STATUS_CONFIG[post.status].icon;
 
                           return (
-                            <motion.div
+                            <div
                               key={post._id}
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
                               onClick={(e) => {
                                 e.stopPropagation();
-                                onPostClick?.(post);
+                                handlePostClick(post);
                               }}
                               className={cn(
-                                "text-[10px] px-1.5 py-1 rounded border cursor-pointer hover:scale-105 transition-transform",
+                                "text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 sm:py-1 rounded border cursor-pointer",
+                                "hover:scale-105 active:scale-95 transition-transform",
                                 config.color
                               )}
                             >
-                              <div className="flex items-center gap-1 truncate">
-                                <Icon className="w-3 h-3 flex-shrink-0" />
-                                <span className="flex-1 truncate">{post.scheduledTime}</span>
-                                <StatusIcon
-                                  className={cn(
-                                    "w-3 h-3 flex-shrink-0",
-                                    STATUS_CONFIG[post.status].color
-                                  )}
-                                />
+                              <div className="flex items-center gap-0.5 sm:gap-1 truncate">
+                                <Icon className="w-2 h-2 sm:w-3 sm:h-3 flex-shrink-0" />
+                                <span className="hidden sm:inline truncate">{post.scheduledTime}</span>
                               </div>
-                            </motion.div>
+                            </div>
                           );
                         })}
+                        {day.posts.length > 3 && (
+                          <div className="text-[8px] text-muted-foreground text-center">
+                            +{day.posts.length - 3}
+                          </div>
+                        )}
                       </div>
                     </ScrollArea>
                   </>
                 )}
-              </motion.div>
+              </motion.button>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* SIDEBAR: POSTS DO DIA SELECIONADO */}
+      {/* ========== SIDEBAR: POSTS DO DIA - MOBILE FRIENDLY ========== */}
       <Card className="shadow-xl border-2">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg">
+        <CardHeader className="pb-3 px-3 sm:px-6">
+          <CardTitle className="text-base sm:text-lg">
             {selectedDate
-              ? `Posts de ${new Date(selectedDate + "T00:00:00").toLocaleDateString(
-                  "pt-BR",
-                  { day: "2-digit", month: "long" }
-                )}`
+              ? `📅 ${new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", {
+                  day: "2-digit",
+                  month: "long",
+                })}`
               : "Selecione um dia"}
           </CardTitle>
         </CardHeader>
-        <CardContent>
-          <ScrollArea className="h-[500px]">
+
+        <CardContent className="px-2 sm:px-6">
+          <ScrollArea className="h-[300px] sm:h-[500px]">
             {postsForSelectedDate.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">
-                <Calendar className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                <p className="text-sm">
+              <div className="text-center py-8 sm:py-12 text-muted-foreground">
+                <Calendar className="w-10 h-10 sm:w-12 sm:h-12 mx-auto mb-3 sm:mb-4 opacity-20" />
+                <p className="text-xs sm:text-sm px-4">
                   {selectedDate
-                    ? "Nenhum post agendado para este dia"
-                    : "Clique em um dia para ver os posts"}
+                    ? "Nenhum post agendado"
+                    : "👆 Clique em um dia"}
                 </p>
               </div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2 sm:space-y-3 px-1">
                 {postsForSelectedDate.map((post) => {
                   const config = CONTENT_TYPE_CONFIG[post.contentType];
                   const Icon = config.icon;
                   const StatusIcon = STATUS_CONFIG[post.status].icon;
 
                   return (
-                    <motion.div
+                    <motion.button
                       key={post._id}
+                      type="button"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
                       whileHover={{ x: 5 }}
-                      onClick={() => onPostClick?.(post)}
-                      className="p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-xl border-2 hover:border-primary/50 cursor-pointer transition-all"
+                      whileTap={{ scale: 0.98 }}
+                      onClick={() => handlePostClick(post)}
+                      className="w-full p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-lg sm:rounded-xl border-2 hover:border-primary/50 cursor-pointer transition-all text-left"
                     >
+                      {/* Header */}
                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2">
-                          <div
-                            className={cn(
-                              "p-2 rounded-lg",
-                              config.color.split(" ")[0]
-                            )}
-                          >
-                            <Icon className="w-4 h-4" />
+                          <div className={cn("p-1.5 sm:p-2 rounded-md sm:rounded-lg", config.color.split(" ")[0])}>
+                            <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
                           </div>
-                          <div>
-                            <Badge variant="outline" className="text-xs">
-                              {config.label}
-                            </Badge>
-                          </div>
+                          <Badge variant="outline" className="text-[10px] sm:text-xs">
+                            {config.label}
+                          </Badge>
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3 text-muted-foreground" />
-                          <span className="text-xs font-mono">{post.scheduledTime}</span>
+                        <div className="flex items-center gap-1 text-xs">
+                          <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-muted-foreground" />
+                          <span className="font-mono text-[10px] sm:text-xs">{post.scheduledTime}</span>
                         </div>
                       </div>
 
-                      <p className="text-sm line-clamp-2 mb-2">{post.caption}</p>
+                      {/* Caption */}
+                      <p className="text-xs sm:text-sm line-clamp-2 mb-2">{post.caption}</p>
 
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <Badge
-                            variant="secondary"
-                            className="text-xs capitalize"
-                          >
+                      {/* Footer */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1 sm:gap-2 flex-wrap">
+                          <Badge variant="secondary" className="text-[10px] sm:text-xs capitalize">
                             {post.platform}
                           </Badge>
                           {post.autoPublish && (
-                            <Badge
-                              variant="secondary"
-                              className="text-xs bg-yellow-500/10 text-yellow-600"
-                            >
+                            <Badge variant="secondary" className="text-[10px] bg-yellow-500/10 text-yellow-600">
                               Auto
                             </Badge>
                           )}
                         </div>
-                        <div
-                          className={cn(
-                            "flex items-center gap-1 text-xs",
-                            STATUS_CONFIG[post.status].color
-                          )}
-                        >
-                          <StatusIcon className="w-3 h-3" />
-                          {STATUS_CONFIG[post.status].label}
+                        <div className={cn("flex items-center gap-1 text-[10px] sm:text-xs", STATUS_CONFIG[post.status].color)}>
+                          <StatusIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
+                          <span className="hidden sm:inline">{STATUS_CONFIG[post.status].label}</span>
                         </div>
                       </div>
-                    </motion.div>
+
+                      {/* ✅ BOTÃO DE EDIÇÃO */}
+                      <div className="mt-2 pt-2 border-t flex items-center justify-center gap-2">
+                        <Edit className="w-3 h-3 text-primary" />
+                        <span className="text-xs text-primary font-medium">Clique para editar</span>
+                      </div>
+                    </motion.button>
                   );
                 })}
               </div>

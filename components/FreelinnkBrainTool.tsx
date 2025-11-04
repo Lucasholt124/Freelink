@@ -24,7 +24,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { useBrainCampaigns, useBufferIntegration, useContentGeneration, useScheduledPosts } from "@/app/hooks/useBrain";
+import { useBrainCampaigns, useContentGeneration, useNotificationIntegration, useScheduledPosts } from "@/app/hooks/useBrain";
 import PostScheduleModal from "./brain/PostScheduleModal";
 import SettingsModal from "./brain/SettingsModal";
 import CalendarView from "./brain/CalendarView";
@@ -119,8 +119,7 @@ export default function FreelinkBrainTool() {
   } = useBrainCampaigns();
 
   useScheduledPosts();
-  const { isConnected: isBufferConnected } = useBufferIntegration();
-
+  const { isConnected: isNotificationConnected } = useNotificationIntegration();
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!theme.trim()) {
@@ -315,26 +314,26 @@ export default function FreelinkBrainTool() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant={isBufferConnected ? "default" : "outline"}
+                      variant={isNotificationConnected ? "default" : "outline"}
                       size="icon"
                       onClick={() => setIsSettingsOpen(true)}
                       className={cn(
                         "relative h-8 w-8 sm:h-9 sm:w-9",
-                        isBufferConnected && "bg-green-600 hover:bg-green-700"
+                        isNotificationConnected && "bg-green-600 hover:bg-green-700"
                       )}
                     >
-                      {isBufferConnected ? (
+                      {isNotificationConnected ? (
                         <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       ) : (
                         <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       )}
-                      {isBufferConnected && (
+                      {isNotificationConnected && (
                         <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                       )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{isBufferConnected ? "Buffer Conectado" : "Configurar Buffer"}</p>
+                    <p>{isNotificationConnected ? "Buffer Conectado" : "Configurar Buffer"}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
