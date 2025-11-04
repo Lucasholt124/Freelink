@@ -1,8 +1,9 @@
+// components/brain/CalendarView.tsx - VERSÃO COMPLETA CORRIGIDA
 "use client";
 
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Calendar,
   ChevronLeft,
@@ -154,7 +155,6 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
     return posts?.filter((p) => p.scheduledDate === selectedDate) || [];
   }, [selectedDate, posts]);
 
-  // ✅ FUNÇÃO PARA NAVEGAR PARA DETALHES DO POST (AGORA MAIS FLEXÍVEL)
   const handlePostClick = (post: Doc<"scheduledPosts">) => {
     if (onPostClick) {
       onPostClick(post);
@@ -165,7 +165,7 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-      {/* ========== CALENDÁRIO - MOBILE FIRST ========== */}
+      {/* ========== CALENDÁRIO ========== */}
       <Card className="lg:col-span-2 shadow-xl border-2">
         <CardHeader className="pb-3 px-3 sm:px-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -202,8 +202,8 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
           </div>
         </CardHeader>
 
-        <CardContent className="px-2 sm:px-6">
-          {/* Cabeçalho dos dias - Responsivo */}
+        <CardContent className="px-2 sm:px-6 pb-4">
+          {/* Cabeçalho dos dias */}
           <div className="grid grid-cols-7 gap-0.5 sm:gap-1 mb-2">
             {["D", "S", "T", "Q", "Q", "S", "S"].map((day, i) => (
               <div
@@ -218,85 +218,102 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
             ))}
           </div>
 
-          {/* Grid do calendário - MELHORADO */}
+          {/* Grid do calendário */}
           <div className="grid grid-cols-7 gap-0.5 sm:gap-1">
-            {calendarDays.map((day, idx) => (
-              <motion.button
-                key={idx}
-                type="button"
-                whileHover={day.isCurrentMonth ? { scale: 1.02 } : {}}
-                whileTap={day.isCurrentMonth ? { scale: 0.98 } : {}}
-                disabled={!day.isCurrentMonth}
-                className={cn(
-                  // ✅ ÁREA CLICÁVEL MAIOR
-                  "min-h-[60px] sm:min-h-[100px] p-1 sm:p-2 border rounded-md sm:rounded-lg relative transition-all",
-                  "focus:outline-none focus:ring-2 focus:ring-primary/50",
-                  day.isCurrentMonth
-                    ? "bg-white dark:bg-gray-900 hover:shadow-lg hover:border-primary/60 cursor-pointer active:bg-primary/5"
-                    : "bg-gray-50 dark:bg-gray-950 opacity-40 cursor-not-allowed",
-                  day.isToday && "border-primary/80 bg-primary/5 ring-2 ring-primary/30",
-                  // ✅ FEEDBACK VISUAL CLARO DE SELEÇÃO
-                  selectedDate === day.date && "ring-2 ring-blue-600 bg-blue-50 dark:bg-blue-950/30 border-blue-600"
-                )}
-                onClick={() => {
-                  if (day.isCurrentMonth) {
-                    setSelectedDate(day.date);
-                  }
-                }}
-              >
-                {day.isCurrentMonth && (
-                  <>
-                    {/* Número do dia - Maior no mobile */}
-                    <div className={cn(
-                      "text-xs sm:text-sm font-semibold mb-0.5 sm:mb-1",
-                      selectedDate === day.date && "text-blue-600 dark:text-blue-400"
-                    )}>
-                      {day.day}
-                    </div>
+            {calendarDays.map((day, idx) => {
+              const isSelected = selectedDate === day.date;
 
-                    {/* Posts do dia - Scroll Mobile */}
-                    <ScrollArea className="h-[40px] sm:h-[70px]">
-                      <div className="space-y-0.5 sm:space-y-1">
-                        {day.posts.slice(0, 3).map((post) => {
-                          const config = CONTENT_TYPE_CONFIG[post.contentType];
-                          const Icon = config.icon;
-
-                          return (
-                            <div
-                              key={post._id}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handlePostClick(post);
-                              }}
-                              className={cn(
-                                "text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 sm:py-1 rounded border cursor-pointer",
-                                "hover:scale-105 active:scale-95 transition-transform",
-                                config.color
-                              )}
-                            >
-                              <div className="flex items-center gap-0.5 sm:gap-1 truncate">
-                                <Icon className="w-2 h-2 sm:w-3 sm:h-3 flex-shrink-0" />
-                                <span className="hidden sm:inline truncate">{post.scheduledTime}</span>
-                              </div>
-                            </div>
-                          );
-                        })}
-                        {day.posts.length > 3 && (
-                          <div className="text-[8px] text-muted-foreground text-center">
-                            +{day.posts.length - 3}
-                          </div>
-                        )}
+              return (
+                <motion.button
+                  key={idx}
+                  type="button"
+                  whileHover={day.isCurrentMonth ? { scale: 1.02 } : {}}
+                  whileTap={day.isCurrentMonth ? { scale: 0.98 } : {}}
+                  disabled={!day.isCurrentMonth}
+                  className={cn(
+                    "min-h-[60px] sm:min-h-[100px] p-1 sm:p-2 border rounded-md sm:rounded-lg relative transition-all",
+                    "focus:outline-none focus:ring-2 focus:ring-primary/50",
+                    day.isCurrentMonth
+                      ? "bg-white dark:bg-gray-900 hover:shadow-lg hover:border-primary/60 cursor-pointer active:bg-primary/5"
+                      : "bg-gray-50 dark:bg-gray-950 opacity-40 cursor-not-allowed",
+                    day.isToday && "border-primary/80 bg-primary/5 ring-2 ring-primary/30",
+                    // ✅ MELHOR FEEDBACK VISUAL DE SELEÇÃO
+                    isSelected && "ring-2 ring-blue-600 bg-blue-50 dark:bg-blue-950/50 border-blue-600 shadow-lg scale-105"
+                  )}
+                  onClick={() => {
+                    if (day.isCurrentMonth) {
+                      setSelectedDate(day.date);
+                    }
+                  }}
+                >
+                  {day.isCurrentMonth && (
+                    <>
+                      {/* Número do dia */}
+                      <div className={cn(
+                        "text-xs sm:text-sm font-semibold mb-0.5 sm:mb-1 transition-colors",
+                        isSelected && "text-blue-600 dark:text-blue-400 scale-110"
+                      )}>
+                        {day.day}
                       </div>
-                    </ScrollArea>
-                  </>
-                )}
-              </motion.button>
-            ))}
+
+                      {/* Posts do dia */}
+                      <ScrollArea className="h-[40px] sm:h-[70px]">
+                        <div className="space-y-0.5 sm:space-y-1">
+                          {day.posts.slice(0, 3).map((post) => {
+                            const config = CONTENT_TYPE_CONFIG[post.contentType];
+                            const Icon = config.icon;
+
+                            return (
+                              <div
+                                key={post._id}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handlePostClick(post);
+                                }}
+                                className={cn(
+                                  "text-[8px] sm:text-[10px] px-1 sm:px-1.5 py-0.5 sm:py-1 rounded border cursor-pointer",
+                                  "hover:scale-105 active:scale-95 transition-transform",
+                                  config.color
+                                )}
+                              >
+                                <div className="flex items-center gap-0.5 sm:gap-1 truncate">
+                                  <Icon className="w-2 h-2 sm:w-3 sm:h-3 flex-shrink-0" />
+                                  <span className="hidden sm:inline truncate">{post.scheduledTime}</span>
+                                </div>
+                              </div>
+                            );
+                          })}
+                          {day.posts.length > 3 && (
+                            <div className="text-[8px] text-muted-foreground text-center">
+                              +{day.posts.length - 3}
+                            </div>
+                          )}
+                        </div>
+                      </ScrollArea>
+
+                      {/* ✅ INDICADOR DE SELEÇÃO */}
+                      <AnimatePresence>
+                        {isSelected && (
+                          <motion.div
+                            initial={{ scale: 0 }}
+                            animate={{ scale: 1 }}
+                            exit={{ scale: 0 }}
+                            className="absolute -top-1 -right-1 w-3 h-3 sm:w-4 sm:h-4 bg-blue-600 rounded-full border-2 border-white dark:border-gray-900"
+                          >
+                            <Check className="w-full h-full text-white p-0.5" />
+                          </motion.div>
+                        )}
+                      </AnimatePresence>
+                    </>
+                  )}
+                </motion.button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
 
-      {/* ========== SIDEBAR: POSTS DO DIA - MOBILE FRIENDLY ========== */}
+      {/* ========== SIDEBAR: POSTS DO DIA ========== */}
       <Card className="shadow-xl border-2">
         <CardHeader className="pb-3 px-3 sm:px-6">
           <CardTitle className="text-base sm:text-lg">
@@ -333,13 +350,13 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
                       type="button"
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      whileHover={{ x: 5 }}
+                      whileHover={{ x: 5, scale: 1.02 }}
                       whileTap={{ scale: 0.98 }}
                       onClick={() => handlePostClick(post)}
-                      className="w-full p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-lg sm:rounded-xl border-2 hover:border-primary/50 cursor-pointer transition-all text-left"
+                      className="w-full p-3 sm:p-4 bg-gradient-to-r from-gray-50 to-white dark:from-gray-800 dark:to-gray-900 rounded-lg sm:rounded-xl border-2 hover:border-primary/50 hover:shadow-lg cursor-pointer transition-all text-left"
                     >
                       {/* Header */}
-                      <div className="flex items-start justify-between gap-2 mb-2">
+                       <div className="flex items-start justify-between gap-2 mb-2">
                         <div className="flex items-center gap-2">
                           <div className={cn("p-1.5 sm:p-2 rounded-md sm:rounded-lg", config.color.split(" ")[0])}>
                             <Icon className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -349,8 +366,7 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
                           </Badge>
                         </div>
                         <div className="flex items-center gap-1 text-xs">
-                          <Clock className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-muted-foreground" />
-                          <span className="font-mono text-[10px] sm:text-xs">{post.scheduledTime}</span>
+                          {/* Content */}
                         </div>
                       </div>
 
@@ -375,7 +391,7 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
                         </div>
                       </div>
 
-                      {/* ✅ BOTÃO DE EDIÇÃO */}
+                      {/* Botão de Edição */}
                       <div className="mt-2 pt-2 border-t flex items-center justify-center gap-2">
                         <Edit className="w-3 h-3 text-primary" />
                         <span className="text-xs text-primary font-medium">Clique para editar</span>
