@@ -112,7 +112,7 @@ export default function ShareClient({ code }: ShareClientProps) {
               </div>
 
               <div className="text-sm text-center">
-                Criado com <span className="font-bold">Mentor.IA</span> da @freelink
+                Criado com <span className="font-bold">Mentor.IA</span> da @freelinnk
               </div>
             </div>
 
@@ -134,7 +134,7 @@ export default function ShareClient({ code }: ShareClientProps) {
               variant="outline"
               className="w-full"
               onClick={() => {
-                const shareText = `🔥 Sequência de ${streakDays} dias criando conteúdo! Já concluí ${completedPosts} posts com o Mentor.IA da @freelink`;
+                const shareText = `🔥 Sequência de ${streakDays} dias criando conteúdo! Já concluí ${completedPosts} posts com o Mentor.IA da @freelinnk`;
                 navigator.clipboard.writeText(shareText);
                 toast.success("Texto copiado para compartilhamento!");
               }}
@@ -146,7 +146,7 @@ export default function ShareClient({ code }: ShareClientProps) {
         </div>
 
         <div className="bg-slate-50 dark:bg-slate-700/30 px-6 py-3 text-center text-xs text-slate-500 dark:text-slate-400">
-          Criado com <span className="font-bold">Mentor.IA</span> da @freelink
+          Criado com <span className="font-bold">Mentor.IA</span> da @freelinnk
         </div>
       </div>
     </div>

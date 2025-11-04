@@ -3,7 +3,7 @@
 export default function WhatsappFloatingButton() {
   return (
     <a
-      href="https://wa.me/+5579999383543?text=Ol%C3%A1%2C+gostaria+de+falar+com+o+time+do+Freelink"
+      href="https://wa.me/+5579999383543?text=Ol%C3%A1%2C+gostaria+de+falar+com+o+time+do+Freelinnk"
       target="_blank"
       rel="noopener noreferrer"
       aria-label="Fale com o time no WhatsApp"

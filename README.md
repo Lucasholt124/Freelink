@@ -74,7 +74,7 @@ Para configurar e rodar este projeto na sua máquina local, siga os passos abaix
 
 1.  **Clone o repositório:**
     ```bash
-    git clone https://github.com/Lucasholt124/Freelink.git
+    git clone https://github.com/Lucasholt124/Freelinnk.git
     cd Freelink
     ```
 

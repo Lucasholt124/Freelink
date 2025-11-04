@@ -34,7 +34,7 @@ export const sendPushNotification = action({
     }
 
     webpush.setVapidDetails(
-      "mailto:suporte@freelink.com",
+      "mailto:Lucatavares321@hotmail.com",
       VAPID_PUBLIC_KEY,
       VAPID_PRIVATE_KEY
     );

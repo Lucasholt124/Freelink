@@ -1,4 +1,3 @@
-// convex/schema.ts - SCHEMA COMPLETO FREELINKBRAIN COM WEB PUSH
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -335,12 +334,12 @@ export default defineSchema({
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
-    .index("by_user", ["userId"])
+     .index("by_user", ["userId"])
     .index("by_campaign", ["campaignId"])
     .index("by_user_scheduled", ["userId", "scheduledTimestamp"])
     .index("by_status", ["status"])
-    .index("by_scheduled_timestamp", ["scheduledTimestamp"])
-    .index("by_notification_pending", ["notificationSent", "scheduledTimestamp"])
+    .index("by_scheduled_timestamp", ["scheduledTimestamp"]) // ✅ CORRIGIDO
+    .index("by_notification_pending", ["notificationSent", "status"]) // ✅ CORRIGIDO
     .index("by_auto_publish", ["autoPublish"]), // <-- ÍNDICE ADICIONADO AQUI
 
   // 🔔 NOVA TABELA: Push Subscriptions (assinaturas de notificação)

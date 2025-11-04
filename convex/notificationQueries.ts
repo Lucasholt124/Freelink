@@ -1,22 +1,23 @@
-// convex/notificationQueries.ts
-// SEM "use node" - arquivo para queries e mutations
+// convex/notificationQueries.ts - CONSULTA CORRIGIDA
 import { v } from "convex/values";
 import { internalMutation, internalQuery } from "./_generated/server";
 
-// QUERY: PEGAR POSTS QUE PRECISAM DE NOTIFICAÇÃO
+// ✅ QUERY CORRIGIDA: Busca posts que precisam de notificação
 export const getPostsNeedingNotification = internalQuery({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
 
+    // Busca posts não notificados com status "scheduled"
     const posts = await ctx.db
       .query("scheduledPosts")
       .withIndex("by_notification_pending", (q) =>
-        q.eq("notificationSent", false)
+        q.eq("notificationSent", false).eq("status", "scheduled")
       )
+      .filter((q) => q.lte(q.field("scheduledTimestamp"), now))
       .collect();
 
-    return posts.filter((p) => p.scheduledTimestamp <= now && p.status === "scheduled");
+    return posts;
   },
 });
 

@@ -151,7 +151,7 @@ function enhancePrompt(prompt: string, theme: string): string {
 ## TEMA: "${theme}"
 
 ## SEU PAPEL:
-Você é o "FreelinkBrain PRO", um diretor de conteúdo viral + estrategista de marketing.
+Você é o "FreelinnkBrain PRO", um diretor de conteúdo viral + estrategista de marketing.
 
 Você NÃO dá "ideias genéricas". Você entrega **ROTEIROS PRONTOS PARA GRAVAR**, com:
 - ✅ Timing exato (segundo-a-segundo)

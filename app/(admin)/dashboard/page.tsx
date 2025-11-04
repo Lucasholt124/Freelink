@@ -210,7 +210,7 @@ function FreelinkBrainWidget({ userPlan }: { userPlan: string }) {
             <div className="flex-grow">
               <div className="flex items-center gap-2 flex-wrap mb-1">
                 <h2 className="text-2xl sm:text-3xl md:text-4xl font-black leading-tight">
-                  <span className="text-slate-900 dark:text-white">Freelink</span>
+                  <span className="text-slate-900 dark:text-white">Freelinnk</span>
                   <span className="text-emerald-600">Brain</span>
                 </h2>
                 <Badge className="bg-gradient-to-r from-emerald-500/20 to-cyan-500/20 text-emerald-700 dark:text-emerald-300 border-2 border-emerald-400/40 text-xs font-black px-2 py-0.5">HOT</Badge>
@@ -453,7 +453,7 @@ function ExclusiveFeaturesCard({ userPlan }: { userPlan: string }) {
       description: "Transforme seu perfil em uma máquina de resultados",
       features: [
         { icon: "🖼️", text: "Gerador de Imagens IA Ilimitado", detail: "DALL-E 3 + Stable Diffusion" },
-        { icon: "⚡", text: "FreelinkBrain Premium Completo", detail: "1000+ Prompts Virais" },
+        { icon: "⚡", text: "FreelinnkBrain Premium Completo", detail: "1000+ Prompts Virais" },
         { icon: "📊", text: "Analytics Ultra Profundos", detail: "Dashboard Avançado" },
         { icon: "🎨", text: "White Label Personalizado", detail: "Sua Marca" }
       ],

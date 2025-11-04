@@ -167,7 +167,7 @@ features: [
 "Sorteios básicos",
 "Tudo do plano Free",
 "Suporte por email",
-"🚫 Sem marca d'água Freelink",
+"🚫 Sem marca d'água Freelinnk",
 ],
 cta: "Começar agora",
 popular: false,

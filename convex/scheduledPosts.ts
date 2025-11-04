@@ -24,11 +24,11 @@ export const createScheduledPost = mutation({
       v.literal("instagram"),
       v.literal("facebook"),
       v.literal("linkedin"),
-      v.literal("twitter")
+      v.literal("twitter"),
+      v.literal("tiktok")
     ),
-    autoPublish: v.boolean(),
-    mediaStorageId: v.optional(v.id("_storage")),
-    mediaUrl: v.optional(v.string()),
+    autoPublish: v.optional(v.boolean()),
+    mediaStorageId: v.optional(v.id("_storage")), // ✅ CORRIGIDO
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -49,9 +49,8 @@ export const createScheduledPost = mutation({
       platform: args.platform,
       status: args.autoPublish ? "queued" : "scheduled",
       autoPublish: args.autoPublish,
-      mediaStorageId: args.mediaStorageId,
-      mediaUrl: args.mediaUrl,
-      notificationSent: false, // Adicionado campo obrigatório
+      mediaStorageId: args.mediaStorageId, // ✅ SALVA ID
+      notificationSent: false,
       createdAt: Date.now(),
     });
 

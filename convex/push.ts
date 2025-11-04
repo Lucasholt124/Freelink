@@ -15,11 +15,16 @@ export const savePushSubscription = mutation({
     userAgent: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // Verifica autenticação primeiro
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado");
+    if (!identity) {
+      console.error("Tentativa de salvar push subscription sem autenticação");
+      throw new Error("Não autenticado");
+    }
 
     const userId = identity.subject;
 
+    // Resto do código permanece igual...
     const existing = await ctx.db
       .query("pushSubscriptions")
       .withIndex("by_endpoint", (q) => q.eq("endpoint", args.endpoint))

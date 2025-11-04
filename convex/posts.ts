@@ -28,7 +28,7 @@ export const schedulePost = mutation({
       v.literal("twitter"),
       v.literal("tiktok")
     ),
-    mediaUrl: v.optional(v.string()),
+    mediaStorageId: v.optional(v.id("_storage")), // ✅ CORRIGIDO
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -36,13 +36,11 @@ export const schedulePost = mutation({
 
     const userId = identity.subject;
 
-    // Criar timestamp do agendamento
     const [hours, minutes] = args.scheduledTime.split(':').map(Number);
     const scheduledDate = new Date(args.scheduledDate);
     scheduledDate.setHours(hours, minutes, 0, 0);
     const scheduledTimestamp = scheduledDate.getTime();
 
-    // Criar post agendado
     const postId = await ctx.db.insert("scheduledPosts", {
       userId,
       campaignId: args.campaignId,
@@ -56,7 +54,7 @@ export const schedulePost = mutation({
       platform: args.platform,
       status: "scheduled",
       notificationSent: false,
-      mediaUrl: args.mediaUrl,
+      mediaStorageId: args.mediaStorageId, // ✅ SALVA ID
       createdAt: Date.now(),
     });
 

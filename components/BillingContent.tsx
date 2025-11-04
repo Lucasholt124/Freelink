@@ -81,7 +81,7 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
-          { text: "FreelinkBrain - Ideias virais", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
+          { text: "FreelinnkBrain - Ideias virais", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Gerador de vídeos virais", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Geração de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
           { text: "Aprimoramento de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
@@ -94,7 +94,7 @@ const plans: Plan[] = [
           { text: "Personalização básica", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "Ferramenta de sorteios", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Rastreamento avançado (Pixel, GA4)", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
-          { text: "Remover marca Freelink", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true }
+          { text: "Remover marca Freelinnk", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true }
         ]
       }
     ],
@@ -114,10 +114,10 @@ const plans: Plan[] = [
     priceDetails: "/mês",
     spotsLeft: 47,
     popularFeatures: [
-      "🧠 FreelinkBrain - 5 ideias virais/dia",
+      "🧠 FreelinnkBrain - 5 ideias virais/dia",
       "🎬 5 roteiros de vídeos virais/dia",
       "📊 Analytics avançados completos",
-      "🚫 Sem marca d'água Freelink"
+      "🚫 Sem marca d'água Freelinnk"
     ],
     features: [
       {
@@ -131,7 +131,7 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
-          { text: "FreelinkBrain: 5 ideias virais por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "FreelinnkBrain: 5 ideias virais por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "5 roteiros de vídeos virais por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Templates prontos para posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "Geração de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
@@ -143,7 +143,7 @@ const plans: Plan[] = [
         title: "Marketing e Monetização",
         features: [
           { text: "Personalização completa", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
-          { text: "Remover marca Freelink", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
+          { text: "Remover marca Freelinnk", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "Ferramenta de sorteios", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
           { text: "Rastreamento avançado (Pixel, GA4)", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
         ]
@@ -167,7 +167,7 @@ const plans: Plan[] = [
     spotsLeft: 23,
     popularFeatures: [
       "🎨 7 imagens com IA por dia + aprimoramentos ",
-      "🧠 FreelinkBrain ILIMITADO",
+      "🧠 FreelinnkBrain ILIMITADO",
       "🎬 Vídeos virais ILIMITADOS",
       "🎁 Sistema completo de sorteios",
       "📱 Suporte VIP no WhatsApp"
@@ -186,7 +186,7 @@ const plans: Plan[] = [
         features: [
           { text: "7 gerações de imagens com IA por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "aprimoramentos de imagens por dia ilimitado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "FreelinkBrain ILIMITADO", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "FreelinnkBrain ILIMITADO", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Vídeos virais ILIMITADOS", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Calendário de conteúdo personalizado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Agendamento automático de posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
@@ -500,7 +500,7 @@ export default function BillingContent() {
                   <BrainCircuit className="w-5 h-5 sm:w-6 sm:h-6" />
                 </div>
                 <div>
-                  <h3 className="text-lg sm:text-xl font-bold">FreelinkBrain</h3>
+                  <h3 className="text-lg sm:text-xl font-bold">FreelinnkBrain</h3>
                   <p className="text-purple-100 text-xs sm:text-sm">Ideias virais ilimitadas</p>
                 </div>
               </div>
@@ -607,7 +607,7 @@ export default function BillingContent() {
               {
                 name: "João Pedro",
                 role: "R$ 15K/mês com afiliados",
-                text: "O FreelinkBrain ilimitado mudou meu jogo. Nunca mais fico sem ideias!",
+                text: "O FreelinnkBrain ilimitado mudou meu jogo. Nunca mais fico sem ideias!",
                 avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Joao",
                 verified: true
               },
@@ -697,7 +697,7 @@ export default function BillingContent() {
 
             <div>
               <h4 className="font-semibold mb-4 text-green-600 dark:text-green-400 text-sm sm:text-base">
-                ✅ Tudo no Freelink Ultra:
+                ✅ Tudo no Freelinnk Ultra:
               </h4>
               <ul className="space-y-2 text-sm">
                 <li className="flex justify-between">
@@ -1082,8 +1082,8 @@ function FAQ() {
       a: "No plano Ultra você pode gerar 5 imagens novas por dia + 5 aprimoramentos de imagens existentes. Os limites resetam diariamente às 00:00. Isso é suficiente para manter suas redes sempre atualizadas sem desperdício."
     },
     {
-      q: "O FreelinkBrain tem limite no plano Ultra?",
-      a: "Não! No plano Ultra o FreelinkBrain é completamente ILIMITADO. Você pode gerar quantas ideias virais e roteiros de vídeos quiser, sem restrições. No Pro você tem 5 gerações por dia."
+      q: "O FreelinnkBrain tem limite no plano Ultra?",
+      a: "Não! No plano Ultra o FreelinnkBrain é completamente ILIMITADO. Você pode gerar quantas ideias virais e roteiros de vídeos quiser, sem restrições. No Pro você tem 5 gerações por dia."
     },
     {
       q: "Por quanto tempo o desconto vai durar?",

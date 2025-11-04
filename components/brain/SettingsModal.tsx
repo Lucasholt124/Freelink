@@ -34,7 +34,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Settings className="w-5 h-5" />
-            Configurações do FreelinkBrain
+            Configurações do FreelinnkBrain
           </DialogTitle>
           <DialogDescription>
             Configure como você quer receber notificações
@@ -130,7 +130,7 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
           <Card className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 border-purple-200 dark:border-purple-800">
             <h4 className="font-bold text-sm mb-2">📱 Como funciona?</h4>
             <ol className="text-sm text-muted-foreground space-y-1.5 list-decimal list-inside">
-              <li>Você agenda um post no FreelinkBrain</li>
+              <li>Você agenda um post no FreelinnkBrain</li>
               <li>Na hora marcada, recebe uma notificação</li>
               <li>Clica na notificação e vai direto para a página do post</li>
               <li>Baixa o vídeo, copia a legenda e posta manualmente</li>

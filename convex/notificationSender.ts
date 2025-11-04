@@ -94,7 +94,7 @@ export const sendNotificationAction = internalAction({
     }
 
     webpush.setVapidDetails(
-      "mailto:suporte@freelink.com",
+      "mailto:Lucatavares321@hotmail.com",
       VAPID_PUBLIC_KEY,
       VAPID_PRIVATE_KEY
     );

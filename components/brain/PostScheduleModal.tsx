@@ -1,4 +1,4 @@
-// components/brain/PostScheduleModal.tsx - VERSÃO SEM BUFFER
+// components/brain/PostScheduleModal.tsx - VERSÃO COMPLETA CORRIGIDA
 "use client";
 
 import { useState, useRef } from "react";
@@ -53,10 +53,6 @@ import { api } from "@/convex/_generated/api";
 import { useScheduledPosts, useNotificationIntegration } from "@/app/hooks/useBrain";
 import { ContentData } from "@/app/types/brain";
 
-// ============================================
-// TIPOS
-// ============================================
-
 interface PostScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -67,20 +63,12 @@ interface PostScheduleModalProps {
   initialHashtags: string[];
 }
 
-// ============================================
-// HASHTAGS VIRAIS SUGERIDAS
-// ============================================
-
 const VIRAL_HASHTAGS = {
   general: ["#viral", "#fyp", "#trending", "#explore", "#foryou", "#foryoupage"],
   business: ["#empreendedorismo", "#marketing", "#sucesso", "#vendas", "#negócios", "#dinheiro"],
   lifestyle: ["#lifestyle", "#motivação", "#mindset", "#produtividade", "#crescimento", "#inspiração"],
   tech: ["#tecnologia", "#inovação", "#digital", "#startup", "#tech", "#futuro"],
 };
-
-// ============================================
-// MAPA DE PLATAFORMAS
-// ============================================
 
 const PLATFORM_CONFIG = {
   instagram: {
@@ -114,10 +102,6 @@ const PLATFORM_CONFIG = {
     supports: ["reel"],
   },
 } as const;
-
-// ============================================
-// COMPONENTE DE UPLOAD COM FEEDBACK
-// ============================================
 
 const UploadFeedback = ({
   isUploading,
@@ -177,10 +161,6 @@ const UploadFeedback = ({
   );
 };
 
-// ============================================
-// COMPONENTE PRINCIPAL
-// ============================================
-
 export default function PostScheduleModal({
   isOpen,
   onClose,
@@ -198,6 +178,7 @@ export default function PostScheduleModal({
   const [enableNotification, setEnableNotification] = useState(true);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
+  const [mediaStorageId, setMediaStorageId] = useState<Id<"_storage"> | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [uploadSuccess, setUploadSuccess] = useState(false);
@@ -209,6 +190,7 @@ export default function PostScheduleModal({
   const { isConnected } = useNotificationIntegration();
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
+  // ✅ CORRIGIDO: Upload real de arquivo
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -233,40 +215,45 @@ export default function PostScheduleModal({
     setUploadProgress(0);
     setUploadSuccess(false);
 
-    const reader = new FileReader();
+    try {
+      // Preview local
+      const reader = new FileReader();
+      reader.onload = () => {
+        setMediaPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
 
-    reader.onprogress = (event) => {
-      if (event.lengthComputable) {
-        const progress = Math.round((event.loaded / event.total) * 100);
-        setUploadProgress(progress);
-      }
-    };
+      // Upload real para Convex
+      setUploadProgress(25);
+      const uploadUrl = await generateUploadUrl();
 
-    reader.onloadend = () => {
-      setMediaPreview(reader.result as string);
+      setUploadProgress(50);
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!result.ok) throw new Error("Erro ao fazer upload");
+
+      const { storageId } = (await result.json()) as { storageId: Id<"_storage"> };
+      setMediaStorageId(storageId);
       setMediaFile(file);
+
       setUploadProgress(100);
+      setUploadSuccess(true);
+
+      toast.success(isVideo ? "✅ Vídeo carregado!" : "✅ Imagem carregada!", { duration: 2000 });
 
       setTimeout(() => {
         setIsUploading(false);
-        setUploadSuccess(true);
-        toast.success(
-          isVideo
-            ? "✅ Vídeo carregado com sucesso!"
-            : "✅ Imagem carregada com sucesso!",
-          { duration: 2000 }
-        );
-
-        setTimeout(() => setUploadSuccess(false), 2000);
-      }, 500);
-    };
-
-    reader.onerror = () => {
+        setUploadSuccess(false);
+      }, 2000);
+    } catch (error) {
       setIsUploading(false);
-      toast.error("Erro ao carregar arquivo. Tente novamente.");
-    };
-
-    reader.readAsDataURL(file);
+      console.error("Erro no upload:", error);
+      toast.error("Erro ao fazer upload. Tente novamente.");
+    }
   };
 
   const handleAddHashtag = (tag?: string) => {
@@ -301,26 +288,8 @@ export default function PostScheduleModal({
     }
 
     const loadingToast = toast.loading("Salvando post...");
-    setIsUploading(true);
 
     try {
-      let mediaUrl: string | undefined;
-
-      if (mediaFile) {
-        const uploadUrl = await generateUploadUrl();
-        const result = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": mediaFile.type },
-          body: mediaFile,
-        });
-
-        if (!result.ok) throw new Error("Erro ao fazer upload");
-
-        const { storageId } = (await result.json()) as { storageId: Id<"_storage"> };
-        // Converte storageId em URL
-        mediaUrl = `/api/storage/${storageId}`;
-      }
-
       await createPost({
         campaignId,
         contentType,
@@ -330,7 +299,7 @@ export default function PostScheduleModal({
         scheduledDate,
         scheduledTime,
         platform,
-        mediaUrl,
+        mediaStorageId: mediaStorageId ?? undefined, // ✅ CORRIGIDO: Converte null para undefined
       });
 
       toast.dismiss(loadingToast);
@@ -346,8 +315,6 @@ export default function PostScheduleModal({
       toast.dismiss(loadingToast);
       console.error("Erro ao agendar:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao agendar post");
-    } finally {
-      setIsUploading(false);
     }
   };
 
@@ -356,10 +323,6 @@ export default function PostScheduleModal({
   );
 
   const PlatformIcon = PLATFORM_CONFIG[platform].icon;
-
-  // ============================================
-  // PREVIEW SECTION
-  // ============================================
 
   const PreviewSection = () => (
     <div className="h-full flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
@@ -519,10 +482,6 @@ export default function PostScheduleModal({
       />
     </div>
   );
-
-  // ============================================
-  // CONFIG SECTION
-  // ============================================
 
   const ConfigSection = () => (
     <div className="h-full flex flex-col">
@@ -747,10 +706,6 @@ export default function PostScheduleModal({
     </div>
   );
 
-  // ============================================
-  // RENDER FINAL
-  // ============================================
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent
@@ -761,7 +716,6 @@ export default function PostScheduleModal({
           "md:w-[95vw] md:max-w-[1400px]"
         )}
       >
-        {/* Header */}
         <DialogHeader className="px-4 sm:px-6 py-4 border-b">
           <DialogTitle className="flex items-center gap-3 text-xl sm:text-2xl">
             <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
@@ -814,7 +768,6 @@ export default function PostScheduleModal({
           </div>
         </div>
 
-        {/* Footer */}
         <DialogFooter className="px-4 sm:px-6 py-4 border-t bg-muted/30 flex-row gap-3">
           <Button
             variant="outline"

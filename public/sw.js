@@ -2,9 +2,8 @@
 
 self.addEventListener('install', (event) => {
   console.log('🔧 Service Worker instalado');
+  console.log('Event:', event); // Use the event parameter here
   self.skipWaiting();
-  // Use the event variable here if needed
-  console.log('Event:', event);
 });
 
 self.addEventListener('activate', (event) => {
@@ -31,13 +30,13 @@ self.addEventListener('push', (event) => {
     return;
   }
 
-  const title = data.title || '🚀 FreelinkBrain';
+  const title = data.title || '🚀 FreelinnkBrain';
   const options = {
     body: data.body || 'Você tem uma nova notificação',
     icon: data.icon || '/icon-192x192.png',
     badge: data.badge || '/badge-72x72.png',
     vibrate: [200, 100, 200],
-    tag: 'freelinkbrain-notification',
+    tag: 'freelinnkbrain-notification',
     renotify: true,
     requireInteraction: true,
     data: {
@@ -80,7 +79,6 @@ self.addEventListener('notificationclick', (event) => {
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Procura uma janela/tab já aberta do site
         for (let i = 0; i < clientList.length; i++) {
           const client = clientList[i];
           if (client.url.includes(self.location.origin) && 'focus' in client) {
@@ -92,20 +90,9 @@ self.addEventListener('notificationclick', (event) => {
           }
         }
 
-        // Se não encontrou, abre nova janela
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
         }
       })
   );
-});
-
-// ============================================
-// LIMPAR NOTIFICAÇÕES ANTIGAS
-// ============================================
-self.addEventListener('activate', (event) => {
-  console.log('✅ Service Worker ativado');
-  event.waitUntil(self.clients.claim());
-  // Use the event variable here if needed
-  console.log('Event:', event);
 });

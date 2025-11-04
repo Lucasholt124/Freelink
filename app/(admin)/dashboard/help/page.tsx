@@ -33,8 +33,8 @@ interface ContactOption {
 const faqData: FAQItem[] = [
   {
     id: "1",
-    question: "O que é o Freelink?",
-    answer: "O Freelink é a plataforma completa para criadores de conteúdo que combina link na bio, ferramentas de IA para crescimento e recursos de monetização.",
+    question: "O que é o Freelinnk?",
+    answer: "O Freelinnk é a plataforma completa para criadores de conteúdo que combina link na bio, ferramentas de IA para crescimento e recursos de monetização.",
     icon: <HelpCircle className="w-4 h-4" />
   },
   {
@@ -46,7 +46,7 @@ const faqData: FAQItem[] = [
   {
     id: "3",
     question: "Qual a diferença entre os planos Free, Pro e Ultra?",
-    answer: "Free: Links ilimitados e 1 análise IA/mês. Pro: Mentor.IA e FreelinkBrain ilimitados, analytics avançados. Ultra: Tudo do Pro + calendário automático, sorteios, rastreamento completo e suporte VIP.",
+    answer: "Free: Links ilimitados e 1 análise IA/mês. Pro: Mentor.IA e FreelinnkBrain ilimitados, analytics avançados. Ultra: Tudo do Pro + calendário automático, sorteios, rastreamento completo e suporte VIP.",
     icon: <HelpCircle className="w-4 h-4" />
   },
   {
@@ -177,7 +177,7 @@ const handleContactAction = (option: typeof contactOptions[0]) => {
     toast.success("Abrindo seu cliente de email...");
   } else if (option.action === "whatsapp") {
     const phoneNumber = "+5579999383543"; // Número oficial do WhatsApp
-    const message = encodeURIComponent("Olá, preciso de suporte no Freelink!");
+    const message = encodeURIComponent("Olá, preciso de suporte no Freelinnk!");
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
     toast.success("Abrindo WhatsApp...");
   }

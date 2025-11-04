@@ -264,7 +264,7 @@ export default function FreelinkBrainTool() {
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
               <h1 className="font-black text-base sm:text-xl md:text-2xl lg:text-3xl truncate">
                 <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
-                  FreelinkBrain
+                  FreelinnkBrain
                 </span>
               </h1>
 
@@ -624,7 +624,7 @@ export default function FreelinkBrainTool() {
                       </Badge>
 
                       <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight">
-                        Freelink<span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Brain</span>
+                        Freelinnk<span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Brain</span>
                       </h1>
 
                       <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
