@@ -864,7 +864,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <Link href="/dashboard" className="flex items-center">
                   <FreelinkLogo size={32} />
                   <span className="ml-2 text-lg font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                    Freelink
+                    Freelinnk
                   </span>
                 </Link>
               </div>
