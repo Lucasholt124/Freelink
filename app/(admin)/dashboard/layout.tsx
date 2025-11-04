@@ -16,6 +16,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { usePushNotifications } from "@/app/hooks/usePushNotifications";
 
 export interface NavSubItem {
   href: string;
@@ -316,7 +317,34 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [userPlan, setUserPlan] = useState<PlanType>("free");
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState<boolean>(true);
+    const { isSupported, isSubscribed, subscribe } = usePushNotifications();
+  const [showPushPrompt, setShowPushPrompt] = useState(false);
 
+   useEffect(() => {
+    const hasSeenPrompt = localStorage.getItem('hasSeenPushPrompt');
+
+    if (isSupported && !isSubscribed && !hasSeenPrompt) {
+      // Espera 3 segundos antes de mostrar
+      const timer = setTimeout(() => {
+        setShowPushPrompt(true);
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [isSupported, isSubscribed]);
+
+   const handleEnableNotifications = async () => {
+    const success = await subscribe();
+    if (success) {
+      localStorage.setItem('hasSeenPushPrompt', 'true');
+      setShowPushPrompt(false);
+    }
+  };
+
+  const handleDismissPrompt = () => {
+    localStorage.setItem('hasSeenPushPrompt', 'true');
+    setShowPushPrompt(false);
+  };
   // Lógica de Busca
   useEffect(() => {
     const fetchSearchResults = async () => {
@@ -535,69 +563,51 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </aside>
 
       <AnimatePresence>
-        {isSidebarOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.15 }}
-              className="lg:hidden fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
-              onClick={() => setIsSidebarOpen(false)}
-            />
-            <motion.aside
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", bounce: 0, duration: 0.4 }}
-              className="lg:hidden fixed top-0 left-0 h-full w-[85vw] max-w-[320px] bg-white dark:bg-slate-800 z-50 shadow-2xl flex flex-col"
-            >
-              <div className="p-4 border-b border-slate-200 dark:border-slate-700">
-                <div className="flex items-center justify-between">
-                  <Link href="/dashboard" className="flex items-center">
-                    <FreelinkLogo size={32} />
-                    <div className="ml-3">
-                      <span className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                        Freelink
-                      </span>
-                      {userPlan !== "free" && (
-                        <div className="mt-0.5">{getPlanBadge()}</div>
-                      )}
-                    </div>
-                  </Link>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={() => setIsSidebarOpen(false)}
-                    className="focus:ring-2 focus:ring-blue-500/30"
-                  >
-                    <X className="w-5 h-5" />
-                  </Button>
+        {showPushPrompt && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-[400px] z-50"
+          >
+            <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg shadow-2xl p-4">
+              <button
+                onClick={handleDismissPrompt}
+                className="absolute top-2 right-2 p-1 hover:bg-white/20 rounded-full transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
+
+              <div className="flex items-start gap-3">
+                <div className="bg-white/20 p-2 rounded-full">
+                  <Bell className="w-5 h-5" />
                 </div>
-              </div>
-
-              <div className="flex-1 overflow-y-auto">
-                <Sidebar userPlan={userPlan} />
-              </div>
-
-              <div className="p-4 border-t border-slate-200 dark:border-slate-700">
-                <div className="flex items-center gap-3">
-                  <UserButton afterSignOutUrl="/" />
-                  <div className="text-sm flex-grow">
-                    <p className="font-medium text-slate-800 dark:text-slate-200">Minha Conta</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      Freelink {userPlan === "ultra" ? "ULTRA" : userPlan === "pro" ? "PRO" : "Free"}
-                    </p>
-                  </div>
-                  <Link href="/">
-                    <Button variant="ghost" size="icon" className="text-red-500 hover:text-red-600">
-                      <LogOut className="w-4 h-4" />
+                <div className="flex-1 pr-6">
+                  <h4 className="font-bold mb-1">🔔 Ative as Notificações</h4>
+                  <p className="text-sm text-white/90 mb-3">
+                    Receba alertas quando for hora de postar seu conteúdo agendado
+                  </p>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleEnableNotifications}
+                      size="sm"
+                      className="bg-white text-purple-600 hover:bg-white/90"
+                    >
+                      Ativar Agora
                     </Button>
-                  </Link>
+                    <Button
+                      onClick={handleDismissPrompt}
+                      size="sm"
+                      variant="ghost"
+                      className="text-white hover:bg-white/20"
+                    >
+                      Depois
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </motion.aside>
-          </>
+            </div>
+          </motion.div>
         )}
       </AnimatePresence>
 

@@ -1,4 +1,4 @@
-// convex/schema.ts - SCHEMA COMPLETO FREELINKBRAIN
+// convex/schema.ts - SCHEMA COMPLETO FREELINKBRAIN COM WEB PUSH
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -6,11 +6,12 @@ export default defineSchema({
   // ============================================
   // TABELAS EXISTENTES (mantidas)
   // ============================================
-
   usernames: defineTable({
     userId: v.string(),
     username: v.string(),
-  }).index("by_user_id", ["userId"]).index("by_username", ["username"]),
+  })
+    .index("by_user_id", ["userId"])
+    .index("by_username", ["username"]),
 
   links: defineTable({
     userId: v.string(),
@@ -19,15 +20,26 @@ export default defineSchema({
     order: v.number(),
     thumbnailStorageId: v.optional(v.id("_storage")),
     isFeatured: v.optional(v.boolean()),
-    badgeType: v.optional(v.union(v.literal("new"), v.literal("hot"), v.literal("popular"), v.literal("limited"))),
-  }).index("by_user", ["userId"]).index("by_user_and_order", ["userId", "order"]),
+    badgeType: v.optional(
+      v.union(
+        v.literal("new"),
+        v.literal("hot"),
+        v.literal("popular"),
+        v.literal("limited")
+      )
+    ),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_order", ["userId", "order"]),
 
   userCustomizations: defineTable({
     userId: v.string(),
     profilePictureStorageId: v.optional(v.id("_storage")),
     description: v.optional(v.string()),
     accentColor: v.optional(v.string()),
-    backgroundType: v.optional(v.union(v.literal("color"), v.literal("gradient"), v.literal("image"))),
+    backgroundType: v.optional(
+      v.union(v.literal("color"), v.literal("gradient"), v.literal("image"))
+    ),
     backgroundStyle: v.optional(v.union(v.literal("full"), v.literal("header"))),
     backgroundColor1: v.optional(v.string()),
     backgroundColor2: v.optional(v.string()),
@@ -59,43 +71,61 @@ export default defineSchema({
     originalUrl: v.string(),
     clicks: v.number(),
     createdAt: v.optional(v.number()),
-  }).index("by_slug", ["slug"]).index("by_user", ["userId"]),
+  })
+    .index("by_slug", ["slug"])
+    .index("by_user", ["userId"]),
 
   analyses: defineTable({
     optimized_bio: v.string(),
-    content_pillars: v.array(v.object({
-      pillar: v.string(),
-      description: v.string()
-    })),
+    content_pillars: v.array(
+      v.object({
+        pillar: v.string(),
+        description: v.string(),
+      })
+    ),
     audience_persona: v.object({
       name: v.string(),
       description: v.string(),
-      pain_points: v.array(v.string())
+      pain_points: v.array(v.string()),
     }),
     brand_voice: v.string(),
-    content_plan: v.array(v.object({
-      day: v.string(),
-      time: v.string(),
-      format: v.union(v.literal("reels"), v.literal("carrossel"), v.literal("stories"), v.literal("imagem"), v.literal("atividade")),
-      title: v.string(),
-      content_idea: v.string(),
-      status: v.union(v.literal("planejado"), v.literal("concluido")),
-      completedAt: v.optional(v.number()),
-      funnel_stage: v.union(v.literal("atrair"), v.literal("nutrir"), v.literal("converter")),
-      focus_metric: v.string(),
-      details: v.optional(v.object({
-        tool_suggestion: v.string(),
-        step_by_step: v.string(),
-        script_or_copy: v.string(),
-        hashtags: v.string(),
-        creative_guidance: v.object({
-          type: v.string(),
-          description: v.string(),
-          prompt: v.string(),
-          tool_link: v.string(),
-        }),
-      })),
-    })),
+    content_plan: v.array(
+      v.object({
+        day: v.string(),
+        time: v.string(),
+        format: v.union(
+          v.literal("reels"),
+          v.literal("carrossel"),
+          v.literal("stories"),
+          v.literal("imagem"),
+          v.literal("atividade")
+        ),
+        title: v.string(),
+        content_idea: v.string(),
+        status: v.union(v.literal("planejado"), v.literal("concluido")),
+        completedAt: v.optional(v.number()),
+        funnel_stage: v.union(
+          v.literal("atrair"),
+          v.literal("nutrir"),
+          v.literal("converter")
+        ),
+        focus_metric: v.string(),
+        details: v.optional(
+          v.object({
+            tool_suggestion: v.string(),
+            step_by_step: v.string(),
+            script_or_copy: v.string(),
+            hashtags: v.string(),
+            creative_guidance: v.object({
+              type: v.string(),
+              description: v.string(),
+              prompt: v.string(),
+              tool_link: v.string(),
+            }),
+          })
+        ),
+      })
+    ),
     userId: v.string(),
     username: v.string(),
     bio: v.string(),
@@ -105,7 +135,9 @@ export default defineSchema({
     aiModel: v.optional(v.string()),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
-  }).index("by_user", ["userId"]).index("by_created", ["createdAt"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_created", ["createdAt"]),
 
   sharedAchievements: defineTable({
     userId: v.string(),
@@ -117,7 +149,8 @@ export default defineSchema({
     expiresAt: v.number(),
     views: v.number(),
     platform: v.optional(v.string()),
-  }).index("by_user", ["userId"])
+  })
+    .index("by_user", ["userId"])
     .index("by_shareCode", ["shareCode"])
     .index("by_expiration", ["expiresAt"]),
 
@@ -126,11 +159,13 @@ export default defineSchema({
     currentStreak: v.number(),
     bestStreak: v.number(),
     lastActivityDate: v.number(),
-    milestones: v.array(v.object({
-      streakDays: v.number(),
-      achievedAt: v.number(),
-      shared: v.boolean(),
-    })),
+    milestones: v.array(
+      v.object({
+        streakDays: v.number(),
+        achievedAt: v.number(),
+        shared: v.boolean(),
+      })
+    ),
   }).index("by_user", ["userId"]),
 
   generatedImages: defineTable({
@@ -146,14 +181,19 @@ export default defineSchema({
     userId: v.string(),
     date: v.string(),
     count: v.number(),
-    images: v.optional(v.array(v.object({
-      imageId: v.id("generatedImages"),
-      createdAt: v.number(),
-    }))),
+    images: v.optional(
+      v.array(
+        v.object({
+          imageId: v.id("generatedImages"),
+          createdAt: v.number(),
+        })
+      )
+    ),
     lastResetAt: v.optional(v.number()),
     createdAt: v.optional(v.number()),
     updatedAt: v.optional(v.number()),
-  }).index("by_user_date", ["userId", "date"])
+  })
+    .index("by_user_date", ["userId", "date"])
     .index("by_user", ["userId"]),
 
   aiStudioContent: defineTable({
@@ -171,25 +211,29 @@ export default defineSchema({
     prompt: v.optional(v.string()),
     storageId: v.optional(v.id("_storage")),
     createdAt: v.optional(v.number()),
-  }).index("by_user", ["userId"])
+  })
+    .index("by_user", ["userId"])
     .index("by_user_and_type", ["userId", "type"]),
 
   publicGiveaways: defineTable({
     giveawayId: v.string(),
     title: v.string(),
     createdBy: v.string(),
-    participants: v.array(v.object({
-      id: v.string(),
-      name: v.string(),
-      identifier: v.string(),
-      timestamp: v.string(),
-      verified: v.optional(v.boolean()),
-    })),
+    participants: v.array(
+      v.object({
+        id: v.string(),
+        name: v.string(),
+        identifier: v.string(),
+        timestamp: v.string(),
+        verified: v.optional(v.boolean()),
+      })
+    ),
     isActive: v.boolean(),
     method: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
-  }).index("by_giveaway_id", ["giveawayId"])
+  })
+    .index("by_giveaway_id", ["giveawayId"])
     .index("by_creator", ["createdBy"]),
 
   // ============================================
@@ -212,14 +256,16 @@ export default defineSchema({
     notes: v.optional(v.string()),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
-  }).index("by_user", ["userId"])
+  })
+    .index("by_user", ["userId"])
     .index("by_user_created", ["userId", "createdAt"]),
 
-  // Posts agendados
+  // Posts agendados (SEM Buffer - COM Notificações Push)
   scheduledPosts: defineTable({
     userId: v.string(),
     campaignId: v.id("brainCampaigns"),
 
+    // Tipo de conteúdo
     contentType: v.union(
       v.literal("reel"),
       v.literal("carousel"),
@@ -246,61 +292,82 @@ export default defineSchema({
       v.literal("instagram"),
       v.literal("facebook"),
       v.literal("linkedin"),
-      v.literal("twitter")
+      v.literal("twitter"),
+      v.literal("tiktok")
     ),
 
-    // Status
+    // Publicação automática (integração com Buffer)
+    autoPublish: v.optional(v.boolean()),
+    bufferUpdateId: v.optional(v.string()),
+    bufferProfileId: v.optional(v.string()),
+    publishError: v.optional(v.string()),
+
+    // Status (SEM publishing, SEM published - apenas agendamento)
     status: v.union(
       v.literal("draft"),
       v.literal("scheduled"),
-      v.literal("queued"),
-      v.literal("publishing"),
-      v.literal("published"),
-      v.literal("failed")
+      v.literal("queued"), // Adicionado para auto-publish
+      v.literal("notified"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+      v.literal("publishing"), // Adicionado para integração com Buffer
+      v.literal("published"),  // Adicionado para integração com Buffer
+      v.literal("failed")      // Adicionado para integração com Buffer
     ),
 
-    autoPublish: v.boolean(),
-    publishedAt: v.optional(v.number()),
-    publishError: v.optional(v.string()),
+    // Notificação enviada?
+    notificationSent: v.optional(v.boolean()),
+    notificationSentAt: v.optional(v.number()),
 
-    // Buffer específico
-    bufferUpdateId: v.optional(v.string()), // ID do post no Buffer
-    bufferProfileId: v.optional(v.string()), // ID do perfil no Buffer
-
-    // Performance
-    performance: v.optional(v.object({
-      views: v.optional(v.number()),
-      likes: v.optional(v.number()),
-      comments: v.optional(v.number()),
-      shares: v.optional(v.number()),
-      saves: v.optional(v.number()),
-      reach: v.optional(v.number()),
-      engagement: v.optional(v.number()),
-    })),
+    // Performance (preenchido MANUALMENTE pelo usuário depois)
+    performance: v.optional(
+      v.object({
+        views: v.optional(v.number()),
+        likes: v.optional(v.number()),
+        comments: v.optional(v.number()),
+        shares: v.optional(v.number()),
+        saves: v.optional(v.number()),
+        reach: v.optional(v.number()),
+        engagement: v.optional(v.number()),
+      })
+    ),
 
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
-  }).index("by_user", ["userId"])
+  })
+    .index("by_user", ["userId"])
     .index("by_campaign", ["campaignId"])
     .index("by_user_scheduled", ["userId", "scheduledTimestamp"])
     .index("by_status", ["status"])
-    .index("by_auto_publish", ["autoPublish", "scheduledTimestamp"]),
+    .index("by_scheduled_timestamp", ["scheduledTimestamp"])
+    .index("by_notification_pending", ["notificationSent", "scheduledTimestamp"])
+    .index("by_auto_publish", ["autoPublish"]), // <-- ÍNDICE ADICIONADO AQUI
 
-  // Integrações sociais (Buffer)
-  socialIntegrations: defineTable({
+  // 🔔 NOVA TABELA: Push Subscriptions (assinaturas de notificação)
+  pushSubscriptions: defineTable({
     userId: v.string(),
-
-    // Buffer
-    bufferAccessToken: v.optional(v.string()),
-    bufferProfiles: v.optional(v.array(v.object({
-      id: v.string(),
-      service: v.string(), // "instagram", "facebook", etc.
-      serviceName: v.string(),
-      serviceUsername: v.string(),
-      avatar: v.optional(v.string()),
-    }))),
-
+    endpoint: v.string(), // URL única do navegador
+    keys: v.object({
+      p256dh: v.string(),
+      auth: v.string(),
+    }),
+    userAgent: v.optional(v.string()),
     createdAt: v.number(),
-    updatedAt: v.optional(v.number()),
-  }).index("by_user", ["userId"]),
+    lastUsedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_endpoint", ["endpoint"]),
+
+  // 🔔 NOVA TABELA: Histórico de notificações enviadas
+  notificationHistory: defineTable({
+    userId: v.string(),
+    postId: v.id("scheduledPosts"),
+    title: v.string(),
+    body: v.string(),
+    sentAt: v.number(),
+    success: v.boolean(),
+    error: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_post", ["postId"]),
 });

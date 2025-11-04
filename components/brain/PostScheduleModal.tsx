@@ -1,4 +1,4 @@
-// components/brain/PostScheduleModal.tsx - SCROLL FUNCIONANDO 100%
+// components/brain/PostScheduleModal.tsx - VERSÃO SEM BUFFER
 "use client";
 
 import { useState, useRef } from "react";
@@ -30,7 +30,7 @@ import {
   Sparkles,
   AlertCircle,
   Check,
-  Zap,
+  Bell,
   Instagram,
   Facebook,
   Linkedin,
@@ -50,7 +50,7 @@ import { cn } from "@/lib/utils";
 import { Id } from "@/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { useBufferIntegration, useScheduledPosts } from "@/app/hooks/useBrain";
+import { useScheduledPosts, useNotificationIntegration } from "@/app/hooks/useBrain";
 import { ContentData } from "@/app/types/brain";
 
 // ============================================
@@ -106,6 +106,12 @@ const PLATFORM_CONFIG = {
     name: "Twitter/X",
     color: "from-gray-900 to-black",
     supports: ["image_post"],
+  },
+  tiktok: {
+    icon: Video,
+    name: "TikTok",
+    color: "from-black to-gray-900",
+    supports: ["reel"],
   },
 } as const;
 
@@ -189,7 +195,7 @@ export default function PostScheduleModal({
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
   const [platform, setPlatform] = useState<keyof typeof PLATFORM_CONFIG>("instagram");
-  const [autoPublish, setAutoPublish] = useState(false);
+  const [enableNotification, setEnableNotification] = useState(true);
   const [mediaFile, setMediaFile] = useState<File | null>(null);
   const [mediaPreview, setMediaPreview] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -200,7 +206,7 @@ export default function PostScheduleModal({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { createPost } = useScheduledPosts(campaignId);
-  const { isConnected } = useBufferIntegration();
+  const { isConnected } = useNotificationIntegration();
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -289,8 +295,8 @@ export default function PostScheduleModal({
       toast.error("Escolha data e horário");
       return;
     }
-    if (autoPublish && !isConnected) {
-      toast.error("Buffer não conectado. Configure em Configurações.");
+    if (enableNotification && !isConnected) {
+      toast.error("Ative as notificações nas configurações para receber alertas");
       return;
     }
 
@@ -298,7 +304,6 @@ export default function PostScheduleModal({
     setIsUploading(true);
 
     try {
-      let mediaStorageId: Id<"_storage"> | undefined;
       let mediaUrl: string | undefined;
 
       if (mediaFile) {
@@ -312,7 +317,8 @@ export default function PostScheduleModal({
         if (!result.ok) throw new Error("Erro ao fazer upload");
 
         const { storageId } = (await result.json()) as { storageId: Id<"_storage"> };
-        mediaStorageId = storageId;
+        // Converte storageId em URL
+        mediaUrl = `/api/storage/${storageId}`;
       }
 
       await createPost({
@@ -324,15 +330,13 @@ export default function PostScheduleModal({
         scheduledDate,
         scheduledTime,
         platform,
-        autoPublish,
-        mediaStorageId,
         mediaUrl,
       });
 
       toast.dismiss(loadingToast);
       toast.success(
-        autoPublish
-          ? "🎉 Post agendado para publicação automática!"
+        enableNotification && isConnected
+          ? "🔔 Post agendado! Você receberá uma notificação na hora certa."
           : "📅 Post adicionado ao calendário!",
         { duration: 3000 }
       );
@@ -354,12 +358,11 @@ export default function PostScheduleModal({
   const PlatformIcon = PLATFORM_CONFIG[platform].icon;
 
   // ============================================
-  // PREVIEW SECTION - COM SCROLL FUNCIONANDO
+  // PREVIEW SECTION
   // ============================================
 
   const PreviewSection = () => (
     <div className="h-full flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
-      {/* Header Fixo */}
       <div className="flex-shrink-0 p-4 sm:p-6 border-b dark:border-gray-700 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
         <h3 className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
           <Eye className="w-5 h-5 text-purple-500" />
@@ -370,14 +373,12 @@ export default function PostScheduleModal({
         </p>
       </div>
 
-      {/* Área com Scroll */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-md mx-auto space-y-4">
           <motion.div
             layout
             className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden border-2 border-gray-200 dark:border-gray-700"
           >
-            {/* Header do Post */}
             <div className="p-3 sm:p-4 flex items-center gap-3 border-b dark:border-gray-700">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
                 <PlatformIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -390,7 +391,6 @@ export default function PostScheduleModal({
               </div>
             </div>
 
-            {/* Media Preview */}
             <div className="aspect-square bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center relative overflow-hidden">
               <UploadFeedback
                 isUploading={isUploading && !uploadSuccess}
@@ -446,7 +446,6 @@ export default function PostScheduleModal({
               )}
             </div>
 
-            {/* Caption e Hashtags */}
             <div className="p-4 sm:p-5">
               <div className="space-y-3">
                 <p className="text-sm sm:text-base whitespace-pre-wrap leading-relaxed">
@@ -468,7 +467,6 @@ export default function PostScheduleModal({
                 )}
               </div>
 
-              {/* Engagement Preview */}
               <div className="flex items-center gap-4 mt-4 pt-4 border-t text-muted-foreground">
                 <button className="flex items-center gap-1 hover:text-foreground transition-colors">
                   <div className="w-5 h-5 rounded-full border-2 border-current" />
@@ -486,7 +484,6 @@ export default function PostScheduleModal({
             </div>
           </motion.div>
 
-          {/* Upload Info */}
           {mediaFile && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -524,12 +521,11 @@ export default function PostScheduleModal({
   );
 
   // ============================================
-  // CONFIG SECTION - COM SCROLL FUNCIONANDO
+  // CONFIG SECTION
   // ============================================
 
   const ConfigSection = () => (
     <div className="h-full flex flex-col">
-      {/* Header Fixo */}
       <div className="flex-shrink-0 p-4 sm:p-6 border-b dark:border-gray-700 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
         <h3 className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
           <Edit className="w-5 h-5 text-blue-500" />
@@ -540,7 +536,6 @@ export default function PostScheduleModal({
         </p>
       </div>
 
-      {/* Área com Scroll */}
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="space-y-5 sm:space-y-6">
           {/* Plataforma */}
@@ -604,7 +599,6 @@ export default function PostScheduleModal({
               Hashtags Estratégicas
             </Label>
 
-            {/* Hashtags Virais Sugeridas */}
             <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
               <div className="flex items-center gap-2 mb-3">
                 <TrendingUp className="w-4 h-4 text-purple-600" />
@@ -626,7 +620,6 @@ export default function PostScheduleModal({
               </div>
             </div>
 
-            {/* Input de Hashtag */}
             <div className="flex gap-2">
               <Input
                 value={hashtagInput}
@@ -649,7 +642,6 @@ export default function PostScheduleModal({
               </Button>
             </div>
 
-            {/* Hashtags Adicionadas */}
             {hashtags.length > 0 && (
               <div className="p-3 bg-muted/50 rounded-lg border">
                 <p className="text-xs font-semibold mb-2">
@@ -706,171 +698,150 @@ export default function PostScheduleModal({
 
           <Separator />
 
-          {/* Auto Publish */}
-          <div className="p-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+          {/* Notificação */}
+          <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
             <div className="flex items-start justify-between gap-3">
-              <Label htmlFor="auto-publish" className="flex items-start gap-3 cursor-pointer flex-1">
-                <Zap className="w-5 h-5 text-yellow-500 flex-shrink-0 mt-0.5" />
+              <Label htmlFor="enable-notification" className="flex items-start gap-3 cursor-pointer flex-1">
+                <Bell className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
                   <span className="text-sm font-semibold block mb-1">
-                    Publicação Automática
+                    Receber Notificação
                   </span>
                   <p className="text-xs text-muted-foreground">
-                    Publique automaticamente via Buffer no horário agendado
+                    Receba um alerta no horário agendado para postar seu conteúdo
                   </p>
                 </div>
               </Label>
               <Switch
-                id="auto-publish"
-                checked={autoPublish}
-                onCheckedChange={setAutoPublish}
+                id="enable-notification"
+                checked={enableNotification}
+                onCheckedChange={setEnableNotification}
                 className="flex-shrink-0"
               />
             </div>
           </div>
 
-          {autoPublish && !isConnected && (
+          {enableNotification && !isConnected && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
-              className="p-4 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-800 rounded-lg"
+              className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg"
             >
               <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
+                <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                 <div className="flex-1">
-                  <p className="text-sm font-semibold text-orange-800 dark:text-orange-200">
-                    Buffer não conectado
+                  <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                    Notificações desativadas
                   </p>
-                  <p className="text-xs text-orange-700 dark:text-orange-300 mt-1">
-                    Configure sua conta Buffer nas configurações para usar publicação automática
+                  <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                    Ative as notificações nas configurações (⚙️) para receber alertas
                   </p>
                 </div>
               </div>
             </motion.div>
           )}
 
-          {/* Espaço extra para scroll */}
           <div className="h-20" />
         </div>
       </div>
     </div>
   );
 
+  // ============================================
+  // RENDER FINAL
+  // ============================================
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className={cn(
-        "p-0 gap-0 overflow-hidden flex flex-col",
-        "w-full h-[100dvh] max-w-full",
-        "sm:h-[90vh] sm:max-w-[600px] sm:rounded-lg",
-        "lg:h-[85vh] lg:max-w-[1000px] xl:max-w-[1200px]",
-      )}>
+      <DialogContent
+        className={cn(
+          "p-0 gap-0 overflow-hidden flex flex-col",
+          "w-full h-[100dvh] max-h-[100dvh]",
+          "sm:h-[90vh] sm:max-h-[90vh]",
+          "md:w-[95vw] md:max-w-[1400px]"
+        )}
+      >
+        {/* Header */}
+        <DialogHeader className="px-4 sm:px-6 py-4 border-b">
+          <DialogTitle className="flex items-center gap-3 text-xl sm:text-2xl">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
+              <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+            </div>
+            <div>
+              <span className="block">Agendar Publicação</span>
+              <span className="text-xs sm:text-sm font-normal text-muted-foreground">
+                {contentType === "reel"
+                  ? "Vídeo Curto"
+                  : contentType === "carousel"
+                  ? "Carrossel"
+                  : contentType === "story_sequence"
+                  ? "Sequência de Stories"
+                  : "Imagem"}
+              </span>
+            </div>
+          </DialogTitle>
+        </DialogHeader>
 
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={onClose}
-          className="absolute right-2 top-2 z-50 rounded-full bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm hover:bg-white dark:hover:bg-gray-800 shadow-lg sm:right-4 sm:top-4"
-        >
-          <X className="h-4 w-4" />
-        </Button>
-
-        {/* ========== MOBILE/TABLET LAYOUT ========== */}
-        <div className="flex flex-col h-full lg:hidden">
-          <DialogHeader className="flex-shrink-0 p-4 pb-3 pt-12 sm:pt-14 border-b">
-            <DialogTitle className="text-base sm:text-lg flex items-center gap-2">
-              <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
-              Agendar Publicação
-            </DialogTitle>
-          </DialogHeader>
-
-          <Tabs
-            value={mobileTab}
-            onValueChange={(v) => setMobileTab(v as "preview" | "config")}
-            className="flex-1 flex flex-col overflow-hidden min-h-0"
-          >
-            <TabsList className="flex-shrink-0 grid w-full grid-cols-2 rounded-none border-b h-12">
-              <TabsTrigger value="config" className="text-xs sm:text-sm gap-2">
-                <Edit className="w-3.5 h-3.5" />
+        {/* Mobile Tabs */}
+        <div className="md:hidden">
+          <Tabs value={mobileTab} onValueChange={(v) => setMobileTab(v as "preview" | "config")}>
+            <TabsList className="w-full grid grid-cols-2 rounded-none border-b">
+              <TabsTrigger value="config" className="gap-2">
+                <Edit className="w-4 h-4" />
                 Configurar
               </TabsTrigger>
-              <TabsTrigger value="preview" className="text-xs sm:text-sm gap-2">
-                <Eye className="w-3.5 h-3.5" />
+              <TabsTrigger value="preview" className="gap-2">
+                <Eye className="w-4 h-4" />
                 Preview
               </TabsTrigger>
             </TabsList>
-
-            <TabsContent value="config" className="flex-1 m-0 overflow-hidden min-h-0">
+            <TabsContent value="config" className="h-[calc(100dvh-200px)] mt-0">
               <ConfigSection />
             </TabsContent>
-
-            <TabsContent value="preview" className="flex-1 m-0 overflow-hidden min-h-0">
+            <TabsContent value="preview" className="h-[calc(100dvh-200px)] mt-0">
               <PreviewSection />
             </TabsContent>
           </Tabs>
-
-          <DialogFooter className="flex-shrink-0 p-3 sm:p-4 border-t flex-row gap-2">
-            <Button
-              variant="ghost"
-              onClick={onClose}
-              className="flex-1 text-sm"
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSchedule}
-              disabled={isUploading || !caption.trim() || !scheduledDate || !scheduledTime}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 text-sm gap-2"
-            >
-              {isUploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Calendar className="w-4 h-4" />
-                  Agendar
-                </>
-              )}
-            </Button>
-          </DialogFooter>
         </div>
 
-        {/* ========== DESKTOP LAYOUT ========== */}
-        <div className="hidden lg:grid lg:grid-cols-2 h-full overflow-hidden">
-          <div className="border-r dark:border-gray-700 overflow-hidden">
+        {/* Desktop Layout */}
+        <div className="hidden md:grid md:grid-cols-2 flex-1 overflow-hidden">
+          <div className="border-r overflow-y-auto">
+            <ConfigSection />
+          </div>
+          <div className="overflow-y-auto">
             <PreviewSection />
           </div>
-
-          <div className="flex flex-col overflow-hidden min-h-0">
-            <div className="flex-1 overflow-hidden min-h-0">
-              <ConfigSection />
-            </div>
-
-            <DialogFooter className="flex-shrink-0 p-6 border-t">
-              <Button variant="ghost" onClick={onClose} className="gap-2">
-                Cancelar
-              </Button>
-              <Button
-                onClick={handleSchedule}
-                disabled={isUploading || !caption.trim() || !scheduledDate || !scheduledTime}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 gap-2"
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Salvando Post...
-                  </>
-                ) : (
-                  <>
-                    <Calendar className="w-4 h-4" />
-                    Agendar Publicação
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </div>
         </div>
+
+        {/* Footer */}
+        <DialogFooter className="px-4 sm:px-6 py-4 border-t bg-muted/30 flex-row gap-3">
+          <Button
+            variant="outline"
+            onClick={onClose}
+            disabled={isUploading}
+            className="flex-1 sm:flex-none"
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSchedule}
+            disabled={isUploading || !caption.trim() || !scheduledDate || !scheduledTime}
+            className="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          >
+            {isUploading ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Salvando...
+              </>
+            ) : (
+              <>
+                <Calendar className="w-4 h-4 mr-2" />
+                Agendar Post
+              </>
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

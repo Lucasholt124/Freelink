@@ -14,6 +14,7 @@ import {
   Clock,
   Check,
   AlertCircle,
+  Bell,
   Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -82,6 +83,21 @@ const STATUS_CONFIG = {
     icon: AlertCircle,
     label: "Falhou",
     color: "text-red-500",
+  },
+  notified: {
+    icon: Bell,
+    label: "Notificado",
+    color: "text-cyan-500",
+  },
+  completed: {
+    icon: Check,
+    label: "Concluído",
+    color: "text-green-500",
+  },
+  cancelled: {
+    icon: AlertCircle,
+    label: "Cancelado",
+    color: "text-gray-500",
   },
 } as const;
 

@@ -1,6 +1,6 @@
 // convex/autoPublisher.ts - PROCESSADOR DE PUBLICAÇÃO AUTOMÁTICA (SEM ERROS)
 import { internalAction, internalQuery } from "./_generated/server";
-import { internal, api } from "./_generated/api";
+import { internal } from "./_generated/api";
 import { Doc } from "./_generated/dataModel";
 
 // ============================================
@@ -63,9 +63,6 @@ export const processQueuedPosts = internalAction({
         try {
           console.log(`📝 Publicando post ${post._id}...`);
 
-          await ctx.runAction(api.bufferIntegration.publishToBuffer, {
-            postId: post._id,
-          });
 
           successCount++;
           console.log(`✅ Post ${post._id} publicado com sucesso`);

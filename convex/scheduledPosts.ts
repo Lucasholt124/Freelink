@@ -51,6 +51,7 @@ export const createScheduledPost = mutation({
       autoPublish: args.autoPublish,
       mediaStorageId: args.mediaStorageId,
       mediaUrl: args.mediaUrl,
+      notificationSent: false, // Adicionado campo obrigatório
       createdAt: Date.now(),
     });
 

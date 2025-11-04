@@ -1,10 +1,14 @@
-// hooks/useBrain.ts - HOOK CUSTOMIZADO PARA BRAIN
+// app/hooks/useBrain.ts - HOOK CUSTOMIZADO PARA BRAIN (SEM BUFFER)
 "use client";
 
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { usePushNotifications } from "./usePushNotifications";
 
+// ============================================
+// CAMPANHAS
+// ============================================
 export function useBrainCampaigns() {
   const campaigns = useQuery(api.brainCampaigns.listCampaigns);
   const currentCampaign = useQuery(api.brainCampaigns.getCurrentCampaign);
@@ -22,16 +26,21 @@ export function useBrainCampaigns() {
   };
 }
 
+// ============================================
+// POSTS AGENDADOS
+// ============================================
 export function useScheduledPosts(campaignId?: Id<"brainCampaigns">) {
-  const allPosts = useQuery(api.scheduledPosts.listAllPosts);
+  // ✅ CORRIGIDO: Adicionado segundo argumento vazio
+  const allPosts = useQuery(api.posts.listScheduledPosts, {});
   const campaignPosts = useQuery(
-    api.scheduledPosts.listPostsByCampaign,
+    api.posts.getPostsByCampaign,
     campaignId ? { campaignId } : "skip"
   );
 
-  const createPost = useMutation(api.scheduledPosts.createScheduledPost);
-  const updatePost = useMutation(api.scheduledPosts.updateScheduledPost);
-  const deletePost = useMutation(api.scheduledPosts.deleteScheduledPost);
+  const createPost = useMutation(api.posts.schedulePost);
+  const updatePost = useMutation(api.posts.updatePost);
+  const deletePost = useMutation(api.posts.deletePost);
+  const markAsCompleted = useMutation(api.posts.markAsCompleted);
 
   return {
     allPosts,
@@ -39,35 +48,65 @@ export function useScheduledPosts(campaignId?: Id<"brainCampaigns">) {
     createPost,
     updatePost,
     deletePost,
+    markAsCompleted,
   };
 }
 
-export function useBufferIntegration() {
-  const integration = useQuery(api.bufferIntegration.getIntegration);
+// ============================================
+// INTEGRAÇÃO COM PUSH NOTIFICATIONS
+// (SUBSTITUI O BUFFER)
+// ============================================
+export function useNotificationIntegration() {
+  const {
+    isSupported,
+    isSubscribed,
+    isLoading,
+    subscribe,
+    unsubscribe,
+  } = usePushNotifications();
 
-  const saveToken = useMutation(api.bufferIntegration.saveBufferToken);
-  const disconnect = useMutation(api.bufferIntegration.disconnectBuffer);
-  const fetchProfiles = useAction(api.bufferIntegration.fetchBufferProfiles);
-  const publishPost = useAction(api.bufferIntegration.publishToBuffer);
-
-  const isConnected = !!integration?.bufferAccessToken;
-  const hasProfiles = (integration?.bufferProfiles?.length ?? 0) > 0;
+  const subscriptions = useQuery(api.push.getUserSubscriptions);
+  const notificationHistory = useQuery(api.push.getNotificationHistory);
 
   return {
-    integration,
-    isConnected,
-    hasProfiles,
-    saveToken,
-    disconnect,
-    fetchProfiles,
-    publishPost,
+    // Estado das notificações
+    isSupported,
+    isConnected: isSubscribed,
+    hasProfiles: isSubscribed,
+    isLoading,
+
+    // Dados
+    subscriptions,
+    notificationHistory,
+
+    // Ações
+    connect: subscribe,
+    disconnect: unsubscribe,
   };
 }
 
+// ============================================
+// GERAÇÃO DE CONTEÚDO
+// ============================================
 export function useContentGeneration() {
+  // ✅ CORRIGIDO: useAction para actions (não useMutation)
   const generateIdeas = useAction(api.brain.generateContentIdeas);
 
   return {
     generateIdeas,
   };
+}
+
+// ============================================
+// ALIAS PARA COMPATIBILIDADE (REMOVA DEPOIS)
+// ============================================
+/**
+ * @deprecated Use useNotificationIntegration() em vez disso
+ * Este alias existe apenas para compatibilidade com código existente
+ */
+export function useBufferIntegration() {
+  console.warn(
+    "⚠️ useBufferIntegration está deprecated. Use useNotificationIntegration() no lugar."
+  );
+  return useNotificationIntegration();
 }

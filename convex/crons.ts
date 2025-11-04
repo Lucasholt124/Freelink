@@ -1,14 +1,16 @@
-// convex/crons.ts - CRON JOB para publicação automática
+// convex/crons.ts - CRON JOB PARA NOTIFICAÇÕES AUTOMÁTICAS
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// Executar a cada 5 minutos
+// ============================================
+// RODA A CADA 1 MINUTO
+// ============================================
 crons.interval(
-  "publish-queued-posts",
-  { minutes: 5 },
-  internal.autoPublisher.processQueuedPosts
+  "send-scheduled-notifications",
+  { minutes: 1 }, // A cada 1 minuto
+  internal.notificationSender.processScheduledPosts
 );
 
 export default crons;
