@@ -1,4 +1,4 @@
-// app/dashboard/brain/post/[postId]/page.tsx - VERSÃO COMPLETA CORRIGIDA
+// app/dashboard/brain/post/[postId]/page.tsx - VERSÃO CORRIGIDA
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -21,6 +21,7 @@ import {
   MessageSquare,
   ExternalLink,
   Loader2,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -38,9 +39,14 @@ export default function PostPage() {
   const [mediaUrl, setMediaUrl] = useState<string | null>(null);
   const [isLoadingMedia, setIsLoadingMedia] = useState(false);
 
-  const post = useQuery(api.posts.getPost, { postId });
   const markAsCompleted = useMutation(api.posts.markAsCompleted);
-  const getFileUrl = useQuery(api.files.getFileUrl,
+
+  // ✅ CORRIGIDO: Buscar post primeiro
+  const post = useQuery(api.posts.getPost, { postId });
+
+  // ✅ CORRIGIDO: Buscar URL da mídia apenas se existir storageId
+  const getFileUrl = useQuery(
+    api.files.getFileUrl,
     post?.mediaStorageId ? { storageId: post.mediaStorageId } : "skip"
   );
 
@@ -51,12 +57,30 @@ export default function PostPage() {
     }
   }, [getFileUrl]);
 
-  if (!post) {
+  // ✅ LOADING STATE
+  if (post === undefined) {
     return (
-      <div className="container max-w-4xl mx-auto px-4 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 dark:from-gray-950 dark:to-black flex items-center justify-center">
         <div className="text-center py-20">
           <Loader2 className="w-12 h-12 mx-auto mb-4 animate-spin text-purple-600" />
           <p className="text-muted-foreground">Carregando post...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ POST NÃO ENCONTRADO
+  if (post === null) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50 dark:from-gray-950 dark:to-black flex items-center justify-center">
+        <div className="text-center py-20">
+          <AlertCircle className="w-16 h-16 mx-auto mb-4 text-red-500" />
+          <h2 className="text-2xl font-bold mb-2">Post não encontrado</h2>
+          <p className="text-muted-foreground mb-6">Este post pode ter sido excluído</p>
+          <Button onClick={() => router.push("/dashboard/brain")}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar para o Brain
+          </Button>
         </div>
       </div>
     );
@@ -108,7 +132,6 @@ export default function PostPage() {
     }
   };
 
-  // ✅ CORRIGIDO: Download funcional
   const handleDownloadMedia = async () => {
     if (!mediaUrl) {
       toast.error("Nenhuma mídia disponível para download");
