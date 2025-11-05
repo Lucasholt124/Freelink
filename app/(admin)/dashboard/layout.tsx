@@ -444,25 +444,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [notificationsLoading, setNotificationsLoading] = useState<boolean>(true);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
 
-  // Autenticação e Push Notifications
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { isSupported, isSubscribed, subscribe } = usePushNotifications();
 
-  // Lógica para mostrar o prompt de notificações push
   useEffect(() => {
-    // Só mostra o prompt se:
-    // 1. Autenticação carregada e usuário logado
-    // 2. Notificações suportadas
-    // 3. Não está inscrito
-    // 4. Não viu o prompt antes
     const hasSeenPrompt = localStorage.getItem('hasSeenPushPrompt');
-
     if (authLoaded && isSignedIn && isSupported && !isSubscribed && !hasSeenPrompt) {
-      // Espera 5 segundos para garantir que tudo carregou
       const timer = setTimeout(() => {
         setShowPushPrompt(true);
       }, 5000);
-
       return () => clearTimeout(timer);
     }
   }, [authLoaded, isSignedIn, isSupported, isSubscribed]);
@@ -635,6 +625,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       "/dashboard/links": "Meus Links",
       "/dashboard/mentor-ia": "Mentor.IA",
       "/dashboard/brain": "FreelinkBrain",
+      "/dashboard/ai-studio": "AI Studio",
       "/dashboard/shortener": "Encurtador",
       "/dashboard/giveaway": "Sorteios",
       "/dashboard/tracking": "Rastreamento",
@@ -642,7 +633,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       "/dashboard/billing": "Plano e Cobrança",
       "/dashboard/help": "Suporte",
     };
-    return Object.entries(titles).find(([path]) => pathname.startsWith(path))?.[1] || "";
+    return Object.entries(titles).find(([path]) => pathname.startsWith(path))?.[1] || "Dashboard";
   };
 
   return (
@@ -782,77 +773,77 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Push Notification Prompt */}
       <AnimatePresence>
-    {showPushPrompt && (
-      <motion.div
-        initial={{ y: 100, opacity: 0, scale: 0.9 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: 100, opacity: 0, scale: 0.9 }}
-        className="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-[420px] z-50"
-      >
-        <motion.div
-          className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden"
-          whileHover={{ scale: 1.02 }}
-        >
-          <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 p-[2px]">
-            <div className="bg-white dark:bg-slate-800 rounded-t-2xl p-5">
-              <button
-                onClick={handleDismissPrompt}
-                className="absolute top-3 right-3 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
+        {showPushPrompt && (
+          <motion.div
+            initial={{ y: 100, opacity: 0, scale: 0.9 }}
+            animate={{ y: 0, opacity: 1, scale: 1 }}
+            exit={{ y: 100, opacity: 0, scale: 0.9 }}
+            className="fixed bottom-20 sm:bottom-4 right-4 left-4 sm:left-auto sm:w-[420px] z-50"
+          >
+            <motion.div
+              className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden"
+              whileHover={{ scale: 1.02 }}
+            >
+              <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 p-[2px]">
+                <div className="bg-white dark:bg-slate-800 rounded-t-2xl p-5 relative">
+                  <button
+                    onClick={handleDismissPrompt}
+                    className="absolute top-3 right-3 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
 
-              <div className="flex items-start gap-4">
-                <motion.div
-                  className="bg-gradient-to-br from-purple-500 to-pink-500 p-3 rounded-xl shadow-lg"
-                  animate={{ rotate: [0, -10, 10, -10, 0] }}
-                  transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 3 }}
-                >
-                  <Bell className="w-6 h-6 text-white" />
-                </motion.div>
-                <div className="flex-1 pr-8">
-                  <h4 className="font-black text-lg mb-1 text-slate-800 dark:text-slate-200">
-                    🔔 Notificações Inteligentes
-                  </h4>
-                  <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                    Receba alertas personalizados para nunca perder o momento certo de postar
-                  </p>
-                  <div className="flex gap-2">
-                    <motion.button
-                      onClick={handleEnableNotifications}
-                      className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-shadow"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
+                  <div className="flex items-start gap-4">
+                    <motion.div
+                      className="bg-gradient-to-br from-purple-500 to-pink-500 p-3 rounded-xl shadow-lg flex-shrink-0"
+                      animate={{ rotate: [0, -10, 10, -10, 0] }}
+                      transition={{ duration: 0.5, repeat: Infinity, repeatDelay: 3 }}
                     >
-                      Ativar Agora
-                    </motion.button>
-                    <motion.button
-                      onClick={handleDismissPrompt}
-                      className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Talvez Depois
-                    </motion.button>
+                      <Bell className="w-6 h-6 text-white" />
+                    </motion.div>
+                    <div className="flex-1 pr-8">
+                      <h4 className="font-black text-lg mb-1 text-slate-800 dark:text-slate-200">
+                        🔔 Notificações Inteligentes
+                      </h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
+                        Receba alertas personalizados para nunca perder o momento certo de postar
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <motion.button
+                          onClick={handleEnableNotifications}
+                          className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-shadow text-sm"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          Ativar Agora
+                        </motion.button>
+                        <motion.button
+                          onClick={handleDismissPrompt}
+                          className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm"
+                          whileHover={{ scale: 1.05 }}
+                          whileTap={{ scale: 0.95 }}
+                        >
+                          Talvez Depois
+                        </motion.button>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          </div>
-        </motion.div>
-      </motion.div>
-    )}
-  </AnimatePresence>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header */}
-        <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0 shadow-sm sticky top-0 z-30">
-          <div className="px-4 sm:px-6 py-4 flex justify-between items-center">
-            <div className="flex items-center gap-4">
+        {/* Header - NÃO STICKY NO MOBILE */}
+        <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0 shadow-sm lg:sticky lg:top-0 z-30">
+          <div className="px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
+            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
               <motion.button
                 onClick={() => setIsSidebarOpen(true)}
-                className="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                className="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 aria-label="Abrir menu"
@@ -860,18 +851,14 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <Menu className="w-5 h-5" />
               </motion.button>
 
-              <div className="lg:hidden">
-                <Link href="/dashboard" className="flex items-center">
-                  <FreelinkLogo size={32} />
-                  <span className="ml-2 text-lg font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                    Freelinnk
-                  </span>
+              <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
+                <Link href="/dashboard" className="flex items-center flex-shrink-0 lg:hidden">
+                  <FreelinkLogo size={28} />
                 </Link>
-              </div>
 
-              <div className="hidden lg:block">
+                {/* Título sempre visível no mobile */}
                 <motion.h1
-                  className="text-2xl font-black text-slate-800 dark:text-slate-200"
+                  className="text-base sm:text-lg lg:text-2xl font-black text-slate-800 dark:text-slate-200 truncate"
                   initial={{ opacity: 0, x: -20 }}
                   animate={{ opacity: 1, x: 0 }}
                   key={pathname}
@@ -882,7 +869,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
 
             {/* Header Actions */}
-            <div className="flex items-center gap-2 sm:gap-3">
+            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
               <motion.div
                 className="hidden md:block"
                 whileHover={{ scale: 1.05 }}
@@ -919,8 +906,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <Input
                         type="search"
-                        placeholder="Buscar links, ferramentas, configurações..."
-                        className="w-full pl-10 pr-10 h-10 border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-purple-500 transition-all"
+                        placeholder="Buscar..."
+                        className="w-full pl-10 pr-10 h-9 sm:h-10 border-slate-300 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-purple-500 transition-all text-sm"
                         value={searchTerm}
                         onChange={(e) => setSearchTerm(e.target.value)}
                         autoFocus
@@ -942,7 +929,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
-                        className="absolute top-full left-0 right-0 mt-2 mx-4 md:mx-0 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden"
+                        className="absolute top-full left-0 right-0 mt-2 mx-4 md:mx-0 bg-white dark:bg-slate-800 rounded-xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden max-h-[60vh] overflow-y-auto"
                       >
                         {searchLoading ? (
                           <div className="p-8 text-center">
@@ -954,7 +941,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             <p className="text-sm text-slate-500">Buscando...</p>
                           </div>
                         ) : searchResults.length > 0 ? (
-                          <div className="p-2 space-y-1 max-h-96 overflow-y-auto">
+                          <div className="p-2 space-y-1">
                             {searchResults.map((item, idx) => {
                               const IconComponent = item.icon;
                               return (
@@ -970,21 +957,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                     className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all group"
                                   >
                                     {IconComponent && (
-                                      <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                                      <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
                                         <IconComponent className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                                       </div>
                                     )}
-                                    <div className="flex-1">
-                                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-200">
+                                    <div className="flex-1 min-w-0">
+                                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">
                                         {item.label}
                                       </p>
                                       {item.description && (
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
                                           {item.description}
                                         </p>
                                       )}
                                     </div>
-                                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform" />
+                                    <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
                                   </Link>
                                 </motion.div>
                               );
@@ -1007,12 +994,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <motion.button
                     key="search-button"
                     onClick={() => setIsSearchOpen(true)}
-                    className="p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    className="p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     aria-label="Buscar"
                   >
-                    <Search className="w-5 h-5" />
+                    <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.button>
                 )}
               </AnimatePresence>
@@ -1021,42 +1008,42 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Popover>
                 <PopoverTrigger asChild>
                   <motion.button
-                    className="relative p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    className="relative p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
-                    <Bell className="w-5 h-5" />
+                    <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                     {unreadNotificationsCount > 0 && (
                       <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 w-5 h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[11px] font-bold flex items-center justify-center rounded-full shadow-lg"
+                        className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg"
                       >
-                        {unreadNotificationsCount}
+                        {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                       </motion.span>
                     )}
                   </motion.button>
                 </PopoverTrigger>
-                <PopoverContent className="w-96 p-0 shadow-2xl border-slate-200/50 dark:border-slate-700/50 rounded-xl overflow-hidden" align="end">
+                <PopoverContent className="w-[calc(100vw-2rem)] sm:w-96 p-0 shadow-2xl border-slate-200/50 dark:border-slate-700/50 rounded-xl overflow-hidden" align="end">
                   <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 p-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-bold text-white flex items-center gap-2">
-                        <Bell className="w-5 h-5" />
+                      <h4 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
+                        <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                         Notificações
                       </h4>
                       {unreadNotificationsCount > 0 && (
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-white/80 hover:text-white hover:bg-white/20"
+                          className="text-white/80 hover:text-white hover:bg-white/20 text-xs sm:text-sm"
                           onClick={markAllAsRead}
                         >
-                          Marcar todas como lidas
+                          Marcar todas
                         </Button>
                       )}
                     </div>
                   </div>
-                  <div className="max-h-[400px] overflow-y-auto">
+                  <div className="max-h-[60vh] sm:max-h-[400px] overflow-y-auto">
                     {notificationsLoading ? (
                       <div className="p-8 text-center">
                         <motion.div
@@ -1064,7 +1051,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                           animate={{ rotate: 360 }}
                           transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
                         />
-                        <p className="text-sm text-slate-500">Carregando notificações...</p>
+                        <p className="text-sm text-slate-500">Carregando...</p>
                       </div>
                     ) : userNotifications.length > 0 ? (
                       <div className="p-2 space-y-2">
@@ -1081,7 +1068,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             >
                               <motion.div
                                 className={clsx(
-                                  "p-4 rounded-xl cursor-pointer transition-all",
+                                  "p-3 sm:p-4 rounded-xl cursor-pointer transition-all",
                                   notification.isRead
                                     ? "bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700"
                                     : "bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 hover:from-purple-100 hover:to-blue-100 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30"
@@ -1089,7 +1076,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 whileHover={{ x: 4 }}
                               >
                                 <div className="flex justify-between items-start gap-3">
-                                  <div className="flex-1">
+                                  <div className="flex-1 min-w-0">
                                     <p className={clsx(
                                       "text-sm leading-relaxed",
                                       notification.isRead
@@ -1126,7 +1113,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                           <Bell className="w-6 h-6 text-slate-400" />
                         </div>
                         <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Nenhuma notificação no momento
+                          Nenhuma notificação
                         </p>
                       </div>
                     )}
@@ -1134,7 +1121,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </PopoverContent>
               </Popover>
 
-              {/* Help Button */}
+              {/* Help Button - Hidden on small mobile */}
               <motion.div
                 className="hidden sm:block"
                 whileHover={{ scale: 1.05 }}
@@ -1156,7 +1143,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </TooltipProvider>
               </motion.div>
 
-              {/* Plan Badge or Upgrade */}
+              {/* Plan Badge or Upgrade - Hidden on mobile */}
               <div className="hidden md:block">
                 {userPlan !== "free" ? (
                   getPlanBadge()
@@ -1168,7 +1155,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       whileTap={{ scale: 0.95 }}
                     >
                       <Sparkles className="w-4 h-4 inline mr-1.5" />
-                      Upgrade PRO
+                      Upgrade
                     </motion.button>
                   </Link>
                 )}
@@ -1182,24 +1169,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        {/* Mobile Page Title */}
-        {pathname !== "/dashboard" && (
-          <motion.div
-            className="lg:hidden border-b border-slate-200/50 dark:border-slate-700/50 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl"
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-          >
-            <div className="px-4 py-3 flex items-center justify-between">
-              <h1 className="text-lg font-black text-slate-800 dark:text-slate-200">
-                {getPageTitle()}
-              </h1>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Main Content Area */}
-        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800">
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8 max-w-screen-2xl">
+        {/* Main Content Area - Com padding adequado para mobile */}
+        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 pb-20 lg:pb-0">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-screen-2xl">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -1212,7 +1184,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
         {/* Mobile Bottom Navigation */}
         <motion.div
-          className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 px-2 pb-safe z-30"
+          className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 px-2 pb-safe z-30 safe-area-bottom"
           initial={{ y: 100 }}
           animate={{ y: 0 }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
@@ -1221,7 +1193,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Link href="/dashboard">
               <motion.button
                 className={clsx(
-                  "flex flex-col items-center justify-center p-3 rounded-2xl transition-all min-w-[60px]",
+                  "flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all min-w-[56px]",
                   pathname === "/dashboard"
                     ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
@@ -1236,7 +1208,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Link href="/dashboard/links">
               <motion.button
                 className={clsx(
-                  "flex flex-col items-center justify-center p-3 rounded-2xl transition-all min-w-[60px]",
+                  "flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all min-w-[56px]",
                   pathname.startsWith("/dashboard/links")
                     ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
@@ -1250,7 +1222,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
             <Link href="/dashboard/new-link">
               <motion.button
-                className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white p-4 rounded-2xl shadow-xl flex flex-col items-center justify-center relative overflow-hidden"
+                className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white p-3.5 sm:p-4 rounded-2xl shadow-xl flex flex-col items-center justify-center relative overflow-hidden -mt-4"
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
               >
@@ -1259,15 +1231,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   animate={{ rotate: [0, 360] }}
                   transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                 />
-                <PlusCircle className="w-6 h-6 relative z-10" />
+                <PlusCircle className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
               </motion.button>
             </Link>
 
             <Link href="/dashboard/mentor-ia">
               <motion.button
                 className={clsx(
-                  "flex flex-col items-center justify-center p-3 rounded-2xl transition-all min-w-[60px]",
-                  pathname.startsWith("/dashboard/mentor-ia")
+                  "flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all min-w-[56px]",
+                  pathname.startsWith("/dashboard/mentor-ia") || pathname.startsWith("/dashboard/brain") || pathname.startsWith("/dashboard/ai-studio")
                     ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
                     : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
                 )}
@@ -1280,7 +1252,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
             <motion.button
               onClick={() => setIsSidebarOpen(true)}
-              className="flex flex-col items-center justify-center p-3 rounded-2xl transition-all min-w-[60px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+              className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all min-w-[56px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
               whileTap={{ scale: 0.95 }}
             >
               <Menu className="w-5 h-5 mb-1" />
