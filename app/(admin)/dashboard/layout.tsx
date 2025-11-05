@@ -274,20 +274,20 @@ function Sidebar({ userPlan = "free" }: SidebarProps) {
                                       isItemActive ? "text-white" : "text-slate-600 dark:text-slate-400"
                                     )} />
                                   </motion.div>
-                                  <div className="flex-1 flex items-center justify-between">
-                                    <div>
-                                      <span className="block">{subItem.label}</span>
+                                  <div className="flex-1 flex items-center justify-between min-w-0">
+                                    <div className="min-w-0">
+                                      <span className="block truncate">{subItem.label}</span>
                                       {subItem.description && hoveredItem === subItem.href && (
                                         <motion.span
                                           initial={{ opacity: 0, y: -5 }}
                                           animate={{ opacity: 1, y: 0 }}
-                                          className="text-xs text-slate-500 dark:text-slate-500"
+                                          className="text-xs text-slate-500 dark:text-slate-500 block truncate"
                                         >
                                           {subItem.description}
                                         </motion.span>
                                       )}
                                     </div>
-                                    <div className="flex items-center gap-1.5">
+                                    <div className="flex items-center gap-1.5 flex-shrink-0 ml-2">
                                       {subItem.new && (
                                         <motion.div
                                           initial={{ scale: 0, rotate: -180 }}
@@ -639,8 +639,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl">
-        <div className="mb-8 px-2">
+      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden">
+        <div className="mb-8 px-2 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center group">
             <FreelinkLogo size={40} />
             <div className="ml-3">
@@ -656,7 +656,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </div>
           </Link>
         </div>
-        <Sidebar userPlan={userPlan} />
+        <div className="flex-1 overflow-hidden">
+          <Sidebar userPlan={userPlan} />
+        </div>
         <motion.div
           className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex-shrink-0"
           initial={{ opacity: 0 }}
@@ -664,11 +666,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           transition={{ delay: 0.5 }}
         >
           <div className="flex justify-between items-center px-2 group">
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 min-w-0">
               <UserButton afterSignOutUrl="/" />
-              <div className="text-sm">
-                <p className="font-bold text-slate-800 dark:text-slate-200">Minha Conta</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">
+              <div className="text-sm min-w-0">
+                <p className="font-bold text-slate-800 dark:text-slate-200 truncate">Minha Conta</p>
+                <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                   Freelinnk {userPlan === "ultra" ? "ULTRA" : userPlan === "pro" ? "PRO" : "Free"}
                 </p>
               </div>
@@ -676,7 +678,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             <Popover>
               <PopoverTrigger asChild>
                 <motion.button
-                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                 >
@@ -736,31 +738,33 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed left-0 top-0 bottom-0 w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 z-50 lg:hidden flex flex-col shadow-2xl"
+              className="fixed left-0 top-0 bottom-0 w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 z-50 lg:hidden flex flex-col shadow-2xl overflow-hidden"
             >
-              <div className="flex items-center justify-between mb-8">
-                <Link href="/dashboard" className="flex items-center">
+              <div className="flex items-center justify-between mb-8 flex-shrink-0">
+                <Link href="/dashboard" className="flex items-center min-w-0">
                   <FreelinkLogo size={36} />
-                  <span className="ml-3 text-xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  <span className="ml-3 text-xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent truncate">
                     Freelinnk
                   </span>
                 </Link>
                 <motion.button
                   onClick={() => setIsSidebarOpen(false)}
-                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
                   whileHover={{ scale: 1.1, rotate: 90 }}
                   whileTap={{ scale: 0.9 }}
                 >
                   <X className="w-5 h-5" />
                 </motion.button>
               </div>
-              <Sidebar userPlan={userPlan} />
-              <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50">
+              <div className="flex-1 overflow-hidden">
+                <Sidebar userPlan={userPlan} />
+              </div>
+              <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
                 <div className="flex items-center gap-3 px-2">
                   <UserButton afterSignOutUrl="/" />
-                  <div className="text-sm">
-                    <p className="font-bold text-slate-800 dark:text-slate-200">Minha Conta</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
+                  <div className="text-sm min-w-0">
+                    <p className="font-bold text-slate-800 dark:text-slate-200 truncate">Minha Conta</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
                       Freelinnk {userPlan === "ultra" ? "ULTRA" : userPlan === "pro" ? "PRO" : "Free"}
                     </p>
                   </div>
@@ -778,7 +782,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             initial={{ y: 100, opacity: 0, scale: 0.9 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 100, opacity: 0, scale: 0.9 }}
-            className="fixed bottom-20 sm:bottom-4 right-4 left-4 sm:left-auto sm:w-[420px] z-50"
+            className="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-[420px] z-50 max-w-[calc(100vw-2rem)]"
           >
             <motion.div
               className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden"
@@ -801,8 +805,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     >
                       <Bell className="w-6 h-6 text-white" />
                     </motion.div>
-                    <div className="flex-1 pr-8">
-                      <h4 className="font-black text-lg mb-1 text-slate-800 dark:text-slate-200">
+                    <div className="flex-1 pr-8 min-w-0">
+                      <h4 className="font-black text-lg mb-1 text-slate-800 dark:text-slate-200 truncate">
                         🔔 Notificações Inteligentes
                       </h4>
                       <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
@@ -836,11 +840,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       </AnimatePresence>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Header - NÃO STICKY NO MOBILE */}
-        <header className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0 shadow-sm lg:sticky lg:top-0 z-30">
-          <div className="px-4 sm:px-6 py-3 sm:py-4 flex justify-between items-center">
-            <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
+        {/* Header - Sticky em todas as telas */}
+        <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0 shadow-sm z-30">
+          <div className="px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2">
+            <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
               <motion.button
                 onClick={() => setIsSidebarOpen(true)}
                 className="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
@@ -852,11 +856,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </motion.button>
 
               <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
-                <Link href="/dashboard" className="flex items-center flex-shrink-0 lg:hidden">
+                <Link href="/dashboard" className="flex-shrink-0 lg:hidden">
                   <FreelinkLogo size={28} />
                 </Link>
 
-                {/* Título sempre visível no mobile */}
                 <motion.h1
                   className="text-base sm:text-lg lg:text-2xl font-black text-slate-800 dark:text-slate-200 truncate"
                   initial={{ opacity: 0, x: -20 }}
@@ -879,7 +882,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Link href="/dashboard/new-link">
-                        <Button className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all font-bold">
+                        <Button className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all font-bold whitespace-nowrap">
                           <PlusCircle className="w-4 h-4 mr-2" />
                           Novo Link
                         </Button>
@@ -903,7 +906,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     className="absolute left-0 right-0 top-0 h-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl z-20 flex items-center px-4 md:static md:w-96"
                   >
                     <div className="w-full relative">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                       <Input
                         type="search"
                         placeholder="Buscar..."
@@ -994,7 +997,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <motion.button
                     key="search-button"
                     onClick={() => setIsSearchOpen(true)}
-                    className="p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    className="p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                     aria-label="Buscar"
@@ -1008,7 +1011,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Popover>
                 <PopoverTrigger asChild>
                   <motion.button
-                    className="relative p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                    className="relative p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
                     whileHover={{ scale: 1.05 }}
                     whileTap={{ scale: 0.95 }}
                   >
@@ -1078,7 +1081,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                                 <div className="flex justify-between items-start gap-3">
                                   <div className="flex-1 min-w-0">
                                     <p className={clsx(
-                                      "text-sm leading-relaxed",
+                                      "text-sm leading-relaxed break-words",
                                       notification.isRead
                                         ? "text-slate-600 dark:text-slate-400"
                                         : "text-slate-800 dark:text-slate-200 font-semibold"
@@ -1131,7 +1134,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Link href="/dashboard/help">
-                        <Button variant="ghost" size="icon" className="rounded-xl">
+                        <Button variant="ghost" size="icon" className="rounded-xl flex-shrink-0">
                           <HelpCircle className="w-5 h-5" />
                         </Button>
                       </Link>
@@ -1144,13 +1147,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </motion.div>
 
               {/* Plan Badge or Upgrade - Hidden on mobile */}
-              <div className="hidden md:block">
+              <div className="hidden md:block flex-shrink-0">
                 {userPlan !== "free" ? (
                   getPlanBadge()
                 ) : (
                   <Link href="/dashboard/billing">
                     <motion.button
-                      className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 text-purple-700 dark:text-purple-300 rounded-xl font-bold text-sm hover:from-purple-200 hover:to-pink-200 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all shadow-sm hover:shadow-md"
+                      className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 text-purple-700 dark:text-purple-300 rounded-xl font-bold text-sm hover:from-purple-200 hover:to-pink-200 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all shadow-sm hover:shadow-md whitespace-nowrap"
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                     >
@@ -1162,15 +1165,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               </div>
 
               {/* Mobile User Button */}
-              <div className="lg:hidden">
+              <div className="lg:hidden flex-shrink-0">
                 <UserButton afterSignOutUrl="/" />
               </div>
             </div>
           </div>
         </header>
 
-        {/* Main Content Area - Com padding adequado para mobile */}
-        <main className="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 pb-20 lg:pb-0">
+        {/* Main Content Area */}
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 pb-24 lg:pb-4">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-screen-2xl">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -1181,85 +1184,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             </motion.div>
           </div>
         </main>
-
-        {/* Mobile Bottom Navigation */}
-        <motion.div
-          className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 px-2 pb-safe z-30 safe-area-bottom"
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        >
-          <div className="flex items-center justify-around py-2">
-            <Link href="/dashboard">
-              <motion.button
-                className={clsx(
-                  "flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all min-w-[56px]",
-                  pathname === "/dashboard"
-                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Home className="w-5 h-5 mb-1" />
-                <span className="text-[10px] font-semibold">Início</span>
-              </motion.button>
-            </Link>
-
-            <Link href="/dashboard/links">
-              <motion.button
-                className={clsx(
-                  "flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all min-w-[56px]",
-                  pathname.startsWith("/dashboard/links")
-                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-                whileTap={{ scale: 0.95 }}
-              >
-                <LayoutGrid className="w-5 h-5 mb-1" />
-                <span className="text-[10px] font-semibold">Links</span>
-              </motion.button>
-            </Link>
-
-            <Link href="/dashboard/new-link">
-              <motion.button
-                className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white p-3.5 sm:p-4 rounded-2xl shadow-xl flex flex-col items-center justify-center relative overflow-hidden -mt-4"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.div
-                  className="absolute inset-0 bg-white/20"
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                />
-                <PlusCircle className="w-6 h-6 sm:w-7 sm:h-7 relative z-10" />
-              </motion.button>
-            </Link>
-
-            <Link href="/dashboard/mentor-ia">
-              <motion.button
-                className={clsx(
-                  "flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all min-w-[56px]",
-                  pathname.startsWith("/dashboard/mentor-ia") || pathname.startsWith("/dashboard/brain") || pathname.startsWith("/dashboard/ai-studio")
-                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-                whileTap={{ scale: 0.95 }}
-              >
-                <Wand2 className="w-5 h-5 mb-1" />
-                <span className="text-[10px] font-semibold">IA</span>
-              </motion.button>
-            </Link>
-
-            <motion.button
-              onClick={() => setIsSidebarOpen(true)}
-              className="flex flex-col items-center justify-center p-2.5 sm:p-3 rounded-2xl transition-all min-w-[56px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-              whileTap={{ scale: 0.95 }}
-            >
-              <Menu className="w-5 h-5 mb-1" />
-              <span className="text-[10px] font-semibold">Menu</span>
-            </motion.button>
-          </div>
-        </motion.div>
       </div>
     </div>
   );
