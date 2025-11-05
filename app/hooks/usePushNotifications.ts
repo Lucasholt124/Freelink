@@ -1,30 +1,53 @@
-// app/hooks/usePushNotifications.ts - VERSÃO CORRIGIDA
+// app/hooks/usePushNotifications.ts - VERSÃO COM ALTERNATIVAS
 import { useEffect, useState } from "react";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 
-// ✅ CORRIGIDO: Verificação adequada da chave
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_KEY;
 
 export function usePushNotifications() {
   const [isSupported, setIsSupported] = useState(false);
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isIOS, setIsIOS] = useState(false);
+  const [isPWA, setIsPWA] = useState(false);
+  const [browserName, setBrowserName] = useState("");
 
   const savePushSubscription = useMutation(api.push.savePushSubscription);
   const removePushSubscription = useMutation(api.push.removePushSubscription);
 
-  // Verificar suporte no navegador
+  // ✅ DETECTAR iOS E NAVEGADOR
   useEffect(() => {
-    setIsSupported(
-      'serviceWorker' in navigator &&
-      'PushManager' in window &&
-      'Notification' in window
-    );
+    const userAgent = window.navigator.userAgent.toLowerCase();
+    const iOS = /iphone|ipad|ipod/.test(userAgent);
+    const standalone = window.matchMedia('(display-mode: standalone)').matches;
+
+    // Detectar navegador
+    let browser = "unknown";
+    if (userAgent.includes("crios")) browser = "Chrome iOS";
+    else if (userAgent.includes("fxios")) browser = "Firefox iOS";
+    else if (userAgent.includes("edgios")) browser = "Edge iOS";
+    else if (userAgent.includes("safari")) browser = "Safari";
+    else if (userAgent.includes("chrome")) browser = "Chrome";
+    else if (userAgent.includes("firefox")) browser = "Firefox";
+
+    setIsIOS(iOS);
+    setIsPWA(standalone);
+    setBrowserName(browser);
+
+    const hasServiceWorker = 'serviceWorker' in navigator;
+    const hasPushManager = 'PushManager' in window;
+    const hasNotification = 'Notification' in window;
+
+    // iOS precisa estar no modo PWA
+    if (iOS) {
+      setIsSupported(hasServiceWorker && hasPushManager && hasNotification && standalone);
+    } else {
+      setIsSupported(hasServiceWorker && hasPushManager && hasNotification);
+    }
   }, []);
 
-  // Verificar se já está inscrito
   useEffect(() => {
     if (!isSupported) return;
     checkSubscription();
@@ -42,7 +65,6 @@ export function usePushNotifications() {
 
   const requestPermission = async () => {
     if (!isSupported) {
-      toast.error("Seu navegador não suporta notificações push");
       return false;
     }
 
@@ -51,42 +73,34 @@ export function usePushNotifications() {
   };
 
   const subscribe = async () => {
-    // ✅ VERIFICAÇÃO DA CHAVE ANTES DE CONTINUAR
     if (!VAPID_PUBLIC_KEY) {
-      console.error("❌ VAPID_PUBLIC_KEY não encontrada no .env.local");
-      toast.error("Erro de configuração: Chave de notificação não encontrada.", {
-        description: "Entre em contato com o suporte"
-      });
+      console.error("❌ VAPID_PUBLIC_KEY não encontrada");
+      toast.error("Erro de configuração: Chave de notificação não encontrada");
       return false;
     }
 
     setIsLoading(true);
 
     try {
-      // 1. Pedir permissão
       const hasPermission = await requestPermission();
       if (!hasPermission) {
         toast.error("Você precisa permitir notificações");
         return false;
       }
 
-      // 2. Registrar Service Worker
       let registration = await navigator.serviceWorker.getRegistration();
       if (!registration) {
         registration = await navigator.serviceWorker.register('/sw.js');
         await navigator.serviceWorker.ready;
       }
 
-      // 3. Converter VAPID key
       const convertedKey = urlBase64ToUint8Array(VAPID_PUBLIC_KEY);
 
-      // 4. Criar Push Subscription
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: convertedKey as BufferSource,
       });
 
-      // 5. Salvar no banco de dados
       const subscriptionJSON = subscription.toJSON();
 
       await savePushSubscription({
@@ -127,7 +141,7 @@ export function usePushNotifications() {
       return true;
     } catch (error: unknown) {
       console.error("Erro ao cancelar inscrição:", error);
-      toast.error("Erro ao desativar notificações: " + (error instanceof Error ? error.message : String(error)));
+      toast.error("Erro ao desativar notificações");
       return false;
     } finally {
       setIsLoading(false);
@@ -138,6 +152,9 @@ export function usePushNotifications() {
     isSupported,
     isSubscribed,
     isLoading,
+    isIOS,
+    isPWA,
+    browserName,
     subscribe,
     unsubscribe,
     checkSubscription,
