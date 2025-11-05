@@ -112,21 +112,11 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
 }
 
 function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
-  // Garantir que clicks é um array
   const validClicks = Array.isArray(clicks) ? clicks : [];
 
+  // PROCESSAR DADOS REAIS
   const devices = validClicks.reduce((acc, click) => {
-    const device = click.device || 'Iphone';
-    // Normalizar dispositivos
-    if (device.toLowerCase().includes('mobile') || device.toLowerCase().includes('phone')) {
-      acc['Mobile'] = (acc['Mobile'] || 0) + 1;
-    } else if (device.toLowerCase().includes('tablet')) {
-      acc['Tablet'] = (acc['Tablet'] || 0) + 1;
-    } else if (device.toLowerCase().includes('desktop') || device.toLowerCase().includes('laptop')) {
-      acc['Desktop'] = (acc['Desktop'] || 0) + 1;
-    } else {
-      acc['Other'] = (acc['Other'] || 0) + 1;
-    }
+    const device = click.device || 'Desconhecido';
     acc[device] = (acc[device] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -139,12 +129,9 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
   })).sort((a, b) => b.count - a.count);
 
   const getDeviceIcon = (device: string) => {
-    if (device.toLowerCase().includes('mobile') || device.toLowerCase().includes('phone'))
-      return <Smartphone className="w-4 h-4 text-blue-500" />;
-    if (device.toLowerCase().includes('tablet'))
-      return <Smartphone className="w-4 h-4 text-green-500" />;
-    if (device.toLowerCase().includes('desktop') || device.toLowerCase().includes('laptop'))
-      return <Laptop className="w-4 h-4 text-purple-500" />;
+    if (device === 'Mobile') return <Smartphone className="w-4 h-4 text-blue-500" />;
+    if (device === 'Tablet') return <Smartphone className="w-4 h-4 text-green-500" />;
+    if (device === 'Desktop') return <Laptop className="w-4 h-4 text-purple-500" />;
     return <MousePointer className="w-4 h-4 text-gray-500" />;
   };
 
@@ -152,9 +139,7 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
     <div className="space-y-3 mt-4">
       {deviceData.map(device => (
         <div key={device.name} className="flex items-center">
-          <div className="mr-3">
-            {getDeviceIcon(device.name)}
-          </div>
+          <div className="mr-3">{getDeviceIcon(device.name)}</div>
           <div className="flex-1">
             <div className="flex justify-between items-center mb-1">
               <span className="text-sm font-medium">{device.name}</span>
@@ -162,7 +147,7 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
             </div>
             <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
               <div
-                className="bg-purple-500 dark:bg-purple-600 h-2 rounded-full"
+                className="bg-purple-500 dark:bg-purple-600 h-2 rounded-full transition-all duration-500"
                 style={{ width: `${device.percentage}%` }}
               ></div>
             </div>
@@ -180,11 +165,11 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
 }
 
 function CountryMap({ clicks }: { clicks: ClickData[] }) {
-  // Garantir que clicks é um array
   const validClicks = Array.isArray(clicks) ? clicks : [];
 
+  // PROCESSAR DADOS REAIS
   const countries = validClicks.reduce((acc, click) => {
-    const country = click.country || 'Brasil';
+    const country = click.country || 'Desconhecido';
     acc[country] = (acc[country] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
@@ -204,7 +189,7 @@ function CountryMap({ clicks }: { clicks: ClickData[] }) {
           {countryData.length > 0 ? (
             <div className="divide-y">
               {countryData.map(country => (
-                <div key={country.name} className="flex items-center justify-between py-2 px-3">
+                <div key={country.name} className="flex items-center justify-between py-2 px-3 hover:bg-muted/30 transition-colors">
                   <div className="flex items-center">
                     <Globe className="w-4 h-4 mr-2 text-muted-foreground" />
                     <span className="text-sm">{country.name}</span>
@@ -427,24 +412,24 @@ function ClicksList({ clicks, setFilteredClicks }: {
             </div>
 
             <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Navegador: </span>
-              {click.browser || "Safari"}
-            </div>
+  <span className="text-muted-foreground">Navegador: </span>
+  {click.browser || "Desconhecido"}
+</div>
 
             <div className="text-sm pl-6">
               <span className="text-muted-foreground">ID do Visitante: </span>
               {click.visitorId}
             </div>
 
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Referenciador: </span>
-              {click.referrer || "Instagram"}
-            </div>
+          <div className="text-sm pl-6">
+  <span className="text-muted-foreground">Referenciador: </span>
+  {click.referrer || "Direto"}
+</div>
 
             <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Sistema Operacional: </span>
-              {click.os || "iOS "}
-            </div>
+  <span className="text-muted-foreground">Sistema Operacional: </span>
+  {click.os || "Desconhecido"}
+</div>
 
             <div className="text-sm pl-6">
               <span className="text-muted-foreground">ID do Clique: </span>
