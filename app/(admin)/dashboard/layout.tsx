@@ -1180,12 +1180,89 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3 }}
             >
-
-
               {children}
             </motion.div>
           </div>
         </main>
+
+        {/* Mobile Bottom Navigation */}
+        <motion.div
+          className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 px-2 py-2 safe-area-bottom z-30"
+          initial={{ y: 100 }}
+          animate={{ y: 0 }}
+          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+        >
+          <div className="flex items-center justify-around max-w-lg mx-auto">
+            <Link href="/dashboard" className="flex-1">
+              <motion.button
+                className={clsx(
+                  "flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[60px]",
+                  pathname === "/dashboard"
+                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                )}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Home className="w-5 h-5 mb-1 flex-shrink-0" />
+                <span className="text-[10px] font-semibold truncate w-full text-center">Início</span>
+              </motion.button>
+            </Link>
+
+            <Link href="/dashboard/links" className="flex-1">
+              <motion.button
+                className={clsx(
+                  "flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[60px]",
+                  pathname.startsWith("/dashboard/links")
+                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                )}
+                whileTap={{ scale: 0.95 }}
+              >
+                <LayoutGrid className="w-5 h-5 mb-1 flex-shrink-0" />
+                <span className="text-[10px] font-semibold truncate w-full text-center">Links</span>
+              </motion.button>
+            </Link>
+
+            <Link href="/dashboard/new-link" className="flex-1">
+              <motion.button
+                className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white p-3 rounded-2xl shadow-xl flex flex-col items-center justify-center relative overflow-hidden -mt-4 min-h-[68px] mx-2"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+              >
+                <motion.div
+                  className="absolute inset-0 bg-white/20"
+                  animate={{ rotate: [0, 360] }}
+                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+                />
+                <PlusCircle className="w-6 h-6 relative z-10 flex-shrink-0" />
+              </motion.button>
+            </Link>
+
+            <Link href="/dashboard/mentor-ia" className="flex-1">
+              <motion.button
+                className={clsx(
+                  "flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[60px]",
+                  pathname.startsWith("/dashboard/mentor-ia") || pathname.startsWith("/dashboard/brain") || pathname.startsWith("/dashboard/ai-studio")
+                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                )}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Wand2 className="w-5 h-5 mb-1 flex-shrink-0" />
+                <span className="text-[10px] font-semibold truncate w-full text-center">IA</span>
+              </motion.button>
+            </Link>
+
+            <motion.button
+              onClick={() => setIsSidebarOpen(true)}
+              className="flex flex-col items-center justify-center p-2 rounded-2xl transition-all flex-1 min-h-[60px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+              whileTap={{ scale: 0.95 }}
+            >
+              <Menu className="w-5 h-5 mb-1 flex-shrink-0" />
+              <span className="text-[10px] font-semibold truncate w-full text-center">Menu</span>
+            </motion.button>
+          </div>
+        </motion.div>
       </div>
     </div>
   );

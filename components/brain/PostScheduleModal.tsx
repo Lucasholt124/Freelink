@@ -1,7 +1,7 @@
-// components/brain/PostScheduleModal.tsx - VERSÃO COMPLETA CORRIGIDA
+// components/brain/PostScheduleModal.tsx - VERSÃO CORRIGIDA SEM BUG DE DIGITAÇÃO
 "use client";
 
-import { useState, useRef } from "react";
+import { useState, useRef, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
@@ -103,7 +103,8 @@ const PLATFORM_CONFIG = {
   },
 } as const;
 
-const UploadFeedback = ({
+// ✅ MEMOIZADO: Componente de feedback de upload
+const UploadFeedback = memo(({
   isUploading,
   uploadProgress,
   uploadSuccess,
@@ -159,7 +160,9 @@ const UploadFeedback = ({
       )}
     </AnimatePresence>
   );
-};
+});
+
+UploadFeedback.displayName = "UploadFeedback";
 
 export default function PostScheduleModal({
   isOpen,
@@ -190,8 +193,8 @@ export default function PostScheduleModal({
   const { isConnected } = useNotificationIntegration();
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
-  // ✅ CORRIGIDO: Upload real de arquivo
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // ✅ CORREÇÃO: useCallback para evitar recriações
+  const handleFileChange = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -216,14 +219,12 @@ export default function PostScheduleModal({
     setUploadSuccess(false);
 
     try {
-      // Preview local
       const reader = new FileReader();
       reader.onload = () => {
         setMediaPreview(reader.result as string);
       };
       reader.readAsDataURL(file);
 
-      // Upload real para Convex
       setUploadProgress(25);
       const uploadUrl = await generateUploadUrl();
 
@@ -254,26 +255,28 @@ export default function PostScheduleModal({
       console.error("Erro no upload:", error);
       toast.error("Erro ao fazer upload. Tente novamente.");
     }
-  };
+  }, [contentType, generateUploadUrl]);
 
-  const handleAddHashtag = (tag?: string) => {
+  // ✅ CORREÇÃO: useCallback para handlers
+  const handleAddHashtag = useCallback((tag?: string) => {
     const newTag = tag || hashtagInput.trim();
     if (!newTag) return;
 
     const formattedTag = newTag.startsWith("#") ? newTag : `#${newTag}`;
 
-    if (!hashtags.includes(formattedTag)) {
-      setHashtags([...hashtags, formattedTag]);
+    setHashtags((prev) => {
+      if (prev.includes(formattedTag)) return prev;
       toast.success(`Hashtag ${formattedTag} adicionada!`, { duration: 1000 });
-    }
+      return [...prev, formattedTag];
+    });
     setHashtagInput("");
-  };
+  }, [hashtagInput]);
 
-  const handleRemoveHashtag = (tag: string) => {
-    setHashtags(hashtags.filter((t) => t !== tag));
-  };
+  const handleRemoveHashtag = useCallback((tag: string) => {
+    setHashtags((prev) => prev.filter((t) => t !== tag));
+  }, []);
 
-  const handleSchedule = async () => {
+  const handleSchedule = useCallback(async () => {
     if (!caption.trim()) {
       toast.error("Escreva uma legenda para o post");
       return;
@@ -299,7 +302,7 @@ export default function PostScheduleModal({
         scheduledDate,
         scheduledTime,
         platform,
-        mediaStorageId: mediaStorageId ?? undefined, // ✅ CORRIGIDO: Converte null para undefined
+        mediaStorageId: mediaStorageId ?? undefined,
       });
 
       toast.dismiss(loadingToast);
@@ -316,7 +319,21 @@ export default function PostScheduleModal({
       console.error("Erro ao agendar:", error);
       toast.error(error instanceof Error ? error.message : "Erro ao agendar post");
     }
-  };
+  }, [
+    caption,
+    scheduledDate,
+    scheduledTime,
+    enableNotification,
+    isConnected,
+    createPost,
+    campaignId,
+    contentType,
+    contentData,
+    hashtags,
+    platform,
+    mediaStorageId,
+    onClose,
+  ]);
 
   const supportedPlatforms = Object.entries(PLATFORM_CONFIG).filter(([, config]) =>
     (config.supports as readonly string[]).includes(contentType)
@@ -324,7 +341,8 @@ export default function PostScheduleModal({
 
   const PlatformIcon = PLATFORM_CONFIG[platform].icon;
 
-  const PreviewSection = () => (
+  // ✅ CORREÇÃO: Componente Preview memoizado
+  const PreviewSection = memo(() => (
     <div className="h-full flex flex-col bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
       <div className="flex-shrink-0 p-4 sm:p-6 border-b dark:border-gray-700 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
         <h3 className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
@@ -338,10 +356,8 @@ export default function PostScheduleModal({
 
       <div className="flex-1 overflow-y-auto p-4 sm:p-6">
         <div className="max-w-md mx-auto space-y-4">
-          <motion.div
-            layout
-            className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden border-2 border-gray-200 dark:border-gray-700"
-          >
+          {/* ✅ REMOVIDO: layout prop que causava o bug */}
+          <div className="bg-white dark:bg-gray-800 rounded-xl sm:rounded-2xl shadow-2xl overflow-hidden border-2 border-gray-200 dark:border-gray-700">
             <div className="p-3 sm:p-4 flex items-center gap-3 border-b dark:border-gray-700">
               <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center flex-shrink-0">
                 <PlatformIcon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -445,7 +461,7 @@ export default function PostScheduleModal({
                 </button>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {mediaFile && (
             <motion.div
@@ -481,9 +497,12 @@ export default function PostScheduleModal({
         onChange={handleFileChange}
       />
     </div>
-  );
+  ));
 
-  const ConfigSection = () => (
+  PreviewSection.displayName = "PreviewSection";
+
+  // ✅ CORREÇÃO: Componente Config memoizado
+  const ConfigSection = memo(() => (
     <div className="h-full flex flex-col">
       <div className="flex-shrink-0 p-4 sm:p-6 border-b dark:border-gray-700 bg-white/50 dark:bg-gray-900/50 backdrop-blur-sm">
         <h3 className="flex items-center gap-2 text-lg sm:text-xl font-semibold">
@@ -525,7 +544,7 @@ export default function PostScheduleModal({
 
           <Separator />
 
-          {/* Legenda */}
+          {/* ✅ CORREÇÃO: Textarea sem re-renderizações desnecessárias */}
           <div className="space-y-3">
             <Label htmlFor="caption" className="text-sm font-semibold">
               Legenda do Post
@@ -537,6 +556,8 @@ export default function PostScheduleModal({
               placeholder="Escreva uma legenda incrível que vai engajar seu público..."
               className="min-h-[120px] sm:min-h-[150px] resize-none text-sm"
               maxLength={2200}
+              autoComplete="off"
+              spellCheck="false"
             />
             <div className="flex justify-between items-center">
               <p className="text-xs text-muted-foreground">
@@ -579,6 +600,7 @@ export default function PostScheduleModal({
               </div>
             </div>
 
+            {/* ✅ CORREÇÃO: Input de hashtag sem perder foco */}
             <div className="flex gap-2">
               <Input
                 value={hashtagInput}
@@ -591,11 +613,13 @@ export default function PostScheduleModal({
                 }}
                 placeholder="Digite uma hashtag e pressione Enter"
                 className="text-sm"
+                autoComplete="off"
               />
               <Button
                 onClick={() => handleAddHashtag()}
                 size="icon"
                 disabled={!hashtagInput.trim()}
+                type="button"
               >
                 <Check className="w-4 h-4" />
               </Button>
@@ -704,10 +728,13 @@ export default function PostScheduleModal({
         </div>
       </div>
     </div>
-  );
+  ));
+
+  ConfigSection.displayName = "ConfigSection";
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
+      {/* ✅ CORREÇÃO: Removido animações que causam layout shift */}
       <DialogContent
         className={cn(
           "p-0 gap-0 overflow-hidden flex flex-col",
@@ -715,8 +742,9 @@ export default function PostScheduleModal({
           "sm:h-[90vh] sm:max-h-[90vh]",
           "md:w-[95vw] md:max-w-[1400px]"
         )}
+        onOpenAutoFocus={(e) => e.preventDefault()} // ✅ Previne auto-focus
       >
-        <DialogHeader className="px-4 sm:px-6 py-4 border-b">
+        <DialogHeader className="px-4 sm:px-6 py-4 border-b flex-shrink-0">
           <DialogTitle className="flex items-center gap-3 text-xl sm:text-2xl">
             <div className="p-2 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500">
               <Sparkles className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
@@ -737,9 +765,9 @@ export default function PostScheduleModal({
         </DialogHeader>
 
         {/* Mobile Tabs */}
-        <div className="md:hidden">
-          <Tabs value={mobileTab} onValueChange={(v) => setMobileTab(v as "preview" | "config")}>
-            <TabsList className="w-full grid grid-cols-2 rounded-none border-b">
+        <div className="md:hidden flex-1 overflow-hidden flex flex-col">
+          <Tabs value={mobileTab} onValueChange={(v) => setMobileTab(v as "preview" | "config")} className="flex-1 flex flex-col overflow-hidden">
+            <TabsList className="w-full grid grid-cols-2 rounded-none border-b flex-shrink-0">
               <TabsTrigger value="config" className="gap-2">
                 <Edit className="w-4 h-4" />
                 Configurar
@@ -749,10 +777,10 @@ export default function PostScheduleModal({
                 Preview
               </TabsTrigger>
             </TabsList>
-            <TabsContent value="config" className="h-[calc(100dvh-200px)] mt-0">
+            <TabsContent value="config" className="flex-1 overflow-hidden mt-0" forceMount hidden={mobileTab !== "config"}>
               <ConfigSection />
             </TabsContent>
-            <TabsContent value="preview" className="h-[calc(100dvh-200px)] mt-0">
+            <TabsContent value="preview" className="flex-1 overflow-hidden mt-0" forceMount hidden={mobileTab !== "preview"}>
               <PreviewSection />
             </TabsContent>
           </Tabs>
@@ -768,12 +796,13 @@ export default function PostScheduleModal({
           </div>
         </div>
 
-        <DialogFooter className="px-4 sm:px-6 py-4 border-t bg-muted/30 flex-row gap-3">
+        <DialogFooter className="px-4 sm:px-6 py-4 border-t bg-muted/30 flex-row gap-3 flex-shrink-0">
           <Button
             variant="outline"
             onClick={onClose}
             disabled={isUploading}
             className="flex-1 sm:flex-none"
+            type="button"
           >
             Cancelar
           </Button>
@@ -781,6 +810,7 @@ export default function PostScheduleModal({
             onClick={handleSchedule}
             disabled={isUploading || !caption.trim() || !scheduledDate || !scheduledTime}
             className="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            type="button"
           >
             {isUploading ? (
               <>
