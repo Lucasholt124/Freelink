@@ -14,7 +14,7 @@ import {
   Menu, X
 } from "lucide-react";
 
-import type { LinkAnalyticsData } from "@/convex/lib/fetchLinkAnalytics";
+import type { LinkAnalyticsData, TrafficSource, DeviceStats, BrowserStats, RecentActivity, EngagementMetrics } from "@/convex/lib/fetchLinkAnalytics";
 import { DailyPerformanceChart } from "./DailyPerformanceChart";
 import { CountryChart } from "./CountryChart";
 import { CityChart } from "./CityChart";
@@ -23,39 +23,6 @@ import { HourlyChart } from "./HourlyChart";
 import { LockedFeatureCard } from "./LockedFeatureCard";
 import { UpgradeCallToAction } from "./UpgradeCallToAction";
 import { NoDataState } from "./NoDataState";
-
-// Tipos
-interface TrafficSource {
-  name: string;
-  clicks: number;
-  icon: string;
-  percentage?: number;
-}
-
-interface DeviceData {
-  desktop: number;
-  mobile: number;
-  tablet: number;
-}
-
-interface BrowserData {
-  name: string;
-  count: number;
-  percentage: number;
-}
-
-interface RecentActivity {
-  time: string;
-  action: string;
-  location: string;
-  timestamp?: Date;
-}
-
-interface EngagementMetrics {
-  clicksPerVisitor: number;
-  returnRate: number;
-  uniqueVisitorRate: number;
-}
 
 interface CustomMetricCardProps {
   title: string;
@@ -287,7 +254,7 @@ function SocialOriginCard({ trafficSources }: { trafficSources: TrafficSource[] 
 }
 
 // Card de Dispositivos Responsivo
-function DevicesCard({ devices }: { devices: DeviceData }) {
+function DevicesCard({ devices }: { devices: DeviceStats }) {
   const total = devices.desktop + devices.mobile + devices.tablet;
 
   if (total === 0) return null;
@@ -380,7 +347,10 @@ function RecentActivityCard({ activities }: { activities: RecentActivity[] }) {
                 {truncateText(activity.action, 30)}
               </p>
               <div className="flex items-center gap-1 sm:gap-2 mt-0.5 sm:mt-1 text-xs text-gray-500">
-                <span className="truncate max-w-[60px] sm:max-w-none">{activity.time}</span>
+                {/* ✅ Mostra data/hora exata ou tempo relativo como fallback */}
+                <span className="truncate max-w-[150px] sm:max-w-none font-medium text-gray-700">
+                  {activity.exactTime || activity.time}
+                </span>
                 <span>•</span>
                 <span className="truncate max-w-[100px] sm:max-w-[150px]">
                   {activity.location}
@@ -404,7 +374,7 @@ function RecentActivityCard({ activities }: { activities: RecentActivity[] }) {
 }
 
 // Card de Browsers Responsivo
-function BrowsersCard({ browsers }: { browsers: BrowserData[] }) {
+function BrowsersCard({ browsers }: { browsers: BrowserStats[] }) {
   const [showAll, setShowAll] = useState(false);
   const displayedBrowsers = showAll ? browsers : browsers.slice(0, 3);
 
@@ -603,7 +573,7 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
                 )}
 
                 {/* Dispositivos */}
-                {analytics.devices && (
+                {analytics.devices && analytics.devices.desktop + analytics.devices.mobile + analytics.devices.tablet > 0 && (
                   <DevicesCard devices={analytics.devices} />
                 )}
 

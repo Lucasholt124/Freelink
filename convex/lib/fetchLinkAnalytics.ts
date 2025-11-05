@@ -14,8 +14,10 @@ interface TrafficSource {
   percentage: number;
 }
 
+// ✅ MODIFICADO - Adicionado campo exactTime
 interface RecentActivity {
   time: string;
+  exactTime: string; // NOVO CAMPO
   action: string;
   location: string;
   timestamp: Date;
@@ -636,9 +638,11 @@ function getTrafficSourceIcon(source: string): string {
   return iconMap[source] || TrafficSourceIcon.OTHER;
 }
 
+// ✅ MODIFICADO - Agora usa processRecentActivities com exactTime
 function processRecentActivities(rows: QueryResultRow[]): RecentActivity[] {
   return rows.map(row => ({
     time: formatRelativeTime(new Date(row.timestamp)),
+    exactTime: formatExactTime(new Date(row.timestamp)), // NOVA LINHA
     action: 'Clique no link',
     location: formatLocation(row.city, row.region, row.country),
     timestamp: row.timestamp,
@@ -665,6 +669,18 @@ function formatRelativeTime(date: Date): string {
     day: '2-digit',
     month: 'short',
     year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+  });
+}
+
+// ✅ NOVA FUNÇÃO - Formata horário exato
+function formatExactTime(date: Date): string {
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    timeZone: 'America/Sao_Paulo'
   });
 }
 

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,19 +13,20 @@ import {
   Users,
   ExternalLink,
   LinkIcon,
-  ChevronDown,
+
   Download,
   Calendar,
   MousePointer,
   Smartphone,
   Laptop,
   Share2,
-  Copy
+  Copy,
+  Activity
 } from "lucide-react";
 import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import clsx from "clsx";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -41,11 +42,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
+
 
 type LinkData = { id: string; url: string; createdAt: number; };
 type ClickData = {
@@ -53,33 +50,341 @@ type ClickData = {
   timestamp: number;
   country: string | null;
   visitorId: string;
-  device?: string;
-  browser?: string;
-  os?: string;
+  userAgent?: string;
   referrer?: string;
 };
 type PageData = { link: LinkData; clicks: ClickData[] };
 
-// Mock data for charts
-const generateChartData = (clicks: ClickData[]) => {
-  // Last 7 days data
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
-  }).reverse();
-
-  const clicksByDay = clicks.reduce((acc, click) => {
-    const date = new Date(click.timestamp).toISOString().split('T')[0];
-    acc[date] = (acc[date] || 0) + 1;
-    return acc;
-  }, {} as Record<string, number>);
-
-  return {
-    labels: last7Days,
-    data: last7Days.map(day => clicksByDay[day] || 0)
+// 🎯 NOVO: Componente de Click Individual com Animação
+function ClickRow({ click, index }: { click: ClickData; index: number }) {
+  const formatDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: '2-digit'
+    });
   };
-};
+
+  const formatTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  };
+
+  const getDeviceIcon = (userAgent?: string) => {
+    if (!userAgent) return <Globe className="w-4 h-4 text-gray-400" />;
+
+    const ua = userAgent.toLowerCase();
+    if (ua.includes('mobile') || ua.includes('iphone') || ua.includes('android')) {
+      return <Smartphone className="w-4 h-4 text-blue-500" />;
+    }
+    return <Laptop className="w-4 h-4 text-purple-500" />;
+  };
+
+  return (
+    <motion.tr
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05, duration: 0.3 }}
+      className="hover:bg-muted/50 transition-colors border-b border-gray-100 dark:border-gray-800"
+    >
+      <td className="p-4">
+        <div className="flex items-center gap-2">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: index * 0.05 + 0.2, type: "spring" }}
+            className="w-2 h-2 bg-green-500 rounded-full"
+          />
+          <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+            {click.id}
+          </span>
+        </div>
+      </td>
+
+      <td className="p-4">
+        <div className="flex items-center gap-2">
+          <Calendar className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm">{formatDate(click.timestamp)}</span>
+        </div>
+      </td>
+
+      <td className="p-4">
+        <div className="flex items-center gap-2">
+          <Clock className="w-4 h-4 text-purple-500" />
+          <span className="text-sm font-mono font-medium text-purple-600 dark:text-purple-400">
+            {formatTime(click.timestamp)}
+          </span>
+        </div>
+      </td>
+
+      <td className="p-4">
+        <div className="flex items-center gap-2">
+          <Globe className="w-4 h-4 text-muted-foreground" />
+          <span className="text-sm">{click.country || "Brasil"}</span>
+        </div>
+      </td>
+
+      <td className="p-4">
+        <div className="flex items-center gap-2">
+          {getDeviceIcon(click.userAgent)}
+          <span className="text-sm truncate max-w-[150px]" title={click.userAgent || "Desconhecido"}>
+            {click.userAgent ? (
+              click.userAgent.includes('Mobile') || click.userAgent.includes('iPhone') ? 'Mobile' : 'Desktop'
+            ) : 'Desconhecido'}
+          </span>
+        </div>
+      </td>
+
+      <td className="p-4">
+        <span className="text-xs text-muted-foreground font-mono truncate max-w-[120px] block" title={click.visitorId}>
+          {click.visitorId.substring(0, 12)}...
+        </span>
+      </td>
+
+      <td className="p-4">
+        <span className="text-xs text-muted-foreground truncate max-w-[150px] block" title={click.referrer || "Direto"}>
+          {click.referrer || "Direto"}
+        </span>
+      </td>
+    </motion.tr>
+  );
+}
+
+// 🎯 NOVO: Tabela Grande de Clicks com Animações
+function ClicksTable({ clicks }: { clicks: ClickData[] }) {
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [filteredClicks, setFilteredClicks] = useState<ClickData[]>(clicks);
+
+  useEffect(() => {
+    let filtered = [...clicks];
+
+    if (timeFilter === 'today') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(click => new Date(click.timestamp) >= today);
+    } else if (timeFilter === 'week') {
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      filtered = filtered.filter(click => new Date(click.timestamp) >= weekAgo);
+    } else if (timeFilter === 'month') {
+      const monthAgo = new Date();
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      filtered = filtered.filter(click => new Date(click.timestamp) >= monthAgo);
+    }
+
+    setFilteredClicks(filtered);
+  }, [timeFilter, clicks]);
+
+  if (!clicks.length) {
+    return (
+      <div className="text-center py-12 px-4">
+        <Activity className="w-12 h-12 mx-auto text-gray-400 mb-3 opacity-50" />
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+          Nenhum click registrado
+        </h3>
+        <p className="text-sm text-muted-foreground">
+          Compartilhe seu link para começar a rastrear clicks
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Filtros e Exportação */}
+      <div className="flex flex-col sm:flex-row justify-between gap-3">
+        <Select defaultValue="all" onValueChange={setTimeFilter}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Período" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos os clicks</SelectItem>
+            <SelectItem value="today">Hoje</SelectItem>
+            <SelectItem value="week">Últimos 7 dias</SelectItem>
+            <SelectItem value="month">Últimos 30 dias</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-2"
+          onClick={() => {
+            try {
+              const headers = ['ID', 'Data', 'Hora', 'País', 'Dispositivo', 'Visitor ID', 'Referrer'];
+              const rows = filteredClicks.map(click => [
+                click.id,
+                new Date(click.timestamp).toLocaleDateString('pt-BR'),
+                new Date(click.timestamp).toLocaleTimeString('pt-BR'),
+                click.country || 'Brasil',
+                click.userAgent || 'Desconhecido',
+                click.visitorId,
+                click.referrer || 'Direto',
+              ]);
+
+              const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.join(','))
+              ].join('\n');
+
+              const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+              const url = URL.createObjectURL(blob);
+              const link = document.createElement('a');
+              link.href = url;
+              link.download = `clicks-${new Date().toISOString().split('T')[0]}.csv`;
+              link.click();
+              URL.revokeObjectURL(url);
+
+              toast.success('Relatório exportado com sucesso!');
+            } catch  {
+              toast.error('Erro ao exportar dados');
+            }
+          }}
+        >
+          <Download className="w-4 h-4" />
+          Exportar CSV
+        </Button>
+      </div>
+
+      {/* Contador de Clicks */}
+      <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-white dark:bg-gray-800 rounded-lg">
+              <Activity className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+            </div>
+            <div>
+              <p className="text-sm text-muted-foreground">Total de Clicks</p>
+              <p className="text-2xl font-bold text-purple-700 dark:text-purple-400">
+                {filteredClicks.length}
+              </p>
+            </div>
+          </div>
+
+          {timeFilter !== 'all' && (
+            <div className="text-right">
+              <p className="text-xs text-muted-foreground">Do total de</p>
+              <p className="text-lg font-semibold">{clicks.length}</p>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Tabela Desktop */}
+      <div className="hidden md:block bg-white dark:bg-gray-800 rounded-xl border overflow-hidden shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr className="bg-gray-50 dark:bg-gray-900 border-b border-gray-200 dark:border-gray-700">
+                <th className="text-left p-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  ID
+                </th>
+                <th className="text-left p-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  Data
+                </th>
+                <th className="text-left p-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  Horário Exato
+                </th>
+                <th className="text-left p-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  País
+                </th>
+                <th className="text-left p-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  Dispositivo
+                </th>
+                <th className="text-left p-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  Visitor ID
+                </th>
+                <th className="text-left p-4 text-xs font-semibold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
+                  Referrer
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <AnimatePresence>
+                {filteredClicks.map((click, index) => (
+                  <ClickRow key={click.id} click={click} index={index} />
+                ))}
+              </AnimatePresence>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* Cards Mobile */}
+      <div className="md:hidden space-y-3">
+        <AnimatePresence>
+          {filteredClicks.map((click, index) => (
+            <motion.div
+              key={click.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              transition={{ delay: index * 0.05 }}
+              className="bg-white dark:bg-gray-800 rounded-lg border p-4 space-y-3 shadow-sm"
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: index * 0.05 + 0.2, type: "spring" }}
+                    className="w-2 h-2 bg-green-500 rounded-full"
+                  />
+                  <span className="text-sm font-semibold">Click #{click.id}</span>
+                </div>
+                <span className="text-xs text-muted-foreground">
+                  {new Date(click.timestamp).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 bg-purple-50 dark:bg-purple-900/20 rounded-md p-2">
+                <Clock className="w-4 h-4 text-purple-500" />
+                <span className="text-sm font-mono font-medium text-purple-600 dark:text-purple-400">
+                  {new Date(click.timestamp).toLocaleTimeString('pt-BR')}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-muted-foreground" />
+                  <span>{click.country || "Brasil"}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  {click.userAgent?.toLowerCase().includes('mobile') ? (
+                    <Smartphone className="w-4 h-4 text-blue-500" />
+                  ) : (
+                    <Laptop className="w-4 h-4 text-purple-500" />
+                  )}
+                  <span className="truncate">
+                    {click.userAgent?.includes('Mobile') ? 'Mobile' : 'Desktop'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground space-y-1">
+                <div>
+                  <span className="font-medium">Visitor: </span>
+                  <span className="font-mono">{click.visitorId.substring(0, 16)}...</span>
+                </div>
+                <div>
+                  <span className="font-medium">Referrer: </span>
+                  <span>{click.referrer || "Direto"}</span>
+                </div>
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+// [Manter os outros componentes: AnalyticsChart, DeviceBreakdown, CountryMap, AnalyticsMetrics - sem alterações]
 
 function AnalyticsChart({ data, labels, title }: { data: number[], labels: string[], title: string }) {
   const maxValue = Math.max(...data, 5);
@@ -90,17 +395,16 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
       <div className="h-48 flex items-end gap-1">
         {data.map((value, index) => (
           <div key={index} className="group relative flex flex-col items-center flex-1">
-            <div className="absolute bottom-full mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none">
+            <div className="absolute bottom-full mb-1.5 opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none z-10">
               {value} {value === 1 ? 'clique' : 'cliques'}
-              <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-t-4 border-l-4 border-r-4 border-transparent border-t-gray-800 w-0 h-0"></div>
             </div>
-            <div
-              className="w-full bg-purple-500 dark:bg-purple-600 rounded-t"
-              style={{
-                height: `${Math.max((value / maxValue) * 100, 4)}%`,
-                opacity: value ? 1 : 0.3
-              }}
-            ></div>
+            <motion.div
+              initial={{ height: 0 }}
+              animate={{ height: `${Math.max((value / maxValue) * 100, 4)}%` }}
+              transition={{ delay: index * 0.1, duration: 0.5, type: "spring" }}
+              className="w-full bg-gradient-to-t from-purple-600 to-purple-400 rounded-t"
+              style={{ opacity: value ? 1 : 0.3 }}
+            />
             <span className="text-xs text-gray-500 dark:text-gray-400 mt-1 whitespace-nowrap overflow-hidden text-ellipsis w-full text-center">
               {new Date(labels[index]).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}
             </span>
@@ -112,22 +416,17 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
 }
 
 function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
-  // Garantir que clicks é um array
   const validClicks = Array.isArray(clicks) ? clicks : [];
 
   const devices = validClicks.reduce((acc, click) => {
-    const device = click.device || 'Iphone';
-    // Normalizar dispositivos
-    if (device.toLowerCase().includes('mobile') || device.toLowerCase().includes('phone')) {
+    const ua = click.userAgent?.toLowerCase() || '';
+    if (ua.includes('mobile') || ua.includes('iphone') || ua.includes('android')) {
       acc['Mobile'] = (acc['Mobile'] || 0) + 1;
-    } else if (device.toLowerCase().includes('tablet')) {
+    } else if (ua.includes('tablet') || ua.includes('ipad')) {
       acc['Tablet'] = (acc['Tablet'] || 0) + 1;
-    } else if (device.toLowerCase().includes('desktop') || device.toLowerCase().includes('laptop')) {
-      acc['Desktop'] = (acc['Desktop'] || 0) + 1;
     } else {
-      acc['Other'] = (acc['Other'] || 0) + 1;
+      acc['Desktop'] = (acc['Desktop'] || 0) + 1;
     }
-    acc[device] = (acc[device] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -139,19 +438,23 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
   })).sort((a, b) => b.count - a.count);
 
   const getDeviceIcon = (device: string) => {
-    if (device.toLowerCase().includes('mobile') || device.toLowerCase().includes('phone'))
+    if (device.toLowerCase().includes('mobile'))
       return <Smartphone className="w-4 h-4 text-blue-500" />;
     if (device.toLowerCase().includes('tablet'))
       return <Smartphone className="w-4 h-4 text-green-500" />;
-    if (device.toLowerCase().includes('desktop') || device.toLowerCase().includes('laptop'))
-      return <Laptop className="w-4 h-4 text-purple-500" />;
-    return <MousePointer className="w-4 h-4 text-gray-500" />;
+    return <Laptop className="w-4 h-4 text-purple-500" />;
   };
 
   return (
     <div className="space-y-3 mt-4">
-      {deviceData.map(device => (
-        <div key={device.name} className="flex items-center">
+      {deviceData.map((device, index) => (
+        <motion.div
+          key={device.name}
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: index * 0.1 }}
+          className="flex items-center"
+        >
           <div className="mr-3">
             {getDeviceIcon(device.name)}
           </div>
@@ -160,14 +463,16 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
               <span className="text-sm font-medium">{device.name}</span>
               <span className="text-xs text-gray-500">{device.count} ({device.percentage}%)</span>
             </div>
-            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-              <div
-                className="bg-purple-500 dark:bg-purple-600 h-2 rounded-full"
-                style={{ width: `${device.percentage}%` }}
-              ></div>
+            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden">
+              <motion.div
+                initial={{ width: 0 }}
+                animate={{ width: `${device.percentage}%` }}
+                transition={{ delay: index * 0.1 + 0.2, duration: 0.5 }}
+                className="bg-gradient-to-r from-purple-500 to-purple-600 h-2 rounded-full"
+              />
             </div>
           </div>
-        </div>
+        </motion.div>
       ))}
 
       {deviceData.length === 0 && (
@@ -180,7 +485,6 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
 }
 
 function CountryMap({ clicks }: { clicks: ClickData[] }) {
-  // Garantir que clicks é um array
   const validClicks = Array.isArray(clicks) ? clicks : [];
 
   const countries = validClicks.reduce((acc, click) => {
@@ -203,14 +507,20 @@ function CountryMap({ clicks }: { clicks: ClickData[] }) {
         <div className="p-1">
           {countryData.length > 0 ? (
             <div className="divide-y">
-              {countryData.map(country => (
-                <div key={country.name} className="flex items-center justify-between py-2 px-3">
+              {countryData.map((country, index) => (
+                <motion.div
+                  key={country.name}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.1 }}
+                  className="flex items-center justify-between py-2 px-3"
+                >
                   <div className="flex items-center">
                     <Globe className="w-4 h-4 mr-2 text-muted-foreground" />
                     <span className="text-sm">{country.name}</span>
                   </div>
                   <span className="text-sm font-medium">{country.count}</span>
-                </div>
+                </motion.div>
               ))}
             </div>
           ) : (
@@ -224,324 +534,12 @@ function CountryMap({ clicks }: { clicks: ClickData[] }) {
   );
 }
 
-
-function ClicksList({ clicks, setFilteredClicks }: {
-  clicks: ClickData[],
-  setFilteredClicks: (clicks: ClickData[]) => void
-}) {
-  const [timeFilter, setTimeFilter] = useState('all');
-  const [countryFilter, setCountryFilter] = useState('all');
-
-  // Garantir que clicks é um array
+function AnalyticsMetrics({ clicks, plan }: { clicks: ClickData[]; plan: string }) {
   const validClicks = Array.isArray(clicks) ? clicks : [];
-
-  useEffect(() => {
-    if (!Array.isArray(clicks)) {
-      setFilteredClicks([]);
-      return;
-    }
-
-    let filtered = [...clicks];
-
-    // Apply time filter
-    if (timeFilter === 'today') {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      filtered = filtered.filter(click => new Date(click.timestamp) >= today);
-    } else if (timeFilter === 'week') {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      filtered = filtered.filter(click => new Date(click.timestamp) >= weekAgo);
-    } else if (timeFilter === 'month') {
-      const monthAgo = new Date();
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      filtered = filtered.filter(click => new Date(click.timestamp) >= monthAgo);
-    }
-
-    // Apply country filter
-    if (countryFilter !== 'all') {
-      filtered = filtered.filter(click => click.country === countryFilter);
-    }
-
-    setFilteredClicks(filtered);
-  }, [timeFilter, countryFilter, clicks, setFilteredClicks]);
-
-  // Get unique countries for filter
-  const countries = Array.from(new Set(validClicks.map(click => click.country).filter(Boolean))) as string[];
-
-  if (!validClicks.length) {
-    return (
-      <div className="text-center text-gray-500 dark:text-gray-400 py-10 px-4">
-        <Globe className="mx-auto h-12 w-12 text-gray-400 dark:text-gray-500 mb-4 opacity-50" />
-        <h3 className="text-lg font-medium mb-1">Sem cliques ainda</h3>
-        <p className="max-w-sm mx-auto">
-          Este link ainda não recebeu nenhum clique. Compartilhe-o para começar a rastrear as visitas.
-        </p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Select defaultValue="all" onValueChange={setTimeFilter}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Período" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todo período</SelectItem>
-              <SelectItem value="today">Hoje</SelectItem>
-              <SelectItem value="week">Últimos 7 dias</SelectItem>
-              <SelectItem value="month">Últimos 30 dias</SelectItem>
-            </SelectContent>
-          </Select>
-
-          {countries.length > 0 && (
-            <Select defaultValue="all" onValueChange={setCountryFilter}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue placeholder="País" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os países</SelectItem>
-                {countries.map(country => (
-                  <SelectItem key={country} value={country}>{country}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-        </div>
-
-        <Popover>
-          <PopoverTrigger asChild>
-            <Button variant="outline" size="sm" className="h-9">
-              <Download className="w-4 h-4 mr-1" />
-              Exportar
-              <ChevronDown className="ml-1 w-4 h-4" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-48 p-0">
-            <div className="p-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-sm"
-                onClick={() => {
-                  try {
-                    // Create CSV content
-                    const headers = ['Data', 'Hora', 'País', 'Dispositivo', 'Navegador'];
-                    const rows = validClicks.map(click => [
-                      new Date(click.timestamp).toLocaleDateString('pt-BR'),
-                      new Date(click.timestamp).toLocaleTimeString('pt-BR'),
-                      click.country || 'Brasil',
-                      click.device || 'Iphone',
-                      click.browser || 'Chrome',
-                    ]);
-
-                    const csvContent = [
-                      headers.join(','),
-                      ...rows.map(row => row.join(','))
-                    ].join('\n');
-
-                    // Create and download file
-                    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `clicks-${new Date().toISOString().split('T')[0]}.csv`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-
-                    toast.success('Relatório CSV baixado!');
-                  } catch (error) {
-                    console.error("Erro ao exportar CSV:", error);
-                    toast.error('Falha ao exportar os dados');
-                  }
-                }}
-              >
-                Exportar como CSV
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="w-full justify-start text-sm"
-                onClick={() => {
-                  try {
-                    // Create JSON content
-                    const jsonContent = JSON.stringify(validClicks, null, 2);
-
-                    // Create and download file
-                    const blob = new Blob([jsonContent], { type: 'application/json' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = `clicks-${new Date().toISOString().split('T')[0]}.json`;
-                    link.click();
-                    URL.revokeObjectURL(url);
-
-                    toast.success('Relatório JSON baixado!');
-                  } catch (error) {
-                    console.error("Erro ao exportar JSON:", error);
-                    toast.error('Falha ao exportar os dados');
-                  }
-                }}
-              >
-                Exportar como JSON
-              </Button>
-            </div>
-          </PopoverContent>
-        </Popover>
-      </div>
-
-      {/* Versão móvel - cards em vez de tabela */}
-      <div className="md:hidden space-y-3">
-        {validClicks.map((click) => (
-          <div key={click.id} className="bg-white dark:bg-gray-800 border rounded-lg p-3 space-y-2">
-            <div className="flex justify-between items-start">
-              <div className="flex items-center gap-2">
-                <Clock className="w-4 h-4 text-muted-foreground" />
-                <time dateTime={new Date(click.timestamp).toISOString()} className="text-sm">
-                  {new Date(click.timestamp).toLocaleString("pt-BR", {
-                    day: '2-digit',
-                    month: '2-digit',
-                    year: '2-digit',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                  })}
-                </time>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2">
-              <Globe className="w-4 h-4 text-muted-foreground" />
-              <span className="text-sm">{click.country || "Brasil"}</span>
-            </div>
-
-            <div className="flex items-center gap-2">
-              {click.device?.toLowerCase().includes('mobile') ? (
-                <Smartphone className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <Laptop className="w-4 h-4 text-muted-foreground" />
-              )}
-              <span className="text-sm">{click.device || "Iphone"}</span>
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Navegador: </span>
-              {click.browser || "Safari"}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">ID do Visitante: </span>
-              {click.visitorId}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Referenciador: </span>
-              {click.referrer || "Instagram"}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Sistema Operacional: </span>
-              {click.os || "iOS "}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">ID do Clique: </span>
-              {click.id}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Data do Clique: </span>
-              {new Date(click.timestamp).toLocaleDateString("pt-BR")}
-            </div>
-
-            <div className="text-sm pl-6">
-              <span className="text-muted-foreground">Hora do Clique: </span>
-              {new Date(click.timestamp).toLocaleTimeString("pt-BR")}
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Versão desktop - tabela */}
-      <div className="hidden md:block bg-card rounded-lg border overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-muted/50">
-                <th className="text-xs font-medium text-muted-foreground text-left p-3">Data e Hora</th>
-                <th className="text-xs font-medium text-muted-foreground text-left p-3">País</th>
-                <th className="text-xs font-medium text-muted-foreground text-left p-3">Dispositivo</th>
-                <th className="text-xs font-medium text-muted-foreground text-left p-3">Navegador</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y">
-              {validClicks.map((click) => (
-                <tr key={click.id} className="hover:bg-muted/30 transition-colors">
-                  <td className="p-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4 text-muted-foreground" />
-                      <time dateTime={new Date(click.timestamp).toISOString()}>
-                        {new Date(click.timestamp).toLocaleString("pt-BR", {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: '2-digit',
-                          hour: '2-digit',
-                          minute: '2-digit'
-                        })}
-                      </time>
-                    </div>
-                  </td>
-                  <td className="p-3 text-sm">
-                    <div className="flex items-center gap-2">
-                      <Globe className="w-4 h-4 text-muted-foreground" />
-                      <span>{click.country || "Brasil"}</span>
-                    </div>
-                  </td>
-                  <td className="p-3 text-sm">
-                    {click.device ? (
-                      <div className="flex items-center gap-2">
-                        {click.device.toLowerCase().includes('mobile') ? (
-                          <Smartphone className="w-4 h-4 text-muted-foreground" />
-                        ) : (
-                          <Laptop className="w-4 h-4 text-muted-foreground" />
-                        )}
-                        <span>{click.device}</span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground">Desconhecido</span>
-                    )}
-                  </td>
-                  <td className="p-3 text-sm">
-                    {click.browser || (
-                      <span className="text-muted-foreground">Desconhecido</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function AnalyticsMetrics({
-  clicks,
-  plan,
-}: {
-  clicks: ClickData[];
-  plan: string;
-}) {
-  // Garantir que clicks é um array
-  const validClicks = Array.isArray(clicks) ? clicks : [];
-
   const uniqueVisitors = new Set(validClicks.map((c) => c.visitorId)).size;
 
   const calculateTopCountry = () => {
-    if (validClicks.length === 0) return "BRL";
+    if (validClicks.length === 0) return "Brasil";
     const countryCounts = validClicks.reduce((acc, click) => {
       if (click.country) {
         acc[click.country] = (acc[click.country] || 0) + 1;
@@ -549,24 +547,20 @@ function AnalyticsMetrics({
       return acc;
     }, {} as Record<string, number>);
 
-    const topCountry = Object.entries(countryCounts).sort(
-      (a, b) => b[1] - a[1]
-    )[0];
-    return topCountry ? topCountry[0] : "BRL";
+    const topCountry = Object.entries(countryCounts).sort((a, b) => b[1] - a[1])[0];
+    return topCountry ? topCountry[0] : "Brasil";
   };
 
   const topCountryName = calculateTopCountry();
 
-  // Calculate click-through rate (mock data for demonstration)
-  const impressions = validClicks.length * 2.5; // Simulate impressions
+  const impressions = validClicks.length * 2.5;
   const ctr = impressions > 0 ? (validClicks.length / impressions) * 100 : 0;
 
-  // Get recent trend (% change from previous period)
   const calculateTrend = () => {
     if (validClicks.length < 2) return { value: 0, isPositive: true };
 
     const now = Date.now();
-    const halfPeriod = 7 * 24 * 60 * 60 * 1000 / 2; // Half of 7 days in ms
+    const halfPeriod = 7 * 24 * 60 * 60 * 1000 / 2;
 
     const recentClicks = validClicks.filter(c => (now - c.timestamp) < halfPeriod).length;
     const olderClicks = validClicks.filter(c => (now - c.timestamp) >= halfPeriod && (now - c.timestamp) < halfPeriod * 2).length;
@@ -582,7 +576,7 @@ function AnalyticsMetrics({
 
   const trend = calculateTrend();
 
-  const Card = ({
+  const MetricCard = ({
     title,
     value,
     subtitle,
@@ -657,7 +651,7 @@ function AnalyticsMetrics({
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-      <Card
+      <MetricCard
         title="Cliques Totais"
         value={validClicks.length}
         subtitle={`${trend.value > 0 ? (trend.isPositive ? "Aumento" : "Redução") : "Sem mudança"} nos últimos 7 dias`}
@@ -666,7 +660,7 @@ function AnalyticsMetrics({
         color="from-blue-500 to-blue-600"
       />
 
-      <Card
+      <MetricCard
         title="Visitantes Únicos"
         value={plan === "free" ? "—" : uniqueVisitors}
         subtitle={plan !== "free" ? `${Math.round((uniqueVisitors / Math.max(validClicks.length, 1)) * 100)}% de retorno` : undefined}
@@ -675,7 +669,7 @@ function AnalyticsMetrics({
         isPro={true}
       />
 
-      <Card
+      <MetricCard
         title="Taxa de Cliques"
         value={plan === "ultra" ? `${ctr.toFixed(1)}%` : "—"}
         subtitle={plan === "ultra" ? `${Math.round(impressions)} impressões` : undefined}
@@ -684,7 +678,7 @@ function AnalyticsMetrics({
         isUltra={true}
       />
 
-      <Card
+      <MetricCard
         title="Principal País"
         value={plan === "ultra" ? topCountryName : "Brasil"}
         icon={Globe}
@@ -695,14 +689,31 @@ function AnalyticsMetrics({
   );
 }
 
+const generateChartData = (clicks: ClickData[]) => {
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    return d.toISOString().split('T')[0];
+  }).reverse();
+
+  const clicksByDay = clicks.reduce((acc, click) => {
+    const date = new Date(click.timestamp).toISOString().split('T')[0];
+    acc[date] = (acc[date] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  return {
+    labels: last7Days,
+    data: last7Days.map(day => clicksByDay[day] || 0)
+  };
+};
+
 export default function ShortLinkDetailsPage() {
   const params = useParams();
   const linkId = params.linkId as string;
   const { user } = useUser();
   const [data, setData] = useState<PageData | undefined | null>(undefined);
-  const [filteredClicks, setFilteredClicks] = useState<ClickData[]>([]);
   const [currentTab, setCurrentTab] = useState("overview");
-  const chartRef = useRef<HTMLDivElement>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
@@ -718,9 +729,6 @@ export default function ShortLinkDetailsPage() {
         })
         .then((data) => {
           setData(data);
-          // Garantir que clicks é um array
-          const clicks = Array.isArray(data.clicks) ? data.clicks : [];
-          setFilteredClicks(clicks);
         })
         .catch((err) => {
           console.error("Error fetching link data:", err);
@@ -734,7 +742,6 @@ export default function ShortLinkDetailsPage() {
   const userPlan = (user?.publicMetadata?.subscriptionPlan as string) ?? "free";
   const plan = isAdmin ? "ultra" : userPlan;
 
-  // Generate chart data
   const chartData = data?.clicks && Array.isArray(data.clicks) ? generateChartData(data.clicks) : null;
 
   if (data === undefined) {
@@ -763,8 +770,6 @@ export default function ShortLinkDetailsPage() {
 
   const { link } = data;
   const shortUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/r/${link.id}`;
-
-  // Garantir que clicks é um array
   const clicks = Array.isArray(data.clicks) ? data.clicks : [];
 
   return (
@@ -837,7 +842,6 @@ export default function ShortLinkDetailsPage() {
                 variant="outline"
                 className="gap-1 w-full md:w-auto"
                 onClick={() => {
-                  // Generate shareable URL with UTM parameters
                   const shareUrl = `${shortUrl}?utm_source=freelink&utm_medium=share&utm_campaign=analytics`;
                   navigator.clipboard.writeText(shareUrl);
                   toast.success("Link de compartilhamento copiado!");
@@ -852,7 +856,7 @@ export default function ShortLinkDetailsPage() {
       </div>
 
       <section>
-        <AnalyticsMetrics clicks={filteredClicks} plan={plan} />
+        <AnalyticsMetrics clicks={clicks} plan={plan} />
       </section>
 
       <section className="bg-card rounded-xl border shadow-sm overflow-hidden">
@@ -864,6 +868,12 @@ export default function ShortLinkDetailsPage() {
                 className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full whitespace-nowrap"
               >
                 Visão Geral
+              </TabsTrigger>
+              <TabsTrigger
+                value="clicks"
+                className="px-4 py-3 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent h-full whitespace-nowrap"
+              >
+                Todos os Clicks
               </TabsTrigger>
               <TabsTrigger
                 value="devices"
@@ -894,13 +904,11 @@ export default function ShortLinkDetailsPage() {
                       </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <div ref={chartRef}>
-                        <AnalyticsChart
-                          data={chartData.data}
-                          labels={chartData.labels}
-                          title="Cliques por dia"
-                        />
-                      </div>
+                      <AnalyticsChart
+                        data={chartData.data}
+                        labels={chartData.labels}
+                        title="Cliques por dia"
+                      />
                     </CardContent>
                   </Card>
                 )}
@@ -937,8 +945,22 @@ export default function ShortLinkDetailsPage() {
               </div>
             </TabsContent>
 
+            {/* 🎯 NOVA ABA: Tabela Grande de Clicks */}
             <TabsContent value="clicks" className="m-0 p-0">
-              <ClicksList clicks={filteredClicks} setFilteredClicks={setFilteredClicks} />
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-purple-600" />
+                    Histórico Completo de Clicks
+                  </CardTitle>
+                  <CardDescription>
+                    Visualize todos os clicks com horário exato e detalhes completos
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <ClicksTable clicks={clicks} />
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="devices" className="m-0 p-0">
