@@ -1,4 +1,4 @@
-// components/brain/PostScheduleModal.tsx - COM NOTIFICAÇÕES RESTAURADAS
+// components/brain/PostScheduleModal.tsx - VERSÃO 100% COMPLETA
 "use client";
 
 import { useState, useRef } from "react";
@@ -39,6 +39,14 @@ import {
   X,
   CheckCircle2,
   AlertCircle,
+  Zap,
+  Target,
+  Users,
+  Briefcase,
+  Heart,
+  Code,
+  MessageSquare,
+  Share2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Id } from "@/convex/_generated/dataModel";
@@ -57,11 +65,67 @@ interface PostScheduleModalProps {
   initialHashtags: string[];
 }
 
+// 🔥 HASHTAGS VIRAIS ORGANIZADAS POR CATEGORIA
 const VIRAL_HASHTAGS = {
-  general: ["#viral", "#fyp", "#trending", "#explore", "#foryou", "#foryoupage"],
-  business: ["#empreendedorismo", "#marketing", "#sucesso", "#vendas", "#negócios", "#dinheiro"],
-  lifestyle: ["#lifestyle", "#motivação", "#mindset", "#produtividade", "#crescimento", "#inspiração"],
-  tech: ["#tecnologia", "#inovação", "#digital", "#startup", "#tech", "#futuro"],
+  general: {
+    icon: TrendingUp,
+    color: "purple",
+    tags: ["#viral", "#fyp", "#trending", "#explore", "#foryou", "#foryoupage", "#viralpost", "#explorepage"],
+  },
+  business: {
+    icon: Briefcase,
+    color: "blue",
+    tags: ["#empreendedorismo", "#marketing", "#sucesso", "#vendas", "#negócios", "#dinheiro", "#mindset", "#business"],
+  },
+  lifestyle: {
+    icon: Heart,
+    color: "pink",
+    tags: ["#lifestyle", "#motivação", "#mindset", "#produtividade", "#crescimento", "#inspiração", "#bemestar", "#vida"],
+  },
+  tech: {
+    icon: Code,
+    color: "green",
+    tags: ["#tecnologia", "#inovação", "#digital", "#startup", "#tech", "#futuro", "#programação", "#ai"],
+  },
+  engagement: {
+    icon: Users,
+    color: "orange",
+    tags: ["#sdv", "#seguedevolta", "#follow", "#likeforlike", "#comentarios", "#compartilhe", "#engajamento", "#interacao"],
+  },
+};
+
+// 🕐 HORÁRIOS PERFEITOS PARA POSTAGEM
+const PERFECT_TIMES = {
+  morning: {
+    label: "Manhã Produtiva",
+    icon: "☀️",
+    times: ["06:00", "07:00", "08:00", "09:00"],
+    description: "Alcance pessoas começando o dia",
+  },
+  lunch: {
+    label: "Hora do Almoço",
+    icon: "🍽️",
+    times: ["11:30", "12:00", "12:30", "13:00"],
+    description: "Momento de pausa e scroll",
+  },
+  afternoon: {
+    label: "Tarde Ativa",
+    icon: "☕",
+    times: ["15:00", "16:00", "17:00", "18:00"],
+    description: "Break da tarde, alto engajamento",
+  },
+  evening: {
+    label: "Noite Prime",
+    icon: "🌙",
+    times: ["19:00", "20:00", "21:00", "22:00"],
+    description: "Horário nobre das redes sociais",
+  },
+  late: {
+    label: "Madrugada",
+    icon: "🦉",
+    times: ["23:00", "00:00", "01:00"],
+    description: "Público noturno e internacional",
+  },
 };
 
 const PLATFORM_CONFIG = {
@@ -161,10 +225,11 @@ export default function PostScheduleModal({
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [hashtagInput, setHashtagInput] = useState("");
   const [mobileTab, setMobileTab] = useState<"preview" | "config">("config");
+  const [activeHashtagCategory, setActiveHashtagCategory] = useState<keyof typeof VIRAL_HASHTAGS>("general");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const { createPost } = useScheduledPosts(campaignId);
-  const { isConnected } = useNotificationIntegration(); // ✅ RESTAURADO
+  const { isConnected } = useNotificationIntegration();
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -232,7 +297,15 @@ export default function PostScheduleModal({
     if (!newTag) return;
 
     const formattedTag = newTag.startsWith("#") ? newTag : `#${newTag}`;
-    if (hashtags.includes(formattedTag)) return;
+    if (hashtags.includes(formattedTag)) {
+      toast.error("Hashtag já adicionada!");
+      return;
+    }
+
+    if (hashtags.length >= 30) {
+      toast.error("Máximo de 30 hashtags!");
+      return;
+    }
 
     setHashtags([...hashtags, formattedTag]);
     setHashtagInput("");
@@ -241,6 +314,11 @@ export default function PostScheduleModal({
 
   const handleRemoveHashtag = (tag: string) => {
     setHashtags(hashtags.filter((t) => t !== tag));
+  };
+
+  const handleQuickTime = (time: string) => {
+    setScheduledTime(time);
+    toast.success(`Horário ${time} selecionado! 🕐`);
   };
 
   const handleSchedule = async () => {
@@ -253,7 +331,6 @@ export default function PostScheduleModal({
       return;
     }
 
-    // ✅ VALIDAÇÃO DE NOTIFICAÇÃO RESTAURADA
     if (enableNotification && !isConnected) {
       toast.error("⚠️ Ative as notificações nas configurações para receber alertas!");
       return;
@@ -275,15 +352,12 @@ export default function PostScheduleModal({
       });
 
       toast.dismiss(loadingToast);
-
-      // ✅ MENSAGEM DIFERENCIADA RESTAURADA
       toast.success(
         enableNotification && isConnected
           ? "🔔 Post agendado! Você receberá uma notificação na hora certa."
           : "📅 Post adicionado ao calendário!",
         { duration: 3000 }
       );
-
       onClose();
     } catch (error) {
       toast.dismiss(loadingToast);
@@ -390,32 +464,68 @@ export default function PostScheduleModal({
                     className="min-h-[120px] resize-none text-sm"
                     maxLength={2200}
                   />
-                  <p className="text-xs text-muted-foreground">
-                    {caption.length}/2200 caracteres
-                  </p>
+                  <div className="flex justify-between">
+                    <p className="text-xs text-muted-foreground">
+                      {caption.length}/2200 caracteres
+                    </p>
+                    {caption.length > 1900 && (
+                      <Badge variant="secondary" className="text-xs">
+                        <AlertCircle className="w-3 h-3 mr-1" />
+                        Próximo do limite
+                      </Badge>
+                    )}
+                  </div>
                 </div>
 
-                {/* Hashtags */}
+                {/* 🔥 HASHTAGS CATEGORIZADAS */}
                 <div className="space-y-3">
                   <Label className="text-sm font-semibold flex items-center gap-2">
                     <Hash className="w-4 h-4" />
-                    Hashtags
+                    Hashtags Estratégicas ({hashtags.length}/30)
                   </Label>
 
-                  <div className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-lg border">
-                    <p className="text-xs font-semibold mb-2 text-purple-800 dark:text-purple-200">
-                      <TrendingUp className="w-3 h-3 inline mr-1" />
-                      Sugestões Virais
-                    </p>
+                  {/* Categorias de Hashtags */}
+                  <div className="flex gap-2 flex-wrap">
+                    {Object.entries(VIRAL_HASHTAGS).map(([key, category]) => {
+                      const Icon = category.icon;
+                      const isActive = activeHashtagCategory === key;
+                      return (
+                        <Button
+                          key={key}
+                          type="button"
+                          size="sm"
+                          variant={isActive ? "default" : "outline"}
+                          className={cn(
+                            "gap-1 text-xs",
+                            isActive && `bg-${category.color}-600`
+                          )}
+                          onClick={() => setActiveHashtagCategory(key as keyof typeof VIRAL_HASHTAGS)}
+                        >
+                          <Icon className="w-3 h-3" />
+                          {key.charAt(0).toUpperCase() + key.slice(1)}
+                        </Button>
+                      );
+                    })}
+                  </div>
+
+                  {/* Tags da Categoria Selecionada */}
+                  <div className="p-3 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg border">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Target className="w-4 h-4 text-purple-600" />
+                      <span className="text-xs font-semibold text-purple-800 dark:text-purple-200">
+                        Clique para adicionar
+                      </span>
+                    </div>
                     <div className="flex flex-wrap gap-2">
-                      {VIRAL_HASHTAGS.general.map((tag) => (
+                      {VIRAL_HASHTAGS[activeHashtagCategory].tags.map((tag) => (
                         <Badge
                           key={tag}
                           variant="secondary"
-                          className="cursor-pointer text-xs"
+                          className="cursor-pointer text-xs hover:bg-purple-200 dark:hover:bg-purple-800 transition-colors"
                           onClick={() => handleAddHashtag(tag)}
                         >
-                          + {tag}
+                          <Zap className="w-3 h-3 mr-1" />
+                          {tag}
                         </Badge>
                       ))}
                     </div>
@@ -432,7 +542,7 @@ export default function PostScheduleModal({
                           handleAddHashtag();
                         }
                       }}
-                      placeholder="Digite uma hashtag"
+                      placeholder="Digite uma hashtag personalizada"
                       className="text-sm"
                     />
                     <Button
@@ -448,14 +558,14 @@ export default function PostScheduleModal({
                   {hashtags.length > 0 && (
                     <div className="p-3 bg-muted/50 rounded-lg border">
                       <p className="text-xs font-semibold mb-2">
-                        {hashtags.length} hashtag{hashtags.length > 1 ? "s" : ""}
+                        {hashtags.length} hashtag{hashtags.length > 1 ? "s" : ""} selecionada{hashtags.length > 1 ? "s" : ""}
                       </p>
                       <div className="flex flex-wrap gap-2">
                         {hashtags.map((tag) => (
                           <Badge
                             key={tag}
                             variant="secondary"
-                            className="cursor-pointer text-xs"
+                            className="cursor-pointer text-xs hover:bg-destructive hover:text-white transition-colors"
                             onClick={() => handleRemoveHashtag(tag)}
                           >
                             {tag} <X className="w-3 h-3 ml-1" />
@@ -469,39 +579,78 @@ export default function PostScheduleModal({
                 <Separator />
 
                 {/* Data e Hora */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="date-input" className="text-sm font-semibold flex items-center gap-2">
-                      <Calendar className="w-4 h-4" />
-                      Data
-                    </Label>
-                    <Input
-                      id="date-input"
-                      type="date"
-                      value={scheduledDate}
-                      onChange={(e) => setScheduledDate(e.target.value)}
-                      min={new Date().toISOString().split("T")[0]}
-                      className="text-sm"
-                    />
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="date-input" className="text-sm font-semibold flex items-center gap-2">
+                        <Calendar className="w-4 h-4" />
+                        Data
+                      </Label>
+                      <Input
+                        id="date-input"
+                        type="date"
+                        value={scheduledDate}
+                        onChange={(e) => setScheduledDate(e.target.value)}
+                        min={new Date().toISOString().split("T")[0]}
+                        className="text-sm"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="time-input" className="text-sm font-semibold flex items-center gap-2">
+                        <Clock className="w-4 h-4" />
+                        Horário
+                      </Label>
+                      <Input
+                        id="time-input"
+                        type="time"
+                        value={scheduledTime}
+                        onChange={(e) => setScheduledTime(e.target.value)}
+                        className="text-sm"
+                      />
+                    </div>
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="time-input" className="text-sm font-semibold flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      Horário
-                    </Label>
-                    <Input
-                      id="time-input"
-                      type="time"
-                      value={scheduledTime}
-                      onChange={(e) => setScheduledTime(e.target.value)}
-                      className="text-sm"
-                    />
+
+                  {/* 🕐 HORÁRIOS PERFEITOS */}
+                  <div className="p-3 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Zap className="w-4 h-4 text-orange-600" />
+                      <span className="text-xs font-semibold text-orange-800 dark:text-orange-200">
+                        Horários Perfeitos para Engajamento
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {Object.entries(PERFECT_TIMES).map(([key, schedule]) => (
+                        <div key={key} className="space-y-1">
+                          <p className="text-xs font-medium">
+                            {schedule.icon} {schedule.label}
+                          </p>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            {schedule.description}
+                          </p>
+                          <div className="flex flex-wrap gap-1">
+                            {schedule.times.map((time) => (
+                              <Badge
+                                key={time}
+                                variant="outline"
+                                className={cn(
+                                  "cursor-pointer text-xs transition-all",
+                                  scheduledTime === time && "bg-orange-600 text-white border-orange-600"
+                                )}
+                                onClick={() => handleQuickTime(time)}
+                              >
+                                {time}
+                              </Badge>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
                 <Separator />
 
-                {/* ✅ NOTIFICAÇÃO RESTAURADA */}
+                {/* Notificação */}
                 <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-start gap-3 flex-1">
@@ -522,7 +671,6 @@ export default function PostScheduleModal({
                   </div>
                 </div>
 
-                {/* ✅ ALERTA DE NOTIFICAÇÃO DESATIVADA RESTAURADO */}
                 {enableNotification && !isConnected && (
                   <div className="p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg">
                     <div className="flex items-start gap-3">
@@ -631,9 +779,11 @@ export default function PostScheduleModal({
           )}
         </div>
 
-        {/* DESKTOP */}
+        {/* 🖥️ DESKTOP - CÓDIGO COMPLETO */}
         <div className="hidden md:grid md:grid-cols-2 flex-1 overflow-hidden">
+          {/* Coluna Esquerda - Configuração */}
           <div className="border-r overflow-y-auto p-6 space-y-6">
+            {/* Plataforma */}
             <div className="space-y-3">
               <Label className="text-sm font-semibold">Plataforma</Label>
               <div className="grid grid-cols-2 gap-3">
@@ -661,82 +811,195 @@ export default function PostScheduleModal({
 
             <Separator />
 
+            {/* Legenda */}
             <div className="space-y-3">
               <Label htmlFor="caption-desktop">Legenda do Post</Label>
               <Textarea
                 id="caption-desktop"
                 value={caption}
                 onChange={(e) => setCaption(e.target.value)}
-                placeholder="Escreva uma legenda incrível..."
+                placeholder="Escreva uma legenda incrível que vai engajar seu público..."
                 className="min-h-[150px]"
                 maxLength={2200}
               />
-              <p className="text-xs text-muted-foreground">{caption.length}/2200</p>
+              <div className="flex justify-between">
+                <p className="text-xs text-muted-foreground">{caption.length}/2200 caracteres</p>
+                {caption.length > 1900 && (
+                  <Badge variant="secondary" className="text-xs">
+                    <AlertCircle className="w-3 h-3 mr-1" />
+                    Próximo do limite
+                  </Badge>
+                )}
+              </div>
             </div>
 
+            {/* Hashtags Categorizadas Desktop */}
             <div className="space-y-3">
               <Label className="flex items-center gap-2">
                 <Hash className="w-4 h-4" />
-                Hashtags
+                Hashtags Estratégicas ({hashtags.length}/30)
               </Label>
+
+              {/* Botões de Categorias */}
+              <div className="flex gap-2 flex-wrap">
+                {Object.entries(VIRAL_HASHTAGS).map(([key, category]) => {
+                  const Icon = category.icon;
+                  const isActive = activeHashtagCategory === key;
+                  return (
+                    <Button
+                      key={key}
+                      type="button"
+                      size="sm"
+                      variant={isActive ? "default" : "outline"}
+                      onClick={() => setActiveHashtagCategory(key as keyof typeof VIRAL_HASHTAGS)}
+                    >
+                      <Icon className="w-4 h-4 mr-2" />
+                      {key.charAt(0).toUpperCase() + key.slice(1)}
+                    </Button>
+                  );
+                })}
+              </div>
+
+              {/* Tags da Categoria */}
+              <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg border">
+                <div className="flex items-center gap-2 mb-3">
+                  <Target className="w-4 h-4 text-purple-600" />
+                  <span className="text-sm font-semibold text-purple-800 dark:text-purple-200">
+                    Hashtags {activeHashtagCategory.charAt(0).toUpperCase() + activeHashtagCategory.slice(1)}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {VIRAL_HASHTAGS[activeHashtagCategory].tags.map((tag) => (
+                    <Badge
+                      key={tag}
+                      variant="secondary"
+                      className="cursor-pointer hover:bg-purple-200 dark:hover:bg-purple-800"
+                      onClick={() => handleAddHashtag(tag)}
+                    >
+                      <Zap className="w-3 h-3 mr-1" />
+                      {tag}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+
+              {/* Input para hashtag customizada */}
               <div className="flex gap-2">
                 <Input
                   value={hashtagInput}
                   onChange={(e) => setHashtagInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), handleAddHashtag())}
-                  placeholder="Digite uma hashtag"
+                  placeholder="Digite uma hashtag personalizada"
                 />
-                <Button type="button" onClick={() => handleAddHashtag()} size="icon">
+                <Button type="button" onClick={() => handleAddHashtag()} size="icon" disabled={!hashtagInput.trim()}>
                   <Check className="w-4 h-4" />
                 </Button>
               </div>
+
+              {/* Hashtags selecionadas */}
               {hashtags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {hashtags.map((tag) => (
-                    <Badge key={tag} className="cursor-pointer" onClick={() => handleRemoveHashtag(tag)}>
-                      {tag} <X className="w-3 h-3 ml-1" />
-                    </Badge>
-                  ))}
+                <div className="p-3 bg-muted/50 rounded-lg border">
+                  <p className="text-sm font-semibold mb-2">
+                    Hashtags Selecionadas
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {hashtags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        className="cursor-pointer hover:bg-destructive hover:text-white"
+                        onClick={() => handleRemoveHashtag(tag)}
+                      >
+                        {tag} <X className="w-3 h-3 ml-1" />
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>
 
             <Separator />
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="date-desktop">Data</Label>
-                <Input
-                  id="date-desktop"
-                  type="date"
-                  value={scheduledDate}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                />
+            {/* Data e Hora Desktop */}
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date-desktop">
+                    <Calendar className="w-4 h-4 inline mr-2" />
+                    Data
+                  </Label>
+                  <Input
+                    id="date-desktop"
+                    type="date"
+                    value={scheduledDate}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="time-desktop">
+                    <Clock className="w-4 h-4 inline mr-2" />
+                    Horário
+                  </Label>
+                  <Input
+                    id="time-desktop"
+                    type="time"
+                    value={scheduledTime}
+                    onChange={(e) => setScheduledTime(e.target.value)}
+                  />
+                </div>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="time-desktop">Horário</Label>
-                <Input
-                  id="time-desktop"
-                  type="time"
-                  value={scheduledTime}
-                  onChange={(e) => setScheduledTime(e.target.value)}
-                />
+
+              {/* Horários Perfeitos Desktop */}
+              <div className="p-4 bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 rounded-lg border border-orange-200 dark:border-orange-800">
+                <div className="flex items-center gap-2 mb-3">
+                  <Zap className="w-5 h-5 text-orange-600" />
+                  <span className="font-semibold text-orange-800 dark:text-orange-200">
+                    Horários Perfeitos para Máximo Engajamento
+                  </span>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  {Object.entries(PERFECT_TIMES).map(([key, schedule]) => (
+                    <div key={key} className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-lg">{schedule.icon}</span>
+                        <div>
+                          <p className="font-medium text-sm">{schedule.label}</p>
+                          <p className="text-xs text-muted-foreground">{schedule.description}</p>
+                        </div>
+                      </div>
+                      <div className="flex flex-wrap gap-1">
+                        {schedule.times.map((time) => (
+                          <Badge
+                            key={time}
+                            variant="outline"
+                            className={cn(
+                              "cursor-pointer transition-all",
+                              scheduledTime === time && "bg-orange-600 text-white border-orange-600"
+                            )}
+                            onClick={() => handleQuickTime(time)}
+                          >
+                            {time}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
 
             <Separator />
 
-            {/* ✅ NOTIFICAÇÃO DESKTOP RESTAURADA */}
+            {/* Notificação Desktop */}
             <div className="p-4 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20 rounded-lg border border-purple-200 dark:border-purple-800">
               <div className="flex items-start justify-between gap-3">
                 <div className="flex items-start gap-3 flex-1">
                   <Bell className="w-5 h-5 text-purple-500 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <span className="text-sm font-semibold block mb-1">
+                    <span className="font-semibold block mb-1">
                       Receber Notificação
                     </span>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       Receba um alerta no horário agendado para postar seu conteúdo
                     </p>
                   </div>
@@ -753,10 +1016,10 @@ export default function PostScheduleModal({
                 <div className="flex items-start gap-3">
                   <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
                   <div className="flex-1">
-                    <p className="text-sm font-semibold text-amber-800 dark:text-amber-200">
+                    <p className="font-semibold text-amber-800 dark:text-amber-200">
                       Notificações desativadas
                     </p>
-                    <p className="text-xs text-amber-700 dark:text-amber-300 mt-1">
+                    <p className="text-sm text-amber-700 dark:text-amber-300 mt-1">
                       Ative as notificações nas configurações (⚙️) para receber alertas
                     </p>
                   </div>
@@ -765,8 +1028,14 @@ export default function PostScheduleModal({
             )}
           </div>
 
+          {/* Coluna Direita - Preview Desktop */}
           <div className="overflow-y-auto p-6 bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-black">
-            <div className="max-w-md mx-auto">
+            <div className="max-w-md mx-auto space-y-4">
+              <h3 className="text-xl font-semibold flex items-center gap-2">
+                <Eye className="w-5 h-5 text-purple-500" />
+                Preview do Post
+              </h3>
+
               <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl overflow-hidden">
                 <div className="p-4 flex items-center gap-3 border-b">
                   <div className="w-12 h-12 rounded-full bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
@@ -777,7 +1046,14 @@ export default function PostScheduleModal({
                     <p className="text-xs text-muted-foreground">{PLATFORM_CONFIG[platform].name}</p>
                   </div>
                 </div>
+
                 <div className="aspect-square bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center relative">
+                  <UploadFeedback
+                    isUploading={isUploading}
+                    uploadProgress={uploadProgress}
+                    uploadSuccess={uploadSuccess}
+                  />
+
                   {mediaPreview ? (
                     contentType === "reel" ? (
                       <video src={mediaPreview} className="w-full h-full object-cover" controls />
@@ -785,23 +1061,85 @@ export default function PostScheduleModal({
                       <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
                     )
                   ) : (
-                    <Button type="button" onClick={() => fileInputRef.current?.click()}>
-                      <Upload className="w-4 h-4 mr-2" />
-                      Upload
-                    </Button>
-                  )}
-                </div>
-                <div className="p-5">
-                  <p className="text-sm whitespace-pre-wrap">{caption || "Sua legenda..."}</p>
-                  {hashtags.length > 0 && (
-                    <div className="flex flex-wrap gap-1 mt-2 pt-2 border-t">
-                      {hashtags.map((tag) => (
-                        <span key={tag} className="text-xs text-blue-600">{tag}</span>
-                      ))}
+                    <div className="text-center p-8">
+                      {contentType === "reel" ? (
+                        <Video className="w-24 h-24 mx-auto mb-4 text-gray-400" />
+                      ) : (
+                        <ImageIcon className="w-24 h-24 mx-auto mb-4 text-gray-400" />
+                      )}
+                      <p className="text-sm text-muted-foreground mb-4">
+                        {contentType === "reel" ? "Adicione um vídeo" : "Adicione uma imagem"}
+                      </p>
+                      <Button type="button" onClick={() => fileInputRef.current?.click()} className="gap-2">
+                        <Upload className="w-4 h-4" />
+                        Fazer Upload
+                      </Button>
                     </div>
                   )}
                 </div>
+
+                <div className="p-5">
+                  <div className="space-y-3">
+                    <p className="text-sm whitespace-pre-wrap leading-relaxed">
+                      {caption || <span className="text-muted-foreground italic">Sua legenda aparecerá aqui...</span>}
+                    </p>
+                    {hashtags.length > 0 && (
+                      <div className="flex flex-wrap gap-1 pt-2 border-t">
+                        {hashtags.map((tag) => (
+                          <span key={tag} className="text-sm text-blue-600 font-medium">{tag}</span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex items-center gap-4 mt-4 pt-4 border-t text-muted-foreground">
+                    <button className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      <div className="w-5 h-5 rounded-full border-2 border-current" />
+                      <span className="text-sm">Curtir</span>
+                    </button>
+                    <button className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      <MessageSquare className="w-4 h-4" />
+                      <span className="text-sm">Comentar</span>
+                    </button>
+                    <button className="flex items-center gap-1 hover:text-foreground transition-colors">
+                      <Share2 className="w-4 h-4" />
+                      <span className="text-sm">Compartilhar</span>
+                    </button>
+                  </div>
+                </div>
               </div>
+
+              {mediaFile && (
+                <div className="p-3 bg-green-50 dark:bg-green-950/20 rounded-lg border border-green-200 dark:border-green-800">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-200 truncate">
+                        {mediaFile.name}
+                      </p>
+                      <p className="text-xs text-green-600 dark:text-green-400">
+                        {(mediaFile.size / 1024 / 1024).toFixed(2)} MB • Pronto para upload
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {scheduledDate && scheduledTime && (
+                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-600" />
+                    <div>
+                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                        Agendado para
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400">
+                        {new Date(scheduledDate).toLocaleDateString('pt-BR')} às {scheduledTime}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -814,7 +1152,7 @@ export default function PostScheduleModal({
             type="button"
             onClick={handleSchedule}
             disabled={!caption.trim() || !scheduledDate || !scheduledTime}
-            className="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 to-pink-600"
+            className="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
           >
             <Calendar className="w-4 h-4 mr-2" />
             Agendar Post
