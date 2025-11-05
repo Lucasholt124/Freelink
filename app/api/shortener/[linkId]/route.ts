@@ -15,10 +15,10 @@ export async function GET(
     // Aguardar a Promise dos params
     const { linkId } = await params;
 
-    // Buscar informações do link
+    // Buscar informações do link usando slug
     const linkResult = await sql`
       SELECT * FROM "shortLinks"
-      WHERE id = ${linkId} AND "userId" = ${userId}
+      WHERE slug = ${linkId} AND "userId" = ${userId}
       LIMIT 1
     `;
 
@@ -71,7 +71,7 @@ export async function GET(
       country: row.country || null,
       city: row.city || null,
       region: row.region || null,
-      visitorId: row.visitorid,
+      visitorId: row.visitorId || row.visitorid,
       device: row.device,
       browser: row.browser,
       os: row.os,
@@ -81,10 +81,10 @@ export async function GET(
     return NextResponse.json({
       link: {
         id: link.slug,
-        url: link.originalurl,
-        clicks: parseInt(link.clicks),
+        url: link.originalUrl || link.originalurl,
+        clicks: parseInt(link.clicks) || 0,
         title: link.slug,
-        createdAt: new Date(link.createdat).getTime()
+        createdAt: new Date(link.createdAt || link.createdat).getTime()
       },
       clicks
     });
@@ -111,9 +111,7 @@ export async function DELETE(
     // Aguardar a Promise dos params
     const { linkId } = await params;
 
-    // Deletar cliques associados
-    await sql`DELETE FROM clicks WHERE "linkId" = ${linkId}`;
-
+    // Com CASCADE configurado, não precisa deletar cliques manualmente
     // Deletar o link
     const result = await sql`
       DELETE FROM "shortLinks"
