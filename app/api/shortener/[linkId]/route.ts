@@ -4,7 +4,7 @@ import { sql } from "@vercel/postgres";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { linkId: string } }
+  { params }: { params: Promise<{ linkId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -12,7 +12,8 @@ export async function GET(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const linkId = params.linkId;
+    // Aguardar a Promise dos params
+    const { linkId } = await params;
 
     // Buscar informações do link
     const linkResult = await sql`
@@ -99,7 +100,7 @@ export async function GET(
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { linkId: string } }
+  { params }: { params: Promise<{ linkId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -107,7 +108,8 @@ export async function DELETE(
       return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
     }
 
-    const linkId = params.linkId;
+    // Aguardar a Promise dos params
+    const { linkId } = await params;
 
     // Deletar cliques associados
     await sql`DELETE FROM clicks WHERE "linkId" = ${linkId}`;
