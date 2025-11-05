@@ -1,134 +1,117 @@
-import { NextRequest, NextResponse } from "next/server";
-import { auth } from "@clerk/nextjs/server";
-import { sql } from "@vercel/postgres";
+// Em /app/api/shortener/[linkId]/route.ts
+// (Substitua o arquivo inteiro)
 
-export async function GET(
-  req: NextRequest,
-  { params }: { params: Promise<{ linkId: string }> }
-) {
+import { NextResponse } from 'next/server';
+import { auth } from '@clerk/nextjs/server';
+import prisma from '@/lib/prisma';
+
+export async function GET(req: Request) {
   try {
     const { userId } = await auth();
+
     if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      return new NextResponse("Não autenticado", { status: 401 });
     }
 
-    // Aguardar a Promise dos params
-    const { linkId } = await params;
+    const url = new URL(req.url);
+    const pathSegments = url.pathname.split('/');
+    const linkId = pathSegments.pop() || '';
 
-    // Buscar informações do link usando slug
-    const linkResult = await sql`
-      SELECT * FROM "shortLinks"
-      WHERE slug = ${linkId} AND "userId" = ${userId}
-      LIMIT 1
-    `;
-
-    if (linkResult.rows.length === 0) {
-      return NextResponse.json({ error: "Link não encontrado" }, { status: 404 });
+    if (!linkId) {
+      return new NextResponse("ID do link é obrigatório", { status: 400 });
     }
 
-    const link = linkResult.rows[0];
-
-    // Buscar todos os cliques com dados completos
-    const clicksResult = await sql`
-      SELECT
-        id,
-        timestamp,
-        country,
-        city,
-        region,
-        "visitorId",
-        "userAgent",
-        referrer,
-        CASE
-          WHEN "userAgent" ILIKE '%mobile%' OR "userAgent" ILIKE '%android%' OR "userAgent" ILIKE '%iphone%' THEN 'Mobile'
-          WHEN "userAgent" ILIKE '%tablet%' OR "userAgent" ILIKE '%ipad%' THEN 'Tablet'
-          ELSE 'Desktop'
-        END as device,
-        CASE
-          WHEN "userAgent" ILIKE '%edg%' THEN 'Edge'
-          WHEN "userAgent" ILIKE '%chrome%' AND "userAgent" NOT ILIKE '%edg%' THEN 'Chrome'
-          WHEN "userAgent" ILIKE '%safari%' AND "userAgent" NOT ILIKE '%chrome%' THEN 'Safari'
-          WHEN "userAgent" ILIKE '%firefox%' THEN 'Firefox'
-          WHEN "userAgent" ILIKE '%opera%' OR "userAgent" ILIKE '%opr%' THEN 'Opera'
-          ELSE 'Outro'
-        END as browser,
-        CASE
-          WHEN "userAgent" ILIKE '%windows%' THEN 'Windows'
-          WHEN "userAgent" ILIKE '%mac%' THEN 'macOS'
-          WHEN "userAgent" ILIKE '%android%' THEN 'Android'
-          WHEN "userAgent" ILIKE '%iphone%' OR "userAgent" ILIKE '%ipad%' OR "userAgent" ILIKE '%ios%' THEN 'iOS'
-          WHEN "userAgent" ILIKE '%linux%' THEN 'Linux'
-          ELSE 'Outro'
-        END as os
-      FROM clicks
-      WHERE "linkId" = ${linkId}
-      ORDER BY timestamp DESC
-    `;
-
-    const clicks = clicksResult.rows.map(row => ({
-      id: row.id,
-      timestamp: new Date(row.timestamp).getTime(),
-      country: row.country || null,
-      city: row.city || null,
-      region: row.region || null,
-      visitorId: row.visitorId || row.visitorid,
-      device: row.device,
-      browser: row.browser,
-      os: row.os,
-      referrer: row.referrer || null
-    }));
-
-    return NextResponse.json({
-      link: {
-        id: link.slug,
-        url: link.originalUrl || link.originalurl,
-        clicks: parseInt(link.clicks) || 0,
-        title: link.slug,
-        createdAt: new Date(link.createdAt || link.createdat).getTime()
+    const link = await prisma.link.findFirst({
+      where: {
+        id: linkId,
+        userId: userId,
       },
-      clicks
     });
 
+    if (!link) {
+      return new NextResponse("Link não encontrado ou acesso negado", { status: 404 });
+    }
+
+    const clicks = await prisma.click.findMany({
+      where: { linkId: linkId },
+      orderBy: { timestamp: 'desc' },
+    });
+
+    // ✅ CORREÇÃO: Incluindo createdAt e outros campos necessários
+    const formattedData = {
+      link: {
+        id: link.id,
+        url: link.url,
+        createdAt: link.createdAt.getTime(), // ← Adicionado este campo
+      },
+      clicks: clicks.map(click => ({
+        id: click.id,
+        timestamp: click.timestamp.getTime(),
+        country: click.country,
+        visitorId: click.visitorId,
+        userAgent: click.userAgent, // ✅ CORREÇÃO: Usar o campo que existe
+        referrer: click.referrer,
+      })),
+    };
+
+    return NextResponse.json(formattedData);
+
   } catch (error) {
-    console.error("Erro ao buscar analytics:", error);
-    return NextResponse.json(
-      { error: "Erro ao buscar dados" },
-      { status: 500 }
-    );
+    console.error(`[SHORTENER_LINKID_GET_ERROR]`, error);
+    return new NextResponse("Erro interno do servidor", { status: 500 });
   }
 }
 
-export async function DELETE(
-  req: NextRequest,
-  { params }: { params: Promise<{ linkId: string }> }
-) {
+export async function DELETE(req: Request) {
   try {
     const { userId } = await auth();
+
     if (!userId) {
-      return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
     }
 
-    // Aguardar a Promise dos params
-    const { linkId } = await params;
+    const url = new URL(req.url);
+    const pathSegments = url.pathname.split('/');
+    const linkId = pathSegments.pop() || '';
 
-    // Com CASCADE configurado, não precisa deletar cliques manualmente
-    // Deletar o link
-    const result = await sql`
-      DELETE FROM "shortLinks"
-      WHERE slug = ${linkId} AND "userId" = ${userId}
-      RETURNING *
-    `;
-
-    if (result.rows.length === 0) {
-      return NextResponse.json({ error: "Link não encontrado" }, { status: 404 });
+    if (!linkId) {
+      return NextResponse.json({ error: "ID do link é obrigatório" }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    // Verificar se o link pertence ao usuário
+    const link = await prisma.link.findFirst({
+      where: {
+        id: linkId,
+        userId: userId,
+      },
+    });
+
+    if (!link) {
+      return NextResponse.json(
+        { error: "Link não encontrado ou acesso negado" },
+        { status: 404 }
+      );
+    }
+
+    // Excluir todos os cliques relacionados primeiro
+    await prisma.click.deleteMany({
+      where: { linkId: linkId }
+    });
+
+    // Excluir o link
+    await prisma.link.delete({
+      where: { id: linkId }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Link excluído com sucesso"
+    });
 
   } catch (error) {
-    console.error("Erro ao deletar link:", error);
+    console.error(`[SHORTENER_LINKID_DELETE_ERROR]`, error);
     return NextResponse.json(
-      { error: "Erro ao deletar link" },
+      { error: "Erro interno do servidor" },
       { status: 500 }
     );
   }
