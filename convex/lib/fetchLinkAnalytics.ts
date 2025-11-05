@@ -14,10 +14,9 @@ interface TrafficSource {
   percentage: number;
 }
 
-// ✅ MODIFICADO - Adicionado campo exactTime
 interface RecentActivity {
   time: string;
-  exactTime: string; // NOVO CAMPO
+  exactTime: string;
   action: string;
   location: string;
   timestamp: Date;
@@ -84,49 +83,29 @@ interface HourlyData {
   percentage: number;
 }
 
-// Interface principal
 export interface LinkAnalyticsData {
-  // Identificação
   linkId: string;
   linkTitle: string;
   linkUrl: string;
-
-  // Métricas principais
   totalClicks: number;
   uniqueUsers: number;
   countriesReached: number;
-
-  // Distribuições temporais
   dailyData: DailyData[];
   hourlyData: HourlyData[];
   peakHour: number | null;
-
-  // Dados geográficos
   countryData: GeoData[];
   cityData: CityData[];
   regionData: RegionData[];
-
-  // Análise de conversão
   conversionRate: number;
   bounceRate: number;
-
-  // Análise de dispositivos e plataformas
   devices: DeviceStats;
   browsers: BrowserStats[];
   operatingSystems: OSStats[];
-
-  // Fontes de tráfego
   trafficSources: TrafficSource[];
   referrers: ReferrerData[];
-
-  // Atividades e engajamento
   recentActivities: RecentActivity[];
   engagement: EngagementMetrics;
-
-  // Comparações
   comparison: PeriodComparison;
-
-  // Metadados
   lastUpdated: string;
   dataQuality: {
     hasEnoughData: boolean;
@@ -135,7 +114,6 @@ export interface LinkAnalyticsData {
   };
 }
 
-// Enum para ícones de fonte de tráfego
 enum TrafficSourceIcon {
   DIRECT = 'direct',
   SOCIAL = 'social',
@@ -146,18 +124,13 @@ enum TrafficSourceIcon {
   OTHER = 'other'
 }
 
-// Função principal
 export async function fetchDetailedAnalyticsForLink(
   userId: string,
   linkId: string
 ): Promise<LinkAnalyticsData | null> {
   try {
-    // Executar todas as queries em paralelo
     const queryResults = await executeAnalyticsQueries(userId, linkId);
-
-    // Processar e validar os resultados
     const processedData = processQueryResults(queryResults, linkId);
-
     return processedData;
   } catch (error) {
     console.error('Erro em fetchDetailedAnalyticsForLink:', error);
@@ -165,7 +138,6 @@ export async function fetchDetailedAnalyticsForLink(
   }
 }
 
-// Função para executar todas as queries
 async function executeAnalyticsQueries(userId: string, linkId: string) {
   return await Promise.all([
     // 0. Total de cliques
@@ -287,7 +259,7 @@ async function executeAnalyticsQueries(userId: string, linkId: string) {
       ORDER BY clicks DESC;
     `,
 
-    // 9. Atividades recentes detalhadas
+    // 9. Atividades recentes detalhadas - ✅ CORRIGIDO
     sql<{
       timestamp: Date;
       city: string | null;
@@ -296,7 +268,7 @@ async function executeAnalyticsQueries(userId: string, linkId: string) {
       referrer: string | null;
     }>`
       SELECT
-        timestamp AT TIME ZONE 'America/Sao_Paulo' as timestamp,
+        timestamp as timestamp,
         city,
         country,
         region,
@@ -430,7 +402,7 @@ async function executeAnalyticsQueries(userId: string, linkId: string) {
       WHERE "profileUserId" = ${userId} AND "linkId" = ${linkId};
     `,
 
-    // 16. Taxa de conversão (visitantes únicos / total)
+    // 16. Taxa de conversão
     sql<{ conversion_rate: number }>`
       WITH stats AS (
         SELECT
@@ -449,7 +421,6 @@ async function executeAnalyticsQueries(userId: string, linkId: string) {
   ]);
 }
 
-// Função para processar os resultados
 function processQueryResults(
   results: { rows: QueryResultRow[] }[],
   linkId: string
@@ -476,45 +447,38 @@ function processQueryResults(
 
   const totalClicks = parseInt(clicksResult.rows[0]?.count || '0', 10);
 
-  // Se não houver dados, retornar estrutura vazia
   if (totalClicks === 0) {
     return createEmptyAnalyticsData(linkId);
   }
 
   const totalUniqueUsers = parseInt(uniqueUsersResult.rows[0]?.count || '0', 10);
 
-  // Processar países
   const countryData = countryResult.rows.map((row: QueryResultRow): GeoData => ({
     country: row.country,
     clicks: parseInt(row.clicks, 10),
     percentage: (parseInt(row.clicks, 10) / totalClicks) * 100,
   }));
 
-  // Processar cidades
   const cityData = cityResult.rows.map((row: QueryResultRow): CityData => ({
     city: row.city,
     clicks: parseInt(row.clicks, 10),
     percentage: (parseInt(row.clicks, 10) / totalClicks) * 100,
   }));
 
-  // Processar regiões
   const regionData = regionResult.rows.map((row: QueryResultRow): RegionData => ({
     region: row.region,
     clicks: parseInt(row.clicks, 10),
     percentage: (parseInt(row.clicks, 10) / totalClicks) * 100,
   }));
 
-  // Processar dados horários
   const hourlyData = hourlyResult.rows.map((row: QueryResultRow): HourlyData => ({
     hour_of_day: row.hour_of_day,
     total_clicks: row.total_clicks,
     percentage: (row.total_clicks / totalClicks) * 100,
   }));
 
-  // Calcular horário de pico
   const peakHour = calculatePeakHour(hourlyData);
 
-  // Processar dados diários
   const dailyData = dailyResult.rows
     .map((row: QueryResultRow): DailyData => ({
       date: row.date.toISOString().split('T')[0],
@@ -523,38 +487,22 @@ function processQueryResults(
     }))
     .reverse();
 
-  // Processar dispositivos
   const devices = processDeviceStats(deviceStatsResult.rows);
-
-  // Processar fontes de tráfego
   const trafficSources = processTrafficSources(trafficSourcesResult.rows, totalClicks);
-
-  // Processar atividades recentes
   const recentActivities = processRecentActivities(recentClicksResult.rows);
-
-  // Processar navegadores
   const browsers = processBrowserStats(browserStatsResult.rows, totalClicks);
-
-  // Processar sistemas operacionais
   const operatingSystems = processOSStats(osStatsResult.rows, totalClicks);
-
-  // Processar referrers
   const referrers = processReferrers(referrerDetailsResult.rows, totalClicks);
-
-  // Processar comparação de períodos
   const comparison = processComparison(comparisonResult.rows[0]);
-
-  // Processar métricas de engajamento
   const engagement = processEngagement(engagementResult.rows[0]);
 
-  // Taxa de rejeição e conversão
   const bounceRate = parseFloat(bounceRateResult.rows[0]?.bounce_rate || '0');
   const conversionRate = parseFloat(conversionRateResult.rows[0]?.conversion_rate || '0');
 
   return {
     linkId,
-    linkTitle: '', // Será preenchido pela aplicação
-    linkUrl: '', // Será preenchido pela aplicação
+    linkTitle: '',
+    linkUrl: '',
     totalClicks,
     uniqueUsers: totalUniqueUsers,
     countriesReached: countryData.length,
@@ -583,25 +531,20 @@ function processQueryResults(
   };
 }
 
-// Funções auxiliares
 function calculatePeakHour(hourlyData: HourlyData[]): number | null {
   if (hourlyData.length === 0) return null;
-
   const peak = hourlyData.reduce((prev, current) =>
     prev.total_clicks > current.total_clicks ? prev : current
   );
-
   return peak.hour_of_day;
 }
 
 function processDeviceStats(rows: QueryResultRow[]): DeviceStats {
   const devices: DeviceStats = { desktop: 0, mobile: 0, tablet: 0 };
-
   rows.forEach(row => {
     const deviceType = row.device_type as keyof DeviceStats;
     devices[deviceType] = row.count;
   });
-
   return devices;
 }
 
@@ -634,15 +577,13 @@ function getTrafficSourceIcon(source: string): string {
     'Yahoo': TrafficSourceIcon.SEARCH,
     'DuckDuckGo': TrafficSourceIcon.SEARCH,
   };
-
   return iconMap[source] || TrafficSourceIcon.OTHER;
 }
 
-// ✅ MODIFICADO - Agora usa processRecentActivities com exactTime
 function processRecentActivities(rows: QueryResultRow[]): RecentActivity[] {
   return rows.map(row => ({
     time: formatRelativeTime(new Date(row.timestamp)),
-    exactTime: formatExactTime(new Date(row.timestamp)), // NOVA LINHA
+    exactTime: formatExactTime(new Date(row.timestamp)),
     action: 'Clique no link',
     location: formatLocation(row.city, row.region, row.country),
     timestamp: row.timestamp,
@@ -672,15 +613,18 @@ function formatRelativeTime(date: Date): string {
   });
 }
 
-// ✅ NOVA FUNÇÃO - Formata horário exato
+// ✅ CORRIGIDO - Função que formata horário exato no timezone do Brasil
 function formatExactTime(date: Date): string {
-  return date.toLocaleString('pt-BR', {
+  const dateString = typeof date === 'string' ? date : date.toISOString();
+
+  return new Date(dateString).toLocaleString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    timeZone: 'America/Sao_Paulo'
+    timeZone: 'America/Sao_Paulo',
+    hour12: false
   });
 }
 
@@ -690,11 +634,9 @@ function formatLocation(
   country: string | null
 ): string {
   const parts: string[] = [];
-
   if (city && city !== '') parts.push(city);
   if (region && region !== '' && region !== city) parts.push(region);
   if (country && country !== '') parts.push(country);
-
   return parts.length > 0 ? parts.join(', ') : 'Localização desconhecida';
 }
 
@@ -804,7 +746,6 @@ function createEmptyAnalyticsData(linkId: string): LinkAnalyticsData {
   };
 }
 
-// Exportar tipos para uso em outros arquivos
 export type {
   DeviceStats,
   TrafficSource,
