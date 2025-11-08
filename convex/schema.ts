@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 export default defineSchema({
   // ============================================
-  // 👤 USUÁRIOS E PERFIL
+  // 👤 USUÁRIOS E PERFIL (mantidos)
   // ============================================
   usernames: defineTable({
     userId: v.string(),
@@ -64,9 +64,6 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
   }).index("by_user_provider", ["userId", "provider"]),
 
-  // ============================================
-  // 🔗 LINKS E ENCURTADOR
-  // ============================================
   shortLinks: defineTable({
     userId: v.string(),
     slug: v.string(),
@@ -77,9 +74,6 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_user", ["userId"]),
 
-  // ============================================
-  // 🤖 IA E CONTEÚDO
-  // ============================================
   analyses: defineTable({
     optimized_bio: v.string(),
     content_pillars: v.array(
@@ -143,6 +137,103 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_created", ["createdAt"]),
+
+  sharedAchievements: defineTable({
+    userId: v.string(),
+    streakDays: v.number(),
+    completedPosts: v.number(),
+    totalPosts: v.number(),
+    shareCode: v.string(),
+    createdAt: v.number(),
+    expiresAt: v.number(),
+    views: v.number(),
+    platform: v.optional(v.string()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_shareCode", ["shareCode"])
+    .index("by_expiration", ["expiresAt"]),
+
+  userStreaks: defineTable({
+    userId: v.string(),
+    currentStreak: v.number(),
+    bestStreak: v.number(),
+    lastActivityDate: v.number(),
+    milestones: v.array(
+      v.object({
+        streakDays: v.number(),
+        achievedAt: v.number(),
+        shared: v.boolean(),
+      })
+    ),
+  }).index("by_user", ["userId"]),
+
+  generatedImages: defineTable({
+    userId: v.string(),
+    prompt: v.string(),
+    imageUrl: v.string(),
+    storageId: v.id("_storage"),
+    method: v.optional(v.string()),
+    createdAt: v.optional(v.number()),
+  }).index("by_user", ["userId"]),
+
+  dailyImageUsage: defineTable({
+    userId: v.string(),
+    date: v.string(),
+    count: v.number(),
+    images: v.optional(
+      v.array(
+        v.object({
+          imageId: v.id("generatedImages"),
+          createdAt: v.number(),
+        })
+      )
+    ),
+    lastResetAt: v.optional(v.number()),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user_date", ["userId", "date"])
+    .index("by_user", ["userId"]),
+
+  aiStudioContent: defineTable({
+    userId: v.string(),
+    type: v.union(
+      v.literal("enhanced_image"),
+      v.literal("audio"),
+      v.literal("transcription"),
+      v.literal("video"),
+      v.literal("chat")
+    ),
+    originalUrl: v.optional(v.string()),
+    resultUrl: v.optional(v.string()),
+    text: v.optional(v.string()),
+    prompt: v.optional(v.string()),
+    storageId: v.optional(v.id("_storage")),
+    createdAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_type", ["userId", "type"]),
+
+  publicGiveaways: defineTable({
+    giveawayId: v.string(),
+    title: v.string(),
+    createdBy: v.string(),
+    participants: v.array(
+      v.object({
+        id: v.string(),
+        name: v.string(),
+        identifier: v.string(),
+        timestamp: v.string(),
+        verified: v.optional(v.boolean()),
+      })
+    ),
+    isActive: v.boolean(),
+    method: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_giveaway_id", ["giveawayId"])
+    .index("by_creator", ["createdBy"]),
 
   brainCampaigns: defineTable({
     userId: v.string(),
@@ -226,115 +317,6 @@ export default defineSchema({
     .index("by_notification_pending", ["notificationSent", "status"])
     .index("by_auto_publish", ["autoPublish"]),
 
-  // ============================================
-  // 🎯 GAMIFICAÇÃO E CONQUISTAS
-  // ============================================
-  sharedAchievements: defineTable({
-    userId: v.string(),
-    streakDays: v.number(),
-    completedPosts: v.number(),
-    totalPosts: v.number(),
-    shareCode: v.string(),
-    createdAt: v.number(),
-    expiresAt: v.number(),
-    views: v.number(),
-    platform: v.optional(v.string()),
-  })
-    .index("by_user", ["userId"])
-    .index("by_shareCode", ["shareCode"])
-    .index("by_expiration", ["expiresAt"]),
-
-  userStreaks: defineTable({
-    userId: v.string(),
-    currentStreak: v.number(),
-    bestStreak: v.number(),
-    lastActivityDate: v.number(),
-    milestones: v.array(
-      v.object({
-        streakDays: v.number(),
-        achievedAt: v.number(),
-        shared: v.boolean(),
-      })
-    ),
-  }).index("by_user", ["userId"]),
-
-  // ============================================
-  // 🎨 MÍDIA E CRIAÇÃO
-  // ============================================
-  generatedImages: defineTable({
-    userId: v.string(),
-    prompt: v.string(),
-    imageUrl: v.string(),
-    storageId: v.id("_storage"),
-    method: v.optional(v.string()),
-    createdAt: v.optional(v.number()),
-  }).index("by_user", ["userId"]),
-
-  dailyImageUsage: defineTable({
-    userId: v.string(),
-    date: v.string(),
-    count: v.number(),
-    images: v.optional(
-      v.array(
-        v.object({
-          imageId: v.id("generatedImages"),
-          createdAt: v.number(),
-        })
-      )
-    ),
-    lastResetAt: v.optional(v.number()),
-    createdAt: v.optional(v.number()),
-    updatedAt: v.optional(v.number()),
-  })
-    .index("by_user_date", ["userId", "date"])
-    .index("by_user", ["userId"]),
-
-  aiStudioContent: defineTable({
-    userId: v.string(),
-    type: v.union(
-      v.literal("enhanced_image"),
-      v.literal("audio"),
-      v.literal("transcription"),
-      v.literal("video"),
-      v.literal("chat")
-    ),
-    originalUrl: v.optional(v.string()),
-    resultUrl: v.optional(v.string()),
-    text: v.optional(v.string()),
-    prompt: v.optional(v.string()),
-    storageId: v.optional(v.id("_storage")),
-    createdAt: v.optional(v.number()),
-  })
-    .index("by_user", ["userId"])
-    .index("by_user_and_type", ["userId", "type"]),
-
-  // ============================================
-  // 🎁 SORTEIOS
-  // ============================================
-  publicGiveaways: defineTable({
-    giveawayId: v.string(),
-    title: v.string(),
-    createdBy: v.string(),
-    participants: v.array(
-      v.object({
-        id: v.string(),
-        name: v.string(),
-        identifier: v.string(),
-        timestamp: v.string(),
-        verified: v.optional(v.boolean()),
-      })
-    ),
-    isActive: v.boolean(),
-    method: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.optional(v.number()),
-  })
-    .index("by_giveaway_id", ["giveawayId"])
-    .index("by_creator", ["createdBy"]),
-
-  // ============================================
-  // 🔔 NOTIFICAÇÕES PUSH
-  // ============================================
   pushSubscriptions: defineTable({
     userId: v.string(),
     endpoint: v.string(),
@@ -361,9 +343,6 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_post", ["postId"]),
 
-  // ============================================
-  // 💰 CALCULADORA DE LUCRO (ANTIGA)
-  // ============================================
   profitCalculations: defineTable({
     userId: v.string(),
     businessName: v.string(),
@@ -497,76 +476,303 @@ export default defineSchema({
     .index("by_calculation", ["calculationId"]),
 
   // ============================================
-  // 💼 GESTÃO FINANCEIRA MENSAL (NOVA)
+  // 💼 GESTÃO FINANCEIRA COMPLETA - NOVA VERSÃO
   // ============================================
 
-  // Produtos cadastrados
-  products: defineTable({
+  // Empresas/Negócios (para gerenciar múltiplos negócios)
+  businesses: defineTable({
     userId: v.string(),
     name: v.string(),
-    costPrice: v.number(), // Quanto pagou pela peça
-    salePrice: v.number(), // Por quanto vende
-    category: v.optional(v.string()),
-    stock: v.optional(v.number()),
+    type: v.union(
+      v.literal("ecommerce"),
+      v.literal("services"),
+      v.literal("retail"),
+      v.literal("freelancer"),
+      v.literal("consulting"),
+      v.literal("manufacturing"),
+      v.literal("other")
+    ),
+    currency: v.string(), // BRL, USD, EUR
+    timezone: v.optional(v.string()),
     active: v.boolean(),
+    settings: v.optional(
+      v.object({
+        taxRate: v.optional(v.number()),
+        lowStockAlert: v.optional(v.number()),
+        defaultPaymentMethod: v.optional(v.string()),
+      })
+    ),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
     .index("by_user_active", ["userId", "active"]),
 
-  // Vendas realizadas
+  // Categorias Customizáveis de Gastos
+  expenseCategories: defineTable({
+    userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+    name: v.string(),
+    icon: v.string(),
+    color: v.string(),
+    type: v.union(v.literal("fixed"), v.literal("variable")),
+    budget: v.optional(v.number()), // Orçamento mensal
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_business", ["businessId"])
+    .index("by_user_active", ["userId", "active"]),
+
+  // Fornecedores
+  suppliers: defineTable({
+    userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+    name: v.string(),
+    contact: v.optional(
+      v.object({
+        email: v.optional(v.string()),
+        phone: v.optional(v.string()),
+        address: v.optional(v.string()),
+      })
+    ),
+    notes: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_business", ["businessId"]),
+
+  // Clientes
+  customers: defineTable({
+    userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+    name: v.string(),
+    email: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    address: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())), // VIP, Regular, etc
+    totalSpent: v.number(),
+    totalOrders: v.number(),
+    lastPurchase: v.optional(v.number()),
+    notes: v.optional(v.string()),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_business", ["businessId"])
+    .index("by_email", ["userId", "email"]),
+
+  // Produtos (VERSÃO COMPLETA)
+  products: defineTable({
+    userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+    supplierId: v.optional(v.id("suppliers")),
+    sku: v.optional(v.string()), // Código do produto
+    barcode: v.optional(v.string()), // Código de barras
+    name: v.string(),
+    description: v.optional(v.string()),
+    category: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+
+    // Preços
+    costPrice: v.number(), // Quanto pagou
+    salePrice: v.number(), // Por quanto vende
+    suggestedPrice: v.optional(v.number()), // Sugestão da IA
+
+    // Estoque
+    stock: v.optional(v.number()),
+    minStock: v.optional(v.number()), // Alerta de estoque baixo
+    maxStock: v.optional(v.number()),
+    unit: v.optional(v.string()), // un, kg, L, etc
+
+    // Imagens
+    imageStorageId: v.optional(v.id("_storage")),
+    imageUrl: v.optional(v.string()),
+
+    // Meta
+    active: v.boolean(),
+    featured: v.optional(v.boolean()),
+    notes: v.optional(v.string()),
+
+    // Estatísticas (calculadas)
+    totalSold: v.optional(v.number()),
+    totalRevenue: v.optional(v.number()),
+    totalProfit: v.optional(v.number()),
+
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_business", ["businessId"])
+    .index("by_user_active", ["userId", "active"])
+    .index("by_sku", ["userId", "sku"])
+    .index("by_supplier", ["supplierId"]),
+
+  // Vendas (VERSÃO COMPLETA)
   sales: defineTable({
     userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+    customerId: v.optional(v.id("customers")),
     productId: v.id("products"),
     productName: v.string(),
+
+    // Quantidade e preços
     quantity: v.number(),
     costPrice: v.number(),
     salePrice: v.number(),
-    totalCost: v.number(), // quantity * costPrice
-    totalRevenue: v.number(), // quantity * salePrice
-    profit: v.number(), // totalRevenue - totalCost
+    discount: v.optional(v.number()), // Desconto aplicado
+    totalCost: v.number(),
+    totalRevenue: v.number(),
+    profit: v.number(),
+
+    // Pagamento
+    paymentMethod: v.optional(
+      v.union(
+        v.literal("cash"),
+        v.literal("credit_card"),
+        v.literal("debit_card"),
+        v.literal("pix"),
+        v.literal("bank_transfer"),
+        v.literal("other")
+      )
+    ),
+    paymentStatus: v.optional(
+      v.union(
+        v.literal("paid"),
+        v.literal("pending"),
+        v.literal("overdue"),
+        v.literal("cancelled")
+      )
+    ),
+
+    // Datas
     date: v.string(), // YYYY-MM-DD
     month: v.string(), // YYYY-MM
+    dueDate: v.optional(v.string()), // Para vendas a prazo
+    paidAt: v.optional(v.number()),
+
+    // Meta
+    invoiceNumber: v.optional(v.string()),
     notes: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+
     createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
+    .index("by_business", ["businessId"])
+    .index("by_customer", ["customerId"])
+    .index("by_product", ["productId"])
     .index("by_user_month", ["userId", "month"])
     .index("by_month", ["month"])
-    .index("by_product", ["productId"]),
+    .index("by_payment_status", ["userId", "paymentStatus"]),
 
-  // Gastos diários
+  // Gastos (VERSÃO COMPLETA)
   expenses: defineTable({
     userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+    categoryId: v.optional(v.id("expenseCategories")),
+    categoryName: v.string(), // Nome da categoria (para histórico)
+    supplierId: v.optional(v.id("suppliers")),
+
     description: v.string(),
     amount: v.number(),
-    category: v.union(
-      v.literal("aluguel"),
-      v.literal("luz_agua"),
-      v.literal("internet"),
-      v.literal("transporte"),
-      v.literal("alimentacao"),
-      v.literal("marketing"),
-      v.literal("materiais"),
-      v.literal("funcionarios"),
-      v.literal("outros")
+
+    // Tipo e recorrência
+    type: v.union(v.literal("fixed"), v.literal("variable"), v.literal("one_time")),
+    recurring: v.optional(v.boolean()),
+    recurrenceInterval: v.optional(
+      v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("yearly"))
     ),
+
+    // Pagamento
+    paymentMethod: v.optional(
+      v.union(
+        v.literal("cash"),
+        v.literal("credit_card"),
+        v.literal("debit_card"),
+        v.literal("pix"),
+        v.literal("bank_transfer"),
+        v.literal("other")
+      )
+    ),
+    paymentStatus: v.optional(
+      v.union(
+        v.literal("paid"),
+        v.literal("pending"),
+        v.literal("overdue")
+      )
+    ),
+
+    // Datas
     date: v.string(), // YYYY-MM-DD
     month: v.string(), // YYYY-MM
+    dueDate: v.optional(v.string()),
+    paidAt: v.optional(v.number()),
+
+    // Meta
+    invoiceNumber: v.optional(v.string()),
+    attachmentStorageId: v.optional(v.id("_storage")), // Foto do recibo
     notes: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+
     createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
+    .index("by_business", ["businessId"])
+    .index("by_category", ["categoryId"])
+    .index("by_supplier", ["supplierId"])
     .index("by_user_month", ["userId", "month"])
     .index("by_month", ["month"])
-    .index("by_category", ["userId", "category"]),
+    .index("by_payment_status", ["userId", "paymentStatus"])
+    .index("by_type", ["userId", "type"]),
 
-  // Relatórios mensais automáticos
+  // Metas Financeiras
+  financialGoals: defineTable({
+    userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+
+    type: v.union(
+      v.literal("revenue"),
+      v.literal("profit"),
+      v.literal("margin"),
+      v.literal("sales_count"),
+      v.literal("expense_reduction")
+    ),
+
+    title: v.string(),
+    description: v.optional(v.string()),
+    targetValue: v.number(),
+    currentValue: v.number(),
+    period: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("yearly")),
+    startDate: v.string(),
+    endDate: v.string(),
+
+    status: v.union(
+      v.literal("active"),
+      v.literal("achieved"),
+      v.literal("failed"),
+      v.literal("cancelled")
+    ),
+
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+    achievedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_business", ["businessId"])
+    .index("by_status", ["userId", "status"]),
+
+  // Relatórios Mensais (VERSÃO COMPLETA)
   monthlyReports: defineTable({
     userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
     month: v.string(), // YYYY-MM
-    businessName: v.optional(v.string()),
 
     // Vendas
     totalSales: v.number(),
@@ -576,23 +782,25 @@ export default defineSchema({
 
     // Gastos
     totalExpenses: v.number(),
+    fixedExpenses: v.optional(v.number()),
+    variableExpenses: v.optional(v.number()),
     expensesByCategory: v.object({
-      aluguel: v.number(),
-      luz_agua: v.number(),
-      internet: v.number(),
-      transporte: v.number(),
-      alimentacao: v.number(),
-      marketing: v.number(),
-      materiais: v.number(),
-      funcionarios: v.number(),
-      outros: v.number(),
+      aluguel: v.optional(v.number()),
+      luz_agua: v.optional(v.number()),
+      internet: v.optional(v.number()),
+      transporte: v.optional(v.number()),
+      alimentacao: v.optional(v.number()),
+      marketing: v.optional(v.number()),
+      materiais: v.optional(v.number()),
+      funcionarios: v.optional(v.number()),
+      outros: v.optional(v.number()),
     }),
 
-    // Lucro líquido
-    netProfit: v.number(), // grossProfit - totalExpenses
-    profitMargin: v.number(), // (netProfit / totalRevenue) * 100
+    // Lucro
+    netProfit: v.number(),
+    profitMargin: v.number(),
 
-    // Top produtos
+    // Produtos
     topProducts: v.array(
       v.object({
         productId: v.string(),
@@ -603,9 +811,138 @@ export default defineSchema({
       })
     ),
 
+    // Clientes
+    topCustomers: v.optional(
+      v.array(
+        v.object({
+          customerId: v.string(),
+          customerName: v.string(),
+          totalSpent: v.number(),
+          orderCount: v.number(),
+        })
+      )
+    ),
+
+    // Comparações
+    vsLastMonth: v.optional(
+      v.object({
+        revenue: v.number(), // % de diferença
+        profit: v.number(),
+        expenses: v.number(),
+      })
+    ),
+
+    vsLastYear: v.optional(
+      v.object({
+        revenue: v.number(),
+        profit: v.number(),
+        expenses: v.number(),
+      })
+    ),
+
+    // Previsões IA
+    aiPredictions: v.optional(
+      v.object({
+        nextMonthRevenue: v.number(),
+        nextMonthProfit: v.number(),
+        confidence: v.number(), // 0-100
+        suggestions: v.array(v.string()),
+      })
+    ),
+
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_user", ["userId"])
+    .index("by_business", ["businessId"])
     .index("by_user_month", ["userId", "month"]),
+
+  // Alertas Inteligentes
+  alerts: defineTable({
+    userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+
+    type: v.union(
+      v.literal("low_stock"),
+      v.literal("high_expense"),
+      v.literal("goal_progress"),
+      v.literal("payment_overdue"),
+      v.literal("negative_profit"),
+      v.literal("milestone")
+    ),
+
+    severity: v.union(v.literal("info"), v.literal("warning"), v.literal("critical")),
+    title: v.string(),
+    message: v.string(),
+    actionUrl: v.optional(v.string()),
+
+    read: v.boolean(),
+    readAt: v.optional(v.number()),
+
+    relatedId: v.optional(v.string()), // ID do produto, venda, etc
+
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_unread", ["userId", "read"])
+    .index("by_business", ["businessId"]),
+
+  // Backup/Lixeira (para recuperar dados deletados)
+  deletedRecords: defineTable({
+    userId: v.string(),
+    recordType: v.union(
+      v.literal("product"),
+      v.literal("sale"),
+      v.literal("expense"),
+      v.literal("customer"),
+      v.literal("supplier")
+    ),
+    recordId: v.string(),
+    recordData: v.string(), // JSON stringificado
+    deletedAt: v.number(),
+    expiresAt: v.number(), // Auto-delete após 30 dias
+  })
+    .index("by_user", ["userId"])
+    .index("by_expiration", ["expiresAt"]),
+
+  // Exportações (histórico de exports)
+  exports: defineTable({
+    userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+
+    type: v.union(
+      v.literal("excel"),
+      v.literal("pdf"),
+      v.literal("csv")
+    ),
+
+    dataType: v.union(
+      v.literal("sales"),
+      v.literal("expenses"),
+      v.literal("products"),
+      v.literal("report"),
+      v.literal("all")
+    ),
+
+    period: v.optional(
+      v.object({
+        start: v.string(),
+        end: v.string(),
+      })
+    ),
+
+    fileStorageId: v.optional(v.id("_storage")),
+    fileUrl: v.optional(v.string()),
+
+    status: v.union(
+      v.literal("processing"),
+      v.literal("completed"),
+      v.literal("failed")
+    ),
+
+    createdAt: v.number(),
+    expiresAt: v.number(), // Link expira em 7 dias
+  })
+    .index("by_user", ["userId"])
+    .index("by_expiration", ["expiresAt"]),
 });
