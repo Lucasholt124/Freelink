@@ -1,9 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useQuery, useMutation, useAction, useConvex } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Doc, Id } from "@/convex/_generated/dataModel";
+import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 import {
@@ -22,20 +22,20 @@ import {
   Target,
   AlertCircle,
   CheckCircle2,
-  Search,
   Settings,
   Bell,
   Star,
   Users,
   Truck,
   DollarSign,
-  TrendingUpIcon,
   FileText,
   Calculator,
   Save,
   AlertTriangle,
   Info,
   BarChart3,
+  Loader2,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -69,78 +69,17 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
-import {
-  Alert,
-  AlertDescription,
-  AlertTitle,
-} from "@/components/ui/alert";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
+// ✅ TIPOS E INTERFACES
 type TabType = "dashboard" | "produtos" | "vendas" | "gastos" | "resumo" | "metas" | "clientes" | "fornecedores";
 
-interface ProductFormData {
-  name: string;
-  costPrice: string;
-  salePrice: string;
-  sku: string;
-  category: string;
-  stock: string;
-  minStock: string;
-  unit: string;
-  description: string;
-  tags: string[];
-  supplierId?: Id<"suppliers">;
-}
-
-interface SaleFormData {
-  productId: string;
-  customerId?: string;
-  quantity: string;
-  discount: string;
-  date: string;
-  paymentMethod: string;
-  paymentStatus: string;
-  notes: string;
-}
-
-interface ExpenseFormData {
-  description: string;
-  amount: string;
-  categoryName: string;
-  type: "fixed" | "variable" | "one_time";
-  date: string;
-  paymentMethod: string;
-  paymentStatus: string;
-  notes: string;
-  supplierId?: string;
-}
-
-interface CustomerFormData {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  tags: string[];
-  notes: string;
-}
-
-interface SupplierFormData {
-  name: string;
-  email: string;
-  phone: string;
-  address: string;
-  notes: string;
-}
-
-interface GoalFormData {
-  type: "revenue" | "profit" | "margin" | "sales_count" | "expense_reduction";
-  title: string;
-  description: string;
-  targetValue: string;
-  period: "daily" | "weekly" | "monthly" | "yearly";
-  startDate: string;
-  endDate: string;
-}
+type GoalType = "revenue" | "profit" | "margin" | "sales_count" | "expense_reduction";
+type PaymentMethod = "cash" | "credit_card" | "debit_card" | "pix" | "bank_transfer" | "other";
+type SalePaymentStatus = "paid" | "pending" | "overdue" | "cancelled";
+type ExpensePaymentStatus = "paid" | "pending" | "overdue";
+type ExpenseType = "fixed" | "variable" | "one_time";
 
 interface PriceCalculationResult {
   suggestedPrice: number;
@@ -150,21 +89,12 @@ interface PriceCalculationResult {
   analysis: string[];
 }
 
-interface SearchResults {
-  products: Array<{ _id: Id<"products">; name: string; salePrice: number; sku?: string; category?: string }>;
-  sales: Array<{ _id: Id<"sales">; productName: string; date: string; totalRevenue: number; invoiceNumber?: string; notes?: string }>;
-  expenses: Array<{ _id: Id<"expenses">; description: string; date: string; amount: number; categoryName: string; notes?: string }>;
-  customers: Array<{ _id: Id<"customers">; name: string; email?: string; phone?: string }>;
-  suppliers: Array<{ _id: Id<"suppliers">; name: string; contact?: { email?: string; phone?: string } }>;
-}
-
 export default function FinancialManagerPro() {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
 
-  const [selectedBusiness] = useState<Id<"businesses"> | undefined>();
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
@@ -174,19 +104,9 @@ export default function FinancialManagerPro() {
   const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showPriceCalculator, setShowPriceCalculator] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
-  const customers: Doc<"customers">[] = useQuery(api.profitCalculator.getCustomers, {}) ?? [];
-const suppliers: Doc<"suppliers">[] = useQuery(api.profitCalculator.getSuppliers, {}) ?? [];
-const addProduct = useMutation(api.profitCalculator.addProduct);
-const updateProduct = useMutation(api.profitCalculator.updateProduct);
-const deleteProduct = useMutation(api.profitCalculator.deleteProduct);
-const addCustomer = useMutation(api.profitCalculator.addCustomer);
-const deleteCustomer = useMutation(api.profitCalculator.deleteCustomer);
-const addSupplier = useMutation(api.profitCalculator.addSupplier);
-const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
   const [editingProductId, setEditingProductId] = useState<Id<"products"> | null>(null);
 
-  const [productForm, setProductForm] = useState<ProductFormData>({
+  const [productForm, setProductForm] = useState({
     name: "",
     costPrice: "",
     salePrice: "",
@@ -196,40 +116,31 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
     minStock: "",
     unit: "un",
     description: "",
-    tags: [],
   });
 
-  const [saleForm, setSaleForm] = useState<SaleFormData>({
+  const [saleForm, setSaleForm] = useState({
     productId: "",
+    customerId: "",
     quantity: "",
     discount: "",
     date: new Date().toISOString().split("T")[0],
-    paymentMethod: "pix",
-    paymentStatus: "paid",
+    paymentMethod: "pix" as PaymentMethod,
+    paymentStatus: "paid" as SalePaymentStatus,
     notes: "",
   });
 
-  const [expenseForm, setExpenseForm] = useState<ExpenseFormData>({
+  const [expenseForm, setExpenseForm] = useState({
     description: "",
     amount: "",
     categoryName: "Outros",
-    type: "one_time",
+    type: "one_time" as ExpenseType,
     date: new Date().toISOString().split("T")[0],
-    paymentMethod: "pix",
-    paymentStatus: "paid",
+    paymentMethod: "pix" as PaymentMethod,
+    paymentStatus: "paid" as ExpensePaymentStatus,
     notes: "",
   });
 
-  const [customerForm, setCustomerForm] = useState<CustomerFormData>({
-    name: "",
-    email: "",
-    phone: "",
-    address: "",
-    tags: [],
-    notes: "",
-  });
-
-  const [supplierForm, setSupplierForm] = useState<SupplierFormData>({
+  const [customerForm, setCustomerForm] = useState({
     name: "",
     email: "",
     phone: "",
@@ -237,12 +148,20 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
     notes: "",
   });
 
-  const [goalForm, setGoalForm] = useState<GoalFormData>({
-    type: "revenue",
+  const [supplierForm, setSupplierForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    address: "",
+    notes: "",
+  });
+
+  const [goalForm, setGoalForm] = useState({
+    type: "revenue" as GoalType,
     title: "",
     description: "",
     targetValue: "",
-    period: "monthly",
+    period: "monthly" as "daily" | "weekly" | "monthly" | "yearly",
     startDate: new Date().toISOString().split("T")[0],
     endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split("T")[0],
   });
@@ -252,32 +171,42 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
     targetMargin: "40",
     category: "",
   });
+
+  // ✅ CORRIGIDO
   const [priceCalcResult, setPriceCalcResult] = useState<PriceCalculationResult | null>(null);
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
 
-  const convex = useConvex();
-  const products: Doc<"products">[] = useQuery(api.profitCalculator.getProducts, { activeOnly: false }) ?? [];
-  const sales: Doc<"sales">[] = useQuery(api.profitCalculator.getSalesByMonth, { month: selectedMonth }) ?? [];
-  const expenses: Doc<"expenses">[] = useQuery(api.profitCalculator.getExpensesByMonth, { month: selectedMonth }) ?? [];
-  const monthlyReport: Doc<"monthlyReports"> | null | undefined = useQuery(api.profitCalculator.getMonthlyReport, { month: selectedMonth });
-  const allMonths: Doc<"monthlyReports">[] = useQuery(api.profitCalculator.getAllMonths, {}) ?? [];
-  const dashboard = useQuery(api.profitCalculator.getDashboard, { businessId: selectedBusiness }) ?? null;
-  const alerts: Doc<"alerts">[] = useQuery(api.profitCalculator.getAlerts, { unreadOnly: true }) ?? [];
-  const goals: Doc<"financialGoals">[] = useQuery(api.profitCalculator.getFinancialGoals, { status: "active" }) ?? [];
+  // Queries
+  const products = useQuery(api.profitCalculator.getProducts, { activeOnly: false }) ?? [];
+  const sales = useQuery(api.profitCalculator.getSalesByMonth, { month: selectedMonth }) ?? [];
+  const expenses = useQuery(api.profitCalculator.getExpensesByMonth, { month: selectedMonth }) ?? [];
+  const monthlyReport = useQuery(api.profitCalculator.getMonthlyReport, { month: selectedMonth });
+  const allMonths = useQuery(api.profitCalculator.getAllMonths, {}) ?? [];
+  const dashboard = useQuery(api.profitCalculator.getDashboard, {});
+  const alerts = useQuery(api.profitCalculator.getAlerts, { unreadOnly: true }) ?? [];
+  const goals = useQuery(api.profitCalculator.getFinancialGoals, { status: "active" }) ?? [];
+  const customers = useQuery(api.profitCalculator.getCustomers, {}) ?? [];
+  const suppliers = useQuery(api.profitCalculator.getSuppliers, {}) ?? [];
 
-
+  // Mutations
+  const addProduct = useMutation(api.profitCalculator.addProduct);
+  const updateProduct = useMutation(api.profitCalculator.updateProduct);
+  const deleteProduct = useMutation(api.profitCalculator.deleteProduct);
   const addSale = useMutation(api.profitCalculator.addSale);
   const deleteSale = useMutation(api.profitCalculator.deleteSale);
   const addExpense = useMutation(api.profitCalculator.addExpense);
   const deleteExpense = useMutation(api.profitCalculator.deleteExpense);
-
+  const addCustomer = useMutation(api.profitCalculator.addCustomer);
+  const deleteCustomer = useMutation(api.profitCalculator.deleteCustomer);
+  const addSupplier = useMutation(api.profitCalculator.addSupplier);
+  const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
   const addGoal = useMutation(api.profitCalculator.addFinancialGoal);
   const deleteGoal = useMutation(api.profitCalculator.deleteFinancialGoal);
   const markAlertAsRead = useMutation(api.profitCalculator.markAlertAsRead);
 
+  // Actions
   const calculatePrice = useAction(api.profitCalculator.calculateSuggestedPrice);
+  const generateReport = useAction(api.profitCalculator.generateMonthlyReport);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -321,62 +250,47 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
       minStock: "",
       unit: "un",
       description: "",
-      tags: [],
     });
     setEditingProductId(null);
   };
 
-  const resetSaleForm = () => {
-    setSaleForm({
-      productId: "",
-      quantity: "",
-      discount: "",
-      date: new Date().toISOString().split("T")[0],
-      paymentMethod: "pix",
-      paymentStatus: "paid",
-      notes: "",
-    });
-  };
-
-  const resetExpenseForm = () => {
-    setExpenseForm({
-      description: "",
-      amount: "",
-      categoryName: "Outros",
-      type: "one_time",
-      date: new Date().toISOString().split("T")[0],
-      paymentMethod: "pix",
-      paymentStatus: "paid",
-      notes: "",
-    });
-  };
-
   const handleAddProduct = async () => {
     if (!productForm.name.trim() || !productForm.costPrice || !productForm.salePrice) {
-      toast.error("Preencha os campos obrigatórios!");
+      toast.error("❌ Preencha nome, custo e preço de venda!");
+      return;
+    }
+
+    const costPrice = parseFloat(productForm.costPrice);
+    const salePrice = parseFloat(productForm.salePrice);
+
+    if (costPrice <= 0 || salePrice <= 0) {
+      toast.error("❌ Valores devem ser maiores que zero!");
+      return;
+    }
+
+    if (salePrice <= costPrice) {
+      toast.error("⚠️ Preço de venda deve ser maior que o custo!");
       return;
     }
 
     try {
       await addProduct({
         name: productForm.name,
-        costPrice: parseFloat(productForm.costPrice),
-        salePrice: parseFloat(productForm.salePrice),
+        costPrice,
+        salePrice,
         sku: productForm.sku || undefined,
         category: productForm.category || undefined,
         stock: productForm.stock ? parseInt(productForm.stock) : undefined,
         minStock: productForm.minStock ? parseInt(productForm.minStock) : undefined,
         unit: productForm.unit || undefined,
         description: productForm.description || undefined,
-        tags: productForm.tags.length > 0 ? productForm.tags : undefined,
-        supplierId: productForm.supplierId,
       });
 
-      toast.success("✅ Produto cadastrado!");
+      toast.success("✅ Produto cadastrado com sucesso!");
       setShowAddProduct(false);
       resetProductForm();
     } catch (error) {
-      toast.error("Erro ao cadastrar produto");
+      toast.error("❌ Erro ao cadastrar produto");
       console.error(error);
     }
   };
@@ -396,25 +310,24 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         minStock: productForm.minStock ? parseInt(productForm.minStock) : undefined,
         unit: productForm.unit || undefined,
         description: productForm.description || undefined,
-        tags: productForm.tags.length > 0 ? productForm.tags : undefined,
-        supplierId: productForm.supplierId,
       });
 
       toast.success("✅ Produto atualizado!");
       setShowEditProduct(false);
       resetProductForm();
     } catch (error) {
-      toast.error("Erro ao atualizar produto");
+      toast.error("❌ Erro ao atualizar produto");
       console.error(error);
     }
   };
 
   const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
     try {
-      await deleteProduct({ id, permanent });
-      toast.success(permanent ? "🗑️ Produto deletado!" : "✅ Produto desativado!");
-    } catch {
-      toast.error("Erro ao deletar produto");
+      const result = await deleteProduct({ id, permanent });
+      toast.success(`✅ Produto ${permanent ? 'deletado' : 'desativado'}! ${result.deletedSales ? `${result.deletedSales} vendas removidas` : ''}`);
+    } catch (error) {
+      toast.error("❌ Erro ao deletar produto");
+      console.error(error);
     }
   };
 
@@ -432,8 +345,6 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
       minStock: product.minStock?.toString() || "",
       unit: product.unit || "un",
       description: product.description || "",
-      tags: product.tags || [],
-      supplierId: product.supplierId,
     });
     setEditingProductId(productId);
     setShowEditProduct(true);
@@ -441,21 +352,35 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
   const handleAddSale = async () => {
     if (!saleForm.productId || !saleForm.quantity || !saleForm.date) {
-      toast.error("Preencha os campos obrigatórios!");
+      toast.error("❌ Preencha produto, quantidade e data!");
+      return;
+    }
+
+    const product = products.find((p) => p._id === saleForm.productId);
+    if (!product) {
+      toast.error("❌ Produto não encontrado!");
+      return;
+    }
+
+    const quantity = parseInt(saleForm.quantity);
+    if (product.stock !== undefined && product.stock < quantity) {
+      toast.error(`⚠️ Estoque insuficiente! Disponível: ${product.stock}`);
       return;
     }
 
     try {
       await addSale({
         productId: saleForm.productId as Id<"products">,
-        customerId: saleForm.customerId as Id<"customers"> | undefined,
-        quantity: parseInt(saleForm.quantity),
+        customerId: saleForm.customerId ? (saleForm.customerId as Id<"customers">) : undefined,
+        quantity,
         discount: saleForm.discount ? parseFloat(saleForm.discount) : undefined,
         date: saleForm.date,
-        paymentMethod: saleForm.paymentMethod as "cash" | "credit_card" | "debit_card" | "pix" | "bank_transfer" | "other" | undefined,
-        paymentStatus: saleForm.paymentStatus as "paid" | "pending" | "overdue" | "cancelled" | undefined,
+        paymentMethod: saleForm.paymentMethod,
+        paymentStatus: saleForm.paymentStatus,
         notes: saleForm.notes || undefined,
       });
+
+      await generateReport({ month: saleForm.date.substring(0, 7) });
 
       confetti({
         particleCount: 100,
@@ -464,27 +389,38 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         colors: ["#10B981", "#3B82F6", "#F59E0B"],
       });
 
-      toast.success("🎉 Venda registrada!");
+      toast.success("🎉 Venda registrada com sucesso!");
       setShowAddSale(false);
-      resetSaleForm();
+      setSaleForm({
+        productId: "",
+        customerId: "",
+        quantity: "",
+        discount: "",
+        date: new Date().toISOString().split("T")[0],
+        paymentMethod: "pix",
+        paymentStatus: "paid",
+        notes: "",
+      });
     } catch (error) {
-      toast.error("Erro ao registrar venda");
+      toast.error("❌ Erro ao registrar venda");
       console.error(error);
     }
   };
 
-  const handleDeleteSale = async (id: Id<"sales">, permanent = false) => {
+  const handleDeleteSale = async (id: Id<"sales">, saleMonth: string) => {
     try {
-      await deleteSale({ id, permanent });
-      toast.success("🗑️ Venda deletada!");
-    } catch {
-      toast.error("Erro ao deletar venda");
+      await deleteSale({ id, permanent: true });
+      await generateReport({ month: saleMonth });
+      toast.success("✅ Venda deletada!");
+    } catch (error) {
+      toast.error("❌ Erro ao deletar venda");
+      console.error(error);
     }
   };
 
   const handleAddExpense = async () => {
     if (!expenseForm.description.trim() || !expenseForm.amount || !expenseForm.date) {
-      toast.error("Preencha os campos obrigatórios!");
+      toast.error("❌ Preencha descrição, valor e data!");
       return;
     }
 
@@ -495,33 +431,45 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         categoryName: expenseForm.categoryName,
         type: expenseForm.type,
         date: expenseForm.date,
-        paymentMethod: expenseForm.paymentMethod as "cash" | "credit_card" | "debit_card" | "pix" | "bank_transfer" | "other" | undefined,
-        paymentStatus: expenseForm.paymentStatus as "paid" | "pending" | "overdue" | undefined,
+        paymentMethod: expenseForm.paymentMethod,
+        paymentStatus: expenseForm.paymentStatus,
         notes: expenseForm.notes || undefined,
-        supplierId: expenseForm.supplierId as Id<"suppliers"> | undefined,
       });
+
+      await generateReport({ month: expenseForm.date.substring(0, 7) });
 
       toast.success("✅ Gasto registrado!");
       setShowAddExpense(false);
-      resetExpenseForm();
+      setExpenseForm({
+        description: "",
+        amount: "",
+        categoryName: "Outros",
+        type: "one_time",
+        date: new Date().toISOString().split("T")[0],
+        paymentMethod: "pix",
+        paymentStatus: "paid",
+        notes: "",
+      });
     } catch (error) {
-      toast.error("Erro ao registrar gasto");
+      toast.error("❌ Erro ao registrar gasto");
       console.error(error);
     }
   };
 
-  const handleDeleteExpense = async (id: Id<"expenses">, permanent = false) => {
+  const handleDeleteExpense = async (id: Id<"expenses">, expenseMonth: string) => {
     try {
-      await deleteExpense({ id, permanent });
-      toast.success("🗑️ Gasto deletado!");
-    } catch {
-      toast.error("Erro ao deletar gasto");
+      await deleteExpense({ id, permanent: true });
+      await generateReport({ month: expenseMonth });
+      toast.success("✅ Gasto deletado!");
+    } catch (error) {
+      toast.error("❌ Erro ao deletar gasto");
+      console.error(error);
     }
   };
 
   const handleAddCustomer = async () => {
     if (!customerForm.name.trim()) {
-      toast.error("Digite o nome do cliente!");
+      toast.error("❌ Digite o nome do cliente!");
       return;
     }
 
@@ -531,22 +479,21 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         email: customerForm.email || undefined,
         phone: customerForm.phone || undefined,
         address: customerForm.address || undefined,
-        tags: customerForm.tags.length > 0 ? customerForm.tags : undefined,
         notes: customerForm.notes || undefined,
       });
 
       toast.success("✅ Cliente cadastrado!");
       setShowAddCustomer(false);
-      setCustomerForm({ name: "", email: "", phone: "", address: "", tags: [], notes: "" });
+      setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "" });
     } catch (error) {
-      toast.error("Erro ao cadastrar cliente");
+      toast.error("❌ Erro ao cadastrar cliente");
       console.error(error);
     }
   };
 
   const handleAddSupplier = async () => {
     if (!supplierForm.name.trim()) {
-      toast.error("Digite o nome do fornecedor!");
+      toast.error("❌ Digite o nome do fornecedor!");
       return;
     }
 
@@ -563,14 +510,14 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
       setShowAddSupplier(false);
       setSupplierForm({ name: "", email: "", phone: "", address: "", notes: "" });
     } catch (error) {
-      toast.error("Erro ao cadastrar fornecedor");
+      toast.error("❌ Erro ao cadastrar fornecedor");
       console.error(error);
     }
   };
 
   const handleAddGoal = async () => {
     if (!goalForm.title.trim() || !goalForm.targetValue) {
-      toast.error("Preencha os campos obrigatórios!");
+      toast.error("❌ Preencha título e valor alvo!");
       return;
     }
 
@@ -587,24 +534,15 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
       toast.success("🎯 Meta criada!");
       setShowAddGoal(false);
-      setGoalForm({
-        type: "revenue",
-        title: "",
-        description: "",
-        targetValue: "",
-        period: "monthly",
-        startDate: new Date().toISOString().split("T")[0],
-        endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split("T")[0],
-      });
     } catch (error) {
-      toast.error("Erro ao criar meta");
+      toast.error("❌ Erro ao criar meta");
       console.error(error);
     }
   };
 
   const handleCalculatePrice = async () => {
     if (!priceCalcForm.costPrice) {
-      toast.error("Digite o custo do produto!");
+      toast.error("❌ Digite o custo do produto!");
       return;
     }
 
@@ -617,27 +555,34 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
       setPriceCalcResult(result);
     } catch (error) {
-      toast.error("Erro ao calcular preço");
+      toast.error("❌ Erro ao calcular preço");
       console.error(error);
     }
   };
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) {
-      toast.error("Digite algo para buscar!");
-      return;
-    }
-
+  const handleRegenerateReport = async () => {
     try {
-      const results = await convex.query(api.profitCalculator.globalSearch, {
-        query: searchQuery,
-      });
-      setSearchResults(results);
+      toast.info("🔄 Regerando relatório...");
+      await generateReport({ month: selectedMonth });
+      toast.success("✅ Relatório atualizado!");
     } catch (error) {
-      toast.error("Erro na busca");
+      toast.error("❌ Erro ao gerar relatório");
       console.error(error);
     }
   };
+
+  const isLoading = products === undefined || dashboard === undefined;
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30">
+        <div className="text-center">
+          <Loader2 className="w-16 h-16 mx-auto mb-4 animate-spin text-blue-600" />
+          <p className="text-xl font-semibold text-gray-700">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-12">
@@ -647,6 +592,7 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
       </div>
 
       <div className="relative max-w-[1600px] mx-auto px-4 py-6">
+        {/* HEADER */}
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
@@ -683,15 +629,9 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
                         onClick={() => markAlertAsRead({ id: alert._id })}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          {alert.severity === "critical" && (
-                            <AlertTriangle className="w-4 h-4 text-red-500" />
-                          )}
-                          {alert.severity === "warning" && (
-                            <AlertCircle className="w-4 h-4 text-orange-500" />
-                          )}
-                          {alert.severity === "info" && (
-                            <Info className="w-4 h-4 text-blue-500" />
-                          )}
+                          {alert.severity === "critical" && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                          {alert.severity === "warning" && <AlertCircle className="w-4 h-4 text-orange-500" />}
+                          {alert.severity === "info" && <Info className="w-4 h-4 text-blue-500" />}
                           <span className="font-semibold text-sm">{alert.title}</span>
                         </div>
                         <p className="text-xs text-gray-600">{alert.message}</p>
@@ -702,33 +642,17 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => setShowSearch(true)}
-            >
-              <Search className="w-5 h-5" />
-            </Button>
-
-            <Button
-              variant="outline"
-              onClick={() => setShowPriceCalculator(true)}
-              className="hidden md:flex"
-            >
+            <Button variant="outline" onClick={() => setShowPriceCalculator(true)} className="hidden md:flex">
               <Calculator className="w-4 h-4 mr-2" />
               Calcular Preço
             </Button>
           </div>
         </div>
 
+        {/* NAVEGAÇÃO DE MÊS */}
         <Card className="p-4 bg-white/80 backdrop-blur-sm border-2 mb-6">
           <div className="flex items-center justify-between gap-4">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigateMonth("prev")}
-              className="h-10 w-10"
-            >
+            <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")} className="h-10 w-10 shrink-0">
               <ChevronLeft className="w-5 h-5" />
             </Button>
 
@@ -744,19 +668,16 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
               )}
             </div>
 
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() => navigateMonth("next")}
-              className="h-10 w-10"
-            >
+            <Button variant="outline" size="icon" onClick={() => navigateMonth("next")} className="h-10 w-10 shrink-0">
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
         </Card>
 
+        {/* 4 CARDS DE RESUMO */}
         {monthlyReport && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            {/* CARD 1: RECEITA ✅ */}
             <Card className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative">
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
@@ -766,9 +687,10 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
                 <p className="text-2xl font-black">{formatCurrency(monthlyReport.totalRevenue)}</p>
                 <p className="text-xs opacity-75 mt-1">{monthlyReport.totalSales} vendas</p>
               </div>
-              <TrendingUpIcon className="absolute -bottom-4 -right-4 w-24 h-24 opacity-10" />
+              <DollarSign className="absolute -bottom-4 -right-4 w-24 h-24 opacity-10" />
             </Card>
 
+            {/* CARD 2: GASTOS ✅ */}
             <Card className="p-4 bg-gradient-to-br from-red-500 to-red-600 border-0 text-white overflow-hidden relative">
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
@@ -781,6 +703,7 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
               <TrendingDown className="absolute -bottom-4 -right-4 w-24 h-24 opacity-10" />
             </Card>
 
+            {/* CARD 3: LUCRO LÍQUIDO ✅ */}
             <Card
               className={`p-4 border-0 text-white overflow-hidden relative ${
                 monthlyReport.netProfit >= 0
@@ -790,11 +713,7 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
             >
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  {monthlyReport.netProfit >= 0 ? (
-                    <TrendingUp className="w-5 h-5" />
-                  ) : (
-                    <TrendingDown className="w-5 h-5" />
-                  )}
+                  {monthlyReport.netProfit >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
                   <p className="text-sm font-medium opacity-90">Lucro Líquido</p>
                 </div>
                 <p className="text-2xl font-black">{formatCurrency(monthlyReport.netProfit)}</p>
@@ -803,6 +722,7 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
               <DollarSign className="absolute -bottom-4 -right-4 w-24 h-24 opacity-10" />
             </Card>
 
+            {/* CARD 4: PRODUTOS ✅ */}
             <Card className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white overflow-hidden relative">
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
@@ -817,52 +737,54 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
           </div>
         )}
 
+        {/* TABS */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-6">
           <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full bg-white shadow-lg h-auto p-1">
             <TabsTrigger value="dashboard" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <BarChart3 className="w-4 h-4 mr-0 md:mr-2" />
+              <BarChart3 className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Dashboard</span>
             </TabsTrigger>
             <TabsTrigger value="produtos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <Package className="w-4 h-4 mr-0 md:mr-2" />
+              <Package className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Produtos</span>
             </TabsTrigger>
             <TabsTrigger value="vendas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <ShoppingCart className="w-4 h-4 mr-0 md:mr-2" />
+              <ShoppingCart className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Vendas</span>
             </TabsTrigger>
             <TabsTrigger value="gastos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <Receipt className="w-4 h-4 mr-0 md:mr-2" />
+              <Receipt className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Gastos</span>
             </TabsTrigger>
             <TabsTrigger value="resumo" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <FileText className="w-4 h-4 mr-0 md:mr-2" />
+              <FileText className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Resumo</span>
             </TabsTrigger>
             <TabsTrigger value="metas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <Target className="w-4 h-4 mr-0 md:mr-2" />
+              <Target className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Metas</span>
             </TabsTrigger>
             <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-rose-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <Users className="w-4 h-4 mr-0 md:mr-2" />
+              <Users className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Clientes</span>
             </TabsTrigger>
             <TabsTrigger value="fornecedores" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <Truck className="w-4 h-4 mr-0 md:mr-2" />
+              <Truck className="w-4 h-4 md:mr-2" />
               <span className="hidden md:inline">Fornecedores</span>
             </TabsTrigger>
           </TabsList>
 
+          {/* TAB: DASHBOARD */}
           <TabsContent value="dashboard">
             {!dashboard ? (
               <Card className="p-12 text-center">
-                <Sparkles className="w-16 h-16 mx-auto mb-4 text-gray-400 animate-pulse" />
+                <Loader2 className="w-16 h-16 mx-auto mb-4 text-gray-400 animate-spin" />
                 <p className="text-gray-500">Carregando dashboard...</p>
               </Card>
             ) : (
               <div className="space-y-6">
                 <div className="grid md:grid-cols-3 gap-6">
-                  <Card className="p-6">
+                  <Card className="p-6 hover:shadow-lg transition-shadow">
                     <h3 className="font-bold mb-4 flex items-center gap-2">
                       <DollarSign className="w-5 h-5 text-blue-600" />
                       Receita Total
@@ -870,27 +792,28 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
                     <p className="text-3xl font-black text-blue-600">
                       {formatCurrency(dashboard.overview.totalRevenue)}
                     </p>
+                    <p className="text-sm text-gray-600 mt-2">{dashboard.overview.totalSales} vendas</p>
                   </Card>
 
-                  <Card className="p-6">
+                  <Card className="p-6 hover:shadow-lg transition-shadow">
                     <h3 className="font-bold mb-4 flex items-center gap-2">
                       <TrendingUp className="w-5 h-5 text-emerald-600" />
                       Lucro Líquido
                     </h3>
-                    <p className={`text-3xl font-black ${
-                      dashboard.overview.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'
-                    }`}>
+                    <p className={`text-3xl font-black ${dashboard.overview.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
                       {formatCurrency(dashboard.overview.netProfit)}
                     </p>
+                    <p className="text-sm text-gray-600 mt-2">Margem: {dashboard.overview.profitMargin.toFixed(1)}%</p>
                   </Card>
 
-                  <Card className="p-6">
+                  <Card className="p-6 hover:shadow-lg transition-shadow">
                     <h3 className="font-bold mb-4 flex items-center gap-2">
                       <Package className="w-5 h-5 text-purple-600" />
                       Produtos
                     </h3>
-                    <p className="text-3xl font-black text-purple-600">
-                      {dashboard.products.total}
+                    <p className="text-3xl font-black text-purple-600">{dashboard.products.total}</p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      {dashboard.products.lowStock > 0 && `⚠️ ${dashboard.products.lowStock} com estoque baixo`}
                     </p>
                   </Card>
                 </div>
@@ -904,15 +827,39 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
                     </AlertDescription>
                   </Alert>
                 )}
+
+                {goals.length > 0 && (
+                  <Card className="p-6">
+                    <h3 className="font-bold mb-4 flex items-center gap-2">
+                      <Target className="w-5 h-5 text-yellow-600" />
+                      Metas Ativas
+                    </h3>
+                    <div className="space-y-4">
+                      {goals.slice(0, 3).map((goal) => {
+                        const progress = (goal.currentValue / goal.targetValue) * 100;
+                        return (
+                          <div key={goal._id}>
+                            <div className="flex justify-between text-sm mb-2">
+                              <span className="font-semibold">{goal.title}</span>
+                              <span>{progress.toFixed(0)}%</span>
+                            </div>
+                            <Progress value={Math.min(100, progress)} className="h-2" />
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                )}
               </div>
             )}
           </TabsContent>
 
+          {/* TAB: PRODUTOS */}
           <TabsContent value="produtos">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Seus Produtos</h3>
-                <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
+                <h3 className="text-xl font-bold">Seus Produtos ({products.length})</h3>
+                <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600 hover:bg-purple-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Produto
                 </Button>
@@ -921,21 +868,29 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
               {products.length === 0 ? (
                 <Card className="p-12 text-center border-2 border-dashed">
                   <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhum produto</h3>
-                  <Button onClick={() => setShowAddProduct(true)}>Cadastrar Primeiro Produto</Button>
+                  <h3 className="text-xl font-bold mb-2">Nenhum produto cadastrado</h3>
+                  <p className="text-gray-500 mb-4">Comece cadastrando seu primeiro produto</p>
+                  <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
+                    Cadastrar Primeiro Produto
+                  </Button>
                 </Card>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {products.map((product) => {
                     const profit = product.salePrice - product.costPrice;
                     const profitMargin = (profit / product.salePrice) * 100;
+                    const isLowStock = product.stock !== undefined && product.minStock !== undefined && product.stock <= product.minStock;
 
                     return (
-                      <Card key={product._id} className="p-4">
+                      <Card key={product._id} className={`p-4 hover:shadow-lg transition-shadow ${!product.active ? 'opacity-50' : ''}`}>
                         <div className="flex justify-between mb-3">
-                          <div>
-                            <h4 className="font-bold">{product.name}</h4>
-                            {product.category && <Badge variant="outline">{product.category}</Badge>}
+                          <div className="flex-1">
+                            <h4 className="font-bold text-lg">{product.name}</h4>
+                            <div className="flex gap-2 mt-1 flex-wrap">
+                              {product.category && <Badge variant="outline">{product.category}</Badge>}
+                              {!product.active && <Badge variant="secondary">Inativo</Badge>}
+                              {isLowStock && <Badge variant="destructive">Estoque Baixo</Badge>}
+                            </div>
                           </div>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
@@ -948,6 +903,10 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
                                 <Edit className="w-4 h-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, false)} className="text-orange-600">
+                                <AlertCircle className="w-4 h-4 mr-2" />
+                                Desativar
+                              </DropdownMenuItem>
                               <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, true)} className="text-red-600">
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Deletar
@@ -958,17 +917,19 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
                         <div className="space-y-2 text-sm mb-3">
                           <div className="flex justify-between">
-                            <span>Custo:</span>
+                            <span className="text-gray-600">Custo:</span>
                             <span className="font-semibold">{formatCurrency(product.costPrice)}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span>Venda:</span>
+                            <span className="text-gray-600">Venda:</span>
                             <span className="font-semibold text-blue-600">{formatCurrency(product.salePrice)}</span>
                           </div>
                           {product.stock !== undefined && (
                             <div className="flex justify-between">
-                              <span>Estoque:</span>
-                              <span className="font-semibold">{product.stock} {product.unit}</span>
+                              <span className="text-gray-600">Estoque:</span>
+                              <span className={`font-semibold ${isLowStock ? 'text-red-600' : ''}`}>
+                                {product.stock} {product.unit || 'un'}
+                              </span>
                             </div>
                           )}
                         </div>
@@ -978,7 +939,7 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
                         <div className="bg-emerald-50 rounded p-3">
                           <div className="flex justify-between">
                             <div>
-                              <p className="text-xs text-gray-600">Lucro:</p>
+                              <p className="text-xs text-gray-600">Lucro/un:</p>
                               <p className="font-bold text-emerald-600">{formatCurrency(profit)}</p>
                             </div>
                             <div className="text-right">
@@ -995,38 +956,56 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
             </div>
           </TabsContent>
 
+          {/* TAB: VENDAS */}
           <TabsContent value="vendas">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Vendas do Mês</h3>
-                <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600" disabled={products.length === 0}>
+                <h3 className="text-xl font-bold">Vendas do Mês ({sales.length})</h3>
+                <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter(p => p.active).length === 0}>
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Venda
                 </Button>
               </div>
 
+              {products.filter(p => p.active).length === 0 && (
+                <Alert>
+                  <Info className="h-4 w-4" />
+                  <AlertTitle>Cadastre produtos primeiro</AlertTitle>
+                  <AlertDescription>
+                    Você precisa ter produtos cadastrados para registrar vendas.
+                  </AlertDescription>
+                </Alert>
+              )}
+
               {sales.length === 0 ? (
                 <Card className="p-12 text-center border-2 border-dashed">
                   <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhuma venda</h3>
-                  <Button onClick={() => setShowAddSale(true)} disabled={products.length === 0}>
+                  <h3 className="text-xl font-bold mb-2">Nenhuma venda registrada</h3>
+                  <p className="text-gray-500 mb-4">Comece registrando sua primeira venda</p>
+                  <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600" disabled={products.filter(p => p.active).length === 0}>
                     Registrar Primeira Venda
                   </Button>
                 </Card>
               ) : (
                 <div className="space-y-3">
                   {sales.map((sale) => (
-                    <Card key={sale._id} className="p-4">
-                      <div className="flex justify-between">
-                        <div>
-                          <h4 className="font-bold">{sale.productName}</h4>
+                    <Card key={sale._id} className="p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-1">
+                            <h4 className="font-bold">{sale.productName}</h4>
+                            {sale.paymentStatus === "pending" && (
+                              <Badge variant="outline" className="text-orange-600">Pendente</Badge>
+                            )}
+                          </div>
                           <p className="text-sm text-gray-600">
                             {sale.quantity}x {formatCurrency(sale.salePrice)} • {formatDate(sale.date)}
                           </p>
+                          {sale.notes && <p className="text-xs text-gray-500 mt-1">{sale.notes}</p>}
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-emerald-600">{formatCurrency(sale.profit)}</p>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteSale(sale._id, true)}>
+                          <p className="font-bold text-emerald-600 mb-2">{formatCurrency(sale.profit)}</p>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteSale(sale._id, sale.month)}>
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
                         </div>
@@ -1038,11 +1017,12 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
             </div>
           </TabsContent>
 
+          {/* TAB: GASTOS */}
           <TabsContent value="gastos">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Gastos do Mês</h3>
-                <Button onClick={() => setShowAddExpense(true)} className="bg-red-600">
+                <h3 className="text-xl font-bold">Gastos do Mês ({expenses.length})</h3>
+                <Button onClick={() => setShowAddExpense(true)} className="bg-red-600 hover:bg-red-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Gasto
                 </Button>
@@ -1051,24 +1031,33 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
               {expenses.length === 0 ? (
                 <Card className="p-12 text-center border-2 border-dashed">
                   <Receipt className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhum gasto</h3>
-                  <Button onClick={() => setShowAddExpense(true)}>Registrar Primeiro Gasto</Button>
+                  <h3 className="text-xl font-bold mb-2">Nenhum gasto registrado</h3>
+                  <p className="text-gray-500 mb-4">Registre seus gastos para controle financeiro</p>
+                  <Button onClick={() => setShowAddExpense(true)} className="bg-red-600">
+                    Registrar Primeiro Gasto
+                  </Button>
                 </Card>
               ) : (
                 <div className="space-y-3">
                   {expenses.map((expense) => (
-                    <Card key={expense._id} className="p-4">
-                      <div className="flex justify-between">
-                        <div>
+                    <Card key={expense._id} className="p-4 hover:shadow-md transition-shadow">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
                           <h4 className="font-bold">{expense.description}</h4>
-                          <div className="flex gap-2 mt-1">
+                          <div className="flex gap-2 mt-1 flex-wrap">
                             <Badge variant="outline">{expense.categoryName}</Badge>
-                            <p className="text-sm text-gray-600">{formatDate(expense.date)}</p>
+                            <Badge variant={expense.type === 'fixed' ? 'default' : 'secondary'}>
+                              {expense.type === 'fixed' ? 'Fixo' : expense.type === 'variable' ? 'Variável' : 'Único'}
+                            </Badge>
+                            {expense.paymentStatus === "pending" && (
+                              <Badge variant="outline" className="text-orange-600">Pendente</Badge>
+                            )}
+                            <span className="text-sm text-gray-600">{formatDate(expense.date)}</span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-red-600">{formatCurrency(expense.amount)}</p>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteExpense(expense._id, true)}>
+                          <p className="font-bold text-red-600 mb-2">{formatCurrency(expense.amount)}</p>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteExpense(expense._id, expense.month)}>
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
                         </div>
@@ -1080,72 +1069,87 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
             </div>
           </TabsContent>
 
+          {/* TAB: RESUMO */}
           <TabsContent value="resumo">
-            {!monthlyReport ? (
-              <Card className="p-12 text-center">
-                <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                <h3 className="text-xl font-bold mb-2">Sem dados para o mês</h3>
-                <p className="text-gray-500">Registre vendas e gastos para gerar o relatório</p>
-              </Card>
-            ) : (
-              <div className="space-y-6">
-                <Card className="p-6">
-                  <h3 className="text-2xl font-bold mb-6">Resumo de {getCurrentMonthName()}</h3>
-
-                  <div className="grid md:grid-cols-3 gap-6 mb-6">
-                    <div className="text-center p-4 bg-blue-50 rounded-lg">
-                      <p className="text-sm text-gray-600 mb-1">Receita</p>
-                      <p className="text-2xl font-bold text-blue-600">{formatCurrency(monthlyReport.totalRevenue)}</p>
-                    </div>
-                    <div className="text-center p-4 bg-red-50 rounded-lg">
-                      <p className="text-sm text-gray-600 mb-1">Gastos</p>
-                      <p className="text-2xl font-bold text-red-600">{formatCurrency(monthlyReport.totalExpenses)}</p>
-                    </div>
-                    <div className={`text-center p-4 rounded-lg ${monthlyReport.netProfit >= 0 ? 'bg-emerald-50' : 'bg-orange-50'}`}>
-                      <p className="text-sm text-gray-600 mb-1">Lucro Líquido</p>
-                      <p className={`text-2xl font-bold ${monthlyReport.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {formatCurrency(monthlyReport.netProfit)}
-                      </p>
-                    </div>
-                  </div>
-
-                  {monthlyReport.topProducts.length > 0 && (
-                    <>
-                      <Separator className="my-6" />
-                      <div>
-                        <h4 className="font-bold mb-4 flex items-center gap-2">
-                          <Star className="w-5 h-5 text-yellow-600" />
-                          Produtos Mais Vendidos
-                        </h4>
-                        <div className="space-y-2">
-                          {monthlyReport.topProducts.slice(0, 5).map((product, idx) => (
-                            <div key={product.productId} className="flex items-center justify-between p-3 bg-gray-50 rounded">
-                              <div className="flex items-center gap-3">
-                                <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold">
-                                  {idx + 1}
-                                </div>
-                                <div>
-                                  <p className="font-semibold">{product.productName}</p>
-                                  <p className="text-sm text-gray-600">{product.quantity} vendas</p>
-                                </div>
-                              </div>
-                              <p className="font-bold text-emerald-600">{formatCurrency(product.profit)}</p>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    </>
-                  )}
-                </Card>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
+                <Button onClick={handleRegenerateReport} variant="outline">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Atualizar
+                </Button>
               </div>
-            )}
+
+              {!monthlyReport ? (
+                <Card className="p-12 text-center">
+                  <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-xl font-bold mb-2">Sem dados para o mês</h3>
+                  <p className="text-gray-500 mb-4">Registre vendas e gastos para gerar o relatório</p>
+                  <Button onClick={handleRegenerateReport} className="bg-indigo-600">
+                    Gerar Relatório
+                  </Button>
+                </Card>
+              ) : (
+                <div className="space-y-6">
+                  <Card className="p-6">
+                    <div className="grid md:grid-cols-3 gap-6 mb-6">
+                      <div className="text-center p-4 bg-blue-50 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">Receita</p>
+                        <p className="text-2xl font-bold text-blue-600">{formatCurrency(monthlyReport.totalRevenue)}</p>
+                        <p className="text-xs text-gray-500 mt-1">{monthlyReport.totalSales} vendas</p>
+                      </div>
+                      <div className="text-center p-4 bg-red-50 rounded-lg">
+                        <p className="text-sm text-gray-600 mb-1">Gastos</p>
+                        <p className="text-2xl font-bold text-red-600">{formatCurrency(monthlyReport.totalExpenses)}</p>
+                      </div>
+                      <div className={`text-center p-4 rounded-lg ${monthlyReport.netProfit >= 0 ? 'bg-emerald-50' : 'bg-orange-50'}`}>
+                        <p className="text-sm text-gray-600 mb-1">Lucro Líquido</p>
+                        <p className={`text-2xl font-bold ${monthlyReport.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                          {formatCurrency(monthlyReport.netProfit)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">Margem: {monthlyReport.profitMargin.toFixed(1)}%</p>
+                      </div>
+                    </div>
+
+                    {monthlyReport.topProducts.length > 0 && (
+                      <>
+                        <Separator className="my-6" />
+                        <div>
+                          <h4 className="font-bold mb-4 flex items-center gap-2">
+                            <Star className="w-5 h-5 text-yellow-600" />
+                            Produtos Mais Vendidos
+                          </h4>
+                          <div className="space-y-2">
+                            {monthlyReport.topProducts.slice(0, 5).map((product, idx) => (
+                              <div key={product.productId} className="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">
+                                    {idx + 1}
+                                  </div>
+                                  <div>
+                                    <p className="font-semibold">{product.productName}</p>
+                                    <p className="text-sm text-gray-600">{product.quantity} vendas • {formatCurrency(product.revenue)}</p>
+                                  </div>
+                                </div>
+                                <p className="font-bold text-emerald-600">{formatCurrency(product.profit)}</p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </Card>
+                </div>
+              )}
+            </div>
           </TabsContent>
 
+          {/* TAB: METAS */}
           <TabsContent value="metas">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Suas Metas</h3>
-                <Button onClick={() => setShowAddGoal(true)} className="bg-yellow-600">
+                <h3 className="text-xl font-bold">Suas Metas ({goals.length})</h3>
+                <Button onClick={() => setShowAddGoal(true)} className="bg-yellow-600 hover:bg-yellow-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Meta
                 </Button>
@@ -1155,18 +1159,21 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
                 <Card className="p-12 text-center border-2 border-dashed">
                   <Target className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                   <h3 className="text-xl font-bold mb-2">Nenhuma meta ativa</h3>
-                  <Button onClick={() => setShowAddGoal(true)}>Criar Primeira Meta</Button>
+                  <p className="text-gray-500 mb-4">Defina metas para acompanhar seu progresso</p>
+                  <Button onClick={() => setShowAddGoal(true)} className="bg-yellow-600">
+                    Criar Primeira Meta
+                  </Button>
                 </Card>
               ) : (
                 <div className="space-y-4">
                   {goals.map((goal) => {
                     const progress = (goal.currentValue / goal.targetValue) * 100;
                     return (
-                      <Card key={goal._id} className="p-6">
+                      <Card key={goal._id} className="p-6 hover:shadow-lg transition-shadow">
                         <div className="flex justify-between mb-4">
-                          <div>
+                          <div className="flex-1">
                             <h4 className="font-bold text-lg">{goal.title}</h4>
-                            {goal.description && <p className="text-sm text-gray-600">{goal.description}</p>}
+                            {goal.description && <p className="text-sm text-gray-600 mt-1">{goal.description}</p>}
                           </div>
                           <Button size="icon" variant="ghost" onClick={() => deleteGoal({ id: goal._id })}>
                             <Trash2 className="w-4 h-4 text-red-500" />
@@ -1174,7 +1181,7 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
                         </div>
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
-                            <span>Progresso:</span>
+                            <span className="text-gray-600">Progresso:</span>
                             <span className="font-semibold">{progress.toFixed(0)}%</span>
                           </div>
                           <Progress value={Math.min(100, progress)} className="h-3" />
@@ -1191,11 +1198,12 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
             </div>
           </TabsContent>
 
+          {/* TAB: CLIENTES */}
           <TabsContent value="clientes">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Seus Clientes</h3>
-                <Button onClick={() => setShowAddCustomer(true)} className="bg-pink-600">
+                <h3 className="text-xl font-bold">Seus Clientes ({customers.length})</h3>
+                <Button onClick={() => setShowAddCustomer(true)} className="bg-pink-600 hover:bg-pink-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Cliente
                 </Button>
@@ -1204,22 +1212,27 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
               {customers.length === 0 ? (
                 <Card className="p-12 text-center border-2 border-dashed">
                   <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhum cliente</h3>
-                  <Button onClick={() => setShowAddCustomer(true)}>Cadastrar Primeiro Cliente</Button>
+                  <h3 className="text-xl font-bold mb-2">Nenhum cliente cadastrado</h3>
+                  <p className="text-gray-500 mb-4">Gerencie seus clientes em um só lugar</p>
+                  <Button onClick={() => setShowAddCustomer(true)} className="bg-pink-600">
+                    Cadastrar Primeiro Cliente
+                  </Button>
                 </Card>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {customers.map((customer) => (
-                    <Card key={customer._id} className="p-4">
+                    <Card key={customer._id} className="p-4 hover:shadow-lg transition-shadow">
                       <div className="flex justify-between mb-3">
-                        <div>
+                        <div className="flex-1">
                           <h4 className="font-bold">{customer.name}</h4>
                           {customer.email && <p className="text-sm text-gray-600">{customer.email}</p>}
+                          {customer.phone && <p className="text-sm text-gray-600">{customer.phone}</p>}
                         </div>
                         <Button size="icon" variant="ghost" onClick={() => deleteCustomer({ id: customer._id })}>
                           <Trash2 className="w-4 h-4 text-red-500" />
                         </Button>
                       </div>
+                      <Separator className="my-3" />
                       <div className="space-y-1 text-sm">
                         <p className="text-gray-600">Total gasto: <span className="font-semibold">{formatCurrency(customer.totalSpent)}</span></p>
                         <p className="text-gray-600">Pedidos: <span className="font-semibold">{customer.totalOrders}</span></p>
@@ -1231,11 +1244,12 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
             </div>
           </TabsContent>
 
+          {/* TAB: FORNECEDORES */}
           <TabsContent value="fornecedores">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Seus Fornecedores</h3>
-                <Button onClick={() => setShowAddSupplier(true)} className="bg-teal-600">
+                <h3 className="text-xl font-bold">Seus Fornecedores ({suppliers.length})</h3>
+                <Button onClick={() => setShowAddSupplier(true)} className="bg-teal-600 hover:bg-teal-700">
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Fornecedor
                 </Button>
@@ -1244,24 +1258,31 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
               {suppliers.length === 0 ? (
                 <Card className="p-12 text-center border-2 border-dashed">
                   <Truck className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhum fornecedor</h3>
-                  <Button onClick={() => setShowAddSupplier(true)}>Cadastrar Primeiro Fornecedor</Button>
+                  <h3 className="text-xl font-bold mb-2">Nenhum fornecedor cadastrado</h3>
+                  <p className="text-gray-500 mb-4">Organize seus fornecedores</p>
+                  <Button onClick={() => setShowAddSupplier(true)} className="bg-teal-600">
+                    Cadastrar Primeiro Fornecedor
+                  </Button>
                 </Card>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {suppliers.map((supplier) => (
-                    <Card key={supplier._id} className="p-4">
+                    <Card key={supplier._id} className="p-4 hover:shadow-lg transition-shadow">
                       <div className="flex justify-between mb-3">
-                        <div>
+                        <div className="flex-1">
                           <h4 className="font-bold">{supplier.name}</h4>
                           {supplier.contact?.email && <p className="text-sm text-gray-600">{supplier.contact.email}</p>}
+                          {supplier.contact?.phone && <p className="text-sm text-gray-600">{supplier.contact.phone}</p>}
                         </div>
                         <Button size="icon" variant="ghost" onClick={() => deleteSupplier({ id: supplier._id })}>
                           <Trash2 className="w-4 h-4 text-red-500" />
                         </Button>
                       </div>
-                      {supplier.contact?.phone && (
-                        <p className="text-sm text-gray-600">Tel: {supplier.contact.phone}</p>
+                      {supplier.notes && (
+                        <>
+                          <Separator className="my-3" />
+                          <p className="text-xs text-gray-600">{supplier.notes}</p>
+                        </>
                       )}
                     </Card>
                   ))}
@@ -1272,16 +1293,17 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         </Tabs>
       </div>
 
-      {/* DIALOGS */}
+      {/* MODAIS */}
 
+      {/* Modal: Adicionar Produto */}
       <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-  <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
-  <DialogDescription>
-    Preencha os dados do produto para cadastro no sistema
-  </DialogDescription>
-</DialogHeader>
+            <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
+            <DialogDescription>
+              Preencha os dados do produto para cadastro no sistema
+            </DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -1296,11 +1318,11 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <Label>Preço de Custo *</Label>
+                <Label>Preço de Custo * (R$)</Label>
                 <Input type="number" step="0.01" value={productForm.costPrice} onChange={(e) => setProductForm({...productForm, costPrice: e.target.value})} placeholder="0,00" />
               </div>
               <div>
-                <Label>Preço de Venda *</Label>
+                <Label>Preço de Venda * (R$)</Label>
                 <Input type="number" step="0.01" value={productForm.salePrice} onChange={(e) => setProductForm({...productForm, salePrice: e.target.value})} placeholder="0,00" />
               </div>
             </div>
@@ -1341,7 +1363,7 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
               <Textarea value={productForm.description} onChange={(e) => setProductForm({...productForm, description: e.target.value})} placeholder="Descrição do produto" rows={3} />
             </div>
 
-            {productForm.costPrice && productForm.salePrice && (
+            {productForm.costPrice && productForm.salePrice && parseFloat(productForm.salePrice) > parseFloat(productForm.costPrice) && (
               <Alert>
                 <CheckCircle2 className="h-4 w-4" />
                 <AlertTitle>Lucro por unidade</AlertTitle>
@@ -1361,14 +1383,13 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         </DialogContent>
       </Dialog>
 
+      {/* Modal: Editar Produto */}
       <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-  <DialogTitle>✏️ Editar Produto</DialogTitle>
-  <DialogDescription>
-    Altere as informações do produto
-  </DialogDescription>
-</DialogHeader>
+            <DialogTitle>✏️ Editar Produto</DialogTitle>
+            <DialogDescription>Altere as informações do produto</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -1383,11 +1404,11 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
             <div className="grid md:grid-cols-2 gap-4">
               <div>
-                <Label>Custo</Label>
+                <Label>Custo (R$)</Label>
                 <Input type="number" step="0.01" value={productForm.costPrice} onChange={(e) => setProductForm({...productForm, costPrice: e.target.value})} />
               </div>
               <div>
-                <Label>Venda</Label>
+                <Label>Venda (R$)</Label>
                 <Input type="number" step="0.01" value={productForm.salePrice} onChange={(e) => setProductForm({...productForm, salePrice: e.target.value})} />
               </div>
             </div>
@@ -1405,116 +1426,87 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditProduct(false)}>Cancelar</Button>
-            <Button onClick={handleEditProduct}>Salvar Alterações</Button>
+            <Button onClick={handleEditProduct} className="bg-purple-600">Salvar Alterações</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-     <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
-  <DialogContent>
-    <DialogHeader>
-      <DialogTitle>🛒 Registrar Venda</DialogTitle>
-      <DialogDescription>
-        Registre uma nova venda e atualize o estoque automaticamente
-      </DialogDescription>
-    </DialogHeader>
-    <div className="space-y-4">
-      <div>
-        <Label>Produto *</Label>
-        <Select value={saleForm.productId} onValueChange={(v) => setSaleForm({...saleForm, productId: v})}>
-          <SelectTrigger>
-            <SelectValue placeholder="Selecione um produto" />
-          </SelectTrigger>
-          <SelectContent>
-            {products.filter((p) => p.active).map((p) => (
-              <SelectItem key={p._id} value={p._id}>
-                {p.name} - {formatCurrency(p.salePrice)}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+      {/* Modal: Adicionar Venda */}
+      <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>🛒 Registrar Venda</DialogTitle>
+            <DialogDescription>Registre uma nova venda e atualize o estoque automaticamente</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label>Produto *</Label>
+              <Select value={saleForm.productId} onValueChange={(v) => setSaleForm({...saleForm, productId: v})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Selecione um produto" />
+                </SelectTrigger>
+                <SelectContent>
+                  {products.filter((p) => p.active).map((p) => (
+                    <SelectItem key={p._id} value={p._id}>
+                      {p.name} - {formatCurrency(p.salePrice)} {p.stock !== undefined && `(Estoque: ${p.stock})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <Label>Quantidade *</Label>
-          <Input
-            type="number"
-            min="1"
-            value={saleForm.quantity}
-            onChange={(e) => setSaleForm({...saleForm, quantity: e.target.value})}
-            placeholder="1"
-          />
-        </div>
-        <div>
-          <Label>Data *</Label>
-          <Input
-            type="date"
-            value={saleForm.date}
-            onChange={(e) => setSaleForm({...saleForm, date: e.target.value})}
-          />
-        </div>
-      </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Quantidade *</Label>
+                <Input type="number" min="1" value={saleForm.quantity} onChange={(e) => setSaleForm({...saleForm, quantity: e.target.value})} placeholder="1" />
+              </div>
+              <div>
+                <Label>Data *</Label>
+                <Input type="date" value={saleForm.date} onChange={(e) => setSaleForm({...saleForm, date: e.target.value})} />
+              </div>
+            </div>
 
-      <div>
-        <Label>Cliente (opcional)</Label>
-        <Select
-          value={saleForm.customerId || undefined}
-          onValueChange={(v) => setSaleForm({...saleForm, customerId: v})}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder="Nenhum cliente" />
-          </SelectTrigger>
-          <SelectContent>
-            {customers.map((c) => (
-              <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      </div>
+            <div>
+              <Label>Cliente (opcional)</Label>
+              <Select value={saleForm.customerId || undefined} onValueChange={(v) => setSaleForm({...saleForm, customerId: v})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Nenhum cliente" />
+                </SelectTrigger>
+                <SelectContent>
+                  {customers.map((c) => (
+                    <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
-      <div>
-        <Label>Desconto (R$)</Label>
-        <Input
-          type="number"
-          step="0.01"
-          min="0"
-          value={saleForm.discount}
-          onChange={(e) => setSaleForm({...saleForm, discount: e.target.value})}
-          placeholder="0,00"
-        />
-      </div>
+            <div>
+              <Label>Desconto (R$)</Label>
+              <Input type="number" step="0.01" min="0" value={saleForm.discount} onChange={(e) => setSaleForm({...saleForm, discount: e.target.value})} placeholder="0,00" />
+            </div>
 
-      <div>
-        <Label>Observações</Label>
-        <Textarea
-          value={saleForm.notes}
-          onChange={(e) => setSaleForm({...saleForm, notes: e.target.value})}
-          rows={2}
-          placeholder="Informações adicionais sobre a venda"
-        />
-      </div>
-    </div>
-    <DialogFooter>
-      <Button variant="outline" onClick={() => setShowAddSale(false)}>
-        Cancelar
-      </Button>
-      <Button onClick={handleAddSale} className="bg-emerald-600">
-        <Save className="w-4 h-4 mr-2" />
-        Registrar Venda
-      </Button>
-    </DialogFooter>
-  </DialogContent>
-</Dialog>
+            <div>
+              <Label>Observações</Label>
+              <Textarea value={saleForm.notes} onChange={(e) => setSaleForm({...saleForm, notes: e.target.value})} rows={2} placeholder="Informações adicionais sobre a venda" />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddSale(false)}>Cancelar</Button>
+            <Button onClick={handleAddSale} className="bg-emerald-600">
+              <Save className="w-4 h-4 mr-2" />
+              Registrar Venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
+      {/* Modal: Adicionar Gasto */}
       <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
         <DialogContent>
           <DialogHeader>
-  <DialogTitle>💸 Registrar Gasto</DialogTitle>
-  <DialogDescription>
-    Registre uma despesa ou gasto do negócio
-  </DialogDescription>
-</DialogHeader>
+            <DialogTitle>💸 Registrar Gasto</DialogTitle>
+            <DialogDescription>Registre uma despesa ou gasto do negócio</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Descrição *</Label>
@@ -1523,7 +1515,7 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label>Valor *</Label>
+                <Label>Valor * (R$)</Label>
                 <Input type="number" step="0.01" value={expenseForm.amount} onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})} />
               </div>
               <div>
@@ -1534,7 +1526,21 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
             <div>
               <Label>Categoria</Label>
-              <Input value={expenseForm.categoryName} onChange={(e) => setExpenseForm({...expenseForm, categoryName: e.target.value})} />
+              <Select value={expenseForm.categoryName} onValueChange={(v) => setExpenseForm({...expenseForm, categoryName: v})}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Aluguel">Aluguel</SelectItem>
+                  <SelectItem value="Luz/Água">Luz/Água</SelectItem>
+                  <SelectItem value="Internet">Internet</SelectItem>
+                  <SelectItem value="Marketing">Marketing</SelectItem>
+                  <SelectItem value="Funcionários">Funcionários</SelectItem>
+                  <SelectItem value="Materiais">Materiais</SelectItem>
+                  <SelectItem value="Transporte">Transporte</SelectItem>
+                  <SelectItem value="Outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
@@ -1544,7 +1550,7 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="fixed">Fixo</SelectItem>
+                  <SelectItem value="fixed">Fixo (mensal)</SelectItem>
                   <SelectItem value="variable">Variável</SelectItem>
                   <SelectItem value="one_time">Único</SelectItem>
                 </SelectContent>
@@ -1561,26 +1567,29 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         </DialogContent>
       </Dialog>
 
+      {/* Modal: Adicionar Cliente */}
       <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
         <DialogContent>
-        <DialogHeader>
-  <DialogTitle>👤 Cadastrar Cliente</DialogTitle>
-  <DialogDescription>
-    Adicione um novo cliente ao sistema
-  </DialogDescription>
-</DialogHeader>
+          <DialogHeader>
+            <DialogTitle>👤 Cadastrar Cliente</DialogTitle>
+            <DialogDescription>Adicione um novo cliente ao sistema</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Nome *</Label>
-              <Input value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} />
+              <Input value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="Nome completo" />
             </div>
             <div>
               <Label>Email</Label>
-              <Input type="email" value={customerForm.email} onChange={(e) => setCustomerForm({...customerForm, email: e.target.value})} />
+              <Input type="email" value={customerForm.email} onChange={(e) => setCustomerForm({...customerForm, email: e.target.value})} placeholder="email@exemplo.com" />
             </div>
             <div>
               <Label>Telefone</Label>
-              <Input value={customerForm.phone} onChange={(e) => setCustomerForm({...customerForm, phone: e.target.value})} />
+              <Input value={customerForm.phone} onChange={(e) => setCustomerForm({...customerForm, phone: e.target.value})} placeholder="(00) 00000-0000" />
+            </div>
+            <div>
+              <Label>Endereço</Label>
+              <Input value={customerForm.address} onChange={(e) => setCustomerForm({...customerForm, address: e.target.value})} placeholder="Endereço completo" />
             </div>
           </div>
           <DialogFooter>
@@ -1590,26 +1599,25 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         </DialogContent>
       </Dialog>
 
+      {/* Modal: Adicionar Fornecedor */}
       <Dialog open={showAddSupplier} onOpenChange={setShowAddSupplier}>
         <DialogContent>
           <DialogHeader>
-  <DialogTitle>🚚 Cadastrar Fornecedor</DialogTitle>
-  <DialogDescription>
-    Adicione um novo fornecedor ao sistema
-  </DialogDescription>
-</DialogHeader>
+            <DialogTitle>🚚 Cadastrar Fornecedor</DialogTitle>
+            <DialogDescription>Adicione um novo fornecedor ao sistema</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Nome *</Label>
-              <Input value={supplierForm.name} onChange={(e) => setSupplierForm({...supplierForm, name: e.target.value})} />
+              <Input value={supplierForm.name} onChange={(e) => setSupplierForm({...supplierForm, name: e.target.value})} placeholder="Nome da empresa" />
             </div>
             <div>
               <Label>Email</Label>
-              <Input type="email" value={supplierForm.email} onChange={(e) => setSupplierForm({...supplierForm, email: e.target.value})} />
+              <Input type="email" value={supplierForm.email} onChange={(e) => setSupplierForm({...supplierForm, email: e.target.value})} placeholder="email@fornecedor.com" />
             </div>
             <div>
               <Label>Telefone</Label>
-              <Input value={supplierForm.phone} onChange={(e) => setSupplierForm({...supplierForm, phone: e.target.value})} />
+              <Input value={supplierForm.phone} onChange={(e) => setSupplierForm({...supplierForm, phone: e.target.value})} placeholder="(00) 0000-0000" />
             </div>
           </div>
           <DialogFooter>
@@ -1619,14 +1627,13 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         </DialogContent>
       </Dialog>
 
+      {/* Modal: Adicionar Meta */}
       <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
         <DialogContent>
           <DialogHeader>
-  <DialogTitle>🎯 Criar Meta</DialogTitle>
-  <DialogDescription>
-    Defina uma meta financeira para acompanhar seu progresso
-  </DialogDescription>
-</DialogHeader>
+            <DialogTitle>🎯 Criar Meta</DialogTitle>
+            <DialogDescription>Defina uma meta financeira para acompanhar seu progresso</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Título *</Label>
@@ -1635,14 +1642,14 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
             <div>
               <Label>Tipo de Meta</Label>
-              <Select value={goalForm.type} onValueChange={(v: "revenue" | "profit" | "margin" | "sales_count" | "expense_reduction") => setGoalForm({...goalForm, type: v})}>
+              <Select value={goalForm.type} onValueChange={(v: GoalType) => setGoalForm({...goalForm, type: v})}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="revenue">Receita</SelectItem>
-                  <SelectItem value="profit">Lucro</SelectItem>
-                  <SelectItem value="margin">Margem (%)</SelectItem>
+                  <SelectItem value="revenue">Receita Total</SelectItem>
+                  <SelectItem value="profit">Lucro Líquido</SelectItem>
+                  <SelectItem value="margin">Margem de Lucro (%)</SelectItem>
                   <SelectItem value="sales_count">Número de Vendas</SelectItem>
                 </SelectContent>
               </Select>
@@ -1650,7 +1657,7 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
             <div>
               <Label>Valor Alvo *</Label>
-              <Input type="number" value={goalForm.targetValue} onChange={(e) => setGoalForm({...goalForm, targetValue: e.target.value})} />
+              <Input type="number" value={goalForm.targetValue} onChange={(e) => setGoalForm({...goalForm, targetValue: e.target.value})} placeholder="10000" />
             </div>
 
             <div className="grid grid-cols-2 gap-4">
@@ -1671,17 +1678,16 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         </DialogContent>
       </Dialog>
 
+      {/* Modal: Calculadora de Preço */}
       <Dialog open={showPriceCalculator} onOpenChange={setShowPriceCalculator}>
         <DialogContent>
           <DialogHeader>
-  <DialogTitle>🧮 Calculadora de Preço</DialogTitle>
-  <DialogDescription>
-    Descubra o preço ideal para seu produto com base em custos e margem
-  </DialogDescription>
-</DialogHeader>
+            <DialogTitle>🧮 Calculadora de Preço</DialogTitle>
+            <DialogDescription>Descubra o preço ideal para seu produto com base em custos e margem</DialogDescription>
+          </DialogHeader>
           <div className="space-y-4">
             <div>
-              <Label>Custo do Produto *</Label>
+              <Label>Custo do Produto * (R$)</Label>
               <Input type="number" step="0.01" value={priceCalcForm.costPrice} onChange={(e) => setPriceCalcForm({...priceCalcForm, costPrice: e.target.value})} placeholder="Ex: 50.00" />
             </div>
 
@@ -1692,10 +1698,10 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
             <div>
               <Label>Categoria</Label>
-              <Input value={priceCalcForm.category} onChange={(e) => setPriceCalcForm({...priceCalcForm, category: e.target.value})} placeholder="Ex: roupas" />
+              <Input value={priceCalcForm.category} onChange={(e) => setPriceCalcForm({...priceCalcForm, category: e.target.value})} placeholder="Ex: roupas, eletrônicos" />
             </div>
 
-            <Button onClick={handleCalculatePrice} className="w-full">
+            <Button onClick={handleCalculatePrice} className="w-full bg-indigo-600">
               <Calculator className="w-4 h-4 mr-2" />
               Calcular Preço Sugerido
             </Button>
@@ -1724,104 +1730,13 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
                 <div className="space-y-2">
                   <h4 className="font-semibold">Análise:</h4>
-                  {priceCalcResult.analysis.map((insight, idx) => (
+                  {priceCalcResult.analysis.map((insight: string, idx: number) => (
                     <p key={idx} className="text-sm text-gray-700 flex items-start gap-2">
                       <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                       {insight}
                     </p>
                   ))}
                 </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showSearch} onOpenChange={setShowSearch}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-  <DialogTitle>🔍 Buscar em Tudo</DialogTitle>
-  <DialogDescription>
-    Pesquise produtos, vendas, gastos, clientes e fornecedores
-  </DialogDescription>
-</DialogHeader>
-          <div className="space-y-4">
-            <div className="flex gap-2">
-              <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Digite para buscar..." onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
-              <Button onClick={handleSearch}>
-                <Search className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {searchResults && (
-              <div className="space-y-4 max-h-96 overflow-y-auto">
-                {searchResults.products.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Package className="w-4 h-4" />
-                      Produtos ({searchResults.products.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {searchResults.products.slice(0, 5).map((p) => (
-                        <div key={p._id} className="p-2 bg-gray-50 rounded text-sm">
-                          <p className="font-semibold">{p.name}</p>
-                          <p className="text-gray-600">{formatCurrency(p.salePrice)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {searchResults.sales.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <ShoppingCart className="w-4 h-4" />
-                      Vendas ({searchResults.sales.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {searchResults.sales.slice(0, 5).map((s) => (
-                        <div key={s._id} className="p-2 bg-gray-50 rounded text-sm">
-                          <p className="font-semibold">{s.productName}</p>
-                          <p className="text-gray-600">{formatDate(s.date)} • {formatCurrency(s.totalRevenue)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {searchResults.expenses.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Receipt className="w-4 h-4" />
-                      Gastos ({searchResults.expenses.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {searchResults.expenses.slice(0, 5).map((e) => (
-                        <div key={e._id} className="p-2 bg-gray-50 rounded text-sm">
-                          <p className="font-semibold">{e.description}</p>
-                          <p className="text-gray-600">{formatDate(e.date)} • {formatCurrency(e.amount)}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {searchResults.customers.length > 0 && (
-                  <div>
-                    <h4 className="font-semibold mb-2 flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      Clientes ({searchResults.customers.length})
-                    </h4>
-                    <div className="space-y-2">
-                      {searchResults.customers.slice(0, 5).map((c) => (
-                        <div key={c._id} className="p-2 bg-gray-50 rounded text-sm">
-                          <p className="font-semibold">{c.name}</p>
-                          <p className="text-gray-600">{c.email}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
           </div>
