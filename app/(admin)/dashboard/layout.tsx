@@ -6,7 +6,8 @@ import { usePathname } from "next/navigation";
 import {
   Home, Settings, Wand2, Scissors, Target, LayoutGrid, Gift,
   BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, Star, Rocket, X,
-  LucideProps, Menu, Bell, Search, PlusCircle, CircleCheck, ArrowRight, Zap, Crown, TrendingUp, Shield, Clock
+  LucideProps, Menu, Bell, Search, PlusCircle, CircleCheck, ArrowRight, Zap, Crown, TrendingUp, Shield, Clock,
+  Calculator
 } from "lucide-react";
 import clsx from "clsx";
 import { UserButton } from "@clerk/nextjs";
@@ -84,6 +85,19 @@ export const navItems: NavItem[] = [
       { href: "/dashboard/mentor-ia", icon: Wand2, label: "Mentor.IA", ultra: true, description: "IA para estratégias" },
       { href: "/dashboard/brain", icon: BrainCircuit, label: "FreelinnkBrain", pro: true, new: true, description: "Gerador de conteúdo" },
       { href: "/dashboard/ai-studio", icon: BrainCircuit, label: "AI Studio", ultra: true, new: true, description: "Criação avançada" },
+    ]
+  },
+  {
+    label: "Negócios", // ✅ NOVO GRUPO ADICIONADO
+    subItems: [
+      {
+        href: "/dashboard/profit-calculator",
+        icon: Calculator,
+        label: "Calculadora de Lucros",
+        ultra: true,
+        new: true,
+        description: "Análise IA completa"
+      },
     ]
   },
   {

@@ -369,4 +369,137 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_post", ["postId"]),
+
+    profitCalculations: defineTable({
+  userId: v.string(),
+
+  // Informações do negócio
+  businessName: v.string(),
+  businessType: v.union(
+    v.literal("ecommerce"),
+    v.literal("saas"),
+    v.literal("freelancer"),
+    v.literal("infoproducts"),
+    v.literal("services"),
+    v.literal("physical_store"),
+    v.literal("dropshipping"),
+    v.literal("consulting"),
+    v.literal("other")
+  ),
+
+  // Receitas
+  revenue: v.object({
+    monthly: v.number(),
+    products: v.optional(v.array(v.object({
+      name: v.string(),
+      price: v.number(),
+      quantity: v.number(),
+      total: v.number()
+    })))
+  }),
+
+  // Custos Fixos
+  fixedCosts: v.object({
+    rent: v.optional(v.number()),
+    salaries: v.optional(v.number()),
+    software: v.optional(v.number()),
+    marketing: v.optional(v.number()),
+    utilities: v.optional(v.number()),
+    insurance: v.optional(v.number()),
+    other: v.optional(v.number()),
+    total: v.number()
+  }),
+
+  // Custos Variáveis
+  variableCosts: v.object({
+    materials: v.optional(v.number()),
+    shipping: v.optional(v.number()),
+    commissions: v.optional(v.number()),
+    packaging: v.optional(v.number()),
+    ads: v.optional(v.number()),
+    fees: v.optional(v.number()),
+    other: v.optional(v.number()),
+    total: v.number()
+  }),
+
+  // Resultados calculados
+  results: v.object({
+    totalRevenue: v.number(),
+    totalCosts: v.number(),
+    grossProfit: v.number(),
+    netProfit: v.number(),
+    profitMargin: v.number(),
+    breakEvenPoint: v.number(),
+    roi: v.number()
+  }),
+
+  // Análise IA
+  aiAnalysis: v.optional(v.object({
+    score: v.number(), // 0-100
+    insights: v.array(v.string()),
+    warnings: v.array(v.string()),
+    opportunities: v.array(v.string()),
+    benchmarkComparison: v.object({
+      industry: v.string(),
+      yourMargin: v.number(),
+      industryAverage: v.number(),
+      status: v.union(v.literal("above"), v.literal("average"), v.literal("below"))
+    }),
+    recommendations: v.array(v.object({
+      title: v.string(),
+      description: v.string(),
+      impact: v.union(v.literal("high"), v.literal("medium"), v.literal("low")),
+      potentialSavings: v.number()
+    }))
+  })),
+
+  // Simulações
+  scenarios: v.optional(v.object({
+    optimistic: v.object({
+      revenue: v.number(),
+      profit: v.number(),
+      margin: v.number()
+    }),
+    realistic: v.object({
+      revenue: v.number(),
+      profit: v.number(),
+      margin: v.number()
+    }),
+    pessimistic: v.object({
+      revenue: v.number(),
+      profit: v.number(),
+      margin: v.number()
+    })
+  })),
+
+  // Meta
+  favorite: v.optional(v.boolean()),
+  notes: v.optional(v.string()),
+  createdAt: v.number(),
+  updatedAt: v.optional(v.number())
+})
+  .index("by_user", ["userId"])
+  .index("by_user_created", ["userId", "createdAt"])
+  .index("by_favorite", ["userId", "favorite"]),
+
+profitGoals: defineTable({
+  userId: v.string(),
+  calculationId: v.id("profitCalculations"),
+
+  targetProfit: v.number(),
+  targetMargin: v.number(),
+  deadline: v.string(),
+
+  status: v.union(
+    v.literal("active"),
+    v.literal("achieved"),
+    v.literal("failed")
+  ),
+
+  progress: v.number(), // 0-100
+  createdAt: v.number(),
+  achievedAt: v.optional(v.number())
+})
+  .index("by_user", ["userId"])
+  .index("by_calculation", ["calculationId"]),
 });

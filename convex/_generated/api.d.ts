@@ -33,6 +33,7 @@ import type * as migrations from "../migrations.js";
 import type * as notificationQueries from "../notificationQueries.js";
 import type * as notificationSender from "../notificationSender.js";
 import type * as posts from "../posts.js";
+import type * as profitCalculator from "../profitCalculator.js";
 import type * as publicGiveaways from "../publicGiveaways.js";
 import type * as push from "../push.js";
 import type * as pushActions from "../pushActions.js";
@@ -71,6 +72,7 @@ declare const fullApi: ApiFromModules<{
   notificationQueries: typeof notificationQueries;
   notificationSender: typeof notificationSender;
   posts: typeof posts;
+  profitCalculator: typeof profitCalculator;
   publicGiveaways: typeof publicGiveaways;
   push: typeof push;
   pushActions: typeof pushActions;
