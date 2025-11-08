@@ -599,6 +599,186 @@ export const deleteProduct = mutation({
   },
 });
 
+
+// =================================================================
+// 🗑️ LIMPEZA DE DADOS
+// =================================================================
+
+export const clearMonthData = mutation({
+  args: {
+    month: v.string(),
+    businessId: v.optional(v.id("businesses")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
+
+    // Deletar todas as vendas do mês
+    const sales = await ctx.db
+      .query("sales")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", identity.subject).eq("month", args.month)
+      )
+      .collect();
+
+    for (const sale of sales) {
+      if (!args.businessId || sale.businessId === args.businessId) {
+        await ctx.db.delete(sale._id);
+      }
+    }
+
+    // Deletar todos os gastos do mês
+    const expenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", identity.subject).eq("month", args.month)
+      )
+      .collect();
+
+    for (const expense of expenses) {
+      if (!args.businessId || expense.businessId === args.businessId) {
+        await ctx.db.delete(expense._id);
+      }
+    }
+
+    // Deletar relatório do mês
+    const reports = await ctx.db
+      .query("monthlyReports")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", identity.subject).eq("month", args.month)
+      )
+      .collect();
+
+    for (const report of reports) {
+      if (!args.businessId || report.businessId === args.businessId) {
+        await ctx.db.delete(report._id);
+      }
+    }
+
+    return {
+      success: true,
+      deletedSales: sales.length,
+      deletedExpenses: expenses.length,
+    };
+  },
+});
+
+export const clearAllData = mutation({
+  args: {
+    businessId: v.optional(v.id("businesses")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
+
+    const deletedCount = {
+      products: 0,
+      sales: 0,
+      expenses: 0,
+      reports: 0,
+      customers: 0,
+      suppliers: 0,
+      goals: 0,
+    };
+
+    // Deletar produtos
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    for (const product of products) {
+      if (!args.businessId || product.businessId === args.businessId) {
+        await ctx.db.delete(product._id);
+        deletedCount.products++;
+      }
+    }
+
+    // Deletar vendas
+    const sales = await ctx.db
+      .query("sales")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    for (const sale of sales) {
+      if (!args.businessId || sale.businessId === args.businessId) {
+        await ctx.db.delete(sale._id);
+        deletedCount.sales++;
+      }
+    }
+
+    // Deletar gastos
+    const expenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    for (const expense of expenses) {
+      if (!args.businessId || expense.businessId === args.businessId) {
+        await ctx.db.delete(expense._id);
+        deletedCount.expenses++;
+      }
+    }
+
+    // Deletar relatórios
+    const reports = await ctx.db
+      .query("monthlyReports")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    for (const report of reports) {
+      if (!args.businessId || report.businessId === args.businessId) {
+        await ctx.db.delete(report._id);
+        deletedCount.reports++;
+      }
+    }
+
+    // Deletar clientes
+    const customers = await ctx.db
+      .query("customers")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    for (const customer of customers) {
+      if (!args.businessId || customer.businessId === args.businessId) {
+        await ctx.db.delete(customer._id);
+        deletedCount.customers++;
+      }
+    }
+
+    // Deletar fornecedores
+    const suppliers = await ctx.db
+      .query("suppliers")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    for (const supplier of suppliers) {
+      if (!args.businessId || supplier.businessId === args.businessId) {
+        await ctx.db.delete(supplier._id);
+        deletedCount.suppliers++;
+      }
+    }
+
+    // Deletar metas
+    const goals = await ctx.db
+      .query("financialGoals")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    for (const goal of goals) {
+      if (!args.businessId || goal.businessId === args.businessId) {
+        await ctx.db.delete(goal._id);
+        deletedCount.goals++;
+      }
+    }
+
+    return {
+      success: true,
+      ...deletedCount,
+    };
+  },
+});
+
 // =================================================================
 // 💰 VENDAS
 // =================================================================

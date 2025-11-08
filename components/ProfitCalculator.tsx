@@ -174,6 +174,8 @@ export default function FinancialManagerPro() {
 
   // ✅ CORRIGIDO
   const [priceCalcResult, setPriceCalcResult] = useState<PriceCalculationResult | null>(null);
+  const clearMonthData = useMutation(api.profitCalculator.clearMonthData);
+const clearAllData = useMutation(api.profitCalculator.clearAllData);
 
 
   // Queries
@@ -455,7 +457,39 @@ export default function FinancialManagerPro() {
       console.error(error);
     }
   };
+const handleClearMonth = async () => {
+  if (!confirm(`⚠️ ATENÇÃO! Isso vai DELETAR PERMANENTEMENTE todas as vendas e gastos de ${getCurrentMonthName()}. Esta ação NÃO PODE ser desfeita! Tem certeza?`)) {
+    return;
+  }
 
+  try {
+    const result = await clearMonthData({ month: selectedMonth });
+    toast.success(`✅ Limpeza concluída! ${result.deletedSales} vendas e ${result.deletedExpenses} gastos removidos.`);
+  } catch (error) {
+    toast.error("❌ Erro ao limpar dados");
+    console.error(error);
+  }
+};
+
+const handleClearAll = async () => {
+  if (!confirm("🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER! Digite 'DELETAR TUDO' para confirmar.")) {
+    return;
+  }
+
+  const confirmation = prompt("Digite 'DELETAR TUDO' em letras maiúsculas:");
+  if (confirmation !== "DELETAR TUDO") {
+    toast.error("❌ Cancelado");
+    return;
+  }
+
+  try {
+    const result = await clearAllData({});
+    toast.success(`✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`);
+  } catch (error) {
+    toast.error("❌ Erro ao limpar tudo");
+    console.error(error);
+  }
+};
   const handleDeleteExpense = async (id: Id<"expenses">, expenseMonth: string) => {
     try {
       await deleteExpense({ id, permanent: true });
@@ -601,7 +635,7 @@ export default function FinancialManagerPro() {
             <p className="text-gray-600 mt-1">Controle completo e inteligente do seu negócio</p>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+                    <div className="flex items-center gap-2 flex-wrap">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="relative">
@@ -646,8 +680,31 @@ export default function FinancialManagerPro() {
               <Calculator className="w-4 h-4 mr-2" />
               Calcular Preço
             </Button>
+
+            {/* ✅ BOTÕES DE CONFIGURAÇÃO */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="icon" className="text-red-600">
+                  <Settings className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuLabel>Configurações</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleClearMonth} className="text-orange-600">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Limpar Mês Atual
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleClearAll} className="text-red-600 font-bold">
+                  <AlertTriangle className="w-4 h-4 mr-2" />
+                  DELETAR TUDO
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
-        </div>
+
+          </div>
+
 
         {/* NAVEGAÇÃO DE MÊS */}
         <Card className="p-4 bg-white/80 backdrop-blur-sm border-2 mb-6">
@@ -674,7 +731,7 @@ export default function FinancialManagerPro() {
           </div>
         </Card>
 
-        {/* 4 CARDS DE RESUMO */}
+               {/* 4 CARDS DE RESUMO */}
         {monthlyReport && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {/* CARD 1: RECEITA ✅ */}
@@ -736,6 +793,8 @@ export default function FinancialManagerPro() {
             </Card>
           </div>
         )}
+
+
 
         {/* TABS */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-6">
@@ -1070,15 +1129,21 @@ export default function FinancialManagerPro() {
           </TabsContent>
 
           {/* TAB: RESUMO */}
-          <TabsContent value="resumo">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
-                <Button onClick={handleRegenerateReport} variant="outline">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Atualizar
-                </Button>
-              </div>
+         <TabsContent value="resumo">
+  <div className="space-y-4">
+    <div className="flex items-center justify-between">
+      <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
+      <div className="flex gap-2">
+        <Button onClick={handleRegenerateReport} variant="outline">
+          <RefreshCw className="w-4 h-4 mr-2" />
+          Atualizar
+        </Button> <Button onClick={handleClearMonth} variant="destructive" className="bg-red-600">
+          <Trash2 className="w-4 h-4 mr-2" />
+          Limpar Mês
+        </Button>
+      </div>
+    </div>
+
 
               {!monthlyReport ? (
                 <Card className="p-12 text-center">
