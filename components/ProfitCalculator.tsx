@@ -172,10 +172,9 @@ export default function FinancialManagerPro() {
     category: "",
   });
 
-  // ✅ CORRIGIDO
   const [priceCalcResult, setPriceCalcResult] = useState<PriceCalculationResult | null>(null);
   const clearMonthData = useMutation(api.profitCalculator.clearMonthData);
-const clearAllData = useMutation(api.profitCalculator.clearAllData);
+  const clearAllData = useMutation(api.profitCalculator.clearAllData);
 
 
   // Queries
@@ -457,39 +456,39 @@ const clearAllData = useMutation(api.profitCalculator.clearAllData);
       console.error(error);
     }
   };
-const handleClearMonth = async () => {
-  if (!confirm(`⚠️ ATENÇÃO! Isso vai DELETAR PERMANENTEMENTE todas as vendas e gastos de ${getCurrentMonthName()}. Esta ação NÃO PODE ser desfeita! Tem certeza?`)) {
-    return;
-  }
+  const handleClearMonth = async () => {
+    if (!confirm(`⚠️ ATENÇÃO! Isso vai DELETAR PERMANENTEMENTE todas as vendas e gastos de ${getCurrentMonthName()}. Esta ação NÃO PODE ser desfeita! Tem certeza?`)) {
+      return;
+    }
 
-  try {
-    const result = await clearMonthData({ month: selectedMonth });
-    toast.success(`✅ Limpeza concluída! ${result.deletedSales} vendas e ${result.deletedExpenses} gastos removidos.`);
-  } catch (error) {
-    toast.error("❌ Erro ao limpar dados");
-    console.error(error);
-  }
-};
+    try {
+      const result = await clearMonthData({ month: selectedMonth });
+      toast.success(`✅ Limpeza concluída! ${result.deletedSales} vendas e ${result.deletedExpenses} gastos removidos.`);
+    } catch (error) {
+      toast.error("❌ Erro ao limpar dados");
+      console.error(error);
+    }
+  };
 
-const handleClearAll = async () => {
-  if (!confirm("🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER! Digite 'DELETAR TUDO' para confirmar.")) {
-    return;
-  }
+  const handleClearAll = async () => {
+    if (!confirm("🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER! Digite 'DELETAR TUDO' para confirmar.")) {
+      return;
+    }
 
-  const confirmation = prompt("Digite 'DELETAR TUDO' em letras maiúsculas:");
-  if (confirmation !== "DELETAR TUDO") {
-    toast.error("❌ Cancelado");
-    return;
-  }
+    const confirmation = prompt("Digite 'DELETAR TUDO' em letras maiúsculas:");
+    if (confirmation !== "DELETAR TUDO") {
+      toast.error("❌ Cancelado");
+      return;
+    }
 
-  try {
-    const result = await clearAllData({});
-    toast.success(`✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`);
-  } catch (error) {
-    toast.error("❌ Erro ao limpar tudo");
-    console.error(error);
-  }
-};
+    try {
+      const result = await clearAllData({});
+      toast.success(`✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`);
+    } catch (error) {
+      toast.error("❌ Erro ao limpar tudo");
+      console.error(error);
+    }
+  };
   const handleDeleteExpense = async (id: Id<"expenses">, expenseMonth: string) => {
     try {
       await deleteExpense({ id, permanent: true });
@@ -635,7 +634,7 @@ const handleClearAll = async () => {
             <p className="text-gray-600 mt-1">Controle completo e inteligente do seu negócio</p>
           </div>
 
-                    <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="icon" className="relative">
@@ -703,7 +702,7 @@ const handleClearAll = async () => {
             </DropdownMenu>
           </div>
 
-          </div>
+        </div>
 
 
         {/* NAVEGAÇÃO DE MÊS */}
@@ -731,7 +730,7 @@ const handleClearAll = async () => {
           </div>
         </Card>
 
-               {/* 4 CARDS DE RESUMO */}
+        {/* 4 CARDS DE RESUMO */}
         {monthlyReport && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
             {/* CARD 1: RECEITA ✅ */}
@@ -1129,20 +1128,20 @@ const handleClearAll = async () => {
           </TabsContent>
 
           {/* TAB: RESUMO */}
-         <TabsContent value="resumo">
-  <div className="space-y-4">
-    <div className="flex items-center justify-between">
-      <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
-      <div className="flex gap-2">
-        <Button onClick={handleRegenerateReport} variant="outline">
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Atualizar
-        </Button> <Button onClick={handleClearMonth} variant="destructive" className="bg-red-600">
-          <Trash2 className="w-4 h-4 mr-2" />
-          Limpar Mês
-        </Button>
-      </div>
-    </div>
+          <TabsContent value="resumo">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
+                <div className="flex gap-2">
+                  <Button onClick={handleRegenerateReport} variant="outline">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Atualizar
+                  </Button> <Button onClick={handleClearMonth} variant="destructive" className="bg-red-600">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Limpar Mês
+                  </Button>
+                </div>
+              </div>
 
 
               {!monthlyReport ? (
@@ -1362,15 +1361,17 @@ const handleClearAll = async () => {
 
       {/* Modal: Adicionar Produto */}
       <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* ✅ CORREÇÃO: "sm:max-w-2xl" para mobile e "max-h-[90vh] overflow-y-auto" para scroll */}
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
             <DialogDescription>
               Preencha os dados do produto para cadastro no sistema
             </DialogDescription>
           </DialogHeader>
+          {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-2" para empilhar no mobile */}
           <div className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Nome do Produto *</Label>
                 <Input value={productForm.name} onChange={(e) => setProductForm({...productForm, name: e.target.value})} placeholder="Ex: Camiseta Básica" />
@@ -1381,7 +1382,7 @@ const handleClearAll = async () => {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Preço de Custo * (R$)</Label>
                 <Input type="number" step="0.01" value={productForm.costPrice} onChange={(e) => setProductForm({...productForm, costPrice: e.target.value})} placeholder="0,00" />
@@ -1392,7 +1393,8 @@ const handleClearAll = async () => {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4">
+            {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-3" */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Estoque Inicial</Label>
                 <Input type="number" value={productForm.stock} onChange={(e) => setProductForm({...productForm, stock: e.target.value})} placeholder="0" />
@@ -1450,13 +1452,15 @@ const handleClearAll = async () => {
 
       {/* Modal: Editar Produto */}
       <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {/* ✅ CORREÇÃO: Responsividade e Scroll */}
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>✏️ Editar Produto</DialogTitle>
             <DialogDescription>Altere as informações do produto</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="grid md:grid-cols-2 gap-4">
+            {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-2" */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Nome do Produto</Label>
                 <Input value={productForm.name} onChange={(e) => setProductForm({...productForm, name: e.target.value})} />
@@ -1467,7 +1471,7 @@ const handleClearAll = async () => {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Custo (R$)</Label>
                 <Input type="number" step="0.01" value={productForm.costPrice} onChange={(e) => setProductForm({...productForm, costPrice: e.target.value})} />
@@ -1478,7 +1482,7 @@ const handleClearAll = async () => {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Estoque</Label>
                 <Input type="number" value={productForm.stock} onChange={(e) => setProductForm({...productForm, stock: e.target.value})} />
@@ -1488,6 +1492,7 @@ const handleClearAll = async () => {
                 <Input type="number" value={productForm.minStock} onChange={(e) => setProductForm({...productForm, minStock: e.target.value})} />
               </div>
             </div>
+            {/* Outros campos de edição podem ser adicionados aqui, como Categoria, Descrição, Unidade */}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEditProduct(false)}>Cancelar</Button>
@@ -1498,7 +1503,8 @@ const handleClearAll = async () => {
 
       {/* Modal: Adicionar Venda */}
       <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
-        <DialogContent>
+        {/* ✅ CORREÇÃO: Scroll */}
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>🛒 Registrar Venda</DialogTitle>
             <DialogDescription>Registre uma nova venda e atualize o estoque automaticamente</DialogDescription>
@@ -1520,7 +1526,8 @@ const handleClearAll = async () => {
               </Select>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-2" */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Quantidade *</Label>
                 <Input type="number" min="1" value={saleForm.quantity} onChange={(e) => setSaleForm({...saleForm, quantity: e.target.value})} placeholder="1" />
@@ -1567,7 +1574,8 @@ const handleClearAll = async () => {
 
       {/* Modal: Adicionar Gasto */}
       <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
-        <DialogContent>
+        {/* ✅ CORREÇÃO: Scroll */}
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>💸 Registrar Gasto</DialogTitle>
             <DialogDescription>Registre uma despesa ou gasto do negócio</DialogDescription>
@@ -1578,7 +1586,8 @@ const handleClearAll = async () => {
               <Input value={expenseForm.description} onChange={(e) => setExpenseForm({...expenseForm, description: e.target.value})} placeholder="Ex: Conta de luz" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-2" */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Valor * (R$)</Label>
                 <Input type="number" step="0.01" value={expenseForm.amount} onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})} />
@@ -1634,7 +1643,8 @@ const handleClearAll = async () => {
 
       {/* Modal: Adicionar Cliente */}
       <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
-        <DialogContent>
+        {/* ✅ CORREÇÃO: Scroll */}
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>👤 Cadastrar Cliente</DialogTitle>
             <DialogDescription>Adicione um novo cliente ao sistema</DialogDescription>
@@ -1666,7 +1676,8 @@ const handleClearAll = async () => {
 
       {/* Modal: Adicionar Fornecedor */}
       <Dialog open={showAddSupplier} onOpenChange={setShowAddSupplier}>
-        <DialogContent>
+        {/* ✅ CORREÇÃO: Scroll */}
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>🚚 Cadastrar Fornecedor</DialogTitle>
             <DialogDescription>Adicione um novo fornecedor ao sistema</DialogDescription>
@@ -1694,7 +1705,8 @@ const handleClearAll = async () => {
 
       {/* Modal: Adicionar Meta */}
       <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
-        <DialogContent>
+        {/* ✅ CORREÇÃO: Scroll */}
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>🎯 Criar Meta</DialogTitle>
             <DialogDescription>Defina uma meta financeira para acompanhar seu progresso</DialogDescription>
@@ -1725,7 +1737,8 @@ const handleClearAll = async () => {
               <Input type="number" value={goalForm.targetValue} onChange={(e) => setGoalForm({...goalForm, targetValue: e.target.value})} placeholder="10000" />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-2" */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Início</Label>
                 <Input type="date" value={goalForm.startDate} onChange={(e) => setGoalForm({...goalForm, startDate: e.target.value})} />
@@ -1745,7 +1758,8 @@ const handleClearAll = async () => {
 
       {/* Modal: Calculadora de Preço */}
       <Dialog open={showPriceCalculator} onOpenChange={setShowPriceCalculator}>
-        <DialogContent>
+        {/* ✅ CORREÇÃO: Scroll */}
+        <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>🧮 Calculadora de Preço</DialogTitle>
             <DialogDescription>Descubra o preço ideal para seu produto com base em custos e margem</DialogDescription>
@@ -1780,7 +1794,8 @@ const handleClearAll = async () => {
                     <p className="text-3xl font-black text-emerald-600 my-2">
                       {formatCurrency(priceCalcResult.suggestedPrice)}
                     </p>
-                    <div className="grid grid-cols-2 gap-2 text-sm mt-4">
+                    {/* ✅ CORREÇÃO: "grid-cols-1 sm:grid-cols-2" */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mt-4">
                       <div>
                         <p className="text-gray-600">Mínimo:</p>
                         <p className="font-semibold">{formatCurrency(priceCalcResult.minPrice)}</p>
