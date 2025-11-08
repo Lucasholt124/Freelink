@@ -551,17 +551,51 @@ export const deleteProduct = mutation({
       throw new Error("Produto não encontrado");
     }
 
+    // ✅ NOVO: Buscar todas as vendas deste produto
+    const sales = await ctx.db
+      .query("sales")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .filter((q) => q.eq(q.field("productId"), args.id))
+      .collect();
+
+    // ✅ NOVO: Deletar todas as vendas em cascata
+    for (const sale of sales) {
+      await ctx.db.delete(sale._id);
+    }
+
+    // ✅ NOVO: Recalcular relatórios mensais afetados
+    const affectedMonths = [...new Set(sales.map(s => s.month))];
+
+    // Marca os relatórios dos meses afetados para regeração
+    for (const month of affectedMonths) {
+      const report = await ctx.db
+        .query("monthlyReports")
+        .withIndex("by_user_month", (q) =>
+          q.eq("userId", identity.subject).eq("month", month)
+        )
+        .first();
+
+      if (report) {
+        // Deleta o relatório antigo para forçar regeração
+        await ctx.db.delete(report._id);
+      }
+    }
+
+    // Deletar ou desativar o produto
     if (args.permanent) {
       await ctx.db.delete(args.id);
     } else {
-      // Soft delete
       await ctx.db.patch(args.id, {
         active: false,
         updatedAt: Date.now(),
       });
     }
 
-    return { success: true };
+    return {
+      success: true,
+      deletedSales: sales.length,
+      affectedMonths: affectedMonths.length
+    };
   },
 });
 

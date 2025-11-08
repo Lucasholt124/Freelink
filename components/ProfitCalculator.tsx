@@ -1277,8 +1277,11 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
       <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
-          </DialogHeader>
+  <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
+  <DialogDescription>
+    Preencha os dados do produto para cadastro no sistema
+  </DialogDescription>
+</DialogHeader>
           <div className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -1361,8 +1364,11 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
       <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>✏️ Editar Produto</DialogTitle>
-          </DialogHeader>
+  <DialogTitle>✏️ Editar Produto</DialogTitle>
+  <DialogDescription>
+    Altere as informações do produto
+  </DialogDescription>
+</DialogHeader>
           <div className="space-y-4">
             <div className="grid md:grid-cols-2 gap-4">
               <div>
@@ -1404,77 +1410,111 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
         </DialogContent>
       </Dialog>
 
-      <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>🛒 Registrar Venda</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Produto *</Label>
-              <Select value={saleForm.productId} onValueChange={(v) => setSaleForm({...saleForm, productId: v})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products.filter((p) => p.active).map((p) => (
-                    <SelectItem key={p._id} value={p._id}>{p.name} - {formatCurrency(p.salePrice)}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+     <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
+  <DialogContent>
+    <DialogHeader>
+      <DialogTitle>🛒 Registrar Venda</DialogTitle>
+      <DialogDescription>
+        Registre uma nova venda e atualize o estoque automaticamente
+      </DialogDescription>
+    </DialogHeader>
+    <div className="space-y-4">
+      <div>
+        <Label>Produto *</Label>
+        <Select value={saleForm.productId} onValueChange={(v) => setSaleForm({...saleForm, productId: v})}>
+          <SelectTrigger>
+            <SelectValue placeholder="Selecione um produto" />
+          </SelectTrigger>
+          <SelectContent>
+            {products.filter((p) => p.active).map((p) => (
+              <SelectItem key={p._id} value={p._id}>
+                {p.name} - {formatCurrency(p.salePrice)}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Quantidade *</Label>
-                <Input type="number" value={saleForm.quantity} onChange={(e) => setSaleForm({...saleForm, quantity: e.target.value})} />
-              </div>
-              <div>
-                <Label>Data *</Label>
-                <Input type="date" value={saleForm.date} onChange={(e) => setSaleForm({...saleForm, date: e.target.value})} />
-              </div>
-            </div>
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label>Quantidade *</Label>
+          <Input
+            type="number"
+            min="1"
+            value={saleForm.quantity}
+            onChange={(e) => setSaleForm({...saleForm, quantity: e.target.value})}
+            placeholder="1"
+          />
+        </div>
+        <div>
+          <Label>Data *</Label>
+          <Input
+            type="date"
+            value={saleForm.date}
+            onChange={(e) => setSaleForm({...saleForm, date: e.target.value})}
+          />
+        </div>
+      </div>
 
-            <div>
-              <Label>Cliente</Label>
-              <Select value={saleForm.customerId} onValueChange={(v) => setSaleForm({...saleForm, customerId: v})}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Nenhum" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
-                  {customers.map((c) => (
-                    <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+      <div>
+        <Label>Cliente (opcional)</Label>
+        <Select
+          value={saleForm.customerId || undefined}
+          onValueChange={(v) => setSaleForm({...saleForm, customerId: v})}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Nenhum cliente" />
+          </SelectTrigger>
+          <SelectContent>
+            {customers.map((c) => (
+              <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-            <div>
-              <Label>Desconto (R$)</Label>
-              <Input type="number" step="0.01" value={saleForm.discount} onChange={(e) => setSaleForm({...saleForm, discount: e.target.value})} />
-            </div>
+      <div>
+        <Label>Desconto (R$)</Label>
+        <Input
+          type="number"
+          step="0.01"
+          min="0"
+          value={saleForm.discount}
+          onChange={(e) => setSaleForm({...saleForm, discount: e.target.value})}
+          placeholder="0,00"
+        />
+      </div>
 
-            <div>
-              <Label>Observações</Label>
-              <Textarea value={saleForm.notes} onChange={(e) => setSaleForm({...saleForm, notes: e.target.value})} rows={2} />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSale(false)}>Cancelar</Button>
-            <Button onClick={handleAddSale} className="bg-emerald-600">
-              <Save className="w-4 h-4 mr-2" />
-              Registrar Venda
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <div>
+        <Label>Observações</Label>
+        <Textarea
+          value={saleForm.notes}
+          onChange={(e) => setSaleForm({...saleForm, notes: e.target.value})}
+          rows={2}
+          placeholder="Informações adicionais sobre a venda"
+        />
+      </div>
+    </div>
+    <DialogFooter>
+      <Button variant="outline" onClick={() => setShowAddSale(false)}>
+        Cancelar
+      </Button>
+      <Button onClick={handleAddSale} className="bg-emerald-600">
+        <Save className="w-4 h-4 mr-2" />
+        Registrar Venda
+      </Button>
+    </DialogFooter>
+  </DialogContent>
+</Dialog>
 
       <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>💸 Registrar Gasto</DialogTitle>
-          </DialogHeader>
+  <DialogTitle>💸 Registrar Gasto</DialogTitle>
+  <DialogDescription>
+    Registre uma despesa ou gasto do negócio
+  </DialogDescription>
+</DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Descrição *</Label>
@@ -1523,9 +1563,12 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
 
       <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
         <DialogContent>
-          <DialogHeader>
-            <DialogTitle>👤 Cadastrar Cliente</DialogTitle>
-          </DialogHeader>
+        <DialogHeader>
+  <DialogTitle>👤 Cadastrar Cliente</DialogTitle>
+  <DialogDescription>
+    Adicione um novo cliente ao sistema
+  </DialogDescription>
+</DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Nome *</Label>
@@ -1550,8 +1593,11 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
       <Dialog open={showAddSupplier} onOpenChange={setShowAddSupplier}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>🚚 Cadastrar Fornecedor</DialogTitle>
-          </DialogHeader>
+  <DialogTitle>🚚 Cadastrar Fornecedor</DialogTitle>
+  <DialogDescription>
+    Adicione um novo fornecedor ao sistema
+  </DialogDescription>
+</DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Nome *</Label>
@@ -1576,8 +1622,11 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
       <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>🎯 Criar Meta</DialogTitle>
-          </DialogHeader>
+  <DialogTitle>🎯 Criar Meta</DialogTitle>
+  <DialogDescription>
+    Defina uma meta financeira para acompanhar seu progresso
+  </DialogDescription>
+</DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Título *</Label>
@@ -1625,9 +1674,11 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
       <Dialog open={showPriceCalculator} onOpenChange={setShowPriceCalculator}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>🧮 Calculadora de Preço</DialogTitle>
-            <DialogDescription>Descubra o preço ideal para seu produto</DialogDescription>
-          </DialogHeader>
+  <DialogTitle>🧮 Calculadora de Preço</DialogTitle>
+  <DialogDescription>
+    Descubra o preço ideal para seu produto com base em custos e margem
+  </DialogDescription>
+</DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Custo do Produto *</Label>
@@ -1689,8 +1740,11 @@ const deleteSupplier = useMutation(api.profitCalculator.deleteSupplier);
       <Dialog open={showSearch} onOpenChange={setShowSearch}>
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>🔍 Buscar em Tudo</DialogTitle>
-          </DialogHeader>
+  <DialogTitle>🔍 Buscar em Tudo</DialogTitle>
+  <DialogDescription>
+    Pesquise produtos, vendas, gastos, clientes e fornecedores
+  </DialogDescription>
+</DialogHeader>
           <div className="space-y-4">
             <div className="flex gap-2">
               <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Digite para buscar..." onKeyDown={(e) => e.key === 'Enter' && handleSearch()} />
