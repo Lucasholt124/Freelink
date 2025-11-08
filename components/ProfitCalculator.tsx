@@ -36,25 +36,15 @@ import {
   BarChart3,
   Loader2,
   RefreshCw,
-
   Zap,
-
   Search,
-
   Check,
   Wallet,
-
   ArrowUpRight,
   ArrowDownRight,
-
   Activity,
-
-  Home,
-
   Menu,
-
   Rocket,
-
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -98,20 +88,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// ============================================
-// 🎨 TIPOS E INTERFACES
-// ============================================
-
-type TabType =
-  | "dashboard"
-  | "produtos"
-  | "vendas"
-  | "gastos"
-  | "resumo"
-  | "metas"
-  | "clientes"
-  | "fornecedores"
-  | "rapido";
+type TabType = "dashboard" | "produtos" | "vendas" | "gastos" | "resumo" | "metas" | "clientes" | "fornecedores" | "rapido";
 type GoalType = "revenue" | "profit" | "margin" | "sales_count" | "expense_reduction";
 type PaymentMethod = "cash" | "credit_card" | "debit_card" | "pix" | "bank_transfer" | "other";
 type SalePaymentStatus = "paid" | "pending" | "overdue" | "cancelled";
@@ -126,15 +103,7 @@ interface PriceCalculationResult {
   analysis: string[];
 }
 
-// ============================================
-// 🚀 COMPONENTE PRINCIPAL
-// ============================================
-
 export default function FinancialManagerPro() {
-  // ============================================
-  // 📊 STATES
-  // ============================================
-
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -152,14 +121,9 @@ export default function FinancialManagerPro() {
   const [showQuickSale, setShowQuickSale] = useState(false);
   const [showQuickExpense, setShowQuickExpense] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-
   const [editingProductId, setEditingProductId] = useState<Id<"products"> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
-
-  // ============================================
-  // 📝 FORMS
-  // ============================================
 
   const [productForm, setProductForm] = useState({
     name: "",
@@ -218,9 +182,7 @@ export default function FinancialManagerPro() {
     targetValue: "",
     period: "monthly" as "daily" | "weekly" | "monthly" | "yearly",
     startDate: new Date().toISOString().split("T")[0],
-    endDate: new Date(new Date().setMonth(new Date().getMonth() + 1))
-      .toISOString()
-      .split("T")[0],
+    endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split("T")[0],
   });
 
   const [priceCalcForm, setPriceCalcForm] = useState({
@@ -230,7 +192,8 @@ export default function FinancialManagerPro() {
   });
 
   const [quickSaleForm, setQuickSaleForm] = useState({
-    amount: "",
+    costPrice: "",
+    salePrice: "",
     description: "",
     paymentMethod: "pix" as PaymentMethod,
   });
@@ -244,14 +207,9 @@ export default function FinancialManagerPro() {
 
   const [priceCalcResult, setPriceCalcResult] = useState<PriceCalculationResult | null>(null);
 
-  // ============================================
-  // 🔌 QUERIES
-  // ============================================
-
   const products = useQuery(api.profitCalculator.getProducts, { activeOnly: false }) ?? [];
   const sales = useQuery(api.profitCalculator.getSalesByMonth, { month: selectedMonth }) ?? [];
-  const expenses =
-    useQuery(api.profitCalculator.getExpensesByMonth, { month: selectedMonth }) ?? [];
+  const expenses = useQuery(api.profitCalculator.getExpensesByMonth, { month: selectedMonth }) ?? [];
   const monthlyReport = useQuery(api.profitCalculator.getMonthlyReport, { month: selectedMonth });
   const allMonths = useQuery(api.profitCalculator.getAllMonths, {}) ?? [];
   const dashboard = useQuery(api.profitCalculator.getDashboard, {});
@@ -261,10 +219,6 @@ export default function FinancialManagerPro() {
   const suppliers = useQuery(api.profitCalculator.getSuppliers, {}) ?? [];
   const dailySummary = useQuery(api.profitCalculator.getDailySummary, {});
   const cashFlow = useQuery(api.profitCalculator.getCashFlow, { limit: 10 }) ?? [];
-
-  // ============================================
-  // 🔧 MUTATIONS
-  // ============================================
 
   const addProduct = useMutation(api.profitCalculator.addProduct);
   const updateProduct = useMutation(api.profitCalculator.updateProduct);
@@ -285,22 +239,11 @@ export default function FinancialManagerPro() {
   const addQuickSale = useMutation(api.profitCalculator.addQuickSale);
   const addQuickExpense = useMutation(api.profitCalculator.addQuickExpense);
 
-  // ============================================
-  // ⚡ ACTIONS
-  // ============================================
-
   const calculatePrice = useAction(api.profitCalculator.calculateSuggestedPrice);
   const generateReport = useAction(api.profitCalculator.generateMonthlyReport);
 
-  // ============================================
-  // 🎯 HELPER FUNCTIONS
-  // ============================================
-
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(value);
+    return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
   };
 
   const formatDate = (dateStr: string) => {
@@ -342,10 +285,6 @@ export default function FinancialManagerPro() {
     setEditingProductId(null);
   };
 
-  // ============================================
-  // 🎬 HANDLERS - PRODUTOS
-  // ============================================
-
   const handleAddProduct = async () => {
     if (!productForm.name.trim() || !productForm.costPrice || !productForm.salePrice) {
       toast.error("❌ Preencha nome, custo e preço de venda!");
@@ -378,13 +317,7 @@ export default function FinancialManagerPro() {
         description: productForm.description || undefined,
       });
 
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ["#8B5CF6", "#EC4899", "#F59E0B"],
-      });
-
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#8B5CF6", "#EC4899", "#F59E0B"] });
       toast.success("✅ Produto cadastrado com sucesso!");
       setShowAddProduct(false);
       resetProductForm();
@@ -423,18 +356,8 @@ export default function FinancialManagerPro() {
   const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
     try {
       const result = await deleteProduct({ id, permanent });
-      confetti({
-        particleCount: 50,
-        angle: 60,
-        spread: 55,
-        origin: { x: 0 },
-        colors: ["#EF4444", "#F97316"],
-      });
-      toast.success(
-        `✅ Produto ${permanent ? "deletado" : "desativado"}! ${
-          result.deletedSales ? `${result.deletedSales} vendas removidas` : ""
-        }`
-      );
+      confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 }, colors: ["#EF4444", "#F97316"] });
+      toast.success(`✅ Produto ${permanent ? "deletado" : "desativado"}! ${result.deletedSales ? `${result.deletedSales} vendas removidas` : ""}`);
     } catch (error) {
       toast.error("❌ Erro ao deletar produto");
       console.error(error);
@@ -459,10 +382,6 @@ export default function FinancialManagerPro() {
     setEditingProductId(productId);
     setShowEditProduct(true);
   };
-
-  // ============================================
-  // 🎬 HANDLERS - VENDAS
-  // ============================================
 
   const handleAddSale = async () => {
     if (!saleForm.productId || !saleForm.quantity || !saleForm.date) {
@@ -496,12 +415,7 @@ export default function FinancialManagerPro() {
 
       await generateReport({ month: saleForm.date.substring(0, 7) });
 
-      confetti({
-        particleCount: 150,
-        spread: 90,
-        origin: { y: 0.6 },
-        colors: ["#10B981", "#3B82F6", "#F59E0B"],
-      });
+      confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6", "#F59E0B"] });
 
       toast.success("🎉 Venda registrada com sucesso!");
       setShowAddSale(false);
@@ -531,10 +445,6 @@ export default function FinancialManagerPro() {
       console.error(error);
     }
   };
-
-  // ============================================
-  // 🎬 HANDLERS - GASTOS
-  // ============================================
 
   const handleAddExpense = async () => {
     if (!expenseForm.description.trim() || !expenseForm.amount || !expenseForm.date) {
@@ -585,10 +495,6 @@ export default function FinancialManagerPro() {
     }
   };
 
-  // ============================================
-  // 🎬 HANDLERS - CLIENTES
-  // ============================================
-
   const handleAddCustomer = async () => {
     if (!customerForm.name.trim()) {
       toast.error("❌ Digite o nome do cliente!");
@@ -613,10 +519,6 @@ export default function FinancialManagerPro() {
     }
   };
 
-  // ============================================
-  // 🎬 HANDLERS - FORNECEDORES
-  // ============================================
-
   const handleAddSupplier = async () => {
     if (!supplierForm.name.trim()) {
       toast.error("❌ Digite o nome do fornecedor!");
@@ -640,10 +542,6 @@ export default function FinancialManagerPro() {
       console.error(error);
     }
   };
-
-  // ============================================
-  // 🎬 HANDLERS - METAS
-  // ============================================
 
   const handleAddGoal = async () => {
     if (!goalForm.title.trim() || !goalForm.targetValue) {
@@ -670,10 +568,6 @@ export default function FinancialManagerPro() {
     }
   };
 
-  // ============================================
-  // 🎬 HANDLERS - CALCULADORA DE PREÇO
-  // ============================================
-
   const handleCalculatePrice = async () => {
     if (!priceCalcForm.costPrice) {
       toast.error("❌ Digite o custo do produto!");
@@ -694,34 +588,41 @@ export default function FinancialManagerPro() {
     }
   };
 
-  // ============================================
-  // 🆕 HANDLERS - MODO RÁPIDO
-  // ============================================
-
   const handleQuickSale = async () => {
-    if (!quickSaleForm.amount) {
-      toast.error("❌ Digite o valor da venda!");
+    if (!quickSaleForm.costPrice || !quickSaleForm.salePrice) {
+      toast.error("❌ Preencha o custo E o preço de venda!");
+      return;
+    }
+
+    const costPrice = parseFloat(quickSaleForm.costPrice);
+    const salePrice = parseFloat(quickSaleForm.salePrice);
+
+    if (costPrice <= 0 || salePrice <= 0) {
+      toast.error("❌ Valores devem ser maiores que zero!");
+      return;
+    }
+
+    if (salePrice <= costPrice) {
+      toast.error("⚠️ Preço de venda deve ser maior que o custo!");
       return;
     }
 
     try {
       await addQuickSale({
-        amount: parseFloat(quickSaleForm.amount),
-        description: quickSaleForm.description || undefined,
+        amount: salePrice,
+        description: quickSaleForm.description || `Venda rápida - Lucro: ${formatCurrency(salePrice - costPrice)}`,
         paymentMethod: quickSaleForm.paymentMethod,
       });
 
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-        colors: ["#10B981", "#3B82F6"],
-      });
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6"] });
 
-      toast.success("💰 Venda rápida registrada!");
+      const lucro = salePrice - costPrice;
+      toast.success(`💰 Venda registrada! Lucro: ${formatCurrency(lucro)}`);
+
       setShowQuickSale(false);
       setQuickSaleForm({
-        amount: "",
+        costPrice: "",
+        salePrice: "",
         description: "",
         paymentMethod: "pix",
       });
@@ -759,24 +660,14 @@ export default function FinancialManagerPro() {
     }
   };
 
-  // ============================================
-  // 🎬 HANDLERS - LIMPEZA
-  // ============================================
-
   const handleClearMonth = async () => {
-    if (
-      !confirm(
-        `⚠️ ATENÇÃO! Isso vai DELETAR PERMANENTEMENTE todas as vendas e gastos de ${getCurrentMonthName()}. Esta ação NÃO PODE ser desfeita! Tem certeza?`
-      )
-    ) {
+    if (!confirm(`⚠️ ATENÇÃO! Isso vai DELETAR PERMANENTEMENTE todas as vendas e gastos de ${getCurrentMonthName()}. Esta ação NÃO PODE ser desfeita! Tem certeza?`)) {
       return;
     }
 
     try {
       const result = await clearMonthData({ month: selectedMonth });
-      toast.success(
-        `✅ Limpeza concluída! ${result.deletedSales} vendas e ${result.deletedExpenses} gastos removidos.`
-      );
+      toast.success(`✅ Limpeza concluída! ${result.deletedSales} vendas e ${result.deletedExpenses} gastos removidos.`);
     } catch (error) {
       toast.error("❌ Erro ao limpar dados");
       console.error(error);
@@ -784,11 +675,7 @@ export default function FinancialManagerPro() {
   };
 
   const handleClearAll = async () => {
-    if (
-      !confirm(
-        "🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER!"
-      )
-    ) {
+    if (!confirm("🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER!")) {
       return;
     }
 
@@ -800,9 +687,7 @@ export default function FinancialManagerPro() {
 
     try {
       const result = await clearAllData({});
-      toast.success(
-        `✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`
-      );
+      toast.success(`✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`);
     } catch (error) {
       toast.error("❌ Erro ao limpar tudo");
       console.error(error);
@@ -820,10 +705,6 @@ export default function FinancialManagerPro() {
     }
   };
 
-  // ============================================
-  // 🎨 FILTERS
-  // ============================================
-
   const filteredProducts = products.filter((product) => {
     const matchesSearch =
       product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -833,10 +714,6 @@ export default function FinancialManagerPro() {
   });
 
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
-
-  // ============================================
-  // 🎭 LOADING STATE
-  // ============================================
 
   const isLoading = products === undefined || dashboard === undefined;
 
@@ -857,13 +734,20 @@ export default function FinancialManagerPro() {
     );
   }
 
-  // ============================================
-  // 🎨 RENDER
-  // ============================================
+  const quickSaleLucro =
+    quickSaleForm.costPrice && quickSaleForm.salePrice
+      ? parseFloat(quickSaleForm.salePrice) - parseFloat(quickSaleForm.costPrice)
+      : 0;
+
+  const quickSaleMargin =
+    quickSaleForm.costPrice && quickSaleForm.salePrice && parseFloat(quickSaleForm.salePrice) > 0
+      ? ((parseFloat(quickSaleForm.salePrice) - parseFloat(quickSaleForm.costPrice)) /
+          parseFloat(quickSaleForm.salePrice)) *
+        100
+      : 0;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-24 md:pb-12">
-      {/* BACKGROUND EFFECTS */}
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-6">
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-700" />
@@ -871,10 +755,6 @@ export default function FinancialManagerPro() {
       </div>
 
       <div className="relative max-w-[1600px] mx-auto px-3 md:px-6 py-4 md:py-6">
-        {/* ============================================ */}
-        {/* 📱 HEADER */}
-        {/* ============================================ */}
-
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 md:mb-6">
           <div className="flex items-center gap-3">
             <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg">
@@ -889,7 +769,14 @@ export default function FinancialManagerPro() {
           </div>
 
           <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
-            {/* CALCULADORA */}
+            <Button
+              onClick={() => setShowQuickSale(true)}
+              className="md:hidden flex-1 bg-emerald-600 hover:bg-emerald-700"
+            >
+              <Zap className="w-4 h-4 mr-2" />
+              Venda Rápida
+            </Button>
+
             <Button
               variant="outline"
               size="sm"
@@ -900,7 +787,6 @@ export default function FinancialManagerPro() {
               Calcular Preço
             </Button>
 
-            {/* ALERTAS */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm" className="relative">
@@ -929,12 +815,8 @@ export default function FinancialManagerPro() {
                         onClick={() => markAlertAsRead({ id: alert._id })}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          {alert.severity === "critical" && (
-                            <AlertTriangle className="w-4 h-4 text-red-500" />
-                          )}
-                          {alert.severity === "warning" && (
-                            <AlertCircle className="w-4 h-4 text-orange-500" />
-                          )}
+                          {alert.severity === "critical" && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                          {alert.severity === "warning" && <AlertCircle className="w-4 h-4 text-orange-500" />}
                           {alert.severity === "info" && <Info className="w-4 h-4 text-blue-500" />}
                           <span className="font-semibold text-sm">{alert.title}</span>
                         </div>
@@ -946,7 +828,6 @@ export default function FinancialManagerPro() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            {/* CONFIGURAÇÕES */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline" size="sm">
@@ -969,10 +850,6 @@ export default function FinancialManagerPro() {
           </div>
         </div>
 
-        {/* ============================================ */}
-        {/* 📅 SELETOR DE MÊS */}
-        {/* ============================================ */}
-
         <Card className="p-3 md:p-4 bg-white/90 backdrop-blur-xl border-2 mb-4 md:mb-6 shadow-lg">
           <div className="flex items-center justify-between gap-4">
             <Button
@@ -987,9 +864,7 @@ export default function FinancialManagerPro() {
             <div className="flex-1 text-center">
               <div className="flex items-center justify-center gap-2">
                 <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                <h2 className="text-base md:text-xl font-bold capitalize">
-                  {getCurrentMonthName()}
-                </h2>
+                <h2 className="text-base md:text-xl font-bold capitalize">{getCurrentMonthName()}</h2>
               </div>
               {allMonths.length > 0 && (
                 <p className="text-[10px] md:text-xs text-gray-500 mt-1">
@@ -1009,10 +884,6 @@ export default function FinancialManagerPro() {
           </div>
         </Card>
 
-        {/* ============================================ */}
-        {/* 🆕 RESUMO DO DIA (MODO RÁPIDO) */}
-        {/* ============================================ */}
-
         {dailySummary && (
           <Card className="p-4 md:p-6 mb-4 md:mb-6 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 border-2 border-emerald-200/50 shadow-xl">
             <div className="flex items-center justify-between mb-4">
@@ -1022,9 +893,7 @@ export default function FinancialManagerPro() {
                 </div>
                 <div>
                   <h3 className="font-bold text-lg">Resumo de Hoje</h3>
-                  <p className="text-xs text-gray-600">
-                    {new Date().toLocaleDateString("pt-BR")}
-                  </p>
+                  <p className="text-xs text-gray-600">{new Date().toLocaleDateString("pt-BR")}</p>
                 </div>
               </div>
               <Button
@@ -1043,18 +912,14 @@ export default function FinancialManagerPro() {
                 <p className="text-lg md:text-2xl font-black text-emerald-600">
                   {formatCurrency(dailySummary.totalRevenue)}
                 </p>
-                <p className="text-[10px] md:text-xs text-gray-500 mt-1">
-                  {dailySummary.salesCount} vendas
-                </p>
+                <p className="text-[10px] md:text-xs text-gray-500 mt-1">{dailySummary.salesCount} vendas</p>
               </div>
               <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center">
                 <p className="text-xs text-gray-600 mb-1">Gastos</p>
                 <p className="text-lg md:text-2xl font-black text-red-600">
                   {formatCurrency(dailySummary.totalExpenses)}
                 </p>
-                <p className="text-[10px] md:text-xs text-gray-500 mt-1">
-                  {dailySummary.expensesCount} gastos
-                </p>
+                <p className="text-[10px] md:text-xs text-gray-500 mt-1">{dailySummary.expensesCount} gastos</p>
               </div>
               <div
                 className={`bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center ${
@@ -1081,10 +946,6 @@ export default function FinancialManagerPro() {
           </Card>
         )}
 
-        {/* ============================================ */}
-        {/* 📊 4 CARDS DE RESUMO MENSAL */}
-        {/* ============================================ */}
-
         {monthlyReport && (
           <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
             <Card className="p-3 md:p-4 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
@@ -1093,12 +954,8 @@ export default function FinancialManagerPro() {
                   <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
                   <p className="text-xs md:text-sm font-medium opacity-90">Receita</p>
                 </div>
-                <p className="text-xl md:text-2xl font-black">
-                  {formatCurrency(monthlyReport.totalRevenue)}
-                </p>
-                <p className="text-[10px] md:text-xs opacity-75 mt-1">
-                  {monthlyReport.totalSales} vendas
-                </p>
+                <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.totalRevenue)}</p>
+                <p className="text-[10px] md:text-xs opacity-75 mt-1">{monthlyReport.totalSales} vendas</p>
               </div>
               <DollarSign className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
             </Card>
@@ -1109,9 +966,7 @@ export default function FinancialManagerPro() {
                   <Receipt className="w-4 h-4 md:w-5 md:h-5" />
                   <p className="text-xs md:text-sm font-medium opacity-90">Gastos</p>
                 </div>
-                <p className="text-xl md:text-2xl font-black">
-                  {formatCurrency(monthlyReport.totalExpenses)}
-                </p>
+                <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.totalExpenses)}</p>
                 <p className="text-[10px] md:text-xs opacity-75 mt-1">{expenses.length} registros</p>
               </div>
               <TrendingDown className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
@@ -1133,9 +988,7 @@ export default function FinancialManagerPro() {
                   )}
                   <p className="text-xs md:text-sm font-medium opacity-90">Lucro</p>
                 </div>
-                <p className="text-xl md:text-2xl font-black">
-                  {formatCurrency(monthlyReport.netProfit)}
-                </p>
+                <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.netProfit)}</p>
                 <p className="text-[10px] md:text-xs opacity-75 mt-1">
                   Margem: {monthlyReport.profitMargin.toFixed(1)}%
                 </p>
@@ -1149,9 +1002,7 @@ export default function FinancialManagerPro() {
                   <Package className="w-4 h-4 md:w-5 md:h-5" />
                   <p className="text-xs md:text-sm font-medium opacity-90">Produtos</p>
                 </div>
-                <p className="text-xl md:text-2xl font-black">
-                  {products.filter((p) => p.active).length}
-                </p>
+                <p className="text-xl md:text-2xl font-black">{products.filter((p) => p.active).length}</p>
                 <p className="text-[10px] md:text-xs opacity-75 mt-1">cadastrados</p>
               </div>
               <Package className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
@@ -1159,85 +1010,81 @@ export default function FinancialManagerPro() {
           </div>
         )}
 
-        {/* ============================================ */}
-        {/* 📑 TABS DE NAVEGAÇÃO */}
-        {/* ============================================ */}
-
-        <Tabs
-          value={activeTab}
-          onValueChange={(v) => setActiveTab(v as TabType)}
-          className="space-y-4 md:space-y-6"
-        >
-          {/* DESKTOP TABS */}
-          <div className="hidden md:block">
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-4 md:space-y-6">
+          <div className="hidden md:block sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-2">
             <TabsList className="grid grid-cols-4 lg:grid-cols-9 w-full bg-white/90 backdrop-blur-xl shadow-xl h-auto p-1 rounded-2xl">
-              <TabsTrigger
-                value="dashboard"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
-              >
+              <TabsTrigger value="dashboard" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
                 <BarChart3 className="w-4 h-4 mr-2" />
                 Dashboard
               </TabsTrigger>
-              <TabsTrigger
-                value="rapido"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
-              >
+              <TabsTrigger value="rapido" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
                 <Zap className="w-4 h-4 mr-2" />
                 Rápido
               </TabsTrigger>
-              <TabsTrigger
-                value="produtos"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
-              >
+              <TabsTrigger value="produtos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
                 <Package className="w-4 h-4 mr-2" />
                 Produtos
               </TabsTrigger>
-              <TabsTrigger
-                value="vendas"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
-              >
+              <TabsTrigger value="vendas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
                 <ShoppingCart className="w-4 h-4 mr-2" />
                 Vendas
               </TabsTrigger>
-              <TabsTrigger
-                value="gastos"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
-              >
+              <TabsTrigger value="gastos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
                 <Receipt className="w-4 h-4 mr-2" />
                 Gastos
               </TabsTrigger>
-              <TabsTrigger
-                value="resumo"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
-              >
+              <TabsTrigger value="resumo" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
                 <FileText className="w-4 h-4 mr-2" />
                 Resumo
               </TabsTrigger>
-              <TabsTrigger
-                value="metas"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
-              >
+              <TabsTrigger value="metas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
                 <Target className="w-4 h-4 mr-2" />
                 Metas
               </TabsTrigger>
-              <TabsTrigger
-                value="clientes"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-rose-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
-              >
+              <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-rose-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
                 <Users className="w-4 h-4 mr-2" />
                 Clientes
               </TabsTrigger>
-              <TabsTrigger
-                value="fornecedores"
-                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
-              >
+              <TabsTrigger value="fornecedores" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
                 <Truck className="w-4 h-4 mr-2" />
                 Fornecedores
               </TabsTrigger>
             </TabsList>
           </div>
 
-          {/* TAB: DASHBOARD */}
+          <div className="md:hidden overflow-x-auto pb-2 -mx-3 px-3 sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30">
+            <div className="flex gap-2 min-w-max">
+              <Button size="sm" variant={activeTab === "dashboard" ? "default" : "outline"} onClick={() => setActiveTab("dashboard")} className={activeTab === "dashboard" ? "bg-blue-600" : ""}>
+                <BarChart3 className="w-4 h-4 mr-1" />
+                Início
+              </Button>
+              <Button size="sm" variant={activeTab === "rapido" ? "default" : "outline"} onClick={() => setActiveTab("rapido")} className={activeTab === "rapido" ? "bg-emerald-600" : ""}>
+                <Zap className="w-4 h-4 mr-1" />
+                Rápido
+              </Button>
+              <Button size="sm" variant={activeTab === "produtos" ? "default" : "outline"} onClick={() => setActiveTab("produtos")} className={activeTab === "produtos" ? "bg-purple-600" : ""}>
+                <Package className="w-4 h-4 mr-1" />
+                Produtos
+              </Button>
+              <Button size="sm" variant={activeTab === "vendas" ? "default" : "outline"} onClick={() => setActiveTab("vendas")} className={activeTab === "vendas" ? "bg-emerald-600" : ""}>
+                <ShoppingCart className="w-4 h-4 mr-1" />
+                Vendas
+              </Button>
+              <Button size="sm" variant={activeTab === "gastos" ? "default" : "outline"} onClick={() => setActiveTab("gastos")} className={activeTab === "gastos" ? "bg-red-600" : ""}>
+                <Receipt className="w-4 h-4 mr-1" />
+                Gastos
+              </Button>
+              <Button size="sm" variant={activeTab === "resumo" ? "default" : "outline"} onClick={() => setActiveTab("resumo")} className={activeTab === "resumo" ? "bg-indigo-600" : ""}>
+                <FileText className="w-4 h-4 mr-1" />
+                Resumo
+              </Button>
+              <Button size="sm" variant="outline" onClick={() => setShowMobileMenu(true)}>
+                <Menu className="w-4 h-4 mr-1" />
+                Mais
+              </Button>
+            </div>
+          </div>
+
           <TabsContent value="dashboard">
             {!dashboard ? (
               <Card className="p-12 text-center">
@@ -1267,16 +1114,10 @@ export default function FinancialManagerPro() {
                       </div>
                       Lucro Líquido
                     </h3>
-                    <p
-                      className={`text-3xl md:text-4xl font-black ${
-                        dashboard.overview.netProfit >= 0 ? "text-emerald-600" : "text-red-600"
-                      }`}
-                    >
+                    <p className={`text-3xl md:text-4xl font-black ${dashboard.overview.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                       {formatCurrency(dashboard.overview.netProfit)}
                     </p>
-                    <p className="text-sm text-gray-600 mt-2">
-                      Margem: {dashboard.overview.profitMargin.toFixed(1)}%
-                    </p>
+                    <p className="text-sm text-gray-600 mt-2">Margem: {dashboard.overview.profitMargin.toFixed(1)}%</p>
                   </Card>
 
                   <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
@@ -1286,12 +1127,9 @@ export default function FinancialManagerPro() {
                       </div>
                       Produtos
                     </h3>
-                    <p className="text-3xl md:text-4xl font-black text-purple-600">
-                      {dashboard.products.total}
-                    </p>
+                    <p className="text-3xl md:text-4xl font-black text-purple-600">{dashboard.products.total}</p>
                     <p className="text-sm text-gray-600 mt-2">
-                      {dashboard.products.lowStock > 0 &&
-                        `⚠️ ${dashboard.products.lowStock} com estoque baixo`}
+                      {dashboard.products.lowStock > 0 && `⚠️ ${dashboard.products.lowStock} com estoque baixo`}
                     </p>
                   </Card>
                 </div>
@@ -1301,8 +1139,7 @@ export default function FinancialManagerPro() {
                     <AlertTriangle className="h-5 w-5" />
                     <AlertTitle className="font-bold">Estoque Baixo!</AlertTitle>
                     <AlertDescription>
-                      {dashboard.products.lowStock} produto{dashboard.products.lowStock > 1 ? "s" : ""}{" "}
-                      precisa
+                      {dashboard.products.lowStock} produto{dashboard.products.lowStock > 1 ? "s" : ""} precisa
                       {dashboard.products.lowStock > 1 ? "m" : ""} de reabastecimento.
                     </AlertDescription>
                   </Alert>
@@ -1338,7 +1175,6 @@ export default function FinancialManagerPro() {
             )}
           </TabsContent>
 
-          {/* TAB: MODO RÁPIDO */}
           <TabsContent value="rapido">
             <div className="space-y-4">
               <Card className="p-6 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border-2 border-emerald-200">
@@ -1380,7 +1216,6 @@ export default function FinancialManagerPro() {
                 </div>
               </Card>
 
-              {/* FLUXO DE CAIXA */}
               <Card className="p-6">
                 <h3 className="font-bold mb-4 flex items-center gap-2">
                   <Activity className="w-5 h-5 text-blue-600" />
@@ -1401,11 +1236,7 @@ export default function FinancialManagerPro() {
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          <div
-                            className={`p-2 rounded-lg ${
-                              flow.type === "in" ? "bg-emerald-100" : "bg-red-100"
-                            }`}
-                          >
+                          <div className={`p-2 rounded-lg ${flow.type === "in" ? "bg-emerald-100" : "bg-red-100"}`}>
                             {flow.type === "in" ? (
                               <ArrowUpRight className="w-4 h-4 text-emerald-600" />
                             ) : (
@@ -1417,11 +1248,7 @@ export default function FinancialManagerPro() {
                             <p className="text-xs text-gray-600">{flow.time}</p>
                           </div>
                         </div>
-                        <p
-                          className={`text-lg font-bold ${
-                            flow.type === "in" ? "text-emerald-600" : "text-red-600"
-                          }`}
-                        >
+                        <p className={`text-lg font-bold ${flow.type === "in" ? "text-emerald-600" : "text-red-600"}`}>
                           {flow.type === "in" ? "+" : "-"}
                           {formatCurrency(flow.amount)}
                         </p>
@@ -1433,7 +1260,6 @@ export default function FinancialManagerPro() {
             </div>
           </TabsContent>
 
-          {/* TAB: PRODUTOS */}
           <TabsContent value="produtos">
             <div className="space-y-4">
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
@@ -1473,14 +1299,10 @@ export default function FinancialManagerPro() {
                 <Card className="p-12 text-center border-2 border-dashed">
                   <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                   <h3 className="text-xl font-bold mb-2">
-                    {searchQuery || filterCategory !== "all"
-                      ? "Nenhum produto encontrado"
-                      : "Nenhum produto cadastrado"}
+                    {searchQuery || filterCategory !== "all" ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
                   </h3>
                   <p className="text-gray-500 mb-4">
-                    {searchQuery || filterCategory !== "all"
-                      ? "Tente ajustar os filtros"
-                      : "Comece cadastrando seu primeiro produto"}
+                    {searchQuery || filterCategory !== "all" ? "Tente ajustar os filtros" : "Comece cadastrando seu primeiro produto"}
                   </p>
                   {!searchQuery && filterCategory === "all" && (
                     <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
@@ -1499,12 +1321,7 @@ export default function FinancialManagerPro() {
                       product.stock <= product.minStock;
 
                     return (
-                      <Card
-                        key={product._id}
-                        className={`p-4 hover:shadow-lg transition-shadow ${
-                          !product.active ? "opacity-50" : ""
-                        }`}
-                      >
+                      <Card key={product._id} className={`p-4 hover:shadow-lg transition-shadow ${!product.active ? "opacity-50" : ""}`}>
                         <div className="flex justify-between mb-3">
                           <div className="flex-1">
                             <h4 className="font-bold text-lg">{product.name}</h4>
@@ -1525,17 +1342,11 @@ export default function FinancialManagerPro() {
                                 <Edit className="w-4 h-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteProduct(product._id, false)}
-                                className="text-orange-600"
-                              >
+                              <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, false)} className="text-orange-600">
                                 <AlertCircle className="w-4 h-4 mr-2" />
                                 Desativar
                               </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeleteProduct(product._id, true)}
-                                className="text-red-600"
-                              >
+                              <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, true)} className="text-red-600">
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Deletar
                               </DropdownMenuItem>
@@ -1550,9 +1361,7 @@ export default function FinancialManagerPro() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Venda:</span>
-                            <span className="font-semibold text-blue-600">
-                              {formatCurrency(product.salePrice)}
-                            </span>
+                            <span className="font-semibold text-blue-600">{formatCurrency(product.salePrice)}</span>
                           </div>
                           {product.stock !== undefined && (
                             <div className="flex justify-between">
@@ -1586,16 +1395,11 @@ export default function FinancialManagerPro() {
             </div>
           </TabsContent>
 
-          {/* TAB: VENDAS */}
           <TabsContent value="vendas">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold">Vendas do Mês ({sales.length})</h3>
-                <Button
-                  onClick={() => setShowAddSale(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                  disabled={products.filter((p) => p.active).length === 0}
-                >
+                <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Venda
                 </Button>
@@ -1605,9 +1409,7 @@ export default function FinancialManagerPro() {
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertTitle>Cadastre produtos primeiro</AlertTitle>
-                  <AlertDescription>
-                    Você precisa ter produtos cadastrados para registrar vendas.
-                  </AlertDescription>
+                  <AlertDescription>Você precisa ter produtos cadastrados para registrar vendas.</AlertDescription>
                 </Alert>
               )}
 
@@ -1616,11 +1418,7 @@ export default function FinancialManagerPro() {
                   <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                   <h3 className="text-xl font-bold mb-2">Nenhuma venda registrada</h3>
                   <p className="text-gray-500 mb-4">Comece registrando sua primeira venda</p>
-                  <Button
-                    onClick={() => setShowAddSale(true)}
-                    className="bg-emerald-600"
-                    disabled={products.filter((p) => p.active).length === 0}
-                  >
+                  <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600" disabled={products.filter((p) => p.active).length === 0}>
                     Registrar Primeira Venda
                   </Button>
                 </Card>
@@ -1633,9 +1431,7 @@ export default function FinancialManagerPro() {
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-bold">{sale.productName}</h4>
                             {sale.paymentStatus === "pending" && (
-                              <Badge variant="outline" className="text-orange-600">
-                                Pendente
-                              </Badge>
+                              <Badge variant="outline" className="text-orange-600">Pendente</Badge>
                             )}
                           </div>
                           <p className="text-sm text-gray-600">
@@ -1644,15 +1440,8 @@ export default function FinancialManagerPro() {
                           {sale.notes && <p className="text-xs text-gray-500 mt-1">{sale.notes}</p>}
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-emerald-600 mb-2">
-                            {formatCurrency(sale.profit)}
-                          </p>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => handleDeleteSale(sale._id, sale.month)}
-                          >
+                          <p className="font-bold text-emerald-600 mb-2">{formatCurrency(sale.profit)}</p>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteSale(sale._id, sale.month)}>
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
                         </div>
@@ -1664,7 +1453,6 @@ export default function FinancialManagerPro() {
             </div>
           </TabsContent>
 
-          {/* TAB: GASTOS */}
           <TabsContent value="gastos">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -1693,33 +1481,18 @@ export default function FinancialManagerPro() {
                           <h4 className="font-bold">{expense.description}</h4>
                           <div className="flex gap-2 mt-1 flex-wrap">
                             <Badge variant="outline">{expense.categoryName}</Badge>
-                            <Badge
-                              variant={expense.type === "fixed" ? "default" : "secondary"}
-                            >
-                              {expense.type === "fixed"
-                                ? "Fixo"
-                                : expense.type === "variable"
-                                ? "Variável"
-                                : "Único"}
+                            <Badge variant={expense.type === "fixed" ? "default" : "secondary"}>
+                              {expense.type === "fixed" ? "Fixo" : expense.type === "variable" ? "Variável" : "Único"}
                             </Badge>
                             {expense.paymentStatus === "pending" && (
-                              <Badge variant="outline" className="text-orange-600">
-                                Pendente
-                              </Badge>
+                              <Badge variant="outline" className="text-orange-600">Pendente</Badge>
                             )}
                             <span className="text-sm text-gray-600">{formatDate(expense.date)}</span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-red-600 mb-2">
-                            {formatCurrency(expense.amount)}
-                          </p>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8"
-                            onClick={() => handleDeleteExpense(expense._id, expense.month)}
-                          >
+                          <p className="font-bold text-red-600 mb-2">{formatCurrency(expense.amount)}</p>
+                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteExpense(expense._id, expense.month)}>
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
                         </div>
@@ -1731,17 +1504,14 @@ export default function FinancialManagerPro() {
             </div>
           </TabsContent>
 
-          {/* TAB: RESUMO */}
           <TabsContent value="resumo">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
-                <div className="flex gap-2">
-                  <Button onClick={handleRegenerateReport} variant="outline" size="sm">
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Atualizar
-                  </Button>
-                </div>
+                <Button onClick={handleRegenerateReport} variant="outline" size="sm">
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Atualizar
+                </Button>
               </div>
 
               {!monthlyReport ? (
@@ -1759,35 +1529,19 @@ export default function FinancialManagerPro() {
                     <div className="grid md:grid-cols-3 gap-6 mb-6">
                       <div className="text-center p-4 bg-blue-50 rounded-lg">
                         <p className="text-sm text-gray-600 mb-1">Receita</p>
-                        <p className="text-2xl font-bold text-blue-600">
-                          {formatCurrency(monthlyReport.totalRevenue)}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {monthlyReport.totalSales} vendas
-                        </p>
+                        <p className="text-2xl font-bold text-blue-600">{formatCurrency(monthlyReport.totalRevenue)}</p>
+                        <p className="text-xs text-gray-500 mt-1">{monthlyReport.totalSales} vendas</p>
                       </div>
                       <div className="text-center p-4 bg-red-50 rounded-lg">
                         <p className="text-sm text-gray-600 mb-1">Gastos</p>
-                        <p className="text-2xl font-bold text-red-600">
-                          {formatCurrency(monthlyReport.totalExpenses)}
-                        </p>
+                        <p className="text-2xl font-bold text-red-600">{formatCurrency(monthlyReport.totalExpenses)}</p>
                       </div>
-                      <div
-                        className={`text-center p-4 rounded-lg ${
-                          monthlyReport.netProfit >= 0 ? "bg-emerald-50" : "bg-orange-50"
-                        }`}
-                      >
+                      <div className={`text-center p-4 rounded-lg ${monthlyReport.netProfit >= 0 ? "bg-emerald-50" : "bg-orange-50"}`}>
                         <p className="text-sm text-gray-600 mb-1">Lucro Líquido</p>
-                        <p
-                          className={`text-2xl font-bold ${
-                            monthlyReport.netProfit >= 0 ? "text-emerald-600" : "text-red-600"
-                          }`}
-                        >
+                        <p className={`text-2xl font-bold ${monthlyReport.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                           {formatCurrency(monthlyReport.netProfit)}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          Margem: {monthlyReport.profitMargin.toFixed(1)}%
-                        </p>
+                        <p className="text-xs text-gray-500 mt-1">Margem: {monthlyReport.profitMargin.toFixed(1)}%</p>
                       </div>
                     </div>
 
@@ -1801,10 +1555,7 @@ export default function FinancialManagerPro() {
                           </h4>
                           <div className="space-y-2">
                             {monthlyReport.topProducts.slice(0, 5).map((product, idx) => (
-                              <div
-                                key={product.productId}
-                                className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
-                              >
+                              <div key={product.productId} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">
                                     {idx + 1}
@@ -1816,9 +1567,7 @@ export default function FinancialManagerPro() {
                                     </p>
                                   </div>
                                 </div>
-                                <p className="font-bold text-emerald-600">
-                                  {formatCurrency(product.profit)}
-                                </p>
+                                <p className="font-bold text-emerald-600">{formatCurrency(product.profit)}</p>
                               </div>
                             ))}
                           </div>
@@ -1831,7 +1580,6 @@ export default function FinancialManagerPro() {
             </div>
           </TabsContent>
 
-          {/* TAB: METAS */}
           <TabsContent value="metas">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -1860,15 +1608,9 @@ export default function FinancialManagerPro() {
                         <div className="flex justify-between mb-4">
                           <div className="flex-1">
                             <h4 className="font-bold text-lg">{goal.title}</h4>
-                            {goal.description && (
-                              <p className="text-sm text-gray-600 mt-1">{goal.description}</p>
-                            )}
+                            {goal.description && <p className="text-sm text-gray-600 mt-1">{goal.description}</p>}
                           </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => deleteGoal({ id: goal._id })}
-                          >
+                          <Button size="icon" variant="ghost" onClick={() => deleteGoal({ id: goal._id })}>
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
                         </div>
@@ -1891,7 +1633,6 @@ export default function FinancialManagerPro() {
             </div>
           </TabsContent>
 
-          {/* TAB: CLIENTES */}
           <TabsContent value="clientes">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -1921,19 +1662,14 @@ export default function FinancialManagerPro() {
                           {customer.email && <p className="text-sm text-gray-600">{customer.email}</p>}
                           {customer.phone && <p className="text-sm text-gray-600">{customer.phone}</p>}
                         </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => deleteCustomer({ id: customer._id })}
-                        >
+                        <Button size="icon" variant="ghost" onClick={() => deleteCustomer({ id: customer._id })}>
                           <Trash2 className="w-4 h-4 text-red-500" />
                         </Button>
                       </div>
                       <Separator className="my-3" />
                       <div className="space-y-1 text-sm">
                         <p className="text-gray-600">
-                          Total gasto:{" "}
-                          <span className="font-semibold">{formatCurrency(customer.totalSpent)}</span>
+                          Total gasto: <span className="font-semibold">{formatCurrency(customer.totalSpent)}</span>
                         </p>
                         <p className="text-gray-600">
                           Pedidos: <span className="font-semibold">{customer.totalOrders}</span>
@@ -1946,7 +1682,6 @@ export default function FinancialManagerPro() {
             </div>
           </TabsContent>
 
-          {/* TAB: FORNECEDORES */}
           <TabsContent value="fornecedores">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
@@ -1973,18 +1708,10 @@ export default function FinancialManagerPro() {
                       <div className="flex justify-between mb-3">
                         <div className="flex-1">
                           <h4 className="font-bold">{supplier.name}</h4>
-                          {supplier.contact?.email && (
-                            <p className="text-sm text-gray-600">{supplier.contact.email}</p>
-                          )}
-                          {supplier.contact?.phone && (
-                            <p className="text-sm text-gray-600">{supplier.contact.phone}</p>
-                          )}
+                          {supplier.contact?.email && <p className="text-sm text-gray-600">{supplier.contact.email}</p>}
+                          {supplier.contact?.phone && <p className="text-sm text-gray-600">{supplier.contact.phone}</p>}
                         </div>
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          onClick={() => deleteSupplier({ id: supplier._id })}
-                        >
+                        <Button size="icon" variant="ghost" onClick={() => deleteSupplier({ id: supplier._id })}>
                           <Trash2 className="w-4 h-4 text-red-500" />
                         </Button>
                       </div>
@@ -2003,74 +1730,6 @@ export default function FinancialManagerPro() {
         </Tabs>
       </div>
 
-      {/* ============================================ */}
-      {/* 📱 BOTTOM NAVIGATION (MOBILE) */}
-      {/* ============================================ */}
-
-      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t-2 border-gray-200 shadow-2xl z-50">
-        <div className="grid grid-cols-5 gap-1 p-2">
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab("dashboard")}
-            className={`flex flex-col items-center gap-1 h-auto py-2 ${
-              activeTab === "dashboard" ? "bg-blue-100 text-blue-600" : ""
-            }`}
-          >
-            <Home className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Início</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab("rapido")}
-            className={`flex flex-col items-center gap-1 h-auto py-2 ${
-              activeTab === "rapido" ? "bg-emerald-100 text-emerald-600" : ""
-            }`}
-          >
-            <Zap className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Rápido</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowQuickSale(true)}
-            className="flex flex-col items-center gap-1 h-auto py-2 bg-emerald-600 text-white"
-          >
-            <Plus className="w-6 h-6" />
-            <span className="text-[10px] font-medium">Vender</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setActiveTab("produtos")}
-            className={`flex flex-col items-center gap-1 h-auto py-2 ${
-              activeTab === "produtos" ? "bg-purple-100 text-purple-600" : ""
-            }`}
-          >
-            <Package className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Produtos</span>
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowMobileMenu(true)}
-            className="flex flex-col items-center gap-1 h-auto py-2"
-          >
-            <Menu className="w-5 h-5" />
-            <span className="text-[10px] font-medium">Menu</span>
-          </Button>
-        </div>
-      </div>
-
-      {/* ============================================ */}
-      {/* 🆕 MODAL: VENDA RÁPIDA */}
-      {/* ============================================ */}
-
       <Dialog open={showQuickSale} onOpenChange={setShowQuickSale}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -2080,34 +1739,79 @@ export default function FinancialManagerPro() {
               </div>
               Venda Rápida 💰
             </DialogTitle>
-            <DialogDescription>Registre o valor da venda em segundos</DialogDescription>
+            <DialogDescription>Registre quanto pagou (custo) e por quanto vendeu</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4">
             <div>
-              <Label className="text-base font-semibold">Valor da Venda *</Label>
+              <Label className="text-base font-semibold">Quanto você PAGOU? (Custo) *</Label>
               <div className="relative mt-2">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-400" />
                 <Input
                   type="number"
                   step="0.01"
-                  value={quickSaleForm.amount}
-                  onChange={(e) => setQuickSaleForm({ ...quickSaleForm, amount: e.target.value })}
-                  placeholder="0,00"
-                  className="pl-10 text-2xl font-bold h-14"
-                  autoFocus
+                  value={quickSaleForm.costPrice}
+                  onChange={(e) => setQuickSaleForm({ ...quickSaleForm, costPrice: e.target.value })}
+                  placeholder="Ex: 50,00"
+                  className="pl-10 text-xl font-bold h-14 border-red-200 focus:border-red-400"
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-1">💡 Preço que você pagou pelo produto</p>
             </div>
+
+            <div>
+              <Label className="text-base font-semibold">Por quanto VENDEU? *</Label>
+              <div className="relative mt-2">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={quickSaleForm.salePrice}
+                  onChange={(e) => setQuickSaleForm({ ...quickSaleForm, salePrice: e.target.value })}
+                  placeholder="Ex: 100,00"
+                  className="pl-10 text-xl font-bold h-14 border-emerald-200 focus:border-emerald-400"
+                />
+              </div>
+              <p className="text-xs text-gray-500 mt-1">💰 Preço que você vendeu</p>
+            </div>
+
+            {quickSaleLucro > 0 && (
+              <Alert className="bg-emerald-50 border-emerald-200">
+                <Sparkles className="h-5 w-5 text-emerald-600" />
+                <AlertTitle className="text-emerald-800 font-bold">Lucro Calculado</AlertTitle>
+                <AlertDescription className="space-y-2">
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p className="text-gray-600">Lucro:</p>
+                      <p className="text-2xl font-black text-emerald-600">{formatCurrency(quickSaleLucro)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-600">Margem:</p>
+                      <p className="text-2xl font-black text-emerald-600">{quickSaleMargin.toFixed(1)}%</p>
+                    </div>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
+
+            {quickSaleForm.costPrice &&
+              quickSaleForm.salePrice &&
+              parseFloat(quickSaleForm.salePrice) <= parseFloat(quickSaleForm.costPrice) && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertTitle>Atenção!</AlertTitle>
+                  <AlertDescription>
+                    Você está vendendo pelo mesmo preço ou mais barato que comprou. Revise os valores!
+                  </AlertDescription>
+                </Alert>
+              )}
 
             <div>
               <Label>Descrição (opcional)</Label>
               <Input
                 value={quickSaleForm.description}
-                onChange={(e) =>
-                  setQuickSaleForm({ ...quickSaleForm, description: e.target.value })
-                }
-                placeholder="Ex: Venda de produto X"
+                onChange={(e) => setQuickSaleForm({ ...quickSaleForm, description: e.target.value })}
+                placeholder="Ex: Venda de camiseta"
               />
             </div>
 
@@ -2115,9 +1819,7 @@ export default function FinancialManagerPro() {
               <Label>Forma de Pagamento</Label>
               <Select
                 value={quickSaleForm.paymentMethod}
-                onValueChange={(v: PaymentMethod) =>
-                  setQuickSaleForm({ ...quickSaleForm, paymentMethod: v })
-                }
+                onValueChange={(v: PaymentMethod) => setQuickSaleForm({ ...quickSaleForm, paymentMethod: v })}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -2137,15 +1839,19 @@ export default function FinancialManagerPro() {
             <Button variant="outline" onClick={() => setShowQuickSale(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleQuickSale} className="bg-emerald-600 hover:bg-emerald-700">
+            <Button
+              onClick={handleQuickSale}
+              className="bg-emerald-600 hover:bg-emerald-700"
+              disabled={!quickSaleForm.costPrice || !quickSaleForm.salePrice}
+            >
               <Check className="w-4 h-4 mr-2" />
               Confirmar Venda
+              {quickSaleLucro > 0 && ` (Lucro: ${formatCurrency(quickSaleLucro)})`}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* 🆕 MODAL: GASTO RÁPIDO */}
       <Dialog open={showQuickExpense} onOpenChange={setShowQuickExpense}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -2163,9 +1869,7 @@ export default function FinancialManagerPro() {
               <Label>Descrição *</Label>
               <Input
                 value={quickExpenseForm.description}
-                onChange={(e) =>
-                  setQuickExpenseForm({ ...quickExpenseForm, description: e.target.value })
-                }
+                onChange={(e) => setQuickExpenseForm({ ...quickExpenseForm, description: e.target.value })}
                 placeholder="Ex: Conta de luz"
                 autoFocus
               />
@@ -2179,9 +1883,7 @@ export default function FinancialManagerPro() {
                   type="number"
                   step="0.01"
                   value={quickExpenseForm.amount}
-                  onChange={(e) =>
-                    setQuickExpenseForm({ ...quickExpenseForm, amount: e.target.value })
-                  }
+                  onChange={(e) => setQuickExpenseForm({ ...quickExpenseForm, amount: e.target.value })}
                   placeholder="0,00"
                   className="pl-10 text-2xl font-bold h-14"
                 />
@@ -2221,48 +1923,14 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* 🆕 SHEET: MENU MOBILE */}
       <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
         <SheetContent side="right" className="w-80">
           <SheetHeader>
-            <SheetTitle>Menu</SheetTitle>
+            <SheetTitle>Menu Completo</SheetTitle>
             <SheetDescription>Todas as funcionalidades</SheetDescription>
           </SheetHeader>
 
           <div className="mt-6 space-y-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setActiveTab("vendas");
-                setShowMobileMenu(false);
-              }}
-            >
-              <ShoppingCart className="w-5 h-5 mr-3" />
-              Vendas
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setActiveTab("gastos");
-                setShowMobileMenu(false);
-              }}
-            >
-              <Receipt className="w-5 h-5 mr-3" />
-              Gastos
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setActiveTab("resumo");
-                setShowMobileMenu(false);
-              }}
-            >
-              <FileText className="w-5 h-5 mr-3" />
-              Resumo Mensal
-            </Button>
             <Button
               variant="ghost"
               className="w-full justify-start"
@@ -2314,7 +1982,6 @@ export default function FinancialManagerPro() {
         </SheetContent>
       </Sheet>
 
-      {/* MODAL: ADICIONAR PRODUTO */}
       <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2453,7 +2120,6 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: EDITAR PRODUTO */}
       <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2529,7 +2195,6 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: ADICIONAR VENDA */}
       <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2635,7 +2300,6 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: ADICIONAR GASTO */}
       <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2723,7 +2387,6 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: ADICIONAR CLIENTE */}
       <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2776,7 +2439,6 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: ADICIONAR FORNECEDOR */}
       <Dialog open={showAddSupplier} onOpenChange={setShowAddSupplier}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2821,7 +2483,6 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: ADICIONAR META */}
       <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -2896,7 +2557,6 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* MODAL: CALCULADORA DE PREÇO */}
       <Dialog open={showPriceCalculator} onOpenChange={setShowPriceCalculator}>
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
