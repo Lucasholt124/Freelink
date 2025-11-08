@@ -1,9 +1,10 @@
+// convex/schema.ts
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
   // ============================================
-  // 👤 USUÁRIOS E PERFIL (mantidos)
+  // 👤 USUÁRIOS E PERFIL
   // ============================================
   usernames: defineTable({
     userId: v.string(),
@@ -476,10 +477,9 @@ export default defineSchema({
     .index("by_calculation", ["calculationId"]),
 
   // ============================================
-  // 💼 GESTÃO FINANCEIRA COMPLETA - NOVA VERSÃO
+  // 💼 GESTÃO FINANCEIRA COMPLETA
   // ============================================
 
-  // Empresas/Negócios (para gerenciar múltiplos negócios)
   businesses: defineTable({
     userId: v.string(),
     name: v.string(),
@@ -492,7 +492,7 @@ export default defineSchema({
       v.literal("manufacturing"),
       v.literal("other")
     ),
-    currency: v.string(), // BRL, USD, EUR
+    currency: v.string(),
     timezone: v.optional(v.string()),
     active: v.boolean(),
     settings: v.optional(
@@ -508,7 +508,6 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_active", ["userId", "active"]),
 
-  // Categorias Customizáveis de Gastos
   expenseCategories: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
@@ -516,7 +515,7 @@ export default defineSchema({
     icon: v.string(),
     color: v.string(),
     type: v.union(v.literal("fixed"), v.literal("variable")),
-    budget: v.optional(v.number()), // Orçamento mensal
+    budget: v.optional(v.number()),
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
@@ -525,7 +524,6 @@ export default defineSchema({
     .index("by_business", ["businessId"])
     .index("by_user_active", ["userId", "active"]),
 
-  // Fornecedores
   suppliers: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
@@ -545,7 +543,6 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_business", ["businessId"]),
 
-  // Clientes
   customers: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
@@ -553,7 +550,7 @@ export default defineSchema({
     email: v.optional(v.string()),
     phone: v.optional(v.string()),
     address: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())), // VIP, Regular, etc
+    tags: v.optional(v.array(v.string())),
     totalSpent: v.number(),
     totalOrders: v.number(),
     lastPurchase: v.optional(v.number()),
@@ -566,43 +563,31 @@ export default defineSchema({
     .index("by_business", ["businessId"])
     .index("by_email", ["userId", "email"]),
 
-  // Produtos (VERSÃO COMPLETA)
   products: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
     supplierId: v.optional(v.id("suppliers")),
-    sku: v.optional(v.string()), // Código do produto
-    barcode: v.optional(v.string()), // Código de barras
+    sku: v.optional(v.string()),
+    barcode: v.optional(v.string()),
     name: v.string(),
     description: v.optional(v.string()),
     category: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
-
-    // Preços
-    costPrice: v.number(), // Quanto pagou
-    salePrice: v.number(), // Por quanto vende
-    suggestedPrice: v.optional(v.number()), // Sugestão da IA
-
-    // Estoque
+    costPrice: v.number(),
+    salePrice: v.number(),
+    suggestedPrice: v.optional(v.number()),
     stock: v.optional(v.number()),
-    minStock: v.optional(v.number()), // Alerta de estoque baixo
+    minStock: v.optional(v.number()),
     maxStock: v.optional(v.number()),
-    unit: v.optional(v.string()), // un, kg, L, etc
-
-    // Imagens
+    unit: v.optional(v.string()),
     imageStorageId: v.optional(v.id("_storage")),
     imageUrl: v.optional(v.string()),
-
-    // Meta
     active: v.boolean(),
     featured: v.optional(v.boolean()),
     notes: v.optional(v.string()),
-
-    // Estatísticas (calculadas)
     totalSold: v.optional(v.number()),
     totalRevenue: v.optional(v.number()),
     totalProfit: v.optional(v.number()),
-
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
@@ -612,24 +597,19 @@ export default defineSchema({
     .index("by_sku", ["userId", "sku"])
     .index("by_supplier", ["supplierId"]),
 
-  // Vendas (VERSÃO COMPLETA)
   sales: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
     customerId: v.optional(v.id("customers")),
-    productId: v.id("products"),
+    productId: v.optional(v.id("products")),
     productName: v.string(),
-
-    // Quantidade e preços
     quantity: v.number(),
     costPrice: v.number(),
     salePrice: v.number(),
-    discount: v.optional(v.number()), // Desconto aplicado
+    discount: v.optional(v.number()),
     totalCost: v.number(),
     totalRevenue: v.number(),
     profit: v.number(),
-
-    // Pagamento
     paymentMethod: v.optional(
       v.union(
         v.literal("cash"),
@@ -648,18 +628,14 @@ export default defineSchema({
         v.literal("cancelled")
       )
     ),
-
-    // Datas
-    date: v.string(), // YYYY-MM-DD
-    month: v.string(), // YYYY-MM
-    dueDate: v.optional(v.string()), // Para vendas a prazo
+    date: v.string(),
+    month: v.string(),
+    dueDate: v.optional(v.string()),
     paidAt: v.optional(v.number()),
-
-    // Meta
     invoiceNumber: v.optional(v.string()),
     notes: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
-
+    isQuickSale: v.optional(v.boolean()),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
@@ -669,27 +645,22 @@ export default defineSchema({
     .index("by_product", ["productId"])
     .index("by_user_month", ["userId", "month"])
     .index("by_month", ["month"])
+    .index("by_user_date", ["userId", "date"])
     .index("by_payment_status", ["userId", "paymentStatus"]),
 
-  // Gastos (VERSÃO COMPLETA)
   expenses: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
     categoryId: v.optional(v.id("expenseCategories")),
-    categoryName: v.string(), // Nome da categoria (para histórico)
+    categoryName: v.string(),
     supplierId: v.optional(v.id("suppliers")),
-
     description: v.string(),
     amount: v.number(),
-
-    // Tipo e recorrência
     type: v.union(v.literal("fixed"), v.literal("variable"), v.literal("one_time")),
     recurring: v.optional(v.boolean()),
     recurrenceInterval: v.optional(
       v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("yearly"))
     ),
-
-    // Pagamento
     paymentMethod: v.optional(
       v.union(
         v.literal("cash"),
@@ -707,19 +678,14 @@ export default defineSchema({
         v.literal("overdue")
       )
     ),
-
-    // Datas
-    date: v.string(), // YYYY-MM-DD
-    month: v.string(), // YYYY-MM
+    date: v.string(),
+    month: v.string(),
     dueDate: v.optional(v.string()),
     paidAt: v.optional(v.number()),
-
-    // Meta
     invoiceNumber: v.optional(v.string()),
-    attachmentStorageId: v.optional(v.id("_storage")), // Foto do recibo
+    attachmentStorageId: v.optional(v.id("_storage")),
     notes: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
-
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
   })
@@ -732,11 +698,9 @@ export default defineSchema({
     .index("by_payment_status", ["userId", "paymentStatus"])
     .index("by_type", ["userId", "type"]),
 
-  // Metas Financeiras
   financialGoals: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
-
     type: v.union(
       v.literal("revenue"),
       v.literal("profit"),
@@ -744,7 +708,6 @@ export default defineSchema({
       v.literal("sales_count"),
       v.literal("expense_reduction")
     ),
-
     title: v.string(),
     description: v.optional(v.string()),
     targetValue: v.number(),
@@ -752,14 +715,12 @@ export default defineSchema({
     period: v.union(v.literal("daily"), v.literal("weekly"), v.literal("monthly"), v.literal("yearly")),
     startDate: v.string(),
     endDate: v.string(),
-
     status: v.union(
       v.literal("active"),
       v.literal("achieved"),
       v.literal("failed"),
       v.literal("cancelled")
     ),
-
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
     achievedAt: v.optional(v.number()),
@@ -768,19 +729,14 @@ export default defineSchema({
     .index("by_business", ["businessId"])
     .index("by_status", ["userId", "status"]),
 
-  // Relatórios Mensais (VERSÃO COMPLETA)
   monthlyReports: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
-    month: v.string(), // YYYY-MM
-
-    // Vendas
+    month: v.string(),
     totalSales: v.number(),
     totalRevenue: v.number(),
     totalCost: v.number(),
     grossProfit: v.number(),
-
-    // Gastos
     totalExpenses: v.number(),
     fixedExpenses: v.optional(v.number()),
     variableExpenses: v.optional(v.number()),
@@ -795,12 +751,8 @@ export default defineSchema({
       funcionarios: v.optional(v.number()),
       outros: v.optional(v.number()),
     }),
-
-    // Lucro
     netProfit: v.number(),
     profitMargin: v.number(),
-
-    // Produtos
     topProducts: v.array(
       v.object({
         productId: v.string(),
@@ -810,8 +762,6 @@ export default defineSchema({
         profit: v.number(),
       })
     ),
-
-    // Clientes
     topCustomers: v.optional(
       v.array(
         v.object({
@@ -822,16 +772,13 @@ export default defineSchema({
         })
       )
     ),
-
-    // Comparações
     vsLastMonth: v.optional(
       v.object({
-        revenue: v.number(), // % de diferença
+        revenue: v.number(),
         profit: v.number(),
         expenses: v.number(),
       })
     ),
-
     vsLastYear: v.optional(
       v.object({
         revenue: v.number(),
@@ -839,17 +786,14 @@ export default defineSchema({
         expenses: v.number(),
       })
     ),
-
-    // Previsões IA
     aiPredictions: v.optional(
       v.object({
         nextMonthRevenue: v.number(),
         nextMonthProfit: v.number(),
-        confidence: v.number(), // 0-100
+        confidence: v.number(),
         suggestions: v.array(v.string()),
       })
     ),
-
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -857,11 +801,9 @@ export default defineSchema({
     .index("by_business", ["businessId"])
     .index("by_user_month", ["userId", "month"]),
 
-  // Alertas Inteligentes
   alerts: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
-
     type: v.union(
       v.literal("low_stock"),
       v.literal("high_expense"),
@@ -870,24 +812,19 @@ export default defineSchema({
       v.literal("negative_profit"),
       v.literal("milestone")
     ),
-
     severity: v.union(v.literal("info"), v.literal("warning"), v.literal("critical")),
     title: v.string(),
     message: v.string(),
     actionUrl: v.optional(v.string()),
-
     read: v.boolean(),
     readAt: v.optional(v.number()),
-
-    relatedId: v.optional(v.string()), // ID do produto, venda, etc
-
+    relatedId: v.optional(v.string()),
     createdAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_user_unread", ["userId", "read"])
     .index("by_business", ["businessId"]),
 
-  // Backup/Lixeira (para recuperar dados deletados)
   deletedRecords: defineTable({
     userId: v.string(),
     recordType: v.union(
@@ -898,24 +835,21 @@ export default defineSchema({
       v.literal("supplier")
     ),
     recordId: v.string(),
-    recordData: v.string(), // JSON stringificado
+    recordData: v.string(),
     deletedAt: v.number(),
-    expiresAt: v.number(), // Auto-delete após 30 dias
+    expiresAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_expiration", ["expiresAt"]),
 
-  // Exportações (histórico de exports)
   exports: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
-
     type: v.union(
       v.literal("excel"),
       v.literal("pdf"),
       v.literal("csv")
     ),
-
     dataType: v.union(
       v.literal("sales"),
       v.literal("expenses"),
@@ -923,26 +857,60 @@ export default defineSchema({
       v.literal("report"),
       v.literal("all")
     ),
-
     period: v.optional(
       v.object({
         start: v.string(),
         end: v.string(),
       })
     ),
-
     fileStorageId: v.optional(v.id("_storage")),
     fileUrl: v.optional(v.string()),
-
     status: v.union(
       v.literal("processing"),
       v.literal("completed"),
       v.literal("failed")
     ),
-
     createdAt: v.number(),
-    expiresAt: v.number(), // Link expira em 7 dias
+    expiresAt: v.number(),
   })
     .index("by_user", ["userId"])
     .index("by_expiration", ["expiresAt"]),
+
+  // ============================================
+  // 🚀 VENDAS RÁPIDAS (PAPEL E CANETA MODE)
+  // ============================================
+
+  dailySummaries: defineTable({
+    userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+    date: v.string(),
+    totalRevenue: v.number(),
+    totalExpenses: v.number(),
+    netProfit: v.number(),
+    salesCount: v.number(),
+    expensesCount: v.number(),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_date", ["userId", "date"])
+    .index("by_business", ["businessId"]),
+
+  cashFlow: defineTable({
+    userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+    type: v.union(v.literal("in"), v.literal("out")),
+    amount: v.number(),
+    description: v.string(),
+    category: v.optional(v.string()),
+    date: v.string(),
+    time: v.string(),
+    paymentMethod: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_date", ["userId", "date"])
+    .index("by_business", ["businessId"])
+    .index("by_type", ["userId", "type"]),
 });

@@ -1,7 +1,315 @@
-import { action, mutation, query } from "./_generated/server";
+// convex/profitCalculator.ts
+import { action, mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
+
+// =================================================================
+// 🚀 VENDAS RÁPIDAS (MODO PAPEL E CANETA)
+// =================================================================
+
+export const addQuickSale = mutation({
+  args: {
+    amount: v.number(),
+    description: v.optional(v.string()),
+    paymentMethod: v.optional(
+      v.union(
+        v.literal("cash"),
+        v.literal("credit_card"),
+        v.literal("debit_card"),
+        v.literal("pix"),
+        v.literal("bank_transfer"),
+        v.literal("other")
+      )
+    ),
+    date: v.optional(v.string()),
+    businessId: v.optional(v.id("businesses")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
+
+    const today = args.date || new Date().toISOString().split("T")[0];
+    const month = today.substring(0, 7);
+    const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+    // Adiciona no cash flow
+    await ctx.db.insert("cashFlow", {
+      userId: identity.subject,
+      businessId: args.businessId,
+      type: "in",
+      amount: args.amount,
+      description: args.description || "Venda rápida",
+      date: today,
+      time,
+      paymentMethod: args.paymentMethod,
+      createdAt: Date.now(),
+    });
+
+    // Adiciona como venda sem produto
+    const saleId = await ctx.db.insert("sales", {
+      userId: identity.subject,
+      businessId: args.businessId,
+      productName: args.description || "Venda rápida",
+      quantity: 1,
+      costPrice: 0,
+      salePrice: args.amount,
+      totalCost: 0,
+      totalRevenue: args.amount,
+      profit: args.amount,
+      paymentMethod: args.paymentMethod,
+      paymentStatus: "paid",
+      date: today,
+      month,
+      paidAt: Date.now(),
+      isQuickSale: true,
+      createdAt: Date.now(),
+    });
+
+    // Atualiza resumo diário
+    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
+      userId: identity.subject,
+      date: today,
+      businessId: args.businessId,
+    });
+
+    return saleId;
+  },
+});
+
+export const addQuickExpense = mutation({
+  args: {
+    amount: v.number(),
+    description: v.string(),
+    category: v.optional(v.string()),
+    paymentMethod: v.optional(
+      v.union(
+        v.literal("cash"),
+        v.literal("credit_card"),
+        v.literal("debit_card"),
+        v.literal("pix"),
+        v.literal("bank_transfer"),
+        v.literal("other")
+      )
+    ),
+    date: v.optional(v.string()),
+    businessId: v.optional(v.id("businesses")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
+
+    const today = args.date || new Date().toISOString().split("T")[0];
+    const month = today.substring(0, 7);
+    const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+    // Adiciona no cash flow
+    await ctx.db.insert("cashFlow", {
+      userId: identity.subject,
+      businessId: args.businessId,
+      type: "out",
+      amount: args.amount,
+      description: args.description,
+      category: args.category,
+      date: today,
+      time,
+      paymentMethod: args.paymentMethod,
+      createdAt: Date.now(),
+    });
+
+    // Adiciona como gasto
+    const expenseId = await ctx.db.insert("expenses", {
+      userId: identity.subject,
+      businessId: args.businessId,
+      categoryName: args.category || "Outros",
+      description: args.description,
+      amount: args.amount,
+      type: "one_time",
+      paymentMethod: args.paymentMethod,
+      paymentStatus: "paid",
+      date: today,
+      month,
+      paidAt: Date.now(),
+      createdAt: Date.now(),
+    });
+
+    // Atualiza resumo diário
+    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
+      userId: identity.subject,
+      date: today,
+      businessId: args.businessId,
+    });
+
+    return expenseId;
+  },
+});
+
+export const getDailySummary = query({
+  args: {
+    date: v.optional(v.string()),
+    businessId: v.optional(v.id("businesses")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const today = args.date || new Date().toISOString().split("T")[0];
+
+    // Busca resumo existente
+    const existingSummary = await ctx.db
+      .query("dailySummaries")
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", identity.subject).eq("date", today)
+      )
+      .first();
+
+    if (existingSummary && (!args.businessId || existingSummary.businessId === args.businessId)) {
+      return existingSummary;
+    }
+
+    // Calcula em tempo real se não existir
+    const sales = await ctx.db
+      .query("sales")
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", identity.subject).eq("date", today)
+      )
+      .collect();
+
+    const expenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", identity.subject).eq("month", today.substring(0, 7))
+      )
+      .filter((q) => q.eq(q.field("date"), today))
+      .collect();
+
+    const filteredSales = args.businessId
+      ? sales.filter((s) => s.businessId === args.businessId)
+      : sales;
+
+    const filteredExpenses = args.businessId
+      ? expenses.filter((e) => e.businessId === args.businessId)
+      : expenses;
+
+    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalRevenue, 0);
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const netProfit = totalRevenue - totalExpenses;
+
+    return {
+      userId: identity.subject,
+      businessId: args.businessId,
+      date: today,
+      totalRevenue,
+      totalExpenses,
+      netProfit,
+      salesCount: filteredSales.length,
+      expensesCount: filteredExpenses.length,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
+  },
+});
+
+export const getCashFlow = query({
+  args: {
+    date: v.optional(v.string()),
+    businessId: v.optional(v.id("businesses")),
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const today = args.date || new Date().toISOString().split("T")[0];
+
+    const cashFlowQuery = ctx.db
+      .query("cashFlow")
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", identity.subject).eq("date", today)
+      );
+
+    let cashFlow = await cashFlowQuery.order("desc").collect();
+
+    if (args.businessId) {
+      cashFlow = cashFlow.filter((cf) => cf.businessId === args.businessId);
+    }
+
+    if (args.limit) {
+      cashFlow = cashFlow.slice(0, args.limit);
+    }
+
+    return cashFlow;
+  },
+});
+
+// Função interna para atualizar resumo diário
+export const updateDailySummary = internalMutation({
+  args: {
+    userId: v.string(),
+    date: v.string(),
+    businessId: v.optional(v.id("businesses")),
+  },
+  handler: async (ctx, args) => {
+    const sales = await ctx.db
+      .query("sales")
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", args.userId).eq("date", args.date)
+      )
+      .collect();
+
+    const expenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", args.userId).eq("month", args.date.substring(0, 7))
+      )
+      .filter((q) => q.eq(q.field("date"), args.date))
+      .collect();
+
+    const filteredSales = args.businessId
+      ? sales.filter((s) => s.businessId === args.businessId)
+      : sales;
+
+    const filteredExpenses = args.businessId
+      ? expenses.filter((e) => e.businessId === args.businessId)
+      : expenses;
+
+    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalRevenue, 0);
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const netProfit = totalRevenue - totalExpenses;
+
+    // Busca resumo existente
+    const existing = await ctx.db
+      .query("dailySummaries")
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", args.userId).eq("date", args.date)
+      )
+      .first();
+
+    if (existing && (!args.businessId || existing.businessId === args.businessId)) {
+      await ctx.db.patch(existing._id, {
+        totalRevenue,
+        totalExpenses,
+        netProfit,
+        salesCount: filteredSales.length,
+        expensesCount: filteredExpenses.length,
+        updatedAt: Date.now(),
+      });
+    } else if (!existing) {
+      await ctx.db.insert("dailySummaries", {
+        userId: args.userId,
+        businessId: args.businessId,
+        date: args.date,
+        totalRevenue,
+        totalExpenses,
+        netProfit,
+        salesCount: filteredSales.length,
+        expensesCount: filteredExpenses.length,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+  },
+});
 
 // =================================================================
 // 🎯 METAS FINANCEIRAS
@@ -75,11 +383,11 @@ export const updateFinancialGoal = mutation({
       throw new Error("Meta não encontrada");
     }
 
-    const updates = args;
+    const { id, ...updates } = args;
 
     // Se alcançou a meta
     if (args.status === "achieved" && goal.status !== "achieved") {
-      await ctx.db.patch(args.id, {
+      await ctx.db.patch(id, {
         ...updates,
         achievedAt: Date.now(),
         updatedAt: Date.now(),
@@ -93,12 +401,12 @@ export const updateFinancialGoal = mutation({
         severity: "info",
         title: "🎉 Meta Alcançada!",
         message: `Parabéns! Você alcançou a meta: ${goal.title}`,
-        relatedId: args.id,
+        relatedId: id,
         read: false,
         createdAt: Date.now(),
       });
     } else {
-      await ctx.db.patch(args.id, {
+      await ctx.db.patch(id, {
         ...updates,
         updatedAt: Date.now(),
       });
@@ -551,20 +859,20 @@ export const deleteProduct = mutation({
       throw new Error("Produto não encontrado");
     }
 
-    // ✅ NOVO: Buscar todas as vendas deste produto
+    // Buscar todas as vendas deste produto
     const sales = await ctx.db
       .query("sales")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .filter((q) => q.eq(q.field("productId"), args.id))
       .collect();
 
-    // ✅ NOVO: Deletar todas as vendas em cascata
+    // Deletar todas as vendas em cascata
     for (const sale of sales) {
       await ctx.db.delete(sale._id);
     }
 
-    // ✅ NOVO: Recalcular relatórios mensais afetados
-    const affectedMonths = [...new Set(sales.map(s => s.month))];
+    // Recalcular relatórios mensais afetados
+    const affectedMonths = [...new Set(sales.map((s) => s.month))];
 
     // Marca os relatórios dos meses afetados para regeração
     for (const month of affectedMonths) {
@@ -576,7 +884,7 @@ export const deleteProduct = mutation({
         .first();
 
       if (report) {
-        // Deleta o relatório antigo para forçar regeração
+        // Deleta o relatório antigo para forçar regeneração
         await ctx.db.delete(report._id);
       }
     }
@@ -594,11 +902,10 @@ export const deleteProduct = mutation({
     return {
       success: true,
       deletedSales: sales.length,
-      affectedMonths: affectedMonths.length
+      affectedMonths: affectedMonths.length,
     };
   },
 });
-
 
 // =================================================================
 // 🗑️ LIMPEZA DE DADOS
@@ -895,11 +1202,13 @@ export const deleteSale = mutation({
     }
 
     // Restore product stock
-    const product = await ctx.db.get(sale.productId);
-    if (product && product.stock !== undefined) {
-      await ctx.db.patch(product._id, {
-        stock: product.stock + sale.quantity,
-      });
+    if (sale.productId) {
+      const product = await ctx.db.get(sale.productId);
+      if (product && product.stock !== undefined) {
+        await ctx.db.patch(product._id, {
+          stock: product.stock + sale.quantity,
+        });
+      }
     }
 
     // Soft delete (move to trash) or permanent delete
@@ -1256,7 +1565,7 @@ export const deleteSupplier = mutation({
 });
 
 // =================================================================
-// 📥 IMPORTAÇÃO DE DADOS
+// 📥 IMPORTAÇÃO DE DADOS (EXCEL/CSV)
 // =================================================================
 
 export const importProducts = mutation({
@@ -1499,7 +1808,17 @@ export const createMonthlyReport = mutation({
     totalExpenses: v.number(),
     fixedExpenses: v.number(),
     variableExpenses: v.number(),
-    expensesByCategory: v.any(),
+    expensesByCategory: v.object({
+      aluguel: v.optional(v.number()),
+      luz_agua: v.optional(v.number()),
+      internet: v.optional(v.number()),
+      transporte: v.optional(v.number()),
+      alimentacao: v.optional(v.number()),
+      marketing: v.optional(v.number()),
+      materiais: v.optional(v.number()),
+      funcionarios: v.optional(v.number()),
+      outros: v.optional(v.number()),
+    }),
     netProfit: v.number(),
     profitMargin: v.number(),
     topProducts: v.array(
@@ -1568,14 +1887,27 @@ export const generateMonthlyReport = action({
       .reduce((sum, e) => sum + e.amount, 0);
 
     // Gastos por categoria
-    const expensesByCategory = expenses.reduce(
-      (acc, expense) => {
-        const category = expense.categoryName.toLowerCase() as keyof typeof acc;
-        acc[category] = (acc[category] || 0) + expense.amount;
-        return acc;
-      },
-      {} as Record<string, number>
-    );
+    const expensesByCategory: {
+      aluguel?: number;
+      luz_agua?: number;
+      internet?: number;
+      transporte?: number;
+      alimentacao?: number;
+      marketing?: number;
+      materiais?: number;
+      funcionarios?: number;
+      outros?: number;
+    } = {};
+
+    expenses.forEach((expense) => {
+      const category = expense.categoryName.toLowerCase();
+      if (category in expensesByCategory) {
+        expensesByCategory[category as keyof typeof expensesByCategory] =
+          (expensesByCategory[category as keyof typeof expensesByCategory] || 0) + expense.amount;
+      } else {
+        expensesByCategory.outros = (expensesByCategory.outros || 0) + expense.amount;
+      }
+    });
 
     // Lucro
     const netProfit = grossProfit - totalExpenses;
@@ -1587,13 +1919,14 @@ export const generateMonthlyReport = action({
       { name: string; quantity: number; revenue: number; profit: number }
     >();
     sales.forEach((sale) => {
-      const existing = productsMap.get(sale.productId) || {
+      const productId = sale.productId || sale._id;
+      const existing = productsMap.get(productId) || {
         name: sale.productName,
         quantity: 0,
         revenue: 0,
         profit: 0,
       };
-      productsMap.set(sale.productId, {
+      productsMap.set(productId, {
         name: sale.productName,
         quantity: existing.quantity + sale.quantity,
         revenue: existing.revenue + sale.totalRevenue,

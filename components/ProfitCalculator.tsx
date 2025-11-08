@@ -36,6 +36,25 @@ import {
   BarChart3,
   Loader2,
   RefreshCw,
+
+  Zap,
+
+  Search,
+
+  Check,
+  Wallet,
+
+  ArrowUpRight,
+  ArrowDownRight,
+
+  Activity,
+
+  Home,
+
+  Menu,
+
+  Rocket,
+
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -57,6 +76,13 @@ import {
   DialogFooter,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
@@ -72,9 +98,20 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-// ✅ TIPOS E INTERFACES
-type TabType = "dashboard" | "produtos" | "vendas" | "gastos" | "resumo" | "metas" | "clientes" | "fornecedores";
+// ============================================
+// 🎨 TIPOS E INTERFACES
+// ============================================
 
+type TabType =
+  | "dashboard"
+  | "produtos"
+  | "vendas"
+  | "gastos"
+  | "resumo"
+  | "metas"
+  | "clientes"
+  | "fornecedores"
+  | "rapido";
 type GoalType = "revenue" | "profit" | "margin" | "sales_count" | "expense_reduction";
 type PaymentMethod = "cash" | "credit_card" | "debit_card" | "pix" | "bank_transfer" | "other";
 type SalePaymentStatus = "paid" | "pending" | "overdue" | "cancelled";
@@ -89,7 +126,15 @@ interface PriceCalculationResult {
   analysis: string[];
 }
 
+// ============================================
+// 🚀 COMPONENTE PRINCIPAL
+// ============================================
+
 export default function FinancialManagerPro() {
+  // ============================================
+  // 📊 STATES
+  // ============================================
+
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -104,7 +149,17 @@ export default function FinancialManagerPro() {
   const [showAddSupplier, setShowAddSupplier] = useState(false);
   const [showAddGoal, setShowAddGoal] = useState(false);
   const [showPriceCalculator, setShowPriceCalculator] = useState(false);
+  const [showQuickSale, setShowQuickSale] = useState(false);
+  const [showQuickExpense, setShowQuickExpense] = useState(false);
+  const [showMobileMenu, setShowMobileMenu] = useState(false);
+
   const [editingProductId, setEditingProductId] = useState<Id<"products"> | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
+
+  // ============================================
+  // 📝 FORMS
+  // ============================================
 
   const [productForm, setProductForm] = useState({
     name: "",
@@ -163,7 +218,9 @@ export default function FinancialManagerPro() {
     targetValue: "",
     period: "monthly" as "daily" | "weekly" | "monthly" | "yearly",
     startDate: new Date().toISOString().split("T")[0],
-    endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split("T")[0],
+    endDate: new Date(new Date().setMonth(new Date().getMonth() + 1))
+      .toISOString()
+      .split("T")[0],
   });
 
   const [priceCalcForm, setPriceCalcForm] = useState({
@@ -172,15 +229,29 @@ export default function FinancialManagerPro() {
     category: "",
   });
 
+  const [quickSaleForm, setQuickSaleForm] = useState({
+    amount: "",
+    description: "",
+    paymentMethod: "pix" as PaymentMethod,
+  });
+
+  const [quickExpenseForm, setQuickExpenseForm] = useState({
+    amount: "",
+    description: "",
+    category: "Outros",
+    paymentMethod: "pix" as PaymentMethod,
+  });
+
   const [priceCalcResult, setPriceCalcResult] = useState<PriceCalculationResult | null>(null);
-  const clearMonthData = useMutation(api.profitCalculator.clearMonthData);
-  const clearAllData = useMutation(api.profitCalculator.clearAllData);
 
+  // ============================================
+  // 🔌 QUERIES
+  // ============================================
 
-  // Queries
   const products = useQuery(api.profitCalculator.getProducts, { activeOnly: false }) ?? [];
   const sales = useQuery(api.profitCalculator.getSalesByMonth, { month: selectedMonth }) ?? [];
-  const expenses = useQuery(api.profitCalculator.getExpensesByMonth, { month: selectedMonth }) ?? [];
+  const expenses =
+    useQuery(api.profitCalculator.getExpensesByMonth, { month: selectedMonth }) ?? [];
   const monthlyReport = useQuery(api.profitCalculator.getMonthlyReport, { month: selectedMonth });
   const allMonths = useQuery(api.profitCalculator.getAllMonths, {}) ?? [];
   const dashboard = useQuery(api.profitCalculator.getDashboard, {});
@@ -188,8 +259,13 @@ export default function FinancialManagerPro() {
   const goals = useQuery(api.profitCalculator.getFinancialGoals, { status: "active" }) ?? [];
   const customers = useQuery(api.profitCalculator.getCustomers, {}) ?? [];
   const suppliers = useQuery(api.profitCalculator.getSuppliers, {}) ?? [];
+  const dailySummary = useQuery(api.profitCalculator.getDailySummary, {});
+  const cashFlow = useQuery(api.profitCalculator.getCashFlow, { limit: 10 }) ?? [];
 
-  // Mutations
+  // ============================================
+  // 🔧 MUTATIONS
+  // ============================================
+
   const addProduct = useMutation(api.profitCalculator.addProduct);
   const updateProduct = useMutation(api.profitCalculator.updateProduct);
   const deleteProduct = useMutation(api.profitCalculator.deleteProduct);
@@ -204,10 +280,21 @@ export default function FinancialManagerPro() {
   const addGoal = useMutation(api.profitCalculator.addFinancialGoal);
   const deleteGoal = useMutation(api.profitCalculator.deleteFinancialGoal);
   const markAlertAsRead = useMutation(api.profitCalculator.markAlertAsRead);
+  const clearMonthData = useMutation(api.profitCalculator.clearMonthData);
+  const clearAllData = useMutation(api.profitCalculator.clearAllData);
+  const addQuickSale = useMutation(api.profitCalculator.addQuickSale);
+  const addQuickExpense = useMutation(api.profitCalculator.addQuickExpense);
 
-  // Actions
+  // ============================================
+  // ⚡ ACTIONS
+  // ============================================
+
   const calculatePrice = useAction(api.profitCalculator.calculateSuggestedPrice);
   const generateReport = useAction(api.profitCalculator.generateMonthlyReport);
+
+  // ============================================
+  // 🎯 HELPER FUNCTIONS
+  // ============================================
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -255,6 +342,10 @@ export default function FinancialManagerPro() {
     setEditingProductId(null);
   };
 
+  // ============================================
+  // 🎬 HANDLERS - PRODUTOS
+  // ============================================
+
   const handleAddProduct = async () => {
     if (!productForm.name.trim() || !productForm.costPrice || !productForm.salePrice) {
       toast.error("❌ Preencha nome, custo e preço de venda!");
@@ -285,6 +376,13 @@ export default function FinancialManagerPro() {
         minStock: productForm.minStock ? parseInt(productForm.minStock) : undefined,
         unit: productForm.unit || undefined,
         description: productForm.description || undefined,
+      });
+
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#8B5CF6", "#EC4899", "#F59E0B"],
       });
 
       toast.success("✅ Produto cadastrado com sucesso!");
@@ -325,7 +423,18 @@ export default function FinancialManagerPro() {
   const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
     try {
       const result = await deleteProduct({ id, permanent });
-      toast.success(`✅ Produto ${permanent ? 'deletado' : 'desativado'}! ${result.deletedSales ? `${result.deletedSales} vendas removidas` : ''}`);
+      confetti({
+        particleCount: 50,
+        angle: 60,
+        spread: 55,
+        origin: { x: 0 },
+        colors: ["#EF4444", "#F97316"],
+      });
+      toast.success(
+        `✅ Produto ${permanent ? "deletado" : "desativado"}! ${
+          result.deletedSales ? `${result.deletedSales} vendas removidas` : ""
+        }`
+      );
     } catch (error) {
       toast.error("❌ Erro ao deletar produto");
       console.error(error);
@@ -350,6 +459,10 @@ export default function FinancialManagerPro() {
     setEditingProductId(productId);
     setShowEditProduct(true);
   };
+
+  // ============================================
+  // 🎬 HANDLERS - VENDAS
+  // ============================================
 
   const handleAddSale = async () => {
     if (!saleForm.productId || !saleForm.quantity || !saleForm.date) {
@@ -384,8 +497,8 @@ export default function FinancialManagerPro() {
       await generateReport({ month: saleForm.date.substring(0, 7) });
 
       confetti({
-        particleCount: 100,
-        spread: 70,
+        particleCount: 150,
+        spread: 90,
         origin: { y: 0.6 },
         colors: ["#10B981", "#3B82F6", "#F59E0B"],
       });
@@ -418,6 +531,10 @@ export default function FinancialManagerPro() {
       console.error(error);
     }
   };
+
+  // ============================================
+  // 🎬 HANDLERS - GASTOS
+  // ============================================
 
   const handleAddExpense = async () => {
     if (!expenseForm.description.trim() || !expenseForm.amount || !expenseForm.date) {
@@ -456,39 +573,7 @@ export default function FinancialManagerPro() {
       console.error(error);
     }
   };
-  const handleClearMonth = async () => {
-    if (!confirm(`⚠️ ATENÇÃO! Isso vai DELETAR PERMANENTEMENTE todas as vendas e gastos de ${getCurrentMonthName()}. Esta ação NÃO PODE ser desfeita! Tem certeza?`)) {
-      return;
-    }
 
-    try {
-      const result = await clearMonthData({ month: selectedMonth });
-      toast.success(`✅ Limpeza concluída! ${result.deletedSales} vendas e ${result.deletedExpenses} gastos removidos.`);
-    } catch (error) {
-      toast.error("❌ Erro ao limpar dados");
-      console.error(error);
-    }
-  };
-
-  const handleClearAll = async () => {
-    if (!confirm("🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER! Digite 'DELETAR TUDO' para confirmar.")) {
-      return;
-    }
-
-    const confirmation = prompt("Digite 'DELETAR TUDO' em letras maiúsculas:");
-    if (confirmation !== "DELETAR TUDO") {
-      toast.error("❌ Cancelado");
-      return;
-    }
-
-    try {
-      const result = await clearAllData({});
-      toast.success(`✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`);
-    } catch (error) {
-      toast.error("❌ Erro ao limpar tudo");
-      console.error(error);
-    }
-  };
   const handleDeleteExpense = async (id: Id<"expenses">, expenseMonth: string) => {
     try {
       await deleteExpense({ id, permanent: true });
@@ -499,6 +584,10 @@ export default function FinancialManagerPro() {
       console.error(error);
     }
   };
+
+  // ============================================
+  // 🎬 HANDLERS - CLIENTES
+  // ============================================
 
   const handleAddCustomer = async () => {
     if (!customerForm.name.trim()) {
@@ -524,6 +613,10 @@ export default function FinancialManagerPro() {
     }
   };
 
+  // ============================================
+  // 🎬 HANDLERS - FORNECEDORES
+  // ============================================
+
   const handleAddSupplier = async () => {
     if (!supplierForm.name.trim()) {
       toast.error("❌ Digite o nome do fornecedor!");
@@ -547,6 +640,10 @@ export default function FinancialManagerPro() {
       console.error(error);
     }
   };
+
+  // ============================================
+  // 🎬 HANDLERS - METAS
+  // ============================================
 
   const handleAddGoal = async () => {
     if (!goalForm.title.trim() || !goalForm.targetValue) {
@@ -573,6 +670,10 @@ export default function FinancialManagerPro() {
     }
   };
 
+  // ============================================
+  // 🎬 HANDLERS - CALCULADORA DE PREÇO
+  // ============================================
+
   const handleCalculatePrice = async () => {
     if (!priceCalcForm.costPrice) {
       toast.error("❌ Digite o custo do produto!");
@@ -593,6 +694,121 @@ export default function FinancialManagerPro() {
     }
   };
 
+  // ============================================
+  // 🆕 HANDLERS - MODO RÁPIDO
+  // ============================================
+
+  const handleQuickSale = async () => {
+    if (!quickSaleForm.amount) {
+      toast.error("❌ Digite o valor da venda!");
+      return;
+    }
+
+    try {
+      await addQuickSale({
+        amount: parseFloat(quickSaleForm.amount),
+        description: quickSaleForm.description || undefined,
+        paymentMethod: quickSaleForm.paymentMethod,
+      });
+
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#10B981", "#3B82F6"],
+      });
+
+      toast.success("💰 Venda rápida registrada!");
+      setShowQuickSale(false);
+      setQuickSaleForm({
+        amount: "",
+        description: "",
+        paymentMethod: "pix",
+      });
+    } catch (error) {
+      toast.error("❌ Erro ao registrar venda");
+      console.error(error);
+    }
+  };
+
+  const handleQuickExpense = async () => {
+    if (!quickExpenseForm.amount || !quickExpenseForm.description) {
+      toast.error("❌ Preencha valor e descrição!");
+      return;
+    }
+
+    try {
+      await addQuickExpense({
+        amount: parseFloat(quickExpenseForm.amount),
+        description: quickExpenseForm.description,
+        category: quickExpenseForm.category,
+        paymentMethod: quickExpenseForm.paymentMethod,
+      });
+
+      toast.success("✅ Gasto registrado!");
+      setShowQuickExpense(false);
+      setQuickExpenseForm({
+        amount: "",
+        description: "",
+        category: "Outros",
+        paymentMethod: "pix",
+      });
+    } catch (error) {
+      toast.error("❌ Erro ao registrar gasto");
+      console.error(error);
+    }
+  };
+
+  // ============================================
+  // 🎬 HANDLERS - LIMPEZA
+  // ============================================
+
+  const handleClearMonth = async () => {
+    if (
+      !confirm(
+        `⚠️ ATENÇÃO! Isso vai DELETAR PERMANENTEMENTE todas as vendas e gastos de ${getCurrentMonthName()}. Esta ação NÃO PODE ser desfeita! Tem certeza?`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      const result = await clearMonthData({ month: selectedMonth });
+      toast.success(
+        `✅ Limpeza concluída! ${result.deletedSales} vendas e ${result.deletedExpenses} gastos removidos.`
+      );
+    } catch (error) {
+      toast.error("❌ Erro ao limpar dados");
+      console.error(error);
+    }
+  };
+
+  const handleClearAll = async () => {
+    if (
+      !confirm(
+        "🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER!"
+      )
+    ) {
+      return;
+    }
+
+    const confirmation = prompt("Digite 'DELETAR TUDO' em letras maiúsculas:");
+    if (confirmation !== "DELETAR TUDO") {
+      toast.error("❌ Cancelado");
+      return;
+    }
+
+    try {
+      const result = await clearAllData({});
+      toast.success(
+        `✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`
+      );
+    } catch (error) {
+      toast.error("❌ Erro ao limpar tudo");
+      console.error(error);
+    }
+  };
+
   const handleRegenerateReport = async () => {
     try {
       toast.info("🔄 Regerando relatório...");
@@ -604,43 +820,93 @@ export default function FinancialManagerPro() {
     }
   };
 
+  // ============================================
+  // 🎨 FILTERS
+  // ============================================
+
+  const filteredProducts = products.filter((product) => {
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.sku?.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = filterCategory === "all" || product.category === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
+
+  // ============================================
+  // 🎭 LOADING STATE
+  // ============================================
+
   const isLoading = products === undefined || dashboard === undefined;
 
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30">
         <div className="text-center">
-          <Loader2 className="w-16 h-16 mx-auto mb-4 animate-spin text-blue-600" />
-          <p className="text-xl font-semibold text-gray-700">Carregando...</p>
+          <div className="relative">
+            <Loader2 className="w-20 h-20 mx-auto mb-6 animate-spin text-blue-600" />
+            <div className="absolute inset-0 blur-xl bg-blue-500/20 rounded-full animate-pulse" />
+          </div>
+          <h2 className="text-2xl font-black bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
+            Carregando...
+          </h2>
+          <p className="text-gray-600">Preparando seu painel financeiro</p>
         </div>
       </div>
     );
   }
 
+  // ============================================
+  // 🎨 RENDER
+  // ============================================
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-24 md:pb-12">
+      {/* BACKGROUND EFFECTS */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-700" />
+        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl animate-pulse delay-1000" />
       </div>
 
-      <div className="relative max-w-[1600px] mx-auto px-4 py-6">
-        {/* HEADER */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-6">
-          <div>
-            <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-              💼 Gestão Financeira PRO
-            </h1>
-            <p className="text-gray-600 mt-1">Controle completo e inteligente do seu negócio</p>
+      <div className="relative max-w-[1600px] mx-auto px-3 md:px-6 py-4 md:py-6">
+        {/* ============================================ */}
+        {/* 📱 HEADER */}
+        {/* ============================================ */}
+
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 md:mb-6">
+          <div className="flex items-center gap-3">
+            <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg">
+              <Rocket className="w-6 h-6 md:w-8 md:h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl md:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                Gestão PRO
+              </h1>
+              <p className="text-xs md:text-sm text-gray-600">Acabou papel e caneta! 🚀</p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
+            {/* CALCULADORA */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowPriceCalculator(true)}
+              className="hidden md:flex hover:bg-purple-50"
+            >
+              <Calculator className="w-4 h-4 mr-2" />
+              Calcular Preço
+            </Button>
+
+            {/* ALERTAS */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="relative">
-                  <Bell className="w-5 h-5" />
+                <Button variant="outline" size="sm" className="relative">
+                  <Bell className="w-4 h-4" />
                   {alerts.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-xs flex items-center justify-center">
+                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold animate-pulse">
                       {alerts.length}
                     </span>
                   )}
@@ -651,19 +917,24 @@ export default function FinancialManagerPro() {
                 <DropdownMenuSeparator />
                 <ScrollArea className="h-64">
                   {alerts.length === 0 ? (
-                    <div className="p-4 text-center text-sm text-gray-500">
-                      Nenhum alerta
+                    <div className="p-8 text-center">
+                      <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-emerald-500" />
+                      <p className="text-sm text-gray-500">Tudo certo! 🎉</p>
                     </div>
                   ) : (
                     alerts.map((alert) => (
                       <DropdownMenuItem
                         key={alert._id}
-                        className="flex-col items-start p-3 cursor-pointer"
+                        className="flex-col items-start p-3 cursor-pointer hover:bg-gray-50"
                         onClick={() => markAlertAsRead({ id: alert._id })}
                       >
                         <div className="flex items-center gap-2 mb-1">
-                          {alert.severity === "critical" && <AlertTriangle className="w-4 h-4 text-red-500" />}
-                          {alert.severity === "warning" && <AlertCircle className="w-4 h-4 text-orange-500" />}
+                          {alert.severity === "critical" && (
+                            <AlertTriangle className="w-4 h-4 text-red-500" />
+                          )}
+                          {alert.severity === "warning" && (
+                            <AlertCircle className="w-4 h-4 text-orange-500" />
+                          )}
                           {alert.severity === "info" && <Info className="w-4 h-4 text-blue-500" />}
                           <span className="font-semibold text-sm">{alert.title}</span>
                         </div>
@@ -675,16 +946,11 @@ export default function FinancialManagerPro() {
               </DropdownMenuContent>
             </DropdownMenu>
 
-            <Button variant="outline" onClick={() => setShowPriceCalculator(true)} className="hidden md:flex">
-              <Calculator className="w-4 h-4 mr-2" />
-              Calcular Preço
-            </Button>
-
-            {/* ✅ BOTÕES DE CONFIGURAÇÃO */}
+            {/* CONFIGURAÇÕES */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="text-red-600">
-                  <Settings className="w-5 h-5" />
+                <Button variant="outline" size="sm">
+                  <Settings className="w-4 h-4" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
@@ -701,67 +967,158 @@ export default function FinancialManagerPro() {
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
-
         </div>
 
+        {/* ============================================ */}
+        {/* 📅 SELETOR DE MÊS */}
+        {/* ============================================ */}
 
-        {/* NAVEGAÇÃO DE MÊS */}
-        <Card className="p-4 bg-white/80 backdrop-blur-sm border-2 mb-6">
+        <Card className="p-3 md:p-4 bg-white/90 backdrop-blur-xl border-2 mb-4 md:mb-6 shadow-lg">
           <div className="flex items-center justify-between gap-4">
-            <Button variant="outline" size="icon" onClick={() => navigateMonth("prev")} className="h-10 w-10 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth("prev")}
+              className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full hover:bg-blue-50"
+            >
               <ChevronLeft className="w-5 h-5" />
             </Button>
 
             <div className="flex-1 text-center">
               <div className="flex items-center justify-center gap-2">
-                <Calendar className="w-5 h-5 text-blue-600" />
-                <h2 className="text-xl font-bold capitalize">{getCurrentMonthName()}</h2>
+                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                <h2 className="text-base md:text-xl font-bold capitalize">
+                  {getCurrentMonthName()}
+                </h2>
               </div>
               {allMonths.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
+                <p className="text-[10px] md:text-xs text-gray-500 mt-1">
                   {allMonths.length} {allMonths.length === 1 ? "mês" : "meses"} registrados
                 </p>
               )}
             </div>
 
-            <Button variant="outline" size="icon" onClick={() => navigateMonth("next")} className="h-10 w-10 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigateMonth("next")}
+              className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full hover:bg-blue-50"
+            >
               <ChevronRight className="w-5 h-5" />
             </Button>
           </div>
         </Card>
 
-        {/* 4 CARDS DE RESUMO */}
+        {/* ============================================ */}
+        {/* 🆕 RESUMO DO DIA (MODO RÁPIDO) */}
+        {/* ============================================ */}
+
+        {dailySummary && (
+          <Card className="p-4 md:p-6 mb-4 md:mb-6 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 border-2 border-emerald-200/50 shadow-xl">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-2">
+                <div className="p-2 bg-emerald-600 rounded-lg">
+                  <Zap className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg">Resumo de Hoje</h3>
+                  <p className="text-xs text-gray-600">
+                    {new Date().toLocaleDateString("pt-BR")}
+                  </p>
+                </div>
+              </div>
+              <Button
+                size="sm"
+                onClick={() => setActiveTab("rapido")}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Modo Rápido
+              </Button>
+            </div>
+
+            <div className="grid grid-cols-3 gap-3 md:gap-4">
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center">
+                <p className="text-xs text-gray-600 mb-1">Vendas</p>
+                <p className="text-lg md:text-2xl font-black text-emerald-600">
+                  {formatCurrency(dailySummary.totalRevenue)}
+                </p>
+                <p className="text-[10px] md:text-xs text-gray-500 mt-1">
+                  {dailySummary.salesCount} vendas
+                </p>
+              </div>
+              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center">
+                <p className="text-xs text-gray-600 mb-1">Gastos</p>
+                <p className="text-lg md:text-2xl font-black text-red-600">
+                  {formatCurrency(dailySummary.totalExpenses)}
+                </p>
+                <p className="text-[10px] md:text-xs text-gray-500 mt-1">
+                  {dailySummary.expensesCount} gastos
+                </p>
+              </div>
+              <div
+                className={`bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center ${
+                  dailySummary.netProfit >= 0 ? "ring-2 ring-emerald-400" : ""
+                }`}
+              >
+                <p className="text-xs text-gray-600 mb-1">Lucro</p>
+                <p
+                  className={`text-lg md:text-2xl font-black ${
+                    dailySummary.netProfit >= 0 ? "text-emerald-600" : "text-red-600"
+                  }`}
+                >
+                  {formatCurrency(dailySummary.netProfit)}
+                </p>
+                <div className="flex items-center justify-center gap-1 mt-1">
+                  {dailySummary.netProfit >= 0 ? (
+                    <TrendingUp className="w-3 h-3 text-emerald-600" />
+                  ) : (
+                    <TrendingDown className="w-3 h-3 text-red-600" />
+                  )}
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+        {/* ============================================ */}
+        {/* 📊 4 CARDS DE RESUMO MENSAL */}
+        {/* ============================================ */}
+
         {monthlyReport && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            {/* CARD 1: RECEITA ✅ */}
-            <Card className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+            <Card className="p-3 md:p-4 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <ShoppingCart className="w-5 h-5" />
-                  <p className="text-sm font-medium opacity-90">Receita</p>
+                  <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                  <p className="text-xs md:text-sm font-medium opacity-90">Receita</p>
                 </div>
-                <p className="text-2xl font-black">{formatCurrency(monthlyReport.totalRevenue)}</p>
-                <p className="text-xs opacity-75 mt-1">{monthlyReport.totalSales} vendas</p>
+                <p className="text-xl md:text-2xl font-black">
+                  {formatCurrency(monthlyReport.totalRevenue)}
+                </p>
+                <p className="text-[10px] md:text-xs opacity-75 mt-1">
+                  {monthlyReport.totalSales} vendas
+                </p>
               </div>
-              <DollarSign className="absolute -bottom-4 -right-4 w-24 h-24 opacity-10" />
+              <DollarSign className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
             </Card>
 
-            {/* CARD 2: GASTOS ✅ */}
-            <Card className="p-4 bg-gradient-to-br from-red-500 to-red-600 border-0 text-white overflow-hidden relative">
+            <Card className="p-3 md:p-4 bg-gradient-to-br from-red-500 to-red-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <Receipt className="w-5 h-5" />
-                  <p className="text-sm font-medium opacity-90">Gastos</p>
+                  <Receipt className="w-4 h-4 md:w-5 md:h-5" />
+                  <p className="text-xs md:text-sm font-medium opacity-90">Gastos</p>
                 </div>
-                <p className="text-2xl font-black">{formatCurrency(monthlyReport.totalExpenses)}</p>
-                <p className="text-xs opacity-75 mt-1">{expenses.length} registros</p>
+                <p className="text-xl md:text-2xl font-black">
+                  {formatCurrency(monthlyReport.totalExpenses)}
+                </p>
+                <p className="text-[10px] md:text-xs opacity-75 mt-1">{expenses.length} registros</p>
               </div>
-              <TrendingDown className="absolute -bottom-4 -right-4 w-24 h-24 opacity-10" />
+              <TrendingDown className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
             </Card>
 
-            {/* CARD 3: LUCRO LÍQUIDO ✅ */}
             <Card
-              className={`p-4 border-0 text-white overflow-hidden relative ${
+              className={`p-3 md:p-4 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform ${
                 monthlyReport.netProfit >= 0
                   ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
                   : "bg-gradient-to-br from-orange-500 to-orange-600"
@@ -769,68 +1126,116 @@ export default function FinancialManagerPro() {
             >
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  {monthlyReport.netProfit >= 0 ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
-                  <p className="text-sm font-medium opacity-90">Lucro Líquido</p>
+                  {monthlyReport.netProfit >= 0 ? (
+                    <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
+                  ) : (
+                    <TrendingDown className="w-4 h-4 md:w-5 md:h-5" />
+                  )}
+                  <p className="text-xs md:text-sm font-medium opacity-90">Lucro</p>
                 </div>
-                <p className="text-2xl font-black">{formatCurrency(monthlyReport.netProfit)}</p>
-                <p className="text-xs opacity-75 mt-1">Margem: {monthlyReport.profitMargin.toFixed(1)}%</p>
+                <p className="text-xl md:text-2xl font-black">
+                  {formatCurrency(monthlyReport.netProfit)}
+                </p>
+                <p className="text-[10px] md:text-xs opacity-75 mt-1">
+                  Margem: {monthlyReport.profitMargin.toFixed(1)}%
+                </p>
               </div>
-              <DollarSign className="absolute -bottom-4 -right-4 w-24 h-24 opacity-10" />
+              <Sparkles className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
             </Card>
 
-            {/* CARD 4: PRODUTOS ✅ */}
-            <Card className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white overflow-hidden relative">
+            <Card className="p-3 md:p-4 bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
               <div className="relative z-10">
                 <div className="flex items-center gap-2 mb-2">
-                  <Package className="w-5 h-5" />
-                  <p className="text-sm font-medium opacity-90">Produtos</p>
+                  <Package className="w-4 h-4 md:w-5 md:h-5" />
+                  <p className="text-xs md:text-sm font-medium opacity-90">Produtos</p>
                 </div>
-                <p className="text-2xl font-black">{products.filter((p) => p.active).length}</p>
-                <p className="text-xs opacity-75 mt-1">cadastrados</p>
+                <p className="text-xl md:text-2xl font-black">
+                  {products.filter((p) => p.active).length}
+                </p>
+                <p className="text-[10px] md:text-xs opacity-75 mt-1">cadastrados</p>
               </div>
-              <Package className="absolute -bottom-4 -right-4 w-24 h-24 opacity-10" />
+              <Package className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
             </Card>
           </div>
         )}
 
+        {/* ============================================ */}
+        {/* 📑 TABS DE NAVEGAÇÃO */}
+        {/* ============================================ */}
 
-
-        {/* TABS */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-6">
-          <TabsList className="grid grid-cols-4 md:grid-cols-8 w-full bg-white shadow-lg h-auto p-1">
-            <TabsTrigger value="dashboard" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <BarChart3 className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Dashboard</span>
-            </TabsTrigger>
-            <TabsTrigger value="produtos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <Package className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Produtos</span>
-            </TabsTrigger>
-            <TabsTrigger value="vendas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <ShoppingCart className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Vendas</span>
-            </TabsTrigger>
-            <TabsTrigger value="gastos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <Receipt className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Gastos</span>
-            </TabsTrigger>
-            <TabsTrigger value="resumo" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <FileText className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Resumo</span>
-            </TabsTrigger>
-            <TabsTrigger value="metas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <Target className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Metas</span>
-            </TabsTrigger>
-            <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-rose-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <Users className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Clientes</span>
-            </TabsTrigger>
-            <TabsTrigger value="fornecedores" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 text-xs md:text-sm">
-              <Truck className="w-4 h-4 md:mr-2" />
-              <span className="hidden md:inline">Fornecedores</span>
-            </TabsTrigger>
-          </TabsList>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as TabType)}
+          className="space-y-4 md:space-y-6"
+        >
+          {/* DESKTOP TABS */}
+          <div className="hidden md:block">
+            <TabsList className="grid grid-cols-4 lg:grid-cols-9 w-full bg-white/90 backdrop-blur-xl shadow-xl h-auto p-1 rounded-2xl">
+              <TabsTrigger
+                value="dashboard"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                Dashboard
+              </TabsTrigger>
+              <TabsTrigger
+                value="rapido"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
+              >
+                <Zap className="w-4 h-4 mr-2" />
+                Rápido
+              </TabsTrigger>
+              <TabsTrigger
+                value="produtos"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
+              >
+                <Package className="w-4 h-4 mr-2" />
+                Produtos
+              </TabsTrigger>
+              <TabsTrigger
+                value="vendas"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
+              >
+                <ShoppingCart className="w-4 h-4 mr-2" />
+                Vendas
+              </TabsTrigger>
+              <TabsTrigger
+                value="gastos"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
+              >
+                <Receipt className="w-4 h-4 mr-2" />
+                Gastos
+              </TabsTrigger>
+              <TabsTrigger
+                value="resumo"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                Resumo
+              </TabsTrigger>
+              <TabsTrigger
+                value="metas"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
+              >
+                <Target className="w-4 h-4 mr-2" />
+                Metas
+              </TabsTrigger>
+              <TabsTrigger
+                value="clientes"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-rose-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Clientes
+              </TabsTrigger>
+              <TabsTrigger
+                value="fornecedores"
+                className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all"
+              >
+                <Truck className="w-4 h-4 mr-2" />
+                Fornecedores
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
           {/* TAB: DASHBOARD */}
           <TabsContent value="dashboard">
@@ -840,68 +1245,89 @@ export default function FinancialManagerPro() {
                 <p className="text-gray-500">Carregando dashboard...</p>
               </Card>
             ) : (
-              <div className="space-y-6">
-                <div className="grid md:grid-cols-3 gap-6">
-                  <Card className="p-6 hover:shadow-lg transition-shadow">
+              <div className="space-y-4 md:space-y-6">
+                <div className="grid md:grid-cols-3 gap-4 md:gap-6">
+                  <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
                     <h3 className="font-bold mb-4 flex items-center gap-2">
-                      <DollarSign className="w-5 h-5 text-blue-600" />
+                      <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                        <DollarSign className="w-5 h-5 text-blue-600" />
+                      </div>
                       Receita Total
                     </h3>
-                    <p className="text-3xl font-black text-blue-600">
+                    <p className="text-3xl md:text-4xl font-black text-blue-600">
                       {formatCurrency(dashboard.overview.totalRevenue)}
                     </p>
                     <p className="text-sm text-gray-600 mt-2">{dashboard.overview.totalSales} vendas</p>
                   </Card>
 
-                  <Card className="p-6 hover:shadow-lg transition-shadow">
+                  <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
                     <h3 className="font-bold mb-4 flex items-center gap-2">
-                      <TrendingUp className="w-5 h-5 text-emerald-600" />
+                      <div className="p-2 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
+                        <TrendingUp className="w-5 h-5 text-emerald-600" />
+                      </div>
                       Lucro Líquido
                     </h3>
-                    <p className={`text-3xl font-black ${dashboard.overview.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                    <p
+                      className={`text-3xl md:text-4xl font-black ${
+                        dashboard.overview.netProfit >= 0 ? "text-emerald-600" : "text-red-600"
+                      }`}
+                    >
                       {formatCurrency(dashboard.overview.netProfit)}
                     </p>
-                    <p className="text-sm text-gray-600 mt-2">Margem: {dashboard.overview.profitMargin.toFixed(1)}%</p>
+                    <p className="text-sm text-gray-600 mt-2">
+                      Margem: {dashboard.overview.profitMargin.toFixed(1)}%
+                    </p>
                   </Card>
 
-                  <Card className="p-6 hover:shadow-lg transition-shadow">
+                  <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
                     <h3 className="font-bold mb-4 flex items-center gap-2">
-                      <Package className="w-5 h-5 text-purple-600" />
+                      <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                        <Package className="w-5 h-5 text-purple-600" />
+                      </div>
                       Produtos
                     </h3>
-                    <p className="text-3xl font-black text-purple-600">{dashboard.products.total}</p>
+                    <p className="text-3xl md:text-4xl font-black text-purple-600">
+                      {dashboard.products.total}
+                    </p>
                     <p className="text-sm text-gray-600 mt-2">
-                      {dashboard.products.lowStock > 0 && `⚠️ ${dashboard.products.lowStock} com estoque baixo`}
+                      {dashboard.products.lowStock > 0 &&
+                        `⚠️ ${dashboard.products.lowStock} com estoque baixo`}
                     </p>
                   </Card>
                 </div>
 
                 {dashboard.products.lowStock > 0 && (
-                  <Alert variant="destructive">
+                  <Alert variant="destructive" className="border-2 border-red-200">
                     <AlertTriangle className="h-5 w-5" />
-                    <AlertTitle>Estoque Baixo!</AlertTitle>
+                    <AlertTitle className="font-bold">Estoque Baixo!</AlertTitle>
                     <AlertDescription>
-                      {dashboard.products.lowStock} produto{dashboard.products.lowStock > 1 ? 's' : ''} precisa{dashboard.products.lowStock > 1 ? 'm' : ''} de reabastecimento.
+                      {dashboard.products.lowStock} produto{dashboard.products.lowStock > 1 ? "s" : ""}{" "}
+                      precisa
+                      {dashboard.products.lowStock > 1 ? "m" : ""} de reabastecimento.
                     </AlertDescription>
                   </Alert>
                 )}
 
                 {goals.length > 0 && (
-                  <Card className="p-6">
+                  <Card className="p-4 md:p-6 bg-white/80 backdrop-blur-sm">
                     <h3 className="font-bold mb-4 flex items-center gap-2">
-                      <Target className="w-5 h-5 text-yellow-600" />
+                      <div className="p-2 bg-yellow-100 rounded-lg">
+                        <Target className="w-5 h-5 text-yellow-600" />
+                      </div>
                       Metas Ativas
                     </h3>
                     <div className="space-y-4">
                       {goals.slice(0, 3).map((goal) => {
                         const progress = (goal.currentValue / goal.targetValue) * 100;
                         return (
-                          <div key={goal._id}>
+                          <div key={goal._id} className="group">
                             <div className="flex justify-between text-sm mb-2">
-                              <span className="font-semibold">{goal.title}</span>
-                              <span>{progress.toFixed(0)}%</span>
+                              <span className="font-semibold group-hover:text-blue-600 transition-colors">
+                                {goal.title}
+                              </span>
+                              <span className="font-bold">{progress.toFixed(0)}%</span>
                             </div>
-                            <Progress value={Math.min(100, progress)} className="h-2" />
+                            <Progress value={Math.min(100, progress)} className="h-3 bg-gray-200" />
                           </div>
                         );
                       })}
@@ -912,35 +1338,173 @@ export default function FinancialManagerPro() {
             )}
           </TabsContent>
 
+          {/* TAB: MODO RÁPIDO */}
+          <TabsContent value="rapido">
+            <div className="space-y-4">
+              <Card className="p-6 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border-2 border-emerald-200">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="p-3 bg-emerald-600 rounded-xl">
+                    <Zap className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-black">Modo Papel e Caneta 📝</h2>
+                    <p className="text-gray-600">Registre vendas e gastos em segundos!</p>
+                  </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Button
+                    size="lg"
+                    onClick={() => setShowQuickSale(true)}
+                    className="h-32 bg-gradient-to-br from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-xl"
+                  >
+                    <div className="text-center">
+                      <ArrowUpRight className="w-10 h-10 mx-auto mb-2" />
+                      <p className="text-xl font-black">Registrar Venda</p>
+                      <p className="text-sm opacity-90">Clique para adicionar</p>
+                    </div>
+                  </Button>
+
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    onClick={() => setShowQuickExpense(true)}
+                    className="h-32 border-2 border-red-300 hover:bg-red-50"
+                  >
+                    <div className="text-center">
+                      <ArrowDownRight className="w-10 h-10 mx-auto mb-2 text-red-600" />
+                      <p className="text-xl font-black text-red-600">Registrar Gasto</p>
+                      <p className="text-sm text-gray-600">Clique para adicionar</p>
+                    </div>
+                  </Button>
+                </div>
+              </Card>
+
+              {/* FLUXO DE CAIXA */}
+              <Card className="p-6">
+                <h3 className="font-bold mb-4 flex items-center gap-2">
+                  <Activity className="w-5 h-5 text-blue-600" />
+                  Últimas Movimentações
+                </h3>
+                {cashFlow.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Wallet className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-gray-500">Nenhuma movimentação hoje</p>
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {cashFlow.map((flow) => (
+                      <div
+                        key={flow._id}
+                        className={`flex items-center justify-between p-4 rounded-xl ${
+                          flow.type === "in" ? "bg-emerald-50" : "bg-red-50"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`p-2 rounded-lg ${
+                              flow.type === "in" ? "bg-emerald-100" : "bg-red-100"
+                            }`}
+                          >
+                            {flow.type === "in" ? (
+                              <ArrowUpRight className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <ArrowDownRight className="w-4 h-4 text-red-600" />
+                            )}
+                          </div>
+                          <div>
+                            <p className="font-semibold">{flow.description}</p>
+                            <p className="text-xs text-gray-600">{flow.time}</p>
+                          </div>
+                        </div>
+                        <p
+                          className={`text-lg font-bold ${
+                            flow.type === "in" ? "text-emerald-600" : "text-red-600"
+                          }`}
+                        >
+                          {flow.type === "in" ? "+" : "-"}
+                          {formatCurrency(flow.amount)}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+          </TabsContent>
+
           {/* TAB: PRODUTOS */}
           <TabsContent value="produtos">
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Seus Produtos ({products.length})</h3>
-                <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600 hover:bg-purple-700">
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div className="flex items-center gap-3 w-full md:w-auto">
+                  <div className="relative flex-1 md:flex-none md:w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                    <Input
+                      placeholder="Buscar produtos..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="pl-10"
+                    />
+                  </div>
+                  {categories.length > 0 && (
+                    <Select value={filterCategory} onValueChange={setFilterCategory}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue placeholder="Categoria" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todas</SelectItem>
+                        {categories.map((cat) => (
+                          <SelectItem key={cat} value={cat || ""}>
+                            {cat}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
+                </div>
+                <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600 hover:bg-purple-700 w-full md:w-auto">
                   <Plus className="w-4 h-4 mr-2" />
                   Novo Produto
                 </Button>
               </div>
 
-              {products.length === 0 ? (
+              {filteredProducts.length === 0 ? (
                 <Card className="p-12 text-center border-2 border-dashed">
                   <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhum produto cadastrado</h3>
-                  <p className="text-gray-500 mb-4">Comece cadastrando seu primeiro produto</p>
-                  <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
-                    Cadastrar Primeiro Produto
-                  </Button>
+                  <h3 className="text-xl font-bold mb-2">
+                    {searchQuery || filterCategory !== "all"
+                      ? "Nenhum produto encontrado"
+                      : "Nenhum produto cadastrado"}
+                  </h3>
+                  <p className="text-gray-500 mb-4">
+                    {searchQuery || filterCategory !== "all"
+                      ? "Tente ajustar os filtros"
+                      : "Comece cadastrando seu primeiro produto"}
+                  </p>
+                  {!searchQuery && filterCategory === "all" && (
+                    <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
+                      Cadastrar Primeiro Produto
+                    </Button>
+                  )}
                 </Card>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {products.map((product) => {
+                  {filteredProducts.map((product) => {
                     const profit = product.salePrice - product.costPrice;
                     const profitMargin = (profit / product.salePrice) * 100;
-                    const isLowStock = product.stock !== undefined && product.minStock !== undefined && product.stock <= product.minStock;
+                    const isLowStock =
+                      product.stock !== undefined &&
+                      product.minStock !== undefined &&
+                      product.stock <= product.minStock;
 
                     return (
-                      <Card key={product._id} className={`p-4 hover:shadow-lg transition-shadow ${!product.active ? 'opacity-50' : ''}`}>
+                      <Card
+                        key={product._id}
+                        className={`p-4 hover:shadow-lg transition-shadow ${
+                          !product.active ? "opacity-50" : ""
+                        }`}
+                      >
                         <div className="flex justify-between mb-3">
                           <div className="flex-1">
                             <h4 className="font-bold text-lg">{product.name}</h4>
@@ -961,11 +1525,17 @@ export default function FinancialManagerPro() {
                                 <Edit className="w-4 h-4 mr-2" />
                                 Editar
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, false)} className="text-orange-600">
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteProduct(product._id, false)}
+                                className="text-orange-600"
+                              >
                                 <AlertCircle className="w-4 h-4 mr-2" />
                                 Desativar
                               </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, true)} className="text-red-600">
+                              <DropdownMenuItem
+                                onClick={() => handleDeleteProduct(product._id, true)}
+                                className="text-red-600"
+                              >
                                 <Trash2 className="w-4 h-4 mr-2" />
                                 Deletar
                               </DropdownMenuItem>
@@ -980,13 +1550,15 @@ export default function FinancialManagerPro() {
                           </div>
                           <div className="flex justify-between">
                             <span className="text-gray-600">Venda:</span>
-                            <span className="font-semibold text-blue-600">{formatCurrency(product.salePrice)}</span>
+                            <span className="font-semibold text-blue-600">
+                              {formatCurrency(product.salePrice)}
+                            </span>
                           </div>
                           {product.stock !== undefined && (
                             <div className="flex justify-between">
                               <span className="text-gray-600">Estoque:</span>
-                              <span className={`font-semibold ${isLowStock ? 'text-red-600' : ''}`}>
-                                {product.stock} {product.unit || 'un'}
+                              <span className={`font-semibold ${isLowStock ? "text-red-600" : ""}`}>
+                                {product.stock} {product.unit || "un"}
                               </span>
                             </div>
                           )}
@@ -1019,13 +1591,17 @@ export default function FinancialManagerPro() {
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold">Vendas do Mês ({sales.length})</h3>
-                <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter(p => p.active).length === 0}>
+                <Button
+                  onClick={() => setShowAddSale(true)}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                  disabled={products.filter((p) => p.active).length === 0}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Nova Venda
                 </Button>
               </div>
 
-              {products.filter(p => p.active).length === 0 && (
+              {products.filter((p) => p.active).length === 0 && (
                 <Alert>
                   <Info className="h-4 w-4" />
                   <AlertTitle>Cadastre produtos primeiro</AlertTitle>
@@ -1040,7 +1616,11 @@ export default function FinancialManagerPro() {
                   <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                   <h3 className="text-xl font-bold mb-2">Nenhuma venda registrada</h3>
                   <p className="text-gray-500 mb-4">Comece registrando sua primeira venda</p>
-                  <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600" disabled={products.filter(p => p.active).length === 0}>
+                  <Button
+                    onClick={() => setShowAddSale(true)}
+                    className="bg-emerald-600"
+                    disabled={products.filter((p) => p.active).length === 0}
+                  >
                     Registrar Primeira Venda
                   </Button>
                 </Card>
@@ -1053,7 +1633,9 @@ export default function FinancialManagerPro() {
                           <div className="flex items-center gap-2 mb-1">
                             <h4 className="font-bold">{sale.productName}</h4>
                             {sale.paymentStatus === "pending" && (
-                              <Badge variant="outline" className="text-orange-600">Pendente</Badge>
+                              <Badge variant="outline" className="text-orange-600">
+                                Pendente
+                              </Badge>
                             )}
                           </div>
                           <p className="text-sm text-gray-600">
@@ -1062,8 +1644,15 @@ export default function FinancialManagerPro() {
                           {sale.notes && <p className="text-xs text-gray-500 mt-1">{sale.notes}</p>}
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-emerald-600 mb-2">{formatCurrency(sale.profit)}</p>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteSale(sale._id, sale.month)}>
+                          <p className="font-bold text-emerald-600 mb-2">
+                            {formatCurrency(sale.profit)}
+                          </p>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => handleDeleteSale(sale._id, sale.month)}
+                          >
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
                         </div>
@@ -1104,18 +1693,33 @@ export default function FinancialManagerPro() {
                           <h4 className="font-bold">{expense.description}</h4>
                           <div className="flex gap-2 mt-1 flex-wrap">
                             <Badge variant="outline">{expense.categoryName}</Badge>
-                            <Badge variant={expense.type === 'fixed' ? 'default' : 'secondary'}>
-                              {expense.type === 'fixed' ? 'Fixo' : expense.type === 'variable' ? 'Variável' : 'Único'}
+                            <Badge
+                              variant={expense.type === "fixed" ? "default" : "secondary"}
+                            >
+                              {expense.type === "fixed"
+                                ? "Fixo"
+                                : expense.type === "variable"
+                                ? "Variável"
+                                : "Único"}
                             </Badge>
                             {expense.paymentStatus === "pending" && (
-                              <Badge variant="outline" className="text-orange-600">Pendente</Badge>
+                              <Badge variant="outline" className="text-orange-600">
+                                Pendente
+                              </Badge>
                             )}
                             <span className="text-sm text-gray-600">{formatDate(expense.date)}</span>
                           </div>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-red-600 mb-2">{formatCurrency(expense.amount)}</p>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteExpense(expense._id, expense.month)}>
+                          <p className="font-bold text-red-600 mb-2">
+                            {formatCurrency(expense.amount)}
+                          </p>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8"
+                            onClick={() => handleDeleteExpense(expense._id, expense.month)}
+                          >
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
                         </div>
@@ -1133,16 +1737,12 @@ export default function FinancialManagerPro() {
               <div className="flex items-center justify-between">
                 <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
                 <div className="flex gap-2">
-                  <Button onClick={handleRegenerateReport} variant="outline">
+                  <Button onClick={handleRegenerateReport} variant="outline" size="sm">
                     <RefreshCw className="w-4 h-4 mr-2" />
                     Atualizar
-                  </Button> <Button onClick={handleClearMonth} variant="destructive" className="bg-red-600">
-                    <Trash2 className="w-4 h-4 mr-2" />
-                    Limpar Mês
                   </Button>
                 </div>
               </div>
-
 
               {!monthlyReport ? (
                 <Card className="p-12 text-center">
@@ -1159,19 +1759,35 @@ export default function FinancialManagerPro() {
                     <div className="grid md:grid-cols-3 gap-6 mb-6">
                       <div className="text-center p-4 bg-blue-50 rounded-lg">
                         <p className="text-sm text-gray-600 mb-1">Receita</p>
-                        <p className="text-2xl font-bold text-blue-600">{formatCurrency(monthlyReport.totalRevenue)}</p>
-                        <p className="text-xs text-gray-500 mt-1">{monthlyReport.totalSales} vendas</p>
+                        <p className="text-2xl font-bold text-blue-600">
+                          {formatCurrency(monthlyReport.totalRevenue)}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {monthlyReport.totalSales} vendas
+                        </p>
                       </div>
                       <div className="text-center p-4 bg-red-50 rounded-lg">
                         <p className="text-sm text-gray-600 mb-1">Gastos</p>
-                        <p className="text-2xl font-bold text-red-600">{formatCurrency(monthlyReport.totalExpenses)}</p>
+                        <p className="text-2xl font-bold text-red-600">
+                          {formatCurrency(monthlyReport.totalExpenses)}
+                        </p>
                       </div>
-                      <div className={`text-center p-4 rounded-lg ${monthlyReport.netProfit >= 0 ? 'bg-emerald-50' : 'bg-orange-50'}`}>
+                      <div
+                        className={`text-center p-4 rounded-lg ${
+                          monthlyReport.netProfit >= 0 ? "bg-emerald-50" : "bg-orange-50"
+                        }`}
+                      >
                         <p className="text-sm text-gray-600 mb-1">Lucro Líquido</p>
-                        <p className={`text-2xl font-bold ${monthlyReport.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        <p
+                          className={`text-2xl font-bold ${
+                            monthlyReport.netProfit >= 0 ? "text-emerald-600" : "text-red-600"
+                          }`}
+                        >
                           {formatCurrency(monthlyReport.netProfit)}
                         </p>
-                        <p className="text-xs text-gray-500 mt-1">Margem: {monthlyReport.profitMargin.toFixed(1)}%</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Margem: {monthlyReport.profitMargin.toFixed(1)}%
+                        </p>
                       </div>
                     </div>
 
@@ -1185,17 +1801,24 @@ export default function FinancialManagerPro() {
                           </h4>
                           <div className="space-y-2">
                             {monthlyReport.topProducts.slice(0, 5).map((product, idx) => (
-                              <div key={product.productId} className="flex items-center justify-between p-3 bg-gray-50 rounded hover:bg-gray-100 transition-colors">
+                              <div
+                                key={product.productId}
+                                className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
+                              >
                                 <div className="flex items-center gap-3">
                                   <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">
                                     {idx + 1}
                                   </div>
                                   <div>
                                     <p className="font-semibold">{product.productName}</p>
-                                    <p className="text-sm text-gray-600">{product.quantity} vendas • {formatCurrency(product.revenue)}</p>
+                                    <p className="text-sm text-gray-600">
+                                      {product.quantity} vendas • {formatCurrency(product.revenue)}
+                                    </p>
                                   </div>
                                 </div>
-                                <p className="font-bold text-emerald-600">{formatCurrency(product.profit)}</p>
+                                <p className="font-bold text-emerald-600">
+                                  {formatCurrency(product.profit)}
+                                </p>
                               </div>
                             ))}
                           </div>
@@ -1237,9 +1860,15 @@ export default function FinancialManagerPro() {
                         <div className="flex justify-between mb-4">
                           <div className="flex-1">
                             <h4 className="font-bold text-lg">{goal.title}</h4>
-                            {goal.description && <p className="text-sm text-gray-600 mt-1">{goal.description}</p>}
+                            {goal.description && (
+                              <p className="text-sm text-gray-600 mt-1">{goal.description}</p>
+                            )}
                           </div>
-                          <Button size="icon" variant="ghost" onClick={() => deleteGoal({ id: goal._id })}>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => deleteGoal({ id: goal._id })}
+                          >
                             <Trash2 className="w-4 h-4 text-red-500" />
                           </Button>
                         </div>
@@ -1292,14 +1921,23 @@ export default function FinancialManagerPro() {
                           {customer.email && <p className="text-sm text-gray-600">{customer.email}</p>}
                           {customer.phone && <p className="text-sm text-gray-600">{customer.phone}</p>}
                         </div>
-                        <Button size="icon" variant="ghost" onClick={() => deleteCustomer({ id: customer._id })}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteCustomer({ id: customer._id })}
+                        >
                           <Trash2 className="w-4 h-4 text-red-500" />
                         </Button>
                       </div>
                       <Separator className="my-3" />
                       <div className="space-y-1 text-sm">
-                        <p className="text-gray-600">Total gasto: <span className="font-semibold">{formatCurrency(customer.totalSpent)}</span></p>
-                        <p className="text-gray-600">Pedidos: <span className="font-semibold">{customer.totalOrders}</span></p>
+                        <p className="text-gray-600">
+                          Total gasto:{" "}
+                          <span className="font-semibold">{formatCurrency(customer.totalSpent)}</span>
+                        </p>
+                        <p className="text-gray-600">
+                          Pedidos: <span className="font-semibold">{customer.totalOrders}</span>
+                        </p>
                       </div>
                     </Card>
                   ))}
@@ -1335,10 +1973,18 @@ export default function FinancialManagerPro() {
                       <div className="flex justify-between mb-3">
                         <div className="flex-1">
                           <h4 className="font-bold">{supplier.name}</h4>
-                          {supplier.contact?.email && <p className="text-sm text-gray-600">{supplier.contact.email}</p>}
-                          {supplier.contact?.phone && <p className="text-sm text-gray-600">{supplier.contact.phone}</p>}
+                          {supplier.contact?.email && (
+                            <p className="text-sm text-gray-600">{supplier.contact.email}</p>
+                          )}
+                          {supplier.contact?.phone && (
+                            <p className="text-sm text-gray-600">{supplier.contact.phone}</p>
+                          )}
                         </div>
-                        <Button size="icon" variant="ghost" onClick={() => deleteSupplier({ id: supplier._id })}>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => deleteSupplier({ id: supplier._id })}
+                        >
                           <Trash2 className="w-4 h-4 text-red-500" />
                         </Button>
                       </div>
@@ -1357,55 +2003,392 @@ export default function FinancialManagerPro() {
         </Tabs>
       </div>
 
-      {/* MODAIS */}
+      {/* ============================================ */}
+      {/* 📱 BOTTOM NAVIGATION (MOBILE) */}
+      {/* ============================================ */}
 
-      {/* Modal: Adicionar Produto */}
+      <div className="fixed bottom-0 left-0 right-0 md:hidden bg-white border-t-2 border-gray-200 shadow-2xl z-50">
+        <div className="grid grid-cols-5 gap-1 p-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveTab("dashboard")}
+            className={`flex flex-col items-center gap-1 h-auto py-2 ${
+              activeTab === "dashboard" ? "bg-blue-100 text-blue-600" : ""
+            }`}
+          >
+            <Home className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Início</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveTab("rapido")}
+            className={`flex flex-col items-center gap-1 h-auto py-2 ${
+              activeTab === "rapido" ? "bg-emerald-100 text-emerald-600" : ""
+            }`}
+          >
+            <Zap className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Rápido</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowQuickSale(true)}
+            className="flex flex-col items-center gap-1 h-auto py-2 bg-emerald-600 text-white"
+          >
+            <Plus className="w-6 h-6" />
+            <span className="text-[10px] font-medium">Vender</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setActiveTab("produtos")}
+            className={`flex flex-col items-center gap-1 h-auto py-2 ${
+              activeTab === "produtos" ? "bg-purple-100 text-purple-600" : ""
+            }`}
+          >
+            <Package className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Produtos</span>
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowMobileMenu(true)}
+            className="flex flex-col items-center gap-1 h-auto py-2"
+          >
+            <Menu className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Menu</span>
+          </Button>
+        </div>
+      </div>
+
+      {/* ============================================ */}
+      {/* 🆕 MODAL: VENDA RÁPIDA */}
+      {/* ============================================ */}
+
+      <Dialog open={showQuickSale} onOpenChange={setShowQuickSale}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-emerald-100 rounded-lg">
+                <Zap className="w-5 h-5 text-emerald-600" />
+              </div>
+              Venda Rápida 💰
+            </DialogTitle>
+            <DialogDescription>Registre o valor da venda em segundos</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label className="text-base font-semibold">Valor da Venda *</Label>
+              <div className="relative mt-2">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={quickSaleForm.amount}
+                  onChange={(e) => setQuickSaleForm({ ...quickSaleForm, amount: e.target.value })}
+                  placeholder="0,00"
+                  className="pl-10 text-2xl font-bold h-14"
+                  autoFocus
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Descrição (opcional)</Label>
+              <Input
+                value={quickSaleForm.description}
+                onChange={(e) =>
+                  setQuickSaleForm({ ...quickSaleForm, description: e.target.value })
+                }
+                placeholder="Ex: Venda de produto X"
+              />
+            </div>
+
+            <div>
+              <Label>Forma de Pagamento</Label>
+              <Select
+                value={quickSaleForm.paymentMethod}
+                onValueChange={(v: PaymentMethod) =>
+                  setQuickSaleForm({ ...quickSaleForm, paymentMethod: v })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pix">PIX</SelectItem>
+                  <SelectItem value="cash">Dinheiro</SelectItem>
+                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                  <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+                  <SelectItem value="bank_transfer">Transferência</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQuickSale(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleQuickSale} className="bg-emerald-600 hover:bg-emerald-700">
+              <Check className="w-4 h-4 mr-2" />
+              Confirmar Venda
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 🆕 MODAL: GASTO RÁPIDO */}
+      <Dialog open={showQuickExpense} onOpenChange={setShowQuickExpense}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <div className="p-2 bg-red-100 rounded-lg">
+                <Receipt className="w-5 h-5 text-red-600" />
+              </div>
+              Gasto Rápido 💸
+            </DialogTitle>
+            <DialogDescription>Registre um gasto rapidamente</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div>
+              <Label>Descrição *</Label>
+              <Input
+                value={quickExpenseForm.description}
+                onChange={(e) =>
+                  setQuickExpenseForm({ ...quickExpenseForm, description: e.target.value })
+                }
+                placeholder="Ex: Conta de luz"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <Label>Valor *</Label>
+              <div className="relative mt-2">
+                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={quickExpenseForm.amount}
+                  onChange={(e) =>
+                    setQuickExpenseForm({ ...quickExpenseForm, amount: e.target.value })
+                  }
+                  placeholder="0,00"
+                  className="pl-10 text-2xl font-bold h-14"
+                />
+              </div>
+            </div>
+
+            <div>
+              <Label>Categoria</Label>
+              <Select
+                value={quickExpenseForm.category}
+                onValueChange={(v) => setQuickExpenseForm({ ...quickExpenseForm, category: v })}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Aluguel">Aluguel</SelectItem>
+                  <SelectItem value="Luz/Água">Luz/Água</SelectItem>
+                  <SelectItem value="Internet">Internet</SelectItem>
+                  <SelectItem value="Marketing">Marketing</SelectItem>
+                  <SelectItem value="Materiais">Materiais</SelectItem>
+                  <SelectItem value="Outros">Outros</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowQuickExpense(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleQuickExpense} className="bg-red-600 hover:bg-red-700">
+              <Check className="w-4 h-4 mr-2" />
+              Confirmar Gasto
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* 🆕 SHEET: MENU MOBILE */}
+      <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
+        <SheetContent side="right" className="w-80">
+          <SheetHeader>
+            <SheetTitle>Menu</SheetTitle>
+            <SheetDescription>Todas as funcionalidades</SheetDescription>
+          </SheetHeader>
+
+          <div className="mt-6 space-y-2">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setActiveTab("vendas");
+                setShowMobileMenu(false);
+              }}
+            >
+              <ShoppingCart className="w-5 h-5 mr-3" />
+              Vendas
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setActiveTab("gastos");
+                setShowMobileMenu(false);
+              }}
+            >
+              <Receipt className="w-5 h-5 mr-3" />
+              Gastos
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setActiveTab("resumo");
+                setShowMobileMenu(false);
+              }}
+            >
+              <FileText className="w-5 h-5 mr-3" />
+              Resumo Mensal
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setActiveTab("metas");
+                setShowMobileMenu(false);
+              }}
+            >
+              <Target className="w-5 h-5 mr-3" />
+              Metas
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setActiveTab("clientes");
+                setShowMobileMenu(false);
+              }}
+            >
+              <Users className="w-5 h-5 mr-3" />
+              Clientes
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setActiveTab("fornecedores");
+                setShowMobileMenu(false);
+              }}
+            >
+              <Truck className="w-5 h-5 mr-3" />
+              Fornecedores
+            </Button>
+
+            <Separator className="my-4" />
+
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onClick={() => {
+                setShowPriceCalculator(true);
+                setShowMobileMenu(false);
+              }}
+            >
+              <Calculator className="w-5 h-5 mr-3" />
+              Calcular Preço
+            </Button>
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      {/* MODAL: ADICIONAR PRODUTO */}
       <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
-        {/* ✅ CORREÇÃO: "sm:max-w-2xl" para mobile e "max-h-[90vh] overflow-y-auto" para scroll */}
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
-            <DialogDescription>
-              Preencha os dados do produto para cadastro no sistema
-            </DialogDescription>
+            <DialogDescription>Preencha os dados do produto para cadastro no sistema</DialogDescription>
           </DialogHeader>
-          {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-2" para empilhar no mobile */}
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Nome do Produto *</Label>
-                <Input value={productForm.name} onChange={(e) => setProductForm({...productForm, name: e.target.value})} placeholder="Ex: Camiseta Básica" />
+                <Input
+                  value={productForm.name}
+                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                  placeholder="Ex: Camiseta Básica"
+                />
               </div>
               <div>
                 <Label>SKU / Código</Label>
-                <Input value={productForm.sku} onChange={(e) => setProductForm({...productForm, sku: e.target.value})} placeholder="Ex: CAM-001" />
+                <Input
+                  value={productForm.sku}
+                  onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+                  placeholder="Ex: CAM-001"
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Preço de Custo * (R$)</Label>
-                <Input type="number" step="0.01" value={productForm.costPrice} onChange={(e) => setProductForm({...productForm, costPrice: e.target.value})} placeholder="0,00" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={productForm.costPrice}
+                  onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
+                  placeholder="0,00"
+                />
               </div>
               <div>
                 <Label>Preço de Venda * (R$)</Label>
-                <Input type="number" step="0.01" value={productForm.salePrice} onChange={(e) => setProductForm({...productForm, salePrice: e.target.value})} placeholder="0,00" />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={productForm.salePrice}
+                  onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
+                  placeholder="0,00"
+                />
               </div>
             </div>
 
-            {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-3" */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label>Estoque Inicial</Label>
-                <Input type="number" value={productForm.stock} onChange={(e) => setProductForm({...productForm, stock: e.target.value})} placeholder="0" />
+                <Input
+                  type="number"
+                  value={productForm.stock}
+                  onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                  placeholder="0"
+                />
               </div>
               <div>
                 <Label>Estoque Mínimo</Label>
-                <Input type="number" value={productForm.minStock} onChange={(e) => setProductForm({...productForm, minStock: e.target.value})} placeholder="0" />
+                <Input
+                  type="number"
+                  value={productForm.minStock}
+                  onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
+                  placeholder="0"
+                />
               </div>
               <div>
                 <Label>Unidade</Label>
-                <Select value={productForm.unit} onValueChange={(v) => setProductForm({...productForm, unit: v})}>
+                <Select
+                  value={productForm.unit}
+                  onValueChange={(v) => setProductForm({ ...productForm, unit: v })}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -1422,26 +2405,46 @@ export default function FinancialManagerPro() {
 
             <div>
               <Label>Categoria</Label>
-              <Input value={productForm.category} onChange={(e) => setProductForm({...productForm, category: e.target.value})} placeholder="Ex: Roupas" />
+              <Input
+                value={productForm.category}
+                onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                placeholder="Ex: Roupas"
+              />
             </div>
 
             <div>
               <Label>Descrição</Label>
-              <Textarea value={productForm.description} onChange={(e) => setProductForm({...productForm, description: e.target.value})} placeholder="Descrição do produto" rows={3} />
+              <Textarea
+                value={productForm.description}
+                onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                placeholder="Descrição do produto"
+                rows={3}
+              />
             </div>
 
-            {productForm.costPrice && productForm.salePrice && parseFloat(productForm.salePrice) > parseFloat(productForm.costPrice) && (
-              <Alert>
-                <CheckCircle2 className="h-4 w-4" />
-                <AlertTitle>Lucro por unidade</AlertTitle>
-                <AlertDescription>
-                  {formatCurrency(parseFloat(productForm.salePrice) - parseFloat(productForm.costPrice))} ({(((parseFloat(productForm.salePrice) - parseFloat(productForm.costPrice)) / parseFloat(productForm.salePrice)) * 100).toFixed(1)}% de margem)
-                </AlertDescription>
-              </Alert>
-            )}
+            {productForm.costPrice &&
+              productForm.salePrice &&
+              parseFloat(productForm.salePrice) > parseFloat(productForm.costPrice) && (
+                <Alert>
+                  <CheckCircle2 className="h-4 w-4" />
+                  <AlertTitle>Lucro por unidade</AlertTitle>
+                  <AlertDescription>
+                    {formatCurrency(parseFloat(productForm.salePrice) - parseFloat(productForm.costPrice))}{" "}
+                    (
+                    {(
+                      ((parseFloat(productForm.salePrice) - parseFloat(productForm.costPrice)) /
+                        parseFloat(productForm.salePrice)) *
+                      100
+                    ).toFixed(1)}
+                    % de margem)
+                  </AlertDescription>
+                </Alert>
+              )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddProduct(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setShowAddProduct(false)}>
+              Cancelar
+            </Button>
             <Button onClick={handleAddProduct} className="bg-purple-600">
               <Save className="w-4 h-4 mr-2" />
               Salvar Produto
@@ -1450,103 +2453,149 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Editar Produto */}
+      {/* MODAL: EDITAR PRODUTO */}
       <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
-        {/* ✅ CORREÇÃO: Responsividade e Scroll */}
         <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>✏️ Editar Produto</DialogTitle>
             <DialogDescription>Altere as informações do produto</DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
-            {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-2" */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Nome do Produto</Label>
-                <Input value={productForm.name} onChange={(e) => setProductForm({...productForm, name: e.target.value})} />
+                <Input
+                  value={productForm.name}
+                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                />
               </div>
               <div>
                 <Label>SKU</Label>
-                <Input value={productForm.sku} onChange={(e) => setProductForm({...productForm, sku: e.target.value})} />
+                <Input
+                  value={productForm.sku}
+                  onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Custo (R$)</Label>
-                <Input type="number" step="0.01" value={productForm.costPrice} onChange={(e) => setProductForm({...productForm, costPrice: e.target.value})} />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={productForm.costPrice}
+                  onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Venda (R$)</Label>
-                <Input type="number" step="0.01" value={productForm.salePrice} onChange={(e) => setProductForm({...productForm, salePrice: e.target.value})} />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={productForm.salePrice}
+                  onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
+                />
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Estoque</Label>
-                <Input type="number" value={productForm.stock} onChange={(e) => setProductForm({...productForm, stock: e.target.value})} />
+                <Input
+                  type="number"
+                  value={productForm.stock}
+                  onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Estoque Mínimo</Label>
-                <Input type="number" value={productForm.minStock} onChange={(e) => setProductForm({...productForm, minStock: e.target.value})} />
+                <Input
+                  type="number"
+                  value={productForm.minStock}
+                  onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
+                />
               </div>
             </div>
-            {/* Outros campos de edição podem ser adicionados aqui, como Categoria, Descrição, Unidade */}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditProduct(false)}>Cancelar</Button>
-            <Button onClick={handleEditProduct} className="bg-purple-600">Salvar Alterações</Button>
+            <Button variant="outline" onClick={() => setShowEditProduct(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleEditProduct} className="bg-purple-600">
+              Salvar Alterações
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Adicionar Venda */}
+      {/* MODAL: ADICIONAR VENDA */}
       <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
-        {/* ✅ CORREÇÃO: Scroll */}
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>🛒 Registrar Venda</DialogTitle>
-            <DialogDescription>Registre uma nova venda e atualize o estoque automaticamente</DialogDescription>
+            <DialogDescription>
+              Registre uma nova venda e atualize o estoque automaticamente
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Produto *</Label>
-              <Select value={saleForm.productId} onValueChange={(v) => setSaleForm({...saleForm, productId: v})}>
+              <Select
+                value={saleForm.productId}
+                onValueChange={(v) => setSaleForm({ ...saleForm, productId: v })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione um produto" />
                 </SelectTrigger>
                 <SelectContent>
-                  {products.filter((p) => p.active).map((p) => (
-                    <SelectItem key={p._id} value={p._id}>
-                      {p.name} - {formatCurrency(p.salePrice)} {p.stock !== undefined && `(Estoque: ${p.stock})`}
-                    </SelectItem>
-                  ))}
+                  {products
+                    .filter((p) => p.active)
+                    .map((p) => (
+                      <SelectItem key={p._id} value={p._id}>
+                        {p.name} - {formatCurrency(p.salePrice)}{" "}
+                        {p.stock !== undefined && `(Estoque: ${p.stock})`}
+                      </SelectItem>
+                    ))}
                 </SelectContent>
               </Select>
             </div>
 
-            {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-2" */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Quantidade *</Label>
-                <Input type="number" min="1" value={saleForm.quantity} onChange={(e) => setSaleForm({...saleForm, quantity: e.target.value})} placeholder="1" />
+                <Input
+                  type="number"
+                  min="1"
+                  value={saleForm.quantity}
+                  onChange={(e) => setSaleForm({ ...saleForm, quantity: e.target.value })}
+                  placeholder="1"
+                />
               </div>
               <div>
                 <Label>Data *</Label>
-                <Input type="date" value={saleForm.date} onChange={(e) => setSaleForm({...saleForm, date: e.target.value})} />
+                <Input
+                  type="date"
+                  value={saleForm.date}
+                  onChange={(e) => setSaleForm({ ...saleForm, date: e.target.value })}
+                />
               </div>
             </div>
 
             <div>
               <Label>Cliente (opcional)</Label>
-              <Select value={saleForm.customerId || undefined} onValueChange={(v) => setSaleForm({...saleForm, customerId: v})}>
+              <Select
+                value={saleForm.customerId || undefined}
+                onValueChange={(v) => setSaleForm({ ...saleForm, customerId: v })}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Nenhum cliente" />
                 </SelectTrigger>
                 <SelectContent>
                   {customers.map((c) => (
-                    <SelectItem key={c._id} value={c._id}>{c.name}</SelectItem>
+                    <SelectItem key={c._id} value={c._id}>
+                      {c.name}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -1554,16 +2603,30 @@ export default function FinancialManagerPro() {
 
             <div>
               <Label>Desconto (R$)</Label>
-              <Input type="number" step="0.01" min="0" value={saleForm.discount} onChange={(e) => setSaleForm({...saleForm, discount: e.target.value})} placeholder="0,00" />
+              <Input
+                type="number"
+                step="0.01"
+                min="0"
+                value={saleForm.discount}
+                onChange={(e) => setSaleForm({ ...saleForm, discount: e.target.value })}
+                placeholder="0,00"
+              />
             </div>
 
             <div>
               <Label>Observações</Label>
-              <Textarea value={saleForm.notes} onChange={(e) => setSaleForm({...saleForm, notes: e.target.value})} rows={2} placeholder="Informações adicionais sobre a venda" />
+              <Textarea
+                value={saleForm.notes}
+                onChange={(e) => setSaleForm({ ...saleForm, notes: e.target.value })}
+                rows={2}
+                placeholder="Informações adicionais sobre a venda"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSale(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setShowAddSale(false)}>
+              Cancelar
+            </Button>
             <Button onClick={handleAddSale} className="bg-emerald-600">
               <Save className="w-4 h-4 mr-2" />
               Registrar Venda
@@ -1572,9 +2635,8 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Adicionar Gasto */}
+      {/* MODAL: ADICIONAR GASTO */}
       <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
-        {/* ✅ CORREÇÃO: Scroll */}
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>💸 Registrar Gasto</DialogTitle>
@@ -1583,24 +2645,39 @@ export default function FinancialManagerPro() {
           <div className="space-y-4">
             <div>
               <Label>Descrição *</Label>
-              <Input value={expenseForm.description} onChange={(e) => setExpenseForm({...expenseForm, description: e.target.value})} placeholder="Ex: Conta de luz" />
+              <Input
+                value={expenseForm.description}
+                onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                placeholder="Ex: Conta de luz"
+              />
             </div>
 
-            {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-2" */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Valor * (R$)</Label>
-                <Input type="number" step="0.01" value={expenseForm.amount} onChange={(e) => setExpenseForm({...expenseForm, amount: e.target.value})} />
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={expenseForm.amount}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Data *</Label>
-                <Input type="date" value={expenseForm.date} onChange={(e) => setExpenseForm({...expenseForm, date: e.target.value})} />
+                <Input
+                  type="date"
+                  value={expenseForm.date}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                />
               </div>
             </div>
 
             <div>
               <Label>Categoria</Label>
-              <Select value={expenseForm.categoryName} onValueChange={(v) => setExpenseForm({...expenseForm, categoryName: v})}>
+              <Select
+                value={expenseForm.categoryName}
+                onValueChange={(v) => setExpenseForm({ ...expenseForm, categoryName: v })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -1619,7 +2696,10 @@ export default function FinancialManagerPro() {
 
             <div>
               <Label>Tipo</Label>
-              <Select value={expenseForm.type} onValueChange={(v: "fixed" | "variable" | "one_time") => setExpenseForm({...expenseForm, type: v})}>
+              <Select
+                value={expenseForm.type}
+                onValueChange={(v: ExpenseType) => setExpenseForm({ ...expenseForm, type: v })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -1632,7 +2712,9 @@ export default function FinancialManagerPro() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddExpense(false)}>Cancelar</Button>
+            <Button variant="outline" onClick={() => setShowAddExpense(false)}>
+              Cancelar
+            </Button>
             <Button onClick={handleAddExpense} className="bg-red-600">
               <Save className="w-4 h-4 mr-2" />
               Registrar Gasto
@@ -1641,9 +2723,8 @@ export default function FinancialManagerPro() {
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Adicionar Cliente */}
+      {/* MODAL: ADICIONAR CLIENTE */}
       <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
-        {/* ✅ CORREÇÃO: Scroll */}
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>👤 Cadastrar Cliente</DialogTitle>
@@ -1652,31 +2733,51 @@ export default function FinancialManagerPro() {
           <div className="space-y-4">
             <div>
               <Label>Nome *</Label>
-              <Input value={customerForm.name} onChange={(e) => setCustomerForm({...customerForm, name: e.target.value})} placeholder="Nome completo" />
+              <Input
+                value={customerForm.name}
+                onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
+                placeholder="Nome completo"
+              />
             </div>
             <div>
               <Label>Email</Label>
-              <Input type="email" value={customerForm.email} onChange={(e) => setCustomerForm({...customerForm, email: e.target.value})} placeholder="email@exemplo.com" />
+              <Input
+                type="email"
+                value={customerForm.email}
+                onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
+                placeholder="email@exemplo.com"
+              />
             </div>
             <div>
               <Label>Telefone</Label>
-              <Input value={customerForm.phone} onChange={(e) => setCustomerForm({...customerForm, phone: e.target.value})} placeholder="(00) 00000-0000" />
+              <Input
+                value={customerForm.phone}
+                onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
+                placeholder="(00) 00000-0000"
+              />
             </div>
             <div>
               <Label>Endereço</Label>
-              <Input value={customerForm.address} onChange={(e) => setCustomerForm({...customerForm, address: e.target.value})} placeholder="Endereço completo" />
+              <Input
+                value={customerForm.address}
+                onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
+                placeholder="Endereço completo"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddCustomer(false)}>Cancelar</Button>
-            <Button onClick={handleAddCustomer} className="bg-pink-600">Salvar Cliente</Button>
+            <Button variant="outline" onClick={() => setShowAddCustomer(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddCustomer} className="bg-pink-600">
+              Salvar Cliente
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Adicionar Fornecedor */}
+      {/* MODAL: ADICIONAR FORNECEDOR */}
       <Dialog open={showAddSupplier} onOpenChange={setShowAddSupplier}>
-        {/* ✅ CORREÇÃO: Scroll */}
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>🚚 Cadastrar Fornecedor</DialogTitle>
@@ -1685,27 +2786,43 @@ export default function FinancialManagerPro() {
           <div className="space-y-4">
             <div>
               <Label>Nome *</Label>
-              <Input value={supplierForm.name} onChange={(e) => setSupplierForm({...supplierForm, name: e.target.value})} placeholder="Nome da empresa" />
+              <Input
+                value={supplierForm.name}
+                onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+                placeholder="Nome da empresa"
+              />
             </div>
             <div>
               <Label>Email</Label>
-              <Input type="email" value={supplierForm.email} onChange={(e) => setSupplierForm({...supplierForm, email: e.target.value})} placeholder="email@fornecedor.com" />
+              <Input
+                type="email"
+                value={supplierForm.email}
+                onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
+                placeholder="email@fornecedor.com"
+              />
             </div>
             <div>
               <Label>Telefone</Label>
-              <Input value={supplierForm.phone} onChange={(e) => setSupplierForm({...supplierForm, phone: e.target.value})} placeholder="(00) 0000-0000" />
+              <Input
+                value={supplierForm.phone}
+                onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                placeholder="(00) 0000-0000"
+              />
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSupplier(false)}>Cancelar</Button>
-            <Button onClick={handleAddSupplier} className="bg-teal-600">Salvar Fornecedor</Button>
+            <Button variant="outline" onClick={() => setShowAddSupplier(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddSupplier} className="bg-teal-600">
+              Salvar Fornecedor
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Adicionar Meta */}
+      {/* MODAL: ADICIONAR META */}
       <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
-        {/* ✅ CORREÇÃO: Scroll */}
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>🎯 Criar Meta</DialogTitle>
@@ -1714,12 +2831,19 @@ export default function FinancialManagerPro() {
           <div className="space-y-4">
             <div>
               <Label>Título *</Label>
-              <Input value={goalForm.title} onChange={(e) => setGoalForm({...goalForm, title: e.target.value})} placeholder="Ex: Faturar R$ 10.000" />
+              <Input
+                value={goalForm.title}
+                onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
+                placeholder="Ex: Faturar R$ 10.000"
+              />
             </div>
 
             <div>
               <Label>Tipo de Meta</Label>
-              <Select value={goalForm.type} onValueChange={(v: GoalType) => setGoalForm({...goalForm, type: v})}>
+              <Select
+                value={goalForm.type}
+                onValueChange={(v: GoalType) => setGoalForm({ ...goalForm, type: v })}
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -1734,50 +2858,82 @@ export default function FinancialManagerPro() {
 
             <div>
               <Label>Valor Alvo *</Label>
-              <Input type="number" value={goalForm.targetValue} onChange={(e) => setGoalForm({...goalForm, targetValue: e.target.value})} placeholder="10000" />
+              <Input
+                type="number"
+                value={goalForm.targetValue}
+                onChange={(e) => setGoalForm({ ...goalForm, targetValue: e.target.value })}
+                placeholder="10000"
+              />
             </div>
 
-            {/* ✅ CORREÇÃO: "grid-cols-1 md:grid-cols-2" */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <Label>Início</Label>
-                <Input type="date" value={goalForm.startDate} onChange={(e) => setGoalForm({...goalForm, startDate: e.target.value})} />
+                <Input
+                  type="date"
+                  value={goalForm.startDate}
+                  onChange={(e) => setGoalForm({ ...goalForm, startDate: e.target.value })}
+                />
               </div>
               <div>
                 <Label>Fim</Label>
-                <Input type="date" value={goalForm.endDate} onChange={(e) => setGoalForm({...goalForm, endDate: e.target.value})} />
+                <Input
+                  type="date"
+                  value={goalForm.endDate}
+                  onChange={(e) => setGoalForm({ ...goalForm, endDate: e.target.value })}
+                />
               </div>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddGoal(false)}>Cancelar</Button>
-            <Button onClick={handleAddGoal} className="bg-yellow-600">Criar Meta</Button>
+            <Button variant="outline" onClick={() => setShowAddGoal(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={handleAddGoal} className="bg-yellow-600">
+              Criar Meta
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Modal: Calculadora de Preço */}
+      {/* MODAL: CALCULADORA DE PREÇO */}
       <Dialog open={showPriceCalculator} onOpenChange={setShowPriceCalculator}>
-        {/* ✅ CORREÇÃO: Scroll */}
         <DialogContent className="max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>🧮 Calculadora de Preço</DialogTitle>
-            <DialogDescription>Descubra o preço ideal para seu produto com base em custos e margem</DialogDescription>
+            <DialogDescription>
+              Descubra o preço ideal para seu produto com base em custos e margem
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div>
               <Label>Custo do Produto * (R$)</Label>
-              <Input type="number" step="0.01" value={priceCalcForm.costPrice} onChange={(e) => setPriceCalcForm({...priceCalcForm, costPrice: e.target.value})} placeholder="Ex: 50.00" />
+              <Input
+                type="number"
+                step="0.01"
+                value={priceCalcForm.costPrice}
+                onChange={(e) => setPriceCalcForm({ ...priceCalcForm, costPrice: e.target.value })}
+                placeholder="Ex: 50.00"
+              />
             </div>
 
             <div>
               <Label>Margem Desejada (%)</Label>
-              <Input type="number" value={priceCalcForm.targetMargin} onChange={(e) => setPriceCalcForm({...priceCalcForm, targetMargin: e.target.value})} placeholder="Ex: 40" />
+              <Input
+                type="number"
+                value={priceCalcForm.targetMargin}
+                onChange={(e) => setPriceCalcForm({ ...priceCalcForm, targetMargin: e.target.value })}
+                placeholder="Ex: 40"
+              />
             </div>
 
             <div>
               <Label>Categoria</Label>
-              <Input value={priceCalcForm.category} onChange={(e) => setPriceCalcForm({...priceCalcForm, category: e.target.value})} placeholder="Ex: roupas, eletrônicos" />
+              <Input
+                value={priceCalcForm.category}
+                onChange={(e) => setPriceCalcForm({ ...priceCalcForm, category: e.target.value })}
+                placeholder="Ex: roupas, eletrônicos"
+              />
             </div>
 
             <Button onClick={handleCalculatePrice} className="w-full bg-indigo-600">
@@ -1794,7 +2950,6 @@ export default function FinancialManagerPro() {
                     <p className="text-3xl font-black text-emerald-600 my-2">
                       {formatCurrency(priceCalcResult.suggestedPrice)}
                     </p>
-                    {/* ✅ CORREÇÃO: "grid-cols-1 sm:grid-cols-2" */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mt-4">
                       <div>
                         <p className="text-gray-600">Mínimo:</p>
