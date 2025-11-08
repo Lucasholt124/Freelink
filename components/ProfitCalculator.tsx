@@ -1,43 +1,35 @@
 "use client";
 
-import { useState, useCallback, useMemo } from "react";
-import { useAction, useQuery, useMutation } from "convex/react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
-import confetti from 'canvas-confetti';
+import confetti from "canvas-confetti";
 import {
-  Calculator,
   TrendingUp,
   TrendingDown,
-  DollarSign,
-  PieChart,
-  BarChart3,
-  Sparkles,
-  AlertTriangle,
-  CheckCircle2,
-  Lightbulb,
-  Target,
-  Zap,
-  Trash2,
-  Star,
-  ArrowRight,
+  Package,
+  ShoppingCart,
+  Receipt,
+  Calendar,
   Plus,
-  X,
-  Award,
-  RefreshCw,
-  Clock,
-  History,
-  Settings,
-  Info,
-  Loader2
+  Trash2,
+  BarChart3,
+  PieChart,
+  ChevronLeft,
+  ChevronRight,
+  Sparkles,
+  Target,
+  AlertCircle,
+  CheckCircle2,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   Select,
@@ -46,382 +38,256 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
 
 // =================================================================
 // 🎯 TIPOS E CONSTANTES
 // =================================================================
 
-const BUSINESS_TYPES = [
-  { value: "ecommerce", label: "E-commerce", icon: "🛒" },
-  { value: "saas", label: "SaaS / Software", icon: "💻" },
-  { value: "freelancer", label: "Freelancer", icon: "👤" },
-  { value: "infoproducts", label: "Infoprodutos", icon: "📚" },
-  { value: "services", label: "Serviços", icon: "🔧" },
-  { value: "physical_store", label: "Loja Física", icon: "🏪" },
-  { value: "dropshipping", label: "Dropshipping", icon: "📦" },
-  { value: "consulting", label: "Consultoria", icon: "💼" },
-  { value: "other", label: "Outro", icon: "✨" }
+const EXPENSE_CATEGORIES = [
+  { value: "aluguel", label: "Aluguel", icon: "🏢", color: "blue" },
+  { value: "luz_agua", label: "Luz e Água", icon: "💡", color: "yellow" },
+  { value: "internet", label: "Internet", icon: "📡", color: "purple" },
+  { value: "transporte", label: "Transporte", icon: "🚗", color: "green" },
+  { value: "alimentacao", label: "Alimentação", icon: "🍔", color: "orange" },
+  { value: "marketing", label: "Marketing", icon: "📢", color: "pink" },
+  { value: "materiais", label: "Materiais", icon: "📦", color: "indigo" },
+  { value: "funcionarios", label: "Funcionários", icon: "👥", color: "cyan" },
+  { value: "outros", label: "Outros", icon: "📝", color: "gray" },
 ] as const;
 
-type BusinessType = typeof BUSINESS_TYPES[number]["value"];
-
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  quantity: number;
-  total: number;
-}
-
-interface FixedCosts {
-  rent: number;
-  salaries: number;
-  software: number;
-  marketing: number;
-  utilities: number;
-  insurance: number;
-  other: number;
-}
-
-interface VariableCosts {
-  materials: number;
-  shipping: number;
-  commissions: number;
-  packaging: number;
-  ads: number;
-  fees: number;
-  other: number;
-}
-
-interface Results {
-  totalRevenue: number;
-  totalCosts: number;
-  grossProfit: number;
-  netProfit: number;
-  profitMargin: number;
-  breakEvenPoint: number;
-  roi: number;
-}
-
-interface Recommendation {
-  title: string;
-  description: string;
-  impact: "high" | "medium" | "low";
-  potentialSavings: number;
-}
-
-interface AIAnalysis {
-  score: number;
-  insights: string[];
-  warnings: string[];
-  opportunities: string[];
-  benchmarkComparison: {
-    industry: string;
-    yourMargin: number;
-    industryAverage: number;
-    status: "above" | "average" | "below";
-  };
-  recommendations: Recommendation[];
-}
-
-interface Scenarios {
-  optimistic: {
-    revenue: number;
-    profit: number;
-    margin: number;
-  };
-  realistic: {
-    revenue: number;
-    profit: number;
-    margin: number;
-  };
-  pessimistic: {
-    revenue: number;
-    profit: number;
-    margin: number;
-  };
-}
-
-interface CalculationResult {
-  id: Id<"profitCalculations">;
-  results: Results;
-  aiAnalysis: AIAnalysis;
-  scenarios: Scenarios;
-}
-
-interface SavedCalculation {
-  _id: Id<"profitCalculations">;
-  userId: string;
-  businessName: string;
-  businessType: BusinessType;
-  revenue: {
-    monthly: number;
-    products?: Product[];
-  };
-  fixedCosts: FixedCosts & { total: number };
-  variableCosts: VariableCosts & { total: number };
-  results: Results;
-  aiAnalysis: AIAnalysis;
-  scenarios: Scenarios;
-  favorite?: boolean;
-  createdAt: number;
-}
+type ExpenseCategory = (typeof EXPENSE_CATEGORIES)[number]["value"];
 
 // =================================================================
 // 🎨 COMPONENTE PRINCIPAL
 // =================================================================
 
-export default function ProfitCalculatorComponent() {
-  // Estados principais
-  const [activeTab, setActiveTab] = useState<"calculator" | "history">("calculator");
-  const [isCalculating, setIsCalculating] = useState(false);
-
-  // Dados do negócio
-  const [businessName, setBusinessName] = useState("");
-  const [businessType, setBusinessType] = useState<BusinessType>("ecommerce");
-
-  // Receita
-  const [monthlyRevenue, setMonthlyRevenue] = useState<number>(0);
-  const [products, setProducts] = useState<Product[]>([]);
-  const [showProducts, setShowProducts] = useState(false);
-
-  // Custos Fixos
-  const [fixedCosts, setFixedCosts] = useState<FixedCosts>({
-    rent: 0,
-    salaries: 0,
-    software: 0,
-    marketing: 0,
-    utilities: 0,
-    insurance: 0,
-    other: 0
+export default function FinancialManagerComponent() {
+  // Estado do mês selecionado
+  const [selectedMonth, setSelectedMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
 
-  // Custos Variáveis
-  const [variableCosts, setVariableCosts] = useState<VariableCosts>({
-    materials: 0,
-    shipping: 0,
-    commissions: 0,
-    packaging: 0,
-    ads: 0,
-    fees: 0,
-    other: 0
+  const [activeTab, setActiveTab] = useState<"produtos" | "vendas" | "gastos" | "resumo">("resumo");
+
+  // Dialogs
+  const [showAddProduct, setShowAddProduct] = useState(false);
+  const [showAddSale, setShowAddSale] = useState(false);
+  const [showAddExpense, setShowAddExpense] = useState(false);
+
+  // Formulários
+  const [productForm, setProductForm] = useState({
+    name: "",
+    costPrice: "",
+    salePrice: "",
+    category: "",
+    stock: "",
   });
 
-  // Resultado
-  const [result, setResult] = useState<CalculationResult | null>(null);
+  const [saleForm, setSaleForm] = useState({
+    productId: "",
+    quantity: "",
+    date: new Date().toISOString().split("T")[0],
+    notes: "",
+  });
 
-  // Convex
-  const calculateProfit = useAction(api.profitCalculator.calculateProfit);
-  const calculations = useQuery(api.profitCalculator.getCalculations) ?? [];
-  const deleteCalculation = useMutation(api.profitCalculator.deleteCalculation);
-  const toggleFavorite = useMutation(api.profitCalculator.toggleFavorite);
+  const [expenseForm, setExpenseForm] = useState({
+    description: "",
+    amount: "",
+    category: "outros" as ExpenseCategory,
+    date: new Date().toISOString().split("T")[0],
+    notes: "",
+  });
+
+  // Queries
+  const products = useQuery(api.profitCalculator.getProducts, { activeOnly: false }) ?? [];
+  const activeProducts = products.filter((p) => p.active);
+  const sales = useQuery(api.profitCalculator.getSalesByMonth, { month: selectedMonth }) ?? [];
+  const expenses = useQuery(api.profitCalculator.getExpensesByMonth, { month: selectedMonth }) ?? [];
+  const monthlyReport = useQuery(api.profitCalculator.getMonthlyReport, { month: selectedMonth });
+  const allMonths = useQuery(api.profitCalculator.getAllMonths) ?? [];
+
+  // Mutations
+  const addProduct = useMutation(api.profitCalculator.addProduct);
+  const deleteProduct = useMutation(api.profitCalculator.deleteProduct);
+  const addSale = useMutation(api.profitCalculator.addSale);
+  const deleteSale = useMutation(api.profitCalculator.deleteSale);
+  const addExpense = useMutation(api.profitCalculator.addExpense);
+  const deleteExpense = useMutation(api.profitCalculator.deleteExpense);
+  const generateReport = useAction(api.profitCalculator.generateMonthlyReport);
+
+  // Auto-gerar relatório quando mudar de mês ou dados
+  useEffect(() => {
+    if (sales.length > 0 || expenses.length > 0) {
+      generateReport({ month: selectedMonth }).catch(() => {});
+    }
+  }, [selectedMonth, sales.length, expenses.length, generateReport]);
 
   // =================================================================
-  // 🧮 CÁLCULOS
+  // 🧮 FUNÇÕES AUXILIARES
   // =================================================================
-
-  const totalFixedCosts = useMemo(() => {
-    return Object.values(fixedCosts).reduce((sum, val) => sum + (val || 0), 0);
-  }, [fixedCosts]);
-
-  const totalVariableCosts = useMemo(() => {
-    return Object.values(variableCosts).reduce((sum, val) => sum + (val || 0), 0);
-  }, [variableCosts]);
-
-  const totalCosts = totalFixedCosts + totalVariableCosts;
-
-  // =================================================================
-  // 🎊 FUNÇÕES AUXILIARES
-  // =================================================================
-
-  const triggerConfetti = useCallback(() => {
-    confetti({
-      particleCount: 150,
-      spread: 100,
-      origin: { y: 0.6 },
-      colors: ['#10B981', '#3B82F6', '#8B5CF6', '#F59E0B']
-    });
-  }, []);
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL'
+    return new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: "BRL",
     }).format(value);
   };
 
-  const handleAddProduct = () => {
-    const newProduct: Product = {
-      id: Date.now().toString(),
-      name: "",
-      price: 0,
-      quantity: 0,
-      total: 0
-    };
-    setProducts([...products, newProduct]);
+  const formatDate = (dateStr: string) => {
+    return new Date(dateStr + "T00:00:00").toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "short",
+    });
   };
 
-  const handleUpdateProduct = (id: string, field: keyof Product, value: string | number) => {
-    setProducts(products.map(p => {
-      if (p.id === id) {
-        const updated = { ...p, [field]: value };
-        if (field === 'price' || field === 'quantity') {
-          updated.total = updated.price * updated.quantity;
-        }
-        return updated;
-      }
-      return p;
-    }));
+  const getCurrentMonthName = () => {
+    const [year, month] = selectedMonth.split("-");
+    return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
   };
 
-  const handleRemoveProduct = (id: string) => {
-    setProducts(products.filter(p => p.id !== id));
-  };
-
-  const calculateProductsRevenue = () => {
-    return products.reduce((sum, p) => sum + p.total, 0);
+  const navigateMonth = (direction: "prev" | "next") => {
+    const [year, month] = selectedMonth.split("-").map(Number);
+    const date = new Date(year, month - 1);
+    date.setMonth(date.getMonth() + (direction === "next" ? 1 : -1));
+    const newMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    setSelectedMonth(newMonth);
   };
 
   // =================================================================
-  // 🚀 CALCULAR
+  // 🎯 HANDLERS - PRODUTOS
   // =================================================================
 
-  const handleCalculate = async () => {
-    if (!businessName.trim()) {
-      toast.error("Digite o nome do seu negócio!");
+  const handleAddProduct = async () => {
+    if (!productForm.name.trim() || !productForm.costPrice || !productForm.salePrice) {
+      toast.error("Preencha todos os campos obrigatórios!");
       return;
     }
-
-    if (monthlyRevenue <= 0 && calculateProductsRevenue() <= 0) {
-      toast.error("Informe sua receita mensal!");
-      return;
-    }
-
-    setIsCalculating(true);
 
     try {
-      const finalRevenue = showProducts ? calculateProductsRevenue() : monthlyRevenue;
-
-      const response = await calculateProfit({
-        businessName,
-        businessType,
-        revenue: {
-          monthly: finalRevenue,
-          products: showProducts ? products.map(p => ({
-            name: p.name,
-            price: p.price,
-            quantity: p.quantity,
-            total: p.total
-          })) : undefined
-        },
-        fixedCosts: {
-          ...fixedCosts,
-          total: totalFixedCosts
-        },
-        variableCosts: {
-          ...variableCosts,
-          total: totalVariableCosts
-        }
+      await addProduct({
+        name: productForm.name,
+        costPrice: parseFloat(productForm.costPrice),
+        salePrice: parseFloat(productForm.salePrice),
+        category: productForm.category || undefined,
+        stock: productForm.stock ? parseInt(productForm.stock) : undefined,
       });
 
-      setResult(response as CalculationResult);
-
-      toast.success(
-        <div className="flex flex-col gap-1">
-          <p className="font-bold">✅ Análise concluída!</p>
-          <p className="text-xs">Score: {(response as CalculationResult).aiAnalysis.score}/100</p>
-        </div>
-      );
-
-      triggerConfetti();
-      setActiveTab("calculator");
+      toast.success("✅ Produto cadastrado!");
+      setShowAddProduct(false);
+      setProductForm({ name: "", costPrice: "", salePrice: "", category: "", stock: "" });
     } catch (error) {
+      toast.error("Erro ao cadastrar produto");
       console.error(error);
-      toast.error(error instanceof Error ? error.message : "Erro ao calcular");
-    } finally {
-      setIsCalculating(false);
     }
   };
 
-  const handleDelete = async (id: Id<"profitCalculations">) => {
+  const handleDeleteProduct = async (id: Id<"products">) => {
     try {
-      await deleteCalculation({ id });
-      toast.success("Cálculo deletado!");
-    } catch  {
-      toast.error("Erro ao deletar");
+      await deleteProduct({ id });
+      toast.success("🗑️ Produto deletado!");
+    } catch {
+      toast.error("Erro ao deletar produto");
     }
   };
 
-  const handleToggleFavorite = async (id: Id<"profitCalculations">, currentFavorite: boolean) => {
+  // =================================================================
+  // 🎯 HANDLERS - VENDAS
+  // =================================================================
+
+  const handleAddSale = async () => {
+    if (!saleForm.productId || !saleForm.quantity || !saleForm.date) {
+      toast.error("Preencha todos os campos!");
+      return;
+    }
+
     try {
-      await toggleFavorite({ id, favorite: !currentFavorite });
-      toast.success(currentFavorite ? "Removido dos favoritos" : "⭐ Favoritado!");
-    } catch  {
-      toast.error("Erro ao favoritar");
+      await addSale({
+        productId: saleForm.productId as Id<"products">,
+        quantity: parseInt(saleForm.quantity),
+        date: saleForm.date,
+        notes: saleForm.notes || undefined,
+      });
+
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#10B981", "#3B82F6", "#F59E0B"],
+      });
+
+      toast.success("🎉 Venda registrada!");
+      setShowAddSale(false);
+      setSaleForm({ productId: "", quantity: "", date: new Date().toISOString().split("T")[0], notes: "" });
+    } catch (error) {
+      toast.error("Erro ao registrar venda");
+      console.error(error);
     }
   };
 
-  const handleLoadCalculation = (calc: SavedCalculation) => {
-    setBusinessName(calc.businessName);
-    setBusinessType(calc.businessType);
-    setMonthlyRevenue(calc.revenue.monthly);
-    setProducts(calc.revenue.products || []);
-    setShowProducts(!!calc.revenue.products?.length);
-    setFixedCosts({
-      rent: calc.fixedCosts.rent || 0,
-      salaries: calc.fixedCosts.salaries || 0,
-      software: calc.fixedCosts.software || 0,
-      marketing: calc.fixedCosts.marketing || 0,
-      utilities: calc.fixedCosts.utilities || 0,
-      insurance: calc.fixedCosts.insurance || 0,
-      other: calc.fixedCosts.other || 0
-    });
-    setVariableCosts({
-      materials: calc.variableCosts.materials || 0,
-      shipping: calc.variableCosts.shipping || 0,
-      commissions: calc.variableCosts.commissions || 0,
-      packaging: calc.variableCosts.packaging || 0,
-      ads: calc.variableCosts.ads || 0,
-      fees: calc.variableCosts.fees || 0,
-      other: calc.variableCosts.other || 0
-    });
-    setResult({
-      id: calc._id,
-      results: calc.results,
-      aiAnalysis: calc.aiAnalysis,
-      scenarios: calc.scenarios
-    });
-    setActiveTab("calculator");
-    toast.success("Cálculo carregado!");
+  const handleDeleteSale = async (id: Id<"sales">) => {
+    try {
+      await deleteSale({ id });
+      toast.success("🗑️ Venda deletada!");
+    } catch {
+      toast.error("Erro ao deletar venda");
+    }
   };
 
-  const handleReset = () => {
-    setBusinessName("");
-    setBusinessType("ecommerce");
-    setMonthlyRevenue(0);
-    setProducts([]);
-    setShowProducts(false);
-    setFixedCosts({
-      rent: 0,
-      salaries: 0,
-      software: 0,
-      marketing: 0,
-      utilities: 0,
-      insurance: 0,
-      other: 0
-    });
-    setVariableCosts({
-      materials: 0,
-      shipping: 0,
-      commissions: 0,
-      packaging: 0,
-      ads: 0,
-      fees: 0,
-      other: 0
-    });
-    setResult(null);
-    toast.success("Formulário limpo!");
+  // =================================================================
+  // 🎯 HANDLERS - GASTOS
+  // =================================================================
+
+  const handleAddExpense = async () => {
+    if (!expenseForm.description.trim() || !expenseForm.amount || !expenseForm.date) {
+      toast.error("Preencha todos os campos!");
+      return;
+    }
+
+    try {
+      await addExpense({
+        description: expenseForm.description,
+        amount: parseFloat(expenseForm.amount),
+        category: expenseForm.category,
+        date: expenseForm.date,
+        notes: expenseForm.notes || undefined,
+      });
+
+      toast.success("✅ Gasto registrado!");
+      setShowAddExpense(false);
+      setExpenseForm({
+        description: "",
+        amount: "",
+        category: "outros",
+        date: new Date().toISOString().split("T")[0],
+        notes: "",
+      });
+    } catch (error) {
+      toast.error("Erro ao registrar gasto");
+      console.error(error);
+    }
+  };
+
+  const handleDeleteExpense = async (id: Id<"expenses">) => {
+    try {
+      await deleteExpense({ id });
+      toast.success("🗑️ Gasto deletado!");
+    } catch {
+      toast.error("Erro ao deletar gasto");
+    }
   };
 
   // =================================================================
@@ -429,779 +295,1004 @@ export default function ProfitCalculatorComponent() {
   // =================================================================
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-emerald-50/30 pb-12">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-12">
       {/* Background decorativo */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl" />
       </div>
 
       <div className="relative max-w-7xl mx-auto px-4 py-6">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-6"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-3xl md:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                💼 Gestão Financeira
+              </h1>
+              <p className="text-gray-600 mt-1">Controle simples e automático do seu negócio</p>
+            </div>
+          </div>
 
-        {/* Header com Stats */}
-        {result && (
-          <motion.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="mb-6"
-          >
-            <Card className="bg-gradient-to-br from-emerald-500 to-blue-600 border-0 shadow-2xl overflow-hidden">
-              <div className="p-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="text-center">
-                    <DollarSign className="w-6 h-6 mx-auto mb-2 text-emerald-100" />
-                    <p className="text-sm text-emerald-100">Receita</p>
-                    <p className="text-lg md:text-xl font-bold text-white">
-                      {formatCurrency(result.results.totalRevenue)}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <TrendingUp className="w-6 h-6 mx-auto mb-2 text-white" />
-                    <p className="text-sm text-emerald-100">Lucro Líquido</p>
-                    <p className={`text-lg md:text-xl font-bold ${
-                      result.results.netProfit >= 0 ? 'text-white' : 'text-red-200'
-                    }`}>
-                      {formatCurrency(result.results.netProfit)}
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <PieChart className="w-6 h-6 mx-auto mb-2 text-blue-100" />
-                    <p className="text-sm text-emerald-100">Margem</p>
-                    <p className="text-lg md:text-xl font-bold text-white">
-                      {result.results.profitMargin.toFixed(1)}%
-                    </p>
-                  </div>
-                  <div className="text-center">
-                    <Award className="w-6 h-6 mx-auto mb-2 text-yellow-200" />
-                    <p className="text-sm text-emerald-100">Score IA</p>
-                    <p className="text-lg md:text-xl font-bold text-white">
-                      {result.aiAnalysis.score}/100
-                    </p>
-                  </div>
+          {/* Seletor de Mês */}
+          <Card className="p-4 bg-white/80 backdrop-blur-sm border-2">
+            <div className="flex items-center justify-between gap-4">
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigateMonth("prev")}
+                className="h-10 w-10"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+
+              <div className="flex-1 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <Calendar className="w-5 h-5 text-blue-600" />
+                  <h2 className="text-xl font-bold capitalize">{getCurrentMonthName()}</h2>
                 </div>
+                {allMonths.length > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {allMonths.length} {allMonths.length === 1 ? "mês" : "meses"} registrados
+                  </p>
+                )}
               </div>
+
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => navigateMonth("next")}
+                className="h-10 w-10"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Button>
+            </div>
+          </Card>
+        </motion.div>
+
+        {/* Cards de Resumo Rápido */}
+        {monthlyReport && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6"
+          >
+            {/* Receita Total */}
+            <Card className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white">
+              <div className="flex items-center gap-2 mb-2">
+                <ShoppingCart className="w-5 h-5" />
+                <p className="text-sm font-medium opacity-90">Receita</p>
+              </div>
+              <p className="text-2xl font-black">{formatCurrency(monthlyReport.totalRevenue)}</p>
+              <p className="text-xs opacity-75 mt-1">{monthlyReport.totalSales} vendas</p>
+            </Card>
+
+            {/* Gastos */}
+            <Card className="p-4 bg-gradient-to-br from-red-500 to-red-600 border-0 text-white">
+              <div className="flex items-center gap-2 mb-2">
+                <Receipt className="w-5 h-5" />
+                <p className="text-sm font-medium opacity-90">Gastos</p>
+              </div>
+              <p className="text-2xl font-black">{formatCurrency(monthlyReport.totalExpenses)}</p>
+              <p className="text-xs opacity-75 mt-1">{expenses.length} registros</p>
+            </Card>
+
+            {/* Lucro Líquido */}
+            <Card
+              className={`p-4 border-0 text-white ${
+                monthlyReport.netProfit >= 0
+                  ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
+                  : "bg-gradient-to-br from-orange-500 to-orange-600"
+              }`}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                {monthlyReport.netProfit >= 0 ? (
+                  <TrendingUp className="w-5 h-5" />
+                ) : (
+                  <TrendingDown className="w-5 h-5" />
+                )}
+                <p className="text-sm font-medium opacity-90">Lucro Líquido</p>
+              </div>
+              <p className="text-2xl font-black">{formatCurrency(monthlyReport.netProfit)}</p>
+              <p className="text-xs opacity-75 mt-1">Margem: {monthlyReport.profitMargin.toFixed(1)}%</p>
+            </Card>
+
+            {/* Produtos */}
+            <Card className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white">
+              <div className="flex items-center gap-2 mb-2">
+                <Package className="w-5 h-5" />
+                <p className="text-sm font-medium opacity-90">Produtos</p>
+              </div>
+              <p className="text-2xl font-black">{activeProducts.length}</p>
+              <p className="text-xs opacity-75 mt-1">cadastrados</p>
             </Card>
           </motion.div>
         )}
 
         {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "calculator" | "history")} className="space-y-6">
-          <TabsList className="grid grid-cols-2 max-w-md mx-auto bg-white shadow-lg">
-            <TabsTrigger value="calculator" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-blue-600 data-[state=active]:text-white">
-              <Calculator className="w-4 h-4 mr-2" />
-              Calculadora
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as typeof activeTab)} className="space-y-6">
+          <TabsList className="grid grid-cols-4 max-w-2xl mx-auto bg-white shadow-lg h-auto p-1">
+            <TabsTrigger
+              value="resumo"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-3"
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Resumo</span>
             </TabsTrigger>
-            <TabsTrigger value="history" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-purple-600 data-[state=active]:text-white">
-              <History className="w-4 h-4 mr-2" />
-              Histórico ({calculations.length})
+            <TabsTrigger
+              value="produtos"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-3"
+            >
+              <Package className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Produtos</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="vendas"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3"
+            >
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Vendas</span>
+            </TabsTrigger>
+            <TabsTrigger
+              value="gastos"
+              className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3"
+            >
+              <Receipt className="w-4 h-4 mr-2" />
+              <span className="hidden sm:inline">Gastos</span>
             </TabsTrigger>
           </TabsList>
 
-          {/* TAB: CALCULADORA */}
-          <TabsContent value="calculator">
-            <div className="grid lg:grid-cols-3 gap-6">
-
-              {/* Coluna 1: Informações Básicas */}
-              <motion.div
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                className="space-y-6"
-              >
-                <Card className="p-6 bg-white shadow-xl border-2">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-gradient-to-br from-emerald-100 to-blue-100 rounded-xl">
-                      <Settings className="w-6 h-6 text-emerald-600" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg">Informações Básicas</h3>
-                      <p className="text-xs text-gray-500">Configure seu negócio</p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    {/* Nome do Negócio */}
-                    <div>
-                      <Label className="text-sm font-semibold flex items-center gap-2">
-                        <span className="text-emerald-600">●</span> Nome do Negócio
-                      </Label>
-                      <Input
-                        value={businessName}
-                        onChange={(e) => setBusinessName(e.target.value)}
-                        placeholder="Ex: Loja do João"
-                        className="mt-2 border-2 focus:border-emerald-500"
-                      />
-                    </div>
-
-                    {/* Tipo de Negócio */}
-                    <div>
-                      <Label className="text-sm font-semibold flex items-center gap-2 mb-2">
-                        <span className="text-blue-600">●</span> Tipo de Negócio
-                      </Label>
-                      <Select value={businessType} onValueChange={(v) => setBusinessType(v as BusinessType)}>
-                        <SelectTrigger className="border-2 focus:border-blue-500">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {BUSINESS_TYPES.map(type => (
-                            <SelectItem key={type.value} value={type.value}>
-                              {type.icon} {type.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Receita */}
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <Label className="text-sm font-semibold flex items-center gap-2">
-                          <span className="text-purple-600">●</span> Receita Mensal
-                        </Label>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowProducts(!showProducts)}
-                          className="text-xs h-7"
-                        >
-                          {showProducts ? 'Modo Simples' : '+ Produtos'}
-                        </Button>
-                      </div>
-
-                      {!showProducts ? (
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-semibold">
-                            R$
-                          </span>
-                          <Input
-                            type="number"
-                            value={monthlyRevenue || ''}
-                            onChange={(e) => setMonthlyRevenue(parseFloat(e.target.value) || 0)}
-                            placeholder="0,00"
-                            className="pl-10 border-2 focus:border-purple-500"
-                          />
-                        </div>
-                      ) : (
-                        <div className="space-y-2">
-                          <AnimatePresence>
-                            {products.map((product, index) => (
-                              <motion.div
-                                key={product.id}
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: "auto" }}
-                                exit={{ opacity: 0, height: 0 }}
-                                className="bg-gray-50 rounded-lg p-3 space-y-2"
-                              >
-                                <div className="flex items-center justify-between">
-                                  <span className="text-xs font-semibold text-gray-600">
-                                    Produto #{index + 1}
-                                  </span>
-                                  <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => handleRemoveProduct(product.id)}
-                                    className="h-6 w-6 p-0 text-red-500"
-                                  >
-                                    <X className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                                <Input
-                                  placeholder="Nome do produto"
-                                  value={product.name}
-                                  onChange={(e) => handleUpdateProduct(product.id, 'name', e.target.value)}
-                                  className="text-sm"
-                                />
-                                <div className="grid grid-cols-2 gap-2">
-                                  <Input
-                                    type="number"
-                                    placeholder="Preço"
-                                    value={product.price || ''}
-                                    onChange={(e) => handleUpdateProduct(product.id, 'price', parseFloat(e.target.value) || 0)}
-                                    className="text-sm"
-                                  />
-                                  <Input
-                                    type="number"
-                                    placeholder="Qtd"
-                                    value={product.quantity || ''}
-                                    onChange={(e) => handleUpdateProduct(product.id, 'quantity', parseInt(e.target.value) || 0)}
-                                    className="text-sm"
-                                  />
-                                </div>
-                                <div className="text-right text-sm font-bold text-emerald-600">
-                                  Total: {formatCurrency(product.total)}
-                                </div>
-                              </motion.div>
-                            ))}
-                          </AnimatePresence>
-
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleAddProduct}
-                            className="w-full border-dashed border-2"
-                          >
-                            <Plus className="w-4 h-4 mr-2" />
-                            Adicionar Produto
-                          </Button>
-
-                          {products.length > 0 && (
-                            <div className="bg-emerald-50 rounded-lg p-3 border-2 border-emerald-200">
-                              <div className="flex items-center justify-between">
-                                <span className="font-semibold text-emerald-900">Receita Total:</span>
-                                <span className="text-lg font-bold text-emerald-600">
-                                  {formatCurrency(calculateProductsRevenue())}
-                                </span>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-
-                {/* Preview Rápido */}
-                <Card className="p-4 bg-gradient-to-br from-gray-50 to-gray-100 border-2">
-                  <h4 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                    <Info className="w-4 h-4 text-blue-500" />
-                    Preview Rápido
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Receita:</span>
-                      <span className="font-semibold text-emerald-600">
-                        {formatCurrency(showProducts ? calculateProductsRevenue() : monthlyRevenue)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Custos Fixos:</span>
-                      <span className="font-semibold text-orange-600">
-                        {formatCurrency(totalFixedCosts)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Custos Variáveis:</span>
-                      <span className="font-semibold text-red-600">
-                        {formatCurrency(totalVariableCosts)}
-                      </span>
-                    </div>
-                    <Separator />
-                    <div className="flex justify-between items-center">
-                      <span className="font-bold">Lucro Estimado:</span>
-                      <span className={`font-bold text-lg ${
-                        (showProducts ? calculateProductsRevenue() : monthlyRevenue) - totalCosts >= 0
-                          ? 'text-emerald-600'
-                          : 'text-red-600'
-                      }`}>
-                        {formatCurrency((showProducts ? calculateProductsRevenue() : monthlyRevenue) - totalCosts)}
-                      </span>
-                    </div>
-                  </div>
-                </Card>
-              </motion.div>
-
-              {/* Coluna 2: Custos */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.1 }}
-                className="space-y-6"
-              >
-                {/* Custos Fixos */}
-                <Card className="p-6 bg-white shadow-xl border-2">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-gradient-to-br from-orange-100 to-red-100 rounded-xl">
-                      <BarChart3 className="w-6 h-6 text-orange-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg">Custos Fixos</h3>
-                      <p className="text-xs text-gray-500">Despesas mensais recorrentes</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">Total</p>
-                      <p className="font-bold text-orange-600">
-                        {formatCurrency(totalFixedCosts)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {[
-                      { key: 'rent' as keyof FixedCosts, label: 'Aluguel', icon: '🏢' },
-                      { key: 'salaries' as keyof FixedCosts, label: 'Salários', icon: '👥' },
-                      { key: 'software' as keyof FixedCosts, label: 'Software/SaaS', icon: '💻' },
-                      { key: 'marketing' as keyof FixedCosts, label: 'Marketing Fixo', icon: '📢' },
-                      { key: 'utilities' as keyof FixedCosts, label: 'Contas (luz, água)', icon: '💡' },
-                      { key: 'insurance' as keyof FixedCosts, label: 'Seguros', icon: '🛡️' },
-                      { key: 'other' as keyof FixedCosts, label: 'Outros', icon: '📝' }
-                    ].map(item => (
-                      <div key={item.key}>
-                        <Label className="text-xs text-gray-600 flex items-center gap-1 mb-1">
-                          <span>{item.icon}</span> {item.label}
-                        </Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
-                          <Input
-                            type="number"
-                            value={fixedCosts[item.key] || ''}
-                            onChange={(e) => setFixedCosts({
-                              ...fixedCosts,
-                              [item.key]: parseFloat(e.target.value) || 0
-                            })}
-                            placeholder="0,00"
-                            className="pl-10 text-sm"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-              </motion.div>
-
-              {/* Coluna 3: Custos Variáveis */}
-              <motion.div
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.2 }}
-                className="space-y-6"
-              >
-                {/* Custos Variáveis */}
-                <Card className="p-6 bg-white shadow-xl border-2">
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="p-3 bg-gradient-to-br from-red-100 to-pink-100 rounded-xl">
-                      <TrendingDown className="w-6 h-6 text-red-600" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="font-bold text-lg">Custos Variáveis</h3>
-                      <p className="text-xs text-gray-500">Despesas por venda</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-gray-500">Total</p>
-                      <p className="font-bold text-red-600">
-                        {formatCurrency(totalVariableCosts)}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    {[
-                      { key: 'materials' as keyof VariableCosts, label: 'Materiais/Estoque', icon: '📦' },
-                      { key: 'shipping' as keyof VariableCosts, label: 'Frete', icon: '🚚' },
-                      { key: 'commissions' as keyof VariableCosts, label: 'Comissões', icon: '💰' },
-                      { key: 'packaging' as keyof VariableCosts, label: 'Embalagens', icon: '📦' },
-                      { key: 'ads' as keyof VariableCosts, label: 'Anúncios (Ads)', icon: '📱' },
-                      { key: 'fees' as keyof VariableCosts, label: 'Taxas de Plataforma', icon: '💳' },
-                      { key: 'other' as keyof VariableCosts, label: 'Outros', icon: '📝' }
-                    ].map(item => (
-                      <div key={item.key}>
-                        <Label className="text-xs text-gray-600 flex items-center gap-1 mb-1">
-                          <span>{item.icon}</span> {item.label}
-                        </Label>
-                        <div className="relative">
-                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm">R$</span>
-                          <Input
-                            type="number"
-                            value={variableCosts[item.key] || ''}
-                            onChange={(e) => setVariableCosts({
-                              ...variableCosts,
-                              [item.key]: parseFloat(e.target.value) || 0
-                            })}
-                            placeholder="0,00"
-                            className="pl-10 text-sm"
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
-
-                {/* Botões de Ação */}
-                <div className="space-y-3">
-                  <Button
-                    onClick={handleCalculate}
-                    disabled={isCalculating}
-                    className="w-full h-14 text-lg font-bold bg-gradient-to-r from-emerald-600 via-blue-600 to-purple-600 hover:from-emerald-700 hover:via-blue-700 hover:to-purple-700 shadow-2xl shadow-emerald-500/30"
-                  >
-                    {isCalculating ? (
-                      <>
-                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                        Analisando com IA...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-5 w-5" />
-                        Calcular & Analisar
-                      </>
-                    )}
+          {/* TAB: RESUMO */}
+          <TabsContent value="resumo">
+            {!monthlyReport || (sales.length === 0 && expenses.length === 0) ? (
+              <Card className="p-12 text-center border-2 border-dashed">
+                <Sparkles className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-xl font-bold text-gray-700 mb-2">
+                  Comece a usar agora!
+                </h3>
+                <p className="text-gray-500 mb-6 max-w-md mx-auto">
+                  Cadastre seus produtos, registre suas vendas e gastos. O sistema calcula tudo automaticamente!
+                </p>
+                <div className="flex flex-wrap gap-3 justify-center">
+                  <Button onClick={() => setActiveTab("produtos")} className="bg-purple-600 hover:bg-purple-700">
+                    <Package className="w-4 h-4 mr-2" />
+                    Cadastrar Produtos
                   </Button>
-
-                  <Button
-                    onClick={handleReset}
-                    variant="outline"
-                    className="w-full"
-                  >
-                    <RefreshCw className="mr-2 h-4 w-4" />
-                    Limpar Tudo
+                  <Button onClick={() => setActiveTab("vendas")} className="bg-emerald-600 hover:bg-emerald-700">
+                    <ShoppingCart className="w-4 h-4 mr-2" />
+                    Registrar Vendas
+                  </Button>
+                  <Button onClick={() => setActiveTab("gastos")} className="bg-red-600 hover:bg-red-700">
+                    <Receipt className="w-4 h-4 mr-2" />
+                    Adicionar Gastos
                   </Button>
                 </div>
-              </motion.div>
-            </div>
+              </Card>
+            ) : (
+              <div className="space-y-6">
+                {/* Análise Geral */}
+                <Card className="p-6 bg-gradient-to-br from-blue-50 to-purple-50 border-2 border-blue-200">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-xl">
+                      <Target className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-xl">Análise do Mês</h3>
+                      <p className="text-sm text-gray-600">Resultado financeiro de {getCurrentMonthName()}</p>
+                    </div>
+                  </div>
 
-            {/* Resultados */}
-            <AnimatePresence>
-              {result && (
-                <motion.div
-                  initial={{ opacity: 0, y: 40 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: 40 }}
-                  className="mt-8 space-y-6"
-                >
-                  {/* Análise IA */}
-                  <Card className="p-6 bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200">
-                    <div className="flex items-center gap-3 mb-6">
-                      <div className="p-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-xl">
-                        <Sparkles className="w-6 h-6 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-bold text-xl">Análise Inteligente</h3>
-                        <p className="text-sm text-gray-600">Powered by IA</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-blue-500 flex items-center justify-center">
-                          <div className="text-center">
-                            <p className="text-2xl font-black text-white">{result.aiAnalysis.score}</p>
-                            <p className="text-[10px] text-white/80">SCORE</p>
-                          </div>
-                        </div>
+                  <div className="grid md:grid-cols-3 gap-6">
+                    {/* Receita Bruta */}
+                    <div className="bg-white rounded-xl p-4 border-2 border-blue-200">
+                      <p className="text-sm text-gray-600 mb-2">Receita das Vendas</p>
+                      <p className="text-2xl font-bold text-blue-600 mb-1">
+                        {formatCurrency(monthlyReport.totalRevenue)}
+                      </p>
+                      <p className="text-xs text-gray-500">Custo: {formatCurrency(monthlyReport.totalCost)}</p>
+                      <Separator className="my-2" />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-gray-600">Lucro Bruto:</span>
+                        <span className="font-bold text-emerald-600">
+                          {formatCurrency(monthlyReport.grossProfit)}
+                        </span>
                       </div>
                     </div>
 
-                    {/* Benchmark */}
-                    <div className="mb-6 p-4 bg-white rounded-xl">
-                      <h4 className="font-semibold mb-3 flex items-center gap-2">
-                        <Target className="w-5 h-5 text-blue-500" />
-                        Comparação com Mercado
-                      </h4>
-                      <div className="grid md:grid-cols-3 gap-4">
-                        <div className="text-center">
-                          <p className="text-sm text-gray-600">Sua Margem</p>
-                          <p className="text-2xl font-bold text-emerald-600">
-                            {result.aiAnalysis.benchmarkComparison.yourMargin.toFixed(1)}%
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm text-gray-600">Média do Setor</p>
-                          <p className="text-2xl font-bold text-gray-700">
-                            {result.aiAnalysis.benchmarkComparison.industryAverage}%
-                          </p>
-                        </div>
-                        <div className="text-center">
-                          <p className="text-sm text-gray-600">Status</p>
-                          <Badge className={`${
-                            result.aiAnalysis.benchmarkComparison.status === 'above'
-                              ? 'bg-emerald-500'
-                              : result.aiAnalysis.benchmarkComparison.status === 'average'
-                              ? 'bg-yellow-500'
-                              : 'bg-red-500'
-                          }`}>
-                            {result.aiAnalysis.benchmarkComparison.status === 'above' && '🔥 Acima da Média'}
-                            {result.aiAnalysis.benchmarkComparison.status === 'average' && '📊 Na Média'}
-                            {result.aiAnalysis.benchmarkComparison.status === 'below' && '⚠️ Abaixo da Média'}
-                          </Badge>
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Insights */}
-                    {result.aiAnalysis.insights.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-emerald-700">
-                          <CheckCircle2 className="w-5 h-5" />
-                          Pontos Fortes ({result.aiAnalysis.insights.length})
-                        </h4>
-                        <div className="space-y-2">
-                          {result.aiAnalysis.insights.map((insight, i) => (
-                            <motion.div
-                              key={i}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.1 }}
-                              className="flex items-start gap-3 p-3 bg-emerald-50 rounded-lg border border-emerald-200"
-                            >
-                              <CheckCircle2 className="w-5 h-5 text-emerald-600 flex-shrink-0 mt-0.5" />
-                              <p className="text-sm text-gray-700">{insight}</p>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Avisos */}
-                    {result.aiAnalysis.warnings.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-orange-700">
-                          <AlertTriangle className="w-5 h-5" />
-                          Atenção ({result.aiAnalysis.warnings.length})
-                        </h4>
-                        <div className="space-y-2">
-                          {result.aiAnalysis.warnings.map((warning, i) => (
-                            <motion.div
-                              key={i}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.1 }}
-                              className="flex items-start gap-3 p-3 bg-orange-50 rounded-lg border border-orange-200"
-                            >
-                              <AlertTriangle className="w-5 h-5 text-orange-600 flex-shrink-0 mt-0.5" />
-                              <p className="text-sm text-gray-700">{warning}</p>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Oportunidades */}
-                    {result.aiAnalysis.opportunities.length > 0 && (
-                      <div className="mb-4">
-                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-blue-700">
-                          <Lightbulb className="w-5 h-5" />
-                          Oportunidades ({result.aiAnalysis.opportunities.length})
-                        </h4>
-                        <div className="space-y-2">
-                          {result.aiAnalysis.opportunities.map((opp, i) => (
-                            <motion.div
-                              key={i}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: i * 0.1 }}
-                              className="flex items-start gap-3 p-3 bg-blue-50 rounded-lg border border-blue-200"
-                            >
-                              <Lightbulb className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                              <p className="text-sm text-gray-700">{opp}</p>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Recomendações com potencial de economia */}
-                    {result.aiAnalysis.recommendations.length > 0 && (
-                      <div>
-                        <h4 className="font-semibold mb-3 flex items-center gap-2 text-purple-700">
-                          <Zap className="w-5 h-5" />
-                          Recomendações de Otimização
-                        </h4>
-                        <div className="grid md:grid-cols-2 gap-4">
-                          {result.aiAnalysis.recommendations.map((rec, i) => (
-                            <motion.div
-                              key={i}
-                              initial={{ opacity: 0, scale: 0.9 }}
-                              animate={{ opacity: 1, scale: 1 }}
-                              transition={{ delay: i * 0.1 }}
-                              className="p-4 bg-white rounded-xl border-2 border-purple-200 hover:border-purple-400 transition-all"
-                            >
-                              <div className="flex items-start justify-between mb-2">
-                                <h5 className="font-bold text-gray-900">{rec.title}</h5>
-                                <Badge className={`${
-                                  rec.impact === 'high' ? 'bg-red-500' :
-                                  rec.impact === 'medium' ? 'bg-yellow-500' :
-                                  'bg-blue-500'
-                                } text-white`}>
-                                  {rec.impact === 'high' && '🔥 Alto'}
-                                  {rec.impact === 'medium' && '⚡ Médio'}
-                                  {rec.impact === 'low' && '💡 Baixo'}
-                                </Badge>
-                              </div>
-                              <p className="text-sm text-gray-600 mb-3">{rec.description}</p>
-                              <div className="flex items-center justify-between pt-3 border-t">
-                                <span className="text-xs text-gray-500">Economia potencial:</span>
-                                <span className="font-bold text-emerald-600">
-                                  {formatCurrency(rec.potentialSavings)}
+                    {/* Gastos */}
+                    <div className="bg-white rounded-xl p-4 border-2 border-red-200">
+                      <p className="text-sm text-gray-600 mb-2">Total de Gastos</p>
+                      <p className="text-2xl font-bold text-red-600 mb-1">
+                        {formatCurrency(monthlyReport.totalExpenses)}
+                      </p>
+                      <p className="text-xs text-gray-500">{expenses.length} registros</p>
+                      <Separator className="my-2" />
+                      <div className="space-y-1">
+                        {Object.entries(monthlyReport.expensesByCategory)
+                          .filter(([, value]) => (value as number) > 0)
+                          .sort(([, a], [, b]) => (b as number) - (a as number))
+                          .slice(0, 2)
+                          .map(([cat, value]) => {
+                            const category = EXPENSE_CATEGORIES.find((c) => c.value === cat);
+                            return (
+                              <div key={cat} className="flex items-center justify-between text-xs">
+                                <span className="text-gray-600">
+                                  {category?.icon} {category?.label}:
                                 </span>
+                                <span className="font-semibold">{formatCurrency(value as number)}</span>
                               </div>
-                            </motion.div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                  </Card>
-
-                  {/* Cenários */}
-                  <Card className="p-6">
-                    <h3 className="font-bold text-xl mb-6 flex items-center gap-2">
-                      <Target className="w-6 h-6 text-blue-500" />
-                      Simulação de Cenários
-                    </h3>
-                    <div className="grid md:grid-cols-3 gap-4">
-                      {/* Otimista */}
-                      <div className="p-6 bg-gradient-to-br from-emerald-50 to-green-50 rounded-xl border-2 border-emerald-200">
-                        <div className="flex items-center gap-2 mb-4">
-                          <TrendingUp className="w-5 h-5 text-emerald-600" />
-                          <h4 className="font-bold text-emerald-900">Otimista</h4>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Receita:</span>
-                            <span className="font-semibold">{formatCurrency(result.scenarios.optimistic.revenue)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Lucro:</span>
-                            <span className="font-bold text-emerald-600">{formatCurrency(result.scenarios.optimistic.profit)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Margem:</span>
-                            <span className="font-bold">{result.scenarios.optimistic.margin.toFixed(1)}%</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Realista */}
-                      <div className="p-6 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl border-2 border-blue-200">
-                        <div className="flex items-center gap-2 mb-4">
-                          <BarChart3 className="w-5 h-5 text-blue-600" />
-                          <h4 className="font-bold text-blue-900">Realista</h4>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Receita:</span>
-                            <span className="font-semibold">{formatCurrency(result.scenarios.realistic.revenue)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Lucro:</span>
-                            <span className="font-bold text-blue-600">{formatCurrency(result.scenarios.realistic.profit)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Margem:</span>
-                            <span className="font-bold">{result.scenarios.realistic.margin.toFixed(1)}%</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      {/* Pessimista */}
-                      <div className="p-6 bg-gradient-to-br from-orange-50 to-red-50 rounded-xl border-2 border-orange-200">
-                        <div className="flex items-center gap-2 mb-4">
-                          <TrendingDown className="w-5 h-5 text-orange-600" />
-                          <h4 className="font-bold text-orange-900">Pessimista</h4>
-                        </div>
-                        <div className="space-y-2 text-sm">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Receita:</span>
-                            <span className="font-semibold">{formatCurrency(result.scenarios.pessimistic.revenue)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Lucro:</span>
-                            <span className="font-bold text-orange-600">{formatCurrency(result.scenarios.pessimistic.profit)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Margem:</span>
-                            <span className="font-bold">{result.scenarios.pessimistic.margin.toFixed(1)}%</span>
-                          </div>
-                        </div>
+                            );
+                          })}
                       </div>
                     </div>
+
+                    {/* Lucro Líquido */}
+                    <div
+                      className={`rounded-xl p-4 border-2 ${
+                        monthlyReport.netProfit >= 0
+                          ? "bg-gradient-to-br from-emerald-50 to-green-50 border-emerald-200"
+                          : "bg-gradient-to-br from-orange-50 to-red-50 border-orange-200"
+                      }`}
+                    >
+                      <p className="text-sm text-gray-600 mb-2">Lucro Líquido</p>
+                      <p
+                        className={`text-2xl font-bold mb-1 ${
+                          monthlyReport.netProfit >= 0 ? "text-emerald-600" : "text-red-600"
+                        }`}
+                      >
+                        {formatCurrency(monthlyReport.netProfit)}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Margem: {monthlyReport.profitMargin.toFixed(1)}%
+                      </p>
+                      <Separator className="my-2" />
+                      <div className="flex items-center gap-2">
+                        {monthlyReport.netProfit >= 0 ? (
+                          <>
+                            <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                            <span className="text-xs font-semibold text-emerald-700">
+                              Mês lucrativo! 🎉
+                            </span>
+                          </>
+                        ) : (
+                          <>
+                            <AlertCircle className="w-4 h-4 text-orange-600" />
+                            <span className="text-xs font-semibold text-orange-700">
+                              Atenção aos gastos
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+
+                {/* Top Produtos */}
+                {monthlyReport.topProducts.length > 0 && (
+                  <Card className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-purple-100 rounded-lg">
+                        <Zap className="w-5 h-5 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">Produtos Mais Vendidos</h3>
+                        <p className="text-xs text-gray-500">Top performance do mês</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-3">
+                      {monthlyReport.topProducts.slice(0, 5).map((product, index) => (
+                        <motion.div
+                          key={product.productId}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          transition={{ delay: index * 0.1 }}
+                          className="flex items-center gap-4 p-4 bg-gradient-to-r from-purple-50 to-blue-50 rounded-lg"
+                        >
+                          <div className="flex-shrink-0">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 flex items-center justify-center text-white font-bold">
+                              {index + 1}
+                            </div>
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-semibold text-gray-900 truncate">{product.productName}</p>
+                            <p className="text-xs text-gray-500">
+                              {product.quantity} {product.quantity === 1 ? "venda" : "vendas"}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-emerald-600">{formatCurrency(product.profit)}</p>
+                            <p className="text-xs text-gray-500">de lucro</p>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
                   </Card>
-                </motion.div>
-              )}
-            </AnimatePresence>
+                )}
+
+                {/* Gastos por Categoria */}
+                <Card className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <PieChart className="w-5 h-5 text-red-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-lg">Gastos por Categoria</h3>
+                      <p className="text-xs text-gray-500">Distribuição dos custos</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    {Object.entries(monthlyReport.expensesByCategory)
+                      .filter(([, value]) => (value as number) > 0)
+                      .sort(([, a], [, b]) => (b as number) - (a as number))
+                      .map(([cat, value]) => {
+                        const category = EXPENSE_CATEGORIES.find((c) => c.value === cat);
+                        const percentage = ((value as number) / monthlyReport.totalExpenses) * 100;
+                        return (
+                          <div key={cat}>
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span>{category?.icon}</span>
+                                <span className="text-sm font-medium">{category?.label}</span>
+                              </div>
+                              <div className="text-right">
+                                <p className="font-bold text-gray-900">{formatCurrency(value as number)}</p>
+                                <p className="text-xs text-gray-500">{percentage.toFixed(1)}%</p>
+                              </div>
+                            </div>
+                            <Progress value={percentage} className="h-2" />
+                          </div>
+                        );
+                      })}
+                  </div>
+                </Card>
+
+                {/* Comparação com Meses Anteriores */}
+                {allMonths.length > 1 && (
+                  <Card className="p-6">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <BarChart3 className="w-5 h-5 text-blue-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-lg">Evolução Mensal</h3>
+                        <p className="text-xs text-gray-500">Últimos meses</p>
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-3 gap-4">
+                      {allMonths.slice(0, 6).map((month) => {
+                        const [year, monthNum] = month.month.split("-");
+                        const monthName = new Date(parseInt(year), parseInt(monthNum) - 1).toLocaleDateString(
+                          "pt-BR",
+                          { month: "short", year: "2-digit" }
+                        );
+                        const isCurrentMonth = month.month === selectedMonth;
+
+                        return (
+                          <div
+                            key={month.month}
+                            className={`p-4 rounded-lg border-2 ${
+                              isCurrentMonth
+                                ? "bg-gradient-to-br from-blue-50 to-purple-50 border-blue-300"
+                                : "bg-gray-50 border-gray-200"
+                            }`}
+                          >
+                            <p className="text-xs font-semibold text-gray-600 uppercase mb-2">
+                              {monthName}
+                            </p>
+                            <p
+                              className={`text-lg font-bold ${
+                                month.netProfit >= 0 ? "text-emerald-600" : "text-red-600"
+                              }`}
+                            >
+                              {formatCurrency(month.netProfit)}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              Margem: {month.profitMargin.toFixed(1)}%
+                            </p>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </Card>
+                )}
+              </div>
+            )}
           </TabsContent>
 
-          {/* TAB: HISTÓRICO */}
-          <TabsContent value="history">
+          {/* TAB: PRODUTOS */}
+          <TabsContent value="produtos">
             <div className="space-y-4">
-              {calculations.length === 0 ? (
-                <Card className="p-20 text-center border-2 border-dashed">
-                  <Clock className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold text-gray-700 mb-2">
-                    Nenhum cálculo salvo ainda
-                  </h3>
-                  <p className="text-gray-500 mb-6">
-                    Faça sua primeira análise para começar!
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">Seus Produtos</h3>
+                  <p className="text-sm text-gray-500">
+                    {activeProducts.length} produto{activeProducts.length !== 1 ? "s" : ""} ativo
+                    {activeProducts.length !== 1 ? "s" : ""}
                   </p>
-                  <Button onClick={() => setActiveTab("calculator")}>
-                    <Calculator className="w-4 h-4 mr-2" />
-                    Ir para Calculadora
+                </div>
+                <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Novo Produto
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <Label>Nome do Produto *</Label>
+                        <Input
+                          placeholder="Ex: Camiseta Básica"
+                          value={productForm.name}
+                          onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Preço de Custo (quanto pagou) *</Label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">R$</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0,00"
+                              className="pl-10"
+                              value={productForm.costPrice}
+                              onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <Label>Preço de Venda *</Label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">R$</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0,00"
+                              className="pl-10"
+                              value={productForm.salePrice}
+                              onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Categoria (opcional)</Label>
+                          <Input
+                            placeholder="Ex: Roupas"
+                            value={productForm.category}
+                            onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>Estoque (opcional)</Label>
+                          <Input
+                            type="number"
+                            placeholder="0"
+                            value={productForm.stock}
+                            onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      {productForm.costPrice && productForm.salePrice && (
+                        <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200">
+                          <p className="text-sm text-gray-600 mb-1">Lucro por unidade:</p>
+                          <p className="text-xl font-bold text-emerald-600">
+                            {formatCurrency(
+                              parseFloat(productForm.salePrice || "0") - parseFloat(productForm.costPrice || "0")
+                            )}
+                          </p>
+                        </div>
+                      )}
+
+                      <Button onClick={handleAddProduct} className="w-full bg-purple-600 hover:bg-purple-700">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Cadastrar Produto
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {products.length === 0 ? (
+                <Card className="p-12 text-center border-2 border-dashed">
+                  <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-xl font-bold text-gray-700 mb-2">Nenhum produto cadastrado</h3>
+                  <p className="text-gray-500 mb-6">
+                    Cadastre os produtos que você vende para começar a controlar seus lucros
+                  </p>
+                  <Button
+                    onClick={() => setShowAddProduct(true)}
+                    className="bg-purple-600 hover:bg-purple-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Cadastrar Primeiro Produto
                   </Button>
                 </Card>
               ) : (
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {calculations.map((calc) => (
-                    <motion.div
-                      key={calc._id}
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      whileHover={{ y: -4 }}
+                  {products.map((product) => {
+                    const profit = product.salePrice - product.costPrice;
+                    const profitMargin = (profit / product.salePrice) * 100;
+
+                    return (
+                      <motion.div
+                        key={product._id}
+                        initial={{ opacity: 0, scale: 0.9 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        whileHover={{ y: -4 }}
+                      >
+                        <Card
+                          className={`p-4 ${
+                            product.active
+                              ? "border-2 border-purple-200 hover:border-purple-400"
+                              : "opacity-60 border-2 border-gray-200"
+                          } transition-all`}
+                        >
+                          <div className="flex items-start justify-between mb-3">
+                            <div className="flex-1">
+                              <h4 className="font-bold text-gray-900 mb-1">{product.name}</h4>
+                              {product.category && (
+                                <Badge variant="outline" className="text-xs">
+                                  {product.category}
+                                </Badge>
+                              )}
+                            </div>
+                            <div className="flex gap-1">
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-red-500"
+                                onClick={() => handleDeleteProduct(product._id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+
+                          <div className="space-y-2 text-sm mb-3">
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Custo:</span>
+                              <span className="font-semibold">{formatCurrency(product.costPrice)}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Venda:</span>
+                              <span className="font-semibold">{formatCurrency(product.salePrice)}</span>
+                            </div>
+                            {product.stock !== undefined && product.stock !== null && (
+                              <div className="flex justify-between">
+                                <span className="text-gray-600">Estoque:</span>
+                                <span
+                                  className={`font-semibold ${
+                                    product.stock <= 5 ? "text-red-600" : "text-gray-900"
+                                  }`}
+                                >
+                                  {product.stock} unidades
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <Separator className="my-3" />
+
+                          <div className="bg-gradient-to-r from-emerald-50 to-green-50 rounded-lg p-3 border border-emerald-200">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-xs text-gray-600">Lucro/unidade:</p>
+                                <p className="text-lg font-bold text-emerald-600">{formatCurrency(profit)}</p>
+                              </div>
+                              <div className="text-right">
+                                <p className="text-xs text-gray-600">Margem:</p>
+                                <p className="text-lg font-bold text-emerald-600">{profitMargin.toFixed(1)}%</p>
+                              </div>
+                            </div>
+                          </div>
+
+                          {!product.active && (
+                            <div className="mt-3 p-2 bg-gray-100 rounded text-center">
+                              <p className="text-xs text-gray-600">Produto inativo</p>
+                            </div>
+                          )}
+                        </Card>
+                      </motion.div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* TAB: VENDAS */}
+          <TabsContent value="vendas">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">Vendas de {getCurrentMonthName()}</h3>
+                  <p className="text-sm text-gray-500">
+                    {sales.length} venda{sales.length !== 1 ? "s" : ""} registrada
+                    {sales.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
+                  <DialogTrigger asChild>
+                    <Button
+                      className="bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700"
+                      disabled={activeProducts.length === 0}
                     >
-                      <Card className="p-6 hover:shadow-2xl transition-all cursor-pointer border-2 hover:border-emerald-300">
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex-1">
-                            <h3 className="font-bold text-lg text-gray-900 mb-1">
-                              {calc.businessName}
-                            </h3>
-                            <Badge variant="outline" className="text-xs">
-                              {BUSINESS_TYPES.find(t => t.value === calc.businessType)?.icon}{' '}
-                              {BUSINESS_TYPES.find(t => t.value === calc.businessType)?.label}
-                            </Badge>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nova Venda
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>🛒 Registrar Venda</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <Label>Produto *</Label>
+                        <Select value={saleForm.productId} onValueChange={(v) => setSaleForm({ ...saleForm, productId: v })}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione o produto" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {activeProducts.map((p) => (
+                              <SelectItem key={p._id} value={p._id}>
+                                {p.name} - {formatCurrency(p.salePrice)}
+                                {p.stock !== undefined && ` (${p.stock} em estoque)`}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Quantidade *</Label>
+                          <Input
+                            type="number"
+                            min="1"
+                            placeholder="1"
+                            value={saleForm.quantity}
+                            onChange={(e) => setSaleForm({ ...saleForm, quantity: e.target.value })}
+                          />
+                        </div>
+                        <div>
+                          <Label>Data da Venda *</Label>
+                          <Input
+                            type="date"
+                            value={saleForm.date}
+                            onChange={(e) => setSaleForm({ ...saleForm, date: e.target.value })}
+                          />
+                        </div>
+                      </div>
+
+                      <div>
+                        <Label>Observações (opcional)</Label>
+                        <Input
+                          placeholder="Ex: Cliente João, pagamento via PIX"
+                          value={saleForm.notes}
+                          onChange={(e) => setSaleForm({ ...saleForm, notes: e.target.value })}
+                        />
+                      </div>
+
+                      {saleForm.productId && saleForm.quantity && (
+                        <div className="p-4 bg-gradient-to-br from-emerald-50 to-green-50 rounded-lg border-2 border-emerald-200">
+                          {(() => {
+                            const product = activeProducts.find((p) => p._id === saleForm.productId);
+                            if (!product) return null;
+                            const qty = parseInt(saleForm.quantity);
+                            const totalRevenue = product.salePrice * qty;
+                            const totalCost = product.costPrice * qty;
+                            const profit = totalRevenue - totalCost;
+
+                            return (
+                              <div className="space-y-2">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">Receita:</span>
+                                  <span className="font-semibold">{formatCurrency(totalRevenue)}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-gray-600">Custo:</span>
+                                  <span className="font-semibold text-red-600">
+                                    -{formatCurrency(totalCost)}
+                                  </span>
+                                </div>
+                                <Separator />
+                                <div className="flex justify-between items-center">
+                                  <span className="font-bold">Lucro:</span>
+                                  <span className="text-xl font-black text-emerald-600">
+                                    {formatCurrency(profit)}
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                        </div>
+                      )}
+
+                      <Button onClick={handleAddSale} className="w-full bg-emerald-600 hover:bg-emerald-700">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Registrar Venda
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {activeProducts.length === 0 ? (
+                <Card className="p-12 text-center border-2 border-dashed">
+                  <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-xl font-bold text-gray-700 mb-2">Cadastre produtos primeiro</h3>
+                  <p className="text-gray-500 mb-6">
+                    Você precisa ter produtos cadastrados para registrar vendas
+                  </p>
+                  <Button onClick={() => setActiveTab("produtos")} className="bg-purple-600 hover:bg-purple-700">
+                    <Package className="w-4 h-4 mr-2" />
+                    Ir para Produtos
+                  </Button>
+                </Card>
+              ) : sales.length === 0 ? (
+                <Card className="p-12 text-center border-2 border-dashed">
+                  <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-xl font-bold text-gray-700 mb-2">Nenhuma venda neste mês</h3>
+                  <p className="text-gray-500 mb-6">Registre suas vendas para acompanhar seus lucros</p>
+                  <Button
+                    onClick={() => setShowAddSale(true)}
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Registrar Primeira Venda
+                  </Button>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  <AnimatePresence>
+                    {sales.map((sale, index) => (
+                      <motion.div
+                        key={sale._id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 20 }}
+                        transition={{ delay: index * 0.05 }}
+                      >
+                        <Card className="p-4 hover:shadow-lg transition-all border-2 hover:border-emerald-300">
+                          <div className="flex items-start gap-4">
+                            <div className="p-3 bg-gradient-to-br from-emerald-100 to-green-100 rounded-lg">
+                              <ShoppingCart className="w-5 h-5 text-emerald-600" />
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between mb-2">
+                                <div>
+                                  <h4 className="font-bold text-gray-900">{sale.productName}</h4>
+                                  <p className="text-sm text-gray-500">
+                                    {sale.quantity}x {formatCurrency(sale.salePrice)} • {formatDate(sale.date)}
+                                  </p>
+                                  {sale.notes && (
+                                    <p className="text-xs text-gray-500 mt-1 italic">{sale.notes}</p>
+                                  )}
+                                </div>
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-8 w-8 text-red-500"
+                                  onClick={() => handleDeleteSale(sale._id)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+
+                              <div className="grid grid-cols-3 gap-4 text-sm">
+                                <div>
+                                  <p className="text-gray-500 text-xs">Receita</p>
+                                  <p className="font-semibold text-blue-600">
+                                    {formatCurrency(sale.totalRevenue)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500 text-xs">Custo</p>
+                                  <p className="font-semibold text-red-600">
+                                    {formatCurrency(sale.totalCost)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="text-gray-500 text-xs">Lucro</p>
+                                  <p className="font-bold text-emerald-600">
+                                    {formatCurrency(sale.profit)}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          <div className="flex gap-1">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => handleToggleFavorite(calc._id, calc.favorite || false)}
-                              className="h-8 w-8"
-                            >
-                              <Star
-                                className={`w-4 h-4 ${
-                                  calc.favorite ? 'fill-yellow-400 text-yellow-400' : 'text-gray-400'
-                                }`}
-                              />
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              onClick={() => handleDelete(calc._id)}
-                              className="h-8 w-8 text-red-500"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                        </Card>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
+                </div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* TAB: GASTOS */}
+          <TabsContent value="gastos">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">Gastos de {getCurrentMonthName()}</h3>
+                  <p className="text-sm text-gray-500">
+                    {expenses.length} gasto{expenses.length !== 1 ? "s" : ""} registrado
+                    {expenses.length !== 1 ? "s" : ""}
+                  </p>
+                </div>
+                <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
+                  <DialogTrigger asChild>
+                    <Button className="bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-700 hover:to-orange-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Novo Gasto
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>💸 Registrar Gasto</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-4">
+                      <div>
+                        <Label>Descrição *</Label>
+                        <Input
+                          placeholder="Ex: Conta de luz"
+                          value={expenseForm.description}
+                          onChange={(e) =>
+                            setExpenseForm({ ...expenseForm, description: e.target.value })
+                          }
+                        />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Valor *</Label>
+                          <div className="relative">
+                            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">R$</span>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0,00"
+                              className="pl-10"
+                              value={expenseForm.amount}
+                              onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                            />
                           </div>
                         </div>
-
-                        <div className="space-y-3 mb-4">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Lucro Líquido:</span>
-                            <span className={`font-bold ${
-                              calc.results.netProfit >= 0 ? 'text-emerald-600' : 'text-red-600'
-                            }`}>
-                              {formatCurrency(calc.results.netProfit)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Margem:</span>
-                            <span className="font-bold">{calc.results.profitMargin.toFixed(1)}%</span>
-                          </div>
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Score IA:</span>
-                            <span className="font-bold text-purple-600">
-                              {calc.aiAnalysis?.score ?? 'N/A'}/100
-                            </span>
-                          </div>
+                        <div>
+                          <Label>Data *</Label>
+                          <Input
+                            type="date"
+                            value={expenseForm.date}
+                            onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                          />
                         </div>
+                      </div>
 
-                        <div className="flex items-center justify-between pt-3 border-t">
-                          <span className="text-xs text-gray-500">
-                            {new Date(calc.createdAt).toLocaleDateString('pt-BR')}
-                          </span>
-                          <Button
-                            size="sm"
-                            onClick={() => handleLoadCalculation(calc as SavedCalculation)}
-                            className="bg-emerald-600 hover:bg-emerald-700"
+                      <div>
+                        <Label>Categoria *</Label>
+                        <Select
+                          value={expenseForm.category}
+                          onValueChange={(v) => setExpenseForm({ ...expenseForm, category: v as ExpenseCategory })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {EXPENSE_CATEGORIES.map((cat) => (
+                              <SelectItem key={cat.value} value={cat.value}>
+                                {cat.icon} {cat.label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <Label>Observações (opcional)</Label>
+                        <Input
+                          placeholder="Ex: Vencimento dia 15"
+                          value={expenseForm.notes}
+                          onChange={(e) => setExpenseForm({ ...expenseForm, notes: e.target.value })}
+                        />
+                      </div>
+
+                      <Button onClick={handleAddExpense} className="w-full bg-red-600 hover:bg-red-700">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Registrar Gasto
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+
+              {expenses.length === 0 ? (
+                <Card className="p-12 text-center border-2 border-dashed">
+                  <Receipt className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-xl font-bold text-gray-700 mb-2">Nenhum gasto neste mês</h3>
+                  <p className="text-gray-500 mb-6">
+                    Registre seus gastos diários para ter controle total do seu negócio
+                  </p>
+                  <Button
+                    onClick={() => setShowAddExpense(true)}
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Registrar Primeiro Gasto
+                  </Button>
+                </Card>
+              ) : (
+                <div className="space-y-3">
+                  <AnimatePresence>
+                    {expenses
+                      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                      .map((expense, index) => {
+                        const category = EXPENSE_CATEGORIES.find((c) => c.value === expense.category);
+                        return (
+                          <motion.div
+                            key={expense._id}
+                            initial={{ opacity: 0, x: -20 }}
+                            animate={{ opacity: 1, x: 0 }}
+                            exit={{ opacity: 0, x: 20 }}
+                            transition={{ delay: index * 0.05 }}
                           >
-                            <ArrowRight className="w-4 h-4 mr-1" />
-                            Abrir
-                          </Button>
-                        </div>
-                      </Card>
-                    </motion.div>
-                  ))}
+                            <Card className="p-4 hover:shadow-lg transition-all border-2 hover:border-red-300">
+                              <div className="flex items-start gap-4">
+                                <div className="p-3 bg-gradient-to-br from-red-100 to-orange-100 rounded-lg">
+                                  <Receipt className="w-5 h-5 text-red-600" />
+                                </div>
+
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-start justify-between mb-2">
+                                    <div>
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <h4 className="font-bold text-gray-900">{expense.description}</h4>
+                                        <Badge variant="outline" className="text-xs">
+                                          {category?.icon} {category?.label}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-gray-500">{formatDate(expense.date)}</p>
+                                      {expense.notes && (
+                                        <p className="text-xs text-gray-500 mt-1 italic">{expense.notes}</p>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <p className="text-xl font-bold text-red-600">
+                                        {formatCurrency(expense.amount)}
+                                      </p>
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 text-red-500"
+                                        onClick={() => handleDeleteExpense(expense._id)}
+                                      >
+                                        <Trash2 className="w-4 h-4" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </Card>
+                          </motion.div>
+                        );
+                      })}
+                  </AnimatePresence>
                 </div>
               )}
             </div>

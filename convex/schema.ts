@@ -3,7 +3,7 @@ import { v } from "convex/values";
 
 export default defineSchema({
   // ============================================
-  // TABELAS EXISTENTES (mantidas)
+  // 👤 USUÁRIOS E PERFIL
   // ============================================
   usernames: defineTable({
     userId: v.string(),
@@ -64,6 +64,9 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
   }).index("by_user_provider", ["userId", "provider"]),
 
+  // ============================================
+  // 🔗 LINKS E ENCURTADOR
+  // ============================================
   shortLinks: defineTable({
     userId: v.string(),
     slug: v.string(),
@@ -74,6 +77,9 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_user", ["userId"]),
 
+  // ============================================
+  // 🤖 IA E CONTEÚDO
+  // ============================================
   analyses: defineTable({
     optimized_bio: v.string(),
     content_pillars: v.array(
@@ -138,6 +144,91 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_created", ["createdAt"]),
 
+  brainCampaigns: defineTable({
+    userId: v.string(),
+    theme: v.string(),
+    themeSummary: v.string(),
+    targetAudience: v.string(),
+    viralStrategy: v.object({
+      best_times: v.array(v.string()),
+      hashtag_strategy: v.string(),
+      engagement_hacks: v.array(v.string()),
+    }),
+    contentPack: v.string(),
+    favorite: v.optional(v.boolean()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_created", ["userId", "createdAt"]),
+
+  scheduledPosts: defineTable({
+    userId: v.string(),
+    campaignId: v.id("brainCampaigns"),
+    contentType: v.union(
+      v.literal("reel"),
+      v.literal("carousel"),
+      v.literal("image_post"),
+      v.literal("story_sequence")
+    ),
+    contentData: v.string(),
+    mediaStorageId: v.optional(v.id("_storage")),
+    mediaUrl: v.optional(v.string()),
+    caption: v.string(),
+    hashtags: v.array(v.string()),
+    scheduledDate: v.string(),
+    scheduledTime: v.string(),
+    scheduledTimestamp: v.number(),
+    platform: v.union(
+      v.literal("instagram"),
+      v.literal("facebook"),
+      v.literal("linkedin"),
+      v.literal("twitter"),
+      v.literal("tiktok")
+    ),
+    autoPublish: v.optional(v.boolean()),
+    bufferUpdateId: v.optional(v.string()),
+    bufferProfileId: v.optional(v.string()),
+    publishError: v.optional(v.string()),
+    status: v.union(
+      v.literal("draft"),
+      v.literal("scheduled"),
+      v.literal("queued"),
+      v.literal("notified"),
+      v.literal("completed"),
+      v.literal("cancelled"),
+      v.literal("publishing"),
+      v.literal("published"),
+      v.literal("failed")
+    ),
+    notificationSent: v.optional(v.boolean()),
+    notificationSentAt: v.optional(v.number()),
+    performance: v.optional(
+      v.object({
+        views: v.optional(v.number()),
+        likes: v.optional(v.number()),
+        comments: v.optional(v.number()),
+        shares: v.optional(v.number()),
+        saves: v.optional(v.number()),
+        reach: v.optional(v.number()),
+        engagement: v.optional(v.number()),
+      })
+    ),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_campaign", ["campaignId"])
+    .index("by_user_scheduled", ["userId", "scheduledTimestamp"])
+    .index("by_status", ["status"])
+    .index("by_scheduled_timestamp", ["scheduledTimestamp"])
+    .index("by_notification_pending", ["notificationSent", "status"])
+    .index("by_auto_publish", ["autoPublish"]),
+
+  // ============================================
+  // 🎯 GAMIFICAÇÃO E CONQUISTAS
+  // ============================================
   sharedAchievements: defineTable({
     userId: v.string(),
     streakDays: v.number(),
@@ -167,6 +258,9 @@ export default defineSchema({
     ),
   }).index("by_user", ["userId"]),
 
+  // ============================================
+  // 🎨 MÍDIA E CRIAÇÃO
+  // ============================================
   generatedImages: defineTable({
     userId: v.string(),
     prompt: v.string(),
@@ -214,6 +308,9 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_user_and_type", ["userId", "type"]),
 
+  // ============================================
+  // 🎁 SORTEIOS
+  // ============================================
   publicGiveaways: defineTable({
     giveawayId: v.string(),
     title: v.string(),
@@ -236,116 +333,11 @@ export default defineSchema({
     .index("by_creator", ["createdBy"]),
 
   // ============================================
-  // NOVAS TABELAS FREELINKBRAIN
+  // 🔔 NOTIFICAÇÕES PUSH
   // ============================================
-
-  // Campanhas de conteúdo geradas
-  brainCampaigns: defineTable({
-    userId: v.string(),
-    theme: v.string(),
-    themeSummary: v.string(),
-    targetAudience: v.string(),
-    viralStrategy: v.object({
-      best_times: v.array(v.string()),
-      hashtag_strategy: v.string(),
-      engagement_hacks: v.array(v.string()),
-    }),
-    contentPack: v.string(), // JSON stringificado
-    favorite: v.optional(v.boolean()),
-    notes: v.optional(v.string()),
-    createdAt: v.number(),
-    updatedAt: v.optional(v.number()),
-  })
-    .index("by_user", ["userId"])
-    .index("by_user_created", ["userId", "createdAt"]),
-
-  // Posts agendados (SEM Buffer - COM Notificações Push)
-  scheduledPosts: defineTable({
-    userId: v.string(),
-    campaignId: v.id("brainCampaigns"),
-
-    // Tipo de conteúdo
-    contentType: v.union(
-      v.literal("reel"),
-      v.literal("carousel"),
-      v.literal("image_post"),
-      v.literal("story_sequence")
-    ),
-    contentData: v.string(), // JSON stringificado
-
-    // Mídia
-    mediaStorageId: v.optional(v.id("_storage")),
-    mediaUrl: v.optional(v.string()),
-
-    // Legenda editável
-    caption: v.string(),
-    hashtags: v.array(v.string()),
-
-    // Agendamento
-    scheduledDate: v.string(), // "YYYY-MM-DD"
-    scheduledTime: v.string(), // "HH:MM"
-    scheduledTimestamp: v.number(),
-
-    // Plataforma
-    platform: v.union(
-      v.literal("instagram"),
-      v.literal("facebook"),
-      v.literal("linkedin"),
-      v.literal("twitter"),
-      v.literal("tiktok")
-    ),
-
-    // Publicação automática (integração com Buffer)
-    autoPublish: v.optional(v.boolean()),
-    bufferUpdateId: v.optional(v.string()),
-    bufferProfileId: v.optional(v.string()),
-    publishError: v.optional(v.string()),
-
-    // Status (SEM publishing, SEM published - apenas agendamento)
-    status: v.union(
-      v.literal("draft"),
-      v.literal("scheduled"),
-      v.literal("queued"), // Adicionado para auto-publish
-      v.literal("notified"),
-      v.literal("completed"),
-      v.literal("cancelled"),
-      v.literal("publishing"), // Adicionado para integração com Buffer
-      v.literal("published"),  // Adicionado para integração com Buffer
-      v.literal("failed")      // Adicionado para integração com Buffer
-    ),
-
-    // Notificação enviada?
-    notificationSent: v.optional(v.boolean()),
-    notificationSentAt: v.optional(v.number()),
-
-    // Performance (preenchido MANUALMENTE pelo usuário depois)
-    performance: v.optional(
-      v.object({
-        views: v.optional(v.number()),
-        likes: v.optional(v.number()),
-        comments: v.optional(v.number()),
-        shares: v.optional(v.number()),
-        saves: v.optional(v.number()),
-        reach: v.optional(v.number()),
-        engagement: v.optional(v.number()),
-      })
-    ),
-
-    createdAt: v.number(),
-    updatedAt: v.optional(v.number()),
-  })
-     .index("by_user", ["userId"])
-    .index("by_campaign", ["campaignId"])
-    .index("by_user_scheduled", ["userId", "scheduledTimestamp"])
-    .index("by_status", ["status"])
-    .index("by_scheduled_timestamp", ["scheduledTimestamp"]) // ✅ CORRIGIDO
-    .index("by_notification_pending", ["notificationSent", "status"]) // ✅ CORRIGIDO
-    .index("by_auto_publish", ["autoPublish"]), // <-- ÍNDICE ADICIONADO AQUI
-
-  // 🔔 NOVA TABELA: Push Subscriptions (assinaturas de notificação)
   pushSubscriptions: defineTable({
     userId: v.string(),
-    endpoint: v.string(), // URL única do navegador
+    endpoint: v.string(),
     keys: v.object({
       p256dh: v.string(),
       auth: v.string(),
@@ -357,7 +349,6 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_endpoint", ["endpoint"]),
 
-  // 🔔 NOVA TABELA: Histórico de notificações enviadas
   notificationHistory: defineTable({
     userId: v.string(),
     postId: v.id("scheduledPosts"),
@@ -370,136 +361,251 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_post", ["postId"]),
 
-    profitCalculations: defineTable({
-  userId: v.string(),
+  // ============================================
+  // 💰 CALCULADORA DE LUCRO (ANTIGA)
+  // ============================================
+  profitCalculations: defineTable({
+    userId: v.string(),
+    businessName: v.string(),
+    businessType: v.union(
+      v.literal("ecommerce"),
+      v.literal("saas"),
+      v.literal("freelancer"),
+      v.literal("infoproducts"),
+      v.literal("services"),
+      v.literal("physical_store"),
+      v.literal("dropshipping"),
+      v.literal("consulting"),
+      v.literal("other")
+    ),
+    revenue: v.object({
+      monthly: v.number(),
+      products: v.optional(
+        v.array(
+          v.object({
+            name: v.string(),
+            price: v.number(),
+            quantity: v.number(),
+            total: v.number(),
+          })
+        )
+      ),
+    }),
+    fixedCosts: v.object({
+      rent: v.optional(v.number()),
+      salaries: v.optional(v.number()),
+      software: v.optional(v.number()),
+      marketing: v.optional(v.number()),
+      utilities: v.optional(v.number()),
+      insurance: v.optional(v.number()),
+      other: v.optional(v.number()),
+      total: v.number(),
+    }),
+    variableCosts: v.object({
+      materials: v.optional(v.number()),
+      shipping: v.optional(v.number()),
+      commissions: v.optional(v.number()),
+      packaging: v.optional(v.number()),
+      ads: v.optional(v.number()),
+      fees: v.optional(v.number()),
+      other: v.optional(v.number()),
+      total: v.number(),
+    }),
+    results: v.object({
+      totalRevenue: v.number(),
+      totalCosts: v.number(),
+      grossProfit: v.number(),
+      netProfit: v.number(),
+      profitMargin: v.number(),
+      breakEvenPoint: v.number(),
+      roi: v.number(),
+    }),
+    aiAnalysis: v.optional(
+      v.object({
+        score: v.number(),
+        insights: v.array(v.string()),
+        warnings: v.array(v.string()),
+        opportunities: v.array(v.string()),
+        benchmarkComparison: v.object({
+          industry: v.string(),
+          yourMargin: v.number(),
+          industryAverage: v.number(),
+          status: v.union(
+            v.literal("above"),
+            v.literal("average"),
+            v.literal("below")
+          ),
+        }),
+        recommendations: v.array(
+          v.object({
+            title: v.string(),
+            description: v.string(),
+            impact: v.union(
+              v.literal("high"),
+              v.literal("medium"),
+              v.literal("low")
+            ),
+            potentialSavings: v.number(),
+          })
+        ),
+      })
+    ),
+    scenarios: v.optional(
+      v.object({
+        optimistic: v.object({
+          revenue: v.number(),
+          profit: v.number(),
+          margin: v.number(),
+        }),
+        realistic: v.object({
+          revenue: v.number(),
+          profit: v.number(),
+          margin: v.number(),
+        }),
+        pessimistic: v.object({
+          revenue: v.number(),
+          profit: v.number(),
+          margin: v.number(),
+        }),
+      })
+    ),
+    favorite: v.optional(v.boolean()),
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_created", ["userId", "createdAt"])
+    .index("by_favorite", ["userId", "favorite"]),
 
-  // Informações do negócio
-  businessName: v.string(),
-  businessType: v.union(
-    v.literal("ecommerce"),
-    v.literal("saas"),
-    v.literal("freelancer"),
-    v.literal("infoproducts"),
-    v.literal("services"),
-    v.literal("physical_store"),
-    v.literal("dropshipping"),
-    v.literal("consulting"),
-    v.literal("other")
-  ),
+  profitGoals: defineTable({
+    userId: v.string(),
+    calculationId: v.id("profitCalculations"),
+    targetProfit: v.number(),
+    targetMargin: v.number(),
+    deadline: v.string(),
+    status: v.union(
+      v.literal("active"),
+      v.literal("achieved"),
+      v.literal("failed")
+    ),
+    progress: v.number(),
+    createdAt: v.number(),
+    achievedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_calculation", ["calculationId"]),
 
-  // Receitas
-  revenue: v.object({
-    monthly: v.number(),
-    products: v.optional(v.array(v.object({
-      name: v.string(),
-      price: v.number(),
-      quantity: v.number(),
-      total: v.number()
-    })))
-  }),
+  // ============================================
+  // 💼 GESTÃO FINANCEIRA MENSAL (NOVA)
+  // ============================================
 
-  // Custos Fixos
-  fixedCosts: v.object({
-    rent: v.optional(v.number()),
-    salaries: v.optional(v.number()),
-    software: v.optional(v.number()),
-    marketing: v.optional(v.number()),
-    utilities: v.optional(v.number()),
-    insurance: v.optional(v.number()),
-    other: v.optional(v.number()),
-    total: v.number()
-  }),
+  // Produtos cadastrados
+  products: defineTable({
+    userId: v.string(),
+    name: v.string(),
+    costPrice: v.number(), // Quanto pagou pela peça
+    salePrice: v.number(), // Por quanto vende
+    category: v.optional(v.string()),
+    stock: v.optional(v.number()),
+    active: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_active", ["userId", "active"]),
 
-  // Custos Variáveis
-  variableCosts: v.object({
-    materials: v.optional(v.number()),
-    shipping: v.optional(v.number()),
-    commissions: v.optional(v.number()),
-    packaging: v.optional(v.number()),
-    ads: v.optional(v.number()),
-    fees: v.optional(v.number()),
-    other: v.optional(v.number()),
-    total: v.number()
-  }),
+  // Vendas realizadas
+  sales: defineTable({
+    userId: v.string(),
+    productId: v.id("products"),
+    productName: v.string(),
+    quantity: v.number(),
+    costPrice: v.number(),
+    salePrice: v.number(),
+    totalCost: v.number(), // quantity * costPrice
+    totalRevenue: v.number(), // quantity * salePrice
+    profit: v.number(), // totalRevenue - totalCost
+    date: v.string(), // YYYY-MM-DD
+    month: v.string(), // YYYY-MM
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_month", ["userId", "month"])
+    .index("by_month", ["month"])
+    .index("by_product", ["productId"]),
 
-  // Resultados calculados
-  results: v.object({
+  // Gastos diários
+  expenses: defineTable({
+    userId: v.string(),
+    description: v.string(),
+    amount: v.number(),
+    category: v.union(
+      v.literal("aluguel"),
+      v.literal("luz_agua"),
+      v.literal("internet"),
+      v.literal("transporte"),
+      v.literal("alimentacao"),
+      v.literal("marketing"),
+      v.literal("materiais"),
+      v.literal("funcionarios"),
+      v.literal("outros")
+    ),
+    date: v.string(), // YYYY-MM-DD
+    month: v.string(), // YYYY-MM
+    notes: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_month", ["userId", "month"])
+    .index("by_month", ["month"])
+    .index("by_category", ["userId", "category"]),
+
+  // Relatórios mensais automáticos
+  monthlyReports: defineTable({
+    userId: v.string(),
+    month: v.string(), // YYYY-MM
+    businessName: v.optional(v.string()),
+
+    // Vendas
+    totalSales: v.number(),
     totalRevenue: v.number(),
-    totalCosts: v.number(),
+    totalCost: v.number(),
     grossProfit: v.number(),
-    netProfit: v.number(),
-    profitMargin: v.number(),
-    breakEvenPoint: v.number(),
-    roi: v.number()
-  }),
 
-  // Análise IA
-  aiAnalysis: v.optional(v.object({
-    score: v.number(), // 0-100
-    insights: v.array(v.string()),
-    warnings: v.array(v.string()),
-    opportunities: v.array(v.string()),
-    benchmarkComparison: v.object({
-      industry: v.string(),
-      yourMargin: v.number(),
-      industryAverage: v.number(),
-      status: v.union(v.literal("above"), v.literal("average"), v.literal("below"))
+    // Gastos
+    totalExpenses: v.number(),
+    expensesByCategory: v.object({
+      aluguel: v.number(),
+      luz_agua: v.number(),
+      internet: v.number(),
+      transporte: v.number(),
+      alimentacao: v.number(),
+      marketing: v.number(),
+      materiais: v.number(),
+      funcionarios: v.number(),
+      outros: v.number(),
     }),
-    recommendations: v.array(v.object({
-      title: v.string(),
-      description: v.string(),
-      impact: v.union(v.literal("high"), v.literal("medium"), v.literal("low")),
-      potentialSavings: v.number()
-    }))
-  })),
 
-  // Simulações
-  scenarios: v.optional(v.object({
-    optimistic: v.object({
-      revenue: v.number(),
-      profit: v.number(),
-      margin: v.number()
-    }),
-    realistic: v.object({
-      revenue: v.number(),
-      profit: v.number(),
-      margin: v.number()
-    }),
-    pessimistic: v.object({
-      revenue: v.number(),
-      profit: v.number(),
-      margin: v.number()
-    })
-  })),
+    // Lucro líquido
+    netProfit: v.number(), // grossProfit - totalExpenses
+    profitMargin: v.number(), // (netProfit / totalRevenue) * 100
 
-  // Meta
-  favorite: v.optional(v.boolean()),
-  notes: v.optional(v.string()),
-  createdAt: v.number(),
-  updatedAt: v.optional(v.number())
-})
-  .index("by_user", ["userId"])
-  .index("by_user_created", ["userId", "createdAt"])
-  .index("by_favorite", ["userId", "favorite"]),
+    // Top produtos
+    topProducts: v.array(
+      v.object({
+        productId: v.string(),
+        productName: v.string(),
+        quantity: v.number(),
+        revenue: v.number(),
+        profit: v.number(),
+      })
+    ),
 
-profitGoals: defineTable({
-  userId: v.string(),
-  calculationId: v.id("profitCalculations"),
-
-  targetProfit: v.number(),
-  targetMargin: v.number(),
-  deadline: v.string(),
-
-  status: v.union(
-    v.literal("active"),
-    v.literal("achieved"),
-    v.literal("failed")
-  ),
-
-  progress: v.number(), // 0-100
-  createdAt: v.number(),
-  achievedAt: v.optional(v.number())
-})
-  .index("by_user", ["userId"])
-  .index("by_calculation", ["calculationId"]),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_month", ["userId", "month"]),
 });
