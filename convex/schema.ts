@@ -592,11 +592,13 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
-    .index("by_business", ["businessId"])
-    .index("by_user_active", ["userId", "active"])
-    .index("by_sku", ["userId", "sku"])
-    .index("by_supplier", ["supplierId"]),
-
+  .index("by_business", ["businessId"])
+  .index("by_user_active", ["userId", "active"])
+  .index("by_sku", ["userId", "sku"])
+  .index("by_supplier", ["supplierId"])
+  .index("by_category", ["userId", "category"])
+  .index("by_featured", ["userId", "featured"])
+  ,
   sales: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),

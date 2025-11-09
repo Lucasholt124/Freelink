@@ -859,14 +859,19 @@ export const deleteProduct = mutation({
       throw new Error("Produto não encontrado");
     }
 
-    // Buscar todas as vendas deste produto
-    const sales = await ctx.db
+    // ✅ BUSCAR VENDAS APENAS DO MESMO BUSINESSID
+    let sales = await ctx.db
       .query("sales")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .filter((q) => q.eq(q.field("productId"), args.id))
       .collect();
 
-    // Deletar todas as vendas em cascata
+    // Se o produto tem businessId, filtrar vendas do mesmo business
+    if (product.businessId) {
+      sales = sales.filter((s) => s.businessId === product.businessId);
+    }
+
+    // Deletar vendas
     for (const sale of sales) {
       await ctx.db.delete(sale._id);
     }
@@ -874,18 +879,19 @@ export const deleteProduct = mutation({
     // Recalcular relatórios mensais afetados
     const affectedMonths = [...new Set(sales.map((s) => s.month))];
 
-    // Marca os relatórios dos meses afetados para regeração
+    // Marca os relatórios dos meses afetados para regeneração
     for (const month of affectedMonths) {
-      const report = await ctx.db
+      const reports = await ctx.db
         .query("monthlyReports")
         .withIndex("by_user_month", (q) =>
           q.eq("userId", identity.subject).eq("month", month)
         )
-        .first();
+        .collect();
 
-      if (report) {
-        // Deleta o relatório antigo para forçar regeneração
-        await ctx.db.delete(report._id);
+      for (const report of reports) {
+        if (!product.businessId || report.businessId === product.businessId) {
+          await ctx.db.delete(report._id);
+        }
       }
     }
 
@@ -1149,15 +1155,29 @@ export const addSale = mutation({
     const product = await ctx.db.get(args.productId);
     if (!product) throw new Error("Produto não encontrado");
 
+    // ✅ VALIDAR SE PRODUTO ESTÁ ATIVO
+    if (!product.active) {
+      throw new Error("Produto inativo. Ative-o antes de vender.");
+    }
+
     // Calcular totais
     const salePrice = product.salePrice;
     const totalRevenue = salePrice * args.quantity - (args.discount ?? 0);
     const totalCost = product.costPrice * args.quantity;
     const profit = totalRevenue - totalCost;
-    const month = args.date.substring(0, 7); // Extrai YYYY-MM
+    const month = args.date.substring(0, 7);
 
-    // Inserir venda
-    await ctx.db.insert("sales", {
+    // ✅ VALIDAR ESTOQUE NEGATIVO
+    if (product.stock !== undefined) {
+      const newStock = product.stock - args.quantity;
+
+      if (newStock < 0) {
+        throw new Error(`Estoque insuficiente! Disponível: ${product.stock}`);
+      }
+    }
+
+    // ✅ GUARDAR O ID DA VENDA
+    const saleId = await ctx.db.insert("sales", {
       userId: identity.subject,
       businessId: product.businessId,
       customerId: args.customerId,
@@ -1178,12 +1198,49 @@ export const addSale = mutation({
       createdAt: Date.now(),
     });
 
-    // Atualizar estoque do produto
+    // ✅ ATUALIZAR ESTOQUE E ESTATÍSTICAS DO PRODUTO
     if (product.stock !== undefined) {
+      const newStock = product.stock - args.quantity;
+
       await ctx.db.patch(product._id, {
-        stock: product.stock - args.quantity,
+        stock: newStock,
+        totalSold: (product.totalSold ?? 0) + args.quantity,
+        totalRevenue: (product.totalRevenue ?? 0) + totalRevenue,
+        totalProfit: (product.totalProfit ?? 0) + profit,
+        updatedAt: Date.now(),
       });
+
+      // ✅ CRIAR ALERTA SE ESTOQUE BAIXO
+      if (product.minStock && newStock <= product.minStock) {
+        await ctx.db.insert("alerts", {
+          userId: identity.subject,
+          businessId: product.businessId,
+          type: "low_stock",
+          severity: "warning",
+          title: "⚠️ Estoque Baixo",
+          message: `O produto "${product.name}" está com estoque baixo (${newStock} unidades).`,
+          relatedId: args.productId,
+          read: false,
+          createdAt: Date.now(),
+        });
+      }
     }
+
+    // ✅ ATUALIZAR DADOS DO CLIENTE (se fornecido)
+    if (args.customerId) {
+      const customer = await ctx.db.get(args.customerId);
+      if (customer) {
+        await ctx.db.patch(args.customerId, {
+          totalSpent: customer.totalSpent + totalRevenue,
+          totalOrders: customer.totalOrders + 1,
+          lastPurchase: Date.now(),
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // ✅ RETORNAR O ID DA VENDA
+    return saleId;
   },
 });
 
@@ -1201,17 +1258,33 @@ export const deleteSale = mutation({
       throw new Error("Você não tem permissão para deletar esta venda.");
     }
 
-    // Restore product stock
+    // ✅ RESTAURAR ESTOQUE E ATUALIZAR ESTATÍSTICAS DO PRODUTO
     if (sale.productId) {
       const product = await ctx.db.get(sale.productId);
       if (product && product.stock !== undefined) {
         await ctx.db.patch(product._id, {
           stock: product.stock + sale.quantity,
+          totalSold: Math.max(0, (product.totalSold ?? 0) - sale.quantity),
+          totalRevenue: Math.max(0, (product.totalRevenue ?? 0) - sale.totalRevenue),
+          totalProfit: Math.max(0, (product.totalProfit ?? 0) - sale.profit),
+          updatedAt: Date.now(),
         });
       }
     }
 
-    // Soft delete (move to trash) or permanent delete
+    // ✅ ATUALIZAR CLIENTE (se houver)
+    if (sale.customerId) {
+      const customer = await ctx.db.get(sale.customerId);
+      if (customer) {
+        await ctx.db.patch(sale.customerId, {
+          totalSpent: Math.max(0, customer.totalSpent - sale.totalRevenue),
+          totalOrders: Math.max(0, customer.totalOrders - 1),
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // Soft delete ou permanent
     if (!args.permanent) {
       await ctx.db.insert("deletedRecords", {
         userId: identity.subject,
@@ -1219,10 +1292,13 @@ export const deleteSale = mutation({
         recordId: sale._id,
         recordData: JSON.stringify(sale),
         deletedAt: Date.now(),
-        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 days
+        expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 dias
       });
     }
+
     await ctx.db.delete(args.id);
+
+    return { success: true };
   },
 });
 
@@ -1286,9 +1362,10 @@ export const addExpense = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Faça login para continuar");
 
-    const month = args.date.substring(0, 7); // Extrai YYYY-MM
+    const month = args.date.substring(0, 7);
 
-    await ctx.db.insert("expenses", {
+    // ✅ GUARDAR O ID DO GASTO
+    const expenseId = await ctx.db.insert("expenses", {
       userId: identity.subject,
       description: args.description,
       amount: args.amount,
@@ -1302,6 +1379,9 @@ export const addExpense = mutation({
       notes: args.notes,
       createdAt: Date.now(),
     });
+
+    // ✅ RETORNAR O ID DO GASTO
+    return expenseId;
   },
 });
 
@@ -1853,116 +1933,149 @@ export const generateMonthlyReport = action({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Faça login para continuar");
 
-    // Buscar vendas
-    const sales: Doc<"sales">[] = await ctx.runQuery(
-      api.profitCalculator.getSalesByMonth,
-      {
-        month: args.month,
-        businessId: args.businessId,
+    try {
+      // Buscar vendas
+      const sales: Doc<"sales">[] = await ctx.runQuery(
+        api.profitCalculator.getSalesByMonth,
+        {
+          month: args.month,
+          businessId: args.businessId,
+        }
+      );
+
+      // Buscar gastos
+      const expenses: Doc<"expenses">[] = await ctx.runQuery(
+        api.profitCalculator.getExpensesByMonth,
+        {
+          month: args.month,
+          businessId: args.businessId,
+        }
+      );
+
+      // ✅ VALIDAR SE HÁ DADOS
+      if (sales.length === 0 && expenses.length === 0) {
+        throw new Error("Nenhum dado encontrado para este mês");
       }
-    );
 
-    // Buscar gastos
-    const expenses: Doc<"expenses">[] = await ctx.runQuery(
-      api.profitCalculator.getExpensesByMonth,
-      {
-        month: args.month,
-        businessId: args.businessId,
-      }
-    );
+      // Calcular totais de vendas
+      const totalSales = sales.reduce((sum, s) => sum + s.quantity, 0);
+      const totalRevenue = sales.reduce((sum, s) => sum + s.totalRevenue, 0);
+      const totalCost = sales.reduce((sum, s) => sum + s.totalCost, 0);
+      const grossProfit = totalRevenue - totalCost;
 
-    // Calcular totais de vendas
-    const totalSales = sales.reduce((sum, s) => sum + s.quantity, 0);
-    const totalRevenue = sales.reduce((sum, s) => sum + s.totalRevenue, 0);
-    const totalCost = sales.reduce((sum, s) => sum + s.totalCost, 0);
-    const grossProfit = totalRevenue - totalCost;
+      // Calcular totais de gastos
+      const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+      const fixedExpenses = expenses
+        .filter((e) => e.type === "fixed")
+        .reduce((sum, e) => sum + e.amount, 0);
+      const variableExpenses = expenses
+        .filter((e) => e.type === "variable")
+        .reduce((sum, e) => sum + e.amount, 0);
 
-    // Calcular totais de gastos
-    const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
-    const fixedExpenses = expenses
-      .filter((e) => e.type === "fixed")
-      .reduce((sum, e) => sum + e.amount, 0);
-    const variableExpenses = expenses
-      .filter((e) => e.type === "variable")
-      .reduce((sum, e) => sum + e.amount, 0);
+      // Gastos por categoria
+      const expensesByCategory: {
+        aluguel?: number;
+        luz_agua?: number;
+        internet?: number;
+        transporte?: number;
+        alimentacao?: number;
+        marketing?: number;
+        materiais?: number;
+        funcionarios?: number;
+        outros?: number;
+      } = {};
 
-    // Gastos por categoria
-    const expensesByCategory: {
-      aluguel?: number;
-      luz_agua?: number;
-      internet?: number;
-      transporte?: number;
-      alimentacao?: number;
-      marketing?: number;
-      materiais?: number;
-      funcionarios?: number;
-      outros?: number;
-    } = {};
-
-    expenses.forEach((expense) => {
-      const category = expense.categoryName.toLowerCase();
-      if (category in expensesByCategory) {
-        expensesByCategory[category as keyof typeof expensesByCategory] =
-          (expensesByCategory[category as keyof typeof expensesByCategory] || 0) + expense.amount;
-      } else {
-        expensesByCategory.outros = (expensesByCategory.outros || 0) + expense.amount;
-      }
-    });
-
-    // Lucro
-    const netProfit = grossProfit - totalExpenses;
-    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
-
-    // Top produtos
-    const productsMap = new Map<
-      string,
-      { name: string; quantity: number; revenue: number; profit: number }
-    >();
-    sales.forEach((sale) => {
-      const productId = sale.productId || sale._id;
-      const existing = productsMap.get(productId) || {
-        name: sale.productName,
-        quantity: 0,
-        revenue: 0,
-        profit: 0,
-      };
-      productsMap.set(productId, {
-        name: sale.productName,
-        quantity: existing.quantity + sale.quantity,
-        revenue: existing.revenue + sale.totalRevenue,
-        profit: existing.profit + sale.profit,
+      expenses.forEach((expense) => {
+        const category = expense.categoryName.toLowerCase();
+        if (category in expensesByCategory) {
+          expensesByCategory[category as keyof typeof expensesByCategory] =
+            (expensesByCategory[category as keyof typeof expensesByCategory] || 0) + expense.amount;
+        } else {
+          expensesByCategory.outros = (expensesByCategory.outros || 0) + expense.amount;
+        }
       });
-    });
-    const topProducts = Array.from(productsMap.entries())
-      .map(([id, { name: productName, ...rest }]) => ({
-        productId: id,
-        productName,
-        ...rest,
-      }))
-      .sort((a, b) => b.profit - a.profit)
-      .slice(0, 10);
 
-    // Salvar relatório
-    await ctx.runMutation(api.profitCalculator.createMonthlyReport, {
-      month: args.month,
-      businessId: args.businessId,
-      totalSales,
-      totalRevenue,
-      totalCost,
-      grossProfit,
-      totalExpenses,
-      fixedExpenses,
-      variableExpenses,
-      expensesByCategory,
-      netProfit,
-      profitMargin,
-      topProducts,
-    });
+      // Lucro
+      const netProfit = grossProfit - totalExpenses;
+      const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
-    return {
-      success: true,
-      message: `Relatório de ${args.month} gerado com sucesso!`,
-    };
+      // Top produtos
+      const productsMap = new Map<
+        string,
+        { name: string; quantity: number; revenue: number; profit: number }
+      >();
+      sales.forEach((sale) => {
+        const productId = sale.productId || sale._id;
+        const existing = productsMap.get(productId) || {
+          name: sale.productName,
+          quantity: 0,
+          revenue: 0,
+          profit: 0,
+        };
+        productsMap.set(productId, {
+          name: sale.productName,
+          quantity: existing.quantity + sale.quantity,
+          revenue: existing.revenue + sale.totalRevenue,
+          profit: existing.profit + sale.profit,
+        });
+      });
+      const topProducts = Array.from(productsMap.entries())
+        .map(([id, { name: productName, ...rest }]) => ({
+          productId: id,
+          productName,
+          ...rest,
+        }))
+        .sort((a, b) => b.profit - a.profit)
+        .slice(0, 10);
+
+      // ✅ DELETAR RELATÓRIO ANTIGO ANTES DE CRIAR NOVO
+      const existingReport = await ctx.runQuery(
+        api.profitCalculator.getMonthlyReport,
+        { month: args.month, businessId: args.businessId }
+      );
+
+      if (existingReport) {
+        await ctx.runMutation(internal.profitCalculator.deleteReport, {
+          reportId: existingReport._id,
+        });
+      }
+
+      // Salvar novo relatório
+      await ctx.runMutation(api.profitCalculator.createMonthlyReport, {
+        month: args.month,
+        businessId: args.businessId,
+        totalSales,
+        totalRevenue,
+        totalCost,
+        grossProfit,
+        totalExpenses,
+        fixedExpenses,
+        variableExpenses,
+        expensesByCategory,
+        netProfit,
+        profitMargin,
+        topProducts,
+      });
+
+      return {
+        success: true,
+        message: `Relatório de ${args.month} gerado com sucesso!`,
+      };
+    } catch (error) {
+      console.error("Erro ao gerar relatório:", error);
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "Erro ao gerar relatório",
+      };
+    }
+  },
+});
+
+// ✅ MUTATION INTERNO PARA DELETAR RELATÓRIO
+export const deleteReport = internalMutation({
+  args: { reportId: v.id("monthlyReports") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.reportId);
   },
 });
 
