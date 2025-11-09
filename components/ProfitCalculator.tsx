@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { toast } from "sonner";
+import { Doc } from "@/convex/_generated/dataModel";
 import confetti from "canvas-confetti";
 import {
   TrendingUp,
@@ -86,6 +86,7 @@ import {
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
 type TabType = "dashboard" | "produtos" | "vendas" | "gastos" | "resumo" | "metas" | "clientes" | "fornecedores" | "rapido";
@@ -102,6 +103,27 @@ interface PriceCalculationResult {
   targetProfit: number;
   analysis: string[];
 }
+
+const handleApiError = (error: unknown, defaultMessage: string) => {
+  console.error("API Error:", error);
+
+  if (error instanceof Error) {
+    // Erros específicos da API
+    if (error.message.includes("duplicate")) {
+      toast.error("❌ Já existe um registro com estes dados");
+    } else if (error.message.includes("network")) {
+      toast.error("❌ Erro de conexão. Verifique sua internet");
+    } else if (error.message.includes("unauthorized")) {
+      toast.error("❌ Sessão expirada. Recarregue a página");
+    } else if (error.message.includes("not found")) {
+      toast.error("❌ Registro não encontrado");
+    } else {
+      toast.error(`❌ ${error.message}`);
+    }
+  } else {
+    toast.error(`❌ ${defaultMessage}`);
+  }
+};
 
 export default function FinancialManagerPro() {
   const [selectedMonth, setSelectedMonth] = useState(() => {
@@ -246,6 +268,35 @@ export default function FinancialManagerPro() {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
   };
 
+  const quickSaleLucro = useMemo(() => {
+    const cost = parseFloat(quickSaleForm.costPrice);
+    const sale = parseFloat(quickSaleForm.salePrice);
+
+    if (isNaN(cost) || isNaN(sale) || cost <= 0 || sale <= 0) {
+      return 0;
+    }
+
+    return sale - cost;
+  }, [quickSaleForm.costPrice, quickSaleForm.salePrice]);
+
+  const quickSaleMargin = useMemo(() => {
+    const cost = parseFloat(quickSaleForm.costPrice);
+    const sale = parseFloat(quickSaleForm.salePrice);
+
+    if (isNaN(cost) || isNaN(sale) || cost <= 0 || sale <= 0) {
+      return 0;
+    }
+
+    return ((sale - cost) / sale) * 100;
+  }, [quickSaleForm.costPrice, quickSaleForm.salePrice]);
+
+  const isValidQuickSale = useMemo(() => {
+    const cost = parseFloat(quickSaleForm.costPrice);
+    const sale = parseFloat(quickSaleForm.salePrice);
+
+    return !isNaN(cost) && !isNaN(sale) && cost > 0 && sale > cost;
+  }, [quickSaleForm.costPrice, quickSaleForm.salePrice]);
+
   const formatDate = (dateStr: string) => {
     return new Date(dateStr + "T00:00:00").toLocaleDateString("pt-BR", {
       day: "2-digit",
@@ -263,12 +314,30 @@ export default function FinancialManagerPro() {
   };
 
   const navigateMonth = (direction: "prev" | "next") => {
-    const [year, month] = selectedMonth.split("-").map(Number);
-    const date = new Date(year, month - 1);
-    date.setMonth(date.getMonth() + (direction === "next" ? 1 : -1));
-    const newMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
-    setSelectedMonth(newMonth);
-  };
+  const [year, month] = selectedMonth.split("-").map(Number);
+  const date = new Date(year, month - 1);
+  date.setMonth(date.getMonth() + (direction === "next" ? 1 : -1));
+
+  // Limita navegação: 5 anos para trás, até o mês atual
+  const today = new Date();
+  const minDate = new Date();
+  minDate.setFullYear(today.getFullYear() - 5);
+
+  if (date < minDate) {
+    toast.error("⚠️ Não é possível navegar mais de 5 anos para trás");
+    return;
+  }
+
+  // Permite navegar até o final do mês atual
+  const endOfCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  if (date > endOfCurrentMonth) {
+    toast.error("⚠️ Não é possível navegar para meses futuros");
+    return;
+  }
+
+  const newMonth = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+  setSelectedMonth(newMonth);
+};
 
   const resetProductForm = () => {
     setProductForm({
@@ -285,73 +354,97 @@ export default function FinancialManagerPro() {
     setEditingProductId(null);
   };
 
-  const handleAddProduct = async () => {
-    if (!productForm.name.trim() || !productForm.costPrice || !productForm.salePrice) {
-      toast.error("❌ Preencha nome, custo e preço de venda!");
-      return;
-    }
+  const validateProduct = (form: typeof productForm): string[] => {
+  const errors: string[] = [];
 
-    const costPrice = parseFloat(productForm.costPrice);
-    const salePrice = parseFloat(productForm.salePrice);
+  if (!form.name.trim()) errors.push("Nome é obrigatório");
+  if (form.name.length > 100) errors.push("Nome muito longo (máx 100 caracteres)");
 
-    if (costPrice <= 0 || salePrice <= 0) {
-      toast.error("❌ Valores devem ser maiores que zero!");
-      return;
-    }
+  const costPrice = parseFloat(form.costPrice);
+  const salePrice = parseFloat(form.salePrice);
 
-    if (salePrice <= costPrice) {
-      toast.error("⚠️ Preço de venda deve ser maior que o custo!");
-      return;
-    }
+  if (isNaN(costPrice) || costPrice <= 0) errors.push("Custo deve ser maior que zero");
+  if (costPrice > 1000000) errors.push("Custo parece muito alto, confira");
 
-    try {
-      await addProduct({
-        name: productForm.name,
-        costPrice,
-        salePrice,
-        sku: productForm.sku || undefined,
-        category: productForm.category || undefined,
-        stock: productForm.stock ? parseInt(productForm.stock) : undefined,
-        minStock: productForm.minStock ? parseInt(productForm.minStock) : undefined,
-        unit: productForm.unit || undefined,
-        description: productForm.description || undefined,
-      });
+  if (isNaN(salePrice) || salePrice <= 0) errors.push("Preço de venda deve ser maior que zero");
+  if (salePrice > 1000000) errors.push("Preço de venda parece muito alto, confira");
 
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#8B5CF6", "#EC4899", "#F59E0B"] });
-      toast.success("✅ Produto cadastrado com sucesso!");
-      setShowAddProduct(false);
-      resetProductForm();
-    } catch (error) {
-      toast.error("❌ Erro ao cadastrar produto");
-      console.error(error);
-    }
-  };
+  if (salePrice <= costPrice) errors.push("Preço de venda deve ser maior que o custo");
 
-  const handleEditProduct = async () => {
-    if (!editingProductId) return;
+  const margin = ((salePrice - costPrice) / salePrice) * 100;
+  if (margin < 5) errors.push("Margem muito baixa (menos de 5%)");
+  if (margin > 90) errors.push("Margem muito alta (mais de 90%), confira");
 
-    try {
-      await updateProduct({
-        id: editingProductId,
-        name: productForm.name || undefined,
-        costPrice: productForm.costPrice ? parseFloat(productForm.costPrice) : undefined,
-        salePrice: productForm.salePrice ? parseFloat(productForm.salePrice) : undefined,
-        sku: productForm.sku || undefined,
-        category: productForm.category || undefined,
-        stock: productForm.stock ? parseInt(productForm.stock) : undefined,
-        minStock: productForm.minStock ? parseInt(productForm.minStock) : undefined,
-        unit: productForm.unit || undefined,
-        description: productForm.description || undefined,
-      });
+  if (form.stock && parseInt(form.stock) < 0) errors.push("Estoque não pode ser negativo");
+  if (form.minStock && parseInt(form.minStock) < 0) errors.push("Estoque mínimo não pode ser negativo");
 
-      toast.success("✅ Produto atualizado!");
-      setShowEditProduct(false);
-      resetProductForm();
-    } catch (error) {
-      toast.error("❌ Erro ao atualizar produto");
-      console.error(error);
-    }
-  };
+  return errors;
+};
+
+const [isSubmitting, setIsSubmitting] = useState(false);
+
+const handleAddProduct = async () => {
+  const errors = validateProduct(productForm);
+  if (errors.length > 0) {
+    toast.error(errors[0]);
+    return;
+  }
+
+  setIsSubmitting(true);
+  try {
+    await addProduct({
+      name: productForm.name,
+      costPrice: parseFloat(productForm.costPrice),
+      salePrice: parseFloat(productForm.salePrice),
+      // ...
+    });
+
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+    toast.success("✅ Produto cadastrado com sucesso!");
+    setShowAddProduct(false);
+    resetProductForm();
+  } catch (error) {
+    handleApiError(error, "Erro ao cadastrar produto");
+  } finally {
+    setIsSubmitting(false);
+  }
+};
+
+  const [isSubmittingEdit, setIsSubmittingEdit] = useState(false);
+
+const handleEditProduct = async () => {
+  if (!editingProductId) return;
+
+  const errors = validateProduct(productForm);
+  if (errors.length > 0) {
+    toast.error(errors[0]);
+    return;
+  }
+
+  setIsSubmittingEdit(true);
+  try {
+    await updateProduct({
+      id: editingProductId,
+      name: productForm.name || undefined,
+      costPrice: productForm.costPrice ? parseFloat(productForm.costPrice) : undefined,
+      salePrice: productForm.salePrice ? parseFloat(productForm.salePrice) : undefined,
+      sku: productForm.sku || undefined,
+      category: productForm.category || undefined,
+      stock: productForm.stock ? parseInt(productForm.stock) : undefined,
+      minStock: productForm.minStock ? parseInt(productForm.minStock) : undefined,
+      unit: productForm.unit || undefined,
+      description: productForm.description || undefined,
+    });
+
+    toast.success("✅ Produto atualizado!");
+    setShowEditProduct(false);
+    resetProductForm();
+  } catch (error) {
+    handleApiError(error, "Erro ao atualizar produto");
+  } finally {
+    setIsSubmittingEdit(false);
+  }
+};
 
   const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
     try {
@@ -383,57 +476,105 @@ export default function FinancialManagerPro() {
     setShowEditProduct(true);
   };
 
-  const handleAddSale = async () => {
-    if (!saleForm.productId || !saleForm.quantity || !saleForm.date) {
-      toast.error("❌ Preencha produto, quantidade e data!");
-      return;
+  const validateSale = (form: typeof saleForm, product: Doc<"products">): string[] => {
+  const errors: string[] = [];
+
+  if (!form.productId) errors.push("Selecione um produto");
+  if (!form.date) errors.push("Selecione uma data");
+
+  const quantity = parseInt(form.quantity);
+  if (isNaN(quantity) || quantity <= 0) {
+    errors.push("Quantidade deve ser maior que zero");
+  }
+  if (quantity > 10000) {
+    errors.push("Quantidade muito alta, confira");
+  }
+
+  // Valida data
+  const saleDate = new Date(form.date);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(today.getFullYear() - 1);
+
+  if (saleDate > today) {
+    errors.push("Data não pode ser no futuro");
+  }
+  if (saleDate < oneYearAgo) {
+    errors.push("Data muito antiga (mais de 1 ano)");
+  }
+
+  // Valida estoque
+  if (product && product.stock !== undefined) {
+    if (product.stock < quantity) {
+      errors.push(`Estoque insuficiente! Disponível: ${product.stock}`);
     }
+  }
 
-    const product = products.find((p) => p._id === saleForm.productId);
-    if (!product) {
-      toast.error("❌ Produto não encontrado!");
-      return;
-    }
+  // Valida desconto
+  if (form.discount) {
+    const discount = parseFloat(form.discount);
+    const totalPrice = product.salePrice * quantity;
 
-    const quantity = parseInt(saleForm.quantity);
-    if (product.stock !== undefined && product.stock < quantity) {
-      toast.error(`⚠️ Estoque insuficiente! Disponível: ${product.stock}`);
-      return;
-    }
+    if (discount < 0) errors.push("Desconto não pode ser negativo");
+    if (discount >= totalPrice) errors.push("Desconto maior que o valor total");
+  }
 
-    try {
-      await addSale({
-        productId: saleForm.productId as Id<"products">,
-        customerId: saleForm.customerId ? (saleForm.customerId as Id<"customers">) : undefined,
-        quantity,
-        discount: saleForm.discount ? parseFloat(saleForm.discount) : undefined,
-        date: saleForm.date,
-        paymentMethod: saleForm.paymentMethod,
-        paymentStatus: saleForm.paymentStatus,
-        notes: saleForm.notes || undefined,
-      });
+  return errors;
+};
 
-      await generateReport({ month: saleForm.date.substring(0, 7) });
+const [, setIsSubmittingSale] = useState(false);
 
-      confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6", "#F59E0B"] });
+const handleAddSale = async () => {
+  const product = products.find((p) => p._id === saleForm.productId);
+  if (!product) {
+    toast.error("❌ Produto não encontrado!");
+    return;
+  }
 
-      toast.success("🎉 Venda registrada com sucesso!");
-      setShowAddSale(false);
-      setSaleForm({
-        productId: "",
-        customerId: "",
-        quantity: "",
-        discount: "",
-        date: new Date().toISOString().split("T")[0],
-        paymentMethod: "pix",
-        paymentStatus: "paid",
-        notes: "",
-      });
-    } catch (error) {
-      toast.error("❌ Erro ao registrar venda");
-      console.error(error);
-    }
-  };
+  const errors = validateSale(saleForm, product);
+  if (errors.length > 0) {
+    toast.error(errors[0]);
+    return;
+  }
+
+  setIsSubmittingSale(true);
+  try {
+    await addSale({
+      productId: saleForm.productId as Id<"products">,
+      customerId: saleForm.customerId ? (saleForm.customerId as Id<"customers">) : undefined,
+      quantity: parseInt(saleForm.quantity),
+      discount: saleForm.discount ? parseFloat(saleForm.discount) : undefined,
+      date: saleForm.date,
+      paymentMethod: saleForm.paymentMethod,
+      paymentStatus: saleForm.paymentStatus,
+      notes: saleForm.notes || undefined,
+    });
+
+    await generateReport({ month: saleForm.date.substring(0, 7) });
+
+    confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6", "#F59E0B"] });
+
+    toast.success("🎉 Venda registrada com sucesso!");
+    setShowAddSale(false);
+    setSaleForm({
+      productId: "",
+      customerId: "",
+      quantity: "",
+      discount: "",
+      date: new Date().toISOString().split("T")[0],
+      paymentMethod: "pix",
+      paymentStatus: "paid",
+      notes: "",
+    });
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+    toast.error(`❌ Erro ao registrar: ${errorMessage}`);
+    console.error("Sale creation error:", error);
+  } finally {
+    setIsSubmittingSale(false);
+  }
+};
 
   const handleDeleteSale = async (id: Id<"sales">, saleMonth: string) => {
     try {
@@ -446,43 +587,75 @@ export default function FinancialManagerPro() {
     }
   };
 
-  const handleAddExpense = async () => {
-    if (!expenseForm.description.trim() || !expenseForm.amount || !expenseForm.date) {
-      toast.error("❌ Preencha descrição, valor e data!");
-      return;
-    }
+  const validateExpense = (form: typeof expenseForm): string[] => {
+  const errors: string[] = [];
 
-    try {
-      await addExpense({
-        description: expenseForm.description,
-        amount: parseFloat(expenseForm.amount),
-        categoryName: expenseForm.categoryName,
-        type: expenseForm.type,
-        date: expenseForm.date,
-        paymentMethod: expenseForm.paymentMethod,
-        paymentStatus: expenseForm.paymentStatus,
-        notes: expenseForm.notes || undefined,
-      });
+  if (!form.description.trim()) errors.push("Descrição é obrigatória");
+  if (form.description.length > 200) errors.push("Descrição muito longa (máx 200 caracteres)");
 
-      await generateReport({ month: expenseForm.date.substring(0, 7) });
+  const amount = parseFloat(form.amount);
+  if (isNaN(amount) || amount <= 0) errors.push("Valor deve ser maior que zero");
+  if (amount > 1000000) errors.push("Valor muito alto, confira");
 
-      toast.success("✅ Gasto registrado!");
-      setShowAddExpense(false);
-      setExpenseForm({
-        description: "",
-        amount: "",
-        categoryName: "Outros",
-        type: "one_time",
-        date: new Date().toISOString().split("T")[0],
-        paymentMethod: "pix",
-        paymentStatus: "paid",
-        notes: "",
-      });
-    } catch (error) {
-      toast.error("❌ Erro ao registrar gasto");
-      console.error(error);
-    }
-  };
+  // Valida data
+  const expenseDate = new Date(form.date);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+  const oneYearAgo = new Date();
+  oneYearAgo.setFullYear(today.getFullYear() - 1);
+
+  if (expenseDate > today) {
+    errors.push("Data não pode ser no futuro");
+  }
+  if (expenseDate < oneYearAgo) {
+    errors.push("Data muito antiga (mais de 1 ano)");
+  }
+
+  return errors;
+};
+
+const [, setIsSubmittingExpense] = useState(false);
+
+const handleAddExpense = async () => {
+  const errors = validateExpense(expenseForm);
+  if (errors.length > 0) {
+    toast.error(errors[0]);
+    return;
+  }
+
+  setIsSubmittingExpense(true);
+  try {
+    await addExpense({
+      description: expenseForm.description,
+      amount: parseFloat(expenseForm.amount),
+      categoryName: expenseForm.categoryName,
+      type: expenseForm.type,
+      date: expenseForm.date,
+      paymentMethod: expenseForm.paymentMethod,
+      paymentStatus: expenseForm.paymentStatus,
+      notes: expenseForm.notes || undefined,
+    });
+
+    await generateReport({ month: expenseForm.date.substring(0, 7) });
+
+    toast.success("✅ Gasto registrado!");
+    setShowAddExpense(false);
+    setExpenseForm({
+      description: "",
+      amount: "",
+      categoryName: "Outros",
+      type: "one_time",
+      date: new Date().toISOString().split("T")[0],
+      paymentMethod: "pix",
+      paymentStatus: "paid",
+      notes: "",
+    });
+  } catch (error) {
+    handleApiError(error, "Erro ao registrar gasto");
+  } finally {
+    setIsSubmittingExpense(false);
+  }
+};
 
   const handleDeleteExpense = async (id: Id<"expenses">, expenseMonth: string) => {
     try {
@@ -705,13 +878,27 @@ export default function FinancialManagerPro() {
     }
   };
 
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      product.sku?.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = filterCategory === "all" || product.category === filterCategory;
-    return matchesSearch && matchesCategory;
+  const filteredProducts = useMemo(() => {
+  if (!products) return [];
+
+  const lowerSearch = searchQuery.toLowerCase().trim();
+
+  return products.filter((product) => {
+    // Filtro de busca
+    if (lowerSearch) {
+      const matchesName = product.name.toLowerCase().includes(lowerSearch);
+      const matchesSku = product.sku?.toLowerCase().includes(lowerSearch);
+      if (!matchesName && !matchesSku) return false;
+    }
+
+    // Filtro de categoria
+    if (filterCategory !== "all" && product.category !== filterCategory) {
+      return false;
+    }
+
+    return true;
   });
+}, [products, searchQuery, filterCategory]);
 
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
 
@@ -733,18 +920,6 @@ export default function FinancialManagerPro() {
       </div>
     );
   }
-
-  const quickSaleLucro =
-    quickSaleForm.costPrice && quickSaleForm.salePrice
-      ? parseFloat(quickSaleForm.salePrice) - parseFloat(quickSaleForm.costPrice)
-      : 0;
-
-  const quickSaleMargin =
-    quickSaleForm.costPrice && quickSaleForm.salePrice && parseFloat(quickSaleForm.salePrice) > 0
-      ? ((parseFloat(quickSaleForm.salePrice) - parseFloat(quickSaleForm.costPrice)) /
-          parseFloat(quickSaleForm.salePrice)) *
-        100
-      : 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-6">
@@ -1842,7 +2017,7 @@ export default function FinancialManagerPro() {
             <Button
               onClick={handleQuickSale}
               className="bg-emerald-600 hover:bg-emerald-700"
-              disabled={!quickSaleForm.costPrice || !quickSaleForm.salePrice}
+              disabled={!isValidQuickSale}
             >
               <Check className="w-4 h-4 mr-2" />
               Confirmar Venda
@@ -2112,9 +2287,18 @@ export default function FinancialManagerPro() {
             <Button variant="outline" onClick={() => setShowAddProduct(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleAddProduct} className="bg-purple-600">
-              <Save className="w-4 h-4 mr-2" />
-              Salvar Produto
+            <Button onClick={handleAddProduct} className="bg-purple-600" disabled={isSubmitting}>
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Salvar Produto
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -2188,8 +2372,18 @@ export default function FinancialManagerPro() {
             <Button variant="outline" onClick={() => setShowEditProduct(false)}>
               Cancelar
             </Button>
-            <Button onClick={handleEditProduct} className="bg-purple-600">
-              Salvar Alterações
+            <Button onClick={handleEditProduct} className="bg-purple-600" disabled={isSubmittingEdit}>
+              {isSubmittingEdit ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Salvando...
+                </>
+              ) : (
+                <>
+                  <Save className="w-4 h-4 mr-2" />
+                  Salvar Alterações
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>
