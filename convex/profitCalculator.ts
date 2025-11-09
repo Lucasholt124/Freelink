@@ -11,6 +11,7 @@ import { Doc, Id } from "./_generated/dataModel";
 export const addQuickSale = mutation({
   args: {
     amount: v.number(),
+    costPrice: v.optional(v.number()), // ✅ ADICIONAR ESTE CAMPO
     description: v.optional(v.string()),
     paymentMethod: v.optional(
       v.union(
@@ -33,6 +34,12 @@ export const addQuickSale = mutation({
     const month = today.substring(0, 7);
     const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
+    // ✅ CALCULAR LUCRO CORRETAMENTE
+    const costPrice = args.costPrice || 0;
+    const totalCost = costPrice;
+    const totalRevenue = args.amount;
+    const profit = totalRevenue - totalCost;
+
     // Adiciona no cash flow
     await ctx.db.insert("cashFlow", {
       userId: identity.subject,
@@ -52,11 +59,11 @@ export const addQuickSale = mutation({
       businessId: args.businessId,
       productName: args.description || "Venda rápida",
       quantity: 1,
-      costPrice: 0,
+      costPrice: costPrice,        // ✅ CORRIGIDO
       salePrice: args.amount,
-      totalCost: 0,
-      totalRevenue: args.amount,
-      profit: args.amount,
+      totalCost: totalCost,         // ✅ CORRIGIDO
+      totalRevenue: totalRevenue,
+      profit: profit,               // ✅ CORRIGIDO
       paymentMethod: args.paymentMethod,
       paymentStatus: "paid",
       date: today,

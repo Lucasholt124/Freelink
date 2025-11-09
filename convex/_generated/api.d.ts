@@ -22,6 +22,7 @@ import type * as client from "../client.js";
 import type * as connections from "../connections.js";
 import type * as crons from "../crons.js";
 import type * as files from "../files.js";
+import type * as gamification from "../gamification.js";
 import type * as giveaways from "../giveaways.js";
 import type * as imageGenerator from "../imageGenerator.js";
 import type * as lib_customizations from "../lib/customizations.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   connections: typeof connections;
   crons: typeof crons;
   files: typeof files;
+  gamification: typeof gamification;
   giveaways: typeof giveaways;
   imageGenerator: typeof imageGenerator;
   "lib/customizations": typeof lib_customizations;

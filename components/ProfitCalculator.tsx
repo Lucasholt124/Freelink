@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -88,6 +88,9 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { toast } from "sonner";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Onboarding } from "./Onboarding";
+import { FloatingActionButton } from "./FloatingActionButton";
+import { GamificationBar } from "./Gamification";
 
 type TabType = "dashboard" | "produtos" | "vendas" | "gastos" | "resumo" | "metas" | "clientes" | "fornecedores" | "rapido";
 type GoalType = "revenue" | "profit" | "margin" | "sales_count" | "expense_reduction";
@@ -131,6 +134,10 @@ export default function FinancialManagerPro() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
 
+    const [showOnboarding, setShowOnboarding] = useState(false);
+  const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
+    const userStats = useQuery(api.gamification.getUserStats);
+  const initStats = useMutation(api.gamification.initUserStats);
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
@@ -147,6 +154,22 @@ export default function FinancialManagerPro() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
 
+
+  useEffect(() => {
+    const checkFirstAccess = async () => {
+      const seen = localStorage.getItem("onboarding_completed");
+      if (!seen) {
+        setShowOnboarding(true);
+      }
+
+      // Inicializar stats se não existir
+      if (!userStats) {
+        await initStats();
+      }
+    };
+
+    checkFirstAccess();
+  }, []);
   const [productForm, setProductForm] = useState({
     name: "",
     costPrice: "",
@@ -213,12 +236,13 @@ export default function FinancialManagerPro() {
     category: "",
   });
 
-  const [quickSaleForm, setQuickSaleForm] = useState({
-    costPrice: "",
-    salePrice: "",
-    description: "",
-    paymentMethod: "pix" as PaymentMethod,
-  });
+const [quickSaleForm, setQuickSaleForm] = useState({
+  costPrice: "",
+  salePrice: "",
+  description: "",
+  paymentMethod: "pix" as PaymentMethod,
+  date: new Date().toISOString().split("T")[0],
+});
 
   const [quickExpenseForm, setQuickExpenseForm] = useState({
     amount: "",
@@ -396,7 +420,12 @@ const handleAddProduct = async () => {
       name: productForm.name,
       costPrice: parseFloat(productForm.costPrice),
       salePrice: parseFloat(productForm.salePrice),
-      // ...
+      sku: productForm.sku || undefined,
+      category: productForm.category || undefined,
+      stock: productForm.stock ? parseInt(productForm.stock) : undefined,
+      minStock: productForm.minStock ? parseInt(productForm.minStock) : undefined,
+      unit: productForm.unit || "un",
+      description: productForm.description || undefined,
     });
 
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
@@ -761,49 +790,55 @@ const handleAddExpense = async () => {
     }
   };
 
-  const handleQuickSale = async () => {
-    if (!quickSaleForm.costPrice || !quickSaleForm.salePrice) {
-      toast.error("❌ Preencha o custo E o preço de venda!");
-      return;
-    }
+ const handleQuickSale = async () => {
+  if (!quickSaleForm.costPrice || !quickSaleForm.salePrice) {
+    toast.error("❌ Preencha o custo E o preço de venda!");
+    return;
+  }
 
-    const costPrice = parseFloat(quickSaleForm.costPrice);
-    const salePrice = parseFloat(quickSaleForm.salePrice);
+  const costPrice = parseFloat(quickSaleForm.costPrice);
+  const salePrice = parseFloat(quickSaleForm.salePrice);
 
-    if (costPrice <= 0 || salePrice <= 0) {
-      toast.error("❌ Valores devem ser maiores que zero!");
-      return;
-    }
+  if (costPrice <= 0 || salePrice <= 0) {
+    toast.error("❌ Valores devem ser maiores que zero!");
+    return;
+  }
 
-    if (salePrice <= costPrice) {
-      toast.error("⚠️ Preço de venda deve ser maior que o custo!");
-      return;
-    }
+  if (salePrice <= costPrice) {
+    toast.error("⚠️ Preço de venda deve ser maior que o custo!");
+    return;
+  }
 
-    try {
-      await addQuickSale({
-        amount: salePrice,
-        description: quickSaleForm.description || `Venda rápida - Lucro: ${formatCurrency(salePrice - costPrice)}`,
-        paymentMethod: quickSaleForm.paymentMethod,
-      });
+  try {
+    await addQuickSale({
+      amount: salePrice,
+      costPrice: costPrice,
+      description: quickSaleForm.description || `Venda rápida - Lucro: ${formatCurrency(salePrice - costPrice)}`,
+      paymentMethod: quickSaleForm.paymentMethod,
+      date: quickSaleForm.date,
+    });
 
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6"] });
+    // ✅ CORRIGIDO: Não precisa de identity aqui, o backend cuida disso
+    // O updateStreak será chamado automaticamente pelo backend
 
-      const lucro = salePrice - costPrice;
-      toast.success(`💰 Venda registrada! Lucro: ${formatCurrency(lucro)}`);
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6"] });
 
-      setShowQuickSale(false);
-      setQuickSaleForm({
-        costPrice: "",
-        salePrice: "",
-        description: "",
-        paymentMethod: "pix",
-      });
-    } catch (error) {
-      toast.error("❌ Erro ao registrar venda");
-      console.error(error);
-    }
-  };
+    const lucro = salePrice - costPrice;
+    toast.success(`💰 Venda registrada! Lucro: ${formatCurrency(lucro)}`);
+
+    setShowQuickSale(false);
+    setQuickSaleForm({
+      costPrice: "",
+      salePrice: "",
+      description: "",
+      paymentMethod: "pix",
+      date: new Date().toISOString().split("T")[0],
+    });
+  } catch (error) {
+  toast.error("❌ Erro ao registrar venda");
+  console.error(error);
+}
+}; // ✅ Sem fechamento extra
 
   const handleQuickExpense = async () => {
     if (!quickExpenseForm.amount || !quickExpenseForm.description) {
@@ -922,1915 +957,1961 @@ const handleAddExpense = async () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-6">
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-700" />
-        <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl animate-pulse delay-1000" />
-      </div>
+    <>
+      {/* ✅ ONBOARDING */}
+      {showOnboarding && !hasSeenOnboarding && (
+        <Onboarding
+          onComplete={() => {
+            setShowOnboarding(false);
+            setHasSeenOnboarding(true);
+            localStorage.setItem("onboarding_completed", "true");
+          }}
+          onSkip={() => {
+            setShowOnboarding(false);
+            setHasSeenOnboarding(true);
+            localStorage.setItem("onboarding_completed", "true");
+          }}
+        />
+      )}
 
-      <div className="relative max-w-[1600px] mx-auto px-3 md:px-6 py-4 md:py-6">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 md:mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg">
-              <Rocket className="w-6 h-6 md:w-8 md:h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl md:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                Gestão PRO
-              </h1>
-              <p className="text-xs md:text-sm text-gray-600">Acabou papel e caneta! 🚀</p>
-            </div>
-          </div>
+      {/* ✅ FLOATING ACTION BUTTON (MOBILE) */}
+      <FloatingActionButton
+        onQuickSale={() => setShowQuickSale(true)}
+        onQuickExpense={() => setShowQuickExpense(true)}
+        onAddProduct={() => setShowAddProduct(true)}
+      />
 
-          <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
-            <Button
-              onClick={() => setShowQuickSale(true)}
-              className="md:hidden flex-1 bg-emerald-600 hover:bg-emerald-700"
-            >
-              <Zap className="w-4 h-4 mr-2" />
-              Venda Rápida
-            </Button>
-
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowPriceCalculator(true)}
-              className="hidden md:flex hover:bg-purple-50"
-            >
-              <Calculator className="w-4 h-4 mr-2" />
-              Calcular Preço
-            </Button>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm" className="relative">
-                  <Bell className="w-4 h-4" />
-                  {alerts.length > 0 && (
-                    <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold animate-pulse">
-                      {alerts.length}
-                    </span>
-                  )}
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-80">
-                <DropdownMenuLabel>Alertas ({alerts.length})</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <ScrollArea className="h-64">
-                  {alerts.length === 0 ? (
-                    <div className="p-8 text-center">
-                      <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-emerald-500" />
-                      <p className="text-sm text-gray-500">Tudo certo! 🎉</p>
-                    </div>
-                  ) : (
-                    alerts.map((alert) => (
-                      <DropdownMenuItem
-                        key={alert._id}
-                        className="flex-col items-start p-3 cursor-pointer hover:bg-gray-50"
-                        onClick={() => markAlertAsRead({ id: alert._id })}
-                      >
-                        <div className="flex items-center gap-2 mb-1">
-                          {alert.severity === "critical" && <AlertTriangle className="w-4 h-4 text-red-500" />}
-                          {alert.severity === "warning" && <AlertCircle className="w-4 h-4 text-orange-500" />}
-                          {alert.severity === "info" && <Info className="w-4 h-4 text-blue-500" />}
-                          <span className="font-semibold text-sm">{alert.title}</span>
-                        </div>
-                        <p className="text-xs text-gray-600">{alert.message}</p>
-                      </DropdownMenuItem>
-                    ))
-                  )}
-                </ScrollArea>
-              </DropdownMenuContent>
-            </DropdownMenu>
-
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <Settings className="w-4 h-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>Configurações</DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleClearMonth} className="text-orange-600">
-                  <Trash2 className="w-4 h-4 mr-2" />
-                  Limpar Mês Atual
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={handleClearAll} className="text-red-600 font-bold">
-                  <AlertTriangle className="w-4 h-4 mr-2" />
-                  DELETAR TUDO
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      {/* [CORREÇÃO 1] - Este é agora o ÚNICO container principal. O duplicado foi removido. */}
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-6">
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
+          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-700" />
+          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
 
-        <Card className="p-3 md:p-4 bg-white/90 backdrop-blur-xl border-2 mb-4 md:mb-6 shadow-lg">
-          <div className="flex items-center justify-between gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigateMonth("prev")}
-              className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full hover:bg-blue-50"
-            >
-              <ChevronLeft className="w-5 h-5" />
-            </Button>
-
-            <div className="flex-1 text-center">
-              <div className="flex items-center justify-center gap-2">
-                <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                <h2 className="text-base md:text-xl font-bold capitalize">{getCurrentMonthName()}</h2>
+        <div className="relative max-w-[1600px] mx-auto px-3 md:px-6 py-4 md:py-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 md:mb-6">
+            <div className="flex items-center gap-3">
+              <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg">
+                <Rocket className="w-6 h-6 md:w-8 md:h-8 text-white" />
               </div>
-              {allMonths.length > 0 && (
-                <p className="text-[10px] md:text-xs text-gray-500 mt-1">
-                  {allMonths.length} {allMonths.length === 1 ? "mês" : "meses"} registrados
-                </p>
-              )}
+              <div>
+                <h1 className="text-2xl md:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Gestão PRO
+                </h1>
+                <p className="text-xs md:text-sm text-gray-600">Acabou papel e caneta! 🚀</p>
+              </div>
             </div>
 
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigateMonth("next")}
-              className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full hover:bg-blue-50"
-            >
-              <ChevronRight className="w-5 h-5" />
-            </Button>
-          </div>
-        </Card>
-
-        {dailySummary && (
-          <Card className="p-4 md:p-6 mb-4 md:mb-6 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 border-2 border-emerald-200/50 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2">
-                <div className="p-2 bg-emerald-600 rounded-lg">
-                  <Zap className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-lg">Resumo de Hoje</h3>
-                  <p className="text-xs text-gray-600">{new Date().toLocaleDateString("pt-BR")}</p>
-                </div>
-              </div>
+            <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
               <Button
-                size="sm"
-                onClick={() => setActiveTab("rapido")}
-                className="bg-emerald-600 hover:bg-emerald-700"
+                onClick={() => setShowQuickSale(true)}
+                className="md:hidden flex-1 bg-emerald-600 hover:bg-emerald-700"
               >
                 <Zap className="w-4 h-4 mr-2" />
-                Modo Rápido
+                Venda Rápida
               </Button>
-            </div>
 
-            <div className="grid grid-cols-3 gap-3 md:gap-4">
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center">
-                <p className="text-xs text-gray-600 mb-1">Vendas</p>
-                <p className="text-lg md:text-2xl font-black text-emerald-600">
-                  {formatCurrency(dailySummary.totalRevenue)}
-                </p>
-                <p className="text-[10px] md:text-xs text-gray-500 mt-1">{dailySummary.salesCount} vendas</p>
-              </div>
-              <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center">
-                <p className="text-xs text-gray-600 mb-1">Gastos</p>
-                <p className="text-lg md:text-2xl font-black text-red-600">
-                  {formatCurrency(dailySummary.totalExpenses)}
-                </p>
-                <p className="text-[10px] md:text-xs text-gray-500 mt-1">{dailySummary.expensesCount} gastos</p>
-              </div>
-              <div
-                className={`bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center ${
-                  dailySummary.netProfit >= 0 ? "ring-2 ring-emerald-400" : ""
-                }`}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPriceCalculator(true)}
+                className="hidden md:flex hover:bg-purple-50"
               >
-                <p className="text-xs text-gray-600 mb-1">Lucro</p>
-                <p
-                  className={`text-lg md:text-2xl font-black ${
-                    dailySummary.netProfit >= 0 ? "text-emerald-600" : "text-red-600"
-                  }`}
-                >
-                  {formatCurrency(dailySummary.netProfit)}
-                </p>
-                <div className="flex items-center justify-center gap-1 mt-1">
-                  {dailySummary.netProfit >= 0 ? (
-                    <TrendingUp className="w-3 h-3 text-emerald-600" />
-                  ) : (
-                    <TrendingDown className="w-3 h-3 text-red-600" />
-                  )}
+                <Calculator className="w-4 h-4 mr-2" />
+                Calcular Preço
+              </Button>
+
+              {/* [CORREÇÃO 2] - GamificationBar foi REMOVIDA daqui */}
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm" className="relative">
+                    <Bell className="w-4 h-4" />
+                    {alerts.length > 0 && (
+                      <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold animate-pulse">
+                        {alerts.length}
+                      </span>
+                    )}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-80">
+                  <DropdownMenuLabel>Alertas ({alerts.length})</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <ScrollArea className="h-64">
+                    {alerts.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <CheckCircle2 className="w-12 h-12 mx-auto mb-3 text-emerald-500" />
+                        <p className="text-sm text-gray-500">Tudo certo! 🎉</p>
+                      </div>
+                    ) : (
+                      alerts.map((alert) => (
+                        <DropdownMenuItem
+                          key={alert._id}
+                          className="flex-col items-start p-3 cursor-pointer hover:bg-gray-50"
+                          onClick={() => markAlertAsRead({ id: alert._id })}
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            {alert.severity === "critical" && <AlertTriangle className="w-4 h-4 text-red-500" />}
+                            {alert.severity === "warning" && <AlertCircle className="w-4 h-4 text-orange-500" />}
+                            {alert.severity === "info" && <Info className="w-4 h-4 text-blue-500" />}
+                            <span className="font-semibold text-sm">{alert.title}</span>
+                          </div>
+                          <p className="text-xs text-gray-600">{alert.message}</p>
+                        </DropdownMenuItem>
+                      ))
+                    )}
+                  </ScrollArea>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline" size="sm">
+                    <Settings className="w-4 h-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuLabel>Configurações</DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleClearMonth} className="text-orange-600">
+                    <Trash2 className="w-4 h-4 mr-2" />
+                    Limpar Mês Atual
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleClearAll} className="text-red-600 font-bold">
+                    <AlertTriangle className="w-4 h-4 mr-2" />
+                    DELETAR TUDO
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
+
+          <Card className="p-3 md:p-4 bg-white/90 backdrop-blur-xl border-2 mb-4 md:mb-6 shadow-lg">
+            <div className="flex items-center justify-between gap-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateMonth("prev")}
+                className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full hover:bg-blue-50"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </Button>
+
+              <div className="flex-1 text-center">
+                <div className="flex items-center justify-center gap-2">
+                  <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+                  <h2 className="text-base md:text-xl font-bold capitalize">{getCurrentMonthName()}</h2>
                 </div>
+                {allMonths.length > 0 && (
+                  <p className="text-[10px] md:text-xs text-gray-500 mt-1">
+                    {allMonths.length} {allMonths.length === 1 ? "mês" : "meses"} registrados
+                  </p>
+                )}
               </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigateMonth("next")}
+                className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full hover:bg-blue-50"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </Button>
             </div>
           </Card>
-        )}
 
-        {monthlyReport && (
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
-            <Card className="p-3 md:p-4 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-                  <p className="text-xs md:text-sm font-medium opacity-90">Receita</p>
+          {/* [CORREÇÃO 2] - GamificationBar foi MOVIDA para cá, logo após o Card do mês */}
+          <GamificationBar />
+
+          {dailySummary && (
+            <Card className="p-4 md:p-6 mb-4 md:mb-6 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 border-2 border-emerald-200/50 shadow-xl">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-emerald-600 rounded-lg">
+                    <Zap className="w-5 h-5 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-lg">Resumo de Hoje</h3>
+                    <p className="text-xs text-gray-600">{new Date().toLocaleDateString("pt-BR")}</p>
+                  </div>
                 </div>
-                <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.totalRevenue)}</p>
-                <p className="text-[10px] md:text-xs opacity-75 mt-1">{monthlyReport.totalSales} vendas</p>
+                <Button
+                  size="sm"
+                  onClick={() => setActiveTab("rapido")}
+                  className="bg-emerald-600 hover:bg-emerald-700"
+                >
+                  <Zap className="w-4 h-4 mr-2" />
+                  Modo Rápido
+                </Button>
               </div>
-              <DollarSign className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
-            </Card>
 
-            <Card className="p-3 md:p-4 bg-gradient-to-br from-red-500 to-red-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Receipt className="w-4 h-4 md:w-5 md:h-5" />
-                  <p className="text-xs md:text-sm font-medium opacity-90">Gastos</p>
+              <div className="grid grid-cols-3 gap-3 md:gap-4">
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center">
+                  <p className="text-xs text-gray-600 mb-1">Vendas</p>
+                  <p className="text-lg md:text-2xl font-black text-emerald-600">
+                    {formatCurrency(dailySummary.totalRevenue)}
+                  </p>
+                  <p className="text-[10px] md:text-xs text-gray-500 mt-1">{dailySummary.salesCount} vendas</p>
                 </div>
-                <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.totalExpenses)}</p>
-                <p className="text-[10px] md:text-xs opacity-75 mt-1">{expenses.length} registros</p>
-              </div>
-              <TrendingDown className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
-            </Card>
-
-            <Card
-              className={`p-3 md:p-4 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform ${
-                monthlyReport.netProfit >= 0
-                  ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
-                  : "bg-gradient-to-br from-orange-500 to-orange-600"
-              }`}
-            >
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  {monthlyReport.netProfit >= 0 ? (
-                    <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
-                  ) : (
-                    <TrendingDown className="w-4 h-4 md:w-5 md:h-5" />
-                  )}
-                  <p className="text-xs md:text-sm font-medium opacity-90">Lucro</p>
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center">
+                  <p className="text-xs text-gray-600 mb-1">Gastos</p>
+                  <p className="text-lg md:text-2xl font-black text-red-600">
+                    {formatCurrency(dailySummary.totalExpenses)}
+                  </p>
+                  <p className="text-[10px] md:text-xs text-gray-500 mt-1">{dailySummary.expensesCount} gastos</p>
                 </div>
-                <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.netProfit)}</p>
-                <p className="text-[10px] md:text-xs opacity-75 mt-1">
-                  Margem: {monthlyReport.profitMargin.toFixed(1)}%
-                </p>
-              </div>
-              <Sparkles className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
-            </Card>
-
-            <Card className="p-3 md:p-4 bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-2">
-                  <Package className="w-4 h-4 md:w-5 md:h-5" />
-                  <p className="text-xs md:text-sm font-medium opacity-90">Produtos</p>
+                <div
+                  className={`bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center ${
+                    dailySummary.netProfit >= 0 ? "ring-2 ring-emerald-400" : ""
+                  }`}
+                >
+                  <p className="text-xs text-gray-600 mb-1">Lucro</p>
+                  <p
+                    className={`text-lg md:text-2xl font-black ${
+                      dailySummary.netProfit >= 0 ? "text-emerald-600" : "text-red-600"
+                    }`}
+                  >
+                    {formatCurrency(dailySummary.netProfit)}
+                  </p>
+                  <div className="flex items-center justify-center gap-1 mt-1">
+                    {dailySummary.netProfit >= 0 ? (
+                      <TrendingUp className="w-3 h-3 text-emerald-600" />
+                    ) : (
+                      <TrendingDown className="w-3 h-3 text-red-600" />
+                    )}
+                  </div>
                 </div>
-                <p className="text-xl md:text-2xl font-black">{products.filter((p) => p.active).length}</p>
-                <p className="text-[10px] md:text-xs opacity-75 mt-1">cadastrados</p>
               </div>
-              <Package className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
             </Card>
-          </div>
-        )}
+          )}
 
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-4 md:space-y-6">
-          <div className="hidden md:block sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-2">
-            <TabsList className="grid grid-cols-4 lg:grid-cols-9 w-full bg-white/90 backdrop-blur-xl shadow-xl h-auto p-1 rounded-2xl">
-              <TabsTrigger value="dashboard" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                <BarChart3 className="w-4 h-4 mr-2" />
-                Dashboard
-              </TabsTrigger>
-              <TabsTrigger value="rapido" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                <Zap className="w-4 h-4 mr-2" />
-                Rápido
-              </TabsTrigger>
-              <TabsTrigger value="produtos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                <Package className="w-4 h-4 mr-2" />
-                Produtos
-              </TabsTrigger>
-              <TabsTrigger value="vendas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                <ShoppingCart className="w-4 h-4 mr-2" />
-                Vendas
-              </TabsTrigger>
-              <TabsTrigger value="gastos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                <Receipt className="w-4 h-4 mr-2" />
-                Gastos
-              </TabsTrigger>
-              <TabsTrigger value="resumo" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                <FileText className="w-4 h-4 mr-2" />
-                Resumo
-              </TabsTrigger>
-              <TabsTrigger value="metas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                <Target className="w-4 h-4 mr-2" />
-                Metas
-              </TabsTrigger>
-              <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-rose-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                <Users className="w-4 h-4 mr-2" />
-                Clientes
-              </TabsTrigger>
-              <TabsTrigger value="fornecedores" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                <Truck className="w-4 h-4 mr-2" />
-                Fornecedores
-              </TabsTrigger>
-            </TabsList>
-          </div>
-
-          <div className="md:hidden overflow-x-auto pb-2 -mx-3 px-3 sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30">
-            <div className="flex gap-2 min-w-max">
-              <Button size="sm" variant={activeTab === "dashboard" ? "default" : "outline"} onClick={() => setActiveTab("dashboard")} className={activeTab === "dashboard" ? "bg-blue-600" : ""}>
-                <BarChart3 className="w-4 h-4 mr-1" />
-                Início
-              </Button>
-              <Button size="sm" variant={activeTab === "rapido" ? "default" : "outline"} onClick={() => setActiveTab("rapido")} className={activeTab === "rapido" ? "bg-emerald-600" : ""}>
-                <Zap className="w-4 h-4 mr-1" />
-                Rápido
-              </Button>
-              <Button size="sm" variant={activeTab === "produtos" ? "default" : "outline"} onClick={() => setActiveTab("produtos")} className={activeTab === "produtos" ? "bg-purple-600" : ""}>
-                <Package className="w-4 h-4 mr-1" />
-                Produtos
-              </Button>
-              <Button size="sm" variant={activeTab === "vendas" ? "default" : "outline"} onClick={() => setActiveTab("vendas")} className={activeTab === "vendas" ? "bg-emerald-600" : ""}>
-                <ShoppingCart className="w-4 h-4 mr-1" />
-                Vendas
-              </Button>
-              <Button size="sm" variant={activeTab === "gastos" ? "default" : "outline"} onClick={() => setActiveTab("gastos")} className={activeTab === "gastos" ? "bg-red-600" : ""}>
-                <Receipt className="w-4 h-4 mr-1" />
-                Gastos
-              </Button>
-              <Button size="sm" variant={activeTab === "resumo" ? "default" : "outline"} onClick={() => setActiveTab("resumo")} className={activeTab === "resumo" ? "bg-indigo-600" : ""}>
-                <FileText className="w-4 h-4 mr-1" />
-                Resumo
-              </Button>
-              <Button size="sm" variant="outline" onClick={() => setShowMobileMenu(true)}>
-                <Menu className="w-4 h-4 mr-1" />
-                Mais
-              </Button>
-            </div>
-          </div>
-
-          <TabsContent value="dashboard">
-            {!dashboard ? (
-              <Card className="p-12 text-center">
-                <Loader2 className="w-16 h-16 mx-auto mb-4 text-gray-400 animate-spin" />
-                <p className="text-gray-500">Carregando dashboard...</p>
+          {monthlyReport && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+              <Card className="p-3 md:p-4 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
+                    <p className="text-xs md:text-sm font-medium opacity-90">Receita</p>
+                  </div>
+                  <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.totalRevenue)}</p>
+                  <p className="text-[10px] md:text-xs opacity-75 mt-1">{monthlyReport.totalSales} vendas</p>
+                </div>
+                <DollarSign className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
               </Card>
-            ) : (
-              <div className="space-y-4 md:space-y-6">
-                <div className="grid md:grid-cols-3 gap-4 md:gap-6">
-                  <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
-                    <h3 className="font-bold mb-4 flex items-center gap-2">
-                      <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                        <DollarSign className="w-5 h-5 text-blue-600" />
-                      </div>
-                      Receita Total
-                    </h3>
-                    <p className="text-3xl md:text-4xl font-black text-blue-600">
-                      {formatCurrency(dashboard.overview.totalRevenue)}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-2">{dashboard.overview.totalSales} vendas</p>
-                  </Card>
 
-                  <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
-                    <h3 className="font-bold mb-4 flex items-center gap-2">
-                      <div className="p-2 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
-                        <TrendingUp className="w-5 h-5 text-emerald-600" />
-                      </div>
-                      Lucro Líquido
-                    </h3>
-                    <p className={`text-3xl md:text-4xl font-black ${dashboard.overview.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                      {formatCurrency(dashboard.overview.netProfit)}
-                    </p>
-                    <p className="text-sm text-gray-600 mt-2">Margem: {dashboard.overview.profitMargin.toFixed(1)}%</p>
-                  </Card>
+              <Card className="p-3 md:p-4 bg-gradient-to-br from-red-500 to-red-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Receipt className="w-4 h-4 md:w-5 md:h-5" />
+                    <p className="text-xs md:text-sm font-medium opacity-90">Gastos</p>
+                  </div>
+                  <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.totalExpenses)}</p>
+                  <p className="text-[10px] md:text-xs opacity-75 mt-1">{expenses.length} registros</p>
+                </div>
+                <TrendingDown className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
+              </Card>
 
-                  <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
-                    <h3 className="font-bold mb-4 flex items-center gap-2">
-                      <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                        <Package className="w-5 h-5 text-purple-600" />
+              <Card
+                className={`p-3 md:p-4 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform ${
+                  monthlyReport.netProfit >= 0
+                    ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
+                    : "bg-gradient-to-br from-orange-500 to-orange-600"
+                }`}
+              >
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    {monthlyReport.netProfit >= 0 ? (
+                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
+                    ) : (
+                      <TrendingDown className="w-4 h-4 md:w-5 md:h-5" />
+                    )}
+                    <p className="text-xs md:text-sm font-medium opacity-90">Lucro</p>
+                  </div>
+                  <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.netProfit)}</p>
+                  <p className="text-[10px] md:text-xs opacity-75 mt-1">
+                    Margem: {monthlyReport.profitMargin.toFixed(1)}%
+                  </p>
+                </div>
+                <Sparkles className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
+              </Card>
+
+              <Card className="p-3 md:p-4 bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
+                <div className="relative z-10">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Package className="w-4 h-4 md:w-5 md:h-5" />
+                    <p className="text-xs md:text-sm font-medium opacity-90">Produtos</p>
+                  </div>
+                  <p className="text-xl md:text-2xl font-black">{products.filter((p) => p.active).length}</p>
+                  <p className="text-[10px] md:text-xs opacity-75 mt-1">cadastrados</p>
+                </div>
+                <Package className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
+              </Card>
+            </div>
+          )}
+
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-4 md:space-y-6">
+            <div className="hidden md:block sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-2">
+              <TabsList className="grid grid-cols-4 lg:grid-cols-9 w-full bg-white/90 backdrop-blur-xl shadow-xl h-auto p-1 rounded-2xl">
+                <TabsTrigger value="dashboard" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Dashboard
+                </TabsTrigger>
+                <TabsTrigger value="rapido" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
+                  <Zap className="w-4 h-4 mr-2" />
+                  Rápido
+                </TabsTrigger>
+                <TabsTrigger value="produtos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
+                  <Package className="w-4 h-4 mr-2" />
+                  Produtos
+                </TabsTrigger>
+                <TabsTrigger value="vendas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
+                  <ShoppingCart className="w-4 h-4 mr-2" />
+                  Vendas
+                </TabsTrigger>
+                <TabsTrigger value="gastos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
+                  <Receipt className="w-4 h-4 mr-2" />
+                  Gastos
+                </TabsTrigger>
+                <TabsTrigger value="resumo" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
+                  <FileText className="w-4 h-4 mr-2" />
+                  Resumo
+                </TabsTrigger>
+                <TabsTrigger value="metas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
+                  <Target className="w-4 h-4 mr-2" />
+                  Metas
+                </TabsTrigger>
+                <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-rose-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
+                  <Users className="w-4 h-4 mr-2" />
+                  Clientes
+                </TabsTrigger>
+                <TabsTrigger value="fornecedores" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
+                  <Truck className="w-4 h-4 mr-2" />
+                  Fornecedores
+                </TabsTrigger>
+              </TabsList>
+            </div>
+
+            <div className="md:hidden overflow-x-auto pb-2 -mx-3 px-3 sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30">
+              <div className="flex gap-2 min-w-max">
+                <Button size="sm" variant={activeTab === "dashboard" ? "default" : "outline"} onClick={() => setActiveTab("dashboard")} className={activeTab === "dashboard" ? "bg-blue-600" : ""}>
+                  <BarChart3 className="w-4 h-4 mr-1" />
+                  Início
+                </Button>
+                <Button size="sm" variant={activeTab === "rapido" ? "default" : "outline"} onClick={() => setActiveTab("rapido")} className={activeTab === "rapido" ? "bg-emerald-600" : ""}>
+                  <Zap className="w-4 h-4 mr-1" />
+                  Rápido
+                </Button>
+                <Button size="sm" variant={activeTab === "produtos" ? "default" : "outline"} onClick={() => setActiveTab("produtos")} className={activeTab === "produtos" ? "bg-purple-600" : ""}>
+                  <Package className="w-4 h-4 mr-1" />
+                  Produtos
+                </Button>
+                <Button size="sm" variant={activeTab === "vendas" ? "default" : "outline"} onClick={() => setActiveTab("vendas")} className={activeTab === "vendas" ? "bg-emerald-600" : ""}>
+                  <ShoppingCart className="w-4 h-4 mr-1" />
+                  Vendas
+                </Button>
+                <Button size="sm" variant={activeTab === "gastos" ? "default" : "outline"} onClick={() => setActiveTab("gastos")} className={activeTab === "gastos" ? "bg-red-600" : ""}>
+                  <Receipt className="w-4 h-4 mr-1" />
+                  Gastos
+                </Button>
+                <Button size="sm" variant={activeTab === "resumo" ? "default" : "outline"} onClick={() => setActiveTab("resumo")} className={activeTab === "resumo" ? "bg-indigo-600" : ""}>
+                  <FileText className="w-4 h-4 mr-1" />
+                  Resumo
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => setShowMobileMenu(true)}>
+                  <Menu className="w-4 h-4 mr-1" />
+                  Mais
+                </Button>
+              </div>
+            </div>
+
+            <TabsContent value="dashboard">
+              {!dashboard ? (
+                <Card className="p-12 text-center">
+                  <Loader2 className="w-16 h-16 mx-auto mb-4 text-gray-400 animate-spin" />
+                  <p className="text-gray-500">Carregando dashboard...</p>
+                </Card>
+              ) : (
+                <div className="space-y-4 md:space-y-6">
+                  <div className="grid md:grid-cols-3 gap-4 md:gap-6">
+                    <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
+                      <h3 className="font-bold mb-4 flex items-center gap-2">
+                        <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                          <DollarSign className="w-5 h-5 text-blue-600" />
+                        </div>
+                        Receita Total
+                      </h3>
+                      <p className="text-3xl md:text-4xl font-black text-blue-600">
+                        {formatCurrency(dashboard.overview.totalRevenue)}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-2">{dashboard.overview.totalSales} vendas</p>
+                    </Card>
+
+                    <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
+                      <h3 className="font-bold mb-4 flex items-center gap-2">
+                        <div className="p-2 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
+                          <TrendingUp className="w-5 h-5 text-emerald-600" />
+                        </div>
+                        Lucro Líquido
+                      </h3>
+                      <p className={`text-3xl md:text-4xl font-black ${dashboard.overview.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                        {formatCurrency(dashboard.overview.netProfit)}
+                      </p>
+                      <p className="text-sm text-gray-600 mt-2">Margem: {dashboard.overview.profitMargin.toFixed(1)}%</p>
+                    </Card>
+
+                    <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
+                      <h3 className="font-bold mb-4 flex items-center gap-2">
+                        <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                          <Package className="w-5 h-5 text-purple-600" />
+                        </div>
+                        Produtos
+                      </h3>
+                      <p className="text-3xl md:text-4xl font-black text-purple-600">{dashboard.products.total}</p>
+                      <p className="text-sm text-gray-600 mt-2">
+                        {dashboard.products.lowStock > 0 && `⚠️ ${dashboard.products.lowStock} com estoque baixo`}
+                      </p>
+                    </Card>
+                  </div>
+
+                  {dashboard.products.lowStock > 0 && (
+                    <Alert variant="destructive" className="border-2 border-red-200">
+                      <AlertTriangle className="h-5 w-5" />
+                      <AlertTitle className="font-bold">Estoque Baixo!</AlertTitle>
+                      <AlertDescription>
+                        {dashboard.products.lowStock} produto{dashboard.products.lowStock > 1 ? "s" : ""} precisa
+                        {dashboard.products.lowStock > 1 ? "m" : ""} de reabastecimento.
+                      </AlertDescription>
+                    </Alert>
+                  )}
+
+                  {goals.length > 0 && (
+                    <Card className="p-4 md:p-6 bg-white/80 backdrop-blur-sm">
+                      <h3 className="font-bold mb-4 flex items-center gap-2">
+                        <div className="p-2 bg-yellow-100 rounded-lg">
+                          <Target className="w-5 h-5 text-yellow-600" />
+                        </div>
+                        Metas Ativas
+                      </h3>
+                      <div className="space-y-4">
+                        {goals.slice(0, 3).map((goal) => {
+                          const progress = (goal.currentValue / goal.targetValue) * 100;
+                          return (
+                            <div key={goal._id} className="group">
+                              <div className="flex justify-between text-sm mb-2">
+                                <span className="font-semibold group-hover:text-blue-600 transition-colors">
+                                  {goal.title}
+                                </span>
+                                <span className="font-bold">{progress.toFixed(0)}%</span>
+                              </div>
+                              <Progress value={Math.min(100, progress)} className="h-3 bg-gray-200" />
+                            </div>
+                          );
+                        })}
                       </div>
-                      Produtos
-                    </h3>
-                    <p className="text-3xl md:text-4xl font-black text-purple-600">{dashboard.products.total}</p>
-                    <p className="text-sm text-gray-600 mt-2">
-                      {dashboard.products.lowStock > 0 && `⚠️ ${dashboard.products.lowStock} com estoque baixo`}
-                    </p>
-                  </Card>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </TabsContent>
+
+            <TabsContent value="rapido">
+              <div className="space-y-4">
+                <Card className="p-6 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border-2 border-emerald-200">
+                  <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 bg-emerald-600 rounded-xl">
+                      <Zap className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-black">Modo Papel e Caneta 📝</h2>
+                      <p className="text-gray-600">Registre vendas e gastos em segundos!</p>
+                    </div>
+                  </div>
+
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <Button
+                      size="lg"
+                      onClick={() => setShowQuickSale(true)}
+                      className="h-32 bg-gradient-to-br from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-xl"
+                    >
+                      <div className="text-center">
+                        <ArrowUpRight className="w-10 h-10 mx-auto mb-2" />
+                        <p className="text-xl font-black">Registrar Venda</p>
+                        <p className="text-sm opacity-90">Clique para adicionar</p>
+                      </div>
+                    </Button>
+
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      onClick={() => setShowQuickExpense(true)}
+                      className="h-32 border-2 border-red-300 hover:bg-red-50"
+                    >
+                      <div className="text-center">
+                        <ArrowDownRight className="w-10 h-10 mx-auto mb-2 text-red-600" />
+                        <p className="text-xl font-black text-red-600">Registrar Gasto</p>
+                        <p className="text-sm text-gray-600">Clique para adicionar</p>
+                      </div>
+                    </Button>
+                  </div>
+                </Card>
+
+                <Card className="p-6">
+                  <h3 className="font-bold mb-4 flex items-center gap-2">
+                    <Activity className="w-5 h-5 text-blue-600" />
+                    Últimas Movimentações
+                  </h3>
+                  {cashFlow.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Wallet className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-gray-500">Nenhuma movimentação hoje</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {cashFlow.map((flow) => (
+                        <div
+                          key={flow._id}
+                          className={`flex items-center justify-between p-4 rounded-xl ${
+                            flow.type === "in" ? "bg-emerald-50" : "bg-red-50"
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className={`p-2 rounded-lg ${flow.type === "in" ? "bg-emerald-100" : "bg-red-100"}`}>
+                              {flow.type === "in" ? (
+                                <ArrowUpRight className="w-4 h-4 text-emerald-600" />
+                              ) : (
+                                <ArrowDownRight className="w-4 h-4 text-red-600" />
+                              )}
+                            </div>
+                            <div>
+                              <p className="font-semibold">{flow.description}</p>
+                              <p className="text-xs text-gray-600">{flow.time}</p>
+                            </div>
+                          </div>
+                          <p className={`text-lg font-bold ${flow.type === "in" ? "text-emerald-600" : "text-red-600"}`}>
+                            {flow.type === "in" ? "+" : "-"}
+                            {formatCurrency(flow.amount)}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="produtos">
+              <div className="space-y-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 md:flex-none md:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        placeholder="Buscar produtos..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    {categories.length > 0 && (
+                      <Select value={filterCategory} onValueChange={setFilterCategory}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="Categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas</SelectItem>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat} value={cat || ""}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600 hover:bg-purple-700 w-full md:w-auto">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Produto
+                  </Button>
                 </div>
 
-                {dashboard.products.lowStock > 0 && (
-                  <Alert variant="destructive" className="border-2 border-red-200">
-                    <AlertTriangle className="h-5 w-5" />
-                    <AlertTitle className="font-bold">Estoque Baixo!</AlertTitle>
-                    <AlertDescription>
-                      {dashboard.products.lowStock} produto{dashboard.products.lowStock > 1 ? "s" : ""} precisa
-                      {dashboard.products.lowStock > 1 ? "m" : ""} de reabastecimento.
-                    </AlertDescription>
+                {filteredProducts.length === 0 ? (
+                  <Card className="p-12 text-center border-2 border-dashed">
+                    <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-xl font-bold mb-2">
+                      {searchQuery || filterCategory !== "all" ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      {searchQuery || filterCategory !== "all" ? "Tente ajustar os filtros" : "Comece cadastrando seu primeiro produto"}
+                    </p>
+                    {!searchQuery && filterCategory === "all" && (
+                      <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
+                        Cadastrar Primeiro Produto
+                      </Button>
+                    )}
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                    {filteredProducts.map((product) => {
+                      const profit = product.salePrice - product.costPrice;
+                      const profitMargin = (profit / product.salePrice) * 100;
+                      const isLowStock =
+                        product.stock !== undefined &&
+                        product.minStock !== undefined &&
+                        product.stock <= product.minStock;
+
+                      return (
+                        <Card key={product._id} className={`p-3 md:p-4 hover:shadow-lg transition-shadow ${!product.active ? "opacity-50" : ""}`}>
+                          <div className="flex justify-between gap-2 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-base md:text-lg truncate">{product.name}</h4>
+                              <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                                {product.category && <Badge variant="outline" className="text-xs">{product.category}</Badge>}
+                                {!product.active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
+                                {isLowStock && <Badge variant="destructive" className="text-xs">Estoque Baixo</Badge>}
+                              </div>
+                            </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0">
+                                  <Settings className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openEditProduct(product._id)}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, false)} className="text-orange-600">
+                                  <AlertCircle className="w-4 h-4 mr-2" />
+                                  Desativar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, true)} className="text-red-600">
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Deletar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
+
+                          <div className="space-y-1.5 text-sm mb-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 text-xs md:text-sm">Custo:</span>
+                              <span className="font-semibold text-sm md:text-base">{formatCurrency(product.costPrice)}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 text-xs md:text-sm">Venda:</span>
+                              <span className="font-semibold text-blue-600 text-sm md:text-base">{formatCurrency(product.salePrice)}</span>
+                            </div>
+                            {product.stock !== undefined && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-600 text-xs md:text-sm">Estoque:</span>
+                                <span className={`font-semibold text-sm md:text-base ${isLowStock ? "text-red-600" : ""}`}>
+                                  {product.stock} {product.unit || "un"}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+
+                          <Separator className="my-2 md:my-3" />
+
+                          <div className="bg-emerald-50 rounded-lg p-2.5 md:p-3">
+                            <div className="flex justify-between items-center gap-2">
+                              <div className="flex-1">
+                                <p className="text-[10px] md:text-xs text-gray-600">Lucro/un:</p>
+                                <p className="font-bold text-emerald-600 text-sm md:text-base truncate">{formatCurrency(profit)}</p>
+                              </div>
+                              <div className="text-right flex-1">
+                                <p className="text-[10px] md:text-xs text-gray-600">Margem:</p>
+                                <p className="font-bold text-emerald-600 text-sm md:text-base">{profitMargin.toFixed(1)}%</p>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="vendas">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold">Vendas do Mês ({sales.length})</h3>
+                  <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nova Venda
+                  </Button>
+                </div>
+
+                {products.filter((p) => p.active).length === 0 && (
+                  <Alert>
+                    <Info className="h-4 w-4" />
+                    <AlertTitle>Cadastre produtos primeiro</AlertTitle>
+                    <AlertDescription>Você precisa ter produtos cadastrados para registrar vendas.</AlertDescription>
                   </Alert>
                 )}
 
-                {goals.length > 0 && (
-                  <Card className="p-4 md:p-6 bg-white/80 backdrop-blur-sm">
-                    <h3 className="font-bold mb-4 flex items-center gap-2">
-                      <div className="p-2 bg-yellow-100 rounded-lg">
-                        <Target className="w-5 h-5 text-yellow-600" />
-                      </div>
-                      Metas Ativas
-                    </h3>
-                    <div className="space-y-4">
-                      {goals.slice(0, 3).map((goal) => {
-                        const progress = (goal.currentValue / goal.targetValue) * 100;
-                        return (
-                          <div key={goal._id} className="group">
-                            <div className="flex justify-between text-sm mb-2">
-                              <span className="font-semibold group-hover:text-blue-600 transition-colors">
-                                {goal.title}
-                              </span>
-                              <span className="font-bold">{progress.toFixed(0)}%</span>
-                            </div>
-                            <Progress value={Math.min(100, progress)} className="h-3 bg-gray-200" />
-                          </div>
-                        );
-                      })}
-                    </div>
+                {sales.length === 0 ? (
+                  <Card className="p-12 text-center border-2 border-dashed">
+                    <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-xl font-bold mb-2">Nenhuma venda registrada</h3>
+                    <p className="text-gray-500 mb-4">Comece registrando sua primeira venda</p>
+                    <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600" disabled={products.filter((p) => p.active).length === 0}>
+                      Registrar Primeira Venda
+                    </Button>
                   </Card>
-                )}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="rapido">
-            <div className="space-y-4">
-              <Card className="p-6 bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border-2 border-emerald-200">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="p-3 bg-emerald-600 rounded-xl">
-                    <Zap className="w-6 h-6 text-white" />
-                  </div>
-                  <div>
-                    <h2 className="text-2xl font-black">Modo Papel e Caneta 📝</h2>
-                    <p className="text-gray-600">Registre vendas e gastos em segundos!</p>
-                  </div>
-                </div>
-
-                <div className="grid md:grid-cols-2 gap-4">
-                  <Button
-                    size="lg"
-                    onClick={() => setShowQuickSale(true)}
-                    className="h-32 bg-gradient-to-br from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-xl"
-                  >
-                    <div className="text-center">
-                      <ArrowUpRight className="w-10 h-10 mx-auto mb-2" />
-                      <p className="text-xl font-black">Registrar Venda</p>
-                      <p className="text-sm opacity-90">Clique para adicionar</p>
-                    </div>
-                  </Button>
-
-                  <Button
-                    size="lg"
-                    variant="outline"
-                    onClick={() => setShowQuickExpense(true)}
-                    className="h-32 border-2 border-red-300 hover:bg-red-50"
-                  >
-                    <div className="text-center">
-                      <ArrowDownRight className="w-10 h-10 mx-auto mb-2 text-red-600" />
-                      <p className="text-xl font-black text-red-600">Registrar Gasto</p>
-                      <p className="text-sm text-gray-600">Clique para adicionar</p>
-                    </div>
-                  </Button>
-                </div>
-              </Card>
-
-              <Card className="p-6">
-                <h3 className="font-bold mb-4 flex items-center gap-2">
-                  <Activity className="w-5 h-5 text-blue-600" />
-                  Últimas Movimentações
-                </h3>
-                {cashFlow.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Wallet className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p className="text-gray-500">Nenhuma movimentação hoje</p>
-                  </div>
                 ) : (
-                  <div className="space-y-2">
-                    {cashFlow.map((flow) => (
-                      <div
-                        key={flow._id}
-                        className={`flex items-center justify-between p-4 rounded-xl ${
-                          flow.type === "in" ? "bg-emerald-50" : "bg-red-50"
-                        }`}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-lg ${flow.type === "in" ? "bg-emerald-100" : "bg-red-100"}`}>
-                            {flow.type === "in" ? (
-                              <ArrowUpRight className="w-4 h-4 text-emerald-600" />
-                            ) : (
-                              <ArrowDownRight className="w-4 h-4 text-red-600" />
-                            )}
+                  <div className="space-y-3">
+                    {sales.map((sale) => (
+                      <Card key={sale._id} className="p-4 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-bold">{sale.productName}</h4>
+                              {sale.paymentStatus === "pending" && (
+                                <Badge variant="outline" className="text-orange-600">Pendente</Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {sale.quantity}x {formatCurrency(sale.salePrice)} • {formatDate(sale.date)}
+                            </p>
+                            {sale.notes && <p className="text-xs text-gray-500 mt-1">{sale.notes}</p>}
                           </div>
-                          <div>
-                            <p className="font-semibold">{flow.description}</p>
-                            <p className="text-xs text-gray-600">{flow.time}</p>
+                          <div className="text-right">
+                            <p className="font-bold text-emerald-600 mb-2">{formatCurrency(sale.profit)}</p>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteSale(sale._id, sale.month)}>
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
                           </div>
                         </div>
-                        <p className={`text-lg font-bold ${flow.type === "in" ? "text-emerald-600" : "text-red-600"}`}>
-                          {flow.type === "in" ? "+" : "-"}
-                          {formatCurrency(flow.amount)}
-                        </p>
-                      </div>
+                      </Card>
                     ))}
                   </div>
                 )}
-              </Card>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="produtos">
-            <div className="space-y-4">
-              <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                <div className="flex items-center gap-3 w-full md:w-auto">
-                  <div className="relative flex-1 md:flex-none md:w-64">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      placeholder="Buscar produtos..."
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      className="pl-10"
-                    />
-                  </div>
-                  {categories.length > 0 && (
-                    <Select value={filterCategory} onValueChange={setFilterCategory}>
-                      <SelectTrigger className="w-40">
-                        <SelectValue placeholder="Categoria" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">Todas</SelectItem>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat || ""}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                </div>
-                <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600 hover:bg-purple-700 w-full md:w-auto">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Novo Produto
-                </Button>
               </div>
+            </TabsContent>
 
-              {filteredProducts.length === 0 ? (
-                <Card className="p-12 text-center border-2 border-dashed">
-                  <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">
-                    {searchQuery || filterCategory !== "all" ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
-                  </h3>
-                  <p className="text-gray-500 mb-4">
-                    {searchQuery || filterCategory !== "all" ? "Tente ajustar os filtros" : "Comece cadastrando seu primeiro produto"}
-                  </p>
-                  {!searchQuery && filterCategory === "all" && (
-                    <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
-                      Cadastrar Primeiro Produto
+            <TabsContent value="gastos">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold">Gastos do Mês ({expenses.length})</h3>
+                  <Button onClick={() => setShowAddExpense(true)} className="bg-red-600 hover:bg-red-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Gasto
+                  </Button>
+                </div>
+
+                {expenses.length === 0 ? (
+                  <Card className="p-12 text-center border-2 border-dashed">
+                    <Receipt className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-xl font-bold mb-2">Nenhum gasto registrado</h3>
+                    <p className="text-gray-500 mb-4">Registre seus gastos para controle financeiro</p>
+                    <Button onClick={() => setShowAddExpense(true)} className="bg-red-600">
+                      Registrar Primeiro Gasto
                     </Button>
-                  )}
-                </Card>
-              ) : (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredProducts.map((product) => {
-                    const profit = product.salePrice - product.costPrice;
-                    const profitMargin = (profit / product.salePrice) * 100;
-                    const isLowStock =
-                      product.stock !== undefined &&
-                      product.minStock !== undefined &&
-                      product.stock <= product.minStock;
-
-                    return (
-                      <Card key={product._id} className={`p-4 hover:shadow-lg transition-shadow ${!product.active ? "opacity-50" : ""}`}>
-                        <div className="flex justify-between mb-3">
-                          <div className="flex-1">
-                            <h4 className="font-bold text-lg">{product.name}</h4>
-                            <div className="flex gap-2 mt-1 flex-wrap">
-                              {product.category && <Badge variant="outline">{product.category}</Badge>}
-                              {!product.active && <Badge variant="secondary">Inativo</Badge>}
-                              {isLowStock && <Badge variant="destructive">Estoque Baixo</Badge>}
-                            </div>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button size="icon" variant="ghost" className="h-8 w-8">
-                                <Settings className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent>
-                              <DropdownMenuItem onClick={() => openEditProduct(product._id)}>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, false)} className="text-orange-600">
-                                <AlertCircle className="w-4 h-4 mr-2" />
-                                Desativar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, true)} className="text-red-600">
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Deletar
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-
-                        <div className="space-y-2 text-sm mb-3">
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Custo:</span>
-                            <span className="font-semibold">{formatCurrency(product.costPrice)}</span>
-                          </div>
-                          <div className="flex justify-between">
-                            <span className="text-gray-600">Venda:</span>
-                            <span className="font-semibold text-blue-600">{formatCurrency(product.salePrice)}</span>
-                          </div>
-                          {product.stock !== undefined && (
-                            <div className="flex justify-between">
-                              <span className="text-gray-600">Estoque:</span>
-                              <span className={`font-semibold ${isLowStock ? "text-red-600" : ""}`}>
-                                {product.stock} {product.unit || "un"}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-
-                        <Separator className="my-3" />
-
-                        <div className="bg-emerald-50 rounded p-3">
-                          <div className="flex justify-between">
-                            <div>
-                              <p className="text-xs text-gray-600">Lucro/un:</p>
-                              <p className="font-bold text-emerald-600">{formatCurrency(profit)}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className="text-xs text-gray-600">Margem:</p>
-                              <p className="font-bold text-emerald-600">{profitMargin.toFixed(1)}%</p>
-                            </div>
-                          </div>
-                        </div>
-                      </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="vendas">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Vendas do Mês ({sales.length})</h3>
-                <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Venda
-                </Button>
-              </div>
-
-              {products.filter((p) => p.active).length === 0 && (
-                <Alert>
-                  <Info className="h-4 w-4" />
-                  <AlertTitle>Cadastre produtos primeiro</AlertTitle>
-                  <AlertDescription>Você precisa ter produtos cadastrados para registrar vendas.</AlertDescription>
-                </Alert>
-              )}
-
-              {sales.length === 0 ? (
-                <Card className="p-12 text-center border-2 border-dashed">
-                  <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhuma venda registrada</h3>
-                  <p className="text-gray-500 mb-4">Comece registrando sua primeira venda</p>
-                  <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600" disabled={products.filter((p) => p.active).length === 0}>
-                    Registrar Primeira Venda
-                  </Button>
-                </Card>
-              ) : (
-                <div className="space-y-3">
-                  {sales.map((sale) => (
-                    <Card key={sale._id} className="p-4 hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-bold">{sale.productName}</h4>
-                            {sale.paymentStatus === "pending" && (
-                              <Badge variant="outline" className="text-orange-600">Pendente</Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            {sale.quantity}x {formatCurrency(sale.salePrice)} • {formatDate(sale.date)}
-                          </p>
-                          {sale.notes && <p className="text-xs text-gray-500 mt-1">{sale.notes}</p>}
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-emerald-600 mb-2">{formatCurrency(sale.profit)}</p>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteSale(sale._id, sale.month)}>
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="gastos">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Gastos do Mês ({expenses.length})</h3>
-                <Button onClick={() => setShowAddExpense(true)} className="bg-red-600 hover:bg-red-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Novo Gasto
-                </Button>
-              </div>
-
-              {expenses.length === 0 ? (
-                <Card className="p-12 text-center border-2 border-dashed">
-                  <Receipt className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhum gasto registrado</h3>
-                  <p className="text-gray-500 mb-4">Registre seus gastos para controle financeiro</p>
-                  <Button onClick={() => setShowAddExpense(true)} className="bg-red-600">
-                    Registrar Primeiro Gasto
-                  </Button>
-                </Card>
-              ) : (
-                <div className="space-y-3">
-                  {expenses.map((expense) => (
-                    <Card key={expense._id} className="p-4 hover:shadow-md transition-shadow">
-                      <div className="flex justify-between items-start">
-                        <div className="flex-1">
-                          <h4 className="font-bold">{expense.description}</h4>
-                          <div className="flex gap-2 mt-1 flex-wrap">
-                            <Badge variant="outline">{expense.categoryName}</Badge>
-                            <Badge variant={expense.type === "fixed" ? "default" : "secondary"}>
-                              {expense.type === "fixed" ? "Fixo" : expense.type === "variable" ? "Variável" : "Único"}
-                            </Badge>
-                            {expense.paymentStatus === "pending" && (
-                              <Badge variant="outline" className="text-orange-600">Pendente</Badge>
-                            )}
-                            <span className="text-sm text-gray-600">{formatDate(expense.date)}</span>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="font-bold text-red-600 mb-2">{formatCurrency(expense.amount)}</p>
-                          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteExpense(expense._id, expense.month)}>
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="resumo">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
-                <Button onClick={handleRegenerateReport} variant="outline" size="sm">
-                  <RefreshCw className="w-4 h-4 mr-2" />
-                  Atualizar
-                </Button>
-              </div>
-
-              {!monthlyReport ? (
-                <Card className="p-12 text-center">
-                  <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Sem dados para o mês</h3>
-                  <p className="text-gray-500 mb-4">Registre vendas e gastos para gerar o relatório</p>
-                  <Button onClick={handleRegenerateReport} className="bg-indigo-600">
-                    Gerar Relatório
-                  </Button>
-                </Card>
-              ) : (
-                <div className="space-y-6">
-                  <Card className="p-6">
-                    <div className="grid md:grid-cols-3 gap-6 mb-6">
-                      <div className="text-center p-4 bg-blue-50 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-1">Receita</p>
-                        <p className="text-2xl font-bold text-blue-600">{formatCurrency(monthlyReport.totalRevenue)}</p>
-                        <p className="text-xs text-gray-500 mt-1">{monthlyReport.totalSales} vendas</p>
-                      </div>
-                      <div className="text-center p-4 bg-red-50 rounded-lg">
-                        <p className="text-sm text-gray-600 mb-1">Gastos</p>
-                        <p className="text-2xl font-bold text-red-600">{formatCurrency(monthlyReport.totalExpenses)}</p>
-                      </div>
-                      <div className={`text-center p-4 rounded-lg ${monthlyReport.netProfit >= 0 ? "bg-emerald-50" : "bg-orange-50"}`}>
-                        <p className="text-sm text-gray-600 mb-1">Lucro Líquido</p>
-                        <p className={`text-2xl font-bold ${monthlyReport.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                          {formatCurrency(monthlyReport.netProfit)}
-                        </p>
-                        <p className="text-xs text-gray-500 mt-1">Margem: {monthlyReport.profitMargin.toFixed(1)}%</p>
-                      </div>
-                    </div>
-
-                    {monthlyReport.topProducts.length > 0 && (
-                      <>
-                        <Separator className="my-6" />
-                        <div>
-                          <h4 className="font-bold mb-4 flex items-center gap-2">
-                            <Star className="w-5 h-5 text-yellow-600" />
-                            Produtos Mais Vendidos
-                          </h4>
-                          <div className="space-y-2">
-                            {monthlyReport.topProducts.slice(0, 5).map((product, idx) => (
-                              <div key={product.productId} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">
-                                    {idx + 1}
-                                  </div>
-                                  <div>
-                                    <p className="font-semibold">{product.productName}</p>
-                                    <p className="text-sm text-gray-600">
-                                      {product.quantity} vendas • {formatCurrency(product.revenue)}
-                                    </p>
-                                  </div>
-                                </div>
-                                <p className="font-bold text-emerald-600">{formatCurrency(product.profit)}</p>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </>
-                    )}
                   </Card>
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="metas">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Suas Metas ({goals.length})</h3>
-                <Button onClick={() => setShowAddGoal(true)} className="bg-yellow-600 hover:bg-yellow-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Nova Meta
-                </Button>
-              </div>
-
-              {goals.length === 0 ? (
-                <Card className="p-12 text-center border-2 border-dashed">
-                  <Target className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhuma meta ativa</h3>
-                  <p className="text-gray-500 mb-4">Defina metas para acompanhar seu progresso</p>
-                  <Button onClick={() => setShowAddGoal(true)} className="bg-yellow-600">
-                    Criar Primeira Meta
-                  </Button>
-                </Card>
-              ) : (
-                <div className="space-y-4">
-                  {goals.map((goal) => {
-                    const progress = (goal.currentValue / goal.targetValue) * 100;
-                    return (
-                      <Card key={goal._id} className="p-6 hover:shadow-lg transition-shadow">
-                        <div className="flex justify-between mb-4">
+                ) : (
+                  <div className="space-y-3">
+                    {expenses.map((expense) => (
+                      <Card key={expense._id} className="p-4 hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start">
                           <div className="flex-1">
-                            <h4 className="font-bold text-lg">{goal.title}</h4>
-                            {goal.description && <p className="text-sm text-gray-600 mt-1">{goal.description}</p>}
+                            <h4 className="font-bold">{expense.description}</h4>
+                            <div className="flex gap-2 mt-1 flex-wrap">
+                              <Badge variant="outline">{expense.categoryName}</Badge>
+                              <Badge variant={expense.type === "fixed" ? "default" : "secondary"}>
+                                {expense.type === "fixed" ? "Fixo" : expense.type === "variable" ? "Variável" : "Único"}
+                              </Badge>
+                              {expense.paymentStatus === "pending" && (
+                                <Badge variant="outline" className="text-orange-600">Pendente</Badge>
+                              )}
+                              <span className="text-sm text-gray-600">{formatDate(expense.date)}</span>
+                            </div>
                           </div>
-                          <Button size="icon" variant="ghost" onClick={() => deleteGoal({ id: goal._id })}>
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
-                        </div>
-                        <div className="space-y-2">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-gray-600">Progresso:</span>
-                            <span className="font-semibold">{progress.toFixed(0)}%</span>
-                          </div>
-                          <Progress value={Math.min(100, progress)} className="h-3" />
-                          <div className="flex justify-between text-sm text-gray-600">
-                            <span>{formatCurrency(goal.currentValue)}</span>
-                            <span>{formatCurrency(goal.targetValue)}</span>
+                          <div className="text-right">
+                            <p className="font-bold text-red-600 mb-2">{formatCurrency(expense.amount)}</p>
+                            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteExpense(expense._id, expense.month)}>
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
                           </div>
                         </div>
                       </Card>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-
-          <TabsContent value="clientes">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Seus Clientes ({customers.length})</h3>
-                <Button onClick={() => setShowAddCustomer(true)} className="bg-pink-600 hover:bg-pink-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Novo Cliente
-                </Button>
+                    ))}
+                  </div>
+                )}
               </div>
+            </TabsContent>
 
-              {customers.length === 0 ? (
-                <Card className="p-12 text-center border-2 border-dashed">
-                  <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhum cliente cadastrado</h3>
-                  <p className="text-gray-500 mb-4">Gerencie seus clientes em um só lugar</p>
-                  <Button onClick={() => setShowAddCustomer(true)} className="bg-pink-600">
-                    Cadastrar Primeiro Cliente
+            <TabsContent value="resumo">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
+                  <Button onClick={handleRegenerateReport} variant="outline" size="sm">
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                    Atualizar
                   </Button>
-                </Card>
-              ) : (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {customers.map((customer) => (
-                    <Card key={customer._id} className="p-4 hover:shadow-lg transition-shadow">
-                      <div className="flex justify-between mb-3">
-                        <div className="flex-1">
-                          <h4 className="font-bold">{customer.name}</h4>
-                          {customer.email && <p className="text-sm text-gray-600">{customer.email}</p>}
-                          {customer.phone && <p className="text-sm text-gray-600">{customer.phone}</p>}
-                        </div>
-                        <Button size="icon" variant="ghost" onClick={() => deleteCustomer({ id: customer._id })}>
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
-                      </div>
-                      <Separator className="my-3" />
-                      <div className="space-y-1 text-sm">
-                        <p className="text-gray-600">
-                          Total gasto: <span className="font-semibold">{formatCurrency(customer.totalSpent)}</span>
-                        </p>
-                        <p className="text-gray-600">
-                          Pedidos: <span className="font-semibold">{customer.totalOrders}</span>
-                        </p>
-                      </div>
-                    </Card>
-                  ))}
                 </div>
-              )}
-            </div>
-          </TabsContent>
 
-          <TabsContent value="fornecedores">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold">Seus Fornecedores ({suppliers.length})</h3>
-                <Button onClick={() => setShowAddSupplier(true)} className="bg-teal-600 hover:bg-teal-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Novo Fornecedor
-                </Button>
-              </div>
-
-              {suppliers.length === 0 ? (
-                <Card className="p-12 text-center border-2 border-dashed">
-                  <Truck className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                  <h3 className="text-xl font-bold mb-2">Nenhum fornecedor cadastrado</h3>
-                  <p className="text-gray-500 mb-4">Organize seus fornecedores</p>
-                  <Button onClick={() => setShowAddSupplier(true)} className="bg-teal-600">
-                    Cadastrar Primeiro Fornecedor
-                  </Button>
-                </Card>
-              ) : (
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {suppliers.map((supplier) => (
-                    <Card key={supplier._id} className="p-4 hover:shadow-lg transition-shadow">
-                      <div className="flex justify-between mb-3">
-                        <div className="flex-1">
-                          <h4 className="font-bold">{supplier.name}</h4>
-                          {supplier.contact?.email && <p className="text-sm text-gray-600">{supplier.contact.email}</p>}
-                          {supplier.contact?.phone && <p className="text-sm text-gray-600">{supplier.contact.phone}</p>}
+                {!monthlyReport ? (
+                  <Card className="p-12 text-center">
+                    <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-xl font-bold mb-2">Sem dados para o mês</h3>
+                    <p className="text-gray-500 mb-4">Registre vendas e gastos para gerar o relatório</p>
+                    <Button onClick={handleRegenerateReport} className="bg-indigo-600">
+                      Gerar Relatório
+                    </Button>
+                  </Card>
+                ) : (
+                  <div className="space-y-6">
+                    <Card className="p-6">
+                      <div className="grid md:grid-cols-3 gap-6 mb-6">
+                        <div className="text-center p-4 bg-blue-50 rounded-lg">
+                          <p className="text-sm text-gray-600 mb-1">Receita</p>
+                          <p className="text-2xl font-bold text-blue-600">{formatCurrency(monthlyReport.totalRevenue)}</p>
+                          <p className="text-xs text-gray-500 mt-1">{monthlyReport.totalSales} vendas</p>
                         </div>
-                        <Button size="icon" variant="ghost" onClick={() => deleteSupplier({ id: supplier._id })}>
-                          <Trash2 className="w-4 h-4 text-red-500" />
-                        </Button>
+                        <div className="text-center p-4 bg-red-50 rounded-lg">
+                          <p className="text-sm text-gray-600 mb-1">Gastos</p>
+                          <p className="text-2xl font-bold text-red-600">{formatCurrency(monthlyReport.totalExpenses)}</p>
+                        </div>
+                        <div className={`text-center p-4 rounded-lg ${monthlyReport.netProfit >= 0 ? "bg-emerald-50" : "bg-orange-50"}`}>
+                          <p className="text-sm text-gray-600 mb-1">Lucro Líquido</p>
+                          <p className={`text-2xl font-bold ${monthlyReport.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                            {formatCurrency(monthlyReport.netProfit)}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">Margem: {monthlyReport.profitMargin.toFixed(1)}%</p>
+                        </div>
                       </div>
-                      {supplier.notes && (
+
+                      {monthlyReport.topProducts.length > 0 && (
                         <>
-                          <Separator className="my-3" />
-                          <p className="text-xs text-gray-600">{supplier.notes}</p>
+                          <Separator className="my-6" />
+                          <div>
+                            <h4 className="font-bold mb-4 flex items-center gap-2">
+                              <Star className="w-5 h-5 text-yellow-600" />
+                              Produtos Mais Vendidos
+                            </h4>
+                            <div className="space-y-2">
+                              {monthlyReport.topProducts.slice(0, 5).map((product, idx) => (
+                                <div key={product.productId} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                  <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">
+                                      {idx + 1}
+                                    </div>
+                                    <div>
+                                      <p className="font-semibold">{product.productName}</p>
+                                      <p className="text-sm text-gray-600">
+                                        {product.quantity} vendas • {formatCurrency(product.revenue)}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <p className="font-bold text-emerald-600">{formatCurrency(product.profit)}</p>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
                         </>
                       )}
                     </Card>
-                  ))}
-                </div>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      <Dialog open={showQuickSale} onOpenChange={setShowQuickSale}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 bg-emerald-100 rounded-lg">
-                <Zap className="w-5 h-5 text-emerald-600" />
-              </div>
-              Venda Rápida 💰
-            </DialogTitle>
-            <DialogDescription>Registre quanto pagou (custo) e por quanto vendeu</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label className="text-base font-semibold">Quanto você PAGOU? (Custo) *</Label>
-              <div className="relative mt-2">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-400" />
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={quickSaleForm.costPrice}
-                  onChange={(e) => setQuickSaleForm({ ...quickSaleForm, costPrice: e.target.value })}
-                  placeholder="Ex: 50,00"
-                  className="pl-10 text-xl font-bold h-14 border-red-200 focus:border-red-400"
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">💡 Preço que você pagou pelo produto</p>
-            </div>
-
-            <div>
-              <Label className="text-base font-semibold">Por quanto VENDEU? *</Label>
-              <div className="relative mt-2">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400" />
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={quickSaleForm.salePrice}
-                  onChange={(e) => setQuickSaleForm({ ...quickSaleForm, salePrice: e.target.value })}
-                  placeholder="Ex: 100,00"
-                  className="pl-10 text-xl font-bold h-14 border-emerald-200 focus:border-emerald-400"
-                />
-              </div>
-              <p className="text-xs text-gray-500 mt-1">💰 Preço que você vendeu</p>
-            </div>
-
-            {quickSaleLucro > 0 && (
-              <Alert className="bg-emerald-50 border-emerald-200">
-                <Sparkles className="h-5 w-5 text-emerald-600" />
-                <AlertTitle className="text-emerald-800 font-bold">Lucro Calculado</AlertTitle>
-                <AlertDescription className="space-y-2">
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p className="text-gray-600">Lucro:</p>
-                      <p className="text-2xl font-black text-emerald-600">{formatCurrency(quickSaleLucro)}</p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Margem:</p>
-                      <p className="text-2xl font-black text-emerald-600">{quickSaleMargin.toFixed(1)}%</p>
-                    </div>
                   </div>
-                </AlertDescription>
-              </Alert>
-            )}
+                )}
+              </div>
+            </TabsContent>
 
-            {quickSaleForm.costPrice &&
-              quickSaleForm.salePrice &&
-              parseFloat(quickSaleForm.salePrice) <= parseFloat(quickSaleForm.costPrice) && (
-                <Alert variant="destructive">
-                  <AlertTriangle className="h-4 w-4" />
-                  <AlertTitle>Atenção!</AlertTitle>
-                  <AlertDescription>
-                    Você está vendendo pelo mesmo preço ou mais barato que comprou. Revise os valores!
+            <TabsContent value="metas">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold">Suas Metas ({goals.length})</h3>
+                  <Button onClick={() => setShowAddGoal(true)} className="bg-yellow-600 hover:bg-yellow-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Nova Meta
+                  </Button>
+                </div>
+
+                {goals.length === 0 ? (
+                  <Card className="p-12 text-center border-2 border-dashed">
+                    <Target className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-xl font-bold mb-2">Nenhuma meta ativa</h3>
+                    <p className="text-gray-500 mb-4">Defina metas para acompanhar seu progresso</p>
+                    <Button onClick={() => setShowAddGoal(true)} className="bg-yellow-600">
+                      Criar Primeira Meta
+                    </Button>
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {goals.map((goal) => {
+                      const progress = (goal.currentValue / goal.targetValue) * 100;
+                      return (
+                        <Card key={goal._id} className="p-6 hover:shadow-lg transition-shadow">
+                          <div className="flex justify-between mb-4">
+                            <div className="flex-1">
+                              <h4 className="font-bold text-lg">{goal.title}</h4>
+                              {goal.description && <p className="text-sm text-gray-600 mt-1">{goal.description}</p>}
+                            </div>
+                            <Button size="icon" variant="ghost" onClick={() => deleteGoal({ id: goal._id })}>
+                              <Trash2 className="w-4 h-4 text-red-500" />
+                            </Button>
+                          </div>
+                          <div className="space-y-2">
+                            <div className="flex justify-between text-sm">
+                              <span className="text-gray-600">Progresso:</span>
+                              <span className="font-semibold">{progress.toFixed(0)}%</span>
+                            </div>
+                            <Progress value={Math.min(100, progress)} className="h-3" />
+                            <div className="flex justify-between text-sm text-gray-600">
+                              <span>{formatCurrency(goal.currentValue)}</span>
+                              <span>{formatCurrency(goal.targetValue)}</span>
+                            </div>
+                          </div>
+                        </Card>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="clientes">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold">Seus Clientes ({customers.length})</h3>
+                  <Button onClick={() => setShowAddCustomer(true)} className="bg-pink-600 hover:bg-pink-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Cliente
+                  </Button>
+                </div>
+
+                {customers.length === 0 ? (
+                  <Card className="p-12 text-center border-2 border-dashed">
+                    <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-xl font-bold mb-2">Nenhum cliente cadastrado</h3>
+                    <p className="text-gray-500 mb-4">Gerencie seus clientes em um só lugar</p>
+                    <Button onClick={() => setShowAddCustomer(true)} className="bg-pink-600">
+                      Cadastrar Primeiro Cliente
+                    </Button>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                    {customers.map((customer) => (
+                      <Card key={customer._id} className="p-3 md:p-4 hover:shadow-lg transition-shadow">
+                        <div className="flex justify-between gap-2 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-sm md:text-base truncate">{customer.name}</h4>
+                            {customer.email && <p className="text-xs md:text-sm text-gray-600 truncate">{customer.email}</p>}
+                            {customer.phone && <p className="text-xs md:text-sm text-gray-600">{customer.phone}</p>}
+                          </div>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => deleteCustomer({ id: customer._id })}>
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </div>
+                        <Separator className="my-2 md:my-3" />
+                        <div className="space-y-1 text-xs md:text-sm">
+                          <p className="text-gray-600 flex justify-between">
+                            <span>Total gasto:</span>
+                            <span className="font-semibold">{formatCurrency(customer.totalSpent)}</span>
+                          </p>
+                          <p className="text-gray-600 flex justify-between">
+                            <span>Pedidos:</span>
+                            <span className="font-semibold">{customer.totalOrders}</span>
+                          </p>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="fornecedores">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold">Seus Fornecedores ({suppliers.length})</h3>
+                  <Button onClick={() => setShowAddSupplier(true)} className="bg-teal-600 hover:bg-teal-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Novo Fornecedor
+                  </Button>
+                </div>
+
+                {suppliers.length === 0 ? (
+                  <Card className="p-12 text-center border-2 border-dashed">
+                    <Truck className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-xl font-bold mb-2">Nenhum fornecedor cadastrado</h3>
+                    <p className="text-gray-500 mb-4">Organize seus fornecedores</p>
+                    <Button onClick={() => setShowAddSupplier(true)} className="bg-teal-600">
+                      Cadastrar Primeiro Fornecedor
+                    </Button>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+                    {suppliers.map((supplier) => (
+                      <Card key={supplier._id} className="p-3 md:p-4 hover:shadow-lg transition-shadow">
+                        <div className="flex justify-between gap-2 mb-3">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="font-bold text-sm md:text-base truncate">{supplier.name}</h4>
+                            {supplier.contact?.email && <p className="text-xs md:text-sm text-gray-600 truncate">{supplier.contact.email}</p>}
+                            {supplier.contact?.phone && <p className="text-xs md:text-sm text-gray-600">{supplier.contact.phone}</p>}
+                          </div>
+                          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => deleteSupplier({ id: supplier._id })}>
+                            <Trash2 className="w-4 h-4 text-red-500" />
+                          </Button>
+                        </div>
+                        {supplier.notes && (
+                          <>
+                            <Separator className="my-2 md:my-3" />
+                            <p className="text-xs md:text-sm text-gray-600 line-clamp-2">{supplier.notes}</p>
+                          </>
+                        )}
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
+
+        <Dialog open={showQuickSale} onOpenChange={setShowQuickSale}>
+          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <div className="p-2 bg-emerald-100 rounded-lg">
+                  <Zap className="w-5 h-5 text-emerald-600" />
+                </div>
+                Venda Rápida 💰
+              </DialogTitle>
+              <DialogDescription>Registre quanto pagou (custo) e por quanto vendeu</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              <div>
+                <Label className="text-base font-semibold">Quanto você PAGOU? (Custo) *</Label>
+                <div className="relative mt-2">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-red-400" />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={quickSaleForm.costPrice}
+                    onChange={(e) => setQuickSaleForm({ ...quickSaleForm, costPrice: e.target.value })}
+                    placeholder="Ex: 50,00"
+                    className="pl-10 text-xl font-bold h-14 border-red-200 focus:border-red-400"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">💡 Preço que você pagou pelo produto</p>
+              </div>
+
+              <div>
+                <Label className="text-base font-semibold">Por quanto VENDEU? *</Label>
+                <div className="relative mt-2">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-emerald-400" />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={quickSaleForm.salePrice}
+                    onChange={(e) => setQuickSaleForm({ ...quickSaleForm, salePrice: e.target.value })}
+                    placeholder="Ex: 100,00"
+                    className="pl-10 text-xl font-bold h-14 border-emerald-200 focus:border-emerald-400"
+                  />
+                </div>
+                <p className="text-xs text-gray-500 mt-1">💰 Preço que você vendeu</p>
+              </div>
+
+              <div>
+                <Label className="text-base font-semibold">Data da Venda *</Label>
+                <div className="relative mt-2">
+                  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-400" />
+                  <Input
+                    type="date"
+                    value={quickSaleForm.date}
+                    onChange={(e) => setQuickSaleForm({ ...quickSaleForm, date: e.target.value })}
+                    className="pl-10 h-12 border-blue-200 focus:border-blue-400"
+                  />
+                </div>
+              </div>
+
+              {quickSaleLucro > 0 && (
+                <Alert className="bg-emerald-50 border-emerald-200">
+                  <Sparkles className="h-5 w-5 text-emerald-600" />
+                  <AlertTitle className="text-emerald-800 font-bold">Lucro Calculado</AlertTitle>
+                  <AlertDescription className="space-y-2">
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <p className="text-gray-600">Lucro:</p>
+                        <p className="text-2xl font-black text-emerald-600">{formatCurrency(quickSaleLucro)}</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-600">Margem:</p>
+                        <p className="text-2xl font-black text-emerald-600">{quickSaleMargin.toFixed(1)}%</p>
+                      </div>
+                    </div>
                   </AlertDescription>
                 </Alert>
               )}
 
-            <div>
-              <Label>Descrição (opcional)</Label>
-              <Input
-                value={quickSaleForm.description}
-                onChange={(e) => setQuickSaleForm({ ...quickSaleForm, description: e.target.value })}
-                placeholder="Ex: Venda de camiseta"
-              />
-            </div>
+              {quickSaleForm.costPrice &&
+                quickSaleForm.salePrice &&
+                parseFloat(quickSaleForm.salePrice) <= parseFloat(quickSaleForm.costPrice) && (
+                  <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Atenção!</AlertTitle>
+                    <AlertDescription>
+                      Você está vendendo pelo mesmo preço ou mais barato que comprou. Revise os valores!
+                    </AlertDescription>
+                  </Alert>
+                )}
 
-            <div>
-              <Label>Forma de Pagamento</Label>
-              <Select
-                value={quickSaleForm.paymentMethod}
-                onValueChange={(v: PaymentMethod) => setQuickSaleForm({ ...quickSaleForm, paymentMethod: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pix">PIX</SelectItem>
-                  <SelectItem value="cash">Dinheiro</SelectItem>
-                  <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
-                  <SelectItem value="debit_card">Cartão de Débito</SelectItem>
-                  <SelectItem value="bank_transfer">Transferência</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowQuickSale(false)}>
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleQuickSale}
-              className="bg-emerald-600 hover:bg-emerald-700"
-              disabled={!isValidQuickSale}
-            >
-              <Check className="w-4 h-4 mr-2" />
-              Confirmar Venda
-              {quickSaleLucro > 0 && ` (Lucro: ${formatCurrency(quickSaleLucro)})`}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showQuickExpense} onOpenChange={setShowQuickExpense}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <Receipt className="w-5 h-5 text-red-600" />
-              </div>
-              Gasto Rápido 💸
-            </DialogTitle>
-            <DialogDescription>Registre um gasto rapidamente</DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4">
-            <div>
-              <Label>Descrição *</Label>
-              <Input
-                value={quickExpenseForm.description}
-                onChange={(e) => setQuickExpenseForm({ ...quickExpenseForm, description: e.target.value })}
-                placeholder="Ex: Conta de luz"
-                autoFocus
-              />
-            </div>
-
-            <div>
-              <Label>Valor *</Label>
-              <div className="relative mt-2">
-                <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <div>
+                <Label>Descrição (opcional)</Label>
                 <Input
-                  type="number"
-                  step="0.01"
-                  value={quickExpenseForm.amount}
-                  onChange={(e) => setQuickExpenseForm({ ...quickExpenseForm, amount: e.target.value })}
-                  placeholder="0,00"
-                  className="pl-10 text-2xl font-bold h-14"
+                  value={quickSaleForm.description}
+                  onChange={(e) => setQuickSaleForm({ ...quickSaleForm, description: e.target.value })}
+                  placeholder="Ex: Venda de camiseta"
                 />
               </div>
-            </div>
 
-            <div>
-              <Label>Categoria</Label>
-              <Select
-                value={quickExpenseForm.category}
-                onValueChange={(v) => setQuickExpenseForm({ ...quickExpenseForm, category: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Aluguel">Aluguel</SelectItem>
-                  <SelectItem value="Luz/Água">Luz/Água</SelectItem>
-                  <SelectItem value="Internet">Internet</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Materiais">Materiais</SelectItem>
-                  <SelectItem value="Outros">Outros</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowQuickExpense(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleQuickExpense} className="bg-red-600 hover:bg-red-700">
-              <Check className="w-4 h-4 mr-2" />
-              Confirmar Gasto
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
-        <SheetContent side="right" className="w-80">
-          <SheetHeader>
-            <SheetTitle>Menu Completo</SheetTitle>
-            <SheetDescription>Todas as funcionalidades</SheetDescription>
-          </SheetHeader>
-
-          <div className="mt-6 space-y-2">
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setActiveTab("metas");
-                setShowMobileMenu(false);
-              }}
-            >
-              <Target className="w-5 h-5 mr-3" />
-              Metas
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setActiveTab("clientes");
-                setShowMobileMenu(false);
-              }}
-            >
-              <Users className="w-5 h-5 mr-3" />
-              Clientes
-            </Button>
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setActiveTab("fornecedores");
-                setShowMobileMenu(false);
-              }}
-            >
-              <Truck className="w-5 h-5 mr-3" />
-              Fornecedores
-            </Button>
-
-            <Separator className="my-4" />
-
-            <Button
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setShowPriceCalculator(true);
-                setShowMobileMenu(false);
-              }}
-            >
-              <Calculator className="w-5 h-5 mr-3" />
-              Calcular Preço
-            </Button>
-          </div>
-        </SheetContent>
-      </Sheet>
-
-      <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
-            <DialogDescription>Preencha os dados do produto para cadastro no sistema</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label>Nome do Produto *</Label>
-                <Input
-                  value={productForm.name}
-                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                  placeholder="Ex: Camiseta Básica"
-                />
-              </div>
-              <div>
-                <Label>SKU / Código</Label>
-                <Input
-                  value={productForm.sku}
-                  onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
-                  placeholder="Ex: CAM-001"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Preço de Custo * (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={productForm.costPrice}
-                  onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
-                  placeholder="0,00"
-                />
-              </div>
-              <div>
-                <Label>Preço de Venda * (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={productForm.salePrice}
-                  onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
-                  placeholder="0,00"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <Label>Estoque Inicial</Label>
-                <Input
-                  type="number"
-                  value={productForm.stock}
-                  onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label>Estoque Mínimo</Label>
-                <Input
-                  type="number"
-                  value={productForm.minStock}
-                  onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
-                  placeholder="0"
-                />
-              </div>
-              <div>
-                <Label>Unidade</Label>
+                <Label>Forma de Pagamento</Label>
                 <Select
-                  value={productForm.unit}
-                  onValueChange={(v) => setProductForm({ ...productForm, unit: v })}
+                  value={quickSaleForm.paymentMethod}
+                  onValueChange={(v: PaymentMethod) => setQuickSaleForm({ ...quickSaleForm, paymentMethod: v })}
                 >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="un">Unidade</SelectItem>
-                    <SelectItem value="kg">Kg</SelectItem>
-                    <SelectItem value="L">Litro</SelectItem>
-                    <SelectItem value="m">Metro</SelectItem>
-                    <SelectItem value="cx">Caixa</SelectItem>
+                    <SelectItem value="pix">PIX</SelectItem>
+                    <SelectItem value="cash">Dinheiro</SelectItem>
+                    <SelectItem value="credit_card">Cartão de Crédito</SelectItem>
+                    <SelectItem value="debit_card">Cartão de Débito</SelectItem>
+                    <SelectItem value="bank_transfer">Transferência</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
 
-            <div>
-              <Label>Categoria</Label>
-              <Input
-                value={productForm.category}
-                onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                placeholder="Ex: Roupas"
-              />
-            </div>
-
-            <div>
-              <Label>Descrição</Label>
-              <Textarea
-                value={productForm.description}
-                onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                placeholder="Descrição do produto"
-                rows={3}
-              />
-            </div>
-
-            {productForm.costPrice &&
-              productForm.salePrice &&
-              parseFloat(productForm.salePrice) > parseFloat(productForm.costPrice) && (
-                <Alert>
-                  <CheckCircle2 className="h-4 w-4" />
-                  <AlertTitle>Lucro por unidade</AlertTitle>
-                  <AlertDescription>
-                    {formatCurrency(parseFloat(productForm.salePrice) - parseFloat(productForm.costPrice))}{" "}
-                    (
-                    {(
-                      ((parseFloat(productForm.salePrice) - parseFloat(productForm.costPrice)) /
-                        parseFloat(productForm.salePrice)) *
-                      100
-                    ).toFixed(1)}
-                    % de margem)
-                  </AlertDescription>
-                </Alert>
-              )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddProduct(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAddProduct} className="bg-purple-600" disabled={isSubmitting}>
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar Produto
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>✏️ Editar Produto</DialogTitle>
-            <DialogDescription>Altere as informações do produto</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Nome do Produto</Label>
-                <Input
-                  value={productForm.name}
-                  onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>SKU</Label>
-                <Input
-                  value={productForm.sku}
-                  onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Custo (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={productForm.costPrice}
-                  onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Venda (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={productForm.salePrice}
-                  onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Estoque</Label>
-                <Input
-                  type="number"
-                  value={productForm.stock}
-                  onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Estoque Mínimo</Label>
-                <Input
-                  type="number"
-                  value={productForm.minStock}
-                  onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowEditProduct(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleEditProduct} className="bg-purple-600" disabled={isSubmittingEdit}>
-              {isSubmittingEdit ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Salvando...
-                </>
-              ) : (
-                <>
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar Alterações
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>🛒 Registrar Venda</DialogTitle>
-            <DialogDescription>
-              Registre uma nova venda e atualize o estoque automaticamente
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Produto *</Label>
-              <Select
-                value={saleForm.productId}
-                onValueChange={(v) => setSaleForm({ ...saleForm, productId: v })}
+            <DialogFooter className="flex-col sm:flex-row gap-2">
+              <Button variant="outline" onClick={() => setShowQuickSale(false)} className="w-full sm:w-auto">
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleQuickSale}
+                className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
+                disabled={!isValidQuickSale}
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione um produto" />
-                </SelectTrigger>
-                <SelectContent>
-                  {products
-                    .filter((p) => p.active)
-                    .map((p) => (
-                      <SelectItem key={p._id} value={p._id}>
-                        {p.name} - {formatCurrency(p.salePrice)}{" "}
-                        {p.stock !== undefined && `(Estoque: ${p.stock})`}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
-            </div>
+                <Check className="w-4 h-4 mr-2" />
+                Confirmar Venda
+                {quickSaleLucro > 0 && ` (${formatCurrency(quickSaleLucro)})`}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Dialog open={showQuickExpense} onOpenChange={setShowQuickExpense}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <div className="p-2 bg-red-100 rounded-lg">
+                  <Receipt className="w-5 h-5 text-red-600" />
+                </div>
+                Gasto Rápido 💸
+              </DialogTitle>
+              <DialogDescription>Registre um gasto rapidamente</DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
               <div>
-                <Label>Quantidade *</Label>
+                <Label>Descrição *</Label>
                 <Input
-                  type="number"
-                  min="1"
-                  value={saleForm.quantity}
-                  onChange={(e) => setSaleForm({ ...saleForm, quantity: e.target.value })}
-                  placeholder="1"
+                  value={quickExpenseForm.description}
+                  onChange={(e) => setQuickExpenseForm({ ...quickExpenseForm, description: e.target.value })}
+                  placeholder="Ex: Conta de luz"
+                  autoFocus
                 />
               </div>
+
               <div>
-                <Label>Data *</Label>
-                <Input
-                  type="date"
-                  value={saleForm.date}
-                  onChange={(e) => setSaleForm({ ...saleForm, date: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>Cliente (opcional)</Label>
-              <Select
-                value={saleForm.customerId || undefined}
-                onValueChange={(v) => setSaleForm({ ...saleForm, customerId: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Nenhum cliente" />
-                </SelectTrigger>
-                <SelectContent>
-                  {customers.map((c) => (
-                    <SelectItem key={c._id} value={c._id}>
-                      {c.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Desconto (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                min="0"
-                value={saleForm.discount}
-                onChange={(e) => setSaleForm({ ...saleForm, discount: e.target.value })}
-                placeholder="0,00"
-              />
-            </div>
-
-            <div>
-              <Label>Observações</Label>
-              <Textarea
-                value={saleForm.notes}
-                onChange={(e) => setSaleForm({ ...saleForm, notes: e.target.value })}
-                rows={2}
-                placeholder="Informações adicionais sobre a venda"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSale(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAddSale} className="bg-emerald-600">
-              <Save className="w-4 h-4 mr-2" />
-              Registrar Venda
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>💸 Registrar Gasto</DialogTitle>
-            <DialogDescription>Registre uma despesa ou gasto do negócio</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Descrição *</Label>
-              <Input
-                value={expenseForm.description}
-                onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
-                placeholder="Ex: Conta de luz"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Valor * (R$)</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  value={expenseForm.amount}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Data *</Label>
-                <Input
-                  type="date"
-                  value={expenseForm.date}
-                  onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label>Categoria</Label>
-              <Select
-                value={expenseForm.categoryName}
-                onValueChange={(v) => setExpenseForm({ ...expenseForm, categoryName: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Aluguel">Aluguel</SelectItem>
-                  <SelectItem value="Luz/Água">Luz/Água</SelectItem>
-                  <SelectItem value="Internet">Internet</SelectItem>
-                  <SelectItem value="Marketing">Marketing</SelectItem>
-                  <SelectItem value="Funcionários">Funcionários</SelectItem>
-                  <SelectItem value="Materiais">Materiais</SelectItem>
-                  <SelectItem value="Transporte">Transporte</SelectItem>
-                  <SelectItem value="Outros">Outros</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Tipo</Label>
-              <Select
-                value={expenseForm.type}
-                onValueChange={(v: ExpenseType) => setExpenseForm({ ...expenseForm, type: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fixed">Fixo (mensal)</SelectItem>
-                  <SelectItem value="variable">Variável</SelectItem>
-                  <SelectItem value="one_time">Único</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddExpense(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAddExpense} className="bg-red-600">
-              <Save className="w-4 h-4 mr-2" />
-              Registrar Gasto
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>👤 Cadastrar Cliente</DialogTitle>
-            <DialogDescription>Adicione um novo cliente ao sistema</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Nome *</Label>
-              <Input
-                value={customerForm.name}
-                onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
-                placeholder="Nome completo"
-              />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={customerForm.email}
-                onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
-                placeholder="email@exemplo.com"
-              />
-            </div>
-            <div>
-              <Label>Telefone</Label>
-              <Input
-                value={customerForm.phone}
-                onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
-                placeholder="(00) 00000-0000"
-              />
-            </div>
-            <div>
-              <Label>Endereço</Label>
-              <Input
-                value={customerForm.address}
-                onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
-                placeholder="Endereço completo"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddCustomer(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAddCustomer} className="bg-pink-600">
-              Salvar Cliente
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showAddSupplier} onOpenChange={setShowAddSupplier}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>🚚 Cadastrar Fornecedor</DialogTitle>
-            <DialogDescription>Adicione um novo fornecedor ao sistema</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Nome *</Label>
-              <Input
-                value={supplierForm.name}
-                onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
-                placeholder="Nome da empresa"
-              />
-            </div>
-            <div>
-              <Label>Email</Label>
-              <Input
-                type="email"
-                value={supplierForm.email}
-                onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
-                placeholder="email@fornecedor.com"
-              />
-            </div>
-            <div>
-              <Label>Telefone</Label>
-              <Input
-                value={supplierForm.phone}
-                onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
-                placeholder="(00) 0000-0000"
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddSupplier(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAddSupplier} className="bg-teal-600">
-              Salvar Fornecedor
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>🎯 Criar Meta</DialogTitle>
-            <DialogDescription>Defina uma meta financeira para acompanhar seu progresso</DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Título *</Label>
-              <Input
-                value={goalForm.title}
-                onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
-                placeholder="Ex: Faturar R$ 10.000"
-              />
-            </div>
-
-            <div>
-              <Label>Tipo de Meta</Label>
-              <Select
-                value={goalForm.type}
-                onValueChange={(v: GoalType) => setGoalForm({ ...goalForm, type: v })}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="revenue">Receita Total</SelectItem>
-                  <SelectItem value="profit">Lucro Líquido</SelectItem>
-                  <SelectItem value="margin">Margem de Lucro (%)</SelectItem>
-                  <SelectItem value="sales_count">Número de Vendas</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label>Valor Alvo *</Label>
-              <Input
-                type="number"
-                value={goalForm.targetValue}
-                onChange={(e) => setGoalForm({ ...goalForm, targetValue: e.target.value })}
-                placeholder="10000"
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label>Início</Label>
-                <Input
-                  type="date"
-                  value={goalForm.startDate}
-                  onChange={(e) => setGoalForm({ ...goalForm, startDate: e.target.value })}
-                />
-              </div>
-              <div>
-                <Label>Fim</Label>
-                <Input
-                  type="date"
-                  value={goalForm.endDate}
-                  onChange={(e) => setGoalForm({ ...goalForm, endDate: e.target.value })}
-                />
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowAddGoal(false)}>
-              Cancelar
-            </Button>
-            <Button onClick={handleAddGoal} className="bg-yellow-600">
-              Criar Meta
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={showPriceCalculator} onOpenChange={setShowPriceCalculator}>
-        <DialogContent className="max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle>🧮 Calculadora de Preço</DialogTitle>
-            <DialogDescription>
-              Descubra o preço ideal para seu produto com base em custos e margem
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div>
-              <Label>Custo do Produto * (R$)</Label>
-              <Input
-                type="number"
-                step="0.01"
-                value={priceCalcForm.costPrice}
-                onChange={(e) => setPriceCalcForm({ ...priceCalcForm, costPrice: e.target.value })}
-                placeholder="Ex: 50.00"
-              />
-            </div>
-
-            <div>
-              <Label>Margem Desejada (%)</Label>
-              <Input
-                type="number"
-                value={priceCalcForm.targetMargin}
-                onChange={(e) => setPriceCalcForm({ ...priceCalcForm, targetMargin: e.target.value })}
-                placeholder="Ex: 40"
-              />
-            </div>
-
-            <div>
-              <Label>Categoria</Label>
-              <Input
-                value={priceCalcForm.category}
-                onChange={(e) => setPriceCalcForm({ ...priceCalcForm, category: e.target.value })}
-                placeholder="Ex: roupas, eletrônicos"
-              />
-            </div>
-
-            <Button onClick={handleCalculatePrice} className="w-full bg-indigo-600">
-              <Calculator className="w-4 h-4 mr-2" />
-              Calcular Preço Sugerido
-            </Button>
-
-            {priceCalcResult && (
-              <div className="mt-6 space-y-4">
-                <Alert>
-                  <Sparkles className="h-5 w-5" />
-                  <AlertTitle className="text-lg">Preço Sugerido</AlertTitle>
-                  <AlertDescription>
-                    <p className="text-3xl font-black text-emerald-600 my-2">
-                      {formatCurrency(priceCalcResult.suggestedPrice)}
-                    </p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mt-4">
-                      <div>
-                        <p className="text-gray-600">Mínimo:</p>
-                        <p className="font-semibold">{formatCurrency(priceCalcResult.minPrice)}</p>
-                      </div>
-                      <div>
-                        <p className="text-gray-600">Máximo:</p>
-                        <p className="font-semibold">{formatCurrency(priceCalcResult.maxPrice)}</p>
-                      </div>
-                    </div>
-                  </AlertDescription>
-                </Alert>
-
-                <div className="space-y-2">
-                  <h4 className="font-semibold">Análise:</h4>
-                  {priceCalcResult.analysis.map((insight: string, idx: number) => (
-                    <p key={idx} className="text-sm text-gray-700 flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
-                      {insight}
-                    </p>
-                  ))}
+                <Label>Valor *</Label>
+                <div className="relative mt-2">
+                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={quickExpenseForm.amount}
+                    onChange={(e) => setQuickExpenseForm({ ...quickExpenseForm, amount: e.target.value })}
+                    placeholder="0,00"
+                    className="pl-10 text-2xl font-bold h-14"
+                  />
                 </div>
               </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </div>
+
+              <div>
+                <Label>Categoria</Label>
+                <Select
+                  value={quickExpenseForm.category}
+                  onValueChange={(v) => setQuickExpenseForm({ ...quickExpenseForm, category: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Aluguel">Aluguel</SelectItem>
+                    <SelectItem value="Luz/Água">Luz/Água</SelectItem>
+                    <SelectItem value="Internet">Internet</SelectItem>
+                    <SelectItem value="Marketing">Marketing</SelectItem>
+                    <SelectItem value="Materiais">Materiais</SelectItem>
+                    <SelectItem value="Outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowQuickExpense(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleQuickExpense} className="bg-red-600 hover:bg-red-700">
+                <Check className="w-4 h-4 mr-2" />
+                Confirmar Gasto
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
+          <SheetContent side="right" className="w-80">
+            <SheetHeader>
+              <SheetTitle>Menu Completo</SheetTitle>
+              <SheetDescription>Todas as funcionalidades</SheetDescription>
+            </SheetHeader>
+
+            <div className="mt-6 space-y-2">
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => {
+                  setActiveTab("metas");
+                  setShowMobileMenu(false);
+                }}
+              >
+                <Target className="w-5 h-5 mr-3" />
+                Metas
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => {
+                  setActiveTab("clientes");
+                  setShowMobileMenu(false);
+                }}
+              >
+                <Users className="w-5 h-5 mr-3" />
+                Clientes
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => {
+                  setActiveTab("fornecedores");
+                  setShowMobileMenu(false);
+                }}
+              >
+                <Truck className="w-5 h-5 mr-3" />
+                Fornecedores
+              </Button>
+
+              <Separator className="my-4" />
+
+              <Button
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => {
+                  setShowPriceCalculator(true);
+                  setShowMobileMenu(false);
+                }}
+              >
+                <Calculator className="w-5 h-5 mr-3" />
+                Calcular Preço
+              </Button>
+            </div>
+          </SheetContent>
+        </Sheet>
+
+        <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
+              <DialogDescription>Preencha os dados do produto para cadastro no sistema</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Nome do Produto *</Label>
+                  <Input
+                    value={productForm.name}
+                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                    placeholder="Ex: Camiseta Básica"
+                  />
+                </div>
+                <div>
+                  <Label>SKU / Código</Label>
+                  <Input
+                    value={productForm.sku}
+                    onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+                    placeholder="Ex: CAM-001"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Preço de Custo * (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={productForm.costPrice}
+                    onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
+                    placeholder="0,00"
+                  />
+                </div>
+                <div>
+                  <Label>Preço de Venda * (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={productForm.salePrice}
+                    onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
+                    placeholder="0,00"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <Label>Estoque Inicial</Label>
+                  <Input
+                    type="number"
+                    value={productForm.stock}
+                    onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label>Estoque Mínimo</Label>
+                  <Input
+                    type="number"
+                    value={productForm.minStock}
+                    onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
+                    placeholder="0"
+                  />
+                </div>
+                <div>
+                  <Label>Unidade</Label>
+                  <Select
+                    value={productForm.unit}
+                    onValueChange={(v) => setProductForm({ ...productForm, unit: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="un">Unidade</SelectItem>
+                      <SelectItem value="kg">Kg</SelectItem>
+                      <SelectItem value="L">Litro</SelectItem>
+                      <SelectItem value="m">Metro</SelectItem>
+                      <SelectItem value="cx">Caixa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div>
+                <Label>Categoria</Label>
+                <Input
+                  value={productForm.category}
+                  onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
+                  placeholder="Ex: Roupas"
+                />
+              </div>
+
+              <div>
+                <Label>Descrição</Label>
+                <Textarea
+                  value={productForm.description}
+                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
+                  placeholder="Descrição do produto"
+                  rows={3}
+                />
+              </div>
+
+              {productForm.costPrice &&
+                productForm.salePrice &&
+                parseFloat(productForm.salePrice) > parseFloat(productForm.costPrice) && (
+                  <Alert>
+                    <CheckCircle2 className="h-4 w-4" />
+                    <AlertTitle>Lucro por unidade</AlertTitle>
+                    <AlertDescription>
+                      {formatCurrency(parseFloat(productForm.salePrice) - parseFloat(productForm.costPrice))}{" "}
+                      (
+                      {(
+                        ((parseFloat(productForm.salePrice) - parseFloat(productForm.costPrice)) /
+                          parseFloat(productForm.salePrice)) *
+                        100
+                      ).toFixed(1)}
+                      % de margem)
+                    </AlertDescription>
+                  </Alert>
+                )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddProduct(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAddProduct} className="bg-purple-600" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar Produto
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>✏️ Editar Produto</DialogTitle>
+              <DialogDescription>Altere as informações do produto</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Nome do Produto</Label>
+                  <Input
+                    value={productForm.name}
+                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>SKU</Label>
+                  <Input
+                    value={productForm.sku}
+                    onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Custo (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={productForm.costPrice}
+                    onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Venda (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={productForm.salePrice}
+                    onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Estoque</Label>
+                  <Input
+                    type="number"
+                    value={productForm.stock}
+                    onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Estoque Mínimo</Label>
+                  <Input
+                    type="number"
+                    value={productForm.minStock}
+                    onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditProduct(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleEditProduct} className="bg-purple-600" disabled={isSubmittingEdit}>
+                {isSubmittingEdit ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-4 h-4 mr-2" />
+                    Salvar Alterações
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>🛒 Registrar Venda</DialogTitle>
+              <DialogDescription>
+                Registre uma nova venda e atualize o estoque automaticamente
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Produto *</Label>
+                <Select
+                  value={saleForm.productId}
+                  onValueChange={(v) => setSaleForm({ ...saleForm, productId: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um produto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products
+                      .filter((p) => p.active)
+                      .map((p) => (
+                        <SelectItem key={p._id} value={p._id}>
+                          {p.name} - {formatCurrency(p.salePrice)}{" "}
+                          {p.stock !== undefined && `(Estoque: ${p.stock})`}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Quantidade *</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={saleForm.quantity}
+                    onChange={(e) => setSaleForm({ ...saleForm, quantity: e.target.value })}
+                    placeholder="1"
+                  />
+                </div>
+                <div>
+                  <Label>Data *</Label>
+                  <Input
+                    type="date"
+                    value={saleForm.date}
+                    onChange={(e) => setSaleForm({ ...saleForm, date: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Cliente (opcional)</Label>
+                <Select
+                  value={saleForm.customerId || undefined}
+                  onValueChange={(v) => setSaleForm({ ...saleForm, customerId: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Nenhum cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {customers.map((c) => (
+                      <SelectItem key={c._id} value={c._id}>
+                        {c.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Desconto (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={saleForm.discount}
+                  onChange={(e) => setSaleForm({ ...saleForm, discount: e.target.value })}
+                  placeholder="0,00"
+                />
+              </div>
+
+              <div>
+                <Label>Observações</Label>
+                <Textarea
+                  value={saleForm.notes}
+                  onChange={(e) => setSaleForm({ ...saleForm, notes: e.target.value })}
+                  rows={2}
+                  placeholder="Informações adicionais sobre a venda"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddSale(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAddSale} className="bg-emerald-600">
+                <Save className="w-4 h-4 mr-2" />
+                Registrar Venda
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>💸 Registrar Gasto</DialogTitle>
+              <DialogDescription>Registre uma despesa ou gasto do negócio</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Descrição *</Label>
+                <Input
+                  value={expenseForm.description}
+                  onChange={(e) => setExpenseForm({ ...expenseForm, description: e.target.value })}
+                  placeholder="Ex: Conta de luz"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Valor * (R$)</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    value={expenseForm.amount}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Data *</Label>
+                  <Input
+                    type="date"
+                    value={expenseForm.date}
+                    onChange={(e) => setExpenseForm({ ...expenseForm, date: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <Label>Categoria</Label>
+                <Select
+                  value={expenseForm.categoryName}
+                  onValueChange={(v) => setExpenseForm({ ...expenseForm, categoryName: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Aluguel">Aluguel</SelectItem>
+                    <SelectItem value="Luz/Água">Luz/Água</SelectItem>
+                    <SelectItem value="Internet">Internet</SelectItem>
+                    <SelectItem value="Marketing">Marketing</SelectItem>
+                    <SelectItem value="Funcionários">Funcionários</SelectItem>
+                    <SelectItem value="Materiais">Materiais</SelectItem>
+                    <SelectItem value="Transporte">Transporte</SelectItem>
+                    <SelectItem value="Outros">Outros</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Tipo</Label>
+                <Select
+                  value={expenseForm.type}
+                  onValueChange={(v: ExpenseType) => setExpenseForm({ ...expenseForm, type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="fixed">Fixo (mensal)</SelectItem>
+                    <SelectItem value="variable">Variável</SelectItem>
+                    <SelectItem value="one_time">Único</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddExpense(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAddExpense} className="bg-red-600">
+                <Save className="w-4 h-4 mr-2" />
+                Registrar Gasto
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>👤 Cadastrar Cliente</DialogTitle>
+              <DialogDescription>Adicione um novo cliente ao sistema</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Nome *</Label>
+                <Input
+                  value={customerForm.name}
+                  onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
+                  placeholder="Nome completo"
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={customerForm.email}
+                  onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div>
+                <Label>Telefone</Label>
+                <Input
+                  value={customerForm.phone}
+                  onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div>
+                <Label>Endereço</Label>
+                <Input
+                  value={customerForm.address}
+                  onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
+                  placeholder="Endereço completo"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddCustomer(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAddCustomer} className="bg-pink-600">
+                Salvar Cliente
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAddSupplier} onOpenChange={setShowAddSupplier}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>🚚 Cadastrar Fornecedor</DialogTitle>
+              <DialogDescription>Adicione um novo fornecedor ao sistema</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Nome *</Label>
+                <Input
+                  value={supplierForm.name}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+                  placeholder="Nome da empresa"
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={supplierForm.email}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
+                  placeholder="email@fornecedor.com"
+                />
+              </div>
+              <div>
+                <Label>Telefone</Label>
+                <Input
+                  value={supplierForm.phone}
+                  onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                  placeholder="(00) 0000-0000"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddSupplier(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAddSupplier} className="bg-teal-600">
+                Salvar Fornecedor
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>🎯 Criar Meta</DialogTitle>
+              <DialogDescription>Defina uma meta financeira para acompanhar seu progresso</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Título *</Label>
+                <Input
+                  value={goalForm.title}
+                  onChange={(e) => setGoalForm({ ...goalForm, title: e.target.value })}
+                  placeholder="Ex: Faturar R$ 10.000"
+                />
+              </div>
+
+              <div>
+                <Label>Tipo de Meta</Label>
+                <Select
+                  value={goalForm.type}
+                  onValueChange={(v: GoalType) => setGoalForm({ ...goalForm, type: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="revenue">Receita Total</SelectItem>
+                    <SelectItem value="profit">Lucro Líquido</SelectItem>
+                    <SelectItem value="margin">Margem de Lucro (%)</SelectItem>
+                    <SelectItem value="sales_count">Número de Vendas</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label>Valor Alvo *</Label>
+                <Input
+                  type="number"
+                  value={goalForm.targetValue}
+                  onChange={(e) => setGoalForm({ ...goalForm, targetValue: e.target.value })}
+                  placeholder="10000"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label>Início</Label>
+                  <Input
+                    type="date"
+                    value={goalForm.startDate}
+                    onChange={(e) => setGoalForm({ ...goalForm, startDate: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Fim</Label>
+                  <Input
+                    type="date"
+                    value={goalForm.endDate}
+                    onChange={(e) => setGoalForm({ ...goalForm, endDate: e.target.value })}
+                  />
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddGoal(false)}>
+                Cancelar
+              </Button>
+              <Button onClick={handleAddGoal} className="bg-yellow-600">
+                Criar Meta
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showPriceCalculator} onOpenChange={setShowPriceCalculator}>
+          <DialogContent className="max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle>🧮 Calculadora de Preço</DialogTitle>
+              <DialogDescription>
+                Descubra o preço ideal para seu produto com base em custos e margem
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Custo do Produto * (R$)</Label>
+                <Input
+                  type="number"
+                  step="0.01"
+                  value={priceCalcForm.costPrice}
+                  onChange={(e) => setPriceCalcForm({ ...priceCalcForm, costPrice: e.target.value })}
+                  placeholder="Ex: 50.00"
+                />
+              </div>
+
+              <div>
+                <Label>Margem Desejada (%)</Label>
+                <Input
+                  type="number"
+                  value={priceCalcForm.targetMargin}
+                  onChange={(e) => setPriceCalcForm({ ...priceCalcForm, targetMargin: e.target.value })}
+                  placeholder="Ex: 40"
+                />
+              </div>
+
+              <div>
+                <Label>Categoria</Label>
+                <Input
+                  value={priceCalcForm.category}
+                  onChange={(e) => setPriceCalcForm({ ...priceCalcForm, category: e.target.value })}
+                  placeholder="Ex: roupas, eletrônicos"
+                />
+              </div>
+
+              <Button onClick={handleCalculatePrice} className="w-full bg-indigo-600">
+                <Calculator className="w-4 h-4 mr-2" />
+                Calcular Preço Sugerido
+              </Button>
+
+              {priceCalcResult && (
+                <div className="mt-6 space-y-4">
+                  <Alert>
+                    <Sparkles className="h-5 w-5" />
+                    <AlertTitle className="text-lg">Preço Sugerido</AlertTitle>
+                    <AlertDescription>
+                      <p className="text-3xl font-black text-emerald-600 my-2">
+                        {formatCurrency(priceCalcResult.suggestedPrice)}
+                      </p>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm mt-4">
+                        <div>
+                          <p className="text-gray-600">Mínimo:</p>
+                          <p className="font-semibold">{formatCurrency(priceCalcResult.minPrice)}</p>
+                        </div>
+                        <div>
+                          <p className="text-gray-600">Máximo:</p>
+                          <p className="font-semibold">{formatCurrency(priceCalcResult.maxPrice)}</p>
+                        </div>
+                      </div>
+                    </AlertDescription>
+                  </Alert>
+
+                  <div className="space-y-2">
+                    <h4 className="font-semibold">Análise:</h4>
+                    {priceCalcResult.analysis.map((insight: string, idx: number) => (
+                      <p key={idx} className="text-sm text-gray-700 flex items-start gap-2">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
+                        {insight}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </>
   );
 }

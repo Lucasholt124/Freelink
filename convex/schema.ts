@@ -915,4 +915,48 @@ export default defineSchema({
     .index("by_user_date", ["userId", "date"])
     .index("by_business", ["businessId"])
     .index("by_type", ["userId", "type"]),
+    userOnboarding: defineTable({
+    userId: v.string(),
+    currentStep: v.number(),
+    completed: v.boolean(),
+    steps: v.array(
+      v.object({
+        step: v.number(),
+        name: v.string(),
+        completed: v.boolean(),
+      })
+    ),
+    hasSeenWelcome: v.boolean(),
+    createdAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  // ============================================
+  // 🎮 GAMIFICAÇÃO
+  // ============================================
+
+  userStats: defineTable({
+    userId: v.string(),
+    currentStreak: v.number(),
+    longestStreak: v.number(),
+    totalSales: v.number(),
+    totalRevenue: v.number(),
+    level: v.number(),
+    xp: v.number(),
+    lastActivityDate: v.string(),
+    badges: v.array(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
+  achievements: defineTable({
+    userId: v.string(),
+    type: v.string(),
+    title: v.string(),
+    description: v.string(),
+    icon: v.string(),
+    unlockedAt: v.number(),
+    seen: v.boolean(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_unseen", ["userId", "seen"]),
 });
