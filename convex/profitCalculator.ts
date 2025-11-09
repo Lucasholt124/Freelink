@@ -80,6 +80,11 @@ export const addQuickSale = mutation({
       businessId: args.businessId,
     });
 
+     await ctx.scheduler.runAfter(0, internal.gamification.updateActivityStreak, {
+      userId: identity.subject,
+    });
+
+
     return saleId;
   },
 });
@@ -1245,6 +1250,10 @@ export const addSale = mutation({
         });
       }
     }
+
+    await ctx.scheduler.runAfter(0, internal.gamification.updateActivityStreak, {
+      userId: identity.subject,
+    });
 
     // ✅ RETORNAR O ID DA VENDA
     return saleId;
@@ -2670,6 +2679,7 @@ export const predictNextMonth = action({
       );
       recommendations.push("Aumente estoque e prepare promoções especiais.");
     }
+
 
     return {
       predictedRevenue: parseFloat(predictedRevenue.toFixed(2)),
