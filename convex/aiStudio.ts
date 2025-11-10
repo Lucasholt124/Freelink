@@ -1,72 +1,359 @@
 import { v } from "convex/values";
-import { mutation, action } from "./_generated/server";
+import { mutation, action, query } from "./_generated/server";
+import { Doc } from "./_generated/dataModel";
 import { api } from "./_generated/api";
 
 // =================================================================
-// 🔧 FUNÇÕES AUXILIARES
+// 🔒 TIPOS E INTERFACES
 // =================================================================
-const getGroqApiKey = (): string => {
-  return process.env.GROQ_API_KEY || "";
+interface RateLimitEntry {
+  count: number;
+  resetAt: number;
+}
+
+interface CacheEntry<T> {
+  data: T;
+  expiresAt: number;
+}
+
+interface ConversationMessage {
+  role: "user" | "assistant" | "system";
+  content: string;
+}
+
+type ActionType = 'chat' | 'images' | 'audio' | 'removeBg' | 'enhance';
+
+// =================================================================
+// 🔒 CONFIGURAÇÃO DE SEGURANÇA E LIMITES
+// =================================================================
+const LIMITS = {
+  FREE_TIER: {
+    chat: { daily: 50, messageLength: 1000 },
+    images: { daily: 5, maxSizeMB: 2 },
+    audio: { daily: 3, maxSizeMB: 10 },
+    removeBg: { daily: 3, maxSizeMB: 2 }
+  },
+  RATE_LIMIT: {
+    windowMs: 60000, // 1 minuto
+    maxRequests: 10
+  },
+  COSTS: {
+    maxDailyCost: 0.10, // Máximo $0.10 por dia
+    maxMonthlyCost: 3.00 // Máximo $3 por mês
+  }
 };
 
-const getReplicateApiKey = (): string => {
-  return process.env.REPLICATE_API_KEY || "";
+// =================================================================
+// 🔐 SISTEMA DE RATE LIMITING E CACHE
+// =================================================================
+const rateLimitCache = new Map<string, RateLimitEntry>();
+const resultCache = new Map<string, CacheEntry<unknown>>();
+
+// =================================================================
+// 🛡️ FUNÇÕES DE SEGURANÇA
+// =================================================================
+const getSecureApiKey = (keyName: string): string => {
+  const key = process.env[keyName];
+  if (!key || key.length < 10) {
+    console.log(`⚠️ ${keyName} não configurada`);
+    return "";
+  }
+  // Log seguro - nunca mostra a key completa
+  console.log(`✅ ${keyName} ativa: ${key.substring(0, 4)}****`);
+  return key;
+};
+
+const checkRateLimit = async (userId: string, action: ActionType): Promise<boolean> => {
+  const key = `${userId}:${action}`;
+  const now = Date.now();
+  const limit = rateLimitCache.get(key);
+
+  if (limit) {
+    if (now < limit.resetAt) {
+      if (limit.count >= LIMITS.RATE_LIMIT.maxRequests) {
+        throw new Error("🚫 Muitas requisições. Aguarde 1 minuto.");
+      }
+      limit.count++;
+    } else {
+      rateLimitCache.set(key, { count: 1, resetAt: now + LIMITS.RATE_LIMIT.windowMs });
+    }
+  } else {
+    rateLimitCache.set(key, { count: 1, resetAt: now + LIMITS.RATE_LIMIT.windowMs });
+  }
+  return true;
+};
+
+const checkCache = <T>(key: string): T | null => {
+  const cached = resultCache.get(key) as CacheEntry<T> | undefined;
+  if (cached && Date.now() < cached.expiresAt) {
+    console.log("📦 Retornando resultado do cache");
+    return cached.data;
+  }
+  return null;
+};
+
+const setCache = <T>(key: string, data: T, ttlMinutes: number = 60): void => {
+  resultCache.set(key, {
+    data,
+    expiresAt: Date.now() + (ttlMinutes * 60 * 1000)
+  });
+
+  // Limpa cache antigo (mantém máximo 100 itens)
+  if (resultCache.size > 100) {
+    const firstKey = resultCache.keys().next().value;
+    if (firstKey) resultCache.delete(firstKey);
+  }
 };
 
 const base64ToBlob = (base64: string): Blob => {
-  const match = base64.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)/);
-  if (!match) {
-    throw new Error('Invalid base64 string');
+  try {
+    const match = base64.match(/data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)/);
+    if (!match) throw new Error('Invalid base64');
+
+    const contentType = match[1];
+    const base64Data = match[2];
+    const byteCharacters = atob(base64Data);
+    const byteNumbers = new Array(byteCharacters.length);
+
+    for (let i = 0; i < byteCharacters.length; i++) {
+      byteNumbers[i] = byteCharacters.charCodeAt(i);
+    }
+
+    const byteArray = new Uint8Array(byteNumbers);
+    return new Blob([byteArray], { type: contentType });
+  } catch  {
+    throw new Error("Formato de arquivo inválido");
   }
-  const contentType = match[1];
-  const base64Data = match[2];
-  const byteCharacters = atob(base64Data);
-  const byteNumbers = new Array(byteCharacters.length);
-  for (let i = 0; i < byteCharacters.length; i++) {
-    byteNumbers[i] = byteCharacters.charCodeAt(i);
+};
+
+const validateImageSize = (base64: string): { valid: boolean; sizeMB: number } => {
+  const base64Length = base64.length - base64.indexOf(',') - 1;
+  const sizeBytes = base64Length * 0.75;
+  const sizeMB = sizeBytes / (1024 * 1024);
+
+  return {
+    valid: sizeMB <= LIMITS.FREE_TIER.images.maxSizeMB,
+    sizeMB: Number(sizeMB.toFixed(2))
+  };
+};
+
+// Helper para atualizar contadores de forma type-safe
+const updateUsageCount = (
+  existingUsage: Doc<"dailyUsage">,
+  action: ActionType,
+  countValue: number = 1
+) => {
+  const updates: Record<string, number> = {};
+
+  switch(action) {
+    case 'chat':
+      updates.chatCount = (existingUsage.chatCount || 0) + countValue;
+      break;
+    case 'images':
+      updates.imagesCount = (existingUsage.imagesCount || 0) + countValue;
+      break;
+    case 'audio':
+      updates.audioCount = (existingUsage.audioCount || 0) + countValue;
+      break;
+    case 'removeBg':
+      updates.removeBgCount = (existingUsage.removeBgCount || 0) + countValue;
+      break;
   }
-  const byteArray = new Uint8Array(byteNumbers);
-  return new Blob([byteArray], { type: contentType });
+
+  return updates;
 };
 
 // =================================================================
-// 1. 💬 CHAT COM IA - GROQ COM MODELOS ATIVOS
+// 💰 TRACKING DE CUSTOS E USAGE
+// =================================================================
+export const trackUsage = mutation({
+  args: {
+    userId: v.string(),
+    action: v.union(v.literal("chat"), v.literal("images"), v.literal("audio"), v.literal("removeBg"), v.literal("enhance")),
+    cost: v.number(),
+    credits: v.number(),
+    metadata: v.optional(
+      v.object({
+        model: v.optional(v.string()),
+        processingTime: v.optional(v.string()),
+        attempts: v.optional(v.string()),
+      })
+    )
+  },
+  handler: async (ctx, args) => {
+    const today = new Date().toISOString().split('T')[0];
+
+    // Busca ou cria registro de uso diário
+    const existingUsage = await ctx.db
+      .query("dailyUsage")
+      .withIndex("by_user_date", q =>
+        q.eq("userId", args.userId).eq("date", today)
+      )
+      .first();
+
+    if (existingUsage) {
+      const countUpdates = updateUsageCount(existingUsage, args.action, 1);
+
+      await ctx.db.patch(existingUsage._id, {
+        totalCost: existingUsage.totalCost + args.cost,
+        totalCredits: existingUsage.totalCredits + args.credits,
+        ...countUpdates
+      });
+    } else {
+      const newUsage: Partial<Doc<"dailyUsage">> = {
+        userId: args.userId,
+        date: today,
+        totalCost: args.cost,
+        totalCredits: args.credits,
+        createdAt: Date.now(),
+      };
+
+      // Adiciona o contador específico
+      switch(args.action) {
+        case 'chat':
+          newUsage.chatCount = 1;
+          break;
+        case 'images':
+          newUsage.imagesCount = 1;
+          break;
+        case 'audio':
+          newUsage.audioCount = 1;
+          break;
+        case 'removeBg':
+          newUsage.removeBgCount = 1;
+          break;
+      }
+
+      await ctx.db.insert("dailyUsage", newUsage as Doc<"dailyUsage">);
+    }
+
+    return { success: true };
+  }
+});
+
+export const checkDailyLimits = query({
+  args: {
+    userId: v.string(),
+    action: v.union(v.literal("chat"), v.literal("images"), v.literal("audio"), v.literal("removeBg"), v.literal("enhance"))
+  },
+  handler: async (ctx, args) => {
+    const today = new Date().toISOString().split('T')[0];
+
+    const usage = await ctx.db
+      .query("dailyUsage")
+      .withIndex("by_user_date", q =>
+        q.eq("userId", args.userId).eq("date", today)
+      )
+      .first();
+
+    if (!usage) {
+      const actionKey = args.action as keyof typeof LIMITS.FREE_TIER;
+      const limitConfig = LIMITS.FREE_TIER[actionKey];
+
+      return {
+        allowed: true,
+        remaining: limitConfig?.daily || 10
+      };
+    }
+
+    let actionCount = 0;
+    switch(args.action) {
+      case 'chat':
+        actionCount = usage.chatCount || 0;
+        break;
+      case 'images':
+        actionCount = usage.imagesCount || 0;
+        break;
+      case 'audio':
+        actionCount = usage.audioCount || 0;
+        break;
+      case 'removeBg':
+        actionCount = usage.removeBgCount || 0;
+        break;
+    }
+
+    const actionKey = args.action as keyof typeof LIMITS.FREE_TIER;
+    const limit = LIMITS.FREE_TIER[actionKey]?.daily || 10;
+
+    // Verifica limite de custo diário
+    if (usage.totalCost >= LIMITS.COSTS.maxDailyCost) {
+      return {
+        allowed: false,
+        remaining: 0,
+        reason: "Limite de custo diário atingido. Volte amanhã!"
+      };
+    }
+
+    return {
+      allowed: actionCount < limit,
+      remaining: Math.max(0, limit - actionCount),
+      used: actionCount,
+      limit: limit
+    };
+  }
+});
+
+// =================================================================
+// 1. 💬 CHAT COM IA - OTIMIZADO E ECONÔMICO
 // =================================================================
 export const chatWithAI = action({
   args: {
     userId: v.string(),
     message: v.string(),
-    conversationHistory: v.optional(v.array(v.object({
-      role: v.union(v.literal("user"), v.literal("assistant")),
-      content: v.string()
-    })))
+    conversationHistory: v.optional(v.array(v.object({ role: v.union(v.literal("user"), v.literal("assistant")), content: v.string() })))
   },
   handler: async (ctx, args): Promise<{ success: boolean; response?: string; message?: string }> => {
     try {
-      console.log("💬 Iniciando chat...");
+      // Validações
+      await checkRateLimit(args.userId, 'chat');
 
-      const GROQ_KEY = getGroqApiKey();
+      // Verifica limites diários
+      const limits = await ctx.runQuery(api.aiStudio.checkDailyLimits, {
+        userId: args.userId,
+        action: 'chat'
+      });
 
-      if (GROQ_KEY && GROQ_KEY.length > 10) {
-        // Lista de modelos ATIVOS em ordem de preferência
+      if (!limits.allowed) {
+        return {
+          success: false,
+          message: limits.reason || `🚫 Limite diário atingido (${limits.limit}/dia). Volte amanhã!`
+        };
+      }
+
+      // Limita tamanho da mensagem
+      if (args.message.length > LIMITS.FREE_TIER.chat.messageLength) {
+        return {
+          success: false,
+          message: `📝 Mensagem muito longa! Máximo ${LIMITS.FREE_TIER.chat.messageLength} caracteres.`
+        };
+      }
+
+      // Verifica cache
+      const cacheKey = `chat:${args.userId}:${args.message.substring(0, 50)}`;
+      const cached = checkCache<string>(cacheKey);
+      if (cached) {
+        return { success: true, response: cached };
+      }
+
+      const GROQ_KEY = getSecureApiKey("GROQ_API_KEY");
+
+      if (GROQ_KEY) {
+        // Modelos econômicos em ordem de preferência
         const models = [
-          "llama-3.3-70b-versatile",  // Mais recente e poderoso
-          "llama-3.1-8b-instant",     // Rápido
-          "gemma2-9b-it",             // Alternativa Google
-          "llama3-70b-8192",          // Estável
-          "llama3-8b-8192"            // Fallback rápido
+          "llama-3.2-1b-preview",      // Mais econômico
+          "gemma-7b-it",                // Barato e bom
+          "llama-3.2-3b-preview",       // Alternativa
         ];
 
         for (const model of models) {
           try {
-            console.log(`🚀 Tentando modelo: ${model}...`);
-
-            const messages = [
+            const messages: ConversationMessage[] = [
               {
                 role: "system",
-                content: "Você é uma assistente de IA extremamente útil, inteligente e amigável. Responda sempre em português brasileiro de forma clara, objetiva e prestativa. Seja criativo e útil em suas respostas."
+                content: "Você é um assistente útil. Responda de forma clara e concisa em português brasileiro."
               },
-              ...(args.conversationHistory || []).slice(-8),
+              // Limita histórico para economizar tokens
+              ...(args.conversationHistory || []).slice(-4),
               {
                 role: "user",
                 content: args.message
@@ -82,8 +369,8 @@ export const chatWithAI = action({
               body: JSON.stringify({
                 model: model,
                 messages: messages,
-                temperature: 0.8,
-                max_tokens: 2048,
+                temperature: 0.7,
+                max_tokens: 500, // Limita resposta para economizar
                 top_p: 0.9,
                 stream: false
               }),
@@ -94,7 +381,16 @@ export const chatWithAI = action({
               const aiResponse = data.choices[0]?.message?.content;
 
               if (aiResponse) {
-                console.log(`✅ Sucesso com modelo: ${model}`);
+                // Salva no cache
+                setCache(cacheKey, aiResponse, 30);
+
+                // Tracking de uso (custo zero com Groq)
+                await ctx.runMutation(api.aiStudio.trackUsage, {
+                  userId: args.userId,
+                  action: 'chat',
+                  cost: 0,
+                  credits: 1
+                });
 
                 await ctx.runMutation(api.aiStudio.saveChatMessage, {
                   userId: args.userId,
@@ -105,75 +401,72 @@ export const chatWithAI = action({
                 return {
                   success: true,
                   response: aiResponse,
+                  message: `✅ Restam ${limits.remaining - 1} mensagens hoje`
                 };
-              }
-            } else {
-              const errorText = await response.text();
-              console.warn(`⚠️ Modelo ${model} falhou:`, response.status);
-
-              // Se for erro de modelo descontinuado, tenta o próximo
-              if (response.status === 400 && errorText.includes("decommissioned")) {
-                continue;
               }
             }
           } catch (error) {
-            console.warn(`⚠️ Erro no modelo ${model}:`, error);
+            console.error(`Erro com modelo ${model}:`, error);
             continue;
           }
         }
-
-        console.error("❌ Todos os modelos falharam");
-      } else {
-        console.log("⚠️ GROQ_API_KEY não configurada");
       }
 
-      // FALLBACK: Respostas inteligentes
-      console.log("🤖 Usando sistema de resposta local...");
-      const intelligentResponse = generateIntelligentResponse(args.message);
+      // Fallback com respostas inteligentes locais
+      const fallbackResponse = generateLocalResponse(args.message);
 
       await ctx.runMutation(api.aiStudio.saveChatMessage, {
         userId: args.userId,
         message: args.message,
-        response: intelligentResponse,
+        response: fallbackResponse,
       });
 
       return {
         success: true,
-        response: intelligentResponse,
+        response: fallbackResponse
       };
 
-    } catch (error: unknown) {
-      console.error("❌ Erro geral:", error);
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Erro ao processar mensagem";
+      console.error("Erro no chat:", errorMessage);
       return {
-        success: true,
-        response: "Desculpe, ocorreu um erro. Tente novamente.",
+        success: false,
+        message: errorMessage
       };
     }
   },
 });
 
-// Sistema de resposta inteligente local
-function generateIntelligentResponse(message: string): string {
+// Sistema local de respostas (sem custo)
+function generateLocalResponse(message: string): string {
   const msg = message.toLowerCase().trim();
 
-  if (msg.match(/^(oi|olá|ola|hey|hi|hello|bom dia|boa tarde|boa noite)/)) {
-    return "Olá! 😊 Como posso ajudar você hoje?\n\nPosso responder perguntas, criar conteúdo, resolver problemas e muito mais!\n\n💡 **Dica**: Configure sua GROQ_API_KEY gratuita em https://console.groq.com para respostas ainda melhores com IA!";
+  const responses = {
+    greeting: [
+      "Olá! Como posso ajudar você hoje? 😊",
+      "Oi! Estou aqui para ajudar! O que você precisa?",
+      "Bem-vindo! Em que posso ser útil?"
+    ],
+    help: [
+      "Posso ajudar com:\n• Responder perguntas\n• Criar conteúdo\n• Dar sugestões\n• Resolver problemas\n\nO que você gostaria?",
+      "Estou aqui para:\n✅ Conversar\n✅ Explicar conceitos\n✅ Ajudar com ideias\n✅ Auxiliar em tarefas\n\nComo posso ajudar?"
+    ],
+    default: "Entendi sua pergunta. Para respostas mais completas, configure a GROQ_API_KEY (gratuita) em console.groq.com"
+  };
+
+  if (msg.match(/^(oi|olá|ola|hey|hi|hello)/)) {
+    return responses.greeting[Math.floor(Math.random() * responses.greeting.length)];
   }
 
-  if (msg.match(/^(obrigad|valeu|thanks)/)) {
-    return "Por nada! 😊 Fico feliz em ajudar! Se precisar de mais alguma coisa, é só chamar!";
+  if (msg.includes('ajuda') || msg.includes('help')) {
+    return responses.help[Math.floor(Math.random() * responses.help.length)];
   }
 
-  if (msg.match(/(quem|o que|você|voce|ia|ai)/)) {
-    return "🤖 **Sobre mim:**\n\nSou uma assistente de IA criada para ajudar você!\n\n**Posso fazer:**\n✅ Responder perguntas sobre qualquer assunto\n✅ Criar textos e conteúdos\n✅ Dar ideias criativas\n✅ Resolver problemas\n✅ Explicar conceitos\n✅ Ajudar com programação\n✅ Estratégias de marketing\n\nComo posso te ajudar especificamente?";
-  }
-
-  // Resposta padrão
-  return `Entendi sua pergunta sobre: "${message}"\n\nEstou processando sua solicitação. Por favor, configure a GROQ_API_KEY para respostas completas com IA.`;
+  return responses.default;
 }
 
 // =================================================================
-// 2. 🎨 APRIMORAR IMAGEM COM REDIMENSIONAMENTO AUTOMÁTICO
+// 2. 🎨 APRIMORAR IMAGEM - ULTRA ECONÔMICO
 // =================================================================
 export const enhanceImage = action({
   args: {
@@ -183,91 +476,52 @@ export const enhanceImage = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
     try {
-      console.log("🎨 Iniciando aprimoramento de imagem...");
+      // Validações
+      await checkRateLimit(args.userId, 'enhance');
 
-      const REPLICATE_KEY = process.env.REPLICATE_API_TOKEN || "";
+      // Verifica limites
+      const limits = await ctx.runQuery(api.aiStudio.checkDailyLimits, {
+        userId: args.userId,
+        action: 'images'
+      });
 
-      if (!REPLICATE_KEY || REPLICATE_KEY.length < 10) {
-        // Fallback sem API
-        const blob = base64ToBlob(args.imageFile);
-        const storageId = await ctx.storage.store(blob);
-        const finalUrl = await ctx.storage.getUrl(storageId);
-
-        if (finalUrl) {
-          return {
-            success: true,
-            url: finalUrl,
-            message: "⚠️ Configure REPLICATE_API_TOKEN para aprimoramento com IA"
-          };
-        }
-        throw new Error("Falha ao salvar imagem");
+      if (!limits.allowed) {
+        return {
+          success: false,
+          message: `🚫 Limite diário: ${limits.limit} imagens/dia. Você já usou ${limits.used}.`
+        };
       }
 
-      // ANÁLISE E REDIMENSIONAMENTO DA IMAGEM
-      let processedImage = args.imageFile;
-
-      // Verifica tamanho aproximado
-      const base64Length = args.imageFile.length - args.imageFile.indexOf(',') - 1;
-      const estimatedBytes = base64Length * 0.75;
-      const estimatedMB = (estimatedBytes / 1024 / 1024).toFixed(1);
-
-      console.log(`📊 Tamanho estimado da imagem: ${estimatedMB} MB`);
-
-      // Comprime preventivamente se necessário
-      if (estimatedBytes > 2000000) { // Se maior que 2MB, provavelmente precisa redimensionar
-        console.log("📏 Imagem grande detectada, aplicando redimensionamento preventivo...");
-
-        // Como estamos no servidor, vamos comprimir a qualidade
-        // Converte para JPEG com qualidade reduzida
-        if (args.imageFile.includes('data:image/png')) {
-          // PNG geralmente é maior, converte para JPEG
-          processedImage = args.imageFile.replace('data:image/png', 'data:image/jpeg');
-        }
+      // Valida tamanho
+      const sizeCheck = validateImageSize(args.imageFile);
+      if (!sizeCheck.valid) {
+        return {
+          success: false,
+          message: `📏 Imagem muito grande! (${sizeCheck.sizeMB}MB). Máximo: ${LIMITS.FREE_TIER.images.maxSizeMB}MB`
+        };
       }
 
-      console.log("🚀 Enviando para Replicate...");
+      const REPLICATE_KEY = getSecureApiKey("REPLICATE_API_TOKEN");
 
-      // LISTA DE MODELOS BARATOS E EFICIENTES
-      const models = [
-        {
-          name: "Real-ESRGAN (Barato)",
-          version: "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
-          cost: 0.0015, // $0.0015 por imagem
-          config: {
-            image: processedImage,
-            scale: 2,
-            face_enhance: false
-          }
-        },
-        {
-          name: "GFPGAN (Face Enhancement)",
-          version: "9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3",
-          cost: 0.002, // $0.002 por imagem
-          config: {
-            img: processedImage,
-            version: "v1.4",
-            scale: 2
-          }
-        },
-        {
-          name: "Practical-RCAN (Super Resolution)",
-          version: "861bc12866277e8e088dd5eb43e10ab5e82e9bc7b6b3c5eeca31ea43c7c45c65",
-          cost: 0.001, // $0.001 por imagem
-          config: {
-            image: processedImage,
-            scale: 2
-          }
-        }
-      ];
+      if (REPLICATE_KEY) {
+        const model = {
+          name: "Real-ESRGAN (Econômico)",
+          version: "42fed1c4974146d4d2414e2be2c5277c7fcf05fcc3a73abf41610695738c1d7b",
+          estimatedCost: 0.0005
+        };
 
-      // Tenta cada modelo em ordem
-      for (const model of models) {
         try {
-          console.log(`🎯 Tentando modelo: ${model.name} ($${model.cost}/imagem)`);
+          console.log(`🎨 Processando com ${model.name}...`);
+
+          let processedImage = args.imageFile;
+          if (sizeCheck.sizeMB > 1) {
+            processedImage = processedImage.replace('data:image/png', 'data:image/jpeg');
+          }
 
           const startTime = Date.now();
 
-          const prediction = await fetch("https://api.replicate.com/v1/predictions", {
+          // Inicia o processamento
+          const response = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${REPLICATE_KEY}`,
@@ -275,135 +529,203 @@ export const enhanceImage = action({
             },
             body: JSON.stringify({
               version: model.version,
-              input: model.config
+              input: {
+                image: processedImage,
+                scale: 2,
+                face_enhance: false
+              }
             }),
           });
 
-          if (!prediction.ok) {
-            const errorText = await prediction.text();
-            console.error(`❌ Erro ao criar prediction: ${errorText}`);
-
-            // Se o erro for sobre tamanho da imagem, tenta reduzir mais
-            if (errorText.includes("pixels") || errorText.includes("memory")) {
-              console.log("⚠️ Imagem ainda muito grande, tentando próximo modelo...");
-              continue;
-            }
-            continue;
+          if (!response.ok) {
+            const error = await response.text();
+            console.error("Erro Replicate:", error);
+            throw new Error("Falha ao iniciar processamento");
           }
 
-          let result = await prediction.json();
-          const predictionId = result.id;
+          const prediction = await response.json();
 
-          console.log(`📊 Prediction criada: ${predictionId}`);
+          // ⚠️ PROTEÇÃO CRÍTICA CONTRA LOOP INFINITO
+          const MAX_WAIT_TIME = 45000; // 45 segundos MÁXIMO
+          const MAX_ATTEMPTS = 30; // 30 tentativas MÁXIMO
+          const POLL_INTERVAL = 1500; // 1.5 segundos entre checks
 
-          // Polling otimizado
           let attempts = 0;
-          const maxAttempts = 60;
+          const processingStartTime = Date.now();
 
-          while (result.status === "starting" || result.status === "processing") {
-            attempts++;
+          while (attempts < MAX_ATTEMPTS) {
+            // ✅ PROTEÇÃO 1: Timeout absoluto de tempo
+            const elapsedTime = Date.now() - processingStartTime;
+            if (elapsedTime > MAX_WAIT_TIME) {
+              console.error(`⏱️ TIMEOUT: Processamento excedeu ${MAX_WAIT_TIME/1000}s`);
 
-            if (attempts >= maxAttempts) {
-              console.error("⏱️ Timeout - processamento muito longo");
-              break;
-            }
-
-            await new Promise(resolve => setTimeout(resolve, 1000));
-
-            const statusResponse = await fetch(
-              `https://api.replicate.com/v1/predictions/${predictionId}`,
-              { headers: { "Authorization": `Bearer ${REPLICATE_KEY}` } }
-            );
-
-            if (statusResponse.ok) {
-              result = await statusResponse.json();
-
-              if (attempts % 5 === 0) {
-                console.log(`⏳ Processando... ${attempts}s - Status: ${result.status}`);
+              // Tenta cancelar a predição no Replicate
+              try {
+                await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}/cancel`, {
+                  method: "POST",
+                  headers: { "Authorization": `Bearer ${REPLICATE_KEY}` }
+                });
+              } catch (e) {
+                console.error("Erro ao cancelar:", e);
               }
+
+              throw new Error("Processamento muito lento. Tente uma imagem menor.");
+            }
+
+            // ✅ PROTEÇÃO 2: Delay progressivo (economiza requests)
+            const delay = Math.min(POLL_INTERVAL * (1 + attempts * 0.1), 3000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+
+            attempts++;
+            console.log(`🔄 Tentativa ${attempts}/${MAX_ATTEMPTS} (${elapsedTime/1000}s decorridos)`);
+
+            // ✅ PROTEÇÃO 3: Timeout no fetch do status
+            const statusRes = await Promise.race([
+              fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+                headers: { "Authorization": `Bearer ${REPLICATE_KEY}` }
+              }),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('Status check timeout')), 10000)
+              )
+            ]);
+
+            if (statusRes.ok) {
+              const result = await statusRes.json();
+
+              // ✅ Sucesso - processa resultado
+              if (result.status === "succeeded" && result.output) {
+                const processTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                console.log(`✅ Processado em ${processTime}s após ${attempts} tentativas`);
+
+                const outputUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+
+                // ✅ PROTEÇÃO 4: Timeout no download da imagem
+                const imageRes = await Promise.race([
+                  fetch(outputUrl),
+                  new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Download timeout')), 15000)
+                  )
+                ]);
+
+                const imageBlob = await imageRes.blob();
+
+                // ✅ PROTEÇÃO 5: Verifica tamanho do resultado
+                const resultSizeMB = imageBlob.size / (1024 * 1024);
+                if (resultSizeMB > 10) {
+                  throw new Error(`Resultado muito grande: ${resultSizeMB.toFixed(1)}MB`);
+                }
+
+                const storageId = await ctx.storage.store(imageBlob);
+                const finalUrl = await ctx.storage.getUrl(storageId);
+
+                if (finalUrl) {
+                  // Tracking de custo
+                  const processTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                  await ctx.runMutation(api.aiStudio.trackUsage, {
+                    userId: args.userId,
+                    action: 'images',
+                    cost: model.estimatedCost,
+                    credits: 1,
+                    metadata: {
+                      model: model.name,
+                      processingTime: processTime,
+                      attempts: attempts.toString()
+                    }
+                  });
+
+                  await ctx.runMutation(api.aiStudio.saveEnhancedImage, {
+                    userId: args.userId,
+                    originalUrl: args.imageFile.substring(0, 100),
+                    resultUrl: finalUrl,
+                    prompt: `${model.name} - 2x upscale`,
+                    storageId: storageId
+                  });
+
+                  return {
+                    success: true,
+                    url: finalUrl,
+                    message: `✨ Aprimorado em ${processTime}s! (${limits.remaining - 1} restantes)`
+                  };
+                }
+              }
+              // ✅ Falha definitiva
+              else if (result.status === "failed") {
+                console.error("❌ Processamento falhou:", result.error);
+                throw new Error(result.error || "Processamento falhou na API");
+              }
+              // ✅ Cancelado
+              else if (result.status === "canceled") {
+                throw new Error("Processamento foi cancelado");
+              }
+              // Continua aguardando (processing/starting)
+            } else {
+              console.warn(`⚠️ Erro ao checar status: ${statusRes.status}`);
             }
           }
 
-          // Verifica resultado
-          if (result.status === "succeeded") {
-            const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
-            console.log(`✅ Sucesso com ${model.name} em ${processingTime}s!`);
+          // ✅ PROTEÇÃO 6: Se sair do loop, atingiu max attempts
+          console.error(`❌ Máximo de ${MAX_ATTEMPTS} tentativas atingido`);
 
-            const imageUrl = Array.isArray(result.output)
-              ? result.output[0]
-              : result.output;
-
-            if (!imageUrl) {
-              console.error("❌ Output vazio");
-              continue;
-            }
-
-            // Download da imagem processada
-            const imageResponse = await fetch(imageUrl);
-            if (!imageResponse.ok) {
-              console.error(`❌ Erro ao baixar imagem: ${imageResponse.status}`);
-              continue;
-            }
-
-            const imageBlob = await imageResponse.blob();
-            const resultKB = (imageBlob.size / 1024).toFixed(1);
-
-            console.log(`📦 Resultado: ${resultKB}KB`);
-
-            // Salva no storage
-            const storageId = await ctx.storage.store(imageBlob);
-            const finalUrl = await ctx.storage.getUrl(storageId);
-
-            if (finalUrl) {
-              await ctx.runMutation(api.aiStudio.saveEnhancedImage, {
-                userId: args.userId,
-                originalUrl: args.imageFile.substring(0, 100),
-                resultUrl: finalUrl,
-                prompt: `${model.name} - Custo: $${model.cost}`,
-                storageId: storageId
-              });
-
-              return {
-                success: true,
-                url: finalUrl,
-                message: `✨ **Imagem Aprimorada com Sucesso!**\n\n📊 **Detalhes:**\n• Modelo: ${model.name}\n• Tempo: ${processingTime}s\n• Tamanho: ${resultKB}KB\n• Custo: $${model.cost}\n\n💡 Com $10 você pode processar ${Math.floor(10/model.cost).toLocaleString()} imagens!`
-              };
-            }
-          } else if (result.status === "failed") {
-            console.error(`❌ Processamento falhou:`, result.error);
-
-            // Se falhou por tamanho, tenta próximo modelo
-            if (result.error && (result.error.includes("pixels") || result.error.includes("memory"))) {
-              console.log("⚠️ Erro de tamanho, tentando próximo modelo...");
-              continue;
-            }
-          } else {
-            console.log(`⚠️ Status inesperado: ${result.status}`);
+          // Tenta cancelar
+          try {
+            await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}/cancel`, {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${REPLICATE_KEY}` }
+            });
+          } catch (e) {
+            console.error("Erro ao cancelar após timeout:", e);
           }
 
-        } catch (modelError) {
-          console.error(`❌ Erro no modelo ${model.name}:`, modelError);
-          continue;
+          throw new Error("Processamento muito lento. Tente novamente.");
+
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Erro no processamento";
+          console.error("💥 Erro no processamento:", errorMessage);
+
+          // Retorna erro mas não quebra
+          return {
+            success: false,
+            message: `Erro: ${errorMessage}. Tente uma imagem menor.`
+          };
         }
       }
 
-      // Se todos os modelos falharam
-      throw new Error("Todos os modelos falharam. Tente com uma imagem menor (máx 2MB, 1920x1080).");
+      // Fallback: Retorna imagem original otimizada
+      console.log("⚠️ REPLICATE_API_TOKEN não configurada, salvando original");
+      const blob = base64ToBlob(args.imageFile);
+      const storageId = await ctx.storage.store(blob);
+      const finalUrl = await ctx.storage.getUrl(storageId);
 
-    } catch (error: unknown) {
-      console.error("❌ Erro geral no aprimoramento:", error);
+      if (finalUrl) {
+        await ctx.runMutation(api.aiStudio.trackUsage, {
+          userId: args.userId,
+          action: 'images',
+          cost: 0,
+          credits: 0
+        });
+
+        return {
+          success: true,
+          url: finalUrl,
+          message: "✅ Imagem salva (configure REPLICATE_API_TOKEN para aprimoramento)"
+        };
+      }
+
+      throw new Error("Falha ao processar imagem");
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Erro ao processar imagem";
+      console.error("💥 Erro geral:", errorMessage);
       return {
         success: false,
-        message: error instanceof Error
-          ? `Erro: ${error.message}\n\n💡 Dica: Use imagens menores (máx 2MB, 1920x1080)`
-          : "Erro ao processar. Tente com uma imagem menor."
+        message: errorMessage
       };
     }
   },
 });
 
 // =================================================================
-// 3. 🎤 VOZ PARA TEXTO - GROQ WHISPER
+// 3. 🎤 ÁUDIO PARA TEXTO - GRATUITO COM GROQ
 // =================================================================
 export const speechToText = action({
   args: {
@@ -412,19 +734,41 @@ export const speechToText = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; text?: string; message?: string }> => {
     try {
-      const GROQ_KEY = getGroqApiKey();
+      // Validações
+      await checkRateLimit(args.userId, 'audio');
 
-      if (GROQ_KEY && GROQ_KEY.length > 10) {
+      const limits = await ctx.runQuery(api.aiStudio.checkDailyLimits, {
+        userId: args.userId,
+        action: 'audio'
+      });
+
+      if (!limits.allowed) {
+        return {
+          success: false,
+          message: `🚫 Limite: ${limits.limit} áudios/dia. Usado: ${limits.used}`
+        };
+      }
+
+      const GROQ_KEY = getSecureApiKey("GROQ_API_KEY");
+
+      if (GROQ_KEY) {
         try {
-          console.log("🎤 Transcrevendo com Groq Whisper...");
-
           const audioBlob = base64ToBlob(args.audioUrl);
+
+          // Verifica tamanho do áudio
+          const sizeMB = audioBlob.size / (1024 * 1024);
+          if (sizeMB > LIMITS.FREE_TIER.audio.maxSizeMB) {
+            return {
+              success: false,
+              message: `🎵 Áudio muito grande! Máximo: ${LIMITS.FREE_TIER.audio.maxSizeMB}MB`
+            };
+          }
+
           const formData = new FormData();
           formData.append('file', audioBlob, 'audio.mp3');
-          formData.append('model', 'whisper-large-v3-turbo');
+          formData.append('model', 'whisper-large-v3-turbo'); // Modelo rápido
           formData.append('language', 'pt');
           formData.append('response_format', 'json');
-          formData.append('temperature', '0');
 
           const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
             method: "POST",
@@ -436,58 +780,56 @@ export const speechToText = action({
 
           if (response.ok) {
             const result = await response.json();
-            const transcription = result.text;
 
-            if (transcription && transcription.length > 3) {
-              console.log("✅ Áudio transcrito!");
+            if (result.text) {
+              // Tracking (Groq é gratuito)
+              await ctx.runMutation(api.aiStudio.trackUsage, {
+                userId: args.userId,
+                action: 'audio',
+                cost: 0,
+                credits: 1
+              });
 
               await ctx.runMutation(api.aiStudio.saveTranscription, {
                 userId: args.userId,
                 audioUrl: args.audioUrl.substring(0, 100),
-                transcription
+                transcription: result.text
               });
 
               return {
                 success: true,
-                text: transcription,
-                message: "✅ Áudio transcrito com Whisper Turbo!"
+                text: result.text,
+                message: `✅ Transcrito! (${limits.remaining - 1} restantes hoje)`
               };
             }
           } else {
-            const errorText = await response.text();
-            console.error("❌ Erro Whisper:", errorText);
+            const error = await response.text();
+            console.error("Erro Whisper:", error);
           }
         } catch (error) {
-          console.error("❌ Erro ao transcrever:", error);
+          console.error("Erro ao transcrever:", error);
         }
       }
 
       // Fallback
-      const fallbackText = "⚠️ Configure GROQ_API_KEY para transcrição automática.\n\n🔑 Obtenha gratuitamente em:\nhttps://console.groq.com";
-
-      await ctx.runMutation(api.aiStudio.saveTranscription, {
-        userId: args.userId,
-        audioUrl: args.audioUrl.substring(0, 100),
-        transcription: fallbackText
-      });
-
       return {
         success: true,
-        text: fallbackText,
-        message: "Configure GROQ_API_KEY"
+        text: "🎤 Configure GROQ_API_KEY (gratuita) para transcrição automática.\n\nAcesse: console.groq.com",
+        message: "API key necessária"
       };
-    } catch (error: unknown) {
-      console.error("❌ Erro STT:", error);
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Erro ao processar áudio";
       return {
         success: false,
-        message: "Erro ao transcrever"
+        message: errorMessage
       };
     }
   },
 });
 
 // =================================================================
-// 4. 📸 REMOVER FUNDO - REPLICATE
+// 4. 📸 REMOVER FUNDO - ULTRA ECONÔMICO
 // =================================================================
 export const removeBackground = action({
   args: {
@@ -496,75 +838,156 @@ export const removeBackground = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
     try {
-      const blob = base64ToBlob(args.imageUrl);
-      const REPLICATE_KEY = getReplicateApiKey();
+      await checkRateLimit(args.userId, 'removeBg');
 
-      if (REPLICATE_KEY && REPLICATE_KEY.length > 10) {
+      const limits = await ctx.runQuery(api.aiStudio.checkDailyLimits, {
+        userId: args.userId,
+        action: 'removeBg'
+      });
+
+      if (!limits.allowed) {
+        return {
+          success: false,
+          message: `🚫 Limite: ${limits.limit} remoções/dia. Usado: ${limits.used}`
+        };
+      }
+
+      const sizeCheck = validateImageSize(args.imageUrl);
+      if (!sizeCheck.valid) {
+        return {
+          success: false,
+          message: `📏 Imagem muito grande! Máximo: ${LIMITS.FREE_TIER.removeBg.maxSizeMB}MB`
+        };
+      }
+
+      const REPLICATE_KEY = getSecureApiKey("REPLICATE_API_TOKEN");
+
+      if (REPLICATE_KEY) {
+        const model = {
+          name: "RMBG-1.4",
+          version: "fb8af171cfa1616ddcf1242c851c6fda9b8ce3d7e1a200e99c406a0e49a8ec5",
+          estimatedCost: 0.0003
+        };
+
         try {
-          console.log("✂️ Removendo fundo com Replicate...");
+          const startTime = Date.now();
 
-          const prediction = await fetch("https://api.replicate.com/v1/predictions", {
+          const response = await fetch("https://api.replicate.com/v1/predictions", {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${REPLICATE_KEY}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              version: "95fcc2a26d3899cd6c2691c900465aaeff466285a65c14638cc5f36f34befaf1",
-              input: {
-                image: args.imageUrl
-              }
+              version: model.version,
+              input: { image: args.imageUrl }
             }),
           });
 
-          if (prediction.ok) {
-            let result = await prediction.json();
-            const predictionId = result.id;
+          if (!response.ok) {
+            throw new Error("Falha ao processar");
+          }
 
-            for (let i = 0; i < 20; i++) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
+          const prediction = await response.json();
 
-              const statusResponse = await fetch(
-                `https://api.replicate.com/v1/predictions/${predictionId}`,
-                {
-                  headers: {
-                    "Authorization": `Bearer ${REPLICATE_KEY}`,
-                  },
+          // ✅ MESMAS PROTEÇÕES
+          const MAX_WAIT_TIME = 45000;
+          const MAX_ATTEMPTS = 30;
+          let attempts = 0;
+          const processingStartTime = Date.now();
+
+          while (attempts < MAX_ATTEMPTS) {
+            const elapsedTime = Date.now() - processingStartTime;
+
+            if (elapsedTime > MAX_WAIT_TIME) {
+              console.error(`⏱️ TIMEOUT: Remoção de fundo excedeu ${MAX_WAIT_TIME/1000}s`);
+              try {
+                await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}/cancel`, {
+                  method: "POST",
+                  headers: { "Authorization": `Bearer ${REPLICATE_KEY}` }
+                });
+              } catch (e) {
+                console.error("Erro ao cancelar:", e);
+              }
+              throw new Error("Processamento muito lento. Tente novamente.");
+            }
+
+            const delay = Math.min(1500 * (1 + attempts * 0.1), 3000);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            attempts++;
+
+            const statusRes = await Promise.race([
+              fetch(`https://api.replicate.com/v1/predictions/${prediction.id}`, {
+                headers: { "Authorization": `Bearer ${REPLICATE_KEY}` }
+              }),
+              new Promise<never>((_, reject) =>
+                setTimeout(() => reject(new Error('Status timeout')), 10000)
+              )
+            ]);
+
+            if (statusRes.ok) {
+              const result = await statusRes.json();
+
+              if (result.status === "succeeded" && result.output) {
+                const outputUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+
+                const imageRes = await Promise.race([
+                  fetch(outputUrl),
+                  new Promise<never>((_, reject) =>
+                    setTimeout(() => reject(new Error('Download timeout')), 15000)
+                  )
+                ]);
+
+                const imageBlob = await imageRes.blob();
+                const storageId = await ctx.storage.store(imageBlob);
+                const finalUrl = await ctx.storage.getUrl(storageId);
+
+                if (finalUrl) {
+                  const processTime = ((Date.now() - startTime) / 1000).toFixed(1);
+                  await ctx.runMutation(api.aiStudio.trackUsage, {
+                    userId: args.userId,
+                    action: 'removeBg',
+                    cost: model.estimatedCost,
+                    credits: 1,
+                    metadata: { processingTime: processTime }
+                  });
+                  return {
+                    success: true,
+                    url: finalUrl,
+                    message: `✨ Fundo removido! (${limits.remaining - 1} restantes)`
+                  };
                 }
-              );
-
-              if (statusResponse.ok) {
-                result = await statusResponse.json();
-
-                if (result.status === "succeeded" && result.output) {
-                  console.log("✅ Fundo removido!");
-
-                  const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
-                  const imageResponse = await fetch(imageUrl);
-                  const imageBlob = await imageResponse.blob();
-
-                  const storageId = await ctx.storage.store(imageBlob);
-                  const finalUrl = await ctx.storage.getUrl(storageId);
-
-                  if (finalUrl) {
-                    return {
-                      success: true,
-                      url: finalUrl,
-                      message: "✨ Fundo removido com IA!"
-                    };
-                  }
-                } else if (result.status === "failed") {
-                  break;
-                }
+              } else if (result.status === "failed") {
+                throw new Error(result.error || "Processamento falhou");
+              } else if (result.status === "canceled") {
+                throw new Error("Processamento cancelado");
               }
             }
           }
+
+          // Timeout por attempts
+          try {
+            await fetch(`https://api.replicate.com/v1/predictions/${prediction.id}/cancel`, {
+              method: "POST",
+              headers: { "Authorization": `Bearer ${REPLICATE_KEY}` }
+            });
+          } catch (e) {
+            console.error("Erro ao cancelar:", e);
+          }
+
+          throw new Error("Timeout: muitas tentativas");
+
         } catch (error) {
-          console.error("❌ Erro Replicate:", error);
+          console.error("Erro:", error);
+          return {
+            success: false,
+            message: error instanceof Error ? error.message : "Erro ao processar"
+          };
         }
       }
 
       // Fallback
+      const blob = base64ToBlob(args.imageUrl);
       const storageId = await ctx.storage.store(blob);
       const finalUrl = await ctx.storage.getUrl(storageId);
 
@@ -572,23 +995,24 @@ export const removeBackground = action({
         return {
           success: true,
           url: finalUrl,
-          message: "✅ Configure REPLICATE_API_TOKEN para remoção com IA"
+          message: "✅ Configure REPLICATE_API_TOKEN para remoção automática"
         };
       }
 
-      throw new Error("Falha");
-    } catch (error: unknown) {
-      console.error("❌ Erro:", error);
+      throw new Error("Falha ao processar");
+
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Erro ao processar";
       return {
         success: false,
-        message: "Erro ao processar"
+        message: errorMessage
       };
     }
   },
 });
 
 // =================================================================
-// 💾 MUTATIONS
+// 💾 MUTATIONS SEGURAS
 // =================================================================
 export const saveEnhancedImage = mutation({
   args: {
@@ -639,4 +1063,56 @@ export const saveChatMessage = mutation({
       createdAt: Date.now()
     });
   },
+});
+
+// =================================================================
+// 📊 QUERIES PARA DASHBOARD
+// =================================================================
+export const getUserStats = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    const today = new Date().toISOString().split('T')[0];
+    const startOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+
+    // Uso de hoje
+    const todayUsage = await ctx.db
+      .query("dailyUsage")
+      .withIndex("by_user_date", q =>
+        q.eq("userId", args.userId).eq("date", today)
+      )
+      .first();
+
+    // Uso do mês
+    const monthUsage = await ctx.db
+      .query("dailyUsage")
+      .withIndex("by_user_date", q =>
+        q.eq("userId", args.userId).gte("date", startOfMonth)
+      )
+      .collect();
+
+    const totalMonthCost = monthUsage.reduce((acc, day) => acc + (day.totalCost || 0), 0);
+    const totalMonthCredits = monthUsage.reduce((acc, day) => acc + (day.totalCredits || 0), 0);
+    const totalMonthImages = monthUsage.reduce((acc, day) => acc + (day.imagesCount || 0), 0);
+    const totalMonthChat = monthUsage.reduce((acc, day) => acc + (day.chatCount || 0), 0);
+
+    return {
+      today: {
+        cost: todayUsage?.totalCost || 0,
+        credits: todayUsage?.totalCredits || 0,
+        chat: todayUsage?.chatCount || 0,
+        images: todayUsage?.imagesCount || 0,
+        audio: todayUsage?.audioCount || 0,
+        removeBg: todayUsage?.removeBgCount || 0
+      },
+      month: {
+        cost: totalMonthCost,
+        credits: totalMonthCredits,
+        daysActive: monthUsage.length,
+        images: totalMonthImages,
+        chat: totalMonthChat,
+      },
+      limits: LIMITS.FREE_TIER,
+      costLimits: LIMITS.COSTS
+    };
+  }
 });

@@ -959,4 +959,18 @@ export default defineSchema({
   })
     .index("by_user", ["userId"])
     .index("by_user_unseen", ["userId", "seen"]),
+    dailyUsage: defineTable({
+    userId: v.string(),
+    date: v.string(),
+    totalCost: v.number(),
+    totalCredits: v.number(),
+    chatCount: v.optional(v.number()),
+    imagesCount: v.optional(v.number()),
+    audioCount: v.optional(v.number()),
+    removeBgCount: v.optional(v.number()),
+    createdAt: v.number()
+  })
+  .index("by_user_date", ["userId", "date"])
+  .index("by_date", ["date"])
+  .index("by_user", ["userId"]),
 });
