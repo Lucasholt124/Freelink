@@ -869,38 +869,46 @@ const handleAddExpense = async () => {
   };
 
   const handleClearMonth = async () => {
-    if (!confirm(`⚠️ ATENÇÃO! Isso vai DELETAR PERMANENTEMENTE todas as vendas e gastos de ${getCurrentMonthName()}. Esta ação NÃO PODE ser desfeita! Tem certeza?`)) {
-      return;
-    }
+    if (!confirm(`⚠️ ATENÇÃO! Isso vai DELETAR PERMANENTEMENTE todas as vendas e gastos de ${getCurrentMonthName()}. Esta ação NÃO PODE ser desfeita! Tem certeza?`)) {
+      return;
+    }
 
-    try {
-      const result = await clearMonthData({ month: selectedMonth });
-      toast.success(`✅ Limpeza concluída! ${result.deletedSales} vendas e ${result.deletedExpenses} gastos removidos.`);
-    } catch (error) {
-      toast.error("❌ Erro ao limpar dados");
-      console.error(error);
-    }
-  };
+    try {
+      const result = await clearMonthData({ month: selectedMonth });
+      toast.success(`✅ Limpeza concluída! ${result.deletedSales} vendas e ${result.deletedExpenses} gastos removidos.`);
+     
+      // ✅ CORREÇÃO: Recarrega a página para limpar o estado do frontend
+      window.location.reload();
+
+    } catch (error) {
+      toast.error("❌ Erro ao limpar dados");
+      console.error(error);
+    }
+  };
 
   const handleClearAll = async () => {
-    if (!confirm("🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER!")) {
-      return;
-    }
+    if (!confirm("🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER!")) {
+      return;
+    }
 
-    const confirmation = prompt("Digite 'DELETAR TUDO' em letras maiúsculas:");
-    if (confirmation !== "DELETAR TUDO") {
-      toast.error("❌ Cancelado");
-      return;
-    }
+    const confirmation = prompt("Digite 'DELETAR TUDO' em letras maiúsculas:");
+    if (confirmation !== "DELETAR TUDO") {
+      toast.error("❌ Cancelado");
+      return;
+    }
 
-    try {
-      const result = await clearAllData({});
-      toast.success(`✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`);
-    } catch (error) {
-      toast.error("❌ Erro ao limpar tudo");
-      console.error(error);
-    }
-  };
+    try {
+      const result = await clearAllData({});
+      toast.success(`✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`);
+     
+      // ✅ CORREÇÃO: Recarrega a página para limpar o estado do frontend
+      window.location.reload();
+
+    } catch (error) {
+      toast.error("❌ Erro ao limpar tudo");
+      console.error(error);
+    }
+  };
 
   const handleRegenerateReport = async () => {
     try {
@@ -975,11 +983,13 @@ const handleAddExpense = async () => {
       )}
 
       {/* ✅ FLOATING ACTION BUTTON (MOBILE) */}
-      <FloatingActionButton
-        onQuickSale={() => setShowQuickSale(true)}
-        onQuickExpense={() => setShowQuickExpense(true)}
-        onAddProduct={() => setShowAddProduct(true)}
-      />
+      <div className="md:hidden">
+        <FloatingActionButton
+          onQuickSale={() => setShowQuickSale(true)}
+          onQuickExpense={() => setShowQuickExpense(true)}
+          onAddProduct={() => setShowAddProduct(true)}
+        />
+      </div>
 
       {/* [CORREÇÃO 1] - Este é agora o ÚNICO container principal. O duplicado foi removido. */}
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-6">
