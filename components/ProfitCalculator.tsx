@@ -1983,7 +1983,7 @@ const handleAddExpense = async () => {
         </div>
 
         <Dialog open={showQuickSale} onOpenChange={setShowQuickSale}>
-          <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <div className="p-2 bg-emerald-100 rounded-lg">
@@ -2189,7 +2189,7 @@ const handleAddExpense = async () => {
         </Dialog>
 
         <Sheet open={showMobileMenu} onOpenChange={setShowMobileMenu}>
-          <SheetContent side="right" className="w-80">
+          <SheetContent side="right" className="w-full sm:max-w-md">
             <SheetHeader>
               <SheetTitle>Menu Completo</SheetTitle>
               <SheetDescription>Todas as funcionalidades</SheetDescription>
@@ -2248,7 +2248,7 @@ const handleAddExpense = async () => {
         </Sheet>
 
         <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
               <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
               <DialogDescription>Preencha os dados do produto para cadastro no sistema</DialogDescription>
@@ -2395,7 +2395,7 @@ const handleAddExpense = async () => {
         </Dialog>
 
         <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
-          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
               <DialogTitle>✏️ Editar Produto</DialogTitle>
               <DialogDescription>Altere as informações do produto</DialogDescription>
@@ -2480,7 +2480,7 @@ const handleAddExpense = async () => {
         </Dialog>
 
         <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
               <DialogTitle>🛒 Registrar Venda</DialogTitle>
               <DialogDescription>
@@ -2585,7 +2585,7 @@ const handleAddExpense = async () => {
         </Dialog>
 
         <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
               <DialogTitle>💸 Registrar Gasto</DialogTitle>
               <DialogDescription>Registre uma despesa ou gasto do negócio</DialogDescription>
@@ -2672,7 +2672,7 @@ const handleAddExpense = async () => {
         </Dialog>
 
         <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
               <DialogTitle>👤 Cadastrar Cliente</DialogTitle>
               <DialogDescription>Adicione um novo cliente ao sistema</DialogDescription>
@@ -2724,7 +2724,7 @@ const handleAddExpense = async () => {
         </Dialog>
 
         <Dialog open={showAddSupplier} onOpenChange={setShowAddSupplier}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
               <DialogTitle>🚚 Cadastrar Fornecedor</DialogTitle>
               <DialogDescription>Adicione um novo fornecedor ao sistema</DialogDescription>
@@ -2768,7 +2768,7 @@ const handleAddExpense = async () => {
         </Dialog>
 
         <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
               <DialogTitle>🎯 Criar Meta</DialogTitle>
               <DialogDescription>Defina uma meta financeira para acompanhar seu progresso</DialogDescription>
@@ -2842,7 +2842,7 @@ const handleAddExpense = async () => {
         </Dialog>
 
         <Dialog open={showPriceCalculator} onOpenChange={setShowPriceCalculator}>
-          <DialogContent className="max-h-[90vh] overflow-y-auto">
+          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
               <DialogTitle>🧮 Calculadora de Preço</DialogTitle>
               <DialogDescription>
