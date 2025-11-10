@@ -1333,6 +1333,12 @@ export const deleteSale = mutation({
 
     await ctx.db.delete(args.id);
 
+    // ✅ REVERTER STREAK E XP QUANDO VENDA É REMOVIDA
+    await ctx.scheduler.runAfter(0, internal.gamification.revertActivityStreak, {
+      userId: identity.subject,
+      saleDate: sale.date,
+    });
+
     return { success: true };
   },
 });
@@ -2238,15 +2244,82 @@ export const calculateSuggestedPrice = action({
     targetProfit: number;
     analysis: string[];
   }> => {
-    const targetMargin = args.targetMargin ?? 40;
+    // Validação de entrada
+    if (!args.costPrice || args.costPrice <= 0 || !isFinite(args.costPrice)) {
+      throw new Error("Custo do produto deve ser um número positivo válido.");
+    }
 
-    const suggestedPrice = args.costPrice / (1 - targetMargin / 100);
-    const minPrice = args.costPrice / (1 - 20 / 100);
-    const maxPrice = args.costPrice / (1 - 70 / 100);
+    // Validar e normalizar targetMargin (garantir que está entre 0 e 99.9)
+    const originalTargetMargin = args.targetMargin ?? 40;
+    let targetMargin = originalTargetMargin;
+    let marginWasAdjusted = false;
+
+    if (!isFinite(targetMargin) || targetMargin < 0) {
+      targetMargin = 40;
+    }
+    
+    // CRÍTICO: Margem de 100% é impossível matematicamente
+    if (targetMargin >= 100) {
+      targetMargin = 99.9; // Limite máximo sensato
+      marginWasAdjusted = true;
+    }
+
+    // Fórmula correta de Margem sobre a Venda:
+    // Preço Sugerido = Custo / (1 - Margem/100)
+    const calculatePrice = (cost: number, margin: number): number => {
+      // Garantir que a margem está no intervalo válido [0, 99.9]
+      const safeMargin = Math.max(0, Math.min(99.9, margin));
+      const divisor = 1 - safeMargin / 100;
+      
+      // Divisor deve ser positivo e maior que zero
+      if (divisor <= 0 || !isFinite(divisor)) {
+        // Fallback extremo: se divisor for inválido, usar margem de 99.9%
+        return cost / (1 - 99.9 / 100);
+      }
+      
+      const price = cost / divisor;
+      
+      // Validar resultado
+      if (!isFinite(price) || price <= 0) {
+        // Fallback: usar margem padrão de 40%
+        return cost / (1 - 40 / 100);
+      }
+      
+      return price;
+    };
+
+    // Calcular preços com precisão
+    const suggestedPrice = calculatePrice(args.costPrice, targetMargin);
+    const minPrice = calculatePrice(args.costPrice, 20);
+    const maxPrice = calculatePrice(args.costPrice, 70);
+    
+    // targetProfit = suggestedPrice - costPrice (fórmula exata)
     const targetProfit = suggestedPrice - args.costPrice;
+
+    // Garantir que todos os valores são números válidos e finitos
+    const safeSuggestedPrice = isFinite(suggestedPrice) && suggestedPrice > 0 
+      ? suggestedPrice 
+      : args.costPrice / (1 - 40 / 100); // Fallback: 40% de margem
+    const safeMinPrice = isFinite(minPrice) && minPrice > 0 
+      ? minPrice 
+      : args.costPrice / (1 - 20 / 100); // Fallback: 20% de margem
+    const safeMaxPrice = isFinite(maxPrice) && maxPrice > 0 
+      ? maxPrice 
+      : args.costPrice / (1 - 70 / 100); // Fallback: 70% de margem
+    const safeTargetProfit = isFinite(targetProfit) && targetProfit >= 0 
+      ? targetProfit 
+      : safeSuggestedPrice - args.costPrice;
 
     const analysis: string[] = [];
 
+    // ALERTA CRÍTICO: Se a margem foi ajustada de >= 100% para 99.9%
+    if (marginWasAdjusted) {
+      analysis.push(
+        "⚠️ Margem de 100% é impossível. O preço sugerido foi calculado com uma margem máxima de 99,9%."
+      );
+    }
+
+    // Análise da margem (sempre adiciona uma mensagem)
     if (targetMargin < 20) {
       analysis.push(
         "⚠️ Margem muito baixa. Difícil cobrir custos operacionais."
@@ -2255,32 +2328,42 @@ export const calculateSuggestedPrice = action({
       analysis.push("⚡ Margem aceitável, mas pode ser otimizada.");
     } else if (targetMargin < 50) {
       analysis.push("✅ Margem saudável para a maioria dos negócios.");
-    } else {
+    } else if (targetMargin < 80) {
       analysis.push("💎 Margem excelente! Produto de alto valor agregado.");
+    } else {
+      analysis.push("🚀 Margem muito alta! Certifique-se de que o preço é competitivo.");
     }
 
+    // Análise de concorrentes (se fornecido)
     if (args.competitors && args.competitors.length > 0) {
-      const avgCompetitor =
-        args.competitors.reduce((sum, p) => sum + p, 0) /
-        args.competitors.length;
-      const minCompetitor = Math.min(...args.competitors);
-      const maxCompetitor = Math.max(...args.competitors);
+      const validCompetitors = args.competitors.filter(
+        (p) => isFinite(p) && p > 0
+      );
+      
+      if (validCompetitors.length > 0) {
+        const avgCompetitor =
+          validCompetitors.reduce((sum, p) => sum + p, 0) /
+          validCompetitors.length;
+        const minCompetitor = Math.min(...validCompetitors);
+        const maxCompetitor = Math.max(...validCompetitors);
 
-      if (suggestedPrice < minCompetitor) {
-        analysis.push(
-          `💰 Seu preço está abaixo da concorrência (mín: R$ ${minCompetitor.toFixed(2)}). Pode aumentar!`
-        );
-      } else if (suggestedPrice > maxCompetitor) {
-        analysis.push(
-          `📊 Seu preço está acima da concorrência (máx: R$ ${maxCompetitor.toFixed(2)}). Certifique-se de ter diferenciais.`
-        );
-      } else {
-        analysis.push(
-          `🎯 Seu preço está competitivo (média: R$ ${avgCompetitor.toFixed(2)}).`
-        );
+        if (safeSuggestedPrice < minCompetitor) {
+          analysis.push(
+            `💰 Seu preço está abaixo da concorrência (mín: R$ ${minCompetitor.toFixed(2)}). Pode aumentar!`
+          );
+        } else if (safeSuggestedPrice > maxCompetitor) {
+          analysis.push(
+            `📊 Seu preço está acima da concorrência (máx: R$ ${maxCompetitor.toFixed(2)}). Certifique-se de ter diferenciais.`
+          );
+        } else {
+          analysis.push(
+            `🎯 Seu preço está competitivo (média: R$ ${avgCompetitor.toFixed(2)}).`
+          );
+        }
       }
     }
 
+    // Análise de categoria (sempre adiciona mensagem, mesmo se categoria não estiver no dicionário)
     const categoryMargins: Record<string, { min: number; ideal: number }> = {
       roupas: { min: 50, ideal: 100 },
       alimentos: { min: 20, ideal: 40 },
@@ -2289,8 +2372,8 @@ export const calculateSuggestedPrice = action({
       serviços: { min: 50, ideal: 100 },
     };
 
-    if (args.category) {
-      const catKey = args.category.toLowerCase();
+    if (args.category && args.category.trim()) {
+      const catKey = args.category.toLowerCase().trim();
       const catMargin = categoryMargins[catKey];
 
       if (catMargin) {
@@ -2302,19 +2385,60 @@ export const calculateSuggestedPrice = action({
           analysis.push(
             `🌟 Margem ideal para ${args.category}! Continue assim.`
           );
+        } else {
+          analysis.push(
+            `📊 Para ${args.category}, margem atual está dentro do esperado.`
+          );
         }
+      } else {
+        // Categoria não encontrada no dicionário, mas ainda adiciona análise
+        analysis.push(
+          `📦 Categoria "${args.category}" registrada. Use como referência para futuras análises.`
+        );
       }
+    } else {
+      // Sem categoria, adiciona mensagem genérica
+      analysis.push(
+        "💼 Dica: Informar a categoria ajuda a calcular margens mais precisas."
+      );
     }
 
+    // Análise detalhada de custo, lucro e margem (sempre adiciona)
+    const costPriceFormatted = args.costPrice.toFixed(2);
+    const targetProfitFormatted = safeTargetProfit.toFixed(2);
+    
+    // Calcular margem real sobre a venda (para validação)
+    const realMargin = (safeTargetProfit / safeSuggestedPrice) * 100;
+    const realMarginFormatted = realMargin.toFixed(2);
+    
+    // Cálculos de volume
+    const profit100Units = safeTargetProfit * 100;
+    const profit1000Units = safeTargetProfit * 1000;
+    
     analysis.push(
-      `💡 Lucro unitário: R$ ${targetProfit.toFixed(2)} | Vendendo 100 unidades = R$ ${(targetProfit * 100).toFixed(2)}`
+      `💰 Custo do Produto: R$ ${costPriceFormatted}`
+    );
+    analysis.push(
+      `💵 Lucro por Unidade: R$ ${targetProfitFormatted}`
+    );
+    analysis.push(
+      `📊 Margem Real sobre Venda: ${realMarginFormatted}%`
+    );
+    analysis.push(
+      `💡 Projeção: 100 unidades = R$ ${profit100Units.toFixed(2)} | 1.000 unidades = R$ ${profit1000Units.toFixed(2)}`
     );
 
+    // Garantir que analysis nunca está vazio
+    if (analysis.length === 0) {
+      analysis.push("✅ Cálculo realizado com sucesso!");
+    }
+
+    // Retornar valores com precisão de 2 casas decimais
     return {
-      suggestedPrice: parseFloat(suggestedPrice.toFixed(2)),
-      minPrice: parseFloat(minPrice.toFixed(2)),
-      maxPrice: parseFloat(maxPrice.toFixed(2)),
-      targetProfit: parseFloat(targetProfit.toFixed(2)),
+      suggestedPrice: parseFloat(safeSuggestedPrice.toFixed(2)),
+      minPrice: parseFloat(safeMinPrice.toFixed(2)),
+      maxPrice: parseFloat(safeMaxPrice.toFixed(2)),
+      targetProfit: parseFloat(safeTargetProfit.toFixed(2)),
       analysis,
     };
   },

@@ -267,3 +267,111 @@ export const markAchievementSeen = mutation({
     await ctx.db.patch(args.id, { seen: true });
   },
 });
+
+// ✅ FUNÇÃO PARA REVERTER STREAK E XP QUANDO UMA VENDA É REMOVIDA
+export const revertActivityStreak = internalMutation({
+  args: { 
+    userId: v.string(),
+    saleDate: v.string(), // Data da venda que foi removida
+  },
+  handler: async (ctx, args) => {
+    const stats = await ctx.db
+      .query("userStats")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!stats) {
+      return; // Se não há stats, não há nada para reverter
+    }
+
+    // Verificar se ainda há outras vendas no mesmo dia
+    const remainingSales = await ctx.db
+      .query("sales")
+      .withIndex("by_user_date", (q) => 
+        q.eq("userId", args.userId).eq("date", args.saleDate)
+      )
+      .collect();
+
+    // Se ainda há vendas no mesmo dia, apenas decrementa totalSales e ajusta XP
+    if (remainingSales.length > 0) {
+      // Ainda há vendas no mesmo dia, então o streak e lastActivityDate não mudam
+      // Apenas reverter XP e decrementar totalSales
+      // Como não sabemos se era a primeira venda do dia ou não, vamos subtrair 5 XP (padrão)
+      const newXP = Math.max(0, stats.xp - 5);
+      const newLevel = Math.floor(newXP / 100) + 1;
+      const newTotalSales = Math.max(0, stats.totalSales - 1);
+
+      await ctx.db.patch(stats._id, {
+        xp: newXP,
+        level: newLevel,
+        totalSales: newTotalSales,
+        updatedAt: Date.now(),
+      });
+    } else {
+      // Não há mais vendas no mesmo dia - precisa reverter streak e XP
+      const saleDateObj = new Date(args.saleDate);
+      const lastDateObj = new Date(stats.lastActivityDate);
+      const diffDays = Math.floor(
+        (lastDateObj.getTime() - saleDateObj.getTime()) / (1000 * 60 * 60 * 24)
+      );
+
+      let newStreak = stats.currentStreak;
+      let newXP = stats.xp;
+      let newLastActivityDate = stats.lastActivityDate;
+
+      // Se a venda removida era do último dia de atividade (diffDays === 0)
+      if (diffDays === 0) {
+        // Precisamos encontrar a última venda antes dessa data
+        const previousSales = await ctx.db
+          .query("sales")
+          .withIndex("by_user", (q) => q.eq("userId", args.userId))
+          .filter((q) => q.lt(q.field("date"), args.saleDate))
+          .order("desc")
+          .first();
+
+        if (previousSales) {
+          // Há uma venda anterior, usar essa data como nova lastActivityDate
+          newLastActivityDate = previousSales.date;
+          const prevDateObj = new Date(previousSales.date);
+          const daysBetween = Math.floor(
+            (saleDateObj.getTime() - prevDateObj.getTime()) / (1000 * 60 * 60 * 24)
+          );
+
+          if (daysBetween === 1) {
+            // Era dia consecutivo, então o streak atual foi ganho por essa venda removida
+            // Reverter o streak em 1
+            newStreak = Math.max(0, stats.currentStreak - 1);
+            newXP = Math.max(0, stats.xp - 10); // Reverter 10 XP do dia consecutivo
+          } else {
+            // Não era consecutivo, a venda removida não afetava o streak
+            // Mas como era o último dia, precisamos atualizar lastActivityDate
+            newStreak = stats.currentStreak;
+            newXP = Math.max(0, stats.xp - 5); // Reverter 5 XP
+          }
+        } else {
+          // Não há vendas anteriores, resetar streak para 0
+          newStreak = 0;
+          newXP = Math.max(0, stats.xp - 5);
+          // Usar a data da venda removida como referência (mas não há mais vendas nesse dia)
+          newLastActivityDate = args.saleDate;
+        }
+      } else {
+        // A venda removida não era do último dia, apenas ajustar XP
+        // Não afeta streak nem lastActivityDate
+        newXP = Math.max(0, stats.xp - 5);
+      }
+
+      const newLevel = Math.floor(newXP / 100) + 1;
+      const newTotalSales = Math.max(0, stats.totalSales - 1);
+
+      await ctx.db.patch(stats._id, {
+        currentStreak: newStreak,
+        xp: newXP,
+        level: newLevel,
+        totalSales: newTotalSales,
+        lastActivityDate: newLastActivityDate,
+        updatedAt: Date.now(),
+      });
+    }
+  },
+});
