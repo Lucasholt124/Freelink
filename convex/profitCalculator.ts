@@ -938,7 +938,12 @@ export const clearMonthData = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Faça login para continuar");
 
-    // Deletar todas as vendas do mês
+    let deletedSalesCount = 0;
+    let deletedExpensesCount = 0;
+    let deletedSummariesCount = 0;
+    let deletedCashFlowCount = 0;
+
+    // 1️⃣ Deletar vendas do mês
     const sales = await ctx.db
       .query("sales")
       .withIndex("by_user_month", (q) =>
@@ -948,11 +953,26 @@ export const clearMonthData = mutation({
 
     for (const sale of sales) {
       if (!args.businessId || sale.businessId === args.businessId) {
+        // ✅ RESTAURAR ESTOQUE antes de deletar
+        if (sale.productId) {
+          const product = await ctx.db.get(sale.productId);
+          if (product && product.stock !== undefined) {
+            await ctx.db.patch(product._id, {
+              stock: product.stock + sale.quantity,
+              totalSold: Math.max(0, (product.totalSold ?? 0) - sale.quantity),
+              totalRevenue: Math.max(0, (product.totalRevenue ?? 0) - sale.totalRevenue),
+              totalProfit: Math.max(0, (product.totalProfit ?? 0) - sale.profit),
+              updatedAt: Date.now(),
+            });
+          }
+        }
+
         await ctx.db.delete(sale._id);
+        deletedSalesCount++;
       }
     }
 
-    // Deletar todos os gastos do mês
+    // 2️⃣ Deletar gastos do mês
     const expenses = await ctx.db
       .query("expenses")
       .withIndex("by_user_month", (q) =>
@@ -963,10 +983,41 @@ export const clearMonthData = mutation({
     for (const expense of expenses) {
       if (!args.businessId || expense.businessId === args.businessId) {
         await ctx.db.delete(expense._id);
+        deletedExpensesCount++;
       }
     }
 
-    // Deletar relatório do mês
+    // 3️⃣ ✅ CRÍTICO: Deletar resumos diários do mês (ISSO ESTAVA FALTANDO!)
+    const dailySummaries = await ctx.db
+      .query("dailySummaries")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    for (const summary of dailySummaries) {
+      if (summary.date.startsWith(args.month)) {
+        if (!args.businessId || summary.businessId === args.businessId) {
+          await ctx.db.delete(summary._id);
+          deletedSummariesCount++;
+        }
+      }
+    }
+
+    // 4️⃣ ✅ CRÍTICO: Deletar cash flow do mês (ISSO ESTAVA FALTANDO!)
+    const cashFlows = await ctx.db
+      .query("cashFlow")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    for (const flow of cashFlows) {
+      if (flow.date.startsWith(args.month)) {
+        if (!args.businessId || flow.businessId === args.businessId) {
+          await ctx.db.delete(flow._id);
+          deletedCashFlowCount++;
+        }
+      }
+    }
+
+    // 5️⃣ Deletar relatórios mensais
     const reports = await ctx.db
       .query("monthlyReports")
       .withIndex("by_user_month", (q) =>
@@ -982,11 +1033,82 @@ export const clearMonthData = mutation({
 
     return {
       success: true,
-      deletedSales: sales.length,
-      deletedExpenses: expenses.length,
+      deletedSales: deletedSalesCount,
+      deletedExpenses: deletedExpensesCount,
+      deletedSummaries: deletedSummariesCount,
+      deletedCashFlow: deletedCashFlowCount,
     };
   },
 });
+
+export const deleteCashFlow = mutation({
+  args: {
+    id: v.id("cashFlow"),
+    deleteRelatedRecord: v.optional(v.boolean()), // Se true, deleta venda/gasto relacionado
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
+
+    const flow = await ctx.db.get(args.id);
+    if (!flow || flow.userId !== identity.subject) {
+      throw new Error("Movimentação não encontrada");
+    }
+
+    // Se quiser deletar registro relacionado
+    if (args.deleteRelatedRecord) {
+      if (flow.type === "in") {
+        // Buscar venda relacionada
+        const sales = await ctx.db
+          .query("sales")
+          .withIndex("by_user_date", (q) =>
+            q.eq("userId", identity.subject).eq("date", flow.date)
+          )
+          .collect();
+
+        const relatedSale = sales.find(s =>
+          Math.abs(s.totalRevenue - flow.amount) < 0.01 &&
+          s.isQuickSale === true
+        );
+
+        if (relatedSale) {
+          await ctx.db.delete(relatedSale._id);
+        }
+      } else {
+        // Buscar gasto relacionado
+        const expenses = await ctx.db
+          .query("expenses")
+          .withIndex("by_user_month", (q) =>
+            q.eq("userId", identity.subject).eq("month", flow.date.substring(0, 7))
+          )
+          .filter((q) => q.eq(q.field("date"), flow.date))
+          .collect();
+
+        const relatedExpense = expenses.find(e =>
+          Math.abs(e.amount - flow.amount) < 0.01 &&
+          e.description === flow.description
+        );
+
+        if (relatedExpense) {
+          await ctx.db.delete(relatedExpense._id);
+        }
+      }
+    }
+
+    // Deletar cashFlow
+    await ctx.db.delete(args.id);
+
+    // Atualizar resumo diário
+    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
+      userId: identity.subject,
+      date: flow.date,
+      businessId: flow.businessId,
+    });
+
+    return { success: true };
+  },
+});
+
 
 export const clearAllData = mutation({
   args: {
@@ -2257,7 +2379,7 @@ export const calculateSuggestedPrice = action({
     if (!isFinite(targetMargin) || targetMargin < 0) {
       targetMargin = 40;
     }
-    
+
     // CRÍTICO: Margem de 100% é impossível matematicamente
     if (targetMargin >= 100) {
       targetMargin = 99.9; // Limite máximo sensato
@@ -2270,21 +2392,21 @@ export const calculateSuggestedPrice = action({
       // Garantir que a margem está no intervalo válido [0, 99.9]
       const safeMargin = Math.max(0, Math.min(99.9, margin));
       const divisor = 1 - safeMargin / 100;
-      
+
       // Divisor deve ser positivo e maior que zero
       if (divisor <= 0 || !isFinite(divisor)) {
         // Fallback extremo: se divisor for inválido, usar margem de 99.9%
         return cost / (1 - 99.9 / 100);
       }
-      
+
       const price = cost / divisor;
-      
+
       // Validar resultado
       if (!isFinite(price) || price <= 0) {
         // Fallback: usar margem padrão de 40%
         return cost / (1 - 40 / 100);
       }
-      
+
       return price;
     };
 
@@ -2292,22 +2414,22 @@ export const calculateSuggestedPrice = action({
     const suggestedPrice = calculatePrice(args.costPrice, targetMargin);
     const minPrice = calculatePrice(args.costPrice, 20);
     const maxPrice = calculatePrice(args.costPrice, 70);
-    
+
     // targetProfit = suggestedPrice - costPrice (fórmula exata)
     const targetProfit = suggestedPrice - args.costPrice;
 
     // Garantir que todos os valores são números válidos e finitos
-    const safeSuggestedPrice = isFinite(suggestedPrice) && suggestedPrice > 0 
-      ? suggestedPrice 
+    const safeSuggestedPrice = isFinite(suggestedPrice) && suggestedPrice > 0
+      ? suggestedPrice
       : args.costPrice / (1 - 40 / 100); // Fallback: 40% de margem
-    const safeMinPrice = isFinite(minPrice) && minPrice > 0 
-      ? minPrice 
+    const safeMinPrice = isFinite(minPrice) && minPrice > 0
+      ? minPrice
       : args.costPrice / (1 - 20 / 100); // Fallback: 20% de margem
-    const safeMaxPrice = isFinite(maxPrice) && maxPrice > 0 
-      ? maxPrice 
+    const safeMaxPrice = isFinite(maxPrice) && maxPrice > 0
+      ? maxPrice
       : args.costPrice / (1 - 70 / 100); // Fallback: 70% de margem
-    const safeTargetProfit = isFinite(targetProfit) && targetProfit >= 0 
-      ? targetProfit 
+    const safeTargetProfit = isFinite(targetProfit) && targetProfit >= 0
+      ? targetProfit
       : safeSuggestedPrice - args.costPrice;
 
     const analysis: string[] = [];
@@ -2339,7 +2461,7 @@ export const calculateSuggestedPrice = action({
       const validCompetitors = args.competitors.filter(
         (p) => isFinite(p) && p > 0
       );
-      
+
       if (validCompetitors.length > 0) {
         const avgCompetitor =
           validCompetitors.reduce((sum, p) => sum + p, 0) /
@@ -2406,15 +2528,15 @@ export const calculateSuggestedPrice = action({
     // Análise detalhada de custo, lucro e margem (sempre adiciona)
     const costPriceFormatted = args.costPrice.toFixed(2);
     const targetProfitFormatted = safeTargetProfit.toFixed(2);
-    
+
     // Calcular margem real sobre a venda (para validação)
     const realMargin = (safeTargetProfit / safeSuggestedPrice) * 100;
     const realMarginFormatted = realMargin.toFixed(2);
-    
+
     // Cálculos de volume
     const profit100Units = safeTargetProfit * 100;
     const profit1000Units = safeTargetProfit * 1000;
-    
+
     analysis.push(
       `💰 Custo do Produto: R$ ${costPriceFormatted}`
     );

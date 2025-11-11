@@ -153,6 +153,7 @@ export default function FinancialManagerPro() {
   const [editingProductId, setEditingProductId] = useState<Id<"products"> | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const deleteCashFlow = useMutation(api.profitCalculator.deleteCashFlow);
 
 
   useEffect(() => {
@@ -169,6 +170,7 @@ export default function FinancialManagerPro() {
     };
 
     checkFirstAccess();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   const [productForm, setProductForm] = useState({
     name: "",
@@ -253,7 +255,8 @@ const [quickSaleForm, setQuickSaleForm] = useState({
 
   const [priceCalcResult, setPriceCalcResult] = useState<PriceCalculationResult | null>(null);
 
-  const products = useQuery(api.profitCalculator.getProducts, { activeOnly: false }) ?? [];
+  const productsQuery = useQuery(api.profitCalculator.getProducts, { activeOnly: false });
+  const products = useMemo(() => productsQuery ?? [], [productsQuery]);
   const sales = useQuery(api.profitCalculator.getSalesByMonth, { month: selectedMonth }) ?? [];
   const expenses = useQuery(api.profitCalculator.getExpensesByMonth, { month: selectedMonth }) ?? [];
   const monthlyReport = useQuery(api.profitCalculator.getMonthlyReport, { month: selectedMonth });
@@ -331,6 +334,14 @@ const [quickSaleForm, setQuickSaleForm] = useState({
 
   const getCurrentMonthName = () => {
     const [year, month] = selectedMonth.split("-");
+    return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString("pt-BR", {
+      month: "long",
+      year: "numeric",
+    });
+  };
+
+  const formatMonthName = (monthStr: string) => {
+    const [year, month] = monthStr.split("-");
     return new Date(parseInt(year), parseInt(month) - 1).toLocaleDateString("pt-BR", {
       month: "long",
       year: "numeric",
@@ -869,46 +880,42 @@ const handleAddExpense = async () => {
   };
 
   const handleClearMonth = async () => {
-    if (!confirm(`⚠️ ATENÇÃO! Isso vai DELETAR PERMANENTEMENTE todas as vendas e gastos de ${getCurrentMonthName()}. Esta ação NÃO PODE ser desfeita! Tem certeza?`)) {
-      return;
-    }
+    if (!confirm(`⚠️ Limpar todos os dados do mês ${formatMonthName(selectedMonth)}?\n\nIsso vai deletar:\n- Todas as vendas do mês\n- Todos os gastos do mês\n- O relatório mensal\n\nEsta ação não pode ser desfeita!`)) {
+      return;
+    }
 
-    try {
-      const result = await clearMonthData({ month: selectedMonth });
-      toast.success(`✅ Limpeza concluída! ${result.deletedSales} vendas e ${result.deletedExpenses} gastos removidos.`);
-     
-      // ✅ CORREÇÃO: Recarrega a página para limpar o estado do frontend
-      window.location.reload();
-
-    } catch (error) {
-      toast.error("❌ Erro ao limpar dados");
-      console.error(error);
-    }
-  };
+    try {
+      await clearMonthData({ month: selectedMonth });
+      toast.success(`✅ Mês ${formatMonthName(selectedMonth)} limpo com sucesso!`);
+    } catch (error) {
+      toast.error("❌ Erro ao limpar mês");
+      console.error(error);
+    }
+  };
 
   const handleClearAll = async () => {
-    if (!confirm("🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER!")) {
-      return;
-    }
+    if (!confirm("🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER!")) {
+      return;
+    }
 
-    const confirmation = prompt("Digite 'DELETAR TUDO' em letras maiúsculas:");
-    if (confirmation !== "DELETAR TUDO") {
-      toast.error("❌ Cancelado");
-      return;
-    }
+    const confirmation = prompt("Digite 'DELETAR TUDO' em letras maiúsculas:");
+    if (confirmation !== "DELETAR TUDO") {
+      toast.error("❌ Cancelado");
+      return;
+    }
 
-    try {
-      const result = await clearAllData({});
-      toast.success(`✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`);
-     
-      // ✅ CORREÇÃO: Recarrega a página para limpar o estado do frontend
-      window.location.reload();
+    try {
+      const result = await clearAllData({});
+      toast.success(`✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`);
 
-    } catch (error) {
-      toast.error("❌ Erro ao limpar tudo");
-      console.error(error);
-    }
-  };
+      // ✅ CORREÇÃO: Recarrega a página para limpar o estado do frontend
+      window.location.reload();
+
+    } catch (error) {
+      toast.error("❌ Erro ao limpar tudo");
+      console.error(error);
+    }
+  };
 
   const handleRegenerateReport = async () => {
     try {
@@ -1013,27 +1020,6 @@ const handleAddExpense = async () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-wrap w-full md:w-auto">
-              <Button
-                onClick={() => setShowQuickSale(true)}
-                className="md:hidden flex-1 bg-emerald-600 hover:bg-emerald-700"
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                Venda Rápida
-              </Button>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPriceCalculator(true)}
-                className="hidden md:flex hover:bg-purple-50"
-              >
-                <Calculator className="w-4 h-4 mr-2" />
-                Calcular Preço
-              </Button>
-
-              {/* [CORREÇÃO 2] - GamificationBar foi REMOVIDA daqui */}
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline" size="sm" className="relative">
@@ -1135,129 +1121,213 @@ const handleAddExpense = async () => {
           <GamificationBar />
 
           {dailySummary && (
-            <Card className="p-4 md:p-6 mb-4 md:mb-6 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 border-2 border-emerald-200/50 shadow-xl">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <div className="p-2 bg-emerald-600 rounded-lg">
-                    <Zap className="w-5 h-5 text-white" />
-                  </div>
-                  <div>
-                    <h3 className="font-bold text-lg">Resumo de Hoje</h3>
-                    <p className="text-xs text-gray-600">{new Date().toLocaleDateString("pt-BR")}</p>
-                  </div>
-                </div>
-                <Button
-                  size="sm"
-                  onClick={() => setActiveTab("rapido")}
-                  className="bg-emerald-600 hover:bg-emerald-700"
-                >
-                  <Zap className="w-4 h-4 mr-2" />
-                  Modo Rápido
-                </Button>
-              </div>
+  <Card className="p-4 md:p-6 mb-4 md:mb-6 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 border-2 border-emerald-200/50 shadow-xl hover:shadow-2xl transition-shadow">
+    {/* Header */}
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
+      <div className="flex items-center gap-2 md:gap-3">
+        <div className="p-2 md:p-2.5 bg-emerald-600 rounded-xl shadow-lg">
+          <Zap className="w-4 h-4 md:w-5 md:h-5 text-white" />
+        </div>
+        <div>
+          <h3 className="font-bold text-base md:text-lg">Resumo de Hoje</h3>
+          <p className="text-[10px] md:text-xs text-gray-600 flex items-center gap-1">
+            <Calendar className="w-3 h-3" />
+            {new Date().toLocaleDateString("pt-BR", {
+              weekday: 'short',
+              day: '2-digit',
+              month: 'short'
+            })}
+          </p>
+        </div>
+      </div>
 
-              <div className="grid grid-cols-3 gap-3 md:gap-4">
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center">
-                  <p className="text-xs text-gray-600 mb-1">Vendas</p>
-                  <p className="text-lg md:text-2xl font-black text-emerald-600">
-                    {formatCurrency(dailySummary.totalRevenue)}
-                  </p>
-                  <p className="text-[10px] md:text-xs text-gray-500 mt-1">{dailySummary.salesCount} vendas</p>
-                </div>
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center">
-                  <p className="text-xs text-gray-600 mb-1">Gastos</p>
-                  <p className="text-lg md:text-2xl font-black text-red-600">
-                    {formatCurrency(dailySummary.totalExpenses)}
-                  </p>
-                  <p className="text-[10px] md:text-xs text-gray-500 mt-1">{dailySummary.expensesCount} gastos</p>
-                </div>
-                <div
-                  className={`bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center ${
-                    dailySummary.netProfit >= 0 ? "ring-2 ring-emerald-400" : ""
-                  }`}
-                >
-                  <p className="text-xs text-gray-600 mb-1">Lucro</p>
-                  <p
-                    className={`text-lg md:text-2xl font-black ${
-                      dailySummary.netProfit >= 0 ? "text-emerald-600" : "text-red-600"
-                    }`}
-                  >
-                    {formatCurrency(dailySummary.netProfit)}
-                  </p>
-                  <div className="flex items-center justify-center gap-1 mt-1">
-                    {dailySummary.netProfit >= 0 ? (
-                      <TrendingUp className="w-3 h-3 text-emerald-600" />
-                    ) : (
-                      <TrendingDown className="w-3 h-3 text-red-600" />
-                    )}
-                  </div>
-                </div>
-              </div>
-            </Card>
+      <Button
+        size="sm"
+        onClick={() => setActiveTab("rapido")}
+        className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto shadow-lg hover:shadow-xl transition-all"
+      >
+        <Zap className="w-4 h-4 mr-2" />
+        Modo Rápido
+      </Button>
+    </div>
+
+    {/* Cards de Resumo */}
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+      {/* 💰 VENDAS */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center hover:bg-white hover:shadow-lg transition-all group cursor-pointer border border-emerald-100">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="p-1.5 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
+            <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 text-emerald-600" />
+          </div>
+          <p className="text-xs md:text-sm text-gray-600 font-medium">Vendas</p>
+        </div>
+        <p className="text-xl md:text-2xl lg:text-3xl font-black text-emerald-600 group-hover:scale-110 transition-transform">
+          {formatCurrency(dailySummary.totalRevenue)}
+        </p>
+        <div className="flex items-center justify-center gap-1 mt-2">
+          <Badge variant="secondary" className="text-[10px] md:text-xs">
+            {dailySummary.salesCount} {dailySummary.salesCount === 1 ? 'venda' : 'vendas'}
+          </Badge>
+        </div>
+      </div>
+
+      {/* 💸 GASTOS */}
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center hover:bg-white hover:shadow-lg transition-all group cursor-pointer border border-red-100">
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <div className="p-1.5 bg-red-100 rounded-lg group-hover:bg-red-200 transition-colors">
+            <ArrowDownRight className="w-3 h-3 md:w-4 md:h-4 text-red-600" />
+          </div>
+          <p className="text-xs md:text-sm text-gray-600 font-medium">Gastos</p>
+        </div>
+        <p className="text-xl md:text-2xl lg:text-3xl font-black text-red-600 group-hover:scale-110 transition-transform">
+          {formatCurrency(dailySummary.totalExpenses)}
+        </p>
+        <div className="flex items-center justify-center gap-1 mt-2">
+          <Badge variant="secondary" className="text-[10px] md:text-xs">
+            {dailySummary.expensesCount} {dailySummary.expensesCount === 1 ? 'gasto' : 'gastos'}
+          </Badge>
+        </div>
+      </div>
+
+      {/* 💚 LUCRO */}
+      <div className={`bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center hover:bg-white hover:shadow-lg transition-all group cursor-pointer border-2 ${
+        dailySummary.netProfit >= 0 ? "border-emerald-200 ring-2 ring-emerald-100" : "border-orange-200"
+      }`}>
+        <div className="flex items-center justify-center gap-2 mb-2">
+          <div className={`p-1.5 rounded-lg transition-colors ${
+            dailySummary.netProfit >= 0
+              ? "bg-emerald-100 group-hover:bg-emerald-200"
+              : "bg-orange-100 group-hover:bg-orange-200"
+          }`}>
+            {dailySummary.netProfit >= 0 ? (
+              <TrendingUp className="w-3 h-3 md:w-4 md:h-4 text-emerald-600" />
+            ) : (
+              <TrendingDown className="w-3 h-3 md:w-4 md:h-4 text-orange-600" />
+            )}
+          </div>
+          <p className="text-xs md:text-sm text-gray-600 font-medium">Lucro</p>
+        </div>
+        <p className={`text-xl md:text-2xl lg:text-3xl font-black group-hover:scale-110 transition-transform ${
+          dailySummary.netProfit >= 0 ? "text-emerald-600" : "text-orange-600"
+        }`}>
+          {formatCurrency(dailySummary.netProfit)}
+        </p>
+        <div className="flex items-center justify-center gap-1 mt-2">
+          {dailySummary.netProfit >= 0 ? (
+            <Badge className="bg-emerald-100 text-emerald-700 text-[10px] md:text-xs border-0">
+              <Sparkles className="w-3 h-3 mr-1" />
+              Positivo
+            </Badge>
+          ) : (
+            <Badge className="bg-orange-100 text-orange-700 text-[10px] md:text-xs border-0">
+              <AlertTriangle className="w-3 h-3 mr-1" />
+              Atenção
+            </Badge>
           )}
+        </div>
+      </div>
+    </div>
+  </Card>
+)}
 
           {monthlyReport && (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
-              <Card className="p-3 md:p-4 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <ShoppingCart className="w-4 h-4 md:w-5 md:h-5" />
-                    <p className="text-xs md:text-sm font-medium opacity-90">Receita</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+            {/* 💰 RECEITA */}
+            <Card className="p-4 md:p-5 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer">
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <ShoppingCart className="w-5 h-5 md:w-6 md:h-6" />
                   </div>
-                  <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.totalRevenue)}</p>
-                  <p className="text-[10px] md:text-xs opacity-75 mt-1">{monthlyReport.totalSales} vendas</p>
+                  <TrendingUp className="w-4 h-4 opacity-75" />
                 </div>
-                <DollarSign className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
-              </Card>
+                <p className="text-xs md:text-sm font-medium opacity-90 mb-1">Receita Total</p>
+                <p className="text-2xl md:text-3xl lg:text-4xl font-black mb-1">
+                  {formatCurrency(monthlyReport.totalRevenue)}
+                </p>
+                <div className="flex items-center gap-2 text-[10px] md:text-xs opacity-75">
+                  <Badge variant="secondary" className="bg-white/20 text-white border-0 text-[10px] px-2 py-0">
+                    {monthlyReport.totalSales} vendas
+                  </Badge>
+                </div>
+              </div>
+              <DollarSign className="absolute -bottom-4 -right-4 md:-bottom-6 md:-right-6 w-20 h-20 md:w-28 md:h-28 opacity-10 group-hover:opacity-20 group-hover:rotate-12 transition-all" />
+            </Card>
 
-              <Card className="p-3 md:p-4 bg-gradient-to-br from-red-500 to-red-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Receipt className="w-4 h-4 md:w-5 md:h-5" />
-                    <p className="text-xs md:text-sm font-medium opacity-90">Gastos</p>
+            {/* 💸 GASTOS */}
+            <Card className="p-4 md:p-5 bg-gradient-to-br from-red-500 to-red-600 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer">
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <Receipt className="w-5 h-5 md:w-6 md:h-6" />
                   </div>
-                  <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.totalExpenses)}</p>
-                  <p className="text-[10px] md:text-xs opacity-75 mt-1">{expenses.length} registros</p>
+                  <TrendingDown className="w-4 h-4 opacity-75" />
                 </div>
-                <TrendingDown className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
-              </Card>
+                <p className="text-xs md:text-sm font-medium opacity-90 mb-1">Total de Gastos</p>
+                <p className="text-2xl md:text-3xl lg:text-4xl font-black mb-1">
+                  {formatCurrency(monthlyReport.totalExpenses)}
+                </p>
+                <div className="flex items-center gap-2 text-[10px] md:text-xs opacity-75">
+                  <Badge variant="secondary" className="bg-white/20 text-white border-0 text-[10px] px-2 py-0">
+                    {expenses.length} registros
+                  </Badge>
+                </div>
+              </div>
+              <TrendingDown className="absolute -bottom-4 -right-4 md:-bottom-6 md:-right-6 w-20 h-20 md:w-28 md:h-28 opacity-10 group-hover:opacity-20 group-hover:rotate-12 transition-all" />
+            </Card>
 
-              <Card
-                className={`p-3 md:p-4 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform ${
-                  monthlyReport.netProfit >= 0
-                    ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
-                    : "bg-gradient-to-br from-orange-500 to-orange-600"
-                }`}
-              >
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
+            {/* 💚 LUCRO */}
+            <Card className={`p-4 md:p-5 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer ${
+              monthlyReport.netProfit >= 0
+                ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
+                : "bg-gradient-to-br from-orange-500 to-orange-600"
+            }`}>
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
                     {monthlyReport.netProfit >= 0 ? (
-                      <TrendingUp className="w-4 h-4 md:w-5 md:h-5" />
+                      <TrendingUp className="w-5 h-5 md:w-6 md:h-6" />
                     ) : (
-                      <TrendingDown className="w-4 h-4 md:w-5 md:h-5" />
+                      <TrendingDown className="w-5 h-5 md:w-6 md:h-6" />
                     )}
-                    <p className="text-xs md:text-sm font-medium opacity-90">Lucro</p>
                   </div>
-                  <p className="text-xl md:text-2xl font-black">{formatCurrency(monthlyReport.netProfit)}</p>
-                  <p className="text-[10px] md:text-xs opacity-75 mt-1">
+                  <Sparkles className="w-4 h-4 opacity-75" />
+                </div>
+                <p className="text-xs md:text-sm font-medium opacity-90 mb-1">Lucro Líquido</p>
+                <p className="text-2xl md:text-3xl lg:text-4xl font-black mb-1">
+                  {formatCurrency(monthlyReport.netProfit)}
+                </p>
+                <div className="flex items-center gap-2 text-[10px] md:text-xs opacity-75">
+                  <Badge variant="secondary" className="bg-white/20 text-white border-0 text-[10px] px-2 py-0">
                     Margem: {monthlyReport.profitMargin.toFixed(1)}%
-                  </p>
+                  </Badge>
                 </div>
-                <Sparkles className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
-              </Card>
+              </div>
+              <Sparkles className="absolute -bottom-4 -right-4 md:-bottom-6 md:-right-6 w-20 h-20 md:w-28 md:h-28 opacity-10 group-hover:opacity-20 group-hover:rotate-12 transition-all" />
+            </Card>
 
-              <Card className="p-3 md:p-4 bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white overflow-hidden relative group hover:scale-105 transition-transform">
-                <div className="relative z-10">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Package className="w-4 h-4 md:w-5 md:h-5" />
-                    <p className="text-xs md:text-sm font-medium opacity-90">Produtos</p>
+            {/* 📦 PRODUTOS */}
+            <Card className="p-4 md:p-5 bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer">
+              <div className="relative z-10">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
+                    <Package className="w-5 h-5 md:w-6 md:h-6" />
                   </div>
-                  <p className="text-xl md:text-2xl font-black">{products.filter((p) => p.active).length}</p>
-                  <p className="text-[10px] md:text-xs opacity-75 mt-1">cadastrados</p>
+                  <Star className="w-4 h-4 opacity-75" />
                 </div>
-                <Package className="absolute -bottom-2 -right-2 md:-bottom-4 md:-right-4 w-16 h-16 md:w-24 md:h-24 opacity-10 group-hover:opacity-20 transition-opacity" />
-              </Card>
-            </div>
+                <p className="text-xs md:text-sm font-medium opacity-90 mb-1">Produtos Ativos</p>
+                <p className="text-2xl md:text-3xl lg:text-4xl font-black mb-1">
+                  {products.filter((p) => p.active).length}
+                </p>
+                <div className="flex items-center gap-2 text-[10px] md:text-xs opacity-75">
+                  <Badge variant="secondary" className="bg-white/20 text-white border-0 text-[10px] px-2 py-0">
+                    cadastrados
+                  </Badge>
+                </div>
+              </div>
+              <Package className="absolute -bottom-4 -right-4 md:-bottom-6 md:-right-6 w-20 h-20 md:w-28 md:h-28 opacity-10 group-hover:opacity-20 group-hover:rotate-12 transition-all" />
+            </Card>
+          </div>
           )}
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-4 md:space-y-6">
@@ -1466,47 +1536,106 @@ const handleAddExpense = async () => {
                   </div>
                 </Card>
 
-                <Card className="p-6">
-                  <h3 className="font-bold mb-4 flex items-center gap-2">
-                    <Activity className="w-5 h-5 text-blue-600" />
-                    Últimas Movimentações
-                  </h3>
-                  {cashFlow.length === 0 ? (
-                    <div className="text-center py-12">
-                      <Wallet className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-gray-500">Nenhuma movimentação hoje</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-2">
-                      {cashFlow.map((flow) => (
-                        <div
-                          key={flow._id}
-                          className={`flex items-center justify-between p-4 rounded-xl ${
-                            flow.type === "in" ? "bg-emerald-50" : "bg-red-50"
-                          }`}
-                        >
-                          <div className="flex items-center gap-3">
-                            <div className={`p-2 rounded-lg ${flow.type === "in" ? "bg-emerald-100" : "bg-red-100"}`}>
-                              {flow.type === "in" ? (
-                                <ArrowUpRight className="w-4 h-4 text-emerald-600" />
-                              ) : (
-                                <ArrowDownRight className="w-4 h-4 text-red-600" />
-                              )}
-                            </div>
-                            <div>
-                              <p className="font-semibold">{flow.description}</p>
-                              <p className="text-xs text-gray-600">{flow.time}</p>
-                            </div>
-                          </div>
-                          <p className={`text-lg font-bold ${flow.type === "in" ? "text-emerald-600" : "text-red-600"}`}>
-                            {flow.type === "in" ? "+" : "-"}
-                            {formatCurrency(flow.amount)}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
+
+                <Card className="p-4 md:p-6">
+  <div className="flex items-center justify-between mb-4">
+    <h3 className="font-bold text-base md:text-lg flex items-center gap-2">
+      <Activity className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
+      Últimas Movimentações
+    </h3>
+    {cashFlow.length > 0 && (
+      <Badge variant="secondary" className="text-xs">
+        {cashFlow.length} hoje
+      </Badge>
+    )}
+  </div>
+
+  {cashFlow.length === 0 ? (
+    <div className="text-center py-8 md:py-12">
+      <Wallet className="w-12 h-12 md:w-16 md:h-16 mx-auto mb-3 md:mb-4 text-gray-300" />
+      <p className="text-sm md:text-base text-gray-500">Nenhuma movimentação hoje</p>
+      <p className="text-xs text-gray-400 mt-1">Registre vendas ou gastos para começar</p>
+    </div>
+  ) : (
+    <ScrollArea className="h-[400px] md:h-[500px]">
+      <div className="space-y-2 pr-3">
+        {cashFlow.map((flow) => (
+          <div
+            key={flow._id}
+            className={`flex items-center justify-between p-3 md:p-4 rounded-xl transition-all hover:shadow-md group ${
+              flow.type === "in" ? "bg-emerald-50 hover:bg-emerald-100" : "bg-red-50 hover:bg-red-100"
+            }`}
+          >
+            {/* Lado Esquerdo: Ícone + Info */}
+            <div className="flex items-center gap-2 md:gap-3 flex-1 min-w-0">
+              <div className={`p-1.5 md:p-2 rounded-lg shrink-0 ${flow.type === "in" ? "bg-emerald-100" : "bg-red-100"}`}>
+                {flow.type === "in" ? (
+                  <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 text-emerald-600" />
+                ) : (
+                  <ArrowDownRight className="w-3 h-3 md:w-4 md:h-4 text-red-600" />
+                )}
+              </div>
+
+              <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm md:text-base truncate">
+                  {flow.description}
+                </p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-[10px] md:text-xs text-gray-600">{flow.time}</p>
+                  {flow.paymentMethod && (
+                    <Badge variant="outline" className="text-[10px] px-1 py-0">
+                      {flow.paymentMethod === "pix" && "PIX"}
+                      {flow.paymentMethod === "cash" && "Dinheiro"}
+                      {flow.paymentMethod === "credit_card" && "Crédito"}
+                      {flow.paymentMethod === "debit_card" && "Débito"}
+                      {flow.paymentMethod === "bank_transfer" && "Transfer"}
+                      {flow.paymentMethod === "other" && "Outro"}
+                    </Badge>
                   )}
-                </Card>
+                </div>
+              </div>
+            </div>
+
+            {/* Lado Direito: Valor + Botão Excluir */}
+            <div className="flex items-center gap-2 md:gap-3 shrink-0">
+              <p className={`text-sm md:text-lg font-bold ${flow.type === "in" ? "text-emerald-600" : "text-red-600"}`}>
+                {flow.type === "in" ? "+" : "-"}
+                {formatCurrency(flow.amount)}
+              </p>
+
+              {/* ✅ BOTÃO EXCLUIR (visível no hover desktop, sempre visível mobile) */}
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 md:h-8 md:w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-red-100"
+                onClick={async () => {
+                  if (!confirm(`Excluir esta movimentação?\n\n"${flow.description}"\n${formatCurrency(flow.amount)}`)) {
+                    return;
+                  }
+
+                  try {
+                    // Deletar o cashFlow e registro relacionado automaticamente
+                    await deleteCashFlow({
+                      id: flow._id,
+                      deleteRelatedRecord: true
+                    });
+
+                    toast.success("✅ Movimentação excluída!");
+                  } catch (error) {
+                    toast.error("❌ Erro ao excluir");
+                    console.error(error);
+                  }
+                }}
+              >
+                <Trash2 className="w-3 h-3 md:w-4 md:h-4 text-red-500" />
+              </Button>
+            </div>
+          </div>
+        ))}
+      </div>
+    </ScrollArea>
+  )}
+</Card>
               </div>
             </TabsContent>
 
@@ -2921,7 +3050,6 @@ const handleAddExpense = async () => {
             </div>
           </DialogContent>
         </Dialog>
-      </div>
     </>
   );
 }
