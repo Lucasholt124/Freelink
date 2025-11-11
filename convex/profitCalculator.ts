@@ -9,165 +9,153 @@ import { Doc, Id } from "./_generated/dataModel";
 // =================================================================
 
 export const addQuickSale = mutation({
-  args: {
-    amount: v.number(),
-    costPrice: v.optional(v.number()),
-    description: v.optional(v.string()),
-    paymentMethod: v.optional(
-      v.union(
-        v.literal("cash"),
-        v.literal("credit_card"),
-        v.literal("debit_card"),
-        v.literal("pix"),
-        v.literal("bank_transfer"),
-        v.literal("other")
-      )
-    ),
-    date: v.optional(v.string()),
-    businessId: v.optional(v.id("businesses")),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Faça login para continuar");
+  args: {
+    amount: v.number(),
+    costPrice: v.optional(v.number()),// ✅ ADICIONAR ESTE CAMPO
+    description: v.optional(v.string()),
+    paymentMethod: v.optional(
+      v.union(
+        v.literal("cash"),
+        v.literal("credit_card"),
+        v.literal("debit_card"),
+        v.literal("pix"),
+        v.literal("bank_transfer"),
+        v.literal("other")
+      )
+    ),
+    date: v.optional(v.string()),
+    businessId: v.optional(v.id("businesses")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
 
-    const today = args.date || new Date().toISOString().split("T")[0];
-    const month = today.substring(0, 7);
-    const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const today = args.date || new Date().toISOString().split("T")[0];
+    const month = today.substring(0, 7);
+    const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-    // CALCULAR LUCRO CORRETAMENTE
-    const costPrice = args.costPrice || 0;
-    const totalCost = costPrice;
-    const totalRevenue = args.amount;
-    const profit = args.amount - totalCost;
+    // ✅ CALCULAR LUCRO CORRETAMENTE
+    const costPrice = args.costPrice || 0;
+    const totalCost = costPrice;
+    const totalRevenue = args.amount;
+    const profit = args.amount - totalCost;
+
+
 
     // Adiciona no cash flow
-    await ctx.db.insert("cashFlow", {
-      userId: identity.subject,
-      businessId: args.businessId,
-      type: "in",
-      amount: args.amount,
-      description: args.description || "Venda rápida",
-      date: today,
-      time,
-      paymentMethod: args.paymentMethod,
-      createdAt: Date.now(),
-    });
+    await ctx.db.insert("cashFlow", {
+      userId: identity.subject,
+      businessId: args.businessId,
+      type: "in",
+      amount: args.amount,
+      description: args.description || "Venda rápida",
+      date: today,
+      time,
+      paymentMethod: args.paymentMethod,
+      createdAt: Date.now(),
+    });
 
-    // Adiciona como venda sem produto
-    const saleId = await ctx.db.insert("sales", {
-      userId: identity.subject,
-      businessId: args.businessId,
-      productName: args.description || "Venda rápida",
-      quantity: 1,
-      costPrice: costPrice,
-      salePrice: args.amount,
-      totalCost: totalCost,
-      totalRevenue: totalRevenue,
-      profit: profit,
-      paymentMethod: args.paymentMethod,
-      paymentStatus: "paid",
-      date: today,
-      month,
-      paidAt: Date.now(),
-      isQuickSale: true,
-      createdAt: Date.now(),
-    });
+    // Adiciona como venda sem produto
+    const saleId = await ctx.db.insert("sales", {
+      userId: identity.subject,
+      businessId: args.businessId,
+      productName: args.description || "Venda rápida",
+      quantity: 1,
+      costPrice: costPrice,        // ✅ CORRIGIDO
+      salePrice: args.amount,
+      totalCost: totalCost,         // ✅ CORRIGIDO
+      totalRevenue: totalRevenue,
+      profit: profit,               // ✅ CORRIGIDO
+      paymentMethod: args.paymentMethod,
+      paymentStatus: "paid",
+      date: today,
+      month,
+      paidAt: Date.now(),
+      isQuickSale: true,
+      createdAt: Date.now(),
+    });
 
-    // ✅ CORREÇÃO: Força a atualização do resumo diário
-    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
-      userId: identity.subject,
-      date: today,
-      businessId: args.businessId,
-    });
+    // Atualiza resumo diário
+    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
+      userId: identity.subject,
+      date: today,
+      businessId: args.businessId,
+    });
 
-    // ✅ NOVO: Agenda a atualização do relatório mensal e metas
-    await ctx.scheduler.runAfter(100, internal.profitCalculator.regenerateMonthlyReport, {
-      userId: identity.subject,
-      month: month,
-      businessId: args.businessId,
-    });
-
-    await ctx.scheduler.runAfter(0, internal.gamification.updateActivityStreak, {
-      userId: identity.subject,
-    });
+     await ctx.scheduler.runAfter(0, internal.gamification.updateActivityStreak, {
+      userId: identity.subject,
+    });
 
 
-    return saleId;
-  },
+    return saleId;
+  },
 });
 
 export const addQuickExpense = mutation({
-  args: {
-    amount: v.number(),
-    description: v.string(),
-    category: v.optional(v.string()),
-    paymentMethod: v.optional(
-      v.union(
-        v.literal("cash"),
-        v.literal("credit_card"),
-        v.literal("debit_card"),
-        v.literal("pix"),
-        v.literal("bank_transfer"),
-        v.literal("other")
-      )
-    ),
-    date: v.optional(v.string()),
-    businessId: v.optional(v.id("businesses")),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Faça login para continuar");
+  args: {
+    amount: v.number(),
+    description: v.string(),
+    category: v.optional(v.string()),
+    paymentMethod: v.optional(
+      v.union(
+        v.literal("cash"),
+        v.literal("credit_card"),
+        v.literal("debit_card"),
+        v.literal("pix"),
+        v.literal("bank_transfer"),
+        v.literal("other")
+      )
+    ),
+    date: v.optional(v.string()),
+    businessId: v.optional(v.id("businesses")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
 
-    const today = args.date || new Date().toISOString().split("T")[0];
-    const month = today.substring(0, 7);
-    const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const today = args.date || new Date().toISOString().split("T")[0];
+    const month = today.substring(0, 7);
+    const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-    // Adiciona no cash flow
-    await ctx.db.insert("cashFlow", {
-      userId: identity.subject,
-      businessId: args.businessId,
-      type: "out",
-      amount: args.amount,
-      description: args.description,
-      category: args.category,
-      date: today,
-      time,
-      paymentMethod: args.paymentMethod,
-      createdAt: Date.now(),
-    });
+    // Adiciona no cash flow
+    await ctx.db.insert("cashFlow", {
+      userId: identity.subject,
+      businessId: args.businessId,
+      type: "out",
+      amount: args.amount,
+      description: args.description,
+      category: args.category,
+      date: today,
+      time,
+      paymentMethod: args.paymentMethod,
+      createdAt: Date.now(),
+    });
 
-    // Adiciona como gasto
-    const expenseId = await ctx.db.insert("expenses", {
-      userId: identity.subject,
-      businessId: args.businessId,
-      categoryName: args.category || "Outros",
-      description: args.description,
-      amount: args.amount,
-      type: "one_time",
-      paymentMethod: args.paymentMethod,
-      paymentStatus: "paid",
-      date: today,
-      month,
-      paidAt: Date.now(),
-      createdAt: Date.now(),
-    });
+    // Adiciona como gasto
+    const expenseId = await ctx.db.insert("expenses", {
+      userId: identity.subject,
+      businessId: args.businessId,
+      categoryName: args.category || "Outros",
+      description: args.description,
+      amount: args.amount,
+      type: "one_time",
+      paymentMethod: args.paymentMethod,
+      paymentStatus: "paid",
+      date: today,
+      month,
+      paidAt: Date.now(),
+      createdAt: Date.now(),
+    });
 
-    // ✅ CORREÇÃO: Força a atualização do resumo diário
-    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
-      userId: identity.subject,
-      date: today,
-      businessId: args.businessId,
-    });
+    // Atualiza resumo diário
+    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
+      userId: identity.subject,
+      date: today,
+      businessId: args.businessId,
+    });
 
-    // ✅ NOVO: Agenda a atualização do relatório mensal e metas
-    await ctx.scheduler.runAfter(100, internal.profitCalculator.regenerateMonthlyReport, {
-      userId: identity.subject,
-      month: month,
-      businessId: args.businessId,
-    });
-
-    return expenseId;
-  },
+    return expenseId;
+  },
 });
 
 export const getDailySummary = query({
@@ -1068,80 +1056,80 @@ export const clearMonthData = mutation({
 });
 
 export const deleteCashFlow = mutation({
-  args: {
-    id: v.id("cashFlow"),
-    deleteRelatedRecord: v.optional(v.boolean()),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Faça login para continuar");
+  args: {
+    id: v.id("cashFlow"),
+    deleteRelatedRecord: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
 
-    const flow = await ctx.db.get(args.id);
-    if (!flow || flow.userId !== identity.subject) {
-      throw new Error("Movimentação não encontrada");
-    }
+    const flow = await ctx.db.get(args.id);
+    if (!flow || flow.userId !== identity.subject) {
+      throw new Error("Movimentação não encontrada");
+    }
 
-    const month = flow.date.substring(0, 7);
+    const month = flow.date.substring(0, 7);
 
-    // 1️⃣ DELETAR REGISTRO RELACIONADO (VENDA OU GASTO)
-    if (args.deleteRelatedRecord) {
-      if (flow.type === "in") {
-        // Buscar venda relacionada
-        const sales = await ctx.db
-          .query("sales")
-          .withIndex("by_user_date", (q) =>
-            q.eq("userId", identity.subject).eq("date", flow.date)
-          )
-          .collect();
+    // ✅ 1️⃣ DELETAR REGISTRO RELACIONADO (VENDA OU GASTO)
+    if (args.deleteRelatedRecord) {
+      if (flow.type === "in") {
+        // Buscar venda relacionada
+        const sales = await ctx.db
+          .query("sales")
+          .withIndex("by_user_date", (q) =>
+            q.eq("userId", identity.subject).eq("date", flow.date)
+          )
+          .collect();
 
-        const relatedSale = sales.find(s =>
-          Math.abs(s.totalRevenue - flow.amount) < 0.01 &&
-          s.isQuickSale === true
-        );
+        const relatedSale = sales.find(s =>
+          Math.abs(s.totalRevenue - flow.amount) < 0.01 &&
+          s.isQuickSale === true
+        );
 
-        if (relatedSale) {
-          await ctx.db.delete(relatedSale._id);
-        }
-      } else {
-        // Buscar gasto relacionado
-        const expenses = await ctx.db
-          .query("expenses")
-          .withIndex("by_user_month", (q) =>
-            q.eq("userId", identity.subject).eq("month", month)
-          )
-          .filter((q) => q.eq(q.field("date"), flow.date))
-          .collect();
+        if (relatedSale) {
+          await ctx.db.delete(relatedSale._id);
+        }
+      } else {
+        // Buscar gasto relacionado
+        const expenses = await ctx.db
+          .query("expenses")
+          .withIndex("by_user_month", (q) =>
+            q.eq("userId", identity.subject).eq("month", month)
+          )
+          .filter((q) => q.eq(q.field("date"), flow.date))
+          .collect();
 
-        const relatedExpense = expenses.find(e =>
-          Math.abs(e.amount - flow.amount) < 0.01 &&
-          e.description === flow.description
-        );
+        const relatedExpense = expenses.find(e =>
+          Math.abs(e.amount - flow.amount) < 0.01 &&
+          e.description === flow.description
+        );
 
-        if (relatedExpense) {
-          await ctx.db.delete(relatedExpense._id);
-        }
-      }
-    }
+        if (relatedExpense) {
+          await ctx.db.delete(relatedExpense._id);
+        }
+      }
+    }
 
-    // 2️⃣ DELETAR O CASHFLOW
-    await ctx.db.delete(args.id);
+    // ✅ 2️⃣ DELETAR O CASHFLOW
+    await ctx.db.delete(args.id);
 
-    // ✅ CORREÇÃO: Força a atualização do resumo diário
-    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
-      userId: identity.subject,
-      date: flow.date,
-      businessId: flow.businessId,
-    });
+    // ✅ 3️⃣ ATUALIZAR RESUMO DIÁRIO (DASHBOARD DO DIA)
+    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
+      userId: identity.subject,
+      date: flow.date,
+      businessId: flow.businessId,
+    });
 
-    // 4️⃣ REGENERAR RELATÓRIO MENSAL (RESUMO DE NOVEMBRO 2025)
-    await ctx.scheduler.runAfter(500, internal.profitCalculator.regenerateMonthlyReport, {
-      userId: identity.subject,
-      month: month,
-      businessId: flow.businessId,
-    });
+    // ✅ 4️⃣ REGENERAR RELATÓRIO MENSAL (RESUMO DE NOVEMBRO 2025)
+    await ctx.scheduler.runAfter(500, internal.profitCalculator.regenerateMonthlyReport, {
+      userId: identity.subject,
+      month: month,
+      businessId: flow.businessId,
+    });
 
-    return { success: true };
-  },
+    return { success: true };
+  },
 });
 
 

@@ -584,7 +584,7 @@ const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
         // Isso garante que o dashboard e relatórios carreguem os dados corrigidos.
         setTimeout(() => {
           window.location.reload();
-        }, 500); // Dá um pequeno tempo para o Convex processar a regeneração
+        }, 1500); // Dá um pequeno tempo para o Convex processar a regeneração
        
       } catch (error) {
         toast.error("❌ Erro ao deletar produto");
@@ -944,32 +944,27 @@ const handleAddExpense = async () => {
     }
 
     // ✅ SE ONLINE, SALVAR NORMALMENTE
-await addQuickSale({
-      amount: salePrice,
-      costPrice: costPrice,
-      description: quickSaleForm.description || `Venda rápida - Lucro: ${formatCurrency(salePrice - costPrice)}`,
-      paymentMethod: quickSaleForm.paymentMethod,
-      date: quickSaleForm.date,
-    });
+    await addQuickSale({
+      amount: salePrice,
+      costPrice: costPrice,
+      description: quickSaleForm.description || `Venda rápida - Lucro: ${formatCurrency(salePrice - costPrice)}`,
+      paymentMethod: quickSaleForm.paymentMethod,
+      date: quickSaleForm.date,
+    });
 
-    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6"] });
+    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6"] });
 
-    const lucro = salePrice - costPrice;
-    toast.success(`💰 Venda registrada! Lucro: ${formatCurrency(lucro)}`);
+    const lucro = salePrice - costPrice;
+    toast.success(`💰 Venda registrada! Lucro: ${formatCurrency(lucro)}`);
 
-    setShowQuickSale(false);
-    setQuickSaleForm({
-      costPrice: "",
-      salePrice: "",
-      description: "",
-      paymentMethod: "pix",
-      date: new Date().toISOString().split("T")[0],
-    });
-
-    // 🚩 CORREÇÃO APLICADA: Forçar recarregamento após operação online de sucesso
-    setTimeout(() => {
-        window.location.reload();
-    }, 500);
+    setShowQuickSale(false);
+    setQuickSaleForm({
+      costPrice: "",
+      salePrice: "",
+      description: "",
+      paymentMethod: "pix",
+      date: new Date().toISOString().split("T")[0],
+    });
   } catch (error) {
     toast.error("❌ Erro ao registrar venda");
     console.error(error);
@@ -1006,26 +1001,21 @@ await addQuickSale({
       }
 
       // ✅ SE ONLINE, SALVAR NORMALMENTE
-     await addQuickExpense({
-      amount: parseFloat(quickExpenseForm.amount),
-      description: quickExpenseForm.description,
-      category: quickExpenseForm.category,
-      paymentMethod: quickExpenseForm.paymentMethod,
-    });
+      await addQuickExpense({
+        amount: parseFloat(quickExpenseForm.amount),
+        description: quickExpenseForm.description,
+        category: quickExpenseForm.category,
+        paymentMethod: quickExpenseForm.paymentMethod,
+      });
 
-    toast.success("✅ Gasto registrado!");
-    setShowQuickExpense(false);
-    setQuickExpenseForm({
-      amount: "",
-      description: "",
-      category: "Outros",
-      paymentMethod: "pix",
-    });
-
-    // 🚩 CORREÇÃO APLICADA: Forçar recarregamento após operação online de sucesso
-    setTimeout(() => {
-        window.location.reload();
-    }, 500);
+      toast.success("✅ Gasto registrado!");
+      setShowQuickExpense(false);
+      setQuickExpenseForm({
+        amount: "",
+        description: "",
+        category: "Outros",
+        paymentMethod: "pix",
+      });
     } catch (error) {
       toast.error("❌ Erro ao registrar gasto");
       console.error(error);
@@ -1906,14 +1896,14 @@ await addQuickSale({
 
                     // ✅ CORREÇÃO: Aguardar um pouco e regenerar relatório mensal e dashboard
                     setTimeout(async () => {
-  try {
-    await generateReport({ month });
-    // Força atualização das queries do Convex
-    window.location.reload();
-  } catch (error) {
-    console.error("Erro ao atualizar relatório:", error);
-  }
-}, 500);
+                      try {
+                        await generateReport({ month });
+                        // Força atualização das queries do Convex
+                        window.location.reload();
+                      } catch (error) {
+                        console.error("Erro ao atualizar relatório:", error);
+                      }
+                    }, 500);
 
                     toast.success("✅ Movimentação excluída! Atualizando dados...");
                   } catch (error) {
