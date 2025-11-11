@@ -28,9 +28,9 @@ export const getIdsBySlug = query({
 });
 
 // --- MUTAÇÃO: Salvar ou atualizar os IDs ---
+// --- MUTAÇÃO: Salvar ou atualizar os IDs ---
 export const saveTrackingIds = mutation({
   args: {
-    // A validação de entrada continua a mesma
     facebookPixelId: v.optional(v.string()),
     googleAnalyticsId: v.optional(v.string()),
   },
@@ -46,26 +46,30 @@ export const saveTrackingIds = mutation({
       .withIndex("by_userId", (q) => q.eq("userId", userId))
       .first();
 
-    // --- CORREÇÃO PRINCIPAL AQUI ---
-    // Se a string estiver vazia ou for apenas espaços, o valor se torna `undefined`.
-    // Isso corresponde exatamente ao tipo `v.optional(v.string())` do schema.
-    const facebookPixelId = args.facebookPixelId?.trim() || undefined;
-    const googleAnalyticsId = args.googleAnalyticsId?.trim() || undefined;
+    // ✅ CORREÇÃO: Garantir que string vazia vira undefined
+    const cleanFacebookPixel = args.facebookPixelId?.trim();
+    const facebookPixelId = cleanFacebookPixel && cleanFacebookPixel.length > 0
+      ? cleanFacebookPixel
+      : undefined;
+
+    const cleanGoogleAnalytics = args.googleAnalyticsId?.trim();
+    const googleAnalyticsId = cleanGoogleAnalytics && cleanGoogleAnalytics.length > 0
+      ? cleanGoogleAnalytics
+      : undefined;
 
     if (existingSettings) {
-      // O 'patch' agora recebe `string | undefined`, que é o tipo correto.
       await ctx.db.patch(existingSettings._id, {
         facebookPixelId,
         googleAnalyticsId,
       });
     } else {
-      // O 'insert' agora recebe `string | undefined`, que também é o tipo correto.
       await ctx.db.insert("tracking", {
         userId,
         facebookPixelId,
         googleAnalyticsId,
       });
     }
+
     return { success: true };
   },
 });

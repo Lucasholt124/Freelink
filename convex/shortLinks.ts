@@ -73,55 +73,51 @@ export const getLinksForUser = action({
 });
 
 // --- ACTION para buscar os detalhes dos cliques de um link ---
+// --- ACTION para buscar os detalhes dos cliques de um link ---
 export const getClicksForLink = action({
-    args: { shortLinkId: v.string() },
-    handler: async (ctx, args) => {
-        const identity = await ctx.auth.getUserIdentity();
-        if (!identity) throw new Error("Não autenticado.");
+  args: { shortLinkId: v.string() },
+  handler: async (ctx, args) => {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) throw new Error("Não autenticado.");
 
-        try {
-            const link = await prisma.link.findFirst({
-                where: { id: args.shortLinkId, userId: identity.subject },
-            });
-            if (!link) throw new Error("Acesso negado ou link não encontrado.");
+      try {
+          const link = await prisma.link.findFirst({
+              where: { id: args.shortLinkId, userId: identity.subject },
+          });
+          if (!link) throw new Error("Acesso negado ou link não encontrado.");
 
-            const clicks = await prisma.click.findMany({
-                where: { linkId: args.shortLinkId },
-                orderBy: { timestamp: "desc" },
-            });
+          const clicks = await prisma.click.findMany({
+              where: { linkId: args.shortLinkId },
+              orderBy: { timestamp: "desc" },
+          });
 
-            // ✅ CORREÇÃO: Removida a tipagem explícita incorreta e os campos inexistentes.
-            // O tipo de `click` é inferido corretamente a partir do resultado do Prisma.
-            const serializableClicks = clicks.map((click) => ({
-                id: click.id,
-                timestamp: click.timestamp.getTime(),
-                country: click.country,
-                visitorId: click.visitorId,
-                // Os campos device, browser e os não existem no schema do Prisma.
-                // A informação está contida em `userAgent`.
-                userAgent: click.userAgent,
-                referrer: click.referrer,
-            }));
+          const serializableClicks = clicks.map((click) => ({
+              id: click.id,
+              timestamp: click.timestamp.getTime(),
+              country: click.country,
+              visitorId: click.visitorId,
+              userAgent: click.userAgent,
+              referrer: click.referrer,
+          }));
 
-            // ✅ CORREÇÃO: Retornando o link completo com createdAt
-            const serializableLink = {
-                id: link.id,
-                url: link.url,
-                title: link.title,
-                createdAt: link.createdAt.getTime(), // ← Adicionado
-            };
+          const serializableLink = {
+              id: link.id,
+              url: link.url,
+              title: link.title,
+              createdAt: link.createdAt.getTime(), // ✅ Campo obrigatório adicionado
+          };
 
-            return {
-                link: serializableLink,
-                clicks: serializableClicks
-            };
-        } catch(error) {
-            console.error("Erro ao buscar cliques do link:", error);
-            throw new Error(error instanceof Error ? error.message : "Erro ao buscar dados do link");
-        } finally {
-            await prisma.$disconnect();
-        }
-    },
+          return {
+              link: serializableLink,
+              clicks: serializableClicks
+          };
+      } catch(error) {
+          console.error("Erro ao buscar cliques do link:", error);
+          throw new Error(error instanceof Error ? error.message : "Erro ao buscar dados do link");
+      } finally {
+          await prisma.$disconnect();
+      }
+  },
 });
 
 // --- ACTION para deletar um link ---

@@ -289,7 +289,7 @@ const resizeImageBeforeUpload = (file: File, maxWidth: number = 1440, maxHeight:
   });
 };
 
-  const handleEnhanceImage = async () => {
+const handleEnhanceImage = async () => {
   if (!imageFile || !user) {
     toast.error('📸 Envie uma imagem primeiro!')
     return
@@ -299,12 +299,23 @@ const resizeImageBeforeUpload = (file: File, maxWidth: number = 1440, maxHeight:
   const toastId = toast.loading('🎨 Processando com IA...')
 
   try {
-    // Redimensiona a imagem antes de enviar
+    // ✅ CORREÇÃO: Sempre redimensionar antes de enviar
+    console.log('📏 Redimensionando imagem antes do upload...');
     const resizedImage = await resizeImageBeforeUpload(imageFile, 1440, 1440);
+
+    // Verificar tamanho após redimensionamento
+    const sizeKB = Math.round((resizedImage.length * 0.75) / 1024);
+    console.log(`✅ Imagem redimensionada: ~${sizeKB}KB`);
+
+    if (sizeKB > 5000) { // Se ainda > 5MB após redimensionamento
+      toast.dismiss(toastId);
+      toast.error('Imagem muito grande. Tente uma imagem menor ou com menos detalhes.');
+      return;
+    }
 
     const result = await enhanceImageAction({
       userId: user.id,
-      imageFile: resizedImage, // Usa a imagem redimensionada
+      imageFile: resizedImage, // ✅ Usa a imagem redimensionada
       effect: selectedEffect
     })
 
@@ -320,7 +331,14 @@ const resizeImageBeforeUpload = (file: File, maxWidth: number = 1440, maxHeight:
   } catch (error) {
     console.error('Erro:', error)
     toast.dismiss(toastId)
-    toast.error('Erro ao processar imagem')
+
+    // ✅ Mensagem de erro mais específica
+    const errorMsg = error instanceof Error ? error.message : 'Erro ao processar imagem';
+    if (errorMsg.includes('size') || errorMsg.includes('large')) {
+      toast.error('Imagem muito grande. Use uma imagem menor (máx 2MB, 1920x1080)');
+    } else {
+      toast.error(errorMsg);
+    }
   } finally {
     setLoading(false)
   }
@@ -377,45 +395,67 @@ const resizeImageBeforeUpload = (file: File, maxWidth: number = 1440, maxHeight:
   // 📸 FUNÇÕES DE REMOVER FUNDO
   // =================================================================
   const handleRemoveBackground = async () => {
-  if (!removeBgImage || !user) {
-    toast.error('📸 Envie uma imagem primeiro!')
-    return
-  }
-
-  setLoading(true)
-  const toastId = toast.loading('✂️ Removendo fundo...')
-
-  try {
-    // Cria um arquivo temporário da imagem para redimensionar
-    const response = await fetch(removeBgImage);
-    const blob = await response.blob();
-    const file = new File([blob], "image.jpg", { type: "image/jpeg" });
-
-    // Redimensiona antes de enviar
-    const resizedImage = await resizeImageBeforeUpload(file, 1440, 1440);
-
-    const result = await removeBackgroundAction({
-      userId: user.id,
-      imageUrl: resizedImage // Usa a imagem redimensionada
-    })
-
-    toast.dismiss(toastId)
-
-    if (result.success) {
-      setRemoveBgResult(result.url!)
-      toast.success('✨ Fundo removido!')
-      createConfetti() // Adiciona confete aqui também!
-    } else {
-      toast.error(result.message || 'Erro ao remover fundo')
+    if (!removeBgImage || !user) {
+      toast.error('📸 Envie uma imagem primeiro!')
+      return
     }
-  } catch (error) {
-    console.error('Erro:', error)
-    toast.dismiss(toastId)
-    toast.error('Erro ao remover fundo')
-  } finally {
-    setLoading(false)
+
+    setLoading(true)
+    const toastId = toast.loading('✂️ Removendo fundo...')
+
+    try {
+      // ✅ CORREÇÃO: Redimensionar antes de processar
+      console.log('📏 Preparando imagem para remoção de fundo...');
+
+      const response = await fetch(removeBgImage);
+      const blob = await response.blob();
+      const file = new File([blob], "image.jpg", { type: "image/jpeg" });
+
+      // Verificar tamanho antes
+      const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
+      console.log(`📊 Tamanho original: ${sizeMB}MB`);
+
+      // ✅ Redimensionar
+      const resizedImage = await resizeImageBeforeUpload(file, 1440, 1440);
+
+      // Verificar tamanho após
+      const resizedSizeKB = Math.round((resizedImage.length * 0.75) / 1024);
+      console.log(`✅ Imagem redimensionada: ~${resizedSizeKB}KB`);
+
+      if (resizedSizeKB > 5000) {
+        toast.dismiss(toastId);
+        toast.error('Imagem muito grande. Use uma imagem menor (máx 2MB)');
+        return;
+      }
+
+      const result = await removeBackgroundAction({
+        userId: user.id,
+        imageUrl: resizedImage // ✅ Usa imagem otimizada
+      })
+
+      toast.dismiss(toastId)
+
+      if (result.success) {
+        setRemoveBgResult(result.url!)
+        toast.success('✨ Fundo removido com sucesso!')
+        createConfetti()
+      } else {
+        toast.error(result.message || 'Erro ao remover fundo')
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.dismiss(toastId)
+
+      const errorMsg = error instanceof Error ? error.message : 'Erro ao remover fundo';
+      if (errorMsg.includes('size') || errorMsg.includes('large')) {
+        toast.error('Imagem muito grande. Use uma menor (máx 2MB, 1920x1080)');
+      } else {
+        toast.error(errorMsg);
+      }
+    } finally {
+      setLoading(false)
+    }
   }
-}
 
   // =================================================================
   // 🔧 FUNÇÕES AUXILIARES
