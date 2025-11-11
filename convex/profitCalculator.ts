@@ -11,7 +11,7 @@ import { Doc, Id } from "./_generated/dataModel";
 export const addQuickSale = mutation({
   args: {
     amount: v.number(),
-    costPrice: v.optional(v.number()), // ✅ ADICIONAR ESTE CAMPO
+    costPrice: v.optional(v.number()),// ✅ ADICIONAR ESTE CAMPO
     description: v.optional(v.string()),
     paymentMethod: v.optional(
       v.union(
@@ -38,7 +38,9 @@ export const addQuickSale = mutation({
     const costPrice = args.costPrice || 0;
     const totalCost = costPrice;
     const totalRevenue = args.amount;
-    const profit = totalRevenue - totalCost;
+    const profit = args.amount - totalCost;
+
+
 
     // Adiciona no cash flow
     await ctx.db.insert("cashFlow", {
@@ -938,6 +940,7 @@ export const clearMonthData = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Faça login para continuar");
 
+
     let deletedSalesCount = 0;
     let deletedExpensesCount = 0;
     let deletedSummariesCount = 0;
@@ -1044,7 +1047,7 @@ export const clearMonthData = mutation({
 export const deleteCashFlow = mutation({
   args: {
     id: v.id("cashFlow"),
-    deleteRelatedRecord: v.optional(v.boolean()), // Se true, deleta venda/gasto relacionado
+    deleteRelatedRecord: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -1055,7 +1058,9 @@ export const deleteCashFlow = mutation({
       throw new Error("Movimentação não encontrada");
     }
 
-    // Se quiser deletar registro relacionado
+    const month = flow.date.substring(0, 7);
+
+    // ✅ 1️⃣ DELETAR REGISTRO RELACIONADO (VENDA OU GASTO)
     if (args.deleteRelatedRecord) {
       if (flow.type === "in") {
         // Buscar venda relacionada
@@ -1079,7 +1084,7 @@ export const deleteCashFlow = mutation({
         const expenses = await ctx.db
           .query("expenses")
           .withIndex("by_user_month", (q) =>
-            q.eq("userId", identity.subject).eq("month", flow.date.substring(0, 7))
+            q.eq("userId", identity.subject).eq("month", month)
           )
           .filter((q) => q.eq(q.field("date"), flow.date))
           .collect();
@@ -1095,21 +1100,18 @@ export const deleteCashFlow = mutation({
       }
     }
 
-    // Deletar cashFlow
+    // ✅ 2️⃣ DELETAR O CASHFLOW
     await ctx.db.delete(args.id);
 
-    const month = flow.date.substring(0, 7);
-
-    // Atualizar resumo diário
+    // ✅ 3️⃣ ATUALIZAR RESUMO DIÁRIO (DASHBOARD DO DIA)
     await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
       userId: identity.subject,
       date: flow.date,
       businessId: flow.businessId,
     });
 
-    // ✅ CORREÇÃO: Atualizar relatório mensal após deletar movimentação
-    // Usa scheduler para chamar a action que regenera o relatório
-    await ctx.scheduler.runAfter(0, internal.profitCalculator.regenerateMonthlyReport, {
+    // ✅ 4️⃣ REGENERAR RELATÓRIO MENSAL (RESUMO DE NOVEMBRO 2025)
+    await ctx.scheduler.runAfter(500, internal.profitCalculator.regenerateMonthlyReport, {
       userId: identity.subject,
       month: month,
       businessId: flow.businessId,

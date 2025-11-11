@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Offline - Gestão PRO</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .container {
+      background: white;
+      border-radius: 20px;
+      padding: 40px;
+      text-align: center;
+      max-width: 500px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 { font-size: 48px; margin-bottom: 20px; }
+    h2 { font-size: 24px; margin-bottom: 15px; color: #333; }
+    p { color: #666; font-size: 18px; margin-bottom: 30px; line-height: 1.6; }
+    .button {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      border-radius: 10px;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    .button:hover { transform: scale(1.05); }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      background: #fef3c7;
+      border-radius: 10px;
+      color: #92400e;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>📴</h1>
+    <h2>Você está offline</h2>
+    <p>Sem conexão com a internet. Suas vendas serão salvas localmente e sincronizadas quando você voltar online.</p>
+    <button class="button" onclick="window.location.reload()">
+      🔄 Tentar Novamente
+    </button>
+    <div class="status">
+      💾 Modo Offline Ativo - Dados seguros!
+    </div>
+  </div>
+</body>
+</html>
+

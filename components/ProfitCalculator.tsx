@@ -91,6 +91,9 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Onboarding } from "./Onboarding";
 import { FloatingActionButton } from "./FloatingActionButton";
 import { GamificationBar } from "./Gamification";
+import { offlineManager } from "@/lib/offlineManager";
+import { PDFExporter } from "@/lib/pdfExporter";
+import { Download } from "lucide-react";
 
 type TabType = "dashboard" | "produtos" | "vendas" | "gastos" | "resumo" | "metas" | "clientes" | "fornecedores" | "rapido";
 type GoalType = "revenue" | "profit" | "margin" | "sales_count" | "expense_reduction";
@@ -154,6 +157,10 @@ export default function FinancialManagerPro() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const deleteCashFlow = useMutation(api.profitCalculator.deleteCashFlow);
+  
+  // ✅ ESTADOS PARA MODO OFFLINE
+  const [isOnline, setIsOnline] = useState(true);
+  const [pendingSync, setPendingSync] = useState({ sales: 0, expenses: 0, total: 0 });
 
 
   useEffect(() => {
@@ -172,6 +179,87 @@ export default function FinancialManagerPro() {
     checkFirstAccess();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // ✅ INICIALIZAR MODO OFFLINE
+  useEffect(() => {
+    offlineManager.init();
+
+    // Atualizar status de conexão
+    const updateOnlineStatus = () => {
+      setIsOnline(navigator.onLine);
+    };
+
+    window.addEventListener('online', updateOnlineStatus);
+    window.addEventListener('offline', updateOnlineStatus);
+
+    // Sincronizar quando voltar online
+    offlineManager.onSync(async () => {
+      await syncOfflineData();
+    });
+
+    // Verificar dados pendentes periodicamente
+    checkPendingData();
+    const interval = setInterval(checkPendingData, 5000);
+
+    return () => {
+      window.removeEventListener('online', updateOnlineStatus);
+      window.removeEventListener('offline', updateOnlineStatus);
+      clearInterval(interval);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const checkPendingData = async () => {
+    const count = await offlineManager.getPendingCount();
+    setPendingSync(count);
+  };
+
+  const syncOfflineData = async () => {
+    try {
+      const { sales, expenses } = await offlineManager.syncAll();
+
+      // Sincronizar vendas
+      for (const sale of sales) {
+        try {
+          await addQuickSale({
+            costPrice: sale.costPrice,
+            amount: sale.salePrice,
+            description: sale.description,
+            paymentMethod: sale.paymentMethod as PaymentMethod,
+            date: sale.date,
+          });
+          await offlineManager.markAsSynced('sales', sale.id);
+          toast.success(`✅ Venda sincronizada: ${sale.description}`);
+        } catch (error) {
+          console.error('Erro ao sincronizar venda:', error);
+        }
+      }
+
+      // Sincronizar gastos
+      for (const expense of expenses) {
+        try {
+          await addQuickExpense({
+            amount: expense.amount,
+            description: expense.description,
+            category: expense.category,
+            paymentMethod: expense.paymentMethod as PaymentMethod,
+          });
+          await offlineManager.markAsSynced('expenses', expense.id);
+          toast.success(`✅ Gasto sincronizado: ${expense.description}`);
+        } catch (error) {
+          console.error('Erro ao sincronizar gasto:', error);
+        }
+      }
+
+      await checkPendingData();
+      if (sales.length + expenses.length > 0) {
+        toast.success(`🎉 ${sales.length + expenses.length} registros sincronizados!`);
+      }
+    } catch (error) {
+      toast.error('❌ Erro ao sincronizar dados offline');
+      console.error(error);
+    }
+  };
   const [productForm, setProductForm] = useState({
     name: "",
     costPrice: "",
@@ -821,6 +909,34 @@ const handleAddExpense = async () => {
   }
 
   try {
+    // ✅ SE OFFLINE, SALVAR LOCALMENTE
+    if (!navigator.onLine) {
+      await offlineManager.saveSaleOffline({
+        costPrice,
+        salePrice,
+        description: quickSaleForm.description || `Venda rápida - Lucro: ${formatCurrency(salePrice - costPrice)}`,
+        paymentMethod: quickSaleForm.paymentMethod,
+        date: quickSaleForm.date,
+      });
+
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#FFA500", "#FF6347"] });
+
+      const lucro = salePrice - costPrice;
+      toast.success(`💾 Venda salva offline! Lucro: ${formatCurrency(lucro)}`);
+      
+      await checkPendingData();
+      setShowQuickSale(false);
+      setQuickSaleForm({
+        costPrice: "",
+        salePrice: "",
+        description: "",
+        paymentMethod: "pix",
+        date: new Date().toISOString().split("T")[0],
+      });
+      return;
+    }
+
+    // ✅ SE ONLINE, SALVAR NORMALMENTE
     await addQuickSale({
       amount: salePrice,
       costPrice: costPrice,
@@ -828,9 +944,6 @@ const handleAddExpense = async () => {
       paymentMethod: quickSaleForm.paymentMethod,
       date: quickSaleForm.date,
     });
-
-    // ✅ CORRIGIDO: Não precisa de identity aqui, o backend cuida disso
-    // O updateStreak será chamado automaticamente pelo backend
 
     confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6"] });
 
@@ -846,10 +959,10 @@ const handleAddExpense = async () => {
       date: new Date().toISOString().split("T")[0],
     });
   } catch (error) {
-  toast.error("❌ Erro ao registrar venda");
-  console.error(error);
-}
-}; // ✅ Sem fechamento extra
+    toast.error("❌ Erro ao registrar venda");
+    console.error(error);
+  }
+};
 
   const handleQuickExpense = async () => {
     if (!quickExpenseForm.amount || !quickExpenseForm.description) {
@@ -858,6 +971,29 @@ const handleAddExpense = async () => {
     }
 
     try {
+      // ✅ SE OFFLINE, SALVAR LOCALMENTE
+      if (!navigator.onLine) {
+        await offlineManager.saveExpenseOffline({
+          amount: parseFloat(quickExpenseForm.amount),
+          description: quickExpenseForm.description,
+          category: quickExpenseForm.category,
+          paymentMethod: quickExpenseForm.paymentMethod,
+          date: new Date().toISOString().split("T")[0],
+        });
+
+        toast.success("💾 Gasto salvo offline!");
+        await checkPendingData();
+        setShowQuickExpense(false);
+        setQuickExpenseForm({
+          amount: "",
+          description: "",
+          category: "Outros",
+          paymentMethod: "pix",
+        });
+        return;
+      }
+
+      // ✅ SE ONLINE, SALVAR NORMALMENTE
       await addQuickExpense({
         amount: parseFloat(quickExpenseForm.amount),
         description: quickExpenseForm.description,
@@ -1000,6 +1136,27 @@ const handleAddExpense = async () => {
 
       {/* [CORREÇÃO 1] - Este é agora o ÚNICO container principal. O duplicado foi removido. */}
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-6">
+        
+        {/* ✅ INDICADOR DE STATUS OFFLINE */}
+        {!isOnline && (
+          <div className="fixed top-4 right-4 z-50 bg-orange-500 text-white px-4 py-2 rounded-xl shadow-xl flex items-center gap-2 animate-pulse">
+            <div className="w-3 h-3 bg-white rounded-full animate-ping" />
+            <span className="font-bold text-sm md:text-base">📴 Modo Offline</span>
+          </div>
+        )}
+
+        {/* ✅ BADGE DE DADOS PENDENTES */}
+        {pendingSync.total > 0 && isOnline && (
+          <div className="fixed bottom-20 right-4 z-50">
+            <button
+              onClick={syncOfflineData}
+              className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-3 rounded-xl shadow-xl flex items-center gap-2 font-bold hover:scale-105 transition-transform text-sm md:text-base"
+            >
+              <RefreshCw className="w-5 h-5 animate-spin" />
+              Sincronizar {pendingSync.total} registro{pendingSync.total > 1 ? 's' : ''}
+            </button>
+          </div>
+        )}
         <div className="fixed inset-0 overflow-hidden pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
           <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-700" />
@@ -1077,6 +1234,39 @@ const handleAddExpense = async () => {
                   <DropdownMenuItem onClick={handleClearAll} className="text-red-600 font-bold">
                     <AlertTriangle className="w-4 h-4 mr-2" />
                     DELETAR TUDO
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem 
+                    onClick={() => {
+                      if (monthlyReport && sales && expenses) {
+                        const exporter = new PDFExporter();
+                        // Mapear dados para o formato esperado pelo PDFExporter
+                        const salesForPDF = sales.map(s => ({
+                          _id: s._id,
+                          productName: s.productName,
+                          quantity: s.quantity,
+                          salePrice: s.salePrice,
+                          totalRevenue: s.totalRevenue,
+                          profit: s.profit,
+                          date: s.date,
+                        }));
+                        const expensesForPDF = expenses.map(e => ({
+                          _id: e._id,
+                          description: e.description,
+                          categoryName: e.categoryName,
+                          amount: e.amount,
+                          date: e.date,
+                        }));
+                        exporter.exportMonthlyReport(monthlyReport, salesForPDF, expensesForPDF);
+                        toast.success("📄 PDF gerado com sucesso!");
+                      } else {
+                        toast.error("❌ Aguarde o carregamento dos dados");
+                      }
+                    }}
+                    className="text-blue-600"
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Exportar PDF do Mês
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
@@ -1756,10 +1946,29 @@ const handleAddExpense = async () => {
                       </Select>
                     )}
                   </div>
-                  <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600 hover:bg-purple-700 w-full md:w-auto">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Novo Produto
-                  </Button>
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <Button 
+                      onClick={() => {
+                        if (filteredProducts.length > 0) {
+                          const exporter = new PDFExporter();
+                          exporter.exportProductsReport(filteredProducts);
+                          toast.success("📄 PDF de produtos gerado com sucesso!");
+                        } else {
+                          toast.error("❌ Nenhum produto para exportar");
+                        }
+                      }}
+                      variant="outline" 
+                      size="sm"
+                      className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                    <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600 hover:bg-purple-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Novo Produto
+                    </Button>
+                  </div>
                 </div>
 
                 {filteredProducts.length === 0 ? (
@@ -1864,12 +2073,41 @@ const handleAddExpense = async () => {
 
             <TabsContent value="vendas">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <h3 className="text-xl font-bold">Vendas do Mês ({sales.length})</h3>
-                  <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
-                    <Plus className="w-4 h-4 mr-2" />
-                    Nova Venda
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => {
+                        if (sales.length > 0) {
+                          const exporter = new PDFExporter();
+                          // Mapear dados de vendas para o formato esperado pelo PDFExporter
+                          const salesForPDF = sales.map(s => ({
+                            _id: s._id,
+                            productName: s.productName,
+                            quantity: s.quantity,
+                            salePrice: s.salePrice,
+                            totalRevenue: s.totalRevenue,
+                            profit: s.profit,
+                            date: s.date,
+                          }));
+                          exporter.exportSalesReport(salesForPDF, selectedMonth);
+                          toast.success("📄 PDF de vendas gerado com sucesso!");
+                        } else {
+                          toast.error("❌ Nenhuma venda para exportar");
+                        }
+                      }}
+                      variant="outline" 
+                      size="sm"
+                      className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-300"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                    <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
+                      <Plus className="w-4 h-4 mr-2" />
+                      Nova Venda
+                    </Button>
+                  </div>
                 </div>
 
                 {products.filter((p) => p.active).length === 0 && (
@@ -1973,12 +2211,48 @@ const handleAddExpense = async () => {
 
             <TabsContent value="resumo">
               <div className="space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
-                  <Button onClick={handleRegenerateReport} variant="outline" size="sm">
-                    <RefreshCw className="w-4 h-4 mr-2" />
-                    Atualizar
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => {
+                        if (monthlyReport && sales && expenses) {
+                          const exporter = new PDFExporter();
+                          // Mapear dados para o formato esperado pelo PDFExporter
+                          const salesForPDF = sales.map(s => ({
+                            _id: s._id,
+                            productName: s.productName,
+                            quantity: s.quantity,
+                            salePrice: s.salePrice,
+                            totalRevenue: s.totalRevenue,
+                            profit: s.profit,
+                            date: s.date,
+                          }));
+                          const expensesForPDF = expenses.map(e => ({
+                            _id: e._id,
+                            description: e.description,
+                            categoryName: e.categoryName,
+                            amount: e.amount,
+                            date: e.date,
+                          }));
+                          exporter.exportMonthlyReport(monthlyReport, salesForPDF, expensesForPDF);
+                          toast.success("📄 PDF gerado com sucesso!");
+                        } else {
+                          toast.error("❌ Aguarde o carregamento dos dados");
+                        }
+                      }}
+                      variant="outline" 
+                      size="sm"
+                      className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                    <Button onClick={handleRegenerateReport} variant="outline" size="sm">
+                      <RefreshCw className="w-4 h-4 mr-2" />
+                      Atualizar
+                    </Button>
+                  </div>
                 </div>
 
                 {!monthlyReport ? (

@@ -1,98 +1,73 @@
-// public/sw.js - SERVICE WORKER PARA RECEBER NOTIFICAÇÕES PUSH
+// Service Worker para Modo Offline
+const CACHE_NAME = 'gestao-pro-v1';
+const OFFLINE_URL = '/offline.html';
 
+const STATIC_ASSETS = [
+  '/',
+  '/offline.html',
+  '/manifest.json',
+];
+
+// Instalação do Service Worker
 self.addEventListener('install', (event) => {
-  console.log('🔧 Service Worker instalado');
-  console.log('Event:', event); // Use the event parameter here
+  event.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log('📦 Cache aberto');
+      return cache.addAll(STATIC_ASSETS);
+    })
+  );
   self.skipWaiting();
 });
 
+// Ativação do Service Worker
 self.addEventListener('activate', (event) => {
-  console.log('✅ Service Worker ativado');
-  event.waitUntil(self.clients.claim());
-});
-
-// ============================================
-// RECEBER E EXIBIR NOTIFICAÇÃO PUSH
-// ============================================
-self.addEventListener('push', (event) => {
-  console.log('📬 Notificação push recebida:', event);
-
-  if (!event.data) {
-    console.warn('⚠️ Push event sem dados');
-    return;
-  }
-
-  let data;
-  try {
-    data = event.data.json();
-  } catch (e) {
-    console.error('❌ Erro ao parsear dados do push:', e);
-    return;
-  }
-
-  const title = data.title || '🚀 FreelinnkBrain';
-  const options = {
-    body: data.body || 'Você tem uma nova notificação',
-    icon: data.icon || '/icon-192x192.png',
-    badge: data.badge || '/badge-72x72.png',
-    vibrate: [200, 100, 200],
-    tag: 'freelinnkbrain-notification',
-    renotify: true,
-    requireInteraction: true,
-    data: {
-      url: data.url || '/dashboard/brain',
-      dateOfArrival: Date.now(),
-    },
-    actions: [
-      {
-        action: 'open',
-        title: '📱 Abrir',
-        icon: '/icon-check.png',
-      },
-      {
-        action: 'close',
-        title: '❌ Fechar',
-        icon: '/icon-close.png',
-      },
-    ],
-  };
-
   event.waitUntil(
-    self.registration.showNotification(title, options)
-  );
-});
-
-// ============================================
-// AÇÃO AO CLICAR NA NOTIFICAÇÃO
-// ============================================
-self.addEventListener('notificationclick', (event) => {
-  console.log('🖱️ Notificação clicada:', event.action);
-
-  event.notification.close();
-
-  if (event.action === 'close') {
-    return;
-  }
-
-  const urlToOpen = event.notification.data?.url || '/dashboard/brain';
-
-  event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true })
-      .then((clientList) => {
-        for (let i = 0; i < clientList.length; i++) {
-          const client = clientList[i];
-          if (client.url.includes(self.location.origin) && 'focus' in client) {
-            return client.focus().then((client) => {
-              if ('navigate' in client) {
-                return client.navigate(urlToOpen);
-              }
-            });
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME) {
+            console.log('🗑️ Removendo cache antigo:', cacheName);
+            return caches.delete(cacheName);
           }
-        }
+        })
+      );
+    })
+  );
+  self.clients.claim();
+});
 
-        if (clients.openWindow) {
-          return clients.openWindow(urlToOpen);
-        }
+// Interceptação de requisições
+self.addEventListener('fetch', (event) => {
+  // Apenas para requisições GET
+  if (event.request.method !== 'GET') return;
+
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Se online, salva no cache
+        const responseClone = response.clone();
+        caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, responseClone);
+        });
+        return response;
+      })
+      .catch(() => {
+        // Se offline, busca do cache
+        return caches.match(event.request).then((response) => {
+          return response || caches.match(OFFLINE_URL);
+        });
       })
   );
 });
+
+// Sincronização em background
+self.addEventListener('sync', (event) => {
+  if (event.tag === 'sync-sales') {
+    event.waitUntil(syncOfflineSales());
+  }
+});
+
+async function syncOfflineSales() {
+  console.log('🔄 Sincronizando vendas offline...');
+  // A sincronização real será feita pelo frontend
+}
