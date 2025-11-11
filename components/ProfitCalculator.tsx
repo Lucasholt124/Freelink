@@ -157,7 +157,7 @@ export default function FinancialManagerPro() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const deleteCashFlow = useMutation(api.profitCalculator.deleteCashFlow);
-  
+
   // ✅ ESTADOS PARA MODO OFFLINE
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSync, setPendingSync] = useState({ sales: 0, expenses: 0, total: 0 });
@@ -574,16 +574,23 @@ const handleEditProduct = async () => {
   }
 };
 
-  const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
-    try {
-      const result = await deleteProduct({ id, permanent });
-      confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 }, colors: ["#EF4444", "#F97316"] });
-      toast.success(`✅ Produto ${permanent ? "deletado" : "desativado"}! ${result.deletedSales ? `${result.deletedSales} vendas removidas` : ""}`);
-    } catch (error) {
-      toast.error("❌ Erro ao deletar produto");
-      console.error(error);
-    }
-  };
+const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
+      try {
+        const result = await deleteProduct({ id, permanent });
+        confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 }, colors: ["#EF4444", "#F97316"] });
+        toast.success(`✅ Produto ${permanent ? "deletado" : "desativado"}! ${result.deletedSales ? `${result.deletedSales} vendas removidas` : ""}. Atualizando painel...`);
+       
+        // ✅ CORREÇÃO CRÍTICA: Recarregar o painel para refletir a regeneração assíncrona
+        // Isso garante que o dashboard e relatórios carreguem os dados corrigidos.
+        setTimeout(() => {
+          window.location.reload();
+        }, 1500); // Dá um pequeno tempo para o Convex processar a regeneração
+       
+      } catch (error) {
+        toast.error("❌ Erro ao deletar produto");
+        console.error(error);
+      }
+    };
 
   const openEditProduct = (productId: Id<"products">) => {
     const product = products.find((p) => p._id === productId);
@@ -923,7 +930,7 @@ const handleAddExpense = async () => {
 
       const lucro = salePrice - costPrice;
       toast.success(`💾 Venda salva offline! Lucro: ${formatCurrency(lucro)}`);
-      
+
       await checkPendingData();
       setShowQuickSale(false);
       setQuickSaleForm({
@@ -1136,7 +1143,7 @@ const handleAddExpense = async () => {
 
       {/* [CORREÇÃO 1] - Este é agora o ÚNICO container principal. O duplicado foi removido. */}
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-6">
-        
+
         {/* ✅ INDICADOR DE STATUS OFFLINE */}
         {!isOnline && (
           <div className="fixed top-4 right-4 z-50 bg-orange-500 text-white px-4 py-2 rounded-xl shadow-xl flex items-center gap-2 animate-pulse">
@@ -1236,7 +1243,7 @@ const handleAddExpense = async () => {
                     DELETAR TUDO
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem 
+                  <DropdownMenuItem
                     onClick={() => {
                       if (monthlyReport && sales && expenses) {
                         const exporter = new PDFExporter();
@@ -1947,7 +1954,7 @@ const handleAddExpense = async () => {
                     )}
                   </div>
                   <div className="flex gap-2 w-full md:w-auto">
-                    <Button 
+                    <Button
                       onClick={() => {
                         if (filteredProducts.length > 0) {
                           const exporter = new PDFExporter();
@@ -1957,7 +1964,7 @@ const handleAddExpense = async () => {
                           toast.error("❌ Nenhum produto para exportar");
                         }
                       }}
-                      variant="outline" 
+                      variant="outline"
                       size="sm"
                       className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300"
                     >
@@ -2076,7 +2083,7 @@ const handleAddExpense = async () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <h3 className="text-xl font-bold">Vendas do Mês ({sales.length})</h3>
                   <div className="flex gap-2">
-                    <Button 
+                    <Button
                       onClick={() => {
                         if (sales.length > 0) {
                           const exporter = new PDFExporter();
@@ -2096,7 +2103,7 @@ const handleAddExpense = async () => {
                           toast.error("❌ Nenhuma venda para exportar");
                         }
                       }}
-                      variant="outline" 
+                      variant="outline"
                       size="sm"
                       className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-300"
                     >
@@ -2214,7 +2221,7 @@ const handleAddExpense = async () => {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
                   <div className="flex gap-2">
-                    <Button 
+                    <Button
                       onClick={() => {
                         if (monthlyReport && sales && expenses) {
                           const exporter = new PDFExporter();
@@ -2241,7 +2248,7 @@ const handleAddExpense = async () => {
                           toast.error("❌ Aguarde o carregamento dos dados");
                         }
                       }}
-                      variant="outline" 
+                      variant="outline"
                       size="sm"
                       className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
                     >

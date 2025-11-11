@@ -860,72 +860,83 @@ export const updateProduct = mutation({
 });
 
 export const deleteProduct = mutation({
-  args: {
-    id: v.id("products"),
-    permanent: v.optional(v.boolean()),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Faça login para continuar");
+    args: {
+      id: v.id("products"),
+      permanent: v.optional(v.boolean()),
+    },
+    handler: async (ctx, args) => {
+      const identity = await ctx.auth.getUserIdentity();
+      if (!identity) throw new Error("Faça login para continuar");
 
-    const product = await ctx.db.get(args.id);
-    if (!product || product.userId !== identity.subject) {
-      throw new Error("Produto não encontrado");
-    }
+      const product = await ctx.db.get(args.id);
+      if (!product || product.userId !== identity.subject) {
+        throw new Error("Produto não encontrado");
+      }
 
-    // ✅ BUSCAR VENDAS APENAS DO MESMO BUSINESSID
-    let sales = await ctx.db
-      .query("sales")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .filter((q) => q.eq(q.field("productId"), args.id))
-      .collect();
+      // BUSCAR VENDAS APENAS DO MESMO BUSINESSID
+      let sales = await ctx.db
+        .query("sales")
+        .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+        .filter((q) => q.eq(q.field("productId"), args.id))
+        .collect();
 
-    // Se o produto tem businessId, filtrar vendas do mesmo business
-    if (product.businessId) {
-      sales = sales.filter((s) => s.businessId === product.businessId);
-    }
+      // Se o produto tem businessId, filtrar vendas do mesmo business
+      if (product.businessId) {
+        sales = sales.filter((s) => s.businessId === product.businessId);
+      }
 
-    // Deletar vendas
-    for (const sale of sales) {
-      await ctx.db.delete(sale._id);
-    }
+      // Deletar vendas
+      for (const sale of sales) {
+        // ✅ RESTAURAR ESTOQUE, DADOS DO CLIENTE E REVERTER STREAK
+        // É importante executar essas lógicas de limpeza antes de apagar a venda do banco.
+        await ctx.runMutation(api.profitCalculator.deleteSale, { id: sale._id, permanent: true });
+        // O deleteSale já fará a exclusão e ajuste de estoque/cliente/streak/gamification
+      }
 
-    // Recalcular relatórios mensais afetados
-    const affectedMonths = [...new Set(sales.map((s) => s.month))];
+      // Recalcular relatórios mensais afetados
+      const affectedMonths = [...new Set(sales.map((s) => s.month))];
 
-    // Marca os relatórios dos meses afetados para regeneração
-    for (const month of affectedMonths) {
-      const reports = await ctx.db
-        .query("monthlyReports")
-        .withIndex("by_user_month", (q) =>
-          q.eq("userId", identity.subject).eq("month", month)
-        )
-        .collect();
+      // 1. Deleta os relatórios existentes e 2. Agenda a regeneração
+      for (const month of affectedMonths) {
+        const reports = await ctx.db
+          .query("monthlyReports")
+          .withIndex("by_user_month", (q) =>
+            q.eq("userId", identity.subject).eq("month", month)
+          )
+          .collect();
 
-      for (const report of reports) {
-        if (!product.businessId || report.businessId === product.businessId) {
-          await ctx.db.delete(report._id);
-        }
-      }
-    }
+        for (const report of reports) {
+          if (!product.businessId || report.businessId === product.businessId) {
+            // Deleta o relatório (para ser recriado com novos dados)
+            await ctx.db.delete(report._id);
+          }
+        }
 
-    // Deletar ou desativar o produto
-    if (args.permanent) {
-      await ctx.db.delete(args.id);
-    } else {
-      await ctx.db.patch(args.id, {
-        active: false,
-        updatedAt: Date.now(),
-      });
-    }
+        // ✅ CORREÇÃO CRÍTICA: Agenda a regeneração do relatório mensal
+        await ctx.scheduler.runAfter(100, internal.profitCalculator.regenerateMonthlyReport, {
+          userId: identity.subject,
+          month,
+          businessId: product.businessId,
+        });
+      }
 
-    return {
-      success: true,
-      deletedSales: sales.length,
-      affectedMonths: affectedMonths.length,
-    };
-  },
-});
+      // Deletar ou desativar o produto
+      if (args.permanent) {
+        await ctx.db.delete(args.id);
+      } else {
+        await ctx.db.patch(args.id, {
+          active: false,
+          updatedAt: Date.now(),
+        });
+      }
+
+      return {
+        success: true,
+        deletedSales: sales.length,
+        affectedMonths: affectedMonths.length,
+      };
+    },
+  });
 
 // =================================================================
 // 🗑️ LIMPEZA DE DADOS
