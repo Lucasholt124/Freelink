@@ -1129,7 +1129,12 @@ const handleAddExpense = async () => {
           <Zap className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
         </div>
         <div>
-          <h3 className="font-bold text-base md:text-lg lg:text-xl">Resumo de Hoje</h3>
+          <div className="flex items-center gap-2 mb-1">
+            <h3 className="font-bold text-base md:text-lg lg:text-xl">Resumo de Hoje</h3>
+            <Badge variant="outline" className="text-[10px] md:text-xs bg-emerald-100 text-emerald-700 border-emerald-300">
+              Dashboard do Dia
+            </Badge>
+          </div>
           <p className="text-[10px] md:text-xs lg:text-sm text-gray-600 flex items-center gap-1">
             <Calendar className="w-3 h-3 lg:w-4 lg:h-4" />
             {new Date().toLocaleDateString("pt-BR", {
@@ -1231,7 +1236,20 @@ const handleAddExpense = async () => {
 )}
 
           {monthlyReport && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-4 md:mb-6">
+            <div className="space-y-4 mb-4 md:mb-6">
+              {/* ✅ LABEL CLARO: Resumo do Mês */}
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 md:w-6 md:h-6 text-indigo-600" />
+                <div>
+                  <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-800">Resumo do Mês</h2>
+                  <p className="text-xs md:text-sm text-gray-500">Estatísticas detalhadas de {formatMonthName(selectedMonth)}</p>
+                </div>
+                <Badge variant="outline" className="ml-auto text-xs md:text-sm bg-indigo-100 text-indigo-700 border-indigo-300">
+                  {formatMonthName(selectedMonth)}
+                </Badge>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {/* 💰 RECEITA */}
             <Card className="p-4 md:p-5 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer">
               <div className="relative z-10">
@@ -1327,12 +1345,57 @@ const handleAddExpense = async () => {
               </div>
               <Package className="absolute -bottom-4 -right-4 md:-bottom-6 md:-right-6 w-20 h-20 md:w-28 md:h-28 opacity-10 group-hover:opacity-20 group-hover:rotate-12 transition-all" />
             </Card>
-          </div>
+              </div>
+            </div>
           )}
 
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-4 md:space-y-6">
-            <div className="hidden md:block sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-2">
-              <TabsList className="grid grid-cols-4 lg:grid-cols-9 w-full bg-white/90 backdrop-blur-xl shadow-xl h-auto p-1 rounded-2xl">
+            {/* ✅ MENU TABLET (md: 768px - lg: 1024px) - Layout otimizado com scroll horizontal */}
+            <div className="hidden md:block lg:hidden sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-2 -mx-3 px-3">
+              <div className="overflow-x-auto scrollbar-hide">
+                <TabsList className="inline-flex w-max min-w-full bg-white/90 backdrop-blur-xl shadow-xl h-auto p-1.5 rounded-2xl gap-1">
+                  <TabsTrigger value="dashboard" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
+                    <BarChart3 className="w-4 h-4 mr-1.5" />
+                    Dashboard
+                  </TabsTrigger>
+                  <TabsTrigger value="rapido" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
+                    <Zap className="w-4 h-4 mr-1.5" />
+                    Rápido
+                  </TabsTrigger>
+                  <TabsTrigger value="produtos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
+                    <Package className="w-4 h-4 mr-1.5" />
+                    Produtos
+                  </TabsTrigger>
+                  <TabsTrigger value="vendas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
+                    <ShoppingCart className="w-4 h-4 mr-1.5" />
+                    Vendas
+                  </TabsTrigger>
+                  <TabsTrigger value="gastos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
+                    <Receipt className="w-4 h-4 mr-1.5" />
+                    Gastos
+                  </TabsTrigger>
+                  <TabsTrigger value="resumo" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
+                    <FileText className="w-4 h-4 mr-1.5" />
+                    Resumo
+                  </TabsTrigger>
+                  <TabsTrigger value="metas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
+                    <Target className="w-4 h-4 mr-1.5" />
+                    Metas
+                  </TabsTrigger>
+                  <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-rose-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
+                    <Users className="w-4 h-4 mr-1.5" />
+                    Clientes
+                  </TabsTrigger>
+                  <TabsTrigger value="fornecedores" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
+                    <Truck className="w-4 h-4 mr-1.5" />
+                    Fornecedores
+                  </TabsTrigger>
+                </TabsList>
+              </div>
+            </div>
+
+            <div className="hidden lg:block sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-2">
+              <TabsList className="grid grid-cols-9 w-full bg-white/90 backdrop-blur-xl shadow-xl h-auto p-1 rounded-2xl">
                 <TabsTrigger value="dashboard" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
                   <BarChart3 className="w-4 h-4 mr-2" />
                   Dashboard
@@ -1413,6 +1476,18 @@ const handleAddExpense = async () => {
                 </Card>
               ) : (
                 <div className="space-y-4 md:space-y-6 lg:space-y-8">
+                  {/* ✅ LABEL CLARO: Dashboard do Mês */}
+                  <div className="flex items-center gap-3 mb-2">
+                    <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
+                    <div>
+                      <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-800">Dashboard do Mês</h2>
+                      <p className="text-xs md:text-sm text-gray-500">Visão geral de {formatMonthName(selectedMonth)}</p>
+                    </div>
+                    <Badge variant="outline" className="ml-auto text-xs md:text-sm bg-blue-100 text-blue-700 border-blue-300">
+                      {formatMonthName(selectedMonth)}
+                    </Badge>
+                  </div>
+
                   <div className="grid md:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
                     <Card className="p-4 md:p-6 lg:p-8 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
                       <h3 className="font-bold mb-4 lg:mb-6 flex items-center gap-2 lg:gap-3">
@@ -1614,17 +1689,26 @@ const handleAddExpense = async () => {
                   }
 
                   try {
+                    const month = flow.date.substring(0, 7);
+
                     // Deletar o cashFlow e registro relacionado automaticamente
                     await deleteCashFlow({
                       id: flow._id,
                       deleteRelatedRecord: true
                     });
 
-                    // ✅ CORREÇÃO: Regenerar relatório mensal após exclusão
-                    const month = flow.date.substring(0, 7);
-                    await generateReport({ month });
+                    // ✅ CORREÇÃO: Aguardar um pouco e regenerar relatório mensal e dashboard
+                    setTimeout(async () => {
+                      try {
+                        await generateReport({ month });
+                        // Força atualização das queries do Convex
+                        window.location.reload();
+                      } catch (error) {
+                        console.error("Erro ao atualizar relatório:", error);
+                      }
+                    }, 500);
 
-                    toast.success("✅ Movimentação excluída!");
+                    toast.success("✅ Movimentação excluída! Atualizando dados...");
                   } catch (error) {
                     toast.error("❌ Erro ao excluir");
                     console.error(error);
