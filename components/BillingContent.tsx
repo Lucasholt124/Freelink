@@ -17,6 +17,24 @@ import { Badge } from "@/components/ui/badge";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 
+declare global {
+  interface Window {
+    gtag?: (command: 'event', eventName: string, params?: Record<string, unknown>) => void;
+    fbq?: (method: string, eventName: string, params?: Record<string, unknown>) => void;
+  }
+}
+
+function trackEvent(eventName: string, properties?: Record<string, unknown>) {
+  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+    window.gtag('event', eventName, properties);
+  }
+
+  if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+    window.fbq('track', eventName, properties);
+  }
+
+  console.log(`📊 Event tracked: ${eventName}`, properties);
+}
 // Tipos e constante 'plans'
 type PlanIdentifier = "free" | "pro" | "ultra";
 type BillingCycle = "monthly" | "yearly";
@@ -262,6 +280,28 @@ export default function BillingContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
 
+  // ✅ NOVO: Carregar preferência salva do localStorage
+  useEffect(() => {
+    const savedCycle = localStorage.getItem('preferredBillingCycle');
+    if (savedCycle && (savedCycle === 'monthly' || savedCycle === 'yearly')) {
+      setBillingCycle(savedCycle as BillingCycle);
+    }
+  }, []);
+
+  // ✅ NOVO: Salvar preferência quando mudar
+  const handleBillingCycleChange = (checked: boolean) => {
+    const newCycle = checked ? 'yearly' : 'monthly';
+    setBillingCycle(newCycle);
+    localStorage.setItem('preferredBillingCycle', newCycle);
+
+    // ✅ NOVO: Track mudança de ciclo
+    trackEvent('BillingCycleChanged', {
+      from: billingCycle,
+      to: newCycle,
+      discount_visible: newCycle === 'yearly'
+    });
+  };
+
 
   useEffect(() => {
     const success = searchParams.get("success");
@@ -307,6 +347,11 @@ export default function BillingContent() {
     const loadingId = `${planIdentifier}-${billingCycle}`;
     setLoading(loadingId);
 
+    // ✅ NOVO: Toast com informação do que está acontecendo
+    const loadingToast = toast.loading(
+      `Preparando checkout do plano ${planIdentifier.toUpperCase()} (${billingCycle === 'yearly' ? 'Anual' : 'Mensal'})...`
+    );
+
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -318,12 +363,20 @@ export default function BillingContent() {
       });
 
       const data = await res.json();
+
       if (data.url) {
-        window.location.href = data.url;
+        toast.dismiss(loadingToast);
+        toast.success("Redirecionando para pagamento seguro...");
+
+        // ✅ NOVO: Pequeno delay para usuário ver a mensagem
+        setTimeout(() => {
+          window.location.href = data.url;
+        }, 500);
       } else {
         throw new Error(data.error || "URL de checkout não recebida.");
       }
     } catch (err) {
+      toast.dismiss(loadingToast);
       if (err instanceof Error) toast.error(err.message);
       else toast.error("Erro ao iniciar o checkout. Tente novamente.");
     } finally {
@@ -336,6 +389,9 @@ export default function BillingContent() {
 
     setLoading("cancel");
 
+    // ✅ NOVO: Toast informativo durante o processo
+    const loadingToast = toast.loading("Processando cancelamento... Aguarde.");
+
     try {
       const res = await fetch("/api/stripe/cancel", { method: "POST" });
       if (!res.ok) {
@@ -343,10 +399,12 @@ export default function BillingContent() {
         throw new Error(data.error || "Erro do servidor ao cancelar.");
       }
 
+      toast.dismiss(loadingToast);
       toast.success("Sua assinatura foi agendada para cancelamento. Você pode reativá-la a qualquer momento no portal do cliente.");
       await user?.reload();
       setCurrentPlan("free");
     } catch (err) {
+      toast.dismiss(loadingToast);
       if (err instanceof Error) toast.error(err.message);
       else toast.error("Não foi possível cancelar a assinatura. Tente novamente.");
     } finally {
@@ -357,16 +415,26 @@ export default function BillingContent() {
   async function handleManageSubscription() {
     setLoading("portal");
 
+    // ✅ NOVO: Toast informativo
+    const loadingToast = toast.loading("Abrindo portal de gerenciamento...");
+
     try {
       const res = await fetch("/api/stripe/portal", { method: "POST" });
       const data = await res.json();
 
       if (data.url) {
-        window.location.href = data.url;
+        toast.dismiss(loadingToast);
+        toast.success("Redirecionando para o portal...");
+
+        // ✅ NOVO: Pequeno delay
+        setTimeout(() => {
+          window.location.href = data.url;
+        }, 500);
       } else {
         throw new Error(data.error || "URL do portal não recebida.");
       }
     } catch (err) {
+      toast.dismiss(loadingToast);
       if (err instanceof Error) toast.error(err.message);
       else toast.error("Erro ao acessar o portal de assinaturas. Tente novamente.");
       setLoading(null);
@@ -541,11 +609,11 @@ export default function BillingContent() {
             </span>
 
             <Switch
-              checked={billingCycle === 'yearly'}
-              onCheckedChange={(checked) => setBillingCycle(checked ? 'yearly' : 'monthly')}
-              id="billing-cycle"
-              className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-green-500 data-[state=checked]:to-emerald-500"
-            />
+  checked={billingCycle === 'yearly'}
+  onCheckedChange={handleBillingCycleChange}
+  id="billing-cycle"
+  className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-green-500 data-[state=checked]:to-emerald-500"
+/>
 
             <span className={clsx(
               "font-medium transition-colors text-sm sm:text-base",
@@ -992,28 +1060,48 @@ function PlanCard({
 
       {/* Botão de ação */}
       <div className="mt-6 sm:mt-8">
-        {isCurrent ? (
-          isFree ? (
-            <Button
-              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200"
-              disabled
-            >
-              Seu Plano Atual
-            </Button>
-          ) : (
-            <Button
-              variant="destructive"
-              className="w-full"
-              onClick={onCancel}
-              disabled={loading === 'cancel'}
-            >
-              {loading === 'cancel'
-                ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                : <XCircle className="mr-2 h-4 w-4" />
-              }
-              Cancelar Assinatura
-            </Button>
-          )
+      {isCurrent ? (
+  isFree ? (
+    <Button
+      className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200"
+      disabled
+    >
+      Seu Plano Atual
+    </Button>
+  ) : (
+    <div>
+      <Button
+        variant="destructive"
+        className="w-full"
+        onClick={onCancel}
+        disabled={loading === 'cancel'}
+      >
+        {loading === 'cancel'
+          ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          : <XCircle className="mr-2 h-4 w-4" />
+        }
+        Cancelar Assinatura
+      </Button>
+
+      {/* ✅ NOVO: Feedback visual durante processamento */}
+      {loading === 'cancel' && (
+        <motion.p
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2"
+        >
+          ⏳ Processando cancelamento... Não feche a página.
+        </motion.p>
+      )}
+
+      {/* ✅ NOVO: Informação sobre quando perde acesso */}
+      {!loading && (
+        <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+          Você manterá acesso até o fim do período pago
+        </p>
+      )}
+    </div>
+  )
         ) : (
           !isFree && onCheckout && (
             <motion.div
@@ -1021,12 +1109,21 @@ function PlanCard({
               whileTap={{ scale: 0.98 }}
             >
               <Button
-                onClick={() => onCheckout(plan.id as "pro" | "ultra")}
-                disabled={loading === loadingId}
-                className={clsx(
-                  `w-full text-white bg-gradient-to-r ${plan.gradient} hover:brightness-110 transition-all group font-bold shadow-lg text-sm sm:text-base py-5 sm:py-6`
-                )}
-              >
+  onClick={() => {
+    // ✅ NOVO: Track antes de chamar checkout
+    trackEvent('InitiateCheckout', {
+      plan: plan.id,
+      cycle: billingCycle,
+      price: billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice
+    });
+
+    onCheckout(plan.id as "pro" | "ultra");
+  }}
+  disabled={loading === loadingId}
+  className={clsx(
+    `w-full text-white bg-gradient-to-r ${plan.gradient} hover:brightness-110 transition-all group font-bold shadow-lg text-sm sm:text-base py-5 sm:py-6`
+  )}
+>
                 {loading === loadingId ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
