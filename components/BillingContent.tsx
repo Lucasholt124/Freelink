@@ -217,7 +217,8 @@ const plans: Plan[] = [
           { text: "Ferramenta de sorteios via comentários", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Rastreamento avançado (Pixel, GA4)", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "API para integrações", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
-          { text: "Acesso antecipado a novos recursos", icon: <CheckCircle className="w-4 h-4 text-green-500" /> }
+          { text: "Acesso antecipado a novos recursos", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
+          { text: "Calculadora de Lucros IA Completa", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true }
         ]
       }
     ],
