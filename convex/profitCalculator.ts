@@ -10,8 +10,8 @@ import { Doc, Id } from "./_generated/dataModel";
 
 export const addQuickSale = mutation({
   args: {
-    amount: v.number(),
-    costPrice: v.optional(v.number()),// ✅ ADICIONAR ESTE CAMPO
+    amount: v.number(), // PREÇO DE VENDA
+    costPrice: v.number(), // ✅ AGORA OBRIGATÓRIO
     description: v.optional(v.string()),
     paymentMethod: v.optional(
       v.union(
@@ -30,42 +30,52 @@ export const addQuickSale = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Faça login para continuar");
 
+    // ✅ VALIDAÇÕES CRÍTICAS
+    if (args.costPrice <= 0) {
+      throw new Error("Custo deve ser maior que zero");
+    }
+    if (args.amount <= 0) {
+      throw new Error("Preço de venda deve ser maior que zero");
+    }
+    if (args.amount <= args.costPrice) {
+      throw new Error("Preço de venda deve ser maior que o custo");
+    }
+
     const today = args.date || new Date().toISOString().split("T")[0];
     const month = today.substring(0, 7);
     const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
-    // ✅ CALCULAR LUCRO CORRETAMENTE
-    const costPrice = args.costPrice || 0;
-    const totalCost = costPrice;
-    const totalRevenue = args.amount;
-    const profit = args.amount - totalCost;
+    // ✅ CÁLCULOS PRECISOS
+    const costPrice = args.costPrice;
+    const salePrice = args.amount;
+    const totalCost = costPrice; // Para quantidade 1
+    const totalRevenue = salePrice; // Para quantidade 1
+    const profit = salePrice - costPrice; // LUCRO EXATO
 
-
-
-    // Adiciona no cash flow
+    // ✅ ADICIONAR NO CASH FLOW
     await ctx.db.insert("cashFlow", {
       userId: identity.subject,
       businessId: args.businessId,
       type: "in",
-      amount: args.amount,
-      description: args.description || "Venda rápida",
+      amount: totalRevenue,
+      description: args.description || `Venda rápida - Lucro: R$ ${profit.toFixed(2)}`,
       date: today,
       time,
       paymentMethod: args.paymentMethod,
       createdAt: Date.now(),
     });
 
-    // Adiciona como venda sem produto
+    // ✅ ADICIONAR COMO VENDA
     const saleId = await ctx.db.insert("sales", {
       userId: identity.subject,
       businessId: args.businessId,
       productName: args.description || "Venda rápida",
       quantity: 1,
-      costPrice: costPrice,        // ✅ CORRIGIDO
-      salePrice: args.amount,
-      totalCost: totalCost,         // ✅ CORRIGIDO
+      costPrice: costPrice,
+      salePrice: salePrice,
+      totalCost: totalCost,
       totalRevenue: totalRevenue,
-      profit: profit,               // ✅ CORRIGIDO
+      profit: profit,
       paymentMethod: args.paymentMethod,
       paymentStatus: "paid",
       date: today,
@@ -75,17 +85,24 @@ export const addQuickSale = mutation({
       createdAt: Date.now(),
     });
 
-    // Atualiza resumo diário
+    // ✅ ATUALIZAR RESUMO DIÁRIO
     await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
       userId: identity.subject,
       date: today,
       businessId: args.businessId,
     });
 
-     await ctx.scheduler.runAfter(0, internal.gamification.updateActivityStreak, {
+    // ✅ ATUALIZAR GAMIFICATION
+    await ctx.scheduler.runAfter(0, internal.gamification.updateActivityStreak, {
       userId: identity.subject,
     });
 
+    // ✅ REGENERAR RELATÓRIO MENSAL
+    await ctx.scheduler.runAfter(500, internal.profitCalculator.regenerateMonthlyReport, {
+      userId: identity.subject,
+      month: month,
+      businessId: args.businessId,
+    });
 
     return saleId;
   },
@@ -264,6 +281,7 @@ export const updateDailySummary = internalMutation({
     businessId: v.optional(v.id("businesses")),
   },
   handler: async (ctx, args) => {
+    // 🔍 BUSCAR TODAS AS VENDAS DO DIA
     const sales = await ctx.db
       .query("sales")
       .withIndex("by_user_date", (q) =>
@@ -271,6 +289,7 @@ export const updateDailySummary = internalMutation({
       )
       .collect();
 
+    // 🔍 BUSCAR TODOS OS GASTOS DO DIA
     const expenses = await ctx.db
       .query("expenses")
       .withIndex("by_user_month", (q) =>
@@ -279,6 +298,7 @@ export const updateDailySummary = internalMutation({
       .filter((q) => q.eq(q.field("date"), args.date))
       .collect();
 
+    // 🎯 FILTRAR POR BUSINESS SE NECESSÁRIO
     const filteredSales = args.businessId
       ? sales.filter((s) => s.businessId === args.businessId)
       : sales;
@@ -287,11 +307,14 @@ export const updateDailySummary = internalMutation({
       ? expenses.filter((e) => e.businessId === args.businessId)
       : expenses;
 
-    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalRevenue, 0);
-    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const netProfit = totalRevenue - totalExpenses;
+    // 💰 CALCULAR TOTAIS PRECISOS
+    const totalRevenue = filteredSales.reduce((sum, s) => sum + (s.totalRevenue || 0), 0);
+    const totalCost = filteredSales.reduce((sum, s) => sum + (s.totalCost || 0), 0);
+    const grossProfit = totalRevenue - totalCost;
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const netProfit = grossProfit - totalExpenses;
 
-    // Busca resumo existente
+    // 🔍 BUSCAR RESUMO EXISTENTE
     const existing = await ctx.db
       .query("dailySummaries")
       .withIndex("by_user_date", (q) =>
@@ -299,9 +322,20 @@ export const updateDailySummary = internalMutation({
       )
       .first();
 
+    // ✅ SE NÃO HÁ VENDAS NEM GASTOS, DELETAR RESUMO ANTIGO
+    if (filteredSales.length === 0 && filteredExpenses.length === 0) {
+      if (existing) {
+        await ctx.db.delete(existing._id);
+      }
+      return;
+    }
+
+    // ✅ ATUALIZAR OU CRIAR RESUMO
     if (existing && (!args.businessId || existing.businessId === args.businessId)) {
       await ctx.db.patch(existing._id, {
         totalRevenue,
+        totalCost,
+        grossProfit,
         totalExpenses,
         netProfit,
         salesCount: filteredSales.length,
@@ -314,6 +348,8 @@ export const updateDailySummary = internalMutation({
         businessId: args.businessId,
         date: args.date,
         totalRevenue,
+        totalCost,
+        grossProfit,
         totalExpenses,
         netProfit,
         salesCount: filteredSales.length,
@@ -860,83 +896,134 @@ export const updateProduct = mutation({
 });
 
 export const deleteProduct = mutation({
-    args: {
-      id: v.id("products"),
-      permanent: v.optional(v.boolean()),
-    },
-    handler: async (ctx, args) => {
-      const identity = await ctx.auth.getUserIdentity();
-      if (!identity) throw new Error("Faça login para continuar");
+  args: {
+    id: v.id("products"),
+    permanent: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
 
-      const product = await ctx.db.get(args.id);
-      if (!product || product.userId !== identity.subject) {
-        throw new Error("Produto não encontrado");
-      }
+    const product = await ctx.db.get(args.id);
+    if (!product || product.userId !== identity.subject) {
+      throw new Error("Produto não encontrado");
+    }
 
-      // BUSCAR VENDAS APENAS DO MESMO BUSINESSID
-      let sales = await ctx.db
-        .query("sales")
-        .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-        .filter((q) => q.eq(q.field("productId"), args.id))
-        .collect();
+    // 🔍 BUSCAR TODAS AS VENDAS DO PRODUTO
+    let sales = await ctx.db
+      .query("sales")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .filter((q) => q.eq(q.field("productId"), args.id))
+      .collect();
 
-      // Se o produto tem businessId, filtrar vendas do mesmo business
-      if (product.businessId) {
-        sales = sales.filter((s) => s.businessId === product.businessId);
-      }
+    if (product.businessId) {
+      sales = sales.filter((s) => s.businessId === product.businessId);
+    }
 
-      // Deletar vendas
-      for (const sale of sales) {
-        // ✅ RESTAURAR ESTOQUE, DADOS DO CLIENTE E REVERTER STREAK
-        // É importante executar essas lógicas de limpeza antes de apagar a venda do banco.
-        await ctx.runMutation(api.profitCalculator.deleteSale, { id: sale._id, permanent: true });
-        // O deleteSale já fará a exclusão e ajuste de estoque/cliente/streak/gamification
-      }
+    // 🗑️ DELETAR VENDAS E RESTAURAR ESTOQUE
+    for (const sale of sales) {
+      await ctx.runMutation(api.profitCalculator.deleteSale, {
+        id: sale._id,
+        permanent: true
+      });
+    }
 
-      // Recalcular relatórios mensais afetados
-      const affectedMonths = [...new Set(sales.map((s) => s.month))];
+    // 📅 COLETAR MESES E DATAS AFETADAS
+    const affectedMonths = [...new Set(sales.map((s) => s.month))];
+    const affectedDates = [...new Set(sales.map((s) => s.date))];
 
-      // 1. Deleta os relatórios existentes e 2. Agenda a regeneração
-      for (const month of affectedMonths) {
-        const reports = await ctx.db
-          .query("monthlyReports")
-          .withIndex("by_user_month", (q) =>
-            q.eq("userId", identity.subject).eq("month", month)
-          )
-          .collect();
+    // 🧹 DELETAR RELATÓRIOS MENSAIS ANTIGOS
+    for (const month of affectedMonths) {
+      const reports = await ctx.db
+        .query("monthlyReports")
+        .withIndex("by_user_month", (q) =>
+          q.eq("userId", identity.subject).eq("month", month)
+        )
+        .collect();
 
-        for (const report of reports) {
-          if (!product.businessId || report.businessId === product.businessId) {
-            // Deleta o relatório (para ser recriado com novos dados)
-            await ctx.db.delete(report._id);
-          }
-        }
+      for (const report of reports) {
+        if (!product.businessId || report.businessId === product.businessId) {
+          await ctx.db.delete(report._id);
+        }
+      }
+    }
 
-        // ✅ CORREÇÃO CRÍTICA: Agenda a regeneração do relatório mensal
-        await ctx.scheduler.runAfter(100, internal.profitCalculator.regenerateMonthlyReport, {
-          userId: identity.subject,
-          month,
-          businessId: product.businessId,
-        });
-      }
+    // 🧹 DELETAR CASH FLOW RELACIONADO
+    for (const date of affectedDates) {
+      const cashFlows = await ctx.db
+        .query("cashFlow")
+        .withIndex("by_user_date", (q) =>
+          q.eq("userId", identity.subject).eq("date", date)
+        )
+        .collect();
 
-      // Deletar ou desativar o produto
-      if (args.permanent) {
-        await ctx.db.delete(args.id);
-      } else {
-        await ctx.db.patch(args.id, {
-          active: false,
-          updatedAt: Date.now(),
-        });
-      }
+      for (const flow of cashFlows) {
+        if (!product.businessId || flow.businessId === product.businessId) {
+          // Deletar apenas cash flows relacionados às vendas do produto
+          const relatedSale = sales.find(s =>
+            s.date === flow.date &&
+            Math.abs(s.totalRevenue - flow.amount) < 0.01
+          );
+          if (relatedSale) {
+            await ctx.db.delete(flow._id);
+          }
+        }
+      }
+    }
 
-      return {
-        success: true,
-        deletedSales: sales.length,
-        affectedMonths: affectedMonths.length,
-      };
-    },
-  });
+    // 🧹 DELETAR DAILY SUMMARIES DOS DIAS AFETADOS
+    for (const date of affectedDates) {
+      const summaries = await ctx.db
+        .query("dailySummaries")
+        .withIndex("by_user_date", (q) =>
+          q.eq("userId", identity.subject).eq("date", date)
+        )
+        .collect();
+
+      for (const summary of summaries) {
+        if (!product.businessId || summary.businessId === product.businessId) {
+          await ctx.db.delete(summary._id);
+        }
+      }
+    }
+
+    // 🔄 REGENERAR TUDO AUTOMATICAMENTE
+    // 1. Regenerar resumos diários
+    for (const date of affectedDates) {
+      await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
+        userId: identity.subject,
+        date,
+        businessId: product.businessId,
+      });
+    }
+
+    // 2. Regenerar relatórios mensais
+    for (const month of affectedMonths) {
+      await ctx.scheduler.runAfter(500, internal.profitCalculator.regenerateMonthlyReport, {
+        userId: identity.subject,
+        month,
+        businessId: product.businessId,
+      });
+    }
+
+    // 🗑️ DELETAR OU DESATIVAR O PRODUTO
+    if (args.permanent) {
+      await ctx.db.delete(args.id);
+    } else {
+      await ctx.db.patch(args.id, {
+        active: false,
+        updatedAt: Date.now(),
+      });
+    }
+
+    return {
+      success: true,
+      deletedSales: sales.length,
+      affectedMonths: affectedMonths.length,
+      affectedDates: affectedDates.length,
+    };
+  },
+});
 
 // =================================================================
 // 🗑️ LIMPEZA DE DADOS
@@ -951,13 +1038,12 @@ export const clearMonthData = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Faça login para continuar");
 
-
     let deletedSalesCount = 0;
     let deletedExpensesCount = 0;
     let deletedSummariesCount = 0;
     let deletedCashFlowCount = 0;
 
-    // 1️⃣ Deletar vendas do mês
+    // 🗑️ 1. DELETAR VENDAS E RESTAURAR ESTOQUE
     const sales = await ctx.db
       .query("sales")
       .withIndex("by_user_month", (q) =>
@@ -967,7 +1053,7 @@ export const clearMonthData = mutation({
 
     for (const sale of sales) {
       if (!args.businessId || sale.businessId === args.businessId) {
-        // ✅ RESTAURAR ESTOQUE antes de deletar
+        // ✅ RESTAURAR ESTOQUE
         if (sale.productId) {
           const product = await ctx.db.get(sale.productId);
           if (product && product.stock !== undefined) {
@@ -981,12 +1067,24 @@ export const clearMonthData = mutation({
           }
         }
 
+        // ✅ ATUALIZAR CLIENTE
+        if (sale.customerId) {
+          const customer = await ctx.db.get(sale.customerId);
+          if (customer) {
+            await ctx.db.patch(sale.customerId, {
+              totalSpent: Math.max(0, customer.totalSpent - sale.totalRevenue),
+              totalOrders: Math.max(0, customer.totalOrders - 1),
+              updatedAt: Date.now(),
+            });
+          }
+        }
+
         await ctx.db.delete(sale._id);
         deletedSalesCount++;
       }
     }
 
-    // 2️⃣ Deletar gastos do mês
+    // 🗑️ 2. DELETAR GASTOS
     const expenses = await ctx.db
       .query("expenses")
       .withIndex("by_user_month", (q) =>
@@ -1001,7 +1099,7 @@ export const clearMonthData = mutation({
       }
     }
 
-    // 3️⃣ ✅ CRÍTICO: Deletar resumos diários do mês (ISSO ESTAVA FALTANDO!)
+    // 🗑️ 3. DELETAR RESUMOS DIÁRIOS
     const dailySummaries = await ctx.db
       .query("dailySummaries")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
@@ -1016,7 +1114,7 @@ export const clearMonthData = mutation({
       }
     }
 
-    // 4️⃣ ✅ CRÍTICO: Deletar cash flow do mês (ISSO ESTAVA FALTANDO!)
+    // 🗑️ 4. DELETAR CASH FLOW
     const cashFlows = await ctx.db
       .query("cashFlow")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
@@ -1031,7 +1129,7 @@ export const clearMonthData = mutation({
       }
     }
 
-    // 5️⃣ Deletar relatórios mensais
+    // 🗑️ 5. DELETAR RELATÓRIOS MENSAIS
     const reports = await ctx.db
       .query("monthlyReports")
       .withIndex("by_user_month", (q) =>
@@ -1045,12 +1143,32 @@ export const clearMonthData = mutation({
       }
     }
 
+    // 🗑️ 6. DELETAR ALERTAS DO MÊS
+    const alerts = await ctx.db
+      .query("alerts")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    let deletedAlertsCount = 0;
+    for (const alert of alerts) {
+      if (alert.createdAt) {
+        const alertDate = new Date(alert.createdAt).toISOString().split("T")[0];
+        if (alertDate.startsWith(args.month)) {
+          if (!args.businessId || alert.businessId === args.businessId) {
+            await ctx.db.delete(alert._id);
+            deletedAlertsCount++;
+          }
+        }
+      }
+    }
+
     return {
       success: true,
       deletedSales: deletedSalesCount,
       deletedExpenses: deletedExpensesCount,
       deletedSummaries: deletedSummariesCount,
       deletedCashFlow: deletedCashFlowCount,
+      deletedAlerts: deletedAlertsCount,
     };
   },
 });
@@ -1071,10 +1189,10 @@ export const deleteCashFlow = mutation({
 
     const month = flow.date.substring(0, 7);
 
-    // ✅ 1️⃣ DELETAR REGISTRO RELACIONADO (VENDA OU GASTO)
+    // 🗑️ DELETAR REGISTRO RELACIONADO (VENDA OU GASTO)
     if (args.deleteRelatedRecord) {
       if (flow.type === "in") {
-        // Buscar venda relacionada
+        // 🔍 BUSCAR VENDA RELACIONADA
         const sales = await ctx.db
           .query("sales")
           .withIndex("by_user_date", (q) =>
@@ -1088,10 +1206,36 @@ export const deleteCashFlow = mutation({
         );
 
         if (relatedSale) {
+          // ✅ RESTAURAR ESTOQUE SE FOR VENDA DE PRODUTO
+          if (relatedSale.productId) {
+            const product = await ctx.db.get(relatedSale.productId);
+            if (product && product.stock !== undefined) {
+              await ctx.db.patch(product._id, {
+                stock: product.stock + relatedSale.quantity,
+                totalSold: Math.max(0, (product.totalSold ?? 0) - relatedSale.quantity),
+                totalRevenue: Math.max(0, (product.totalRevenue ?? 0) - relatedSale.totalRevenue),
+                totalProfit: Math.max(0, (product.totalProfit ?? 0) - relatedSale.profit),
+                updatedAt: Date.now(),
+              });
+            }
+          }
+
+          // ✅ ATUALIZAR CLIENTE (se houver)
+          if (relatedSale.customerId) {
+            const customer = await ctx.db.get(relatedSale.customerId);
+            if (customer) {
+              await ctx.db.patch(relatedSale.customerId, {
+                totalSpent: Math.max(0, customer.totalSpent - relatedSale.totalRevenue),
+                totalOrders: Math.max(0, customer.totalOrders - 1),
+                updatedAt: Date.now(),
+              });
+            }
+          }
+
           await ctx.db.delete(relatedSale._id);
         }
       } else {
-        // Buscar gasto relacionado
+        // 🔍 BUSCAR GASTO RELACIONADO
         const expenses = await ctx.db
           .query("expenses")
           .withIndex("by_user_month", (q) =>
@@ -1111,22 +1255,30 @@ export const deleteCashFlow = mutation({
       }
     }
 
-    // ✅ 2️⃣ DELETAR O CASHFLOW
+    // 🗑️ DELETAR O CASHFLOW
     await ctx.db.delete(args.id);
 
-    // ✅ 3️⃣ ATUALIZAR RESUMO DIÁRIO (DASHBOARD DO DIA)
+    // 🔄 ATUALIZAR RESUMO DIÁRIO
     await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
       userId: identity.subject,
       date: flow.date,
       businessId: flow.businessId,
     });
 
-    // ✅ 4️⃣ REGENERAR RELATÓRIO MENSAL (RESUMO DE NOVEMBRO 2025)
+    // 🔄 REGENERAR RELATÓRIO MENSAL
     await ctx.scheduler.runAfter(500, internal.profitCalculator.regenerateMonthlyReport, {
       userId: identity.subject,
       month: month,
       businessId: flow.businessId,
     });
+
+    // 🔄 REVERTER GAMIFICATION (se for venda)
+    if (flow.type === "in") {
+      await ctx.scheduler.runAfter(0, internal.gamification.revertActivityStreak, {
+        userId: identity.subject,
+        saleDate: flow.date,
+      });
+    }
 
     return { success: true };
   },
@@ -1134,138 +1286,172 @@ export const deleteCashFlow = mutation({
 
 
 export const clearAllData = mutation({
-  args: {
-    businessId: v.optional(v.id("businesses")),
-  },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Faça login para continuar");
+  args: {
+    businessId: v.optional(v.id("businesses")),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
 
-    const deletedCount = {
-      products: 0,
-      sales: 0,
-      expenses: 0,
-      reports: 0,
-      customers: 0,
-      suppliers: 0,
-      goals: 0,
-      dailySummaries: 0, // ✅ ADICIONADO
-      cashFlow: 0,       // ✅ ADICIONADO
-    };
+    const deletedCount = {
+      products: 0,
+      sales: 0,
+      expenses: 0,
+      reports: 0,
+      customers: 0,
+      suppliers: 0,
+      goals: 0,
+      dailySummaries: 0,
+      cashFlow: 0,
+      alerts: 0,
+      exports: 0,
+    };
 
-    // Deletar produtos
-    const products = await ctx.db
-      .query("products")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    for (const product of products) {
-      if (!args.businessId || product.businessId === args.businessId) {
-        await ctx.db.delete(product._id);
-        deletedCount.products++;
-      }
-    }
+    // 🗑️ 1. DELETAR PRODUTOS
+    const products = await ctx.db
+      .query("products")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const product of products) {
+      if (!args.businessId || product.businessId === args.businessId) {
+        await ctx.db.delete(product._id);
+        deletedCount.products++;
+      }
+    }
 
-    // Deletar vendas
-    const sales = await ctx.db
-      .query("sales")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    for (const sale of sales) {
-      if (!args.businessId || sale.businessId === args.businessId) {
-        await ctx.db.delete(sale._id);
-        deletedCount.sales++;
-      }
-    }
+    // 🗑️ 2. DELETAR VENDAS (SEM RESTAURAR ESTOQUE, POIS PRODUTOS JÁ FORAM DELETADOS)
+    const sales = await ctx.db
+      .query("sales")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const sale of sales) {
+      if (!args.businessId || sale.businessId === args.businessId) {
+        await ctx.db.delete(sale._id);
+        deletedCount.sales++;
+      }
+    }
 
-    // Deletar gastos
-    const expenses = await ctx.db
-      .query("expenses")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    for (const expense of expenses) {
-      if (!args.businessId || expense.businessId === args.businessId) {
-        await ctx.db.delete(expense._id);
-        deletedCount.expenses++;
-      }
-    }
+    // 🗑️ 3. DELETAR GASTOS
+    const expenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const expense of expenses) {
+      if (!args.businessId || expense.businessId === args.businessId) {
+        await ctx.db.delete(expense._id);
+        deletedCount.expenses++;
+      }
+    }
 
-    // Deletar relatórios
-    const reports = await ctx.db
-      .query("monthlyReports")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    for (const report of reports) {
-      if (!args.businessId || report.businessId === args.businessId) {
-        await ctx.db.delete(report._id);
-        deletedCount.reports++;
-      }
-    }
+    // 🗑️ 4. DELETAR RELATÓRIOS MENSAIS
+    const reports = await ctx.db
+      .query("monthlyReports")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const report of reports) {
+      if (!args.businessId || report.businessId === args.businessId) {
+        await ctx.db.delete(report._id);
+        deletedCount.reports++;
+      }
+    }
 
-    // Deletar clientes
-    const customers = await ctx.db
-      .query("customers")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    for (const customer of customers) {
-      if (!args.businessId || customer.businessId === args.businessId) {
-        await ctx.db.delete(customer._id);
-        deletedCount.customers++;
-      }
-    }
+    // 🗑️ 5. DELETAR CLIENTES
+    const customers = await ctx.db
+      .query("customers")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const customer of customers) {
+      if (!args.businessId || customer.businessId === args.businessId) {
+        await ctx.db.delete(customer._id);
+        deletedCount.customers++;
+      }
+    }
 
-    // Deletar fornecedores
-    const suppliers = await ctx.db
-      .query("suppliers")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    for (const supplier of suppliers) {
-      if (!args.businessId || supplier.businessId === args.businessId) {
-        await ctx.db.delete(supplier._id);
-        deletedCount.suppliers++;
-      }
-    }
+    // 🗑️ 6. DELETAR FORNECEDORES
+    const suppliers = await ctx.db
+      .query("suppliers")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const supplier of suppliers) {
+      if (!args.businessId || supplier.businessId === args.businessId) {
+        await ctx.db.delete(supplier._id);
+        deletedCount.suppliers++;
+      }
+    }
 
-    // Deletar metas
-    const goals = await ctx.db
-      .query("financialGoals")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    for (const goal of goals) {
-      if (!args.businessId || goal.businessId === args.businessId) {
-        await ctx.db.delete(goal._id);
-        deletedCount.goals++;
-      }
-    }
+    // 🗑️ 7. DELETAR METAS
+    const goals = await ctx.db
+      .query("financialGoals")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const goal of goals) {
+      if (!args.businessId || goal.businessId === args.businessId) {
+        await ctx.db.delete(goal._id);
+        deletedCount.goals++;
+      }
+    }
 
-    // ✅ [INÍCIO DA CORREÇÃO] DELETAR DADOS DO MODO RÁPIDO
-    const summaries = await ctx.db
-      .query("dailySummaries")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    for (const summary of summaries) {
-      if (!args.businessId || summary.businessId === args.businessId) {
-        await ctx.db.delete(summary._id);
-        deletedCount.dailySummaries++;
-      }
-    }
+    // 🗑️ 8. DELETAR RESUMOS DIÁRIOS
+    const summaries = await ctx.db
+      .query("dailySummaries")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const summary of summaries) {
+      if (!args.businessId || summary.businessId === args.businessId) {
+        await ctx.db.delete(summary._id);
+        deletedCount.dailySummaries++;
+      }
+    }
 
-    const cashFlows = await ctx.db
-      .query("cashFlow")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    for (const flow of cashFlows) {
-      if (!args.businessId || flow.businessId === args.businessId) {
-        await ctx.db.delete(flow._id);
-        deletedCount.cashFlow++;
-      }
-    }
-    // ✅ [FIM DA CORREÇÃO]
+    // 🗑️ 9. DELETAR CASH FLOW
+    const cashFlows = await ctx.db
+      .query("cashFlow")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const flow of cashFlows) {
+      if (!args.businessId || flow.businessId === args.businessId) {
+        await ctx.db.delete(flow._id);
+        deletedCount.cashFlow++;
+      }
+    }
 
-    return {
-      success: true,
-      ...deletedCount,
-    };
-  },
+    // 🗑️ 10. DELETAR ALERTAS
+    const alerts = await ctx.db
+      .query("alerts")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const alert of alerts) {
+      if (!args.businessId || alert.businessId === args.businessId) {
+        await ctx.db.delete(alert._id);
+        deletedCount.alerts++;
+      }
+    }
+
+    // 🗑️ 11. DELETAR EXPORTAÇÕES
+    const exports = await ctx.db
+      .query("exports")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+    for (const exportRecord of exports) {
+      if (!args.businessId || exportRecord.businessId === args.businessId) {
+        await ctx.db.delete(exportRecord._id);
+        deletedCount.exports++;
+      }
+    }
+
+    // 🎮 12. RESETAR GAMIFICATION (SE NÃO FOR BUSINESS ESPECÍFICO)
+    if (!args.businessId) {
+      await ctx.scheduler.runAfter(0, internal.gamification.resetUserStats, {
+        userId: identity.subject,
+      });
+    }
+
+    return {
+      success: true,
+      ...deletedCount,
+      message: "Todos os dados foram deletados com sucesso!",
+    };
+  },
 });
 
 // =================================================================
@@ -1438,7 +1624,9 @@ export const deleteSale = mutation({
       throw new Error("Você não tem permissão para deletar esta venda.");
     }
 
-    // ✅ RESTAURAR ESTOQUE E ATUALIZAR ESTATÍSTICAS DO PRODUTO
+    const month = sale.month || sale.date.substring(0, 7);
+
+    // ✅ 1. RESTAURAR ESTOQUE E ESTATÍSTICAS DO PRODUTO
     if (sale.productId) {
       const product = await ctx.db.get(sale.productId);
       if (product && product.stock !== undefined) {
@@ -1452,7 +1640,7 @@ export const deleteSale = mutation({
       }
     }
 
-    // ✅ ATUALIZAR CLIENTE (se houver)
+    // ✅ 2. ATUALIZAR DADOS DO CLIENTE
     if (sale.customerId) {
       const customer = await ctx.db.get(sale.customerId);
       if (customer) {
@@ -1464,7 +1652,27 @@ export const deleteSale = mutation({
       }
     }
 
-    // Soft delete ou permanent
+    // ✅ 3. DELETAR CASH FLOW RELACIONADO
+    const cashFlows = await ctx.db
+      .query("cashFlow")
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", identity.subject).eq("date", sale.date)
+      )
+      .collect();
+
+    for (const flow of cashFlows) {
+      // Verificar se é o cash flow desta venda
+      if (
+        flow.type === "in" &&
+        Math.abs(flow.amount - sale.totalRevenue) < 0.01 &&
+        (!sale.businessId || flow.businessId === sale.businessId)
+      ) {
+        await ctx.db.delete(flow._id);
+        break; // Deletar apenas um cash flow correspondente
+      }
+    }
+
+    // ✅ 4. BACKUP (SOFT DELETE) SE NÃO FOR PERMANENTE
     if (!args.permanent) {
       await ctx.db.insert("deletedRecords", {
         userId: identity.subject,
@@ -1476,12 +1684,27 @@ export const deleteSale = mutation({
       });
     }
 
+    // ✅ 5. DELETAR A VENDA
     await ctx.db.delete(args.id);
 
-    // ✅ REVERTER STREAK E XP QUANDO VENDA É REMOVIDA
+    // ✅ 6. REVERTER GAMIFICATION
     await ctx.scheduler.runAfter(0, internal.gamification.revertActivityStreak, {
       userId: identity.subject,
       saleDate: sale.date,
+    });
+
+    // ✅ 7. ATUALIZAR RESUMO DIÁRIO
+    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
+      userId: identity.subject,
+      date: sale.date,
+      businessId: sale.businessId,
+    });
+
+    // ✅ 8. REGENERAR RELATÓRIO MENSAL
+    await ctx.scheduler.runAfter(500, internal.profitCalculator.regenerateMonthlyReport, {
+      userId: identity.subject,
+      month: month,
+      businessId: sale.businessId,
     });
 
     return { success: true };
@@ -2120,7 +2343,7 @@ export const generateMonthlyReport = action({
     if (!identity) throw new Error("Faça login para continuar");
 
     try {
-      // Buscar vendas
+      // 🔍 BUSCAR VENDAS DO MÊS
       const sales: Doc<"sales">[] = await ctx.runQuery(
         api.profitCalculator.getSalesByMonth,
         {
@@ -2129,7 +2352,7 @@ export const generateMonthlyReport = action({
         }
       );
 
-      // Buscar gastos
+      // 🔍 BUSCAR GASTOS DO MÊS
       const expenses: Doc<"expenses">[] = await ctx.runQuery(
         api.profitCalculator.getExpensesByMonth,
         {
@@ -2138,18 +2361,14 @@ export const generateMonthlyReport = action({
         }
       );
 
-      // ✅ VALIDAR SE HÁ DADOS
-      if (sales.length === 0 && expenses.length === 0) {
-        throw new Error("Nenhum dado encontrado para este mês");
-      }
-
-      // Calcular totais de vendas
+      // ✅ PERMITIR RELATÓRIO VAZIO (PARA RESET CORRETO)
+      // Se não há dados, criar relatório zerado
       const totalSales = sales.reduce((sum, s) => sum + s.quantity, 0);
       const totalRevenue = sales.reduce((sum, s) => sum + s.totalRevenue, 0);
       const totalCost = sales.reduce((sum, s) => sum + s.totalCost, 0);
       const grossProfit = totalRevenue - totalCost;
 
-      // Calcular totais de gastos
+      // 💸 CALCULAR TOTAIS DE GASTOS
       const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
       const fixedExpenses = expenses
         .filter((e) => e.type === "fixed")
@@ -2158,7 +2377,7 @@ export const generateMonthlyReport = action({
         .filter((e) => e.type === "variable")
         .reduce((sum, e) => sum + e.amount, 0);
 
-      // Gastos por categoria
+      // 📊 GASTOS POR CATEGORIA
       const expensesByCategory: {
         aluguel?: number;
         luz_agua?: number;
@@ -2172,8 +2391,13 @@ export const generateMonthlyReport = action({
       } = {};
 
       expenses.forEach((expense) => {
-        const category = expense.categoryName.toLowerCase();
-        if (category in expensesByCategory) {
+        const category = expense.categoryName.toLowerCase().replace(/[\s\/]/g, "_");
+        const validCategories = [
+          "aluguel", "luz_agua", "internet", "transporte",
+          "alimentacao", "marketing", "materiais", "funcionarios"
+        ];
+
+        if (validCategories.includes(category)) {
           expensesByCategory[category as keyof typeof expensesByCategory] =
             (expensesByCategory[category as keyof typeof expensesByCategory] || 0) + expense.amount;
         } else {
@@ -2181,15 +2405,13 @@ export const generateMonthlyReport = action({
         }
       });
 
-      // Lucro
+      // 💰 CALCULAR LUCRO
       const netProfit = grossProfit - totalExpenses;
       const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
-      // Top produtos
-      const productsMap = new Map<
-        string,
-        { name: string; quantity: number; revenue: number; profit: number }
-      >();
+      // ⭐ TOP PRODUTOS
+      const productsMap = new Map<string, { name: string; quantity: number; revenue: number; profit: number }>();
+
       sales.forEach((sale) => {
         const productId = sale.productId || sale._id;
         const existing = productsMap.get(productId) || {
@@ -2205,6 +2427,7 @@ export const generateMonthlyReport = action({
           profit: existing.profit + sale.profit,
         });
       });
+
       const topProducts = Array.from(productsMap.entries())
         .map(([id, { name: productName, ...rest }]) => ({
           productId: id,
@@ -2214,19 +2437,23 @@ export const generateMonthlyReport = action({
         .sort((a, b) => b.profit - a.profit)
         .slice(0, 10);
 
-      // ✅ DELETAR RELATÓRIO ANTIGO ANTES DE CRIAR NOVO
-      const existingReport = await ctx.runQuery(
-        api.profitCalculator.getMonthlyReport,
-        { month: args.month, businessId: args.businessId }
+      // 🗑️ DELETAR TODOS OS RELATÓRIOS ANTIGOS DESTE MÊS
+      const existingReports = await ctx.runQuery(
+        api.profitCalculator.getAllMonths,
+        { businessId: args.businessId }
       );
 
-      if (existingReport) {
-        await ctx.runMutation(internal.profitCalculator.deleteReport, {
-          reportId: existingReport._id,
-        });
+      for (const report of existingReports) {
+        if (report.month === args.month) {
+          if (!args.businessId || report.businessId === args.businessId) {
+            await ctx.runMutation(internal.profitCalculator.deleteReport, {
+              reportId: report._id,
+            });
+          }
+        }
       }
 
-      // Salvar novo relatório
+      // ✅ CRIAR NOVO RELATÓRIO
       await ctx.runMutation(api.profitCalculator.createMonthlyReport, {
         month: args.month,
         businessId: args.businessId,
@@ -2246,6 +2473,12 @@ export const generateMonthlyReport = action({
       return {
         success: true,
         message: `Relatório de ${args.month} gerado com sucesso!`,
+        data: {
+          totalSales,
+          totalRevenue,
+          netProfit,
+          profitMargin,
+        },
       };
     } catch (error) {
       console.error("Erro ao gerar relatório:", error);

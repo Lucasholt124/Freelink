@@ -575,22 +575,42 @@ const handleEditProduct = async () => {
 };
 
 const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
-      try {
-        const result = await deleteProduct({ id, permanent });
-        confetti({ particleCount: 50, angle: 60, spread: 55, origin: { x: 0 }, colors: ["#EF4444", "#F97316"] });
-        toast.success(`✅ Produto ${permanent ? "deletado" : "desativado"}! ${result.deletedSales ? `${result.deletedSales} vendas removidas` : ""}. Atualizando painel...`);
-       
-        // ✅ CORREÇÃO CRÍTICA: Recarregar o painel para refletir a regeneração assíncrona
-        // Isso garante que o dashboard e relatórios carreguem os dados corrigidos.
-        setTimeout(() => {
-          window.location.reload();
-        }, 1500); // Dá um pequeno tempo para o Convex processar a regeneração
-       
-      } catch (error) {
-        toast.error("❌ Erro ao deletar produto");
-        console.error(error);
-      }
-    };
+  // ✅ CONFIRMAÇÃO ANTES DE DELETAR
+  const product = products.find((p) => p._id === id);
+  if (!product) return;
+
+  const confirmMessage = permanent
+    ? `⚠️ DELETAR PERMANENTEMENTE "${product.name}"?\n\nIsso vai:\n- Deletar o produto\n- Remover TODAS as vendas deste produto\n- Ajustar estoque e relatórios\n\nNÃO PODE SER DESFEITO!`
+    : `Desativar "${product.name}"?\n\nO produto ficará inativo mas os dados serão preservados.`;
+
+  if (!confirm(confirmMessage)) return;
+
+  try {
+    const result = await deleteProduct({ id, permanent });
+
+    confetti({
+      particleCount: 50,
+      angle: 60,
+      spread: 55,
+      origin: { x: 0 },
+      colors: ["#EF4444", "#F97316"]
+    });
+
+    const message = `✅ Produto ${permanent ? "deletado" : "desativado"}!${
+      result.deletedSales ? ` ${result.deletedSales} vendas removidas.` : ""
+    }${result.affectedMonths ? ` ${result.affectedMonths} relatórios atualizados.` : ""}`;
+
+    toast.success(message);
+
+    // ✅ NÃO PRECISA MAIS DE RELOAD!
+    // O Convex atualiza automaticamente através das queries reativas
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+    toast.error(`❌ Erro ao deletar produto: ${errorMessage}`);
+    console.error(error);
+  }
+};
 
   const openEditProduct = (productId: Id<"products">) => {
     const product = products.find((p) => p._id === productId);
@@ -896,79 +916,149 @@ const handleAddExpense = async () => {
     }
   };
 
- const handleQuickSale = async () => {
+ const [isSubmittingQuickSale, setIsSubmittingQuickSale] = useState(false);
+
+const handleQuickSale = async () => {
+  // ✅ VALIDAÇÃO 1: CAMPOS OBRIGATÓRIOS
   if (!quickSaleForm.costPrice || !quickSaleForm.salePrice) {
     toast.error("❌ Preencha o custo E o preço de venda!");
     return;
   }
 
+  // ✅ VALIDAÇÃO 2: CONVERSÃO E VALORES POSITIVOS
   const costPrice = parseFloat(quickSaleForm.costPrice);
   const salePrice = parseFloat(quickSaleForm.salePrice);
+
+  if (isNaN(costPrice) || isNaN(salePrice)) {
+    toast.error("❌ Valores inválidos!");
+    return;
+  }
 
   if (costPrice <= 0 || salePrice <= 0) {
     toast.error("❌ Valores devem ser maiores que zero!");
     return;
   }
 
+  // ✅ VALIDAÇÃO 3: PREÇO DE VENDA MAIOR QUE CUSTO
   if (salePrice <= costPrice) {
     toast.error("⚠️ Preço de venda deve ser maior que o custo!");
     return;
   }
 
+  // ✅ VALIDAÇÃO 4: VALORES MUITO ALTOS (SEGURANÇA)
+  if (costPrice > 1000000 || salePrice > 1000000) {
+    const confirm = window.confirm(
+      `⚠️ Valores muito altos detectados!\n\n` +
+      `Custo: ${formatCurrency(costPrice)}\n` +
+      `Venda: ${formatCurrency(salePrice)}\n\n` +
+      `Confirma estes valores?`
+    );
+    if (!confirm) return;
+  }
+
+  // ✅ VALIDAÇÃO 5: DATA NO FUTURO
+  const saleDate = new Date(quickSaleForm.date);
+  const today = new Date();
+  today.setHours(23, 59, 59, 999);
+
+  if (saleDate > today) {
+    toast.error("❌ Data não pode ser no futuro!");
+    return;
+  }
+
+  setIsSubmittingQuickSale(true);
+
   try {
-    // ✅ SE OFFLINE, SALVAR LOCALMENTE
+    const lucro = salePrice - costPrice;
+    const margem = ((lucro / salePrice) * 100).toFixed(1);
+
+    // ✅ MODO OFFLINE
     if (!navigator.onLine) {
       await offlineManager.saveSaleOffline({
         costPrice,
         salePrice,
-        description: quickSaleForm.description || `Venda rápida - Lucro: ${formatCurrency(salePrice - costPrice)}`,
+        description: quickSaleForm.description || `Venda rápida - Lucro: ${formatCurrency(lucro)}`,
         paymentMethod: quickSaleForm.paymentMethod,
         date: quickSaleForm.date,
       });
 
-      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#FFA500", "#FF6347"] });
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+        colors: ["#FFA500", "#FF6347"]
+      });
 
-      const lucro = salePrice - costPrice;
-      toast.success(`💾 Venda salva offline! Lucro: ${formatCurrency(lucro)}`);
+      toast.success(
+        `💾 Venda salva offline!\n\n` +
+        `💰 Lucro: ${formatCurrency(lucro)}\n` +
+        `📊 Margem: ${margem}%\n\n` +
+        `Será sincronizada quando voltar online.`
+      );
 
       await checkPendingData();
       setShowQuickSale(false);
-      setQuickSaleForm({
-        costPrice: "",
-        salePrice: "",
-        description: "",
-        paymentMethod: "pix",
-        date: new Date().toISOString().split("T")[0],
-      });
+      resetQuickSaleForm();
       return;
     }
 
-    // ✅ SE ONLINE, SALVAR NORMALMENTE
+    // ✅ MODO ONLINE
     await addQuickSale({
       amount: salePrice,
       costPrice: costPrice,
-      description: quickSaleForm.description || `Venda rápida - Lucro: ${formatCurrency(salePrice - costPrice)}`,
+      description: quickSaleForm.description || `Venda rápida - Lucro: ${formatCurrency(lucro)}`,
       paymentMethod: quickSaleForm.paymentMethod,
       date: quickSaleForm.date,
     });
 
-    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6"] });
+    confetti({
+      particleCount: 150,
+      spread: 90,
+      origin: { y: 0.6 },
+      colors: ["#10B981", "#3B82F6", "#8B5CF6"]
+    });
 
-    const lucro = salePrice - costPrice;
-    toast.success(`💰 Venda registrada! Lucro: ${formatCurrency(lucro)}`);
+    toast.success(
+      `🎉 Venda registrada com sucesso!\n\n` +
+      `💰 Lucro: ${formatCurrency(lucro)}\n` +
+      `📊 Margem: ${margem}%\n` +
+      `💳 Pagamento: ${getPaymentMethodLabel(quickSaleForm.paymentMethod)}`
+    );
 
     setShowQuickSale(false);
-    setQuickSaleForm({
-      costPrice: "",
-      salePrice: "",
-      description: "",
-      paymentMethod: "pix",
-      date: new Date().toISOString().split("T")[0],
-    });
+    resetQuickSaleForm();
+
   } catch (error) {
-    toast.error("❌ Erro ao registrar venda");
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+    toast.error(`❌ Erro ao registrar venda: ${errorMessage}`);
     console.error(error);
+  } finally {
+    setIsSubmittingQuickSale(false);
   }
+};
+
+// ✅ FUNÇÃO AUXILIAR PARA RESETAR FORM
+const resetQuickSaleForm = () => {
+  setQuickSaleForm({
+    costPrice: "",
+    salePrice: "",
+    description: "",
+    paymentMethod: "pix",
+    date: new Date().toISOString().split("T")[0],
+  });
+};
+
+// ✅ FUNÇÃO AUXILIAR PARA LABEL DO MÉTODO DE PAGAMENTO
+const getPaymentMethodLabel = (method: string) => {
+  const labels: Record<string, string> = {
+    pix: "PIX",
+    cash: "Dinheiro",
+    credit_card: "Cartão de Crédito",
+    debit_card: "Cartão de Débito",
+    bank_transfer: "Transferência",
+    other: "Outro",
+  };
+  return labels[method] || method;
 };
 
   const handleQuickExpense = async () => {
@@ -1023,42 +1113,131 @@ const handleAddExpense = async () => {
   };
 
   const handleClearMonth = async () => {
-    if (!confirm(`⚠️ Limpar todos os dados do mês ${formatMonthName(selectedMonth)}?\n\nIsso vai deletar:\n- Todas as vendas do mês\n- Todos os gastos do mês\n- O relatório mensal\n\nEsta ação não pode ser desfeita!`)) {
-      return;
-    }
+  const monthName = formatMonthName(selectedMonth);
 
-    try {
-      await clearMonthData({ month: selectedMonth });
-      toast.success(`✅ Mês ${formatMonthName(selectedMonth)} limpo com sucesso!`);
-    } catch (error) {
-      toast.error("❌ Erro ao limpar mês");
-      console.error(error);
-    }
-  };
+  if (!confirm(
+    `⚠️ LIMPAR TODOS OS DADOS DE ${monthName.toUpperCase()}?\n\n` +
+    `Isso vai deletar:\n` +
+    `- Todas as vendas do mês\n` +
+    `- Todos os gastos do mês\n` +
+    `- Resumos diários\n` +
+    `- Cash flow\n` +
+    `- Relatório mensal\n\n` +
+    `⚠️ ESTA AÇÃO NÃO PODE SER DESFEITA!`
+  )) {
+    return;
+  }
+
+  // ✅ CONFIRMAÇÃO DUPLA PARA SEGURANÇA
+  const confirmation = prompt(
+    `Digite "LIMPAR" em letras maiúsculas para confirmar a exclusão de ${monthName}:`
+  );
+
+  if (confirmation !== "LIMPAR") {
+    toast.error("❌ Operação cancelada");
+    return;
+  }
+
+  try {
+    const result = await clearMonthData({ month: selectedMonth });
+
+    confetti({
+      particleCount: 100,
+      spread: 70,
+      origin: { y: 0.6 },
+      colors: ["#EF4444", "#F97316", "#F59E0B"]
+    });
+
+    toast.success(
+      `✅ ${monthName} limpo com sucesso!\n\n` +
+      `📊 ${result.deletedSales} vendas\n` +
+      `💸 ${result.deletedExpenses} gastos\n` +
+      `📅 ${result.deletedSummaries} resumos diários\n` +
+      `💰 ${result.deletedCashFlow} movimentações\n` +
+      `${result.deletedAlerts ? `🔔 ${result.deletedAlerts} alertas` : ""}`
+    );
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+    toast.error(`❌ Erro ao limpar mês: ${errorMessage}`);
+    console.error(error);
+  }
+};
 
   const handleClearAll = async () => {
-    if (!confirm("🚨 PERIGO! Isso vai DELETAR TUDO: produtos, vendas, gastos, clientes, fornecedores, metas e relatórios. IMPOSSÍVEL DESFAZER!")) {
-      return;
-    }
+  // ✅ PRIMEIRA CONFIRMAÇÃO
+  if (!confirm(
+    `🚨 PERIGO EXTREMO!\n\n` +
+    `Isso vai DELETAR PERMANENTEMENTE:\n` +
+    `✖️ Todos os produtos\n` +
+    `✖️ Todas as vendas\n` +
+    `✖️ Todos os gastos\n` +
+    `✖️ Todos os clientes\n` +
+    `✖️ Todos os fornecedores\n` +
+    `✖️ Todas as metas\n` +
+    `✖️ Todos os relatórios\n` +
+    `✖️ Todo o histórico\n\n` +
+    `⚠️ IMPOSSÍVEL DESFAZER!\n\n` +
+    `Tem certeza ABSOLUTA?`
+  )) {
+    return;
+  }
 
-    const confirmation = prompt("Digite 'DELETAR TUDO' em letras maiúsculas:");
-    if (confirmation !== "DELETAR TUDO") {
-      toast.error("❌ Cancelado");
-      return;
-    }
+  // ✅ CONFIRMAÇÃO DUPLA COM TEXTO EXATO
+  const confirmation = prompt(
+    `⚠️ ÚLTIMA CHANCE!\n\n` +
+    `Digite "DELETAR TUDO" em letras maiúsculas para confirmar:`
+  );
 
-    try {
-      const result = await clearAllData({});
-      toast.success(`✅ Tudo deletado! ${result.products} produtos, ${result.sales} vendas, ${result.expenses} gastos removidos.`);
+  if (confirmation !== "DELETAR TUDO") {
+    toast.error("❌ Operação cancelada");
+    return;
+  }
 
-      // ✅ CORREÇÃO: Recarrega a página para limpar o estado do frontend
-      window.location.reload();
+  // ✅ LOADING TOAST
+  const loadingToast = toast.loading("🗑️ Deletando todos os dados...");
 
-    } catch (error) {
-      toast.error("❌ Erro ao limpar tudo");
-      console.error(error);
-    }
-  };
+  try {
+    const result = await clearAllData({});
+
+    // ✅ REMOVER LOADING TOAST
+    toast.dismiss(loadingToast);
+
+    // ✅ CONFETTI DE LIMPEZA
+    confetti({
+      particleCount: 200,
+      spread: 100,
+      origin: { y: 0.6 },
+      colors: ["#EF4444", "#DC2626", "#B91C1C"]
+    });
+
+    // ✅ TOAST DETALHADO COM TODOS OS DADOS
+    toast.success(
+      `✅ TUDO DELETADO COM SUCESSO!\n\n` +
+      `📦 ${result.products} produtos\n` +
+      `🛒 ${result.sales} vendas\n` +
+      `💸 ${result.expenses} gastos\n` +
+      `👥 ${result.customers} clientes\n` +
+      `🚚 ${result.suppliers} fornecedores\n` +
+      `🎯 ${result.goals} metas\n` +
+      `📊 ${result.reports} relatórios\n` +
+      `📅 ${result.dailySummaries} resumos diários\n` +
+      `💰 ${result.cashFlow} movimentações\n` +
+      `🔔 ${result.alerts} alertas\n` +
+      `📤 ${result.exports} exportações\n\n` +
+      `Sistema resetado! Comece do zero agora.`,
+      { duration: 8000 }
+    );
+
+    // ✅ NÃO PRECISA MAIS DE RELOAD!
+    // O Convex atualiza automaticamente tudo
+
+  } catch (error) {
+    toast.dismiss(loadingToast);
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+    toast.error(`❌ Erro ao limpar tudo: ${errorMessage}`);
+    console.error(error);
+  }
+};
 
   const handleRegenerateReport = async () => {
     try {
@@ -1880,37 +2059,36 @@ const handleAddExpense = async () => {
                 size="icon"
                 variant="ghost"
                 className="h-7 w-7 md:h-8 md:w-8 md:opacity-0 md:group-hover:opacity-100 transition-opacity hover:bg-red-100"
-                onClick={async () => {
-                  if (!confirm(`Excluir esta movimentação?\n\n"${flow.description}"\n${formatCurrency(flow.amount)}`)) {
-                    return;
-                  }
+              onClick={async () => {
+  if (!confirm(`❌ Excluir esta movimentação?\n\n"${flow.description}"\n${formatCurrency(flow.amount)}\n\nIsso também vai deletar a venda/gasto relacionado.`)) {
+    return;
+  }
 
-                  try {
-                    const month = flow.date.substring(0, 7);
+  try {
+    await deleteCashFlow({
+      id: flow._id,
+      deleteRelatedRecord: true
+    });
 
-                    // Deletar o cashFlow e registro relacionado automaticamente
-                    await deleteCashFlow({
-                      id: flow._id,
-                      deleteRelatedRecord: true
-                    });
+    confetti({
+      particleCount: 30,
+      angle: 90,
+      spread: 45,
+      origin: { y: 0.6 },
+      colors: ["#EF4444", "#F59E0B"]
+    });
 
-                    // ✅ CORREÇÃO: Aguardar um pouco e regenerar relatório mensal e dashboard
-                    setTimeout(async () => {
-                      try {
-                        await generateReport({ month });
-                        // Força atualização das queries do Convex
-                        window.location.reload();
-                      } catch (error) {
-                        console.error("Erro ao atualizar relatório:", error);
-                      }
-                    }, 500);
+    toast.success("✅ Movimentação excluída! Dashboard e relatórios atualizados automaticamente.");
 
-                    toast.success("✅ Movimentação excluída! Atualizando dados...");
-                  } catch (error) {
-                    toast.error("❌ Erro ao excluir");
-                    console.error(error);
-                  }
-                }}
+    // ✅ NÃO PRECISA MAIS DE RELOAD NEM REGENERAR MANUALMENTE!
+    // O backend já agenda a regeneração automática
+
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
+    toast.error(`❌ Erro ao excluir: ${errorMessage}`);
+    console.error(error);
+  }
+}}
               >
                 <Trash2 className="w-3 h-3 md:w-4 md:h-4 text-red-500" />
               </Button>
@@ -2604,12 +2782,20 @@ const handleAddExpense = async () => {
               </Button>
               <Button
                 onClick={handleQuickSale}
-                className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto"
-                disabled={!isValidQuickSale}
+                className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto disabled:opacity-50"
+                disabled={!isValidQuickSale || isSubmittingQuickSale}
               >
-                <Check className="w-4 h-4 mr-2" />
-                Confirmar Venda
-                {quickSaleLucro > 0 && ` (${formatCurrency(quickSaleLucro)})`}
+                {isSubmittingQuickSale ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Salvando...
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-4 h-4 mr-2" />
+                    Confirmar Venda {quickSaleLucro > 0 && ` (${formatCurrency(quickSaleLucro)})`}
+                  </>
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

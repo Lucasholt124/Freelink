@@ -31,6 +31,51 @@ export const initUserStats = mutation({
   },
 });
 
+// convex/gamification.ts
+
+export const resetUserStats = internalMutation({
+  args: {
+    userId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const stats = await ctx.db
+      .query("userStats")
+      .withIndex("by_user", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (stats) {
+      await ctx.db.patch(stats._id, {
+        level: 1,
+        xp: 0,
+        totalSales: 0,
+        totalRevenue: 0,
+        totalProfit: 0, // Agora válido
+        currentStreak: 0, // Corrigido de 'streak'
+        longestStreak: stats.longestStreak, // Preservar o recorde
+        lastActivityDate: new Date().toISOString().split("T")[0], // Corrigido de 'lastSaleDate'
+        badges: [], // Corrigido de 'achievements'
+        updatedAt: Date.now(),
+      });
+    } else {
+      // Se não existe, criar novo zerado
+      await ctx.db.insert("userStats", {
+        userId: args.userId,
+        level: 1,
+        xp: 0,
+        totalSales: 0,
+        totalRevenue: 0,
+        totalProfit: 0, // Agora válido
+        currentStreak: 0, // Corrigido de 'streak'
+        longestStreak: 0,
+        lastActivityDate: new Date().toISOString().split("T")[0],
+        badges: [], // Corrigido de 'achievements'
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      });
+    }
+  },
+});
+
 export const getUserStats = query({
   args: {},
   handler: async (ctx) => {
@@ -270,7 +315,7 @@ export const markAchievementSeen = mutation({
 
 // ✅ FUNÇÃO PARA REVERTER STREAK E XP QUANDO UMA VENDA É REMOVIDA
 export const revertActivityStreak = internalMutation({
-  args: { 
+  args: {
     userId: v.string(),
     saleDate: v.string(), // Data da venda que foi removida
   },
@@ -287,7 +332,7 @@ export const revertActivityStreak = internalMutation({
     // Verificar se ainda há outras vendas no mesmo dia
     const remainingSales = await ctx.db
       .query("sales")
-      .withIndex("by_user_date", (q) => 
+      .withIndex("by_user_date", (q) =>
         q.eq("userId", args.userId).eq("date", args.saleDate)
       )
       .collect();

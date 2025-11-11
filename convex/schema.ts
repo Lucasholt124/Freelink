@@ -886,8 +886,10 @@ export default defineSchema({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
     date: v.string(),
+    totalCost: v.optional(v.number()), // Custo total das vendas
     totalRevenue: v.number(),
     totalExpenses: v.number(),
+    grossProfit: v.optional(v.number()), // Lucro Bruto (Receita - Custo)
     netProfit: v.number(),
     salesCount: v.number(),
     expensesCount: v.number(),
@@ -940,6 +942,7 @@ export default defineSchema({
     longestStreak: v.number(),
     totalSales: v.number(),
     totalRevenue: v.number(),
+    totalProfit: v.optional(v.number()), // ✅ CAMPO ADICIONADO
     level: v.number(),
     xp: v.number(),
     lastActivityDate: v.string(),
