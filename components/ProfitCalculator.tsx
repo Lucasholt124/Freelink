@@ -1006,17 +1006,17 @@ const handleAddExpense = async () => {
           <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl animate-pulse delay-1000" />
         </div>
 
-        <div className="relative max-w-[1600px] mx-auto px-3 md:px-6 py-4 md:py-6">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 md:mb-6">
+        <div className="relative max-w-[1600px] mx-auto px-3 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8">
+          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 md:mb-6 lg:mb-8">
             <div className="flex items-center gap-3">
-              <div className="p-3 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg">
-                <Rocket className="w-6 h-6 md:w-8 md:h-8 text-white" />
+              <div className="p-3 lg:p-4 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg">
+                <Rocket className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-white" />
               </div>
               <div>
-                <h1 className="text-2xl md:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
                   Gestão PRO
                 </h1>
-                <p className="text-xs md:text-sm text-gray-600">Acabou papel e caneta! 🚀</p>
+                <p className="text-xs md:text-sm lg:text-base text-gray-600">Acabou papel e caneta! 🚀</p>
               </div>
             </div>
 
@@ -1083,24 +1083,24 @@ const handleAddExpense = async () => {
             </div>
           </div>
 
-          <Card className="p-3 md:p-4 bg-white/90 backdrop-blur-xl border-2 mb-4 md:mb-6 shadow-lg">
+          <Card className="p-3 md:p-4 lg:p-5 bg-white/90 backdrop-blur-xl border-2 mb-4 md:mb-6 lg:mb-8 shadow-lg">
             <div className="flex items-center justify-between gap-4">
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => navigateMonth("prev")}
-                className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full hover:bg-blue-50"
+                className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 rounded-full hover:bg-blue-50 transition-all"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-5 h-5 lg:w-6 lg:h-6" />
               </Button>
 
               <div className="flex-1 text-center">
-                <div className="flex items-center justify-center gap-2">
-                  <Calendar className="w-4 h-4 md:w-5 md:h-5 text-blue-600" />
-                  <h2 className="text-base md:text-xl font-bold capitalize">{getCurrentMonthName()}</h2>
+                <div className="flex items-center justify-center gap-2 lg:gap-3">
+                  <Calendar className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-blue-600" />
+                  <h2 className="text-base md:text-xl lg:text-2xl font-bold capitalize">{getCurrentMonthName()}</h2>
                 </div>
                 {allMonths.length > 0 && (
-                  <p className="text-[10px] md:text-xs text-gray-500 mt-1">
+                  <p className="text-[10px] md:text-xs lg:text-sm text-gray-500 mt-1">
                     {allMonths.length} {allMonths.length === 1 ? "mês" : "meses"} registrados
                   </p>
                 )}
@@ -1110,9 +1110,9 @@ const handleAddExpense = async () => {
                 variant="outline"
                 size="sm"
                 onClick={() => navigateMonth("next")}
-                className="h-9 w-9 md:h-10 md:w-10 shrink-0 rounded-full hover:bg-blue-50"
+                className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 rounded-full hover:bg-blue-50 transition-all"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-5 h-5 lg:w-6 lg:h-6" />
               </Button>
             </div>
           </Card>
@@ -1121,17 +1121,17 @@ const handleAddExpense = async () => {
           <GamificationBar />
 
           {dailySummary && (
-  <Card className="p-4 md:p-6 mb-4 md:mb-6 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 border-2 border-emerald-200/50 shadow-xl hover:shadow-2xl transition-shadow">
+  <Card className="p-4 md:p-6 lg:p-8 mb-4 md:mb-6 lg:mb-8 bg-gradient-to-br from-emerald-500/10 via-blue-500/10 to-purple-500/10 border-2 border-emerald-200/50 shadow-xl hover:shadow-2xl transition-shadow">
     {/* Header */}
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mb-4">
-      <div className="flex items-center gap-2 md:gap-3">
-        <div className="p-2 md:p-2.5 bg-emerald-600 rounded-xl shadow-lg">
-          <Zap className="w-4 h-4 md:w-5 md:h-5 text-white" />
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 lg:gap-4 mb-4 lg:mb-6">
+      <div className="flex items-center gap-2 md:gap-3 lg:gap-4">
+        <div className="p-2 md:p-2.5 lg:p-3 bg-emerald-600 rounded-xl shadow-lg">
+          <Zap className="w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 text-white" />
         </div>
         <div>
-          <h3 className="font-bold text-base md:text-lg">Resumo de Hoje</h3>
-          <p className="text-[10px] md:text-xs text-gray-600 flex items-center gap-1">
-            <Calendar className="w-3 h-3" />
+          <h3 className="font-bold text-base md:text-lg lg:text-xl">Resumo de Hoje</h3>
+          <p className="text-[10px] md:text-xs lg:text-sm text-gray-600 flex items-center gap-1">
+            <Calendar className="w-3 h-3 lg:w-4 lg:h-4" />
             {new Date().toLocaleDateString("pt-BR", {
               weekday: 'short',
               day: '2-digit',
@@ -1144,28 +1144,28 @@ const handleAddExpense = async () => {
       <Button
         size="sm"
         onClick={() => setActiveTab("rapido")}
-        className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto shadow-lg hover:shadow-xl transition-all"
+        className="bg-emerald-600 hover:bg-emerald-700 w-full sm:w-auto lg:px-6 lg:py-3 shadow-lg hover:shadow-xl transition-all text-sm lg:text-base"
       >
-        <Zap className="w-4 h-4 mr-2" />
+        <Zap className="w-4 h-4 lg:w-5 lg:h-5 mr-2" />
         Modo Rápido
       </Button>
     </div>
 
     {/* Cards de Resumo */}
-    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 lg:gap-6">
       {/* 💰 VENDAS */}
-      <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 text-center hover:bg-white hover:shadow-lg transition-all group cursor-pointer border border-emerald-100">
-        <div className="flex items-center justify-center gap-2 mb-2">
-          <div className="p-1.5 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
-            <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 text-emerald-600" />
+      <div className="bg-white/80 backdrop-blur-sm rounded-xl p-3 md:p-4 lg:p-5 text-center hover:bg-white hover:shadow-lg transition-all group cursor-pointer border border-emerald-100">
+        <div className="flex items-center justify-center gap-2 lg:gap-3 mb-2 lg:mb-3">
+          <div className="p-1.5 lg:p-2 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
+            <ArrowUpRight className="w-3 h-3 md:w-4 md:h-4 lg:w-5 lg:h-5 text-emerald-600" />
           </div>
-          <p className="text-xs md:text-sm text-gray-600 font-medium">Vendas</p>
+          <p className="text-xs md:text-sm lg:text-base text-gray-600 font-medium">Vendas</p>
         </div>
-        <p className="text-xl md:text-2xl lg:text-3xl font-black text-emerald-600 group-hover:scale-110 transition-transform">
+        <p className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-black text-emerald-600 group-hover:scale-110 transition-transform">
           {formatCurrency(dailySummary.totalRevenue)}
         </p>
-        <div className="flex items-center justify-center gap-1 mt-2">
-          <Badge variant="secondary" className="text-[10px] md:text-xs">
+        <div className="flex items-center justify-center gap-1 mt-2 lg:mt-3">
+          <Badge variant="secondary" className="text-[10px] md:text-xs lg:text-sm">
             {dailySummary.salesCount} {dailySummary.salesCount === 1 ? 'venda' : 'vendas'}
           </Badge>
         </div>
@@ -1412,43 +1412,43 @@ const handleAddExpense = async () => {
                   <p className="text-gray-500">Carregando dashboard...</p>
                 </Card>
               ) : (
-                <div className="space-y-4 md:space-y-6">
-                  <div className="grid md:grid-cols-3 gap-4 md:gap-6">
-                    <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
-                      <h3 className="font-bold mb-4 flex items-center gap-2">
-                        <div className="p-2 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
-                          <DollarSign className="w-5 h-5 text-blue-600" />
+                <div className="space-y-4 md:space-y-6 lg:space-y-8">
+                  <div className="grid md:grid-cols-3 gap-4 md:gap-6 lg:gap-8">
+                    <Card className="p-4 md:p-6 lg:p-8 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
+                      <h3 className="font-bold mb-4 lg:mb-6 flex items-center gap-2 lg:gap-3">
+                        <div className="p-2 lg:p-3 bg-blue-100 rounded-lg group-hover:bg-blue-200 transition-colors">
+                          <DollarSign className="w-5 h-5 lg:w-6 lg:h-6 text-blue-600" />
                         </div>
-                        Receita Total
+                        <span className="text-sm md:text-base lg:text-lg">Receita Total</span>
                       </h3>
-                      <p className="text-3xl md:text-4xl font-black text-blue-600">
+                      <p className="text-3xl md:text-4xl lg:text-5xl font-black text-blue-600">
                         {formatCurrency(dashboard.overview.totalRevenue)}
                       </p>
-                      <p className="text-sm text-gray-600 mt-2">{dashboard.overview.totalSales} vendas</p>
+                      <p className="text-sm lg:text-base text-gray-600 mt-2 lg:mt-3">{dashboard.overview.totalSales} vendas</p>
                     </Card>
 
-                    <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
-                      <h3 className="font-bold mb-4 flex items-center gap-2">
-                        <div className="p-2 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
-                          <TrendingUp className="w-5 h-5 text-emerald-600" />
+                    <Card className="p-4 md:p-6 lg:p-8 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
+                      <h3 className="font-bold mb-4 lg:mb-6 flex items-center gap-2 lg:gap-3">
+                        <div className="p-2 lg:p-3 bg-emerald-100 rounded-lg group-hover:bg-emerald-200 transition-colors">
+                          <TrendingUp className="w-5 h-5 lg:w-6 lg:h-6 text-emerald-600" />
                         </div>
-                        Lucro Líquido
+                        <span className="text-sm md:text-base lg:text-lg">Lucro Líquido</span>
                       </h3>
-                      <p className={`text-3xl md:text-4xl font-black ${dashboard.overview.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                      <p className={`text-3xl md:text-4xl lg:text-5xl font-black ${dashboard.overview.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                         {formatCurrency(dashboard.overview.netProfit)}
                       </p>
-                      <p className="text-sm text-gray-600 mt-2">Margem: {dashboard.overview.profitMargin.toFixed(1)}%</p>
+                      <p className="text-sm lg:text-base text-gray-600 mt-2 lg:mt-3">Margem: {dashboard.overview.profitMargin.toFixed(1)}%</p>
                     </Card>
 
-                    <Card className="p-4 md:p-6 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
-                      <h3 className="font-bold mb-4 flex items-center gap-2">
-                        <div className="p-2 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
-                          <Package className="w-5 h-5 text-purple-600" />
+                    <Card className="p-4 md:p-6 lg:p-8 hover:shadow-2xl transition-all group bg-white/80 backdrop-blur-sm">
+                      <h3 className="font-bold mb-4 lg:mb-6 flex items-center gap-2 lg:gap-3">
+                        <div className="p-2 lg:p-3 bg-purple-100 rounded-lg group-hover:bg-purple-200 transition-colors">
+                          <Package className="w-5 h-5 lg:w-6 lg:h-6 text-purple-600" />
                         </div>
-                        Produtos
+                        <span className="text-sm md:text-base lg:text-lg">Produtos</span>
                       </h3>
-                      <p className="text-3xl md:text-4xl font-black text-purple-600">{dashboard.products.total}</p>
-                      <p className="text-sm text-gray-600 mt-2">
+                      <p className="text-3xl md:text-4xl lg:text-5xl font-black text-purple-600">{dashboard.products.total}</p>
+                      <p className="text-sm lg:text-base text-gray-600 mt-2 lg:mt-3">
                         {dashboard.products.lowStock > 0 && `⚠️ ${dashboard.products.lowStock} com estoque baixo`}
                       </p>
                     </Card>
@@ -1619,6 +1619,10 @@ const handleAddExpense = async () => {
                       id: flow._id,
                       deleteRelatedRecord: true
                     });
+
+                    // ✅ CORREÇÃO: Regenerar relatório mensal após exclusão
+                    const month = flow.date.substring(0, 7);
+                    await generateReport({ month });
 
                     toast.success("✅ Movimentação excluída!");
                   } catch (error) {

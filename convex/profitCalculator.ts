@@ -1,5 +1,5 @@
 // convex/profitCalculator.ts
-import { action, mutation, query, internalMutation } from "./_generated/server";
+import { action, mutation, query, internalMutation, internalAction } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
@@ -1098,10 +1098,20 @@ export const deleteCashFlow = mutation({
     // Deletar cashFlow
     await ctx.db.delete(args.id);
 
+    const month = flow.date.substring(0, 7);
+
     // Atualizar resumo diário
     await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
       userId: identity.subject,
       date: flow.date,
+      businessId: flow.businessId,
+    });
+
+    // ✅ CORREÇÃO: Atualizar relatório mensal após deletar movimentação
+    // Usa scheduler para chamar a action que regenera o relatório
+    await ctx.scheduler.runAfter(0, internal.profitCalculator.regenerateMonthlyReport, {
+      userId: identity.subject,
+      month: month,
       businessId: flow.businessId,
     });
 
@@ -2231,6 +2241,22 @@ export const generateMonthlyReport = action({
         message: error instanceof Error ? error.message : "Erro ao gerar relatório",
       };
     }
+  },
+});
+
+// ✅ INTERNAL ACTION PARA REGENERAR RELATÓRIO MENSAL
+export const regenerateMonthlyReport = internalAction({
+  args: {
+    userId: v.string(),
+    month: v.string(),
+    businessId: v.optional(v.id("businesses")),
+  },
+  handler: async (ctx, args) => {
+    // Chama a action generateMonthlyReport
+    await ctx.runAction(api.profitCalculator.generateMonthlyReport, {
+      month: args.month,
+      businessId: args.businessId,
+    });
   },
 });
 
