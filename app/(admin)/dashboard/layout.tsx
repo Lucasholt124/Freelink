@@ -453,7 +453,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
   const pathname = usePathname();
-  const [userPlan, setUserPlan] = useState<PlanType>("free");
+  const [userPlan] = useState<PlanType>("free");
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState<boolean>(true);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
@@ -570,21 +570,29 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const unreadNotificationsCount = userNotifications.filter(n => !n.isRead).length;
 
-  useEffect(() => {
-    const checkSubscription = async () => {
-      try {
-        const res = await fetch("/api/subscription-plan");
-        if (res.ok) {
-          const data = await res.json();
-          setUserPlan(data.plan || "free");
-        }
-      } catch (error) {
-        console.error("Erro ao verificar plano:", error);
-      }
-    };
-    checkSubscription();
+  // Adicionar polling para atualizar notificações
+useEffect(() => {
+  fetchNotifications();
+
+  // ✅ NOVO: Buscar notificações a cada 30s
+  const interval = setInterval(() => {
     fetchNotifications();
-  }, []);
+  }, 30000);
+
+  return () => clearInterval(interval);
+}, []);
+
+// OU usar Server-Sent Events (melhor)
+useEffect(() => {
+  const eventSource = new EventSource('/api/notifications/stream');
+
+  eventSource.onmessage = (event) => {
+    const notification = JSON.parse(event.data);
+    setUserNotifications(prev => [notification, ...prev]);
+  };
+
+  return () => eventSource.close();
+}, []);
 
   useEffect(() => {
     setIsSidebarOpen(false);
@@ -917,8 +925,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     initial={{ width: 0, opacity: 0 }}
                     animate={{ width: "auto", opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
-                    className="absolute left-0 right-0 top-0 h-full bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl z-20 flex items-center px-4 md:static md:w-96"
-                  >
+
+  className="absolute left-0 right-0 top-0 h-full bg-white/98 dark:bg-slate-800/98 backdrop-blur-xl supports-[backdrop-filter]:bg-white/95 z-20"
+>
                     <div className="w-full relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                       <Input

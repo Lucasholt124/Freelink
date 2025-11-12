@@ -30,7 +30,7 @@ export default function CustomizationForm() {
     accentColor: "#6366f1",
   });
 
-  const [bioError, setBioError] = useState("");
+  const [bioError] = useState("");
 
   const [backgroundConfig, setBackgroundConfig] = useState({
     type: "color" as "color" | "gradient" | "image",
@@ -47,37 +47,43 @@ export default function CustomizationForm() {
   const [isUploadingBg, startUploadingBg] = useTransition();
 
   // Lista de termos proibidos/genéricos
-  const forbiddenPhrases = [
-    "bem vindo",
-    "bem-vindo",
-    "perfil oficial",
-    "!!!",
-    "clique aqui",
-    "link na bio"
-  ];
+  // NOVA VERSÃO (avisos ao invés de erros)
+const genericPhrases = [
+  "bem vindo", "bem-vindo", "perfil oficial", "clique aqui", "link na bio"
+];
 
-  const validateBio = (text: string): boolean => {
-    if (!text.trim()) {
-      setBioError("A descrição é obrigatória");
-      return false;
+interface BioValidation {
+  error?: string;
+  warning?: string;
+  isValid: boolean;
+}
+
+const validateBio = (text: string): BioValidation => {
+  if (!text.trim()) {
+    return { error: "A descrição é obrigatória", isValid: false };
+  }
+
+  if (text.length < 20) {
+    return { error: `Faltam ${20 - text.length} caracteres`, isValid: false };
+  }
+
+  if (text.length > 160) {
+    return { error: "Máximo de 160 caracteres", isValid: false };
+  }
+
+  // ✅ NOVO: Avisos sem bloquear
+  const lowerText = text.toLowerCase();
+  for (const phrase of genericPhrases) {
+    if (lowerText.includes(phrase)) {
+      return {
+        warning: `💡 Dica: Evite "${phrase}". Seja mais específico sobre o que você faz!`,
+        isValid: true
+      };
     }
+  }
 
-    if (text.length < 20) {
-      setBioError("Mínimo de 20 caracteres");
-      return false;
-    }
-
-    const lowerText = text.toLowerCase();
-    for (const phrase of forbiddenPhrases) {
-      if (lowerText.includes(phrase)) {
-        setBioError(`Evite frases genéricas como "${phrase}"`);
-        return false;
-      }
-    }
-
-    setBioError("");
-    return true;
-  };
+  return { isValid: true };
+};
 
   useEffect(() => {
     if (existingCustomizations) {

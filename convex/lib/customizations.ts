@@ -171,22 +171,6 @@ export const updateCustomizations = mutation({
         throw new Error("A descrição deve ter no máximo 160 caracteres");
       }
 
-      // Lista de termos proibidos (case insensitive)
-      const forbiddenPhrases = [
-        "bem vindo",
-        "bem-vindo",
-        "perfil oficial",
-        "clique aqui",
-        "link na bio"
-      ];
-
-      const lowerDescription = trimmedDescription.toLowerCase();
-      for (const phrase of forbiddenPhrases) {
-        if (lowerDescription.includes(phrase)) {
-          throw new Error(`Evite frases genéticas como "${phrase}". Seja mais específico sobre sua proposta de valor.`);
-        }
-      }
-
       // Verifica excesso de exclamações
       const exclamationCount = (trimmedDescription.match(/!/g) || []).length;
       if (exclamationCount > 2) {
