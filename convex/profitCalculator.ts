@@ -222,17 +222,24 @@ export const getDailySummary = query({
       ? expenses.filter((e) => e.businessId === args.businessId)
       : expenses;
 
+    // ✅ CÁLCULO CORRETO: Receita - Custo - Gastos = Lucro Líquido
     const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalRevenue, 0);
+    const totalCost = filteredSales.reduce((sum, s) => sum + s.totalCost, 0);
     const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const netProfit = totalRevenue - totalExpenses;
+    const grossProfit = totalRevenue - totalCost;// Lucro Bruto
+    const netProfit = grossProfit - totalExpenses;
+
+     // Lucro Líquido
 
     return {
       userId: identity.subject,
       businessId: args.businessId,
       date: today,
       totalRevenue,
+      totalCost, // ✅ ADICIONADO
+      grossProfit, // ✅ ADICIONADO
       totalExpenses,
-      netProfit,
+      netProfit, // ✅ AGORA ESTÁ CORRETO
       salesCount: filteredSales.length,
       expensesCount: filteredExpenses.length,
       createdAt: Date.now(),

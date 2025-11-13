@@ -20,6 +20,31 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { usePushNotifications } from "@/app/hooks/usePushNotifications";
 import { useAuth } from "@clerk/clerk-react";
 
+
+// ✅ ADICIONAR APÓS OS IMPORTS:
+const Z_INDEX = {
+  base: 0,
+  dropdown: 10,
+  sticky: 20,
+  overlay: 30,
+  modal: 40,
+  popover: 50,
+  notification: 60,
+  tooltip: 70,
+  toast: 80,
+  max: 999,
+} as const;
+
+const DASHBOARD_CONFIG = {
+  NOTIFICATION_POLL_INTERVAL: 30000,
+  SEARCH_DEBOUNCE_DELAY: 300,
+  ANIMATION_DURATION: 500,
+  TOAST_DURATION: 4000,
+  MAX_NOTIFICATIONS: 50,
+  PUSH_PROMPT_DELAY: 5000,
+  MAX_SEARCH_RESULTS: 10,
+} as const;
+
 export interface NavSubItem {
   href: string;
   label: string;
@@ -123,6 +148,8 @@ const searchableItemsMap: { [key: string]: ForwardRefExoticComponent<Omit<Lucide
   "/dashboard/links": LayoutGrid,
   "/dashboard/mentor-ia": Wand2,
   "/dashboard/brain": BrainCircuit,
+  "/dashboard/ai-studio": BrainCircuit,
+  "/dashboard/profit-calculator": Calculator,
   "/dashboard/shortener": Scissors,
   "/dashboard/giveaway": Gift,
   "/dashboard/tracking": Target,
@@ -144,7 +171,7 @@ function FreelinkLogo({ size = 32 }: { size?: number }) {
         animate={{ rotate: [0, 360] }}
         transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
       />
-      <span className="text-white font-black z-10" style={{ fontSize: size * 0.55 }}>
+      <span className="text-white font-black" style={{ fontSize: size * 0.55, zIndex: Z_INDEX.dropdown }}>
         F
       </span>
       <motion.div
@@ -375,7 +402,7 @@ function Sidebar({ userPlan = "free" }: SidebarProps) {
                 animate={{ opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 3, repeat: Infinity }}
               />
-              <div className="relative z-10">
+              <div style={{ zIndex: Z_INDEX.dropdown }} className="relative">
                 <div className="flex items-center gap-3 mb-3">
                   <motion.div
                     className="bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500 p-2.5 rounded-xl shadow-lg"
@@ -430,7 +457,7 @@ function Sidebar({ userPlan = "free" }: SidebarProps) {
                       animate={{ x: "200%" }}
                       transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
                     />
-                    <span className="relative z-10 flex items-center justify-center gap-2">
+                    <span style={{ zIndex: Z_INDEX.dropdown }} className="relative flex items-center justify-center gap-2">
                       {userPlan === "free" ? "Começar Agora" : "Evoluir Agora"}
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                     </span>
@@ -471,13 +498,55 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }, [authLoaded, isSignedIn, isSupported, isSubscribed]);
 
-  const handleEnableNotifications = async () => {
+// ✅ SUBSTITUIR handleEnableNotifications POR:
+const handleEnableNotifications = async () => {
+  try {
+    // Verificação completa
+    if (!('Notification' in window)) {
+      console.error('Navegador não suporta notificações');
+      return;
+    }
+
+    if (!('serviceWorker' in navigator)) {
+      console.error('Service Worker não suportado');
+      return;
+    }
+
+    // Pedir permissão
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.log('Permissão de notificação negada');
+      setShowPushPrompt(false);
+      localStorage.setItem('hasSeenPushPrompt', 'true');
+      return;
+    }
+
+    // Registrar service worker
+    try {
+      await navigator.serviceWorker.register('/sw.js');
+    } catch (swError) {
+      console.error('Erro ao registrar service worker:', swError);
+    }
+
+    // Tentar subscrever
     const success = await subscribe();
     if (success) {
       localStorage.setItem('hasSeenPushPrompt', 'true');
       setShowPushPrompt(false);
+
+      // Mostrar notificação de teste
+      new Notification('Freelinnk', {
+        body: '✅ Notificações ativadas com sucesso!',
+        icon: '/icon-192x192.png',
+        badge: '/icon-192x192.png',
+      });
     }
-  };
+  } catch (error) {
+    console.error('Erro ao ativar notificações:', error);
+    setShowPushPrompt(false);
+    localStorage.setItem('hasSeenPushPrompt', 'true');
+  }
+};
 
   const handleDismissPrompt = () => {
     localStorage.setItem('hasSeenPushPrompt', 'true');
@@ -518,19 +587,33 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     setSearchTerm("");
   };
 
-  const fetchNotifications = async () => {
-    setNotificationsLoading(true);
-    try {
-      const res = await fetch("/api/notifications");
-      if (!res.ok) throw new Error("Erro ao carregar notificações.");
-      const data: Notification[] = await res.json();
-      setUserNotifications(data);
-    } catch (error) {
-      console.error("Erro ao carregar notificações:", error);
-    } finally {
-      setNotificationsLoading(false);
+  // ✅ SUBSTITUIR fetchNotifications POR:
+const fetchNotifications = async () => {
+  if (notificationsLoading) return; // Evita chamadas duplicadas
+
+  setNotificationsLoading(true);
+  try {
+    const res = await fetch("/api/notifications", {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+      },
+    });
+
+    if (!res.ok) {
+      throw new Error(`HTTP error! status: ${res.status}`);
     }
-  };
+
+    const data: Notification[] = await res.json();
+    setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS));
+  } catch (error) {
+    console.error("Erro ao carregar notificações:", error);
+    // Não quebra a UI se falhar
+  } finally {
+    setNotificationsLoading(false);
+  }
+};
 
   const markNotificationAsRead = async (id: string) => {
     const originalNotifications = [...userNotifications];
@@ -571,27 +654,45 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const unreadNotificationsCount = userNotifications.filter(n => !n.isRead).length;
 
   // Adicionar polling para atualizar notificações
+// ✅ NOVA FUNÇÃO DE NOTIFICAÇÕES:
 useEffect(() => {
   fetchNotifications();
 
-  // ✅ NOVO: Buscar notificações a cada 30s
-  const interval = setInterval(() => {
-    fetchNotifications();
-  }, 30000);
+  if (typeof window !== 'undefined' && 'EventSource' in window) {
+    try {
+      const eventSource = new EventSource('/api/notifications/stream');
 
-  return () => clearInterval(interval);
-}, []);
+      eventSource.onmessage = (event) => {
+        try {
+          const notification = JSON.parse(event.data);
+          setUserNotifications(prev => {
+            const exists = prev.find(n => n.id === notification.id);
+            if (exists) return prev;
+            return [notification, ...prev].slice(0, 50); // Limita a 50 notificações
+          });
+        } catch (err) {
+          console.error('Erro ao processar notificação:', err);
+        }
+      };
 
-// OU usar Server-Sent Events (melhor)
-useEffect(() => {
-  const eventSource = new EventSource('/api/notifications/stream');
+      eventSource.onerror = () => {
+        eventSource.close();
+        // Fallback para polling
+        const interval = setInterval(fetchNotifications, 30000);
+        return () => clearInterval(interval);
+      };
 
-  eventSource.onmessage = (event) => {
-    const notification = JSON.parse(event.data);
-    setUserNotifications(prev => [notification, ...prev]);
-  };
-
-  return () => eventSource.close();
+      return () => eventSource.close();
+    } catch  {
+      // Fallback para polling se SSE falhar
+      const interval = setInterval(fetchNotifications, 30000);
+      return () => clearInterval(interval);
+    }
+  } else {
+    // Navegador não suporta SSE - usar polling
+    const interval = setInterval(fetchNotifications, 30000);
+    return () => clearInterval(interval);
+  }
 }, []);
 
   useEffect(() => {
@@ -609,6 +710,13 @@ useEffect(() => {
     };
   }, [isSidebarOpen]);
 
+// ✅ ADICIONAR no final do componente, antes do return:
+useEffect(() => {
+  // Cleanup ao desmontar o componente
+  return () => {
+    document.body.style.overflow = 'unset';
+  };
+}, []);
   const getPlanBadge = () => {
     switch (userPlan) {
       case "pro":
@@ -647,6 +755,7 @@ useEffect(() => {
       "/dashboard/links": "Meus Links",
       "/dashboard/mentor-ia": "Mentor.IA",
       "/dashboard/brain": "FreelinkBrain",
+    "/dashboard/profit-calculator": "Calculadora de Lucros",
       "/dashboard/ai-studio": "AI Studio",
       "/dashboard/shortener": "Encurtador",
       "/dashboard/giveaway": "Sorteios",
@@ -753,14 +862,14 @@ useEffect(() => {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setIsSidebarOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 lg:hidden"
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm lg:hidden" style={{ zIndex: Z_INDEX.modal }}
             />
             <motion.aside
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed left-0 top-0 bottom-0 w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 z-50 lg:hidden flex flex-col shadow-2xl overflow-hidden"
+              className="fixed left-0 top-0 bottom-0 w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 lg:hidden flex flex-col shadow-2xl overflow-hidden" style={{ zIndex: Z_INDEX.popover }}
             >
               <div className="flex items-center justify-between mb-8 flex-shrink-0">
                 <Link href="/dashboard" className="flex items-center min-w-0">
@@ -804,7 +913,7 @@ useEffect(() => {
             initial={{ y: 100, opacity: 0, scale: 0.9 }}
             animate={{ y: 0, opacity: 1, scale: 1 }}
             exit={{ y: 100, opacity: 0, scale: 0.9 }}
-            className="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-[420px] z-50 max-w-[calc(100vw-2rem)]"
+            className="fixed bottom-4 right-4 left-4 sm:left-auto sm:w-[420px] max-w-[calc(100vw-2rem)]" style={{ zIndex: Z_INDEX.popover }}
           >
             <motion.div
               className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200/50 dark:border-slate-700/50 overflow-hidden"
@@ -864,7 +973,7 @@ useEffect(() => {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         {/* Header - Sticky em todas as telas */}
-        <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0 shadow-sm z-30">
+        <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0 shadow-sm" style={{ zIndex: Z_INDEX.overlay }}>
           <div className="px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
               <motion.button
@@ -926,8 +1035,8 @@ useEffect(() => {
                     animate={{ width: "auto", opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
 
-  className="absolute left-0 right-0 top-0 h-full bg-white/98 dark:bg-slate-800/98 backdrop-blur-xl supports-[backdrop-filter]:bg-white/95 z-20"
->
+                    className="absolute left-0 right-0 top-0 h-full bg-white/98 dark:bg-slate-800/98 backdrop-blur-xl supports-[backdrop-filter]:bg-white/95"
+                    style={{ zIndex: Z_INDEX.sticky }}>
                     <div className="w-full relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                       <Input
@@ -1210,11 +1319,11 @@ useEffect(() => {
 
         {/* Mobile Bottom Navigation */}
         <motion.div
-          className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 px-2 py-2 safe-area-bottom z-30"
+          className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 px-2 py-2 safe-area-bottom"
           initial={{ y: 100 }}
           animate={{ y: 0 }}
           transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        >
+          style={{ zIndex: Z_INDEX.overlay }}>
           <div className="flex items-center justify-around max-w-lg mx-auto">
             <Link href="/dashboard" className="flex-1">
               <motion.button
@@ -1257,7 +1366,7 @@ useEffect(() => {
                   animate={{ rotate: [0, 360] }}
                   transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
                 />
-                <PlusCircle className="w-6 h-6 relative z-10 flex-shrink-0" />
+                <PlusCircle className="w-6 h-6 relative flex-shrink-0" style={{ zIndex: Z_INDEX.dropdown }} />
               </motion.button>
             </Link>
 
