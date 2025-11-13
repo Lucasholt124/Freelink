@@ -1,11 +1,5 @@
 import type { MetadataRoute } from 'next'
 
-/**
- * Gera a URL base a partir das envs conhecidas:
- * - NEXT_PUBLIC_APP_URL (recomendado)
- * - VERCEL_URL (fallback em ambientes Vercel)
- * - localhost (fallback em dev)
- */
 function getBaseUrl(): string {
   const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim()
   if (explicit) return explicit.replace(/\/+$/, '')
@@ -20,36 +14,58 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = getBaseUrl()
   const now = new Date()
 
-  // Inclua apenas rotas públicas canônicas. Evite rotas autenticadas/admin.
-  // Mantemos uma lista mínima e segura, já que não temos o inventário completo de páginas públicas.
+  // ✅ APENAS páginas públicas que você TEM
   const publicRoutes: Array<MetadataRoute.Sitemap[number]> = [
+    // 🏠 Homepage - Máxima prioridade
     {
-      url: `${baseUrl}/`,
+      url: baseUrl,
       lastModified: now,
       changeFrequency: 'daily',
-      priority: 1,
+      priority: 1.0,
     },
-        {
-      url: baseUrl,
-      lastModified: new Date(),
-      changeFrequency: 'weekly',
-      priority: 1,
-    },
+
+    // 💰 Pricing - Alta prioridade (conversão)
     {
       url: `${baseUrl}/pricing`,
-      lastModified: new Date(),
+      lastModified: now,
       changeFrequency: 'weekly',
-      priority: 0.8,
+      priority: 0.9,
     },
-    {
-      url: `${baseUrl}/features`,
-      lastModified: new Date(),
-      changeFrequency: 'monthly',
-      priority: 0.8,
-    },
+
+    // 📝 Páginas institucionais (adicione SOMENTE se existirem)
+    // Descomente conforme você criar essas páginas:
+
+    // {
+    //   url: `${baseUrl}/features`,
+    //   lastModified: now,
+    //   changeFrequency: 'weekly',
+    //   priority: 0.8,
+    // },
+    // {
+    //   url: `${baseUrl}/about`,
+    //   lastModified: now,
+    //   changeFrequency: 'monthly',
+    //   priority: 0.6,
+    // },
+    // {
+    //   url: `${baseUrl}/contact`,
+    //   lastModified: now,
+    //   changeFrequency: 'monthly',
+    //   priority: 0.6,
+    // },
+    // {
+    //   url: `${baseUrl}/privacy`,
+    //   lastModified: now,
+    //   changeFrequency: 'yearly',
+    //   priority: 0.3,
+    // },
+    // {
+    //   url: `${baseUrl}/terms`,
+    //   lastModified: now,
+    //   changeFrequency: 'yearly',
+    //   priority: 0.3,
+    // },
   ]
 
   return publicRoutes
 }
-
-

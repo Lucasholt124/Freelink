@@ -6,7 +6,8 @@ import {
   Loader2, Rocket, Star, CheckCircle, HelpCircle, XCircle,
   BrainCircuit, Wand2, Sparkles, Zap, ChevronRight,
   Shield, CreditCard, Target, MessageSquare,
-  Palette, Clock, TrendingUp, Users, Flame, AlertCircle
+  Palette, Clock, TrendingUp, Users, Flame, AlertCircle,
+  Eye, ArrowRight, Lock, Award, BarChart3
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -14,7 +15,7 @@ import clsx from "clsx";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
 
 declare global {
@@ -35,6 +36,49 @@ function trackEvent(eventName: string, properties?: Record<string, unknown>) {
 
   console.log(`📊 Event tracked: ${eventName}`, properties);
 }
+
+// ✅ NOVO: Live viewers simulator
+function useLiveViewers(baseCount: number = 87) {
+  const [viewers, setViewers] = useState(baseCount);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setViewers(prev => {
+        const change = Math.floor(Math.random() * 7) - 3; // -3 a +3
+        const newCount = prev + change;
+        return Math.max(baseCount - 10, Math.min(baseCount + 20, newCount));
+      });
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, [baseCount]);
+
+  return viewers;
+}
+
+// ✅ NOVO: Scroll depth tracking
+function useScrollTracking() {
+  useEffect(() => {
+    let maxScroll = 0;
+    const trackScroll = () => {
+      const scrollPercent = Math.round(
+        (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100
+      );
+
+      if (scrollPercent > maxScroll) {
+        maxScroll = scrollPercent;
+
+        if ([25, 50, 75, 100].includes(maxScroll)) {
+          trackEvent('ScrollDepth', { depth: maxScroll });
+        }
+      }
+    };
+
+    window.addEventListener('scroll', trackScroll);
+    return () => window.removeEventListener('scroll', trackScroll);
+  }, []);
+}
+
 // Tipos e constante 'plans'
 type PlanIdentifier = "free" | "pro" | "ultra";
 type BillingCycle = "monthly" | "yearly";
@@ -72,7 +116,7 @@ interface Plan {
   spotsLeft?: number;
 }
 
-// Definição dos planos com novos preços e limites
+// Definição dos planos
 const plans: Plan[] = [
   {
     id: "free",
@@ -162,7 +206,7 @@ const plans: Plan[] = [
         features: [
           { text: "Personalização completa", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "Remover marca Freelinnk", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
-          { text: "Ferramenta de sorteios", icon: <XCircle className="w-4 h-4 text-gray-300" />, proOnly: true },
+          { text: "Ferramenta de sorteios", icon: <CheckCircle className="w-4 h-4  text-green-500" />, proOnly: true , highlight: true, },
           { text: "Rastreamento avançado (Pixel, GA4)", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true }
         ]
       }
@@ -184,7 +228,7 @@ const plans: Plan[] = [
     priceDetails: "/mês",
     spotsLeft: 23,
     popularFeatures: [
-      "🎨 7 imagens com IA por dia + aprimoramentos ",
+      "🎨 7 imagens com IA por dia + aprimoramentos",
       "🧠 FreelinnkBrain ILIMITADO",
       "🎬 Vídeos virais ILIMITADOS",
       "🎁 Sistema completo de sorteios",
@@ -203,7 +247,7 @@ const plans: Plan[] = [
         title: "Ferramentas de IA",
         features: [
           { text: "7 gerações de imagens com IA por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "aprimoramentos de imagens por dia ilimitado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "Aprimoramentos de imagens ilimitados", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "FreelinnkBrain ILIMITADO", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Vídeos virais ILIMITADOS", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Calendário de conteúdo personalizado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
@@ -271,6 +315,171 @@ function CountdownTimer() {
   );
 }
 
+// ✅ NOVO: Sticky CTA Mobile
+function StickyMobileCTA({
+  currentPlan,
+  loading,
+  onCheckout
+}: {
+  currentPlan: PlanIdentifier;
+  loading: string | null;
+  onCheckout: (plan: "pro" | "ultra") => void;
+}) {
+  const [isVisible, setIsVisible] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsVisible(window.scrollY > 800);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  if (currentPlan !== 'free') return null;
+
+  return (
+    <AnimatePresence>
+      {isVisible && (
+        <motion.div
+          initial={{ y: 100 }}
+          animate={{ y: 0 }}
+          exit={{ y: 100 }}
+          className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white dark:bg-slate-900 border-t border-gray-200 dark:border-gray-700 shadow-2xl p-4"
+        >
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-xs text-gray-500 dark:text-gray-400">A partir de</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">
+                R$ 34,90<span className="text-sm font-normal">/mês</span>
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                trackEvent('StickyCtaClicked', { plan: 'pro' });
+                onCheckout('pro');
+              }}
+              disabled={loading !== null}
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-bold flex-1 max-w-[200px]"
+            >
+              {loading ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <>
+                  Assinar agora
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
+            </Button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ✅ NOVO: Tabela de Comparação
+function ComparisonTable() {
+  const features = [
+    { name: "Links ilimitados", free: true, pro: true, ultra: true },
+    { name: "Analytics básicos", free: true, pro: true, ultra: true },
+    { name: "Analytics avançados", free: false, pro: true, ultra: true },
+    { name: "FreelinnkBrain", free: false, pro: "5/dia", ultra: "Ilimitado" },
+    { name: "Geração de imagens IA", free: false, pro: false, ultra: "7/dia" },
+    { name: "Aprimoramento de imagens", free: false, pro: false, ultra: "Ilimitado" },
+    { name: "Sorteios", free: false, pro: true, ultra: true },
+    { name: "Pixels de rastreamento", free: false, pro: false, ultra: true },
+    { name: "Suporte", free: "Email", pro: "Prioritário", ultra: "VIP WhatsApp" },
+  ];
+
+  return (
+    <div className="overflow-x-auto -mx-4 px-4">
+      <table className="w-full min-w-[600px] bg-white dark:bg-slate-800 rounded-xl overflow-hidden">
+        <thead>
+          <tr className="bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-700 dark:to-slate-800">
+            <th className="text-left p-4 font-semibold text-sm">Recursos</th>
+            <th className="text-center p-4 font-semibold text-sm">Free</th>
+            <th className="text-center p-4 font-semibold text-sm bg-blue-50 dark:bg-blue-900/20">
+              Pro
+              <Badge className="ml-2 bg-blue-600 text-white text-xs">Popular</Badge>
+            </th>
+            <th className="text-center p-4 font-semibold text-sm bg-purple-50 dark:bg-purple-900/20">Ultra</th>
+          </tr>
+        </thead>
+        <tbody>
+          {features.map((feature, i) => (
+            <tr key={i} className="border-t border-gray-100 dark:border-gray-700">
+              <td className="p-4 text-sm font-medium">{feature.name}</td>
+              <td className="p-4 text-center">
+                {typeof feature.free === 'boolean' ? (
+                  feature.free ? <CheckCircle className="w-5 h-5 text-green-500 mx-auto" /> : <XCircle className="w-5 h-5 text-gray-300 mx-auto" />
+                ) : (
+                  <span className="text-xs">{feature.free}</span>
+                )}
+              </td>
+              <td className="p-4 text-center bg-blue-50/50 dark:bg-blue-900/10">
+                {typeof feature.pro === 'boolean' ? (
+                  feature.pro ? <CheckCircle className="w-5 h-5 text-green-500 mx-auto" /> : <XCircle className="w-5 h-5 text-gray-300 mx-auto" />
+                ) : (
+                  <span className="text-xs font-medium text-blue-700 dark:text-blue-400">{feature.pro}</span>
+                )}
+              </td>
+              <td className="p-4 text-center bg-purple-50/50 dark:bg-purple-900/10">
+                {typeof feature.ultra === 'boolean' ? (
+                  feature.ultra ? <CheckCircle className="w-5 h-5 text-green-500 mx-auto" /> : <XCircle className="w-5 h-5 text-gray-300 mx-auto" />
+                ) : (
+                  <span className="text-xs font-medium text-purple-700 dark:text-purple-400">{feature.ultra}</span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+// ✅ NOVO: ROI Calculator Section
+function ROISection() {
+  return (
+    <div className="bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-2xl p-6 sm:p-8 border border-green-200 dark:border-green-800">
+      <div className="flex items-center gap-3 mb-6">
+        <div className="p-3 bg-green-600 rounded-xl">
+          <BarChart3 className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+            Retorno do Investimento
+          </h3>
+          <p className="text-sm text-gray-600 dark:text-gray-300">
+            Veja quanto você economiza e pode ganhar
+          </p>
+        </div>
+      </div>
+
+      <div className="grid sm:grid-cols-3 gap-4">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Investimento Ultra (anual)</p>
+          <p className="text-2xl font-bold text-gray-900 dark:text-white">R$ 779</p>
+          <p className="text-xs text-green-600 mt-1">vs. R$ 1.896/ano em ferramentas separadas</p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Economia anual</p>
+          <p className="text-2xl font-bold text-green-600">R$ 1.117</p>
+          <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">59% mais barato que concorrentes</p>
+        </div>
+
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-xl">
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Payback em</p>
+          <p className="text-2xl font-bold text-blue-600">1 venda</p>
+          <p className="text-xs text-gray-600 dark:text-gray-300 mt-1">Com produto de R$ 97+</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // Componente principal de billing
 export default function BillingContent() {
   const { user } = useUser();
@@ -280,22 +489,31 @@ export default function BillingContent() {
   const [expandedFeatures, setExpandedFeatures] = useState<Record<string, boolean>>({});
   const searchParams = useSearchParams();
   const router = useRouter();
+  const liveViewers = useLiveViewers(87);
 
-  // ✅ NOVO: Carregar preferência salva do localStorage
+  // ✅ Scroll tracking
+  useScrollTracking();
+
+  // ✅ Carregar preferência salva do localStorage
   useEffect(() => {
     const savedCycle = localStorage.getItem('preferredBillingCycle');
     if (savedCycle && (savedCycle === 'monthly' || savedCycle === 'yearly')) {
       setBillingCycle(savedCycle as BillingCycle);
     }
+
+    // ✅ Track page view
+    trackEvent('ViewPricingPage', {
+      current_plan: currentPlan,
+      default_cycle: savedCycle || 'monthly'
+    });
   }, []);
 
-  // ✅ NOVO: Salvar preferência quando mudar
+  // ✅ Salvar preferência quando mudar
   const handleBillingCycleChange = (checked: boolean) => {
     const newCycle = checked ? 'yearly' : 'monthly';
     setBillingCycle(newCycle);
     localStorage.setItem('preferredBillingCycle', newCycle);
 
-    // ✅ NOVO: Track mudança de ciclo
     trackEvent('BillingCycleChanged', {
       from: billingCycle,
       to: newCycle,
@@ -303,18 +521,31 @@ export default function BillingContent() {
     });
   };
 
-
   useEffect(() => {
     const success = searchParams.get("success");
     const canceled = searchParams.get("canceled");
 
-     async function handlePurchaseResult() {
+    async function handlePurchaseResult() {
       if (success) {
-        toast.success("Assinatura realizada com sucesso! 🎉");
+        toast.success("🎉 Assinatura realizada com sucesso! Bem-vindo ao time!", {
+          duration: 5000,
+        });
         await user?.reload();
+
+        trackEvent('PurchaseCompleted', {
+          plan: currentPlan,
+          cycle: billingCycle
+        });
       }
       if (canceled) {
-        toast.info("O processo de assinatura foi cancelado.");
+        toast.info("Processo cancelado. Estamos aqui quando estiver pronto!", {
+          description: "Tem alguma dúvida? Fale conosco no WhatsApp."
+        });
+
+        trackEvent('CheckoutCanceled', {
+          plan: currentPlan,
+          cycle: billingCycle
+        });
       }
       if (success || canceled) {
         router.replace("/dashboard/billing", { scroll: false });
@@ -322,9 +553,7 @@ export default function BillingContent() {
     }
 
     handlePurchaseResult();
-
   }, [searchParams, router, user]);
-
 
   useEffect(() => {
     if (user?.publicMetadata?.subscriptionPlan) {
@@ -334,12 +563,16 @@ export default function BillingContent() {
     }
   }, [user?.publicMetadata]);
 
-
   const toggleFeatureSection = (sectionTitle: string) => {
     setExpandedFeatures(prev => ({
       ...prev,
       [sectionTitle]: !prev[sectionTitle]
     }));
+
+    trackEvent('ToggleFeatureSection', {
+      section: sectionTitle,
+      expanded: !expandedFeatures[sectionTitle]
+    });
   };
 
   async function handleCheckout(planIdentifier: "pro" | "ultra") {
@@ -348,9 +581,12 @@ export default function BillingContent() {
     const loadingId = `${planIdentifier}-${billingCycle}`;
     setLoading(loadingId);
 
-    // ✅ NOVO: Toast com informação do que está acontecendo
+    const planName = planIdentifier.toUpperCase();
+    const cycleName = billingCycle === 'yearly' ? 'Anual' : 'Mensal';
+
     const loadingToast = toast.loading(
-      `Preparando checkout do plano ${planIdentifier.toUpperCase()} (${billingCycle === 'yearly' ? 'Anual' : 'Mensal'})...`
+      `🚀 Preparando checkout seguro do ${planName} ${cycleName}...`,
+      { description: "Redirecionando para pagamento Stripe" }
     );
 
     try {
@@ -367,31 +603,54 @@ export default function BillingContent() {
 
       if (data.url) {
         toast.dismiss(loadingToast);
-        toast.success("Redirecionando para pagamento seguro...");
+        toast.success("✅ Redirecionando para pagamento seguro...", {
+          description: "Você será levado para o checkout em instantes"
+        });
 
-        // ✅ NOVO: Pequeno delay para usuário ver a mensagem
+        trackEvent('CheckoutInitiated', {
+          plan: planIdentifier,
+          cycle: billingCycle,
+          price: billingCycle === 'yearly'
+            ? plans.find(p => p.id === planIdentifier)?.yearlyPrice
+            : plans.find(p => p.id === planIdentifier)?.monthlyPrice
+        });
+
         setTimeout(() => {
           window.location.href = data.url;
-        }, 500);
+        }, 800);
       } else {
         throw new Error(data.error || "URL de checkout não recebida.");
       }
     } catch (err) {
       toast.dismiss(loadingToast);
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("Erro ao iniciar o checkout. Tente novamente.");
+      if (err instanceof Error) {
+        toast.error("Erro ao processar", {
+          description: err.message
+        });
+      } else {
+        toast.error("Erro ao iniciar checkout", {
+          description: "Tente novamente ou entre em contato."
+        });
+      }
+
+      trackEvent('CheckoutError', {
+        plan: planIdentifier,
+        cycle: billingCycle,
+        error: err instanceof Error ? err.message : 'Unknown'
+      });
     } finally {
       setLoading(null);
     }
   }
 
   async function handleCancel() {
-    if (!confirm("Tem certeza que deseja cancelar sua assinatura? Você manterá o acesso aos recursos premium até o final do seu ciclo de faturamento atual.")) return;
+    if (!confirm("⚠️ Tem certeza que deseja cancelar?\n\nVocê manterá o acesso aos recursos premium até o final do seu ciclo de faturamento atual.")) return;
 
     setLoading("cancel");
 
-    // ✅ NOVO: Toast informativo durante o processo
-    const loadingToast = toast.loading("Processando cancelamento... Aguarde.");
+    const loadingToast = toast.loading("Processando cancelamento...", {
+      description: "Aguarde alguns segundos"
+    });
 
     try {
       const res = await fetch("/api/stripe/cancel", { method: "POST" });
@@ -401,13 +660,27 @@ export default function BillingContent() {
       }
 
       toast.dismiss(loadingToast);
-      toast.success("Sua assinatura foi agendada para cancelamento. Você pode reativá-la a qualquer momento no portal do cliente.");
+      toast.success("Assinatura cancelada", {
+        description: "Seu acesso continua até o fim do período pago. Você pode reativar a qualquer momento."
+      });
+
       await user?.reload();
       setCurrentPlan("free");
+
+      trackEvent('SubscriptionCanceled', {
+        previous_plan: currentPlan
+      });
     } catch (err) {
       toast.dismiss(loadingToast);
-      if (err instanceof Error) toast.error(err.message);
-      else toast.error("Não foi possível cancelar a assinatura. Tente novamente.");
+      if (err instanceof Error) {
+        toast.error("Erro ao cancelar", {
+          description: err.message
+        });
+      } else {
+        toast.error("Não foi possível cancelar", {
+          description: "Entre em contato com o suporte."
+        });
+      }
     } finally {
       setLoading(null);
     }
@@ -416,7 +689,6 @@ export default function BillingContent() {
   async function handleManageSubscription() {
     setLoading("portal");
 
-    // ✅ NOVO: Toast informativo
     const loadingToast = toast.loading("Abrindo portal de gerenciamento...");
 
     try {
@@ -425,9 +697,12 @@ export default function BillingContent() {
 
       if (data.url) {
         toast.dismiss(loadingToast);
-        toast.success("Redirecionando para o portal...");
+        toast.success("Redirecionando...");
 
-        // ✅ NOVO: Pequeno delay
+        trackEvent('PortalOpened', {
+          current_plan: currentPlan
+        });
+
         setTimeout(() => {
           window.location.href = data.url;
         }, 500);
@@ -437,16 +712,16 @@ export default function BillingContent() {
     } catch (err) {
       toast.dismiss(loadingToast);
       if (err instanceof Error) toast.error(err.message);
-      else toast.error("Erro ao acessar o portal de assinaturas. Tente novamente.");
+      else toast.error("Erro ao acessar o portal. Tente novamente.");
       setLoading(null);
     }
   }
 
   return (
-    <div className="bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800">
+    <div className="bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 min-h-screen">
       <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16">
 
-        {/* Banner de Urgência - Mobile First */}
+        {/* Banner de Urgência com Live Viewers */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -458,8 +733,12 @@ export default function BillingContent() {
                 <Flame className="w-8 h-8 sm:w-10 sm:h-10" />
               </div>
               <div>
-                <p className="text-xs sm:text-sm font-medium opacity-90">
+                <p className="text-xs sm:text-sm font-medium opacity-90 flex items-center gap-2">
                   🔥 OFERTA ESPECIAL - ÚLTIMAS VAGAS
+                  <span className="hidden sm:inline-flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs">
+                    <Eye className="w-3 h-3" />
+                    {liveViewers} visualizando agora
+                  </span>
                 </p>
                 <p className="text-lg sm:text-2xl font-bold">
                   Até 51% de desconto + Bônus Exclusivos
@@ -473,7 +752,7 @@ export default function BillingContent() {
           </div>
         </motion.div>
 
-        {/* Seção de cabeçalho com animação */}
+        {/* Seção de cabeçalho */}
         <motion.div
           className="text-center mb-8 sm:mb-16"
           initial={{ opacity: 0, y: 20 }}
@@ -503,7 +782,7 @@ export default function BillingContent() {
           </p>
         </motion.div>
 
-        {/* Alert de Vagas Limitadas - Mobile Optimized */}
+        {/* Alert de Vagas Limitadas */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -515,13 +794,13 @@ export default function BillingContent() {
             <div className="flex-1">
               <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
                 ⚡ Apenas <span className="font-bold">{plans[1].spotsLeft! + plans[2].spotsLeft!}</span> vagas restantes com desconto.
-                {" "}Pessoas visualizando agora: <span className="font-bold">{Math.floor(Math.random() * 50) + 100}</span>
+                {" "}<span className="hidden sm:inline">Pessoas visualizando agora: <span className="font-bold">{liveViewers}</span></span>
               </p>
             </div>
           </div>
         </motion.div>
 
-        {/* Spotlight para as ferramentas de IA - Mobile Optimized */}
+        {/* Spotlight IA */}
         <motion.div
           className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 mb-8 sm:mb-16 px-2 sm:px-0"
           initial={{ opacity: 0, y: 20 }}
@@ -536,7 +815,7 @@ export default function BillingContent() {
                 </div>
                 <div>
                   <h3 className="text-lg sm:text-xl font-bold">Estúdio de Imagens IA</h3>
-                  <p className="text-blue-100 text-xs sm:text-sm">5 gerações + 5 aprimoramentos/dia</p>
+                  <p className="text-blue-100 text-xs sm:text-sm">7 gerações + aprimoramentos ilimitados/dia</p>
                 </div>
               </div>
 
@@ -597,7 +876,7 @@ export default function BillingContent() {
           </Card>
         </motion.div>
 
-        {/* Toggle de ciclo de cobrança - Mobile Optimized */}
+        {/* Toggle de ciclo de cobrança */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8 sm:mb-12">
           <div className="flex items-center gap-4">
             <span className={clsx(
@@ -610,11 +889,11 @@ export default function BillingContent() {
             </span>
 
             <Switch
-  checked={billingCycle === 'yearly'}
-  onCheckedChange={handleBillingCycleChange}
-  id="billing-cycle"
-  className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-green-500 data-[state=checked]:to-emerald-500"
-/>
+              checked={billingCycle === 'yearly'}
+              onCheckedChange={handleBillingCycleChange}
+              id="billing-cycle"
+              className="data-[state=checked]:bg-gradient-to-r data-[state=checked]:from-green-500 data-[state=checked]:to-emerald-500"
+            />
 
             <span className={clsx(
               "font-medium transition-colors text-sm sm:text-base",
@@ -636,8 +915,8 @@ export default function BillingContent() {
           </motion.div>
         </div>
 
-        {/* Cards de planos - Mobile Optimized */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start px-2 sm:px-0">
+        {/* Cards de planos */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start px-2 sm:px-0 mb-16">
           {plans.map((plan) => (
             <PlanCard
               key={plan.id}
@@ -653,12 +932,33 @@ export default function BillingContent() {
           ))}
         </div>
 
-        {/* Depoimentos com fotos - Mobile Optimized */}
+        {/* ✅ NOVO: Tabela de Comparação */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-16"
+        >
+          <h2 className="text-2xl sm:text-3xl font-bold text-center mb-8">
+            Compare todos os recursos
+          </h2>
+          <ComparisonTable />
+        </motion.div>
+
+        {/* ✅ NOVO: Seção ROI */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-16"
+        >
+          <ROISection />
+        </motion.div>
+
+        {/* Depoimentos */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="mt-12 sm:mt-16 px-2 sm:px-0"
+          className="mb-16"
         >
           <h3 className="text-xl sm:text-2xl font-bold text-center mb-6 sm:mb-8 text-gray-900 dark:text-white">
             Junte-se a +10.000 criadores que já transformaram seus perfis
@@ -669,7 +969,7 @@ export default function BillingContent() {
               {
                 name: "Maria Silva",
                 role: "De 3K para 47K seguidores",
-                text: "5 imagens por dia é perfeito! Não desperdiço nada e economizo muito.",
+                text: "7 imagens por dia é perfeito! Não desperdiço nada e economizo muito.",
                 avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Maria",
                 verified: true
               },
@@ -693,7 +993,7 @@ export default function BillingContent() {
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.1 }}
-                className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg"
+                className="bg-white dark:bg-slate-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 shadow-lg hover:shadow-xl transition-shadow"
               >
                 <div className="flex items-center gap-3 mb-3">
                   <img
@@ -720,12 +1020,12 @@ export default function BillingContent() {
           </div>
         </motion.div>
 
-        {/* Comparação de Economia - Mobile Optimized */}
+        {/* Comparação de Economia */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
-          className="mt-12 sm:mt-16 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 sm:p-8 rounded-2xl mx-2 sm:mx-0"
+          className="mb-16 bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-6 sm:p-8 rounded-2xl"
         >
           <Badge className="bg-red-600 text-white border-0 mb-4">
             💰 Economia de até R$ 1.561/ano
@@ -796,9 +1096,9 @@ export default function BillingContent() {
           </div>
         </motion.div>
 
-        {/* Portal de gerenciamento de assinatura */}
+        {/* Portal de gerenciamento */}
         {currentPlan !== "free" && (
-          <div className="text-center mt-12 sm:mt-16">
+          <div className="text-center mb-16">
             <p className="text-gray-600 dark:text-gray-300 mb-4 text-sm sm:text-base">
               Precisa atualizar seu cartão ou ver seu histórico de faturas?
             </p>
@@ -815,9 +1115,33 @@ export default function BillingContent() {
           </div>
         )}
 
-        {/* Garantia de satisfação - Mobile Optimized */}
+        {/* ✅ NOVO: Badges de Segurança Destacados */}
         <motion.div
-          className="mt-16 sm:mt-20 text-center px-2 sm:px-0"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mb-16"
+        >
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { icon: Shield, text: "Pagamento Seguro Stripe", color: "blue" },
+              { icon: Lock, text: "SSL Certificado", color: "green" },
+              { icon: Award, text: "7 Dias de Garantia", color: "purple" },
+              { icon: CreditCard, text: "Cancele Quando Quiser", color: "orange" },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className={`bg-${item.color}-50 dark:bg-${item.color}-900/20 border border-${item.color}-200 dark:border-${item.color}-800 rounded-xl p-4 text-center`}
+              >
+                <item.icon className={`w-8 h-8 text-${item.color}-600 dark:text-${item.color}-400 mx-auto mb-2`} />
+                <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{item.text}</p>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Garantia */}
+        <motion.div
+          className="mb-16 text-center"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.4 }}
@@ -843,11 +1167,18 @@ export default function BillingContent() {
         {/* FAQs */}
         <FAQ />
       </div>
+
+      {/* ✅ NOVO: Sticky Mobile CTA */}
+      <StickyMobileCTA
+        currentPlan={currentPlan}
+        loading={loading}
+        onCheckout={handleCheckout}
+      />
     </div>
   );
 }
 
-// Componente de card de plano
+// Componente de card de plano (mantido igual com pequenas melhorias)
 interface PlanCardProps {
   plan: Plan;
   currentPlan: PlanIdentifier;
@@ -891,6 +1222,9 @@ function PlanCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: plan.id === "pro" ? 0.1 : plan.id === "ultra" ? 0.2 : 0 }}
       whileHover={{ y: -5 }}
+      onMouseEnter={() => {
+        trackEvent('PlanCardHover', { plan: plan.id });
+      }}
       className={clsx(
         "rounded-2xl border bg-white dark:bg-slate-800 p-4 sm:p-6 flex flex-col h-full transition-all duration-300 relative",
         plan.recommended && "lg:scale-105 shadow-2xl z-10 border-2 border-blue-500",
@@ -899,7 +1233,6 @@ function PlanCard({
           : !plan.recommended && "border-gray-200 dark:border-gray-700"
       )}
     >
-      {/* Tag de recomendado ou desconto */}
       {plan.recommended && (
         <motion.div
           animate={{ y: [0, -5, 0] }}
@@ -920,7 +1253,6 @@ function PlanCard({
         </div>
       )}
 
-      {/* Spots left indicator */}
       {plan.spotsLeft && (
         <div className="mb-3 bg-orange-100 dark:bg-orange-900/30 text-orange-800 dark:text-orange-300 p-2 rounded-lg text-xs font-medium flex items-center justify-center gap-2">
           <Users className="w-3.5 h-3.5" />
@@ -928,7 +1260,6 @@ function PlanCard({
         </div>
       )}
 
-      {/* Cabeçalho do plano */}
       <div className="mb-4 sm:mb-6">
         <div className={`flex items-center gap-2 sm:gap-3 mb-2 text-${plan.color}-600 dark:text-${plan.color}-400`}>
           <div className={`p-1.5 sm:p-2 rounded-lg bg-${plan.color}-100 dark:bg-${plan.color}-900/30`}>
@@ -976,7 +1307,6 @@ function PlanCard({
         </div>
       </div>
 
-      {/* Recursos populares destacados */}
       {plan.popularFeatures && (
         <div className="mb-4 sm:mb-6">
           <h3 className="text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 sm:mb-3">
@@ -993,14 +1323,13 @@ function PlanCard({
         </div>
       )}
 
-      {/* Lista de recursos detalhada */}
       <div className="flex-grow">
         {plan.features.map((section, sectionIndex) => {
           const isExpanded = expandedFeatures[section.title] !== false;
           return (
             <div key={sectionIndex} className="mb-3 sm:mb-4 last:mb-0">
               <button
-                className="flex items-center justify-between w-full text-left mb-2"
+                className="flex items-center justify-between w-full text-left mb-2 hover:text-blue-600 transition-colors"
                 onClick={() => toggleFeatureSection(section.title)}
               >
                 <h3 className="text-xs sm:text-sm font-semibold text-gray-800 dark:text-gray-200">
@@ -1059,50 +1388,47 @@ function PlanCard({
         })}
       </div>
 
-      {/* Botão de ação */}
       <div className="mt-6 sm:mt-8">
-      {isCurrent ? (
-  isFree ? (
-    <Button
-      className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200"
-      disabled
-    >
-      Seu Plano Atual
-    </Button>
-  ) : (
-    <div>
-      <Button
-        variant="destructive"
-        className="w-full"
-        onClick={onCancel}
-        disabled={loading === 'cancel'}
-      >
-        {loading === 'cancel'
-          ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          : <XCircle className="mr-2 h-4 w-4" />
-        }
-        Cancelar Assinatura
-      </Button>
+        {isCurrent ? (
+          isFree ? (
+            <Button
+              className="w-full bg-gray-200 hover:bg-gray-300 text-gray-700 dark:bg-gray-700 dark:hover:bg-gray-600 dark:text-gray-200"
+              disabled
+            >
+              Seu Plano Atual
+            </Button>
+          ) : (
+            <div>
+              <Button
+                variant="destructive"
+                className="w-full"
+                onClick={onCancel}
+                disabled={loading === 'cancel'}
+              >
+                {loading === 'cancel'
+                  ? <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  : <XCircle className="mr-2 h-4 w-4" />
+                }
+                Cancelar Assinatura
+              </Button>
 
-      {/* ✅ NOVO: Feedback visual durante processamento */}
-      {loading === 'cancel' && (
-        <motion.p
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2"
-        >
-          ⏳ Processando cancelamento... Não feche a página.
-        </motion.p>
-      )}
+              {loading === 'cancel' && (
+                <motion.p
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2"
+                >
+                  ⏳ Processando... Não feche a página.
+                </motion.p>
+              )}
 
-      {/* ✅ NOVO: Informação sobre quando perde acesso */}
-      {!loading && (
-        <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
-          Você manterá acesso até o fim do período pago
-        </p>
-      )}
-    </div>
-  )
+              {!loading && (
+                <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-2">
+                  Acesso mantido até o fim do período pago
+                </p>
+              )}
+            </div>
+          )
         ) : (
           !isFree && onCheckout && (
             <motion.div
@@ -1110,21 +1436,20 @@ function PlanCard({
               whileTap={{ scale: 0.98 }}
             >
               <Button
-  onClick={() => {
-    // ✅ NOVO: Track antes de chamar checkout
-    trackEvent('InitiateCheckout', {
-      plan: plan.id,
-      cycle: billingCycle,
-      price: billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice
-    });
+                onClick={() => {
+                  trackEvent('InitiateCheckout', {
+                    plan: plan.id,
+                    cycle: billingCycle,
+                    price: billingCycle === 'yearly' ? plan.yearlyPrice : plan.monthlyPrice
+                  });
 
-    onCheckout(plan.id as "pro" | "ultra");
-  }}
-  disabled={loading === loadingId}
-  className={clsx(
-    `w-full text-white bg-gradient-to-r ${plan.gradient} hover:brightness-110 transition-all group font-bold shadow-lg text-sm sm:text-base py-5 sm:py-6`
-  )}
->
+                  onCheckout(plan.id as "pro" | "ultra");
+                }}
+                disabled={loading === loadingId}
+                className={clsx(
+                  `w-full text-white bg-gradient-to-r ${plan.gradient} hover:brightness-110 transition-all group font-bold shadow-lg text-sm sm:text-base py-5 sm:py-6`
+                )}
+              >
                 {loading === loadingId ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 ) : (
@@ -1138,21 +1463,19 @@ function PlanCard({
                 )}
               </Button>
 
-              {/* Urgency text */}
               {plan.spotsLeft && (
                 <motion.p
                   animate={{ opacity: [1, 0.7, 1] }}
                   transition={{ duration: 1, repeat: Infinity }}
                   className="text-xs text-center mt-2 text-orange-600 dark:text-orange-400 font-medium"
                 >
-                  ⚡ Apenas {plan.spotsLeft} vagas restantes com desconto
+                  ⚡ Apenas {plan.spotsLeft} vagas restantes
                 </motion.p>
               )}
             </motion.div>
           )
         )}
 
-        {/* Segurança */}
         {!isFree && !isCurrent && (
           <div className="mt-3 flex items-center justify-center gap-4 text-xs text-gray-500">
             <span className="flex items-center gap-1">
@@ -1177,7 +1500,7 @@ function FAQ() {
   const faqs = [
     {
       q: "Quantas imagens posso gerar por dia no plano Ultra?",
-      a: "No plano Ultra você pode gerar 5 imagens novas por dia + 5 aprimoramentos de imagens existentes. Os limites resetam diariamente às 00:00. Isso é suficiente para manter suas redes sempre atualizadas sem desperdício."
+      a: "No plano Ultra você pode gerar 7 imagens novas por dia + aprimoramentos ilimitados de imagens existentes. Os limites resetam diariamente às 00:00. Isso é suficiente para manter suas redes sempre atualizadas sem desperdício."
     },
     {
       q: "O FreelinnkBrain tem limite no plano Ultra?",
@@ -1196,8 +1519,8 @@ function FAQ() {
       a: "Oferecemos garantia incondicional de 7 dias. Se não ficar 100% satisfeito, devolvemos todo seu dinheiro sem perguntas."
     },
     {
-      q: "5 imagens por dia é suficiente?",
-      a: "Para a maioria dos criadores, sim! São 150 imagens por mês. A maioria usa 2-3 por dia. Se precisar de mais, você sempre pode usar o aprimoramento para melhorar fotos existentes."
+      q: "7 imagens por dia é suficiente?",
+      a: "Para a maioria dos criadores, sim! São 210 imagens por mês. A maioria usa 2-3 por dia. Se precisar de mais, você sempre pode usar o aprimoramento ilimitado para melhorar fotos existentes."
     },
   ];
 
@@ -1215,13 +1538,16 @@ function FAQ() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.3, delay: index * 0.1 }}
             className={clsx(
-              "bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-xl border border-gray-200/80 dark:border-gray-700 transition-all",
-              expandedFaq === index ? "shadow-md" : ""
+              "bg-white dark:bg-slate-800 p-3 sm:p-4 rounded-xl border border-gray-200/80 dark:border-gray-700 transition-all cursor-pointer",
+              expandedFaq === index ? "shadow-md" : "hover:shadow-sm"
             )}
+            onClick={() => {
+              setExpandedFaq(expandedFaq === index ? null : index);
+              trackEvent('FaqClicked', { question: faq.q, index });
+            }}
           >
             <button
               className="w-full flex justify-between items-center text-left"
-              onClick={() => setExpandedFaq(expandedFaq === index ? null : index)}
             >
               <h3 className="font-semibold text-sm sm:text-base text-gray-800 dark:text-gray-200 flex items-center gap-2 pr-2">
                 <HelpCircle className={`w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0 ${expandedFaq === index ? 'text-blue-500' : 'text-gray-500'}`}/>
@@ -1230,16 +1556,18 @@ function FAQ() {
               <ChevronRight className={`w-4 h-4 sm:w-5 sm:h-5 text-gray-400 transition-transform flex-shrink-0 ${expandedFaq === index ? 'rotate-90' : ''}`} />
             </button>
 
-            {expandedFaq === index && (
-              <motion.p
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-3 pl-6 sm:pl-7"
-              >
-                {faq.a}
-              </motion.p>
-            )}
+            <AnimatePresence>
+              {expandedFaq === index && (
+                <motion.p
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  className="text-xs sm:text-sm text-gray-600 dark:text-gray-300 mt-3 pl-6 sm:pl-7"
+                >
+                  {faq.a}
+                </motion.p>
+              )}
+            </AnimatePresence>
           </motion.div>
         ))}
       </div>

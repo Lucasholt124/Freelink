@@ -15,28 +15,85 @@ export default function robots(): MetadataRoute.Robots {
 
   return {
     rules: [
-      // Padrão para todos os user-agents
+      // 🤖 Bots principais (Google, Bing, etc)
       {
         userAgent: '*',
-        allow: '/',
+        allow: [
+          '/',
+          '/pricing',
+          // Adicione aqui conforme criar novas páginas públicas:
+          // '/features',
+          // '/about',
+          // '/contact',
+        ],
         disallow: [
-          // Rotas internas/privadas
+          // 🔒 Área autenticada - BLOQUEIO TOTAL
           '/dashboard',
           '/dashboard/*',
+
+          // 🔐 Autenticação
+          '/sign-in',
+          '/sign-in/*',
+          '/sign-up',
+          '/sign-up/*',
+          '/auth/*',
+
+          // 🔧 APIs e sistema
           '/api',
           '/api/*',
-          // Build assets
           '/_next',
           '/_next/*',
-          // Assets estáticos (normalmente não faz sentido indexar diretórios)
+          '/_vercel',
+          '/_vercel/*',
+
+          // 🗂️ Assets (opcional)
           '/static',
           '/static/*',
         ],
       },
+
+      // 🎯 Googlebot específico (permite indexar assets importantes)
+      {
+        userAgent: 'Googlebot',
+        allow: [
+          '/',
+          '/pricing',
+          '/*.css',
+          '/*.js',
+          '/*.png',
+          '/*.jpg',
+          '/*.svg',
+        ],
+        disallow: [
+          '/dashboard',
+          '/dashboard/*',
+          '/api',
+          '/api/*',
+        ],
+      },
+
+      // 🖼️ Googlebot para imagens
+      {
+        userAgent: 'Googlebot-Image',
+        allow: ['/*'],
+        disallow: ['/dashboard/*'],
+      },
+
+      // 🚫 Bloqueio de bots ruins/scrapers
+      {
+        userAgent: [
+          'AhrefsBot',
+          'SemrushBot',
+          'DotBot',
+          'MJ12bot',
+          'BLEXBot',
+          'DataForSeoBot',
+        ],
+        disallow: ['/'],
+      },
     ],
+
     sitemap: `${baseUrl}/sitemap.xml`,
     host: baseUrl,
   }
 }
-
-
