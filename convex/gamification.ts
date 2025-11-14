@@ -2,11 +2,21 @@
 import { mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// 🇧🇷 Data correta do Brasil
+const getBrazilDate = (): string => {
+  const now = new Date();
+  const brazilTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const year = brazilTime.getFullYear();
+  const month = String(brazilTime.getMonth() + 1).padStart(2, "0");
+  const day = String(brazilTime.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export const initUserStats = mutation({
   args: {},
   handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado");
+    if (!identity) return null; // ✅ RETORNA NULL EM VEZ DE ERRO
 
     const existing = await ctx.db
       .query("userStats")
@@ -23,15 +33,13 @@ export const initUserStats = mutation({
       totalRevenue: 0,
       level: 1,
       xp: 0,
-      lastActivityDate: new Date().toISOString().split("T")[0],
+      lastActivityDate: getBrazilDate(), // ✅ DATA CORRETA
       badges: [],
       createdAt: Date.now(),
       updatedAt: Date.now(),
     });
   },
 });
-
-// convex/gamification.ts
 
 export const resetUserStats = internalMutation({
   args: {
@@ -49,26 +57,25 @@ export const resetUserStats = internalMutation({
         xp: 0,
         totalSales: 0,
         totalRevenue: 0,
-        totalProfit: 0, // Agora válido
-        currentStreak: 0, // Corrigido de 'streak'
-        longestStreak: stats.longestStreak, // Preservar o recorde
-        lastActivityDate: new Date().toISOString().split("T")[0], // Corrigido de 'lastSaleDate'
-        badges: [], // Corrigido de 'achievements'
+        totalProfit: 0,
+        currentStreak: 0,
+        longestStreak: stats.longestStreak,
+        lastActivityDate: getBrazilDate(), // ✅ DATA CORRETA
+        badges: [],
         updatedAt: Date.now(),
       });
     } else {
-      // Se não existe, criar novo zerado
       await ctx.db.insert("userStats", {
         userId: args.userId,
         level: 1,
         xp: 0,
         totalSales: 0,
         totalRevenue: 0,
-        totalProfit: 0, // Agora válido
-        currentStreak: 0, // Corrigido de 'streak'
+        totalProfit: 0,
+        currentStreak: 0,
         longestStreak: 0,
-        lastActivityDate: new Date().toISOString().split("T")[0],
-        badges: [], // Corrigido de 'achievements'
+        lastActivityDate: getBrazilDate(), // ✅ DATA CORRETA
+        badges: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
       });
@@ -89,7 +96,6 @@ export const getUserStats = query({
   },
 });
 
-// ✅ FUNÇÃO PRINCIPAL - ATUALIZA STREAK E XP
 export const updateActivityStreak = internalMutation({
   args: { userId: v.string() },
   handler: async (ctx, args) => {
@@ -98,8 +104,9 @@ export const updateActivityStreak = internalMutation({
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .first();
 
+    const today = getBrazilDate(); // ✅ DATA CORRETA
+
     if (!stats) {
-      // ✅ Se não existe stats, criar
       await ctx.db.insert("userStats", {
         userId: args.userId,
         currentStreak: 1,
@@ -108,7 +115,7 @@ export const updateActivityStreak = internalMutation({
         totalRevenue: 0,
         level: 1,
         xp: 10,
-        lastActivityDate: new Date().toISOString().split("T")[0],
+        lastActivityDate: today,
         badges: [],
         createdAt: Date.now(),
         updatedAt: Date.now(),
@@ -116,9 +123,8 @@ export const updateActivityStreak = internalMutation({
       return;
     }
 
-    const today = new Date().toISOString().split("T")[0];
-    const lastDate = new Date(stats.lastActivityDate);
-    const todayDate = new Date(today);
+    const lastDate = new Date(stats.lastActivityDate + "T00:00:00");
+    const todayDate = new Date(today + "T00:00:00");
     const diffDays = Math.floor(
       (todayDate.getTime() - lastDate.getTime()) / (1000 * 60 * 60 * 24)
     );
@@ -126,25 +132,20 @@ export const updateActivityStreak = internalMutation({
     let newStreak = stats.currentStreak;
     let newXP = stats.xp;
 
-    // ✅ Lógica de Streak
     if (diffDays === 1) {
-      // Dia consecutivo = incrementa streak
       newStreak = stats.currentStreak + 1;
-      newXP = stats.xp + 10; // +10 XP por dia consecutivo
+      newXP = stats.xp + 10;
     } else if (diffDays > 1) {
-      // Perdeu a sequência = reseta
       newStreak = 1;
-      newXP = stats.xp + 5; // +5 XP por venda fora de sequência
+      newXP = stats.xp + 5;
     } else if (diffDays === 0) {
-      // Mesmo dia = mantém streak, mas dá XP
       newStreak = stats.currentStreak;
-      newXP = stats.xp + 5; // +5 XP por venda no mesmo dia
+      newXP = stats.xp + 5;
     }
 
     const newLevel = Math.floor(newXP / 100) + 1;
     const newTotalSales = stats.totalSales + 1;
 
-    // ✅ Atualizar stats
     await ctx.db.patch(stats._id, {
       currentStreak: newStreak,
       longestStreak: Math.max(newStreak, stats.longestStreak),
@@ -155,11 +156,7 @@ export const updateActivityStreak = internalMutation({
       updatedAt: Date.now(),
     });
 
-    // ============================================
-    // 🏆 CONQUISTAS AUTOMÁTICAS
-    // ============================================
-
-    // ✅ Conquista: 7 dias consecutivos
+    // 🏆 CONQUISTAS
     if (newStreak === 7 && !stats.badges.includes("streak_7")) {
       await ctx.db.insert("achievements", {
         userId: args.userId,
@@ -176,7 +173,6 @@ export const updateActivityStreak = internalMutation({
       });
     }
 
-    // ✅ Conquista: 30 dias consecutivos
     if (newStreak === 30 && !stats.badges.includes("streak_30")) {
       await ctx.db.insert("achievements", {
         userId: args.userId,
@@ -193,7 +189,6 @@ export const updateActivityStreak = internalMutation({
       });
     }
 
-    // ✅ Conquista: 10 vendas
     if (newTotalSales === 10 && !stats.badges.includes("sales_10")) {
       await ctx.db.insert("achievements", {
         userId: args.userId,
@@ -210,7 +205,6 @@ export const updateActivityStreak = internalMutation({
       });
     }
 
-    // ✅ Conquista: 50 vendas
     if (newTotalSales === 50 && !stats.badges.includes("sales_50")) {
       await ctx.db.insert("achievements", {
         userId: args.userId,
@@ -227,7 +221,6 @@ export const updateActivityStreak = internalMutation({
       });
     }
 
-    // ✅ Conquista: 100 vendas
     if (newTotalSales === 100 && !stats.badges.includes("sales_100")) {
       await ctx.db.insert("achievements", {
         userId: args.userId,
@@ -244,7 +237,6 @@ export const updateActivityStreak = internalMutation({
       });
     }
 
-    // ✅ Conquista: 500 vendas
     if (newTotalSales === 500 && !stats.badges.includes("sales_500")) {
       await ctx.db.insert("achievements", {
         userId: args.userId,
@@ -261,7 +253,6 @@ export const updateActivityStreak = internalMutation({
       });
     }
 
-    // ✅ Conquista: Subiu de nível
     if (newLevel > stats.level) {
       await ctx.db.insert("achievements", {
         userId: args.userId,
@@ -313,11 +304,10 @@ export const markAchievementSeen = mutation({
   },
 });
 
-// ✅ FUNÇÃO PARA REVERTER STREAK E XP QUANDO UMA VENDA É REMOVIDA
 export const revertActivityStreak = internalMutation({
   args: {
     userId: v.string(),
-    saleDate: v.string(), // Data da venda que foi removida
+    saleDate: v.string(),
   },
   handler: async (ctx, args) => {
     const stats = await ctx.db
@@ -325,23 +315,17 @@ export const revertActivityStreak = internalMutation({
       .withIndex("by_user", (q) => q.eq("userId", args.userId))
       .first();
 
-    if (!stats) {
-      return; // Se não há stats, não há nada para reverter
-    }
+    if (!stats) return;
 
-    // Verificar se ainda há outras vendas no mesmo dia
     const remainingSales = await ctx.db
       .query("sales")
-      .withIndex("by_user_date", (q) =>
-        q.eq("userId", args.userId).eq("date", args.saleDate)
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", args.userId).eq("month", args.saleDate.substring(0, 7))
       )
+      .filter((q) => q.eq(q.field("date"), args.saleDate))
       .collect();
 
-    // Se ainda há vendas no mesmo dia, apenas decrementa totalSales e ajusta XP
     if (remainingSales.length > 0) {
-      // Ainda há vendas no mesmo dia, então o streak e lastActivityDate não mudam
-      // Apenas reverter XP e decrementar totalSales
-      // Como não sabemos se era a primeira venda do dia ou não, vamos subtrair 5 XP (padrão)
       const newXP = Math.max(0, stats.xp - 5);
       const newLevel = Math.floor(newXP / 100) + 1;
       const newTotalSales = Math.max(0, stats.totalSales - 1);
@@ -353,9 +337,8 @@ export const revertActivityStreak = internalMutation({
         updatedAt: Date.now(),
       });
     } else {
-      // Não há mais vendas no mesmo dia - precisa reverter streak e XP
-      const saleDateObj = new Date(args.saleDate);
-      const lastDateObj = new Date(stats.lastActivityDate);
+      const saleDateObj = new Date(args.saleDate + "T00:00:00");
+      const lastDateObj = new Date(stats.lastActivityDate + "T00:00:00");
       const diffDays = Math.floor(
         (lastDateObj.getTime() - saleDateObj.getTime()) / (1000 * 60 * 60 * 24)
       );
@@ -364,45 +347,36 @@ export const revertActivityStreak = internalMutation({
       let newXP = stats.xp;
       let newLastActivityDate = stats.lastActivityDate;
 
-      // Se a venda removida era do último dia de atividade (diffDays === 0)
       if (diffDays === 0) {
-        // Precisamos encontrar a última venda antes dessa data
-        const previousSales = await ctx.db
+        const allSales = await ctx.db
           .query("sales")
           .withIndex("by_user", (q) => q.eq("userId", args.userId))
-          .filter((q) => q.lt(q.field("date"), args.saleDate))
-          .order("desc")
-          .first();
+          .collect();
+
+        const previousSales = allSales
+          .filter((s) => s.date < args.saleDate)
+          .sort((a, b) => b.date.localeCompare(a.date))[0];
 
         if (previousSales) {
-          // Há uma venda anterior, usar essa data como nova lastActivityDate
           newLastActivityDate = previousSales.date;
-          const prevDateObj = new Date(previousSales.date);
+          const prevDateObj = new Date(previousSales.date + "T00:00:00");
           const daysBetween = Math.floor(
             (saleDateObj.getTime() - prevDateObj.getTime()) / (1000 * 60 * 60 * 24)
           );
 
           if (daysBetween === 1) {
-            // Era dia consecutivo, então o streak atual foi ganho por essa venda removida
-            // Reverter o streak em 1
             newStreak = Math.max(0, stats.currentStreak - 1);
-            newXP = Math.max(0, stats.xp - 10); // Reverter 10 XP do dia consecutivo
+            newXP = Math.max(0, stats.xp - 10);
           } else {
-            // Não era consecutivo, a venda removida não afetava o streak
-            // Mas como era o último dia, precisamos atualizar lastActivityDate
             newStreak = stats.currentStreak;
-            newXP = Math.max(0, stats.xp - 5); // Reverter 5 XP
+            newXP = Math.max(0, stats.xp - 5);
           }
         } else {
-          // Não há vendas anteriores, resetar streak para 0
           newStreak = 0;
           newXP = Math.max(0, stats.xp - 5);
-          // Usar a data da venda removida como referência (mas não há mais vendas nesse dia)
           newLastActivityDate = args.saleDate;
         }
       } else {
-        // A venda removida não era do último dia, apenas ajustar XP
-        // Não afeta streak nem lastActivityDate
         newXP = Math.max(0, stats.xp - 5);
       }
 

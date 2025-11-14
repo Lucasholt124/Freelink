@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   },
 
   description:
-    "Crie conteúdo viral com IA, encurte links, faça sorteios e rastreie vendas. Plataforma completa para criadores, influencers e afiliados. Mais barato que Linktree + ChatGPT + Midjourney juntos.",
+    "Crie conteúdo viral com IA, encurte links, faça sorteios e rastreie vendas. Plataforma completa para criadores, comerciantes, negociantes, vendedores online, quem posta videos e imagens em redes sociais, influencers e afiliados. Mais barato que Linktree + ChatGPT + Midjourney juntos.",
 
   keywords: [
     "link na bio",

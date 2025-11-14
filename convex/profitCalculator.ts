@@ -7,11 +7,30 @@ import { Doc, Id } from "./_generated/dataModel";
 // =================================================================
 // 🚀 VENDAS RÁPIDAS (MODO PAPEL E CANETA)
 // =================================================================
+const getBrazilDate = (): string => {
+  const now = new Date();
+  // Converter para timezone de Brasília (UTC-3)
+  const brazilTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const year = brazilTime.getFullYear();
+  const month = String(brazilTime.getMonth() + 1).padStart(2, "0");
+  const day = String(brazilTime.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+/**
+ * 🕐 Retorna horário atual no timezone de Brasília
+ */
+const getBrazilTime = (): string => {
+  const now = new Date();
+  const brazilTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  return brazilTime.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+};
+
 
 export const addQuickSale = mutation({
   args: {
-    amount: v.number(), // PREÇO DE VENDA
-    costPrice: v.number(), // ✅ AGORA OBRIGATÓRIO
+    amount: v.number(),
+    costPrice: v.number(),
     description: v.optional(v.string()),
     paymentMethod: v.optional(
       v.union(
@@ -30,7 +49,7 @@ export const addQuickSale = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Faça login para continuar");
 
-    // ✅ VALIDAÇÕES CRÍTICAS
+    // ✅ VALIDAÇÕES
     if (args.costPrice <= 0) {
       throw new Error("Custo deve ser maior que zero");
     }
@@ -41,16 +60,16 @@ export const addQuickSale = mutation({
       throw new Error("Preço de venda deve ser maior que o custo");
     }
 
-    const today = args.date || new Date().toISOString().split("T")[0];
+    // 🇧🇷 USAR DATA CORRETA DO BRASIL
+    const today = args.date || getBrazilDate();
     const month = today.substring(0, 7);
-    const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const time = getBrazilTime();
 
-    // ✅ CÁLCULOS PRECISOS
     const costPrice = args.costPrice;
     const salePrice = args.amount;
-    const totalCost = costPrice; // Para quantidade 1
-    const totalRevenue = salePrice; // Para quantidade 1
-    const profit = salePrice - costPrice; // LUCRO EXATO
+    const totalCost = costPrice;
+    const totalRevenue = salePrice;
+    const profit = salePrice - costPrice;
 
     // ✅ ADICIONAR NO CASH FLOW
     await ctx.db.insert("cashFlow", {
@@ -97,7 +116,7 @@ export const addQuickSale = mutation({
       userId: identity.subject,
     });
 
-    // ✅ REGENERAR RELATÓRIO MENSAL
+    // ✅ REGENERAR RELATÓRIO (CORRIGIDO ABAIXO)
     await ctx.scheduler.runAfter(500, internal.profitCalculator.regenerateMonthlyReport, {
       userId: identity.subject,
       month: month,
@@ -130,9 +149,10 @@ export const addQuickExpense = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Faça login para continuar");
 
-    const today = args.date || new Date().toISOString().split("T")[0];
+    // 🇧🇷 USAR DATA CORRETA DO BRASIL
+    const today = args.date || getBrazilDate();
     const month = today.substring(0, 7);
-    const time = new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    const time = getBrazilTime();
 
     // Adiciona no cash flow
     await ctx.db.insert("cashFlow", {
@@ -184,36 +204,33 @@ export const getDailySummary = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
-    const today = args.date || new Date().toISOString().split("T")[0];
+    // 🇧🇷 USAR DATA CORRETA DO BRASIL
+    const today = args.date || getBrazilDate();
+    const month = today.substring(0, 7);
 
-    // Busca resumo existente
-    const existingSummary = await ctx.db
-      .query("dailySummaries")
-      .withIndex("by_user_date", (q) =>
-        q.eq("userId", identity.subject).eq("date", today)
-      )
-      .first();
-
-    if (existingSummary && (!args.businessId || existingSummary.businessId === args.businessId)) {
-      return existingSummary;
-    }
-
-    // Calcula em tempo real se não existir
-    const sales = await ctx.db
+    // 🔥 BUSCAR TODAS AS VENDAS DO MÊS
+    const allSalesMonth = await ctx.db
       .query("sales")
-      .withIndex("by_user_date", (q) =>
-        q.eq("userId", identity.subject).eq("date", today)
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", identity.subject).eq("month", month)
       )
       .collect();
 
-    const expenses = await ctx.db
+    // 🔥 FILTRAR APENAS AS DE HOJE
+    const sales = allSalesMonth.filter((s) => s.date === today);
+
+    // 🔥 BUSCAR TODOS OS GASTOS DO MÊS
+    const allExpensesMonth = await ctx.db
       .query("expenses")
       .withIndex("by_user_month", (q) =>
-        q.eq("userId", identity.subject).eq("month", today.substring(0, 7))
+        q.eq("userId", identity.subject).eq("month", month)
       )
-      .filter((q) => q.eq(q.field("date"), today))
       .collect();
 
+    // 🔥 FILTRAR APENAS OS DE HOJE
+    const expenses = allExpensesMonth.filter((e) => e.date === today);
+
+    // Filtrar por business
     const filteredSales = args.businessId
       ? sales.filter((s) => s.businessId === args.businessId)
       : sales;
@@ -222,28 +239,83 @@ export const getDailySummary = query({
       ? expenses.filter((e) => e.businessId === args.businessId)
       : expenses;
 
-    // ✅ CÁLCULO CORRETO: Receita - Custo - Gastos = Lucro Líquido
-    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalRevenue, 0);
-    const totalCost = filteredSales.reduce((sum, s) => sum + s.totalCost, 0);
-    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
-    const grossProfit = totalRevenue - totalCost;// Lucro Bruto
+    // ✅ CÁLCULO CORRETO
+    const totalRevenue = filteredSales.reduce((sum, s) => sum + (s.totalRevenue || 0), 0);
+    const totalCost = filteredSales.reduce((sum, s) => sum + (s.totalCost || 0), 0);
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const grossProfit = totalRevenue - totalCost;
     const netProfit = grossProfit - totalExpenses;
-
-     // Lucro Líquido
 
     return {
       userId: identity.subject,
       businessId: args.businessId,
       date: today,
       totalRevenue,
-      totalCost, // ✅ ADICIONADO
-      grossProfit, // ✅ ADICIONADO
+      totalCost,
+      grossProfit,
       totalExpenses,
-      netProfit, // ✅ AGORA ESTÁ CORRETO
+      netProfit,
       salesCount: filteredSales.length,
       expensesCount: filteredExpenses.length,
       createdAt: Date.now(),
       updatedAt: Date.now(),
+    };
+  },
+});
+
+
+export const debugSalesToday = query({
+  args: {},
+  handler: async (ctx) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return null;
+
+    const today = new Date().toISOString().split("T")[0];
+    const month = today.substring(0, 7);
+
+    // Buscar TODAS as vendas do usuário
+    const allSales = await ctx.db
+      .query("sales")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    // Buscar vendas do mês
+    const salesThisMonth = await ctx.db
+      .query("sales")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", identity.subject).eq("month", month)
+      )
+      .collect();
+
+    // Filtrar manualmente por hoje
+    const salesToday = allSales.filter((s) => s.date === today);
+
+    // Buscar todos os gastos
+    const allExpenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .collect();
+
+    // Gastos de hoje
+    const expensesToday = allExpenses.filter((e) => e.date === today);
+
+    return {
+      today,
+      month,
+      totalSales: allSales.length,
+      salesThisMonth: salesThisMonth.length,
+        salesToday: salesToday.length,
+      todaySalesData: salesToday.map(s => ({
+        _id: s._id,
+        productName: s.productName,
+        date: s.date,
+        totalRevenue: s.totalRevenue,
+        profit: s.profit,
+      })),
+      totalExpenses: allExpenses.length,
+      expensesToday: expensesToday.length,
+      allSalesDates: [...new Set(allSales.map(s => s.date))].sort(),
+      allExpensesDates: [...new Set(allExpenses.map(e => e.date))].sort(),
     };
   },
 });
@@ -258,15 +330,17 @@ export const getCashFlow = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    const today = args.date || new Date().toISOString().split("T")[0];
+    // 🇧🇷 USAR DATA CORRETA DO BRASIL
+    const today = args.date || getBrazilDate();
 
     const cashFlowQuery = ctx.db
       .query("cashFlow")
-      .withIndex("by_user_date", (q) =>
-        q.eq("userId", identity.subject).eq("date", today)
-      );
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject));
 
     let cashFlow = await cashFlowQuery.order("desc").collect();
+
+    // Filtrar por data
+    cashFlow = cashFlow.filter((cf) => cf.date === today);
 
     if (args.businessId) {
       cashFlow = cashFlow.filter((cf) => cf.businessId === args.businessId);
@@ -2346,11 +2420,14 @@ export const generateMonthlyReport = action({
     businessId: v.optional(v.id("businesses")),
   },
   handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Faça login para continuar");
+    // ❌ REMOVIDO: const identity = await ctx.auth.getUserIdentity();
+    // ❌ REMOVIDO: if (!identity) throw new Error("Faça login para continuar");
+
+    // ✅ ACTIONS não têm acesso direto ao auth
+    // Vamos buscar o userId através das queries
 
     try {
-      // 🔍 BUSCAR VENDAS DO MÊS
+      // 🔍 BUSCAR VENDAS DO MÊS (já filtra por usuário via runQuery)
       const sales: Doc<"sales">[] = await ctx.runQuery(
         api.profitCalculator.getSalesByMonth,
         {
@@ -2368,14 +2445,32 @@ export const generateMonthlyReport = action({
         }
       );
 
-      // ✅ PERMITIR RELATÓRIO VAZIO (PARA RESET CORRETO)
-      // Se não há dados, criar relatório zerado
+      // ✅ Se não há userId disponível mas há vendas, pegar o userId da primeira venda
+      if (sales.length === 0 && expenses.length === 0) {
+        // Sem dados, criar relatório vazio
+        return {
+          success: true,
+          message: `Relatório de ${args.month} está vazio (sem vendas/gastos).`,
+          data: {
+            totalSales: 0,
+            totalRevenue: 0,
+            netProfit: 0,
+            profitMargin: 0,
+          },
+        };
+      }
+
+      const userId = sales[0]?.userId || expenses[0]?.userId;
+      if (!userId) {
+        throw new Error("Não foi possível identificar o usuário");
+      }
+
+      // 💰 CALCULAR TOTAIS
       const totalSales = sales.reduce((sum, s) => sum + s.quantity, 0);
       const totalRevenue = sales.reduce((sum, s) => sum + s.totalRevenue, 0);
       const totalCost = sales.reduce((sum, s) => sum + s.totalCost, 0);
       const grossProfit = totalRevenue - totalCost;
 
-      // 💸 CALCULAR TOTAIS DE GASTOS
       const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
       const fixedExpenses = expenses
         .filter((e) => e.type === "fixed")
@@ -2412,7 +2507,6 @@ export const generateMonthlyReport = action({
         }
       });
 
-      // 💰 CALCULAR LUCRO
       const netProfit = grossProfit - totalExpenses;
       const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
@@ -2444,7 +2538,7 @@ export const generateMonthlyReport = action({
         .sort((a, b) => b.profit - a.profit)
         .slice(0, 10);
 
-      // 🗑️ DELETAR TODOS OS RELATÓRIOS ANTIGOS DESTE MÊS
+      // 🗑️ DELETAR RELATÓRIOS ANTIGOS
       const existingReports = await ctx.runQuery(
         api.profitCalculator.getAllMonths,
         { businessId: args.businessId }
@@ -2505,7 +2599,8 @@ export const regenerateMonthlyReport = internalAction({
     businessId: v.optional(v.id("businesses")),
   },
   handler: async (ctx, args) => {
-    // Chama a action generateMonthlyReport
+    // ✅ INTERNAL ACTIONS não têm identity, então não verificamos auth
+    // Chama a action generateMonthlyReport que faz todo o trabalho
     await ctx.runAction(api.profitCalculator.generateMonthlyReport, {
       month: args.month,
       businessId: args.businessId,
