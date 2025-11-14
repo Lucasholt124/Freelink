@@ -131,6 +131,26 @@ const handleApiError = (error: unknown, defaultMessage: string) => {
   }
 };
 
+const getBrazilDate = (): string => {
+  const now = new Date();
+  const brazilTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  const year = brazilTime.getFullYear();
+  const month = String(brazilTime.getMonth() + 1).padStart(2, "0");
+  const day = String(brazilTime.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+// 🇧🇷 FUNÇÃO PARA DATA FUTURA (usado em metas)
+const getBrazilDatePlusDays = (days: number): string => {
+  const now = new Date();
+  const brazilTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+  brazilTime.setDate(brazilTime.getDate() + days);
+  const year = brazilTime.getFullYear();
+  const month = String(brazilTime.getMonth() + 1).padStart(2, "0");
+  const day = String(brazilTime.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function FinancialManagerPro() {
   const [selectedMonth, setSelectedMonth] = useState(() => {
     const now = new Date();
@@ -277,7 +297,7 @@ export default function FinancialManagerPro() {
     customerId: "",
     quantity: "",
     discount: "",
-    date: new Date().toISOString().split("T")[0],
+    date: getBrazilDate(), // ✅ CORRETO
     paymentMethod: "pix" as PaymentMethod,
     paymentStatus: "paid" as SalePaymentStatus,
     notes: "",
@@ -288,13 +308,13 @@ export default function FinancialManagerPro() {
     amount: "",
     categoryName: "Outros",
     type: "one_time" as ExpenseType,
-    date: new Date().toISOString().split("T")[0],
+    date: getBrazilDate(), // ✅ CORRETO
     paymentMethod: "pix" as PaymentMethod,
     paymentStatus: "paid" as ExpensePaymentStatus,
     notes: "",
   });
 
-  const [customerForm, setCustomerForm] = useState({
+   const [customerForm, setCustomerForm] = useState({
     name: "",
     email: "",
     phone: "",
@@ -316,9 +336,10 @@ export default function FinancialManagerPro() {
     description: "",
     targetValue: "",
     period: "monthly" as "daily" | "weekly" | "monthly" | "yearly",
-    startDate: new Date().toISOString().split("T")[0],
-    endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split("T")[0],
+    startDate: getBrazilDate(), // ✅ CORRETO
+    endDate: getBrazilDatePlusDays(30), // ✅ 30 dias no futuro
   });
+
 
   const [priceCalcForm, setPriceCalcForm] = useState({
     costPrice: "",
@@ -331,7 +352,7 @@ const [quickSaleForm, setQuickSaleForm] = useState({
   salePrice: "",
   description: "",
   paymentMethod: "pix" as PaymentMethod,
-  date: new Date().toISOString().split("T")[0],
+   date: getBrazilDate(),
 });
 
   const [quickExpenseForm, setQuickExpenseForm] = useState({
@@ -631,7 +652,7 @@ const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
     setShowEditProduct(true);
   };
 
-  const validateSale = (form: typeof saleForm, product: Doc<"products">): string[] => {
+ const validateSale = (form: typeof saleForm, product: Doc<"products">): string[] => {
   const errors: string[] = [];
 
   if (!form.productId) errors.push("Selecione um produto");
@@ -645,12 +666,12 @@ const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
     errors.push("Quantidade muito alta, confira");
   }
 
-  // Valida data
-  const saleDate = new Date(form.date);
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(today.getFullYear() - 1);
+  // ✅ VALIDAÇÃO DE DATA CORRIGIDA
+  const saleDate = new Date(form.date + "T00:00:00");
+  const todayStr = getBrazilDate();
+  const today = new Date(todayStr + "T23:59:59");
+  const oneYearAgo = new Date(todayStr + "T00:00:00");
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
   if (saleDate > today) {
     errors.push("Data não pode ser no futuro");
@@ -717,7 +738,7 @@ const handleAddSale = async () => {
       customerId: "",
       quantity: "",
       discount: "",
-      date: new Date().toISOString().split("T")[0],
+      date: getBrazilDate(),
       paymentMethod: "pix",
       paymentStatus: "paid",
       notes: "",
@@ -742,7 +763,9 @@ const handleAddSale = async () => {
     }
   };
 
-  const validateExpense = (form: typeof expenseForm): string[] => {
+  // ✅ PROCURE a função validateExpense e CORRIJA:
+
+const validateExpense = (form: typeof expenseForm): string[] => {
   const errors: string[] = [];
 
   if (!form.description.trim()) errors.push("Descrição é obrigatória");
@@ -752,12 +775,12 @@ const handleAddSale = async () => {
   if (isNaN(amount) || amount <= 0) errors.push("Valor deve ser maior que zero");
   if (amount > 1000000) errors.push("Valor muito alto, confira");
 
-  // Valida data
-  const expenseDate = new Date(form.date);
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
-  const oneYearAgo = new Date();
-  oneYearAgo.setFullYear(today.getFullYear() - 1);
+  // ✅ VALIDAÇÃO DE DATA CORRIGIDA
+  const expenseDate = new Date(form.date + "T00:00:00");
+  const todayStr = getBrazilDate();
+  const today = new Date(todayStr + "T23:59:59");
+  const oneYearAgo = new Date(todayStr + "T00:00:00");
+  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
 
   if (expenseDate > today) {
     errors.push("Data não pode ser no futuro");
@@ -800,7 +823,7 @@ const handleAddExpense = async () => {
       amount: "",
       categoryName: "Outros",
       type: "one_time",
-      date: new Date().toISOString().split("T")[0],
+      date: getBrazilDate(),
       paymentMethod: "pix",
       paymentStatus: "paid",
       notes: "",
@@ -957,9 +980,9 @@ const handleQuickSale = async () => {
   }
 
   // ✅ VALIDAÇÃO 5: DATA NO FUTURO
-  const saleDate = new Date(quickSaleForm.date);
-  const today = new Date();
-  today.setHours(23, 59, 59, 999);
+ const saleDate = new Date(quickSaleForm.date + "T00:00:00");
+const todayStr = getBrazilDate();
+const today = new Date(todayStr + "T23:59:59");
 
   if (saleDate > today) {
     toast.error("❌ Data não pode ser no futuro!");
@@ -1044,7 +1067,7 @@ const resetQuickSaleForm = () => {
     salePrice: "",
     description: "",
     paymentMethod: "pix",
-    date: new Date().toISOString().split("T")[0],
+    date: getBrazilDate(),
   });
 };
 
@@ -1075,7 +1098,7 @@ const getPaymentMethodLabel = (method: string) => {
           description: quickExpenseForm.description,
           category: quickExpenseForm.category,
           paymentMethod: quickExpenseForm.paymentMethod,
-          date: new Date().toISOString().split("T")[0],
+          date: getBrazilDate(),
         });
 
         toast.success("💾 Gasto salvo offline!");
