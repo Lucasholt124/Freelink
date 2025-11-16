@@ -970,6 +970,14 @@ removeBgUsage: defineTable({
 })
   .index("by_user_date", ["userId", "date"])
   .index("by_user", ["userId"]),
+  tempStorageFiles: defineTable({
+  storageId: v.id("_storage"),
+  type: v.union(v.literal("enhance"), v.literal("remove_bg")),
+  expiresAt: v.number(),
+  createdAt: v.number(),
+})
+  .index("by_expiration", ["expiresAt"])
+  .index("by_type", ["type"]),
 
   achievements: defineTable({
     userId: v.string(),

@@ -21,6 +21,7 @@ import type * as brainCampaigns from "../brainCampaigns.js";
 import type * as client from "../client.js";
 import type * as connections from "../connections.js";
 import type * as crons from "../crons.js";
+import type * as cronss from "../cronss.js";
 import type * as files from "../files.js";
 import type * as gamification from "../gamification.js";
 import type * as giveaways from "../giveaways.js";
@@ -61,6 +62,7 @@ declare const fullApi: ApiFromModules<{
   client: typeof client;
   connections: typeof connections;
   crons: typeof crons;
+  cronss: typeof cronss;
   files: typeof files;
   gamification: typeof gamification;
   giveaways: typeof giveaways;

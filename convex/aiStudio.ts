@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, action, query } from "./_generated/server";
+import { mutation, action, query, internalMutation } from "./_generated/server";
 import { api } from "./_generated/api";
 
 // =================================================================
@@ -342,6 +342,8 @@ export const enhanceImage = action({
               continue;
             }
 
+            // ✅ BAIXAR E ARMAZENAR TEMPORARIAMENTE NO CONVEX
+            console.log("📥 Baixando imagem para armazenamento temporário...");
             const imageResponse = await fetch(imageUrl);
             if (!imageResponse.ok) {
               console.error(`❌ Erro ao baixar imagem: ${imageResponse.status}`);
@@ -353,17 +355,32 @@ export const enhanceImage = action({
 
             console.log(`📦 Resultado: ${resultKB}KB`);
 
-            // ✅ INCREMENTAR CONTADOR DE USO (SEM SALVAR IMAGEM)
+            // ✅ SALVAR NO STORAGE TEMPORARIAMENTE
+            const storageId = await ctx.storage.store(imageBlob);
+            const finalUrl = await ctx.storage.getUrl(storageId);
+
+            if (!finalUrl) {
+              console.error("❌ Erro ao gerar URL do storage");
+              continue;
+            }
+
+            // ✅ INCREMENTAR CONTADOR DE USO
             await ctx.runMutation(api.aiStudio.incrementEnhanceUsage, {
               userId: args.userId,
               date: today
             });
 
-            // ✅ RETORNAR URL DIRETA DA API (NÃO SALVAR NO STORAGE)
+            // ✅ AGENDAR EXCLUSÃO AUTOMÁTICA APÓS 24H
+            await ctx.runMutation(api.aiStudio.scheduleStorageDeletion, {
+              storageId: storageId,
+              type: "enhance",
+              expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 horas
+            });
+
             return {
               success: true,
-              url: imageUrl,
-              message: `✨ **Imagem Aprimorada com Sucesso!**\n\n📊 **Detalhes:**\n• Modelo: ${model.name}\n• Tempo: ${processingTime}s\n• Tamanho: ${resultKB}KB\n• Usos restantes hoje: ${DAILY_LIMIT - (usageRecord?.count || 0) - 1}/${DAILY_LIMIT}\n\n💡 Baixe agora! Link expira em 1 hora.`
+              url: finalUrl,
+              message: `✨ **Imagem Aprimorada com Sucesso!**\n\n📊 **Detalhes:**\n• Modelo: ${model.name}\n• Tempo: ${processingTime}s\n• Tamanho: ${resultKB}KB\n• Usos restantes hoje: ${DAILY_LIMIT - (usageRecord?.count || 0) - 1}/${DAILY_LIMIT}\n\n⏰ Imagem expira em 24h - Baixe agora!`
             };
           } else if (result.status === "failed") {
             console.error(`❌ Processamento falhou:`, result.error);
@@ -577,17 +594,42 @@ export const removeBackground = action({
 
         const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
 
-        // ✅ INCREMENTAR CONTADOR DE USO (SEM SALVAR IMAGEM)
+        // ✅ BAIXAR E ARMAZENAR TEMPORARIAMENTE NO CONVEX
+        console.log("📥 Baixando imagem para armazenamento temporário...");
+        const imageResponse = await fetch(imageUrl);
+        if (!imageResponse.ok) {
+          throw new Error("Erro ao baixar imagem processada");
+        }
+
+        const imageBlob = await imageResponse.blob();
+        const resultKB = (imageBlob.size / 1024).toFixed(1);
+        console.log(`📦 Resultado: ${resultKB}KB`);
+
+        // ✅ SALVAR NO STORAGE TEMPORARIAMENTE
+        const storageId = await ctx.storage.store(imageBlob);
+        const finalUrl = await ctx.storage.getUrl(storageId);
+
+        if (!finalUrl) {
+          throw new Error("Erro ao gerar URL do storage");
+        }
+
+        // ✅ INCREMENTAR CONTADOR DE USO
         await ctx.runMutation(api.aiStudio.incrementRemoveBgUsage, {
           userId: args.userId,
           date: today
         });
 
-        // ✅ RETORNAR URL DIRETA DA API (NÃO SALVAR NO STORAGE)
+        // ✅ AGENDAR EXCLUSÃO AUTOMÁTICA APÓS 24H
+        await ctx.runMutation(api.aiStudio.scheduleStorageDeletion, {
+          storageId: storageId,
+          type: "remove_bg",
+          expiresAt: Date.now() + (24 * 60 * 60 * 1000) // 24 horas
+        });
+
         return {
           success: true,
-          url: imageUrl,
-          message: `✨ **Fundo Removido com Sucesso!**\n\n📊 Usos restantes hoje: ${DAILY_LIMIT - (usageRecord?.count || 0) - 1}/${DAILY_LIMIT}\n\n💡 Baixe agora! Link expira em 1 hora.`
+          url: finalUrl,
+          message: `✨ **Fundo Removido com Sucesso!**\n\n📊 **Detalhes:**\n• Tamanho: ${resultKB}KB\n• Usos restantes hoje: ${DAILY_LIMIT - (usageRecord?.count || 0) - 1}/${DAILY_LIMIT}\n\n⏰ Imagem expira em 24h - Baixe agora!`
         };
       } else if (result.status === "failed") {
         console.error("❌ Processamento falhou:", result.error);
@@ -700,6 +742,39 @@ export const incrementEnhanceUsage = mutation({
   },
 });
 
+export const cleanupExpiredStorage = internalMutation({
+  handler: async (ctx) => {
+    const now = Date.now();
+
+    // Buscar arquivos expirados
+    const expiredFiles = await ctx.db
+      .query("tempStorageFiles")
+      .withIndex("by_expiration")
+      .filter((q) => q.lt(q.field("expiresAt"), now))
+      .take(100); // Limpar 100 por vez
+
+    let deletedCount = 0;
+
+    for (const file of expiredFiles) {
+      try {
+        // Deletar do storage
+        await ctx.storage.delete(file.storageId);
+
+        // Deletar registro
+        await ctx.db.delete(file._id);
+
+        deletedCount++;
+      } catch (error) {
+        console.error(`Erro ao deletar arquivo ${file.storageId}:`, error);
+      }
+    }
+
+    console.log(`🧹 Limpeza concluída: ${deletedCount} arquivos removidos`);
+
+    return { deletedCount };
+  },
+});
+
 export const incrementRemoveBgUsage = mutation({
   args: {
     userId: v.string(),
@@ -727,6 +802,22 @@ export const incrementRemoveBgUsage = mutation({
         updatedAt: Date.now()
       });
     }
+  },
+});
+
+export const scheduleStorageDeletion = mutation({
+  args: {
+    storageId: v.id("_storage"),
+    type: v.union(v.literal("enhance"), v.literal("remove_bg")),
+    expiresAt: v.number()
+  },
+  handler: async (ctx, args) => {
+    return await ctx.db.insert("tempStorageFiles", {
+      storageId: args.storageId,
+      type: args.type,
+      expiresAt: args.expiresAt,
+      createdAt: Date.now()
+    });
   },
 });
 
