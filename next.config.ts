@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  serverExternalPackages: ["@node-rs/argon2"],
 
   // Adicione estas configurações para Vercel
   experimental: {
