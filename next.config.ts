@@ -38,7 +38,6 @@ const nextConfig: NextConfig = {
   },
 
   reactStrictMode: true,
-  swcMinify: true,
 
   // ✅ Experimental features válidas
   experimental: {
