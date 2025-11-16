@@ -299,15 +299,13 @@ const handleEnhanceImage = async () => {
   const toastId = toast.loading('🎨 Processando com IA...')
 
   try {
-    // ✅ CORREÇÃO: Sempre redimensionar antes de enviar
     console.log('📏 Redimensionando imagem antes do upload...');
     const resizedImage = await resizeImageBeforeUpload(imageFile, 1440, 1440);
 
-    // Verificar tamanho após redimensionamento
     const sizeKB = Math.round((resizedImage.length * 0.75) / 1024);
     console.log(`✅ Imagem redimensionada: ~${sizeKB}KB`);
 
-    if (sizeKB > 5000) { // Se ainda > 5MB após redimensionamento
+    if (sizeKB > 5000) {
       toast.dismiss(toastId);
       toast.error('Imagem muito grande. Tente uma imagem menor ou com menos detalhes.');
       return;
@@ -315,7 +313,7 @@ const handleEnhanceImage = async () => {
 
     const result = await enhanceImageAction({
       userId: user.id,
-      imageFile: resizedImage, // ✅ Usa a imagem redimensionada
+      imageFile: resizedImage,
       effect: selectedEffect
     })
 
@@ -323,16 +321,27 @@ const handleEnhanceImage = async () => {
 
     if (result.success) {
       setEnhancedImage(result.url!)
-      toast.success('🎉 Imagem aprimorada com sucesso!')
+
+      // ✅ MELHOR FEEDBACK COM INFORMAÇÃO DE LIMITE
+      if (result.message && result.message.includes('Usos restantes')) {
+        toast.success(result.message, { duration: 5000 })
+      } else {
+        toast.success('🎉 Imagem aprimorada com sucesso!')
+      }
+
       createConfetti()
     } else {
-      toast.error(result.message || 'Erro ao processar')
+      // ✅ MENSAGEM DE ERRO CLARA PARA LIMITE ATINGIDO
+      if (result.message && result.message.includes('Limite Diário Atingido')) {
+        toast.error(result.message, { duration: 6000 })
+      } else {
+        toast.error(result.message || 'Erro ao processar')
+      }
     }
   } catch (error) {
     console.error('Erro:', error)
     toast.dismiss(toastId)
 
-    // ✅ Mensagem de erro mais específica
     const errorMsg = error instanceof Error ? error.message : 'Erro ao processar imagem';
     if (errorMsg.includes('size') || errorMsg.includes('large')) {
       toast.error('Imagem muito grande. Use uma imagem menor (máx 2MB, 1920x1080)');
@@ -395,67 +404,75 @@ const handleEnhanceImage = async () => {
   // 📸 FUNÇÕES DE REMOVER FUNDO
   // =================================================================
   const handleRemoveBackground = async () => {
-    if (!removeBgImage || !user) {
-      toast.error('📸 Envie uma imagem primeiro!')
-      return
+  if (!removeBgImage || !user) {
+    toast.error('📸 Envie uma imagem primeiro!')
+    return
+  }
+
+  setLoading(true)
+  const toastId = toast.loading('✂️ Removendo fundo...')
+
+  try {
+    console.log('📏 Preparando imagem para remoção de fundo...');
+
+    const response = await fetch(removeBgImage);
+    const blob = await response.blob();
+    const file = new File([blob], "image.jpg", { type: "image/jpeg" });
+
+    const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
+    console.log(`📊 Tamanho original: ${sizeMB}MB`);
+
+    const resizedImage = await resizeImageBeforeUpload(file, 1440, 1440);
+
+    const resizedSizeKB = Math.round((resizedImage.length * 0.75) / 1024);
+    console.log(`✅ Imagem redimensionada: ~${resizedSizeKB}KB`);
+
+    if (resizedSizeKB > 5000) {
+      toast.dismiss(toastId);
+      toast.error('Imagem muito grande. Use uma imagem menor (máx 2MB)');
+      return;
     }
 
-    setLoading(true)
-    const toastId = toast.loading('✂️ Removendo fundo...')
+    const result = await removeBackgroundAction({
+      userId: user.id,
+      imageUrl: resizedImage
+    })
 
-    try {
-      // ✅ CORREÇÃO: Redimensionar antes de processar
-      console.log('📏 Preparando imagem para remoção de fundo...');
+    toast.dismiss(toastId)
 
-      const response = await fetch(removeBgImage);
-      const blob = await response.blob();
-      const file = new File([blob], "image.jpg", { type: "image/jpeg" });
+    if (result.success) {
+      setRemoveBgResult(result.url!)
 
-      // Verificar tamanho antes
-      const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
-      console.log(`📊 Tamanho original: ${sizeMB}MB`);
-
-      // ✅ Redimensionar
-      const resizedImage = await resizeImageBeforeUpload(file, 1440, 1440);
-
-      // Verificar tamanho após
-      const resizedSizeKB = Math.round((resizedImage.length * 0.75) / 1024);
-      console.log(`✅ Imagem redimensionada: ~${resizedSizeKB}KB`);
-
-      if (resizedSizeKB > 5000) {
-        toast.dismiss(toastId);
-        toast.error('Imagem muito grande. Use uma imagem menor (máx 2MB)');
-        return;
+      // ✅ MELHOR FEEDBACK COM INFORMAÇÃO DE LIMITE
+      if (result.message && result.message.includes('Usos restantes')) {
+        toast.success(result.message, { duration: 5000 })
+      } else {
+        toast.success('✨ Fundo removido com sucesso!')
       }
 
-      const result = await removeBackgroundAction({
-        userId: user.id,
-        imageUrl: resizedImage // ✅ Usa imagem otimizada
-      })
-
-      toast.dismiss(toastId)
-
-      if (result.success) {
-        setRemoveBgResult(result.url!)
-        toast.success('✨ Fundo removido com sucesso!')
-        createConfetti()
+      createConfetti()
+    } else {
+      // ✅ MENSAGEM DE ERRO CLARA PARA LIMITE ATINGIDO
+      if (result.message && result.message.includes('Limite Diário Atingido')) {
+        toast.error(result.message, { duration: 6000 })
       } else {
         toast.error(result.message || 'Erro ao remover fundo')
       }
-    } catch (error) {
-      console.error('Erro:', error)
-      toast.dismiss(toastId)
-
-      const errorMsg = error instanceof Error ? error.message : 'Erro ao remover fundo';
-      if (errorMsg.includes('size') || errorMsg.includes('large')) {
-        toast.error('Imagem muito grande. Use uma menor (máx 2MB, 1920x1080)');
-      } else {
-        toast.error(errorMsg);
-      }
-    } finally {
-      setLoading(false)
     }
+  } catch (error) {
+    console.error('Erro:', error)
+    toast.dismiss(toastId)
+
+    const errorMsg = error instanceof Error ? error.message : 'Erro ao remover fundo';
+    if (errorMsg.includes('size') || errorMsg.includes('large')) {
+      toast.error('Imagem muito grande. Use uma menor (máx 2MB, 1920x1080)');
+    } else {
+      toast.error(errorMsg);
+    }
+  } finally {
+    setLoading(false)
   }
+}
 
   // =================================================================
   // 🔧 FUNÇÕES AUXILIARES
@@ -1155,7 +1172,7 @@ const handleEnhanceImage = async () => {
       </div>
 
       {/* ESTILOS GLOBAIS */}
-      <style jsx global>{`
+       <style jsx global>{`
         @keyframes confetti-fall {
           to {
             transform: translateY(100vh) rotate(720deg);
@@ -1199,6 +1216,87 @@ const handleEnhanceImage = async () => {
 
         .delay-1000 {
           animation-delay: 1000ms;
+        }
+
+        /* ✨ NOVAS ANIMAÇÕES PARA TORNAR MAIS VIRAL */
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+
+        @keyframes glow {
+          0%, 100% {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.3);
+          }
+          50% {
+            box-shadow: 0 0 40px rgba(168, 85, 247, 0.6);
+          }
+        }
+
+        @keyframes shimmer {
+          0% {
+            background-position: -1000px 0;
+          }
+          100% {
+            background-position: 1000px 0;
+          }
+        }
+
+        .hover-float:hover {
+          animation: float 2s ease-in-out infinite;
+        }
+
+        .glow-effect {
+          animation: glow 3s ease-in-out infinite;
+        }
+
+        .shimmer {
+          background: linear-gradient(
+            90deg,
+            rgba(255, 255, 255, 0) 0%,
+            rgba(255, 255, 255, 0.2) 50%,
+            rgba(255, 255, 255, 0) 100%
+          );
+          background-size: 1000px 100%;
+          animation: shimmer 3s infinite;
+        }
+
+        /* MELHOR RESPONSIVIDADE EM MOBILE */
+        @media (max-width: 640px) {
+          .text-5xl {
+            font-size: 2.5rem !important;
+          }
+
+          .text-7xl {
+            font-size: 3rem !important;
+          }
+
+          .aspect-square {
+            aspect-ratio: 4/3 !important;
+          }
+
+          .p-6 {
+            padding: 1rem !important;
+          }
+
+          .gap-6 {
+            gap: 1rem !important;
+          }
+        }
+
+        /* SMOOTH SCROLL PARA MELHOR UX */
+        html {
+          scroll-behavior: smooth;
+        }
+
+        /* PREVENIR SELEÇÃO ACIDENTAL EM MOBILE */
+        button, .cursor-pointer {
+          -webkit-tap-highlight-color: transparent;
+          user-select: none;
         }
       `}</style>
     </div>

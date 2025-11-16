@@ -1,5 +1,5 @@
 import { v } from "convex/values";
-import { mutation, action } from "./_generated/server";
+import { mutation, action, query } from "./_generated/server";
 import { api } from "./_generated/api";
 
 // =================================================================
@@ -185,53 +185,49 @@ export const enhanceImage = action({
     try {
       console.log("🎨 Iniciando aprimoramento de imagem...");
 
+      // ✅ VERIFICAR LIMITE DE USO DIÁRIO
+      const today = new Date().toISOString().split('T')[0];
+      const usageRecord = await ctx.runQuery(api.aiStudio.checkEnhanceLimit, {
+        userId: args.userId,
+        date: today
+      });
+
+      const DAILY_LIMIT = 10; // 10 aprimoramentos por dia (AJUSTE CONFORME NECESSÁRIO)
+
+      if (usageRecord && usageRecord.count >= DAILY_LIMIT) {
+        return {
+          success: false,
+          message: `🚫 **Limite Diário Atingido!**\n\nVocê já usou ${DAILY_LIMIT} aprimoramentos hoje.\n\n⏰ Aguarde até amanhã ou faça upgrade para uso ilimitado!`
+        };
+      }
+
       const REPLICATE_KEY = process.env.REPLICATE_API_TOKEN || "";
 
       if (!REPLICATE_KEY || REPLICATE_KEY.length < 10) {
-        // Fallback sem API
-        const blob = base64ToBlob(args.imageFile);
-        const storageId = await ctx.storage.store(blob);
-        const finalUrl = await ctx.storage.getUrl(storageId);
-
-        if (finalUrl) {
-          return {
-            success: true,
-            url: finalUrl,
-            message: "⚠️ Configure REPLICATE_API_TOKEN para aprimoramento com IA"
-          };
-        }
-        throw new Error("Falha ao salvar imagem");
+        return {
+          success: false,
+          message: "⚠️ Configure REPLICATE_API_TOKEN para aprimoramento com IA"
+        };
       }
 
-      // ✅ NOVA LÓGICA: Sempre redimensionar antes de processar
       console.log("📏 Redimensionando imagem para otimizar processamento...");
 
-      // Converte base64 em blob temporário
       const originalBlob = base64ToBlob(args.imageFile);
       const estimatedMB = (originalBlob.size / 1024 / 1024).toFixed(1);
       console.log(`📊 Tamanho original da imagem: ${estimatedMB} MB`);
 
-      // ✅ CORREÇÃO PRINCIPAL: Usar função de redimensionamento
-      // Nota: Como estamos no servidor (Convex Action), precisamos de uma abordagem diferente
-      // A função resizeImageBeforeUpload usa Canvas que não existe no servidor
-      // Então vamos validar o tamanho e comprimir se necessário
-
       let processedImage = args.imageFile;
 
-      if (originalBlob.size > 5 * 1024 * 1024) { // Se > 5MB
+      if (originalBlob.size > 5 * 1024 * 1024) {
         console.log("⚠️ Imagem muito grande (>5MB). Reduzindo qualidade...");
 
-        // Converter PNG para JPEG (mais compacto)
         if (args.imageFile.includes('data:image/png')) {
           processedImage = args.imageFile.replace('data:image/png', 'data:image/jpeg');
           console.log("✅ Convertido de PNG para JPEG");
         }
 
-        // Reduzir qualidade do JPEG (remover parte da string base64)
-        // Esta é uma aproximação simplificada - idealmente use biblioteca de processamento
         const base64Data = processedImage.split(',')[1];
         if (base64Data && base64Data.length > 1000000) {
-          // Truncar dados para aproximadamente 70% do tamanho
           const reducedData = base64Data.substring(0, Math.floor(base64Data.length * 0.7));
           processedImage = processedImage.split(',')[0] + ',' + reducedData;
           console.log("✅ Qualidade reduzida para ~70%");
@@ -240,12 +236,11 @@ export const enhanceImage = action({
 
       console.log("🚀 Enviando para Replicate...");
 
-      // LISTA DE MODELOS BARATOS E EFICIENTES
       const models = [
         {
           name: "Real-ESRGAN (Barato)",
           version: "f121d640bd286e1fdc67f9799164c1d5be36ff74576ee11c803ae5b665dd46aa",
-          cost: 0.0015, // $0.0015 por imagem
+          cost: 0.0015,
           config: {
             image: processedImage,
             scale: 2,
@@ -255,7 +250,7 @@ export const enhanceImage = action({
         {
           name: "GFPGAN (Face Enhancement)",
           version: "9283608cc6b7be6b65a8e44983db012355fde4132009bf99d976b2f0896856a3",
-          cost: 0.002, // $0.002 por imagem
+          cost: 0.002,
           config: {
             img: processedImage,
             version: "v1.4",
@@ -265,7 +260,7 @@ export const enhanceImage = action({
         {
           name: "Practical-RCAN (Super Resolution)",
           version: "861bc12866277e8e088dd5eb43e10ab5e82e9bc7b6b3c5eeca31ea43c7c45c65",
-          cost: 0.001, // $0.001 por imagem
+          cost: 0.001,
           config: {
             image: processedImage,
             scale: 2
@@ -273,7 +268,6 @@ export const enhanceImage = action({
         }
       ];
 
-      // Tenta cada modelo em ordem
       for (const model of models) {
         try {
           console.log(`🎯 Tentando modelo: ${model.name} ($${model.cost}/imagem)`);
@@ -296,7 +290,6 @@ export const enhanceImage = action({
             const errorText = await prediction.text();
             console.error(`❌ Erro ao criar prediction: ${errorText}`);
 
-            // Se o erro for sobre tamanho da imagem, tenta reduzir mais
             if (errorText.includes("pixels") || errorText.includes("memory")) {
               console.log("⚠️ Imagem ainda muito grande, tentando próximo modelo...");
               continue;
@@ -309,7 +302,6 @@ export const enhanceImage = action({
 
           console.log(`📊 Prediction criada: ${predictionId}`);
 
-          // Polling otimizado
           let attempts = 0;
           const maxAttempts = 60;
 
@@ -337,7 +329,6 @@ export const enhanceImage = action({
             }
           }
 
-          // Verifica resultado
           if (result.status === "succeeded") {
             const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
             console.log(`✅ Sucesso com ${model.name} em ${processingTime}s!`);
@@ -351,7 +342,6 @@ export const enhanceImage = action({
               continue;
             }
 
-            // Download da imagem processada
             const imageResponse = await fetch(imageUrl);
             if (!imageResponse.ok) {
               console.error(`❌ Erro ao baixar imagem: ${imageResponse.status}`);
@@ -363,29 +353,21 @@ export const enhanceImage = action({
 
             console.log(`📦 Resultado: ${resultKB}KB`);
 
-            // Salva no storage
-            const storageId = await ctx.storage.store(imageBlob);
-            const finalUrl = await ctx.storage.getUrl(storageId);
+            // ✅ INCREMENTAR CONTADOR DE USO (SEM SALVAR IMAGEM)
+            await ctx.runMutation(api.aiStudio.incrementEnhanceUsage, {
+              userId: args.userId,
+              date: today
+            });
 
-            if (finalUrl) {
-              await ctx.runMutation(api.aiStudio.saveEnhancedImage, {
-                userId: args.userId,
-                originalUrl: args.imageFile.substring(0, 100),
-                resultUrl: finalUrl,
-                prompt: `${model.name} - Custo: $${model.cost}`,
-                storageId: storageId
-              });
-
-              return {
-                success: true,
-                url: finalUrl,
-                message: `✨ **Imagem Aprimorada com Sucesso!**\n\n📊 **Detalhes:**\n• Modelo: ${model.name}\n• Tempo: ${processingTime}s\n• Tamanho: ${resultKB}KB\n• Custo: $${model.cost}\n\n💡 Com $10 você pode processar ${Math.floor(10/model.cost).toLocaleString()} imagens!`
-              };
-            }
+            // ✅ RETORNAR URL DIRETA DA API (NÃO SALVAR NO STORAGE)
+            return {
+              success: true,
+              url: imageUrl,
+              message: `✨ **Imagem Aprimorada com Sucesso!**\n\n📊 **Detalhes:**\n• Modelo: ${model.name}\n• Tempo: ${processingTime}s\n• Tamanho: ${resultKB}KB\n• Usos restantes hoje: ${DAILY_LIMIT - (usageRecord?.count || 0) - 1}/${DAILY_LIMIT}\n\n💡 Baixe agora! Link expira em 1 hora.`
+            };
           } else if (result.status === "failed") {
             console.error(`❌ Processamento falhou:`, result.error);
 
-            // Se falhou por tamanho, tenta próximo modelo
             if (result.error && (result.error.includes("pixels") || result.error.includes("memory"))) {
               console.log("⚠️ Erro de tamanho, tentando próximo modelo...");
               continue;
@@ -400,7 +382,6 @@ export const enhanceImage = action({
         }
       }
 
-      // Se todos os modelos falharam
       throw new Error("Todos os modelos falharam. Tente com uma imagem menor (máx 2MB, 1920x1080).");
 
     } catch (error: unknown) {
@@ -509,92 +490,117 @@ export const removeBackground = action({
   },
   handler: async (ctx, args): Promise<{ success: boolean; url?: string; message?: string }> => {
     try {
-      const blob = base64ToBlob(args.imageUrl);
-      const REPLICATE_KEY = getReplicateApiKey();
+      // ✅ VERIFICAR LIMITE DE USO DIÁRIO
+      const today = new Date().toISOString().split('T')[0];
+      const usageRecord = await ctx.runQuery(api.aiStudio.checkRemoveBgLimit, {
+        userId: args.userId,
+        date: today
+      });
 
-      if (REPLICATE_KEY && REPLICATE_KEY.length > 10) {
-        try {
-          console.log("✂️ Removendo fundo com Replicate...");
+      const DAILY_LIMIT = 15; // 15 remoções de fundo por dia (AJUSTE CONFORME NECESSÁRIO)
 
-          const prediction = await fetch("https://api.replicate.com/v1/predictions", {
-            method: "POST",
-            headers: {
-              "Authorization": `Bearer ${REPLICATE_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              version: "95fcc2a26d3899cd6c2691c900465aaeff466285a65c14638cc5f36f34befaf1",
-              input: {
-                image: args.imageUrl
-              }
-            }),
-          });
-
-          if (prediction.ok) {
-            let result = await prediction.json();
-            const predictionId = result.id;
-
-            for (let i = 0; i < 20; i++) {
-              await new Promise(resolve => setTimeout(resolve, 1000));
-
-              const statusResponse = await fetch(
-                `https://api.replicate.com/v1/predictions/${predictionId}`,
-                {
-                  headers: {
-                    "Authorization": `Bearer ${REPLICATE_KEY}`,
-                  },
-                }
-              );
-
-              if (statusResponse.ok) {
-                result = await statusResponse.json();
-
-                if (result.status === "succeeded" && result.output) {
-                  console.log("✅ Fundo removido!");
-
-                  const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
-                  const imageResponse = await fetch(imageUrl);
-                  const imageBlob = await imageResponse.blob();
-
-                  const storageId = await ctx.storage.store(imageBlob);
-                  const finalUrl = await ctx.storage.getUrl(storageId);
-
-                  if (finalUrl) {
-                    return {
-                      success: true,
-                      url: finalUrl,
-                      message: "✨ Fundo removido com IA!"
-                    };
-                  }
-                } else if (result.status === "failed") {
-                  break;
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error("❌ Erro Replicate:", error);
-        }
-      }
-
-      // Fallback
-      const storageId = await ctx.storage.store(blob);
-      const finalUrl = await ctx.storage.getUrl(storageId);
-
-      if (finalUrl) {
+      if (usageRecord && usageRecord.count >= DAILY_LIMIT) {
         return {
-          success: true,
-          url: finalUrl,
-          message: "✅ Configure REPLICATE_API_TOKEN para remoção com IA"
+          success: false,
+          message: `🚫 **Limite Diário Atingido!**\n\nVocê já usou ${DAILY_LIMIT} remoções de fundo hoje.\n\n⏰ Aguarde até amanhã ou faça upgrade para uso ilimitado!`
         };
       }
 
-      throw new Error("Falha");
+      const REPLICATE_KEY = getReplicateApiKey();
+
+      if (!REPLICATE_KEY || REPLICATE_KEY.length < 10) {
+        return {
+          success: false,
+          message: "⚠️ Configure REPLICATE_API_TOKEN para remoção com IA"
+        };
+      }
+
+      console.log("✂️ Removendo fundo com Replicate...");
+
+      const prediction = await fetch("https://api.replicate.com/v1/predictions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${REPLICATE_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          version: "95fcc2a26d3899cd6c2691c900465aaeff466285a65c14638cc5f36f34befaf1",
+          input: {
+            image: args.imageUrl
+          }
+        }),
+      });
+
+      if (!prediction.ok) {
+        const errorText = await prediction.text();
+        console.error("❌ Erro ao criar prediction:", errorText);
+        throw new Error("Falha ao iniciar processamento");
+      }
+
+      let result = await prediction.json();
+      const predictionId = result.id;
+
+      console.log(`📊 Prediction criada: ${predictionId}`);
+
+      let attempts = 0;
+      const maxAttempts = 30;
+
+      while (result.status === "starting" || result.status === "processing") {
+        attempts++;
+
+        if (attempts >= maxAttempts) {
+          throw new Error("Timeout - processamento muito longo");
+        }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        const statusResponse = await fetch(
+          `https://api.replicate.com/v1/predictions/${predictionId}`,
+          {
+            headers: {
+              "Authorization": `Bearer ${REPLICATE_KEY}`,
+            },
+          }
+        );
+
+        if (statusResponse.ok) {
+          result = await statusResponse.json();
+
+          if (attempts % 5 === 0) {
+            console.log(`⏳ Processando... ${attempts}s`);
+          }
+        }
+      }
+
+      if (result.status === "succeeded" && result.output) {
+        console.log("✅ Fundo removido!");
+
+        const imageUrl = Array.isArray(result.output) ? result.output[0] : result.output;
+
+        // ✅ INCREMENTAR CONTADOR DE USO (SEM SALVAR IMAGEM)
+        await ctx.runMutation(api.aiStudio.incrementRemoveBgUsage, {
+          userId: args.userId,
+          date: today
+        });
+
+        // ✅ RETORNAR URL DIRETA DA API (NÃO SALVAR NO STORAGE)
+        return {
+          success: true,
+          url: imageUrl,
+          message: `✨ **Fundo Removido com Sucesso!**\n\n📊 Usos restantes hoje: ${DAILY_LIMIT - (usageRecord?.count || 0) - 1}/${DAILY_LIMIT}\n\n💡 Baixe agora! Link expira em 1 hora.`
+        };
+      } else if (result.status === "failed") {
+        console.error("❌ Processamento falhou:", result.error);
+        throw new Error(result.error || "Processamento falhou");
+      }
+
+      throw new Error("Status inesperado: " + result.status);
+
     } catch (error: unknown) {
       console.error("❌ Erro:", error);
       return {
         success: false,
-        message: "Erro ao processar"
+        message: error instanceof Error ? error.message : "Erro ao processar"
       };
     }
   },
@@ -603,22 +609,7 @@ export const removeBackground = action({
 // =================================================================
 // 💾 MUTATIONS
 // =================================================================
-export const saveEnhancedImage = mutation({
-  args: {
-    userId: v.string(),
-    originalUrl: v.string(),
-    resultUrl: v.string(),
-    prompt: v.string(),
-    storageId: v.optional(v.id("_storage"))
-  },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("aiStudioContent", {
-      ...args,
-      type: "enhanced_image",
-      createdAt: Date.now()
-    });
-  },
-});
+
 
 export const saveTranscription = mutation({
   args: {
@@ -637,6 +628,108 @@ export const saveTranscription = mutation({
   },
 });
 
+// =================================================================
+// 📊 QUERIES PARA VERIFICAR LIMITES DE USO
+// =================================================================
+
+export const checkEnhanceLimit = query({
+  args: {
+    userId: v.string(),
+    date: v.string()
+  },
+  handler: async (ctx, args) => {
+    const record = await ctx.db
+      .query("enhanceUsage")
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", args.userId).eq("date", args.date)
+      )
+      .first();
+
+    return record || { count: 0 };
+  },
+});
+
+export const checkRemoveBgLimit = query({
+  args: {
+    userId: v.string(),
+    date: v.string()
+  },
+  handler: async (ctx, args) => {
+    const record = await ctx.db
+      .query("removeBgUsage")
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", args.userId).eq("date", args.date)
+      )
+      .first();
+
+    return record || { count: 0 };
+  },
+});
+
+// =================================================================
+// 💾 MUTATIONS PARA INCREMENTAR CONTADORES DE USO
+// =================================================================
+
+export const incrementEnhanceUsage = mutation({
+  args: {
+    userId: v.string(),
+    date: v.string()
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("enhanceUsage")
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", args.userId).eq("date", args.date)
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        count: existing.count + 1,
+        updatedAt: Date.now()
+      });
+    } else {
+      await ctx.db.insert("enhanceUsage", {
+        userId: args.userId,
+        date: args.date,
+        count: 1,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
+    }
+  },
+});
+
+export const incrementRemoveBgUsage = mutation({
+  args: {
+    userId: v.string(),
+    date: v.string()
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("removeBgUsage")
+      .withIndex("by_user_date", (q) =>
+        q.eq("userId", args.userId).eq("date", args.date)
+      )
+      .first();
+
+    if (existing) {
+      await ctx.db.patch(existing._id, {
+        count: existing.count + 1,
+        updatedAt: Date.now()
+      });
+    } else {
+      await ctx.db.insert("removeBgUsage", {
+        userId: args.userId,
+        date: args.date,
+        count: 1,
+        createdAt: Date.now(),
+        updatedAt: Date.now()
+      });
+    }
+  },
+});
+
 export const saveChatMessage = mutation({
   args: {
     userId: v.string(),
@@ -652,4 +745,5 @@ export const saveChatMessage = mutation({
       createdAt: Date.now()
     });
   },
+
 });

@@ -951,6 +951,26 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  enhanceUsage: defineTable({
+  userId: v.string(),
+  date: v.string(), // YYYY-MM-DD
+  count: v.number(),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+})
+  .index("by_user_date", ["userId", "date"])
+  .index("by_user", ["userId"]),
+
+removeBgUsage: defineTable({
+  userId: v.string(),
+  date: v.string(), // YYYY-MM-DD
+  count: v.number(),
+  createdAt: v.number(),
+  updatedAt: v.number(),
+})
+  .index("by_user_date", ["userId", "date"])
+  .index("by_user", ["userId"]),
+
   achievements: defineTable({
     userId: v.string(),
     type: v.string(),
@@ -960,6 +980,8 @@ export default defineSchema({
     unlockedAt: v.number(),
     seen: v.boolean(),
   })
+
+
     .index("by_user", ["userId"])
     .index("by_user_unseen", ["userId", "seen"]),
 });
