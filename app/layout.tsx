@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { GeistSans } from "geist/font/sans";
 import { GeistMono } from "geist/font/mono";
 import "./globals.css";
@@ -7,17 +7,15 @@ import { Toaster } from "@/components/ui/sonner";
 import { getBaseUrl } from "@/convex/lib/getBaseUrl";
 import clsx from "clsx";
 
+// ✅ Metadata SEM themeColor
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseUrl()),
-
   title: {
     default: "Freelinnk - Link na Bio com IA que Vende Sozinho | Crie Conteúdo Viral",
     template: "%s | Freelinnk",
   },
-
   description:
     "Crie conteúdo viral com IA, encurte links, faça sorteios e rastreie vendas. Plataforma completa para criadores, comerciantes, negociantes, vendedores online, quem posta videos e imagens em redes sociais, influencers e afiliados. Mais barato que Linktree + ChatGPT + Midjourney juntos.",
-
   keywords: [
     "link na bio",
     "freelinnk",
@@ -30,15 +28,12 @@ export const metadata: Metadata = {
     "influencers",
     "afiliados",
   ],
-
   authors: [{ name: "Freelinnk", url: getBaseUrl() }],
   creator: "Freelinnk",
   publisher: "Freelinnk",
-
   alternates: {
     canonical: '/',
   },
-
   robots: {
     index: true,
     follow: true,
@@ -50,7 +45,6 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-
   icons: {
     icon: [
       { url: "/favicon.svg", type: "image/svg+xml" },
@@ -60,14 +54,7 @@ export const metadata: Metadata = {
       { url: "/apple-touch-icon.svg", sizes: "180x180", type: "image/svg+xml" },
     ],
   },
-
   manifest: "/manifest.json",
-
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
-  ],
-
   openGraph: {
     type: "website",
     locale: "pt_BR",
@@ -85,7 +72,6 @@ export const metadata: Metadata = {
       },
     ],
   },
-
   twitter: {
     card: "summary_large_image",
     title: "Freelinnk - Link na Bio com IA que Vende Sozinho",
@@ -93,15 +79,25 @@ export const metadata: Metadata = {
       "Crie conteúdo viral com IA, faça sorteios e rastreie vendas.",
     images: ["/twitter-image.png"],
   },
-
   applicationName: "Freelinnk",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
     title: "Freelinnk",
   },
-
   category: "Technology",
+};
+
+// ✅ NOVO: Viewport separado COM themeColor
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 5,
+  userScalable: true,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f172a" },
+  ],
 };
 
 // Schema.org JSON-LD

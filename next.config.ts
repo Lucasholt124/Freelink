@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* opções de configuração aqui */
+  // ✅ MOVIDO de experimental para raiz
+  serverExternalPackages: ['@prisma/client', 'prisma'],
+
   images: {
     remotePatterns: [
       {
@@ -12,19 +14,41 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "api.qrserver.com",
       },
+      {
+        protocol: "https",
+        hostname: "**", // Permite qualquer domínio
+      },
     ],
-  },
-  serverExternalPackages: ["@node-rs/argon2"],
-
-  // Adicione estas configurações para Vercel
-  experimental: {
-    serverComponentsExternalPackages: ['@prisma/client', 'prisma'],
+    dangerouslyAllowSVG: true,
+    contentDispositionType: "attachment",
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // Otimizações adicionais
+  // Otimizações
   compress: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+
+  typescript: {
+    ignoreBuildErrors: false,
+  },
+
+  eslint: {
+    ignoreDuringBuilds: false,
+  },
+
+  reactStrictMode: true,
+  swcMinify: true,
+
+  // ✅ Experimental features válidas
+  experimental: {
+    optimizePackageImports: [
+      "lucide-react",
+      "framer-motion",
+      "@clerk/nextjs",
+      "react-icons",
+    ],
+  },
 };
 
 export default nextConfig;

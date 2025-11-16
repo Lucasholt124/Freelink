@@ -1,159 +1,44 @@
-// Em convex/shortLinks.ts
-// (Substitua o arquivo inteiro)
+// convex/shortLinks.ts
+// ⚠️ IMPORTANTE: ShortLinks agora usa Next.js API Routes
+// Este arquivo é mantido apenas para compatibilidade de imports antigos
 
 import { action } from "./_generated/server";
 import { v } from "convex/values";
-import { PrismaClient } from '@prisma/client';
 
-const prisma = new PrismaClient({
-  datasources: { db: { url: process.env.DATABASE_URL } },
-});
-
-// --- ACTION para criar link ---
 export const createShortLink = action({
   args: {
     originalUrl: v.string(),
     customSlug: v.optional(v.string()),
   },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Usuário não autenticado.");
-
-    try {
-      if (args.customSlug) {
-        const existing = await prisma.link.findUnique({ where: { id: args.customSlug } });
-        if (existing) throw new Error("Este apelido personalizado já está em uso.");
-      }
-
-      const newLink = await prisma.link.create({
-        data: {
-          id: args.customSlug,
-          url: args.originalUrl,
-          userId: identity.subject,
-          title: "Link Encurtado",
-        },
-      });
-      return newLink;
-    } catch (error) {
-        throw new Error(error instanceof Error ? error.message : "Falha ao criar link.");
-    } finally {
-        await prisma.$disconnect();
-    }
+  handler: async () => {
+    console.warn("⚠️ Use POST /api/shortlinks/create em vez de Convex action");
+    throw new Error("Use API Route: POST /api/shortlinks/create");
   },
 });
 
-// --- ACTION para buscar os links do usuário ---
 export const getLinksForUser = action({
   args: {},
-  handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
-
-    try {
-      const links = await prisma.link.findMany({
-        where: { userId: identity.subject },
-        orderBy: { createdAt: 'desc' },
-        include: { _count: { select: { clicks: true } } }
-      });
-
-      return links.map((link) => ({
-        id: link.id,
-        url: link.url,
-        title: link.title,
-        clicks: link._count.clicks,
-        createdAt: link.createdAt.getTime(),
-      }));
-    } catch (error) {
-        console.error("Erro ao buscar links para o usuário:", error);
-        return [];
-    } finally {
-        await prisma.$disconnect();
-    }
+  handler: async () => {
+    console.warn("⚠️ Use GET /api/shortlinks/list em vez de Convex action");
+    return [];
   },
 });
 
-// --- ACTION para buscar os detalhes dos cliques de um link ---
-// --- ACTION para buscar os detalhes dos cliques de um link ---
 export const getClicksForLink = action({
   args: { shortLinkId: v.string() },
-  handler: async (ctx, args) => {
-      const identity = await ctx.auth.getUserIdentity();
-      if (!identity) throw new Error("Não autenticado.");
-
-      try {
-          const link = await prisma.link.findFirst({
-              where: { id: args.shortLinkId, userId: identity.subject },
-          });
-          if (!link) throw new Error("Acesso negado ou link não encontrado.");
-
-          const clicks = await prisma.click.findMany({
-              where: { linkId: args.shortLinkId },
-              orderBy: { timestamp: "desc" },
-          });
-
-          const serializableClicks = clicks.map((click) => ({
-              id: click.id,
-              timestamp: click.timestamp.getTime(),
-              country: click.country,
-              visitorId: click.visitorId,
-              userAgent: click.userAgent,
-              referrer: click.referrer,
-          }));
-
-          const serializableLink = {
-              id: link.id,
-              url: link.url,
-              title: link.title,
-              createdAt: link.createdAt.getTime(), // ✅ Campo obrigatório adicionado
-          };
-
-          return {
-              link: serializableLink,
-              clicks: serializableClicks
-          };
-      } catch(error) {
-          console.error("Erro ao buscar cliques do link:", error);
-          throw new Error(error instanceof Error ? error.message : "Erro ao buscar dados do link");
-      } finally {
-          await prisma.$disconnect();
-      }
+  handler: async () => {
+    console.warn("⚠️ Use GET /api/shortlinks/[linkId]/clicks em vez de Convex action");
+    return {
+      link: { id: "", url: "", title: "", createdAt: 0 },
+      clicks: []
+    };
   },
 });
 
-// --- ACTION para deletar um link ---
 export const deleteShortLink = action({
   args: { shortLinkId: v.string() },
-  handler: async (ctx, args) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Não autenticado.");
-
-    try {
-      // Verificar se o link pertence ao usuário
-      const link = await prisma.link.findFirst({
-        where: {
-          id: args.shortLinkId,
-          userId: identity.subject
-        },
-      });
-
-      if (!link) throw new Error("Link não encontrado ou acesso negado.");
-
-      // Deletar todos os cliques primeiro
-      await prisma.click.deleteMany({
-        where: { linkId: args.shortLinkId }
-      });
-
-      // Deletar o link
-      await prisma.link.delete({
-        where: { id: args.shortLinkId }
-      });
-
-      return { success: true, message: "Link deletado com sucesso" };
-    } catch(error) {
-      console.error("Erro ao deletar link:", error);
-      throw new Error(error instanceof Error ? error.message : "Erro ao deletar link");
-    } finally {
-      await prisma.$disconnect();
-    }
+  handler: async () => {
+    console.warn("⚠️ Use DELETE /api/shortlinks/[linkId]/delete em vez de Convex action");
+    throw new Error("Use API Route: DELETE /api/shortlinks/[linkId]/delete");
   },
 });

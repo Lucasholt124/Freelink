@@ -1,16 +1,21 @@
-// convex/crons.ts - CRON JOB PARA NOTIFICAÇÕES AUTOMÁTICAS
+// convex/crons.ts - TODOS OS CRON JOBS EM UM ARQUIVO
 import { cronJobs } from "convex/server";
 import { internal } from "./_generated/api";
 
 const crons = cronJobs();
 
-// ============================================
-// RODA A CADA 1 MINUTO
-// ============================================
+// ✅ Processa posts agendados - A cada 5 minutos (antes era 1 minuto)
 crons.interval(
-  "send-scheduled-notifications",
-  { minutes: 1 }, // A cada 1 minuto
+  "process-scheduled-posts",
+  { minutes: 5 },
   internal.notificationSender.processScheduledPosts
+);
+
+// ✅ Limpeza de arquivos expirados - A cada 6 horas
+crons.interval(
+  "cleanup-expired-storage",
+  { hours: 6 },
+  internal.aiStudio.cleanupExpiredStorage
 );
 
 export default crons;

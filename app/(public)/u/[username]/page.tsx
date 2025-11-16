@@ -1,4 +1,3 @@
-// Em app/u/[username]/page.tsx
 import { preloadQuery, fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import PublicPageContent from "@/components/PublicPageContent";
@@ -6,21 +5,24 @@ import { getUserSubscriptionPlanByUsername } from "@/lib/subscription";
 import Script from "next/script";
 import { notFound } from "next/navigation";
 
-export default async function PublicLinkInBioPage({
-  params,
-}: {
+// ✅ Force dynamic rendering
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
+interface PageProps {
   params: Promise<{ username: string }>;
-}) {
+}
+
+export default async function PublicLinkInBioPage({ params }: PageProps) {
   try {
-    // Resolvemos a Promise para obter o username
     const { username } = await params;
 
-    // Validamos se o username parece legítimo
-    if (!username || typeof username !== 'string' || username.length < 2) {
+    // ✅ Validação robusta
+    if (!username || typeof username !== 'string' || username.length < 2 || username.length > 50) {
       notFound();
     }
 
-    // Carregamos todos os dados necessários em paralelo
+    // ✅ Carrega dados em paralelo
     const [
       preloadedLinks,
       preloadedCustomizations,
@@ -30,19 +32,17 @@ export default async function PublicLinkInBioPage({
       preloadQuery(api.lib.links.getLinksBySlug, { slug: username }),
       preloadQuery(api.lib.customizations.getCustomizationsBySlug, { slug: username }),
       getUserSubscriptionPlanByUsername(username),
-      // Corrigido: usamos fetchQuery corretamente
       fetchQuery(api.tracking.getIdsBySlug, { slug: username }),
     ]);
 
-    // Verificamos se o usuário existe
-    const hasValidData = preloadedCustomizations !== null;
-    if (!hasValidData) {
+    // ✅ Verifica se o usuário existe
+    if (!preloadedCustomizations) {
       notFound();
     }
 
     return (
       <>
-        {/* Scripts de rastreamento inseridos diretamente */}
+        {/* ✅ Google Analytics */}
         {trackingIds?.googleAnalyticsId && (
           <>
             <Script
@@ -64,6 +64,7 @@ export default async function PublicLinkInBioPage({
           </>
         )}
 
+        {/* ✅ Facebook Pixel */}
         {trackingIds?.facebookPixelId && (
           <Script
             id="facebook-pixel"
@@ -94,7 +95,7 @@ export default async function PublicLinkInBioPage({
       </>
     );
   } catch (error) {
-    console.error("Erro ao carregar página de usuário:", error);
+    console.error("❌ Erro ao carregar página:", error);
     notFound();
   }
 }
