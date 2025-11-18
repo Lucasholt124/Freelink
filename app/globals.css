@@ -254,3 +254,74 @@
 .animate-shimmer {
   animation: shimmer 2s ease-in-out infinite;
 }
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}
+
+/* ✅ Prevenir zoom indesejado no iOS */
+input[type="text"],
+input[type="email"],
+input[type="search"],
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* ✅ Scroll suave - CORRIGIDO */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* ✅ Permitir scroll normal */
+html, body {
+  overflow-x: hidden; /* Previne scroll horizontal */
+  overflow-y: auto;   /* Permite scroll vertical */
+  overscroll-behavior-y: contain;
+  width: 100%;
+  min-height: 100vh;  /* Muda de height para min-height */
+}
+
+/* ✅ Container principal com scroll */
+main {
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* ✅ Fix para modais e overlays no iOS */
+.fixed {
+  position: fixed;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* ✅ Melhorar toque em elementos pequenos */
+button, a, [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ✅ Prevenir seleção de texto em elementos interativos */
+button, a[role="button"] {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* ✅ Safe area para iPhone com notch */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* ✅ Previne problemas de scroll em iOS sem travar */
+@supports (-webkit-touch-callout: none) {
+  body {
+    /* Permite bounce scroll controlado */
+    -webkit-overflow-scrolling: touch;
+  }
+}
