@@ -311,3 +311,30 @@ button, a, [role="button"] {
     margin-bottom: 0.5rem;
   }
 }
+
+@media (max-width: 1024px) {
+  body.mobile-sidebar-open {
+    position: fixed !important;
+    overflow: hidden !important;
+    width: 100% !important;
+    height: 100vh !important;
+    overscroll-behavior: none !important;
+  }
+}
+
+/* ✅ Garantir que o body sempre possa rolar por padrão */
+body {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  position: relative !important;
+}
+
+/* ✅ Mobile: Override específico */
+@media (max-width: 768px) {
+  body:not(.mobile-sidebar-open) {
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    position: relative !important;
+    -webkit-overflow-scrolling: touch;
+  }
+}

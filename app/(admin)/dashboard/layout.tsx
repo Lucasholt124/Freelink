@@ -695,35 +695,35 @@ useEffect(() => {
   }
 }, []);
 
-  useEffect(() => {
-    setIsSidebarOpen(false);
-  }, [pathname]);
-
  useEffect(() => {
   if (isSidebarOpen) {
-    // ✅ iOS Safari fix
-    document.body.style.position = 'fixed';
-    document.body.style.width = '100%';
-    document.body.style.overflow = 'hidden';
+    const scrollY = window.scrollY;
+    document.body.style.top = `-${scrollY}px`;
+    document.body.classList.add('mobile-sidebar-open');
   } else {
-    document.body.style.position = '';
-    document.body.style.width = '';
-    document.body.style.overflow = '';
+    document.body.classList.remove('mobile-sidebar-open');
+    const scrollY = document.body.style.top;
+    document.body.style.top = '';
+    if (scrollY) {
+      window.scrollTo(0, parseInt(scrollY || '0') * -1);
+    }
   }
-
-  return () => {
-    document.body.style.position = '';
-    document.body.style.width = '';
-    document.body.style.overflow = '';
-  };
 }, [isSidebarOpen]);
 
-
-// ✅ ADICIONAR no final do componente, antes do return:
+// ✅ Fechar sidebar ao mudar de rota
 useEffect(() => {
-  // Cleanup ao desmontar o componente
+  setIsSidebarOpen(false);
+  document.body.classList.remove('mobile-sidebar-open');
+}, [pathname]);
+
+// ✅ Cleanup ao desmontar componente
+useEffect(() => {
   return () => {
-    document.body.style.overflow = 'unset';
+    document.body.classList.remove('mobile-sidebar-open');
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    document.body.style.top = '';
   };
 }, []);
   const getPlanBadge = () => {
