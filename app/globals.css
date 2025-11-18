@@ -116,83 +116,16 @@
   * {
     @apply border-border outline-ring/50;
   }
-
-  /* ✅ CORRIGIDO: Definição única e limpa */
-  html {
-    height: 100%;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    scroll-behavior: smooth;
-  }
-
-  body {
-    @apply bg-background text-foreground;
-    position: relative;
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
-    width: 100%;
-    margin: 0;
-    padding: 0;
-  }
-}
-
-/* ✅ Mobile: Configurações LIMPAS de scroll */
-@media (max-width: 768px) {
-  html {
-    overflow-x: hidden;
-    overflow-y: scroll;
-    -webkit-overflow-scrolling: touch;
-  }
-
-  body {
-    overflow-x: hidden;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: none; /* ✅ Mudado de 'contain' para 'none' */
-  }
-
-  /* ✅ REMOVIDO: A regra perigosa de position fixed */
-}
-
-/* ✅ Desktop: Scroll normal */
-@media (min-width: 769px) {
   html, body {
-    overflow-x: hidden;
-    overflow-y: auto;
+    @apply bg-background text-foreground flex flex-col min-h-screen overflow-x-hidden;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    margin: 0;
+    padding: 0;
   }
 }
 
-/* ✅ Safe area para dispositivos com notch */
-@supports (padding: max(0px)) {
-  body {
-    padding-left: max(0px, env(safe-area-inset-left));
-    padding-right: max(0px, env(safe-area-inset-right));
-  }
-}
-
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .safe-area-bottom {
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
-  }
-}
-
-/* ✅ Prevenir zoom no iOS */
-input[type="text"],
-input[type="email"],
-input[type="search"],
-textarea,
-select {
-  font-size: 16px !important;
-}
-
-/* ✅ Melhorar toque em elementos pequenos */
-button, a, [role="button"] {
-  min-height: 44px;
-  min-width: 44px;
-}
-
-/* Scrollbar customizada */
+/* Scrollbar customizada para sidebar */
 .scrollbar-thin {
   scrollbar-width: thin;
 }
@@ -219,14 +152,12 @@ button, a, [role="button"] {
   background-color: #374151;
 }
 
-/* Screenshot highlight */
 .screenshot-highlight {
   outline: 4px solid rgba(59, 130, 246, 0.5);
   box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
   transition: all 0.2s ease-in-out;
 }
 
-/* Animações */
 @keyframes confetti-rain {
   0% {
     background-position: 0 0;
@@ -243,6 +174,66 @@ button, a, [role="button"] {
   animation: confetti-rain 5s linear forwards;
 }
 
+/* Adicione classe para destacar elemento na captura de tela */
+.screenshot-highlight {
+  outline: 4px solid rgba(59, 130, 246, 0.5);
+  box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
+  transition: all 0.2s ease-in-out;
+}
+
+/* Breakpoint personalizado para tamanhos muito pequenos */
+@media (min-width: 480px) {
+  .xs\:inline {
+    display: inline;
+  }
+  .xs\:hidden {
+    display: none;
+  }
+}
+
+/* Tamanhos de borda personalizados para responsividade */
+.border-6 {
+  border-width: 6px;
+}
+
+/* Garantir que texto muito longo quebre corretamente em telas pequenas */
+.break-all-mobile {
+  word-break: break-all;
+}
+
+/* Efeito de sombra para o texto do vencedor */
+.drop-shadow-glow {
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
+}
+
+/* Melhorar espaçamento em dispositivos móveis */
+@media (max-width: 640px) {
+  .sm-spacing {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+  }
+
+  .sm-text-truncate {
+    max-width: 90vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Garantir boa leitura de texto em dispositivos pequenos */
+.mobile-readable {
+  font-size: clamp(0.75rem, 4vw, 1rem);
+  line-height: 1.5;
+}
+
+/* Melhorar grid para dispositivos muito pequenos */
+@media (max-width: 360px) {
+  .xs-stack > * {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+}
 @keyframes gradient-xy {
   0%, 100% { background-position: 0% 0%; }
   25% { background-position: 100% 0%; }
@@ -262,79 +253,4 @@ button, a, [role="button"] {
 
 .animate-shimmer {
   animation: shimmer 2s ease-in-out infinite;
-}
-
-/* Breakpoints personalizados */
-@media (min-width: 480px) {
-  .xs:inline {
-    display: inline;
-  }
-  .xs:hidden {
-    display: none;
-  }
-}
-
-.border-6 {
-  border-width: 6px;
-}
-
-.break-all-mobile {
-  word-break: break-all;
-}
-
-.drop-shadow-glow {
-  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
-}
-
-@media (max-width: 640px) {
-  .sm-spacing {
-    margin: 0.5rem 0;
-    padding: 0.5rem;
-  }
-
-  .sm-text-truncate {
-    max-width: 90vw;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-.mobile-readable {
-  font-size: clamp(0.75rem, 4vw, 1rem);
-  line-height: 1.5;
-}
-
-@media (max-width: 360px) {
-  .xs-stack > * {
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
-}
-
-@media (max-width: 1024px) {
-  body.mobile-sidebar-open {
-    position: fixed !important;
-    overflow: hidden !important;
-    width: 100% !important;
-    height: 100vh !important;
-    overscroll-behavior: none !important;
-  }
-}
-
-/* ✅ Garantir que o body sempre possa rolar por padrão */
-body {
-  overflow-y: auto !important;
-  overflow-x: hidden !important;
-  position: relative !important;
-}
-
-/* ✅ Mobile: Override específico */
-@media (max-width: 768px) {
-  body:not(.mobile-sidebar-open) {
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    position: relative !important;
-    -webkit-overflow-scrolling: touch;
-  }
 }

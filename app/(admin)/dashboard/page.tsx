@@ -97,99 +97,80 @@ function getClickStreak(clicks: number): { days: number; message: string; color:
 
 // === COMPONENTES ULTRA PREMIUM ===
 
-
 function MentorIaWidget({ userPlan }: { userPlan: string }) {
   const isLocked = userPlan === "free";
   return (
-    <div className="relative group h-full min-h-[400px]">
-      <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl sm:rounded-3xl blur-xl opacity-30 group-hover:opacity-75 transition-all duration-700 will-change-transform" />
-
+    <div className="relative group h-full">
+      <div className="absolute -inset-1 bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 rounded-2xl sm:rounded-3xl blur-xl opacity-30 group-hover:opacity-75 transition-all duration-700 animate-pulse"></div>
       {isLocked && (
-        <div className="absolute -top-2 -right-2 z-30 animate-bounce">
+        <div className="absolute -top-3 -right-3 z-30 animate-bounce">
           <div className="relative">
-            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-full blur-md opacity-80" />
-            <Badge className="relative bg-gradient-to-r from-yellow-500 via-orange-500 to-red-600 text-white border-0 px-2 sm:px-3 py-1 font-black shadow-2xl text-[10px] sm:text-xs">
-              <Crown className="w-3 h-3 sm:w-4 sm:h-4 mr-1" /> UNLOCK PRO
+            <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-full blur-md opacity-80 animate-pulse"></div>
+            <Badge className="relative bg-gradient-to-r from-yellow-500 via-orange-500 to-red-600 text-white border-0 px-2 sm:px-4 py-1 sm:py-2 font-black shadow-2xl text-[10px] sm:text-sm backdrop-blur-sm">
+              <Crown className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-1.5 animate-spin" style={{ animationDuration: '3s' }} /> UNLOCK PRO
             </Badge>
           </div>
         </div>
       )}
-
-      <div className="relative bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950 p-4 sm:p-6 rounded-2xl sm:rounded-3xl shadow-2xl text-white transition-all duration-700 group-hover:shadow-blue-500/50 group-hover:-translate-y-1 sm:group-hover:-translate-y-2 flex flex-col h-full border border-blue-400/30 overflow-hidden backdrop-blur-sm touch-manipulation">
-
-        {/* ✅ Background decorativo - otimizado */}
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(96,165,250,0.2),transparent_50%)] will-change-transform" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.2),transparent_50%)] will-change-transform" />
-
+      <div className="relative bg-gradient-to-br from-slate-950 via-blue-950 to-purple-950 p-4 sm:p-6 md:p-8 rounded-2xl sm:rounded-3xl shadow-2xl text-white transition-all duration-700 group-hover:shadow-blue-500/50 group-hover:-translate-y-2 group-hover:scale-[1.02] flex flex-col h-full border border-blue-400/30 overflow-hidden backdrop-blur-sm">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(96,165,250,0.2),transparent_50%)]"></div>
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_80%,rgba(168,85,247,0.2),transparent_50%)]"></div>
+        <div className="absolute top-0 right-0 w-32 sm:w-64 h-32 sm:h-64 bg-gradient-to-bl from-pink-500/10 to-transparent rounded-full blur-3xl"></div>
         <div className="relative z-10 flex-grow flex flex-col">
-          {/* ✅ Header - flex otimizado */}
-          <div className="flex items-start gap-3 sm:gap-4 mb-4 sm:mb-6">
+          <div className="flex items-center gap-3 sm:gap-6 mb-4 sm:mb-6">
             <div className="relative flex-shrink-0">
-              <div className="absolute -inset-1 sm:-inset-2 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 rounded-xl blur-lg opacity-75" />
-              <div className="relative bg-gradient-to-br from-blue-500/40 to-purple-600/40 p-2 sm:p-3 rounded-xl backdrop-blur-xl border border-white/30 shadow-2xl">
-                <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8 text-white drop-shadow-lg" />
+              <div className="absolute -inset-2 sm:-inset-3 bg-gradient-to-r from-blue-400 via-purple-500 to-pink-500 rounded-xl sm:rounded-2xl blur-lg opacity-75 animate-pulse"></div>
+              <div className="relative bg-gradient-to-br from-blue-500/40 to-purple-600/40 p-2.5 sm:p-4 rounded-xl sm:rounded-2xl backdrop-blur-xl border border-white/30 shadow-2xl">
+                <ImageIcon className="w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 text-white drop-shadow-lg" />
               </div>
             </div>
-
             <div className="flex-grow min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h2 className="text-lg sm:text-2xl md:text-3xl font-black text-white leading-tight truncate">
-                  Mentor.IA
-                </h2>
-                <Badge className="bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-blue-100 border border-blue-400/40 text-[10px] font-black px-1.5 py-0.5 flex-shrink-0">
-                  NEW
-                </Badge>
+              <div className="flex items-center gap-2 flex-wrap mb-1">
+                <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-white leading-tight truncate">Mentor.IA</h2>
+                <Badge className="bg-gradient-to-r from-blue-500/30 to-purple-500/30 text-blue-100 border border-blue-400/40 text-[10px] font-black px-1.5 sm:px-2 py-0.5 backdrop-blur-sm flex-shrink-0">NEW</Badge>
               </div>
-              <div className="flex items-center gap-2">
-                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 flex-shrink-0" />
-                <p className="text-blue-200 font-black text-xs sm:text-sm truncate">
-                  Gerador de Imagens IA
-                </p>
+              <div className="flex items-center gap-2 mt-1 sm:mt-2">
+                <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400 animate-pulse drop-shadow-lg flex-shrink-0" />
+                <p className="text-blue-200 font-black text-xs sm:text-sm md:text-base drop-shadow truncate">Gerador de Imagens IA</p>
               </div>
             </div>
           </div>
-
-          {/* ✅ Features - grid responsivo */}
-          <div className="bg-gradient-to-br from-white/15 to-white/5 rounded-xl p-4 sm:p-5 border border-white/20 backdrop-blur-md mb-4 sm:mb-6 flex-grow">
-            <h3 className="font-black text-sm sm:text-base mb-3 sm:mb-4 flex items-center text-white">
-              <Bolt className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-yellow-400 flex-shrink-0" />
-              <span className="truncate">Crie Arte Profissional</span>
+          <div className="bg-gradient-to-br from-white/15 to-white/5 rounded-xl sm:rounded-2xl p-3 sm:p-5 md:p-6 border border-white/20 backdrop-blur-md mb-4 sm:mb-6 flex-grow shadow-inner">
+            <h3 className="font-black text-sm sm:text-base md:text-lg mb-3 sm:mb-5 flex items-center text-white drop-shadow">
+              <Bolt className="w-4 h-4 sm:w-5 sm:h-5 mr-2 text-yellow-400 animate-pulse drop-shadow-lg flex-shrink-0" /> Crie Arte Profissional
             </h3>
-
-            <div className="space-y-2 sm:space-y-3">
+            <div className="space-y-2 sm:space-y-4">
               {[
-                { icon: Type, text: "Texto vira arte em 5s", color: "text-blue-300", bg: "from-blue-500/30 to-blue-600/30" },
-                { icon: Instagram, text: "Posts virais automáticos", color: "text-purple-300", bg: "from-purple-500/30 to-purple-600/30" },
-                { icon: Palette, text: "Milhares de estilos", color: "text-pink-300", bg: "from-pink-500/30 to-pink-600/30" }
+                { icon: Type, text: "Texto vira arte em 5 segundos", color: "text-blue-300", bg: "from-blue-500/30 to-blue-600/30", detail: "GPT-4 Vision" },
+                { icon: Instagram, text: "Posts virais automaticamente", color: "text-purple-300", bg: "from-purple-500/30 to-purple-600/30", detail: "IA Treinada" },
+                { icon: Palette, text: "Milhares de estilos únicos", color: "text-pink-300", bg: "from-pink-500/30 to-pink-600/30", detail: "Ilimitado" }
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-2 sm:gap-3 group/item">
-                  <div className={`bg-gradient-to-r ${item.bg} p-1.5 sm:p-2 rounded-lg shadow-lg border border-white/20 flex-shrink-0`}>
-                    <item.icon className={`w-3 h-3 sm:w-4 sm:h-4 ${item.color}`} />
+                <div key={i} className="flex items-center gap-2 sm:gap-3 group/item hover:translate-x-1 sm:hover:translate-x-2 transition-all duration-300">
+                  <div className={`bg-gradient-to-r ${item.bg} p-1.5 sm:p-2.5 rounded-lg sm:rounded-xl shadow-lg group-hover/item:scale-110 group-hover/item:rotate-3 transition-all duration-300 border border-white/20 flex-shrink-0`}>
+                    <item.icon className={`w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 ${item.color} drop-shadow`} />
                   </div>
-                  <span className="font-bold text-xs sm:text-sm text-white truncate flex-1">
-                    {item.text}
-                  </span>
+                  <div className="flex-grow min-w-0">
+                    <span className="font-bold text-xs sm:text-sm md:text-base text-white group-hover/item:text-white transition-colors drop-shadow block truncate">{item.text}</span>
+                    <p className="text-[10px] sm:text-xs text-white/60 font-semibold mt-0.5 truncate">{item.detail}</p>
+                  </div>
                   <CheckCircle2 className="w-3 h-3 sm:w-4 sm:h-4 text-green-400 opacity-0 group-hover/item:opacity-100 transition-opacity flex-shrink-0" />
                 </div>
               ))}
             </div>
           </div>
-
-          {/* ✅ CTA - stack mobile */}
-          <div className="relative z-10 mt-auto flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3">
-            <div className="flex items-center justify-center gap-2 bg-gradient-to-r from-red-500/30 to-pink-500/30 px-3 py-2 rounded-full border border-red-400/40 backdrop-blur-sm shadow-lg flex-shrink-0">
-              <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-red-300 flex-shrink-0" />
-              <span className="text-[10px] sm:text-xs font-black text-white whitespace-nowrap">
-                +538k criadas
-              </span>
+          <div className="relative z-10 mt-auto flex flex-col sm:flex-row justify-between items-center gap-3 sm:gap-4">
+            <div className="flex items-center gap-2 bg-gradient-to-r from-red-500/30 to-pink-500/30 px-3 sm:px-4 py-1.5 sm:py-2 rounded-full border border-red-400/40 backdrop-blur-sm shadow-lg">
+              <Heart className="w-3 h-3 sm:w-4 sm:h-4 text-red-300 animate-pulse drop-shadow flex-shrink-0" />
+              <span className="text-[10px] sm:text-xs md:text-sm font-black text-white drop-shadow whitespace-nowrap"> +538k criadas </span>
             </div>
-
             <Link href={isLocked ? "/dashboard/billing" : "/dashboard/mentor-ia"} className="w-full sm:w-auto">
-              <Button className="w-full sm:w-auto bg-gradient-to-r from-white via-blue-50 to-purple-50 text-slate-900 hover:from-yellow-400 hover:via-orange-500 hover:to-red-500 hover:text-white font-black px-4 sm:px-6 py-3 sm:py-4 rounded-xl text-xs sm:text-sm transition-all min-h-[48px] touch-manipulation">
-                <span className="flex items-center justify-center gap-2">
-                  <Play className="w-4 h-4 flex-shrink-0" />
-                  <span className="truncate">{isLocked ? "DESBLOQUEAR" : "CRIAR IMAGEM"}</span>
-                  <ArrowRight className="w-4 h-4 flex-shrink-0" />
+              <Button className="w-full sm:w-auto relative group/btn bg-gradient-to-r from-white via-blue-50 to-purple-50 text-slate-900 hover:from-yellow-400 hover:via-orange-500 hover:to-red-500 hover:text-white font-black px-4 sm:px-6 md:px-8 py-2 sm:py-3 md:py-4 rounded-xl sm:rounded-2xl transition-all duration-500 transform hover:scale-110 shadow-2xl text-xs sm:text-sm md:text-base overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 opacity-0 group-hover/btn:opacity-100 transition-opacity duration-500"></div>
+                <div className="absolute -inset-1 bg-gradient-to-r from-yellow-400 via-orange-500 to-red-500 rounded-xl sm:rounded-2xl blur-xl opacity-0 group-hover/btn:opacity-80 transition-all duration-500"></div>
+                <span className="relative flex items-center justify-center gap-1.5 sm:gap-2 font-black">
+                  <Play className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 group-hover/btn:scale-110 transition-transform flex-shrink-0" />
+                  <span className="truncate">{isLocked ? "DESBLOQUEAR AGORA" : "CRIAR IMAGEM"}</span>
+                  <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 group-hover/btn:translate-x-2 transition-transform flex-shrink-0" />
                 </span>
               </Button>
             </Link>

@@ -695,35 +695,26 @@ useEffect(() => {
   }
 }, []);
 
- useEffect(() => {
-  if (isSidebarOpen) {
-    const scrollY = window.scrollY;
-    document.body.style.top = `-${scrollY}px`;
-    document.body.classList.add('mobile-sidebar-open');
-  } else {
-    document.body.classList.remove('mobile-sidebar-open');
-    const scrollY = document.body.style.top;
-    document.body.style.top = '';
-    if (scrollY) {
-      window.scrollTo(0, parseInt(scrollY || '0') * -1);
+  useEffect(() => {
+    setIsSidebarOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (isSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
     }
-  }
-}, [isSidebarOpen]);
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isSidebarOpen]);
 
-// ✅ Fechar sidebar ao mudar de rota
+// ✅ ADICIONAR no final do componente, antes do return:
 useEffect(() => {
-  setIsSidebarOpen(false);
-  document.body.classList.remove('mobile-sidebar-open');
-}, [pathname]);
-
-// ✅ Cleanup ao desmontar componente
-useEffect(() => {
+  // Cleanup ao desmontar o componente
   return () => {
-    document.body.classList.remove('mobile-sidebar-open');
-    document.body.style.overflow = '';
-    document.body.style.position = '';
-    document.body.style.width = '';
-    document.body.style.top = '';
+    document.body.style.overflow = 'unset';
   };
 }, []);
   const getPlanBadge = () => {
@@ -777,12 +768,14 @@ useEffect(() => {
   };
 
   return (
-  <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 overflow-hidden touch-pan-y">      {/* Desktop Sidebar */}
-    <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-y-auto overflow-x-hidden">        <div className="mb-8 px-2 flex-shrink-0">
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 overflow-hidden">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden">
+        <div className="mb-8 px-2 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center group">
             <FreelinkLogo size={40} />
             <div className="ml-3">
-               <motion.span
+              <motion.span
                 className="text-2xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent"
                 whileHover={{ scale: 1.05 }}
               >
@@ -865,26 +858,19 @@ useEffect(() => {
         {isSidebarOpen && (
           <>
             <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={() => setIsSidebarOpen(false)}
-            className="fixed inset-0 bg-black/60 backdrop-blur-sm lg:hidden touch-none"
-            style={{ zIndex: Z_INDEX.modal }}
-          />
-          <motion.aside
-            initial={{ x: "-100%" }}
-            animate={{ x: 0 }}
-            exit={{ x: "-100%" }}
-            transition={{
-              type: "spring",
-              damping: 30,
-              stiffness: 300,
-              mass: 0.8 // ✅ Suaviza animação
-            }}
-            className="fixed left-0 top-0 bottom-0 w-80 max-w-[85vw] bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 lg:hidden flex flex-col shadow-2xl overflow-y-auto overflow-x-hidden touch-pan-y"
-            style={{ zIndex: Z_INDEX.popover }}
-          >
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsSidebarOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm lg:hidden" style={{ zIndex: Z_INDEX.modal }}
+            />
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed left-0 top-0 bottom-0 w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 lg:hidden flex flex-col shadow-2xl overflow-hidden" style={{ zIndex: Z_INDEX.popover }}
+            >
               <div className="flex items-center justify-between mb-8 flex-shrink-0">
                 <Link href="/dashboard" className="flex items-center min-w-0">
                   <FreelinkLogo size={36} />
@@ -990,28 +976,29 @@ useEffect(() => {
         <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0 shadow-sm" style={{ zIndex: Z_INDEX.overlay }}>
           <div className="px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
-               <motion.button
-              onClick={() => setIsSidebarOpen(true)}
-              className="lg:hidden p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0 min-w-[44px] min-h-[44px] flex items-center justify-center touch-manipulation"
-              whileTap={{ scale: 0.95 }}
-              aria-label="Abrir menu"
-            >
-              <Menu className="w-5 h-5" />
-            </motion.button>
+              <motion.button
+                onClick={() => setIsSidebarOpen(true)}
+                className="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                aria-label="Abrir menu"
+              >
+                <Menu className="w-5 h-5" />
+              </motion.button>
 
-                 <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
-              <Link href="/dashboard" className="flex-shrink-0 lg:hidden">
-                <FreelinkLogo size={32} />
-              </Link>
+              <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
+                <Link href="/dashboard" className="flex-shrink-0 lg:hidden">
+                  <FreelinkLogo size={28} />
+                </Link>
 
                 <motion.h1
-                className="text-base sm:text-lg lg:text-2xl font-black text-slate-800 dark:text-slate-200 truncate"
-                initial={{ opacity: 0, x: -20 }}
-                animate={{ opacity: 1, x: 0 }}
-                key={pathname}
-              >
-                {getPageTitle()}
-              </motion.h1>
+                  className="text-base sm:text-lg lg:text-2xl font-black text-slate-800 dark:text-slate-200 truncate"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  key={pathname}
+                >
+                  {getPageTitle()}
+                </motion.h1>
               </div>
             </div>
 
@@ -1318,45 +1305,40 @@ useEffect(() => {
         </header>
 
         {/* Main Content Area */}
-          <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 pb-20 lg:pb-4 overscroll-behavior-contain touch-pan-y">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-screen-2xl">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.3 }}
-          >
-            {children}
-          </motion.div>
-        </div>
-      </main>
+        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 pb-24 lg:pb-4">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-screen-2xl">
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              {children}
+            </motion.div>
+          </div>
+        </main>
 
         {/* Mobile Bottom Navigation */}
-      <motion.div
-        className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/98 dark:bg-slate-800/98 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 px-2 pb-safe safe-area-bottom"
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        transition={{ type: "spring", damping: 30, stiffness: 300 }}
-        style={{
-          zIndex: Z_INDEX.overlay,
-          paddingTop: '8px',
-          paddingBottom: 'max(8px, env(safe-area-inset-bottom))'
-        }}
-      >
+        <motion.div
+          className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 px-2 py-2 safe-area-bottom"
+          initial={{ y: 100 }}
+          animate={{ y: 0 }}
+          transition={{ type: "spring", damping: 30, stiffness: 300 }}
+          style={{ zIndex: Z_INDEX.overlay }}>
           <div className="flex items-center justify-around max-w-lg mx-auto">
-           <Link href="/dashboard" className="flex-1">
-            <motion.button
-              className={clsx(
-                "flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[56px] touch-manipulation",
-                pathname === "/dashboard"
-                  ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
-                  : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-              )}
-              whileTap={{ scale: 0.95 }}
-            >
-              <Home className="w-5 h-5 mb-1 flex-shrink-0" />
-              <span className="text-[10px] font-semibold truncate w-full text-center">Início</span>
-            </motion.button>
-          </Link>
+            <Link href="/dashboard" className="flex-1">
+              <motion.button
+                className={clsx(
+                  "flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[60px]",
+                  pathname === "/dashboard"
+                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
+                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
+                )}
+                whileTap={{ scale: 0.95 }}
+              >
+                <Home className="w-5 h-5 mb-1 flex-shrink-0" />
+                <span className="text-[10px] font-semibold truncate w-full text-center">Início</span>
+              </motion.button>
+            </Link>
 
             <Link href="/dashboard/links" className="flex-1">
               <motion.button
