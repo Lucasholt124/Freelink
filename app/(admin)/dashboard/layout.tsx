@@ -20,8 +20,6 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { usePushNotifications } from "@/app/hooks/usePushNotifications";
 import { useAuth } from "@clerk/clerk-react";
 
-
-// ✅ ADICIONAR APÓS OS IMPORTS:
 const Z_INDEX = {
   base: 0,
   dropdown: 10,
@@ -81,6 +79,7 @@ type PlanType = "free" | "pro" | "ultra";
 
 interface SidebarProps {
   userPlan?: PlanType;
+  uniqueId: string; // ✅ CORREÇÃO: Identificador único para isolar animações
 }
 
 interface Notification {
@@ -113,7 +112,7 @@ export const navItems: NavItem[] = [
     ]
   },
   {
-    label: "Negócios", // ✅ NOVO GRUPO ADICIONADO
+    label: "Negócios",
     subItems: [
       {
         href: "/dashboard/profit-calculator",
@@ -184,7 +183,8 @@ function FreelinkLogo({ size = 32 }: { size?: number }) {
   );
 }
 
-function Sidebar({ userPlan = "free" }: SidebarProps) {
+// ✅ COMPONENTE SIDEBAR CORRIGIDO PARA EVITAR CRASH
+function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
   const pathname = usePathname();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -210,7 +210,8 @@ function Sidebar({ userPlan = "free" }: SidebarProps) {
   return (
     <nav className="flex flex-col h-full">
       <ul className="flex-grow space-y-0.5 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200/50 dark:scrollbar-thumb-slate-700/50 hover:scrollbar-thumb-slate-300 dark:hover:scrollbar-thumb-slate-600 transition-colors">
-        <LayoutGroup>
+        {/* ✅ LayoutGroup com ID único previne conflito de animação Desktop vs Mobile */}
+        <LayoutGroup id={uniqueId}>
           {navItems.map((item, idx) => (
             <li key={idx}>
               {item.href && item.icon ? (
@@ -227,7 +228,7 @@ function Sidebar({ userPlan = "free" }: SidebarProps) {
                   >
                     {isActive(item.href) && (
                       <motion.div
-                        layoutId="activeTab"
+                        layoutId={`${uniqueId}-activeTab`} // ✅ ID DINÂMICO: A chave para resolver o bug
                         className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 -z-10"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
@@ -342,10 +343,7 @@ function Sidebar({ userPlan = "free" }: SidebarProps) {
                                         </motion.div>
                                       )}
                                       {subItem.pro && (
-                                        <motion.div
-                                          whileHover={{ scale: 1.1 }}
-                                          whileTap={{ scale: 0.95 }}
-                                        >
+                                        <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                           <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-[10px] px-1.5 py-0 font-bold shadow-sm">
                                             <Star className="w-2.5 h-2.5 mr-0.5" />
                                             PRO
@@ -498,55 +496,44 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     }
   }, [authLoaded, isSignedIn, isSupported, isSubscribed]);
 
-// ✅ SUBSTITUIR handleEnableNotifications POR:
-const handleEnableNotifications = async () => {
-  try {
-    // Verificação completa
-    if (!('Notification' in window)) {
-      console.error('Navegador não suporta notificações');
-      return;
-    }
-
-    if (!('serviceWorker' in navigator)) {
-      console.error('Service Worker não suportado');
-      return;
-    }
-
-    // Pedir permissão
-    const permission = await Notification.requestPermission();
-    if (permission !== 'granted') {
-      console.log('Permissão de notificação negada');
-      setShowPushPrompt(false);
-      localStorage.setItem('hasSeenPushPrompt', 'true');
-      return;
-    }
-
-    // Registrar service worker
+  const handleEnableNotifications = async () => {
     try {
-      await navigator.serviceWorker.register('/sw.js');
-    } catch (swError) {
-      console.error('Erro ao registrar service worker:', swError);
-    }
-
-    // Tentar subscrever
-    const success = await subscribe();
-    if (success) {
-      localStorage.setItem('hasSeenPushPrompt', 'true');
+      if (!('Notification' in window)) {
+        console.error('Navegador não suporta notificações');
+        return;
+      }
+      if (!('serviceWorker' in navigator)) {
+        console.error('Service Worker não suportado');
+        return;
+      }
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        console.log('Permissão de notificação negada');
+        setShowPushPrompt(false);
+        localStorage.setItem('hasSeenPushPrompt', 'true');
+        return;
+      }
+      try {
+        await navigator.serviceWorker.register('/sw.js');
+      } catch (swError) {
+        console.error('Erro ao registrar service worker:', swError);
+      }
+      const success = await subscribe();
+      if (success) {
+        localStorage.setItem('hasSeenPushPrompt', 'true');
+        setShowPushPrompt(false);
+        new Notification('Freelinnk', {
+          body: '✅ Notificações ativadas com sucesso!',
+          icon: '/icon-192x192.png',
+          badge: '/icon-192x192.png',
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao ativar notificações:', error);
       setShowPushPrompt(false);
-
-      // Mostrar notificação de teste
-      new Notification('Freelinnk', {
-        body: '✅ Notificações ativadas com sucesso!',
-        icon: '/icon-192x192.png',
-        badge: '/icon-192x192.png',
-      });
+      localStorage.setItem('hasSeenPushPrompt', 'true');
     }
-  } catch (error) {
-    console.error('Erro ao ativar notificações:', error);
-    setShowPushPrompt(false);
-    localStorage.setItem('hasSeenPushPrompt', 'true');
-  }
-};
+  };
 
   const handleDismissPrompt = () => {
     localStorage.setItem('hasSeenPushPrompt', 'true');
@@ -587,33 +574,28 @@ const handleEnableNotifications = async () => {
     setSearchTerm("");
   };
 
-  // ✅ SUBSTITUIR fetchNotifications POR:
-const fetchNotifications = async () => {
-  if (notificationsLoading) return; // Evita chamadas duplicadas
-
-  setNotificationsLoading(true);
-  try {
-    const res = await fetch("/api/notifications", {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache',
-      },
-    });
-
-    if (!res.ok) {
-      throw new Error(`HTTP error! status: ${res.status}`);
+  const fetchNotifications = async () => {
+    // if (notificationsLoading) return; // Comentado para permitir refresh manual
+    setNotificationsLoading(true);
+    try {
+      const res = await fetch("/api/notifications", {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+          'Cache-Control': 'no-cache',
+        },
+      });
+      if (!res.ok) {
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+      const data: Notification[] = await res.json();
+      setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS));
+    } catch (error) {
+      console.error("Erro ao carregar notificações:", error);
+    } finally {
+      setNotificationsLoading(false);
     }
-
-    const data: Notification[] = await res.json();
-    setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS));
-  } catch (error) {
-    console.error("Erro ao carregar notificações:", error);
-    // Não quebra a UI se falhar
-  } finally {
-    setNotificationsLoading(false);
-  }
-};
+  };
 
   const markNotificationAsRead = async (id: string) => {
     const originalNotifications = [...userNotifications];
@@ -653,47 +635,53 @@ const fetchNotifications = async () => {
 
   const unreadNotificationsCount = userNotifications.filter(n => !n.isRead).length;
 
-  // Adicionar polling para atualizar notificações
-// ✅ NOVA FUNÇÃO DE NOTIFICAÇÕES:
-useEffect(() => {
-  fetchNotifications();
+  // ✅ LÓGICA DE NOTIFICAÇÕES CORRIGIDA PARA EVITAR MEMORY LEAK
+  useEffect(() => {
+    fetchNotifications();
 
-  if (typeof window !== 'undefined' && 'EventSource' in window) {
-    try {
-      const eventSource = new EventSource('/api/notifications/stream');
+    let eventSource: EventSource | null = null;
+    let pollInterval: NodeJS.Timeout | null = null;
 
-      eventSource.onmessage = (event) => {
-        try {
-          const notification = JSON.parse(event.data);
-          setUserNotifications(prev => {
-            const exists = prev.find(n => n.id === notification.id);
-            if (exists) return prev;
-            return [notification, ...prev].slice(0, 50); // Limita a 50 notificações
-          });
-        } catch (err) {
-          console.error('Erro ao processar notificação:', err);
+    const setupPolling = () => {
+        if (!pollInterval) {
+            pollInterval = setInterval(fetchNotifications, 30000);
         }
-      };
+    };
 
-      eventSource.onerror = () => {
-        eventSource.close();
-        // Fallback para polling
-        const interval = setInterval(fetchNotifications, 30000);
-        return () => clearInterval(interval);
-      };
+    if (typeof window !== 'undefined' && 'EventSource' in window) {
+      try {
+        eventSource = new EventSource('/api/notifications/stream');
 
-      return () => eventSource.close();
-    } catch  {
-      // Fallback para polling se SSE falhar
-      const interval = setInterval(fetchNotifications, 30000);
-      return () => clearInterval(interval);
+        eventSource.onmessage = (event) => {
+          try {
+            const notification = JSON.parse(event.data);
+            setUserNotifications(prev => {
+              const exists = prev.find(n => n.id === notification.id);
+              if (exists) return prev;
+              return [notification, ...prev].slice(0, 50);
+            });
+          } catch (err) {
+            console.error('Erro ao processar notificação:', err);
+          }
+        };
+
+        eventSource.onerror = () => {
+          console.warn("SSE connection lost, switching to polling");
+          eventSource?.close();
+          setupPolling();
+        };
+      } catch {
+        setupPolling();
+      }
+    } else {
+      setupPolling();
     }
-  } else {
-    // Navegador não suporta SSE - usar polling
-    const interval = setInterval(fetchNotifications, 30000);
-    return () => clearInterval(interval);
-  }
-}, []);
+
+    return () => {
+      if (eventSource) eventSource.close();
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, []);
 
   useEffect(() => {
     setIsSidebarOpen(false);
@@ -710,13 +698,6 @@ useEffect(() => {
     };
   }, [isSidebarOpen]);
 
-// ✅ ADICIONAR no final do componente, antes do return:
-useEffect(() => {
-  // Cleanup ao desmontar o componente
-  return () => {
-    document.body.style.overflow = 'unset';
-  };
-}, []);
   const getPlanBadge = () => {
     switch (userPlan) {
       case "pro":
@@ -755,7 +736,7 @@ useEffect(() => {
       "/dashboard/links": "Meus Links",
       "/dashboard/mentor-ia": "Mentor.IA",
       "/dashboard/brain": "FreelinkBrain",
-    "/dashboard/profit-calculator": "Calculadora de Lucros",
+      "/dashboard/profit-calculator": "Calculadora de Lucros",
       "/dashboard/ai-studio": "AI Studio",
       "/dashboard/shortener": "Encurtador",
       "/dashboard/giveaway": "Sorteios",
@@ -788,7 +769,8 @@ useEffect(() => {
           </Link>
         </div>
         <div className="flex-1 overflow-hidden">
-          <Sidebar userPlan={userPlan} />
+          {/* ✅ PASSA ID ÚNICO PARA DESKTOP */}
+          <Sidebar userPlan={userPlan} uniqueId="desktop-sidebar" />
         </div>
         <motion.div
           className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex-shrink-0"
@@ -888,7 +870,8 @@ useEffect(() => {
                 </motion.button>
               </div>
               <div className="flex-1 overflow-hidden">
-                <Sidebar userPlan={userPlan} />
+                {/* ✅ PASSA ID ÚNICO PARA MOBILE */}
+                <Sidebar userPlan={userPlan} uniqueId="mobile-sidebar" />
               </div>
               <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
                 <div className="flex items-center gap-3 px-2">
