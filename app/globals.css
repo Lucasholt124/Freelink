@@ -325,3 +325,42 @@ button, a[role="button"] {
     -webkit-overflow-scrolling: touch;
   }
 }
+
+main > div:first-child {
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  min-height: 100vh;
+}
+
+/* ✅ Garantir que elementos decorativos não interfiram */
+.fixed[class*="pointer-events-none"] {
+  z-index: -1 !important;
+}
+
+/* ✅ Prevenir problemas com containers min-height */
+div[class*="min-h-screen"] {
+  min-height: 100vh;
+  min-height: -webkit-fill-available;
+}
+
+/* ✅ Fix específico para iOS Safari */
+@supports (-webkit-touch-callout: none) {
+  /* iOS only */
+  .min-h-screen {
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+  }
+
+  /* Garantir scroll em containers principais */
+  main,
+  main > div {
+    -webkit-overflow-scrolling: touch;
+  }
+}
+
+/* ✅ Remover qualquer fixed positioning desnecessário em mobile */
+@media (max-width: 768px) {
+  .fixed:not([class*="z-"]) {
+    position: absolute;
+  }
+}

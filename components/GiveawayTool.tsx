@@ -717,8 +717,8 @@ export default function GiveawayTool() {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-900 p-3 sm:p-4 flex items-center justify-center">
-        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-8 max-w-md w-full text-center">
+       <div className="overflow-y-auto bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-900">
+        <div className="min-h-screen p-3 sm:p-4 flex items-center justify-center">
           <AlertCircle className="w-16 h-16 text-yellow-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Login Necessário</h2>
           <p className="text-gray-600 dark:text-gray-400 mb-6">
@@ -736,8 +736,8 @@ export default function GiveawayTool() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-900 p-3 sm:p-4">
-      <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
+    <div className="overflow-y-auto bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-900">
+      <div className="min-h-screen p-3 sm:p-4">
         {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
