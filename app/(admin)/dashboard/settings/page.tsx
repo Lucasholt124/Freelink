@@ -20,13 +20,14 @@ import {
 
 export default function SettingsPage() {
   return (
-    <div className="overflow-y-auto bg-gradient-to-br from-gray-50 via-purple-50/20 to-pink-50/20">
-      <div className="fixed inset-0 pointer-events-none -z-10">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/20 to-pink-50/20">
+      {/* Background Decoration */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full blur-3xl" />
         <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/10 to-purple-400/10 rounded-full blur-3xl" />
       </div>
 
-     <div className="relative min-h-screen space-y-6 sm:space-y-8 lg:space-y-12 max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      <div className="relative space-y-6 sm:space-y-8 lg:space-y-12 max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
 
         {/* Header Premium */}
         <header className="relative">

@@ -116,16 +116,83 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html, body {
-    @apply bg-background text-foreground flex flex-col min-h-screen overflow-x-hidden;
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
+
+  /* ✅ CORRIGIDO: Definição única e limpa */
+  html {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    position: relative;
+    min-height: 100vh;
+    min-height: -webkit-fill-available;
+    width: 100%;
     margin: 0;
     padding: 0;
   }
 }
 
-/* Scrollbar customizada para sidebar */
+/* ✅ Mobile: Configurações LIMPAS de scroll */
+@media (max-width: 768px) {
+  html {
+    overflow-x: hidden;
+    overflow-y: scroll;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  body {
+    overflow-x: hidden;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: none; /* ✅ Mudado de 'contain' para 'none' */
+  }
+
+  /* ✅ REMOVIDO: A regra perigosa de position fixed */
+}
+
+/* ✅ Desktop: Scroll normal */
+@media (min-width: 769px) {
+  html, body {
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+}
+
+/* ✅ Safe area para dispositivos com notch */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+  }
+}
+
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  }
+}
+
+/* ✅ Prevenir zoom no iOS */
+input[type="text"],
+input[type="email"],
+input[type="search"],
+textarea,
+select {
+  font-size: 16px !important;
+}
+
+/* ✅ Melhorar toque em elementos pequenos */
+button, a, [role="button"] {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* Scrollbar customizada */
 .scrollbar-thin {
   scrollbar-width: thin;
 }
@@ -152,12 +219,14 @@
   background-color: #374151;
 }
 
+/* Screenshot highlight */
 .screenshot-highlight {
   outline: 4px solid rgba(59, 130, 246, 0.5);
   box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
   transition: all 0.2s ease-in-out;
 }
 
+/* Animações */
 @keyframes confetti-rain {
   0% {
     background-position: 0 0;
@@ -174,66 +243,6 @@
   animation: confetti-rain 5s linear forwards;
 }
 
-/* Adicione classe para destacar elemento na captura de tela */
-.screenshot-highlight {
-  outline: 4px solid rgba(59, 130, 246, 0.5);
-  box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
-  transition: all 0.2s ease-in-out;
-}
-
-/* Breakpoint personalizado para tamanhos muito pequenos */
-@media (min-width: 480px) {
-  .xs\:inline {
-    display: inline;
-  }
-  .xs\:hidden {
-    display: none;
-  }
-}
-
-/* Tamanhos de borda personalizados para responsividade */
-.border-6 {
-  border-width: 6px;
-}
-
-/* Garantir que texto muito longo quebre corretamente em telas pequenas */
-.break-all-mobile {
-  word-break: break-all;
-}
-
-/* Efeito de sombra para o texto do vencedor */
-.drop-shadow-glow {
-  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
-}
-
-/* Melhorar espaçamento em dispositivos móveis */
-@media (max-width: 640px) {
-  .sm-spacing {
-    margin: 0.5rem 0;
-    padding: 0.5rem;
-  }
-
-  .sm-text-truncate {
-    max-width: 90vw;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-/* Garantir boa leitura de texto em dispositivos pequenos */
-.mobile-readable {
-  font-size: clamp(0.75rem, 4vw, 1rem);
-  line-height: 1.5;
-}
-
-/* Melhorar grid para dispositivos muito pequenos */
-@media (max-width: 360px) {
-  .xs-stack > * {
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
-}
 @keyframes gradient-xy {
   0%, 100% { background-position: 0% 0%; }
   25% { background-position: 100% 0%; }
@@ -254,113 +263,51 @@
 .animate-shimmer {
   animation: shimmer 2s ease-in-out infinite;
 }
-@supports (padding: max(0px)) {
-  body {
-    padding-left: max(0px, env(safe-area-inset-left));
-    padding-right: max(0px, env(safe-area-inset-right));
+
+/* Breakpoints personalizados */
+@media (min-width: 480px) {
+  .xs:inline {
+    display: inline;
+  }
+  .xs:hidden {
+    display: none;
   }
 }
 
-/* ✅ Prevenir zoom indesejado no iOS */
-input[type="text"],
-input[type="email"],
-input[type="search"],
-textarea,
-select {
-  font-size: 16px !important;
+.border-6 {
+  border-width: 6px;
 }
 
-/* ✅ Scroll suave - CORRIGIDO */
-html {
-  scroll-behavior: smooth;
-  -webkit-overflow-scrolling: touch;
+.break-all-mobile {
+  word-break: break-all;
 }
 
-/* ✅ Permitir scroll normal */
-html, body {
-  overflow-x: hidden; /* Previne scroll horizontal */
-  overflow-y: auto;   /* Permite scroll vertical */
-  overscroll-behavior-y: contain;
-  width: 100%;
-  min-height: 100vh;  /* Muda de height para min-height */
+.drop-shadow-glow {
+  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
 }
 
-/* ✅ Container principal com scroll */
-main {
-  overflow-x: hidden;
-  width: 100%;
-}
+@media (max-width: 640px) {
+  .sm-spacing {
+    margin: 0.5rem 0;
+    padding: 0.5rem;
+  }
 
-/* ✅ Fix para modais e overlays no iOS */
-.fixed {
-  position: fixed;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
-}
-
-/* ✅ Melhorar toque em elementos pequenos */
-button, a, [role="button"] {
-  min-height: 44px;
-  min-width: 44px;
-}
-
-/* ✅ Prevenir seleção de texto em elementos interativos */
-button, a[role="button"] {
-  -webkit-touch-callout: none;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-/* ✅ Safe area para iPhone com notch */
-@supports (padding-bottom: env(safe-area-inset-bottom)) {
-  .safe-area-bottom {
-    padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
+  .sm-text-truncate {
+    max-width: 90vw;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 
-/* ✅ Previne problemas de scroll em iOS sem travar */
-@supports (-webkit-touch-callout: none) {
-  body {
-    /* Permite bounce scroll controlado */
-    -webkit-overflow-scrolling: touch;
-  }
+.mobile-readable {
+  font-size: clamp(0.75rem, 4vw, 1rem);
+  line-height: 1.5;
 }
 
-main > div:first-child {
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  min-height: 100vh;
-}
-
-/* ✅ Garantir que elementos decorativos não interfiram */
-.fixed[class*="pointer-events-none"] {
-  z-index: -1 !important;
-}
-
-/* ✅ Prevenir problemas com containers min-height */
-div[class*="min-h-screen"] {
-  min-height: 100vh;
-  min-height: -webkit-fill-available;
-}
-
-/* ✅ Fix específico para iOS Safari */
-@supports (-webkit-touch-callout: none) {
-  /* iOS only */
-  .min-h-screen {
-    min-height: 100vh;
-    min-height: -webkit-fill-available;
-  }
-
-  /* Garantir scroll em containers principais */
-  main,
-  main > div {
-    -webkit-overflow-scrolling: touch;
-  }
-}
-
-/* ✅ Remover qualquer fixed positioning desnecessário em mobile */
-@media (max-width: 768px) {
-  .fixed:not([class*="z-"]) {
-    position: absolute;
+@media (max-width: 360px) {
+  .xs-stack > * {
+    width: 100%;
+    margin-bottom: 0.5rem;
   }
 }
