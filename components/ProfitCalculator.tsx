@@ -94,6 +94,12 @@ import { GamificationBar } from "./Gamification";
 import { offlineManager } from "@/lib/offlineManager";
 import { PDFExporter } from "@/lib/pdfExporter";
 import { Download } from "lucide-react";
+import { RevenueChart } from "./RevenueChart";
+import { AnimatePresence } from "framer-motion";
+import { AnimatedCard } from "./AnimatedCard";
+import { Pagination } from "./Pagination";
+import { AnimatedCounter } from "./AnimatedCounter";
+
 
 type TabType = "dashboard" | "produtos" | "vendas" | "gastos" | "resumo" | "metas" | "clientes" | "fornecedores" | "rapido";
 type GoalType = "revenue" | "profit" | "margin" | "sales_count" | "expense_reduction";
@@ -105,6 +111,7 @@ type ExpenseType = "fixed" | "variable" | "one_time";
 interface PriceCalculationResult {
   suggestedPrice: number;
   minPrice: number;
+
   maxPrice: number;
   targetProfit: number;
   analysis: string[];
@@ -400,10 +407,50 @@ const [quickSaleForm, setQuickSaleForm] = useState({
   const calculatePrice = useAction(api.profitCalculator.calculateSuggestedPrice);
   const generateReport = useAction(api.profitCalculator.generateMonthlyReport);
 
+  const [salesPage, setSalesPage] = useState(1);
+const SALES_PER_PAGE = 10;
+
+const [expensesPage, setExpensesPage] = useState(1);
+const EXPENSES_PER_PAGE = 10;
+
+const paginatedExpenses = useMemo(() => {
+  const startIndex = (expensesPage - 1) * EXPENSES_PER_PAGE;
+  return expenses.slice(startIndex, startIndex + EXPENSES_PER_PAGE);
+}, [expenses, expensesPage]);
+
+
+const [customersPage, setCustomersPage] = useState(1);
+const CUSTOMERS_PER_PAGE = 12;
+
+
+const paginatedCustomers = useMemo(() => {
+  const startIndex = (customersPage - 1) * CUSTOMERS_PER_PAGE;
+  return customers.slice(startIndex, startIndex + CUSTOMERS_PER_PAGE);
+}, [customers, customersPage]);
+
+const totalCustomersPages = Math.ceil(customers.length / CUSTOMERS_PER_PAGE);
+const totalExpensesPages = Math.ceil(expenses.length / EXPENSES_PER_PAGE);
+const totalSalesPages = Math.ceil(sales.length / SALES_PER_PAGE);
+
+  const paginatedSales = useMemo(() => {
+    const startIndex = (salesPage - 1) * SALES_PER_PAGE;
+    return sales.slice(startIndex, startIndex + SALES_PER_PAGE);
+  }, [sales, salesPage]);
+
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
   };
 
+
+const [suppliersPage, setSuppliersPage] = useState(1);
+const SUPPLIERS_PER_PAGE = 12;
+
+const paginatedSuppliers = useMemo(() => {
+  const startIndex = (suppliersPage - 1) * SUPPLIERS_PER_PAGE;
+  return suppliers.slice(startIndex, startIndex + SUPPLIERS_PER_PAGE);
+}, [suppliers, suppliersPage]);
+
+const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
   const quickSaleLucro = useMemo(() => {
     const cost = parseFloat(quickSaleForm.costPrice);
     const sale = parseFloat(quickSaleForm.salePrice);
@@ -1186,6 +1233,8 @@ const getPaymentMethodLabel = (method: string) => {
   }
 };
 
+
+
   const handleClearAll = async () => {
   // ✅ PRIMEIRA CONFIRMAÇÃO
   if (!confirm(
@@ -1272,6 +1321,8 @@ const getPaymentMethodLabel = (method: string) => {
       console.error(error);
     }
   };
+  const [productsPage, setProductsPage] = useState(1);
+const PRODUCTS_PER_PAGE = 12;
 
   const filteredProducts = useMemo(() => {
   if (!products) return [];
@@ -1295,6 +1346,35 @@ const getPaymentMethodLabel = (method: string) => {
   });
 }, [products, searchQuery, filterCategory]);
 
+const paginatedProducts = useMemo(() => {
+  const startIndex = (productsPage - 1) * PRODUCTS_PER_PAGE;
+  return filteredProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+}, [filteredProducts, productsPage]);
+
+const totalProductsPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+
+const chartData = useMemo(() => {
+  if (!dailySummary || !sales || !expenses) return [];
+
+  const last7Days: string[] = [];
+  for (let i = 6; i >= 0; i--) {
+    const date = new Date();
+    date.setDate(date.getDate() - i);
+    const dateStr = date.toISOString().split('T')[0];
+    last7Days.push(dateStr);
+  }
+
+  return last7Days.map(date => {
+    const daySales = sales.filter(s => s.date === date);
+    const dayExpenses = expenses.filter(e => e.date === date);
+
+    const revenue = daySales.reduce((sum, s) => sum + (s.totalRevenue || 0), 0);
+    const expensesTotal = dayExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const profit = revenue - expensesTotal;
+
+    return { date, revenue, expenses: expensesTotal, profit };
+  });
+}, [sales, expenses, dailySummary]);
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
 
   const isLoading = products === undefined || dashboard === undefined;
@@ -1565,9 +1645,13 @@ const getPaymentMethodLabel = (method: string) => {
           </div>
           <p className="text-xs md:text-sm lg:text-base text-gray-600 font-medium">Vendas</p>
         </div>
-        <p className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-black text-emerald-600 group-hover:scale-110 transition-transform">
-          {formatCurrency(dailySummary.totalRevenue)}
-        </p>
+       <AnimatedCounter
+  value={dailySummary.totalRevenue}
+  prefix="R$"
+  decimals={2}
+  duration={1.5}
+  className="text-xl md:text-2xl lg:text-3xl xl:text-4xl font-black text-emerald-600 group-hover:scale-110 transition-transform block"
+/>
         <div className="flex items-center justify-center gap-1 mt-2 lg:mt-3">
           <Badge variant="secondary" className="text-[10px] md:text-xs lg:text-sm">
             {dailySummary.salesCount} {dailySummary.salesCount === 1 ? 'venda' : 'vendas'}
@@ -1583,9 +1667,14 @@ const getPaymentMethodLabel = (method: string) => {
           </div>
           <p className="text-xs md:text-sm text-gray-600 font-medium">Gastos</p>
         </div>
-        <p className="text-xl md:text-2xl lg:text-3xl font-black text-red-600 group-hover:scale-110 transition-transform">
-          {formatCurrency(dailySummary.totalExpenses)}
-        </p>
+        <AnimatedCounter
+  value={dailySummary.totalExpenses}
+  prefix="R$"
+  decimals={2}
+  duration={1.5}
+  className="text-xl md:text-2xl lg:text-3xl font-black text-red-600 group-hover:scale-110 transition-transform block"
+/>
+
         <div className="flex items-center justify-center gap-1 mt-2">
           <Badge variant="secondary" className="text-[10px] md:text-xs">
             {dailySummary.expensesCount} {dailySummary.expensesCount === 1 ? 'gasto' : 'gastos'}
@@ -1611,11 +1700,15 @@ const getPaymentMethodLabel = (method: string) => {
           </div>
           <p className="text-xs md:text-sm text-gray-600 font-medium">Lucro</p>
         </div>
-        <p className={`text-xl md:text-2xl lg:text-3xl font-black group-hover:scale-110 transition-transform ${
-          dailySummary.netProfit >= 0 ? "text-emerald-600" : "text-orange-600"
-        }`}>
-          {formatCurrency(dailySummary.netProfit)}
-        </p>
+       <AnimatedCounter
+  value={dailySummary.netProfit}
+  prefix="R$"
+  decimals={2}
+  duration={1.5}
+  className={`text-xl md:text-2xl lg:text-3xl font-black group-hover:scale-110 transition-transform block ${
+    dailySummary.netProfit >= 0 ? "text-emerald-600" : "text-orange-600"
+  }`}
+/>
         <div className="flex items-center justify-center gap-1 mt-2">
           {dailySummary.netProfit >= 0 ? (
             <Badge className="bg-emerald-100 text-emerald-700 text-[10px] md:text-xs border-0">
@@ -1876,6 +1969,9 @@ const getPaymentMethodLabel = (method: string) => {
               ) : (
                 <div className="space-y-4 md:space-y-6 lg:space-y-8">
                   {/* ✅ LABEL CLARO: Dashboard do Mês */}
+                   {chartData.length > 0 && (
+    <RevenueChart data={chartData} type="area" height={300} />
+  )}
                   <div className="flex items-center gap-3 mb-2">
                     <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                     <div>
@@ -2195,16 +2291,22 @@ const getPaymentMethodLabel = (method: string) => {
                     )}
                   </Card>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                    {filteredProducts.map((product) => {
-                      const profit = product.salePrice - product.costPrice;
-                      const profitMargin = (profit / product.salePrice) * 100;
-                      const isLowStock =
-                        product.stock !== undefined &&
-                        product.minStock !== undefined &&
-                        product.stock <= product.minStock;
+                   <AnimatePresence mode="popLayout">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+      {paginatedProducts.map((product, index) => {
+        const profit = product.salePrice - product.costPrice;
+        const profitMargin = (profit / product.salePrice) * 100;
+        const isLowStock =
+          product.stock !== undefined &&
+          product.minStock !== undefined &&
+          product.stock <= product.minStock;
 
-                      return (
+        return (
+          <AnimatedCard
+            key={product._id}
+            delay={index * 0.05}
+            className="h-full"
+          >
                         <Card key={product._id} className={`p-3 md:p-4 hover:shadow-lg transition-shadow ${!product.active ? "opacity-50" : ""}`}>
                           <div className="flex justify-between gap-2 mb-3">
                             <div className="flex-1 min-w-0">
@@ -2215,6 +2317,7 @@ const getPaymentMethodLabel = (method: string) => {
                                 {isLowStock && <Badge variant="destructive" className="text-xs">Estoque Baixo</Badge>}
                               </div>
                             </div>
+
                             <DropdownMenu>
                               <DropdownMenuTrigger asChild>
                                 <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0">
@@ -2255,7 +2358,9 @@ const getPaymentMethodLabel = (method: string) => {
                                 </span>
                               </div>
                             )}
+
                           </div>
+
 
                           <Separator className="my-2 md:my-3" />
 
@@ -2272,12 +2377,19 @@ const getPaymentMethodLabel = (method: string) => {
                             </div>
                           </div>
                         </Card>
+                        </AnimatedCard>
+
                       );
                     })}
                   </div>
+                  </AnimatePresence>
+
                 )}
+
               </div>
+
             </TabsContent>
+
 
             <TabsContent value="vendas">
               <div className="space-y-4">
@@ -2336,8 +2448,11 @@ const getPaymentMethodLabel = (method: string) => {
                     </Button>
                   </Card>
                 ) : (
+
+                  <AnimatePresence mode="popLayout">
                   <div className="space-y-3">
-                    {sales.map((sale) => (
+                     {paginatedSales.map((sale, index) => (
+                      <AnimatedCard key={sale._id} delay={index * 0.03}>
                       <Card key={sale._id} className="p-4 hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
@@ -2360,10 +2475,21 @@ const getPaymentMethodLabel = (method: string) => {
                           </div>
                         </div>
                       </Card>
+                      </AnimatedCard>
                     ))}
                   </div>
+                  </AnimatePresence>
                 )}
               </div>
+              {sales.length > 0 && (
+                <Pagination
+                  currentPage={salesPage}
+                  totalPages={totalSalesPages}
+                  onPageChange={setSalesPage}
+                  totalItems={sales.length}
+                  itemsPerPage={SALES_PER_PAGE}
+                />
+              )}
             </TabsContent>
 
             <TabsContent value="gastos">
@@ -2375,7 +2501,6 @@ const getPaymentMethodLabel = (method: string) => {
                     Novo Gasto
                   </Button>
                 </div>
-
                 {expenses.length === 0 ? (
                   <Card className="p-12 text-center border-2 border-dashed">
                     <Receipt className="w-16 h-16 mx-auto mb-4 text-gray-400" />
@@ -2386,8 +2511,10 @@ const getPaymentMethodLabel = (method: string) => {
                     </Button>
                   </Card>
                 ) : (
+                  <AnimatePresence mode="popLayout">
                   <div className="space-y-3">
-                    {expenses.map((expense) => (
+                    {paginatedExpenses.map((expense, index) => (
+                      <AnimatedCard key={expense._id} delay={index * 0.03}>
                       <Card key={expense._id} className="p-4 hover:shadow-md transition-shadow">
                         <div className="flex justify-between items-start">
                           <div className="flex-1">
@@ -2411,12 +2538,23 @@ const getPaymentMethodLabel = (method: string) => {
                           </div>
                         </div>
                       </Card>
+                      </AnimatedCard>
                     ))}
                   </div>
+                  </AnimatePresence>
+
                 )}
               </div>
+              {expenses.length > 0 && (
+                <Pagination
+                  currentPage={expensesPage}
+                  totalPages={totalExpensesPages}
+                  onPageChange={setExpensesPage}
+                  totalItems={expenses.length}
+                  itemsPerPage={EXPENSES_PER_PAGE}
+                />
+              )}
             </TabsContent>
-
             <TabsContent value="resumo">
               <div className="space-y-4">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
@@ -2495,6 +2633,7 @@ const getPaymentMethodLabel = (method: string) => {
                       </div>
 
                       {monthlyReport.topProducts.length > 0 && (
+
                         <>
                           <Separator className="my-6" />
                           <div>
@@ -2521,6 +2660,13 @@ const getPaymentMethodLabel = (method: string) => {
                               ))}
                             </div>
                           </div>
+                           <Pagination
+    currentPage={productsPage}
+    totalPages={totalProductsPages}
+    onPageChange={setProductsPage}
+    totalItems={filteredProducts.length}
+    itemsPerPage={PRODUCTS_PER_PAGE}
+  />
                         </>
                       )}
                     </Card>
@@ -2603,7 +2749,7 @@ const getPaymentMethodLabel = (method: string) => {
                   </Card>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                    {customers.map((customer) => (
+                    {paginatedCustomers.map((customer) => (
                       <Card key={customer._id} className="p-3 md:p-4 hover:shadow-lg transition-shadow">
                         <div className="flex justify-between gap-2 mb-3">
                           <div className="flex-1 min-w-0">
@@ -2630,6 +2776,15 @@ const getPaymentMethodLabel = (method: string) => {
                     ))}
                   </div>
                 )}
+                {customers.length > 0 && (
+                  <Pagination
+                    currentPage={customersPage}
+                    totalPages={totalCustomersPages}
+                    onPageChange={setCustomersPage}
+                    totalItems={customers.length}
+                    itemsPerPage={CUSTOMERS_PER_PAGE}
+                  />
+                )}
               </div>
             </TabsContent>
 
@@ -2654,7 +2809,7 @@ const getPaymentMethodLabel = (method: string) => {
                   </Card>
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-                    {suppliers.map((supplier) => (
+                    {paginatedSuppliers.map((supplier) => (
                       <Card key={supplier._id} className="p-3 md:p-4 hover:shadow-lg transition-shadow">
                         <div className="flex justify-between gap-2 mb-3">
                           <div className="flex-1 min-w-0">
@@ -2670,11 +2825,21 @@ const getPaymentMethodLabel = (method: string) => {
                           <>
                             <Separator className="my-2 md:my-3" />
                             <p className="text-xs md:text-sm text-gray-600 line-clamp-2">{supplier.notes}</p>
-                          </>
+                           </>
+
                         )}
                       </Card>
                     ))}
                   </div>
+                )}
+                {suppliers.length > 0 && (
+                  <Pagination
+                    currentPage={suppliersPage}
+                    totalPages={totalSuppliersPages}
+                    onPageChange={setSuppliersPage}
+                    totalItems={suppliers.length}
+                    itemsPerPage={SUPPLIERS_PER_PAGE}
+                  />
                 )}
               </div>
             </TabsContent>
@@ -3620,7 +3785,7 @@ const getPaymentMethodLabel = (method: string) => {
                       <p key={idx} className="text-sm text-gray-700 flex items-start gap-2">
                         <CheckCircle2 className="w-4 h-4 text-emerald-600 flex-shrink-0 mt-0.5" />
                         {insight}
-                      </p>
+                                   </p>
                     ))}
                   </div>
                 </div>

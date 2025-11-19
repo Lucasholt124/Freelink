@@ -1,3 +1,4 @@
+// components/GiveawayTool.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -121,7 +122,8 @@ function launchConfetti() {
     setTimeout(() => {
       const confetti = document.createElement('div');
       const size = Math.random() * 10 + 5;
-      confetti.style.cssText = `position: fixed; width: ${size}px; height: ${size}px; background: ${colors[Math.floor(Math.random() * colors.length)]}; left: ${Math.random() * 100}%; top: -20px; border-radius: ${Math.random() > 0.5 ? '50%' : '0'}; z-index: 9999; pointer-events: none; opacity: 1;`;
+      const x = Math.random() * 100;
+      confetti.style.cssText = `position: fixed; width: ${size}px; height: ${size}px; background: ${colors[Math.floor(Math.random() * colors.length)]}; left: ${x}%; top: -20px; border-radius: ${Math.random() > 0.5 ? '50%' : '0'}; z-index: 9999; pointer-events: none; opacity: 1;`;
       document.body.appendChild(confetti);
 
       const animation = confetti.animate([
@@ -132,7 +134,11 @@ function launchConfetti() {
         easing: 'cubic-bezier(0.25, 0.46, 0.45, 0.94)'
       });
 
-      animation.onfinish = () => confetti.remove();
+      animation.onfinish = () => {
+        if (document.body.contains(confetti)) {
+           confetti.remove();
+        }
+      };
     }, i * 50);
   }
 }
@@ -267,7 +273,6 @@ function SmartLinkGenerator({
     };
 
     try {
-      // Salvar no banco de dados Convex
       await saveGiveawayMutation({
         giveawayId: newGiveaway.id,
         title: newGiveaway.title,
@@ -285,7 +290,6 @@ function SmartLinkGenerator({
     }
   };
 
-  // Generate PUBLIC shareable URL
   const shareUrl = giveawayData
     ? `${window.location.origin}/giveaway/${giveawayData.id}`
     : '';
@@ -400,7 +404,6 @@ function QRCodeGeneratorComponent({
     if (existingGiveaway) {
       setGiveawayData(existingGiveaway);
       setTitle(existingGiveaway.title);
-      // Regenerate QR code with PUBLIC URL
       const targetUrl = `${window.location.origin}/giveaway/${existingGiveaway.id}`;
       generateRealQRCode(targetUrl).then(setQrCode);
     }
@@ -424,7 +427,6 @@ function QRCodeGeneratorComponent({
     };
 
     try {
-      // Salvar no banco de dados Convex
       await saveGiveawayMutation({
         giveawayId: newGiveaway.id,
         title: newGiveaway.title,
@@ -433,7 +435,6 @@ function QRCodeGeneratorComponent({
         method: 'qrcode'
       });
 
-      // Generate QR Code with PUBLIC URL
       const targetUrl = `${window.location.origin}/giveaway/${newGiveaway.id}`;
       const qrDataUrl = await generateRealQRCode(targetUrl);
 
@@ -536,10 +537,8 @@ export default function GiveawayTool() {
 
   const convex = useConvex();
 
-  // Buscar todos os sorteios do usuário do banco de dados
   const userGiveaways = useQuery(api.publicGiveaways.getUserGiveaways);
 
-  // Buscar detalhes do sorteio selecionado
   const giveawayDetails = useQuery(
     api.publicGiveaways.getGiveaway,
     selectedGiveaway ? { giveawayId: selectedGiveaway } : "skip"
@@ -548,14 +547,12 @@ export default function GiveawayTool() {
   const deleteGiveawayMutation = useMutation(api.publicGiveaways.deleteGiveaway);
   const endGiveawayMutation = useMutation(api.publicGiveaways.endGiveaway);
 
-  // Verificar autenticação
   useEffect(() => {
     if (!user) {
       toast.error("Faça login para criar sorteios!");
     }
   }, [user]);
 
-  // Carregar sorteio ativo mais recente do banco de dados
   useEffect(() => {
     if (userGiveaways && userGiveaways.length > 0) {
       const activeGiveaway = userGiveaways.find(g => g.isActive);
@@ -570,7 +567,6 @@ export default function GiveawayTool() {
     }
   }, [userGiveaways]);
 
-  // Atualizar participantes quando o sorteio selecionado mudar
   useEffect(() => {
     if (giveawayDetails) {
       setCurrentGiveaway(giveawayDetails as GiveawayData);
@@ -578,7 +574,7 @@ export default function GiveawayTool() {
     }
   }, [giveawayDetails]);
 
-  // Poll para atualizações de participantes em tempo real
+  // Polling mechanism restore
   useEffect(() => {
     if (!selectedGiveaway) return;
 
@@ -599,7 +595,7 @@ export default function GiveawayTool() {
       }
     };
 
-    const interval = setInterval(pollParticipants, 2000); // Poll a cada 2 segundos
+    const interval = setInterval(pollParticipants, 2000);
     return () => clearInterval(interval);
   }, [selectedGiveaway, participants.length, convex]);
 
@@ -607,8 +603,13 @@ export default function GiveawayTool() {
     setCurrentGiveaway(data);
     setSelectedGiveaway(data.id);
   };
-const pickWinnerMutation = useMutation(api.publicGiveaways.pickWinner);
-  const runGiveaway = async () => { // Note o async
+
+  const runGiveaway = () => {
+    if (participants.length === 0) {
+      toast.error("Nenhum participante ainda!");
+      return;
+    }
+
     if (participants.length < 2) {
       toast.error("Precisa de pelo menos 2 participantes!");
       return;
@@ -617,31 +618,28 @@ const pickWinnerMutation = useMutation(api.publicGiveaways.pickWinner);
     setIsLoading(true);
     setWinner(null);
 
-    try {
-      // ✅ MUDANÇA: Pegar vencedor do servidor (Segurança)
-      // O array 'participants' já existe no banco, então o servidor consegue escolher.
-      const secureWinner = await pickWinnerMutation({
-          giveawayId: currentGiveaway!.id // ou selectedGiveaway
-      });
+    let count = 0;
+    const drumRoll = setInterval(() => {
+      count++;
+      if (count > 15) {
+        clearInterval(drumRoll);
+        const randomIndex = Math.floor(Math.random() * participants.length);
+        const selectedWinner = participants[randomIndex];
 
-      // Efeito visual (Tambores)
-      let count = 0;
-      const drumRoll = setInterval(() => {
-        count++;
-        if (count > 15) {
-          clearInterval(drumRoll);
-          // ✅ MUDANÇA: Usar o vencedor que veio do servidor
-          setWinner(secureWinner);
-          launchConfetti();
-          setIsLoading(false);
-        }
-      }, 150);
-    } catch (error) {
-        console.error(error);
-        toast.error("Erro ao realizar sorteio");
+        const winnerData = {
+          name: selectedWinner.name,
+          identifier: selectedWinner.identifier,
+          timestamp: new Date().toISOString(),
+          method: selectedMethod,
+          total: participants.length
+        };
+
+        setWinner(winnerData);
+        launchConfetti();
         setIsLoading(false);
-    }
-};
+      }
+    }, 150);
+  };
 
   const resetGiveaway = async () => {
     if (currentGiveaway) {
@@ -669,7 +667,6 @@ const pickWinnerMutation = useMutation(api.publicGiveaways.pickWinner);
     }
   };
 
-  // Lista de sorteios anteriores
   const GiveawaysList = () => {
     if (!userGiveaways || userGiveaways.length === 0) return null;
 
@@ -736,7 +733,6 @@ const pickWinnerMutation = useMutation(api.publicGiveaways.pickWinner);
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-pink-50 to-blue-50 dark:from-gray-900 dark:via-purple-900/20 dark:to-gray-900 p-3 sm:p-4">
       <div className="max-w-7xl mx-auto space-y-4 sm:space-y-6">
-        {/* Hero */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -769,10 +765,8 @@ const pickWinnerMutation = useMutation(api.publicGiveaways.pickWinner);
           </div>
         </motion.div>
 
-        {/* Lista de Sorteios */}
         <GiveawaysList />
 
-        {/* Method Selection */}
         <div className="bg-white dark:bg-gray-800 rounded-xl shadow-xl p-4 sm:p-6">
           <h2 className="text-lg font-bold mb-4">Criar novo sorteio:</h2>
           <div className="grid grid-cols-2 gap-3">
@@ -805,7 +799,6 @@ const pickWinnerMutation = useMutation(api.publicGiveaways.pickWinner);
           </div>
         </div>
 
-        {/* Method Implementation */}
         <motion.div
           key={selectedMethod}
           initial={{ opacity: 0 }}
@@ -826,7 +819,6 @@ const pickWinnerMutation = useMutation(api.publicGiveaways.pickWinner);
           )}
         </motion.div>
 
-        {/* Participants List */}
         {participants.length > 0 && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -892,7 +884,6 @@ const pickWinnerMutation = useMutation(api.publicGiveaways.pickWinner);
           </motion.div>
         )}
 
-        {/* Winner Display */}
         {winner && (
           <WinnerDisplay
             winner={winner}
