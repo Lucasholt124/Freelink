@@ -46,6 +46,13 @@ export const chatWithAI = action({
       console.log("💬 Iniciando chat...");
 
       const GROQ_KEY = getGroqApiKey();
+if (!GROQ_KEY) {
+    console.error("❌ ERRO CRÍTICO: GROQ_API_KEY não encontrada nas variáveis de ambiente.");
+    return {
+        success: false,
+        message: "Erro de configuração no servidor. Contate o suporte."
+    };
+}
 
       if (GROQ_KEY && GROQ_KEY.length > 10) {
         // Lista de modelos ATIVOS em ordem de preferência

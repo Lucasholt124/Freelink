@@ -132,18 +132,35 @@ export default function PostPage() {
     }
   };
 
+
   const handleDownloadMedia = async () => {
     if (!mediaUrl) {
-      toast.error("Nenhuma mídia disponível para download");
+      toast.error("Nenhuma mídia disponível");
       return;
     }
 
     setIsLoadingMedia(true);
 
+    // ✅ CORREÇÃO: Detecção Robusta de iOS (sem usar 'any')
+    // 1. Usa 'unknown' em vez de 'any' para satisfazer o ESLint
+    // 2. Adiciona verificação de 'maxTouchPoints' para detectar iPads novos (que se fingem de Mac)
+    const isIOS =
+      (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+      !(window as unknown as { MSStream: unknown }).MSStream;
+
+    if (isIOS) {
+      // iOS bloqueia downloads via blob programático.
+      // A melhor UX é abrir em nova aba.
+      window.open(mediaUrl, '_blank');
+      toast.success("Aberto em nova aba! Pressione e segure para salvar na Galeria.");
+      setIsLoadingMedia(false);
+      return;
+    }
+
     try {
       const response = await fetch(mediaUrl);
       const blob = await response.blob();
-
       const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
@@ -154,13 +171,13 @@ export default function PostPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-
       window.URL.revokeObjectURL(url);
 
       toast.success("Download iniciado! 📥");
     } catch (error) {
-      console.error("Erro no download:", error);
-      toast.error("Erro ao baixar arquivo. Tente novamente.");
+      console.error("Erro:", error);
+      // Fallback final
+      window.open(mediaUrl, '_blank');
     } finally {
       setIsLoadingMedia(false);
     }

@@ -494,46 +494,67 @@ const handleEnhanceImage = async () => {
   }
 
   const downloadAsset = async (url: string, filename: string) => {
-    if (downloadingAssets.has(url)) {
-      toast.warning("Download em andamento!");
-      return;
-    }
+  if (downloadingAssets.has(url)) {
+    toast.warning("Download em andamento!");
+    return;
+  }
 
-    setDownloadingAssets(prev => new Set(prev).add(url));
-    const toastId = toast.loading("⬇️ Baixando...");
+  setDownloadingAssets(prev => new Set(prev).add(url));
+  const toastId = toast.loading("⬇️ Baixando...");
 
-    try {
-      const response = await fetch(url);
-      if (!response.ok) throw new Error("Falha ao baixar");
+  // Detecção robusta de iOS (iPhone/iPad)
+  const isIOS =
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+    !(window as unknown as { MSStream: unknown }).MSStream;
 
-      const blob = await response.blob();
-      const blobUrl = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = blobUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
+  if (isIOS) {
+    // iOS: Abre em nova aba para salvar manualmente
+    window.open(url, '_blank');
+    toast.dismiss(toastId);
+    toast.success("Aberto! Segure na imagem para salvar na Galeria.");
+    setDownloadingAssets(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(url);
+      return newSet;
+    });
+    return;
+  }
 
-      setTimeout(() => {
-        document.body.removeChild(a);
-        window.URL.revokeObjectURL(blobUrl);
-      }, 100);
+  // Android/Desktop: Download forçado via Blob
+  try {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error("Falha ao baixar");
 
-      toast.dismiss(toastId);
-      toast.success("✅ Download concluído!");
-      createConfetti();
-    } catch (error) {
-      console.error('Erro:', error);
-      toast.dismiss(toastId);
-      toast.error('Erro ao baixar');
-    } finally {
-      setDownloadingAssets(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(url);
-        return newSet;
-      });
-    }
-  };
+    const blob = await response.blob();
+    const blobUrl = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+
+    setTimeout(() => {
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(blobUrl);
+    }, 100);
+
+    toast.dismiss(toastId);
+    toast.success("✅ Download concluído!");
+    createConfetti();
+  } catch (error) {
+    console.error('Erro:', error);
+    toast.dismiss(toastId);
+    // Fallback final se o fetch falhar (ex: CORS)
+    window.open(url, '_blank');
+  } finally {
+    setDownloadingAssets(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(url);
+      return newSet;
+    });
+  }
+};
 
   const createConfetti = () => {
     const colors = ['#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#3B82F6'];

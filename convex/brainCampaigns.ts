@@ -1,6 +1,7 @@
 // convex/brainCampaigns.ts - CRUD Campanhas
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 
 // ============================================
 // MUTATIONS
@@ -96,15 +97,17 @@ export const deleteCampaign = mutation({
 // ============================================
 
 export const listCampaigns = query({
-  handler: async (ctx) => {
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) return [];
+    // Retorno vazio padrão para paginação se não logado
+    if (!identity) return { page: [], isDone: true, continueCursor: "" };
 
     const campaigns = await ctx.db
       .query("brainCampaigns")
       .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .order("desc")
-      .collect();
+      .paginate(args.paginationOpts); // <--- A MÁGICA
 
     return campaigns;
   },

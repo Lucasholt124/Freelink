@@ -94,6 +94,16 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
     const daysInMonth = lastDay.getDate();
     const startingDayOfWeek = firstDay.getDay();
 
+    // ✅ OTIMIZAÇÃO: Mapa de posts para acesso O(1)
+    // Transforma array em Objeto: { "2025-11-19": [Post1, Post2] }
+    const postsMap = new Map<string, Doc<"scheduledPosts">[]>();
+    posts?.forEach((post) => {
+      if (!postsMap.has(post.scheduledDate)) {
+        postsMap.set(post.scheduledDate, []);
+      }
+      postsMap.get(post.scheduledDate)!.push(post);
+    });
+
     const days: Array<{
       date: string;
       day: number;
@@ -102,6 +112,7 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
       posts: Doc<"scheduledPosts">[];
     }> = [];
 
+    // Dias vazios do mês anterior
     for (let i = 0; i < startingDayOfWeek; i++) {
       days.push({
         date: "",
@@ -112,10 +123,14 @@ export default function CalendarView({ onPostClick }: CalendarViewProps) {
       });
     }
 
+    // Dias do mês atual
+    const today = new Date();
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-      const dayPosts = posts?.filter((p) => p.scheduledDate === dateStr) || [];
-      const today = new Date();
+
+      // ✅ BUSCA OTIMIZADA (Sem .filter dentro do loop)
+      const dayPosts = postsMap.get(dateStr) || [];
+
       const isToday =
         today.getDate() === day &&
         today.getMonth() === month &&

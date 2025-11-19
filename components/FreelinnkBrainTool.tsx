@@ -1,4 +1,3 @@
-// components/brain/FreelinkBrainTool.tsx - VERSÃO MOBILE-FIRST
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -9,13 +8,13 @@ import confetti from "canvas-confetti";
 import {
   Sparkles, Brain, Video, RefreshCcw, Layers, Camera,
   MessageSquare, Wand2, Calendar, Trash2, Menu, FolderOpen,
-  Crown, Flame, Settings, Clock, Loader2,
+  Crown, Flame, Settings, Clock, Loader2, ChevronDown
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card} from "@/components/ui/card";
+import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -24,7 +23,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-import { useBrainCampaigns, useContentGeneration, useNotificationIntegration, useScheduledPosts } from "@/app/hooks/useBrain";
+// ✅ CORREÇÃO 1: Importar usePaginatedQuery
+import { useMutation, usePaginatedQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+
+import { useContentGeneration, useNotificationIntegration, useScheduledPosts } from "@/app/hooks/useBrain";
 import PostScheduleModal from "./brain/PostScheduleModal";
 import SettingsModal from "./brain/SettingsModal";
 import CalendarView from "./brain/CalendarView";
@@ -72,14 +75,11 @@ const AnimatedCounter = ({ value }: { value: number }) => {
   return <span>{displayValue}</span>;
 };
 
+// ✅ CORREÇÃO 2: Tipagem alinhada com o Schema
 interface BrainCampaign {
   _id: Id<"brainCampaigns">;
   _creationTime: number;
-  updatedAt?: number;
-  favorite?: boolean;
-  notes?: string;
   userId: string;
-  createdAt: number;
   theme: string;
   themeSummary: string;
   targetAudience: string;
@@ -89,6 +89,10 @@ interface BrainCampaign {
     engagement_hacks: string[];
   };
   contentPack: string;
+  createdAt: number;
+  updatedAt?: number;
+  favorite?: boolean;
+  notes?: string;
 }
 
 // =================================================================
@@ -104,6 +108,8 @@ export default function FreelinkBrainTool() {
   const [showViralMode] = useState(true);
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [currentCampaign, setCurrentCampaign] = useState<BrainCampaign | null>(null); // Estado local para campanha atual
+
   const [scheduleModalData, setScheduleModalData] = useState<ScheduleModalData>({
     isOpen: false
   });
@@ -111,15 +117,24 @@ export default function FreelinkBrainTool() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { generateIdeas } = useContentGeneration();
+
+  // ✅ CORREÇÃO 3: Usar usePaginatedQuery em vez de useQuery
   const {
-    campaigns,
-    currentCampaign,
-    createCampaign,
-    deleteCampaign,
-  } = useBrainCampaigns();
+    results: campaigns,
+    status: campaignsStatus,
+    loadMore: loadMoreCampaigns
+  } = usePaginatedQuery(
+    api.brainCampaigns.listCampaigns,
+    {},
+    { initialNumItems: 20 }
+  );
+
+  const createCampaign = useMutation(api.brainCampaigns.createCampaign);
+  const deleteCampaign = useMutation(api.brainCampaigns.deleteCampaign);
 
   useScheduledPosts();
   const { isConnected: isNotificationConnected } = useNotificationIntegration();
+
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
     if (!theme.trim()) {
@@ -135,7 +150,8 @@ export default function FreelinkBrainTool() {
       const data = await generateIdeas({ theme });
       setResults(data);
 
-      await createCampaign({
+      // Cria a campanha no banco
+      const campaignId = await createCampaign({
         theme,
         themeSummary: data.theme_summary,
         targetAudience: data.target_audience_suggestion,
@@ -145,6 +161,19 @@ export default function FreelinkBrainTool() {
           engagement_hacks: data.viral_strategy.engagement_hacks,
         },
         contentPack: JSON.stringify(data.content_pack),
+      });
+
+      // Define campanha atual localmente para uso imediato
+      setCurrentCampaign({
+        _id: campaignId,
+        _creationTime: Date.now(),
+        userId: "", // Não crítico para display imediato
+        theme,
+        themeSummary: data.theme_summary,
+        targetAudience: data.target_audience_suggestion,
+        viralStrategy: data.viral_strategy,
+        contentPack: JSON.stringify(data.content_pack),
+        createdAt: Date.now()
       });
 
       setActiveTab("reels");
@@ -166,6 +195,7 @@ export default function FreelinkBrainTool() {
   const handleGenerateNew = () => {
     setResults(null);
     setTheme("");
+    setCurrentCampaign(null);
     setActiveTab("reels");
     inputRef.current?.focus();
   };
@@ -212,18 +242,24 @@ export default function FreelinkBrainTool() {
     });
   };
 
+  // ✅ CORREÇÃO 4: Tipagem explícita no parâmetro
   const handleCampaignSelect = (campaign: BrainCampaign) => {
-    const parsedContent = JSON.parse(campaign.contentPack);
-    setResults({
-      theme_summary: campaign.themeSummary,
-      target_audience_suggestion: campaign.targetAudience,
-      content_pack: parsedContent,
-      viral_strategy: campaign.viralStrategy,
-    });
-    setTheme(campaign.theme);
-    setMainView("generator");
-    setIsHistorySidebarOpen(false);
-    toast.success("Campanha carregada!");
+    try {
+        const parsedContent = JSON.parse(campaign.contentPack);
+        setResults({
+          theme_summary: campaign.themeSummary,
+          target_audience_suggestion: campaign.targetAudience,
+          content_pack: parsedContent,
+          viral_strategy: campaign.viralStrategy,
+        });
+        setTheme(campaign.theme);
+        setCurrentCampaign(campaign);
+        setMainView("generator");
+        setIsHistorySidebarOpen(false);
+        toast.success("Campanha carregada!");
+    } catch  {
+        toast.error("Erro ao carregar campanha antiga");
+    }
   };
 
   const handleCampaignDelete = async (id: Id<"brainCampaigns">) => {
@@ -250,25 +286,20 @@ export default function FreelinkBrainTool() {
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-purple-50/30 via-pink-50/30 to-orange-50/30 dark:from-gray-950 dark:to-black">
 
-      {/* ================= HEADER MOBILE-OPTIMIZED ================= */}
+      {/* ================= HEADER ================= */}
       <motion.div
         initial={{ y: -100 }}
         animate={{ y: 0 }}
         className="sticky top-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-purple-200/50 dark:border-white/10 shadow-lg"
       >
         <div className="container">
-          {/* Linha Principal - MOBILE FIRST */}
           <div className="flex items-center justify-between gap-2 py-2 sm:py-3 px-2 sm:px-4">
-
-            {/* Logo + Badges */}
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
               <h1 className="font-black text-base sm:text-xl md:text-2xl lg:text-3xl truncate">
                 <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
                   FreelinnkBrain
                 </span>
               </h1>
-
-              {/* Badges - Versão Mini para Mobile */}
               <div className="flex items-center gap-1">
                 <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5">
                   <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1" />
@@ -283,7 +314,6 @@ export default function FreelinkBrainTool() {
               </div>
             </div>
 
-            {/* Desktop Navigation */}
             <div className="hidden lg:flex items-center gap-2">
               <Tabs value={mainView} className="w-auto">
                 <TabsList className="bg-gray-100 dark:bg-gray-800/50 h-9">
@@ -307,9 +337,7 @@ export default function FreelinkBrainTool() {
               </Tabs>
             </div>
 
-            {/* Action Buttons - Compacto */}
             <div className="flex items-center gap-1 sm:gap-2">
-              {/* Settings/Buffer Status - Smaller on Mobile */}
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -338,7 +366,6 @@ export default function FreelinkBrainTool() {
                 </Tooltip>
               </TooltipProvider>
 
-              {/* Histórico - Menor no Mobile */}
               <Button
                 variant="outline"
                 size="sm"
@@ -349,7 +376,6 @@ export default function FreelinkBrainTool() {
                 <span className="hidden sm:inline text-sm">Histórico</span>
               </Button>
 
-              {/* Menu Mobile */}
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="icon" className="lg:hidden h-8 w-8 sm:h-9 sm:w-9">
@@ -391,9 +417,9 @@ export default function FreelinkBrainTool() {
         </div>
       </motion.div>
 
-      {/* ================= SIDEBAR HISTÓRICO ================= */}
+      {/* ================= SIDEBAR HISTÓRICO (CORRIGIDO) ================= */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-        <SheetContent side="right" className="w-full sm:w-[400px] p-0">
+        <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
           <SheetHeader className="px-4 sm:px-6 py-4 border-b">
             <SheetTitle className="text-lg">Histórico de Campanhas</SheetTitle>
             <SheetDescription className="text-sm">
@@ -401,15 +427,20 @@ export default function FreelinkBrainTool() {
             </SheetDescription>
           </SheetHeader>
 
-          <ScrollArea className="h-[calc(100vh-100px)]">
-            {campaigns?.length === 0 ? (
+          <ScrollArea className="flex-1">
+            {campaignsStatus === "LoadingFirstPage" ? (
+              <div className="p-8 flex justify-center">
+                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              </div>
+            ) : !campaigns || campaigns.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground">
                 <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-20" />
                 <p className="text-sm">Nenhuma campanha encontrada</p>
               </div>
             ) : (
               <div className="divide-y">
-                {campaigns?.map((campaign) => (
+                {/* ✅ CORREÇÃO 5: Iterar sobre 'campaigns' (que agora é results) */}
+                {campaigns.map((campaign) => (
                   <div
                     key={campaign._id}
                     className="flex items-center justify-between p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer active:bg-muted"
@@ -430,7 +461,7 @@ export default function FreelinkBrainTool() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 flex-shrink-0"
+                      className="h-8 w-8 flex-shrink-0 hover:text-red-500 hover:bg-red-50"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleCampaignDelete(campaign._id);
@@ -440,6 +471,19 @@ export default function FreelinkBrainTool() {
                     </Button>
                   </div>
                 ))}
+
+                {/* ✅ CORREÇÃO 6: Botão Carregar Mais */}
+                {campaignsStatus === "CanLoadMore" && (
+                   <div className="p-4">
+                     <Button
+                       variant="outline"
+                       className="w-full"
+                       onClick={() => loadMoreCampaigns(10)}
+                     >
+                       <ChevronDown className="w-4 h-4 mr-2"/> Carregar Mais
+                     </Button>
+                   </div>
+                )}
               </div>
             )}
           </ScrollArea>
@@ -705,7 +749,7 @@ export default function FreelinkBrainTool() {
         </AnimatePresence>
       </div>
 
-      {/* Footer - Compacto no Mobile */}
+      {/* Footer */}
       <footer className="mt-12 sm:mt-20 py-6 sm:py-8 border-t">
         <div className="container text-center px-4">
           <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">

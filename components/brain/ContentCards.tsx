@@ -68,6 +68,17 @@ function CopyButton({ textToCopy }: { textToCopy: string }) {
 // REEL CARD
 // ============================================
 
+
+function getDeterministicScore(text: string): number {
+  let hash = 0;
+  for (let i = 0; i < text.length; i++) {
+    hash = text.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  // Retorna número entre 70 e 99
+  return 70 + (Math.abs(hash) % 30);
+}
+
+
 export function ReelCard({ reel, index, onSchedule }: {
   reel: ReelContent;
   index: number;
@@ -75,9 +86,8 @@ export function ReelCard({ reel, index, onSchedule }: {
 }) {
   const [isExpanded, setIsExpanded] = useState(false);
 
-  const viralScore = reel.viralScore || Math.floor(Math.random() * 30) + 70;
+const viralScore = reel.viralScore || getDeterministicScore(reel.title + reel.hook);
   const estimatedReach = reel.estimatedReach || `${Math.floor(Math.random() * 50) + 10}k-${Math.floor(Math.random() * 100) + 50}k`;
-
   const fullTextToCopy = `🎬 REEL VIRAL\n\n${reel.title}\n\n🪝 GANCHO:\n${reel.hook}\n\n📝 ROTEIRO:\n${reel.main_points.map((p, i) => `${i + 1}. ${p}`).join('\n')}\n\n📢 CTA:\n${reel.cta}\n\n🎥 VISUAL:\n${reel.visual_suggestion}\n\n🎵 ÁUDIO:\n${reel.audio_suggestion}`;
 
   return (
