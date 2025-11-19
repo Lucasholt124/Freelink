@@ -1,16 +1,27 @@
-// app/hooks/useBrain.ts - HOOK CUSTOMIZADO PARA BRAIN (SEM BUFFER)
+// app/hooks/useBrain.ts - HOOK CUSTOMIZADO PARA BRAIN (CORRIGIDO)
 "use client";
 
-import { useQuery, useMutation, useAction } from "convex/react";
+import { useQuery, useMutation, useAction, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { usePushNotifications } from "./usePushNotifications";
 
 // ============================================
-// CAMPANHAS
+// CAMPANHAS (AGORA PAGINADO)
 // ============================================
 export function useBrainCampaigns() {
-  const campaigns = useQuery(api.brainCampaigns.listCampaigns);
+  // ✅ CORREÇÃO: Trocamos useQuery por usePaginatedQuery
+  // O backend 'listCampaigns' agora exige paginação, então este hook deve refletir isso.
+  const {
+    results: campaigns,
+    status,
+    loadMore
+  } = usePaginatedQuery(
+    api.brainCampaigns.listCampaigns,
+    {}, // Argumentos da query (vazio pois só tem paginationOpts)
+    { initialNumItems: 20 } // Carrega 20 por vez
+  );
+
   const currentCampaign = useQuery(api.brainCampaigns.getCurrentCampaign);
 
   const createCampaign = useMutation(api.brainCampaigns.createCampaign);
@@ -18,7 +29,9 @@ export function useBrainCampaigns() {
   const deleteCampaign = useMutation(api.brainCampaigns.deleteCampaign);
 
   return {
-    campaigns,
+    campaigns,        // Lista atual de campanhas
+    campaignsStatus: status, // Para saber se está carregando
+    loadMoreCampaigns: loadMore, // Função para botão "Carregar Mais"
     currentCampaign,
     createCampaign,
     updateCampaign,
@@ -30,8 +43,9 @@ export function useBrainCampaigns() {
 // POSTS AGENDADOS
 // ============================================
 export function useScheduledPosts(campaignId?: Id<"brainCampaigns">) {
-  // ✅ CORRIGIDO: Adicionado segundo argumento vazio
+  // ✅ MANTIDO: Passando objeto vazio como segundo argumento
   const allPosts = useQuery(api.posts.listScheduledPosts, {});
+
   const campaignPosts = useQuery(
     api.posts.getPostsByCampaign,
     campaignId ? { campaignId } : "skip"
@@ -54,7 +68,6 @@ export function useScheduledPosts(campaignId?: Id<"brainCampaigns">) {
 
 // ============================================
 // INTEGRAÇÃO COM PUSH NOTIFICATIONS
-// (SUBSTITUI O BUFFER)
 // ============================================
 export function useNotificationIntegration() {
   const {
@@ -89,7 +102,6 @@ export function useNotificationIntegration() {
 // GERAÇÃO DE CONTEÚDO
 // ============================================
 export function useContentGeneration() {
-  // ✅ CORRIGIDO: useAction para actions (não useMutation)
   const generateIdeas = useAction(api.brain.generateContentIdeas);
 
   return {
@@ -98,15 +110,11 @@ export function useContentGeneration() {
 }
 
 // ============================================
-// ALIAS PARA COMPATIBILIDADE (REMOVA DEPOIS)
+// ALIAS PARA COMPATIBILIDADE
 // ============================================
 /**
- * @deprecated Use useNotificationIntegration() em vez disso
- * Este alias existe apenas para compatibilidade com código existente
+ * @deprecated Use useNotificationIntegration()
  */
 export function useBufferIntegration() {
-  console.warn(
-    "⚠️ useBufferIntegration está deprecated. Use useNotificationIntegration() no lugar."
-  );
   return useNotificationIntegration();
 }
