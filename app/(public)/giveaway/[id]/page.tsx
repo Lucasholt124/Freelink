@@ -50,7 +50,7 @@ export default function PublicGiveawayPage() {
   const giveawayId = params?.id as string;
 
   const convex = useConvex();
-  const addParticipantMutation = useMutation(api.publicGiveaways.addParticipant);
+  const addParticipantMutation = useMutation(api.publicGiveaways.joinGiveaway);
 
   const [giveaway, setGiveaway] = useState<GiveawayData | null>(null);
   const [formData, setFormData] = useState({ name: "", identifier: "" });
@@ -109,15 +109,10 @@ export default function PublicGiveawayPage() {
 
     try {
       await addParticipantMutation({
-        giveawayId: giveaway.id,
-        participant: {
-          id: Date.now().toString(),
-          name: formData.name,
-          identifier: formData.identifier,
-          timestamp: new Date().toISOString(),
-          verified: true
-        }
-      });
+  giveawayId: giveawayId, // Use a variável da URL
+  name: formData.name,
+  identifier: formData.identifier
+});
 
       localStorage.setItem(`registered_${giveawayId}`, 'true');
       toast.success("Você está participando! 🎉");

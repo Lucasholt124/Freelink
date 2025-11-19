@@ -607,13 +607,8 @@ export default function GiveawayTool() {
     setCurrentGiveaway(data);
     setSelectedGiveaway(data.id);
   };
-
-  const runGiveaway = () => {
-    if (participants.length === 0) {
-      toast.error("Nenhum participante ainda!");
-      return;
-    }
-
+const pickWinnerMutation = useMutation(api.publicGiveaways.pickWinner);
+  const runGiveaway = async () => { // Note o async
     if (participants.length < 2) {
       toast.error("Precisa de pelo menos 2 participantes!");
       return;
@@ -622,28 +617,31 @@ export default function GiveawayTool() {
     setIsLoading(true);
     setWinner(null);
 
-    let count = 0;
-    const drumRoll = setInterval(() => {
-      count++;
-      if (count > 15) {
-        clearInterval(drumRoll);
-        const randomIndex = Math.floor(Math.random() * participants.length);
-        const selectedWinner = participants[randomIndex];
+    try {
+      // ✅ MUDANÇA: Pegar vencedor do servidor (Segurança)
+      // O array 'participants' já existe no banco, então o servidor consegue escolher.
+      const secureWinner = await pickWinnerMutation({
+          giveawayId: currentGiveaway!.id // ou selectedGiveaway
+      });
 
-        const winnerData = {
-          name: selectedWinner.name,
-          identifier: selectedWinner.identifier,
-          timestamp: new Date().toISOString(),
-          method: selectedMethod,
-          total: participants.length
-        };
-
-        setWinner(winnerData);
-        launchConfetti();
+      // Efeito visual (Tambores)
+      let count = 0;
+      const drumRoll = setInterval(() => {
+        count++;
+        if (count > 15) {
+          clearInterval(drumRoll);
+          // ✅ MUDANÇA: Usar o vencedor que veio do servidor
+          setWinner(secureWinner);
+          launchConfetti();
+          setIsLoading(false);
+        }
+      }, 150);
+    } catch (error) {
+        console.error(error);
+        toast.error("Erro ao realizar sorteio");
         setIsLoading(false);
-      }
-    }, 150);
-  };
+    }
+};
 
   const resetGiveaway = async () => {
     if (currentGiveaway) {
