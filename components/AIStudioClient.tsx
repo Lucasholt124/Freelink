@@ -9,7 +9,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Sparkles, Mic, MessageSquare, Upload, Download, Loader2, Wand2,
   Copy, Check, Crown, FileAudio, Heart, Star, Send,
-  Camera, Bot, Share2, Trash2, RotateCcw
+  Camera, Bot, Share2, Trash2, RotateCcw, User
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
@@ -104,14 +104,7 @@ export function AIStudioClient() {
   const [downloadingAssets, setDownloadingAssets] = useState<Set<string>>(new Set());
 
   // Estados do Chat
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([
-    {
-      id: '1',
-      role: 'assistant',
-      content: 'Olá! 👋 Sou sua assistente de IA. Posso ajudar com qualquer dúvida, criar conteúdo, resolver problemas e muito mais. Como posso ajudar você hoje?',
-      timestamp: new Date()
-    }
-  ])
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([])
   const [chatInput, setChatInput] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
@@ -141,6 +134,56 @@ export function AIStudioClient() {
   const removeBackgroundAction = useAction(api.aiStudio.removeBackground)
 
   // =================================================================
+  // 💾 LOCALSTORAGE - SALVAR E CARREGAR MENSAGENS
+  // =================================================================
+  const STORAGE_KEY = 'ai-studio-chat-messages'
+
+  // Carregar mensagens ao montar o componente
+  useEffect(() => {
+    try {
+      const savedMessages = localStorage.getItem(STORAGE_KEY)
+      if (savedMessages) {
+        const parsed = JSON.parse(savedMessages)
+        // Converter strings de data de volta para objetos Date
+        const messages = parsed.map((msg: ChatMessage) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }))
+        setChatMessages(messages)
+      } else {
+        // Mensagem inicial se não houver histórico
+        const initialMessage: ChatMessage = {
+          id: '1',
+          role: 'assistant',
+          content: 'Olá! 👋 Sou sua assistente de IA. Posso ajudar com qualquer dúvida, criar conteúdo, resolver problemas e muito mais. Como posso ajudar você hoje?',
+          timestamp: new Date()
+        }
+        setChatMessages([initialMessage])
+      }
+    } catch (error) {
+      console.error('Erro ao carregar chat:', error)
+      // Fallback para mensagem inicial
+      setChatMessages([{
+        id: '1',
+        role: 'assistant',
+        content: 'Olá! 👋 Sou sua assistente de IA. Posso ajudar com qualquer dúvida, criar conteúdo, resolver problemas e muito mais. Como posso ajudar você hoje?',
+        timestamp: new Date()
+      }])
+    }
+  }, [])
+
+  // Salvar mensagens sempre que mudarem
+  useEffect(() => {
+    if (chatMessages.length > 0) {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(chatMessages))
+      } catch (error) {
+        console.error('Erro ao salvar chat:', error)
+      }
+    }
+  }, [chatMessages])
+
+  // =================================================================
   // 💬 FUNÇÕES DO CHAT
   // =================================================================
   const scrollToBottom = () => {
@@ -149,7 +192,7 @@ export function AIStudioClient() {
 
   useEffect(() => {
     scrollToBottom()
-  }, [chatMessages])
+  }, [chatMessages, isTyping])
 
   const handleSendMessage = async () => {
     if (!chatInput.trim() || !user) return
@@ -195,15 +238,25 @@ export function AIStudioClient() {
   }
 
   const clearChat = () => {
-    setChatMessages([
-      {
-        id: '1',
-        role: 'assistant',
-        content: 'Olá! 👋 Sou sua assistente de IA. Posso ajudar com qualquer dúvida, criar conteúdo, resolver problemas e muito mais. Como posso ajudar você hoje?',
-        timestamp: new Date()
-      }
-    ])
-    toast.success('Chat limpo!')
+    if (chatMessages.length <= 1) {
+      toast.info('O chat já está vazio!')
+      return
+    }
+
+    // Confirmação
+    const confirmed = window.confirm('Deseja realmente limpar todo o histórico de conversa?')
+    if (!confirmed) return
+
+    const initialMessage: ChatMessage = {
+      id: '1',
+      role: 'assistant',
+      content: 'Olá! 👋 Sou sua assistente de IA. Posso ajudar com qualquer dúvida, criar conteúdo, resolver problemas e muito mais. Como posso ajudar você hoje?',
+      timestamp: new Date()
+    }
+
+    setChatMessages([initialMessage])
+    localStorage.setItem(STORAGE_KEY, JSON.stringify([initialMessage]))
+    toast.success('✨ Chat limpo com sucesso!')
   }
 
   // =================================================================
@@ -234,124 +287,120 @@ export function AIStudioClient() {
       reader.readAsDataURL(file)
     }
   }
-// Função para redimensionar imagem no cliente
-const resizeImageBeforeUpload = (file: File, maxWidth: number = 1440, maxHeight: number = 1440): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
 
-    reader.onload = (e) => {
-      const img = document.createElement('img') as HTMLImageElement; // Mais seguro
+  const resizeImageBeforeUpload = (file: File, maxWidth: number = 1440, maxHeight: number = 1440): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
 
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+      reader.onload = (e) => {
+        const img = document.createElement('img') as HTMLImageElement;
 
-        // Calcula novo tamanho mantendo proporção
-        if (width > height) {
-          if (width > maxWidth) {
-            height = Math.round(height * (maxWidth / width)); // Math.round para valores inteiros
-            width = maxWidth;
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round(height * (maxWidth / width));
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round(width * (maxHeight / height));
+              height = maxHeight;
+            }
           }
-        } else {
-          if (height > maxHeight) {
-            width = Math.round(width * (maxHeight / height)); // Math.round para valores inteiros
-            height = maxHeight;
+
+          canvas.width = width;
+          canvas.height = height;
+
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            reject(new Error('Failed to get canvas context'));
+            return;
           }
-        }
 
-        canvas.width = width;
-        canvas.height = height;
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'high';
+          ctx.drawImage(img, 0, 0, width, height);
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('Failed to get canvas context'));
-          return;
-        }
+          const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
+          console.log(`✅ Imagem redimensionada: ${img.width}x${img.height} → ${width}x${height}`);
+          resolve(resizedBase64);
+        };
 
-        // Desenha imagem redimensionada com melhor qualidade
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, 0, 0, width, height);
-
-        // Converte para base64 com qualidade otimizada
-        const resizedBase64 = canvas.toDataURL('image/jpeg', 0.85);
-        console.log(`✅ Imagem redimensionada: ${img.width}x${img.height} → ${width}x${height}`);
-        resolve(resizedBase64);
+        img.onerror = () => reject(new Error('Failed to load image'));
+        img.src = e.target?.result as string;
       };
 
-      img.onerror = () => reject(new Error('Failed to load image'));
-      img.src = e.target?.result as string;
-    };
+      reader.onerror = () => reject(new Error('Failed to read file'));
+      reader.readAsDataURL(file);
+    });
+  };
 
-    reader.onerror = () => reject(new Error('Failed to read file'));
-    reader.readAsDataURL(file);
-  });
-};
-
-const handleEnhanceImage = async () => {
-  if (!imageFile || !user) {
-    toast.error('📸 Envie uma imagem primeiro!')
-    return
-  }
-
-  setLoading(true)
-  const toastId = toast.loading('🎨 Processando com IA...')
-
-  try {
-    console.log('📏 Redimensionando imagem antes do upload...');
-    const resizedImage = await resizeImageBeforeUpload(imageFile, 1440, 1440);
-
-    const sizeKB = Math.round((resizedImage.length * 0.75) / 1024);
-    console.log(`✅ Imagem redimensionada: ~${sizeKB}KB`);
-
-    if (sizeKB > 5000) {
-      toast.dismiss(toastId);
-      toast.error('Imagem muito grande. Tente uma imagem menor ou com menos detalhes.');
-      return;
+  const handleEnhanceImage = async () => {
+    if (!imageFile || !user) {
+      toast.error('📸 Envie uma imagem primeiro!')
+      return
     }
 
-    const result = await enhanceImageAction({
-      userId: user.id,
-      imageFile: resizedImage,
-      effect: selectedEffect
-    })
+    setLoading(true)
+    const toastId = toast.loading('🎨 Processando com IA...')
 
-    toast.dismiss(toastId)
+    try {
+      console.log('📏 Redimensionando imagem antes do upload...');
+      const resizedImage = await resizeImageBeforeUpload(imageFile, 1440, 1440);
 
-    if (result.success) {
-      setEnhancedImage(result.url!)
+      const sizeKB = Math.round((resizedImage.length * 0.75) / 1024);
+      console.log(`✅ Imagem redimensionada: ~${sizeKB}KB`);
 
-      // ✅ MELHOR FEEDBACK COM INFORMAÇÃO DE LIMITE
-      if (result.message && result.message.includes('Usos restantes')) {
-        toast.success(result.message, { duration: 5000 })
-      } else {
-        toast.success('🎉 Imagem aprimorada com sucesso!')
+      if (sizeKB > 5000) {
+        toast.dismiss(toastId);
+        toast.error('Imagem muito grande. Tente uma imagem menor ou com menos detalhes.');
+        return;
       }
 
-      createConfetti()
-    } else {
-      // ✅ MENSAGEM DE ERRO CLARA PARA LIMITE ATINGIDO
-      if (result.message && result.message.includes('Limite Diário Atingido')) {
-        toast.error(result.message, { duration: 6000 })
-      } else {
-        toast.error(result.message || 'Erro ao processar')
-      }
-    }
-  } catch (error) {
-    console.error('Erro:', error)
-    toast.dismiss(toastId)
+      const result = await enhanceImageAction({
+        userId: user.id,
+        imageFile: resizedImage,
+        effect: selectedEffect
+      })
 
-    const errorMsg = error instanceof Error ? error.message : 'Erro ao processar imagem';
-    if (errorMsg.includes('size') || errorMsg.includes('large')) {
-      toast.error('Imagem muito grande. Use uma imagem menor (máx 2MB, 1920x1080)');
-    } else {
-      toast.error(errorMsg);
+      toast.dismiss(toastId)
+
+      if (result.success) {
+        setEnhancedImage(result.url!)
+
+        if (result.message && result.message.includes('Usos restantes')) {
+          toast.success(result.message, { duration: 5000 })
+        } else {
+          toast.success('🎉 Imagem aprimorada com sucesso!')
+        }
+
+        createConfetti()
+      } else {
+        if (result.message && result.message.includes('Limite Diário Atingido')) {
+          toast.error(result.message, { duration: 6000 })
+        } else {
+          toast.error(result.message || 'Erro ao processar')
+        }
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.dismiss(toastId)
+
+      const errorMsg = error instanceof Error ? error.message : 'Erro ao processar imagem';
+      if (errorMsg.includes('size') || errorMsg.includes('large')) {
+        toast.error('Imagem muito grande. Use uma imagem menor (máx 2MB, 1920x1080)');
+      } else {
+        toast.error(errorMsg);
+      }
+    } finally {
+      setLoading(false)
     }
-  } finally {
-    setLoading(false)
   }
-}
+
   // =================================================================
   // 🎤 FUNÇÕES DE ÁUDIO
   // =================================================================
@@ -404,75 +453,73 @@ const handleEnhanceImage = async () => {
   // 📸 FUNÇÕES DE REMOVER FUNDO
   // =================================================================
   const handleRemoveBackground = async () => {
-  if (!removeBgImage || !user) {
-    toast.error('📸 Envie uma imagem primeiro!')
-    return
-  }
-
-  setLoading(true)
-  const toastId = toast.loading('✂️ Removendo fundo...')
-
-  try {
-    console.log('📏 Preparando imagem para remoção de fundo...');
-
-    const response = await fetch(removeBgImage);
-    const blob = await response.blob();
-    const file = new File([blob], "image.jpg", { type: "image/jpeg" });
-
-    const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
-    console.log(`📊 Tamanho original: ${sizeMB}MB`);
-
-    const resizedImage = await resizeImageBeforeUpload(file, 1440, 1440);
-
-    const resizedSizeKB = Math.round((resizedImage.length * 0.75) / 1024);
-    console.log(`✅ Imagem redimensionada: ~${resizedSizeKB}KB`);
-
-    if (resizedSizeKB > 5000) {
-      toast.dismiss(toastId);
-      toast.error('Imagem muito grande. Use uma imagem menor (máx 2MB)');
-      return;
+    if (!removeBgImage || !user) {
+      toast.error('📸 Envie uma imagem primeiro!')
+      return
     }
 
-    const result = await removeBackgroundAction({
-      userId: user.id,
-      imageUrl: resizedImage
-    })
+    setLoading(true)
+    const toastId = toast.loading('✂️ Removendo fundo...')
 
-    toast.dismiss(toastId)
+    try {
+      console.log('📏 Preparando imagem para remoção de fundo...');
 
-    if (result.success) {
-      setRemoveBgResult(result.url!)
+      const response = await fetch(removeBgImage);
+      const blob = await response.blob();
+      const file = new File([blob], "image.jpg", { type: "image/jpeg" });
 
-      // ✅ MELHOR FEEDBACK COM INFORMAÇÃO DE LIMITE
-      if (result.message && result.message.includes('Usos restantes')) {
-        toast.success(result.message, { duration: 5000 })
-      } else {
-        toast.success('✨ Fundo removido com sucesso!')
+      const sizeMB = (blob.size / 1024 / 1024).toFixed(1);
+      console.log(`📊 Tamanho original: ${sizeMB}MB`);
+
+      const resizedImage = await resizeImageBeforeUpload(file, 1440, 1440);
+
+      const resizedSizeKB = Math.round((resizedImage.length * 0.75) / 1024);
+      console.log(`✅ Imagem redimensionada: ~${resizedSizeKB}KB`);
+
+      if (resizedSizeKB > 5000) {
+        toast.dismiss(toastId);
+        toast.error('Imagem muito grande. Use uma imagem menor (máx 2MB)');
+        return;
       }
 
-      createConfetti()
-    } else {
-      // ✅ MENSAGEM DE ERRO CLARA PARA LIMITE ATINGIDO
-      if (result.message && result.message.includes('Limite Diário Atingido')) {
-        toast.error(result.message, { duration: 6000 })
-      } else {
-        toast.error(result.message || 'Erro ao remover fundo')
-      }
-    }
-  } catch (error) {
-    console.error('Erro:', error)
-    toast.dismiss(toastId)
+      const result = await removeBackgroundAction({
+        userId: user.id,
+        imageUrl: resizedImage
+      })
 
-    const errorMsg = error instanceof Error ? error.message : 'Erro ao remover fundo';
-    if (errorMsg.includes('size') || errorMsg.includes('large')) {
-      toast.error('Imagem muito grande. Use uma menor (máx 2MB, 1920x1080)');
-    } else {
-      toast.error(errorMsg);
+      toast.dismiss(toastId)
+
+      if (result.success) {
+        setRemoveBgResult(result.url!)
+
+        if (result.message && result.message.includes('Usos restantes')) {
+          toast.success(result.message, { duration: 5000 })
+        } else {
+          toast.success('✨ Fundo removido com sucesso!')
+        }
+
+        createConfetti()
+      } else {
+        if (result.message && result.message.includes('Limite Diário Atingido')) {
+          toast.error(result.message, { duration: 6000 })
+        } else {
+          toast.error(result.message || 'Erro ao remover fundo')
+        }
+      }
+    } catch (error) {
+      console.error('Erro:', error)
+      toast.dismiss(toastId)
+
+      const errorMsg = error instanceof Error ? error.message : 'Erro ao remover fundo';
+      if (errorMsg.includes('size') || errorMsg.includes('large')) {
+        toast.error('Imagem muito grande. Use uma menor (máx 2MB, 1920x1080)');
+      } else {
+        toast.error(errorMsg);
+      }
+    } finally {
+      setLoading(false)
     }
-  } finally {
-    setLoading(false)
   }
-}
 
   // =================================================================
   // 🔧 FUNÇÕES AUXILIARES
@@ -494,67 +541,63 @@ const handleEnhanceImage = async () => {
   }
 
   const downloadAsset = async (url: string, filename: string) => {
-  if (downloadingAssets.has(url)) {
-    toast.warning("Download em andamento!");
-    return;
-  }
+    if (downloadingAssets.has(url)) {
+      toast.warning("Download em andamento!");
+      return;
+    }
 
-  setDownloadingAssets(prev => new Set(prev).add(url));
-  const toastId = toast.loading("⬇️ Baixando...");
+    setDownloadingAssets(prev => new Set(prev).add(url));
+    const toastId = toast.loading("⬇️ Baixando...");
 
-  // Detecção robusta de iOS (iPhone/iPad)
-  const isIOS =
-    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
-    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
-    !(window as unknown as { MSStream: unknown }).MSStream;
+    const isIOS =
+      (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) &&
+      !(window as unknown as { MSStream: unknown }).MSStream;
 
-  if (isIOS) {
-    // iOS: Abre em nova aba para salvar manualmente
-    window.open(url, '_blank');
-    toast.dismiss(toastId);
-    toast.success("Aberto! Segure na imagem para salvar na Galeria.");
-    setDownloadingAssets(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(url);
-      return newSet;
-    });
-    return;
-  }
+    if (isIOS) {
+      window.open(url, '_blank');
+      toast.dismiss(toastId);
+      toast.success("Aberto! Segure na imagem para salvar na Galeria.");
+      setDownloadingAssets(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(url);
+        return newSet;
+      });
+      return;
+    }
 
-  // Android/Desktop: Download forçado via Blob
-  try {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error("Falha ao baixar");
+    try {
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Falha ao baixar");
 
-    const blob = await response.blob();
-    const blobUrl = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = blobUrl;
-    a.download = filename;
-    document.body.appendChild(a);
-    a.click();
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
 
-    setTimeout(() => {
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(blobUrl);
-    }, 100);
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(blobUrl);
+      }, 100);
 
-    toast.dismiss(toastId);
-    toast.success("✅ Download concluído!");
-    createConfetti();
-  } catch (error) {
-    console.error('Erro:', error);
-    toast.dismiss(toastId);
-    // Fallback final se o fetch falhar (ex: CORS)
-    window.open(url, '_blank');
-  } finally {
-    setDownloadingAssets(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(url);
-      return newSet;
-    });
-  }
-};
+      toast.dismiss(toastId);
+      toast.success("✅ Download concluído!");
+      createConfetti();
+    } catch (error) {
+      console.error('Erro:', error);
+      toast.dismiss(toastId);
+      window.open(url, '_blank');
+    } finally {
+      setDownloadingAssets(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(url);
+        return newSet;
+      });
+    }
+  };
 
   const createConfetti = () => {
     const colors = ['#8B5CF6', '#EC4899', '#10B981', '#F59E0B', '#3B82F6'];
@@ -585,31 +628,31 @@ const handleEnhanceImage = async () => {
       <div className="fixed inset-0 bg-[url('/grid.svg')] bg-center opacity-10 pointer-events-none" />
 
       {/* CONTAINER PRINCIPAL */}
-      <div className="relative z-10 container mx-auto px-4 py-8 max-w-7xl">
+      <div className="relative z-10 container mx-auto px-3 sm:px-4 py-4 sm:py-8 max-w-7xl">
 
         {/* HEADER */}
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+          className="text-center mb-6 sm:mb-12"
         >
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
             transition={{ type: "spring", delay: 0.1 }}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 mb-6"
+            className="inline-flex items-center gap-2 px-3 sm:px-4 py-2 bg-white/5 backdrop-blur-xl rounded-full border border-white/10 mb-4 sm:mb-6"
           >
-            <Sparkles className="w-4 h-4 text-purple-400" />
-            <span className="text-sm font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+            <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 text-purple-400" />
+            <span className="text-xs sm:text-sm font-semibold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
               Powered by AI
             </span>
-            <Crown className="w-4 h-4 text-yellow-400" />
+            <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-yellow-400" />
           </motion.div>
 
           <motion.h1
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="text-5xl md:text-7xl font-black mb-4 bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent"
+            className="text-3xl sm:text-5xl md:text-7xl font-black mb-2 sm:mb-4 bg-gradient-to-r from-white via-purple-200 to-pink-200 bg-clip-text text-transparent leading-tight"
           >
             AI Studio Pro
           </motion.h1>
@@ -618,7 +661,7 @@ const handleEnhanceImage = async () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.2 }}
-            className="text-lg md:text-xl text-gray-400 max-w-2xl mx-auto"
+            className="text-sm sm:text-lg md:text-xl text-gray-400 max-w-2xl mx-auto px-4"
           >
             A ferramenta de IA mais avançada do mundo.
             <span className="block text-purple-400 font-semibold mt-1">
@@ -628,7 +671,7 @@ const handleEnhanceImage = async () => {
         </motion.div>
 
         {/* NAVEGAÇÃO DE ABAS */}
-        <div className="flex justify-center gap-2 md:gap-3 mb-8 overflow-x-auto pb-4">
+        <div className="flex justify-start sm:justify-center gap-2 md:gap-3 mb-4 sm:mb-8 overflow-x-auto pb-2 sm:pb-4 px-2 scrollbar-hide">
           {tabs.map((tab) => (
             <motion.button
               key={tab.id}
@@ -636,18 +679,18 @@ const handleEnhanceImage = async () => {
               whileTap={{ scale: 0.95 }}
               onClick={() => setActiveTab(tab.id)}
               className={cn(
-                "relative flex items-center gap-2 px-4 md:px-6 py-3 rounded-2xl font-semibold transition-all duration-300 whitespace-nowrap",
+                "relative flex items-center gap-2 px-3 sm:px-4 md:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-semibold transition-all duration-300 whitespace-nowrap text-xs sm:text-sm flex-shrink-0",
                 activeTab === tab.id
                   ? `bg-gradient-to-r ${tab.gradient} text-white shadow-2xl shadow-purple-500/50`
                   : "bg-white/5 backdrop-blur-sm text-gray-400 hover:text-white border border-white/10 hover:border-white/20"
               )}
             >
-              <tab.icon className="w-5 h-5" />
+              <tab.icon className="w-4 h-4 sm:w-5 sm:h-5" />
               <span className="hidden sm:inline">{tab.label}</span>
               {activeTab === tab.id && (
                 <motion.div
                   layoutId="activeTab"
-                  className="absolute inset-0 bg-white/10 rounded-2xl"
+                  className="absolute inset-0 bg-white/10 rounded-xl sm:rounded-2xl"
                   transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                 />
               )}
@@ -665,124 +708,195 @@ const handleEnhanceImage = async () => {
             transition={{ duration: 0.3 }}
             className="max-w-5xl mx-auto"
           >
-            <div className="bg-white/5 backdrop-blur-2xl rounded-3xl border border-white/10 p-6 md:p-8 shadow-2xl">
+            <div className="bg-white/5 backdrop-blur-2xl rounded-2xl sm:rounded-3xl border border-white/10 p-3 sm:p-6 md:p-8 shadow-2xl">
 
               {/* ========================================= */}
-              {/* ABA CHAT IA */}
+              {/* ABA CHAT IA - ESTILO CHATGPT MELHORADO */}
               {/* ========================================= */}
               {activeTab === 'chat' && (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-2xl">
-                        <Bot className="w-6 h-6" />
+                <div className="space-y-3 sm:space-y-6">
+                  <div className="flex items-center justify-between flex-wrap gap-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <div className="p-2 sm:p-3 bg-gradient-to-br from-violet-500 to-fuchsia-500 rounded-xl sm:rounded-2xl shadow-lg">
+                        <Bot className="w-5 h-5 sm:w-6 sm:h-6" />
                       </div>
                       <div>
-                        <h2 className="text-2xl font-bold">Chat com IA</h2>
-                        <p className="text-sm text-gray-400">Converse naturalmente sobre qualquer assunto</p>
+                        <h2 className="text-xl sm:text-2xl font-bold">Chat com IA</h2>
+                        <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">Converse naturalmente sobre qualquer assunto</p>
                       </div>
                     </div>
                     <motion.button
                       whileHover={{ scale: 1.05 }}
                       whileTap={{ scale: 0.95 }}
                       onClick={clearChat}
-                      className="p-3 bg-white/5 hover:bg-white/10 rounded-xl border border-white/10 transition-colors"
+                      className="p-2 sm:p-3 bg-red-500/10 hover:bg-red-500/20 rounded-xl border border-red-500/30 hover:border-red-500/50 transition-all group"
                       title="Limpar conversa"
                     >
-                      <Trash2 className="w-5 h-5" />
+                      <Trash2 className="w-4 h-4 sm:w-5 sm:h-5 text-red-400 group-hover:text-red-300" />
                     </motion.button>
                   </div>
 
-                  {/* ÁREA DO CHAT */}
-                  <div className="bg-black/20 rounded-2xl border border-white/10 overflow-hidden">
+                  {/* ÁREA DO CHAT - ESTILO CHATGPT */}
+                  <div className="bg-gradient-to-b from-black/40 to-black/20 rounded-xl sm:rounded-2xl border border-white/10 overflow-hidden shadow-inner">
                     {/* Mensagens */}
-                    <div className="h-[500px] overflow-y-auto p-4 space-y-4 scrollbar-thin scrollbar-thumb-purple-500/50 scrollbar-track-transparent">
-                      {chatMessages.map((message) => (
-                        <motion.div
-                          key={message.id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          className={cn(
-                            "flex",
-                            message.role === 'user' ? 'justify-end' : 'justify-start'
-                          )}
-                        >
-                          <div className={cn(
-                            "max-w-[85%] md:max-w-[75%] rounded-2xl p-4 relative group",
-                            message.role === 'user'
-                              ? "bg-gradient-to-br from-violet-500 to-fuchsia-500 text-white"
-                              : "bg-white/10 backdrop-blur-sm border border-white/10"
-                          )}>
-                            {message.role === 'assistant' && (
-                              <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/10">
-                                <Bot className="w-4 h-4 text-purple-400" />
-                                <span className="text-xs font-semibold text-purple-400">Assistente IA</span>
-                              </div>
-                            )}
-                            <p className="text-sm md:text-base whitespace-pre-wrap leading-relaxed">
-                              {message.content}
-                            </p>
-                            {message.role === 'assistant' && (
-                              <button
-                                onClick={() => handleCopy(message.content)}
-                                className="absolute top-3 right-3 p-2 bg-black/20 hover:bg-black/40 rounded-lg opacity-0 group-hover:opacity-100 transition-all"
-                                title="Copiar"
-                              >
-                                {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
-                              </button>
-                            )}
+                    <div className="h-[400px] sm:h-[500px] md:h-[600px] overflow-y-auto chat-scrollbar">
+                      {chatMessages.length === 0 ? (
+                        <div className="h-full flex items-center justify-center p-4">
+                          <div className="text-center space-y-3">
+                            <Bot className="w-12 h-12 sm:w-16 sm:h-16 mx-auto text-purple-400 opacity-50" />
+                            <p className="text-gray-400 text-sm sm:text-base">Nenhuma mensagem ainda. Comece a conversar!</p>
                           </div>
-                        </motion.div>
-                      ))}
+                        </div>
+                      ) : (
+                        <div className="space-y-1">
+                          {chatMessages.map((message, index) => (
+                            <motion.div
+                              key={message.id}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ delay: index * 0.05 }}
+                              className={cn(
+                                "px-3 sm:px-6 py-4 sm:py-6 hover:bg-white/5 transition-colors group",
+                                message.role === 'assistant' && "bg-white/5"
+                              )}
+                            >
+                              <div className="max-w-4xl mx-auto">
+                                <div className="flex gap-3 sm:gap-4 items-start">
+                                  {/* Avatar */}
+                                  <div className={cn(
+                                    "flex-shrink-0 w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center",
+                                    message.role === 'assistant'
+                                      ? "bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg"
+                                      : "bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg"
+                                  )}>
+                                    {message.role === 'assistant' ? (
+                                      <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                    ) : (
+                                      <User className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                    )}
+                                  </div>
 
-                      {isTyping && (
-                        <motion.div
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          className="flex justify-start"
-                        >
-                          <div className="bg-white/10 backdrop-blur-sm border border-white/10 rounded-2xl p-4">
-                            <div className="flex items-center gap-2">
-                              <Bot className="w-4 h-4 text-purple-400 animate-pulse" />
-                              <div className="flex gap-1">
-                                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
-                                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-100" />
-                                <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce delay-200" />
+                                  {/* Conteúdo */}
+                                  <div className="flex-1 min-w-0 space-y-2">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs sm:text-sm font-bold text-gray-300">
+                                        {message.role === 'assistant' ? 'Assistente IA' : 'Você'}
+                                      </span>
+                                      <span className="text-xs text-gray-500">
+                                        {message.timestamp.toLocaleTimeString('pt-BR', {
+                                          hour: '2-digit',
+                                          minute: '2-digit'
+                                        })}
+                                      </span>
+                                    </div>
+
+                                    <div className="prose prose-invert max-w-none">
+                                      <p className="text-sm sm:text-base text-gray-100 leading-relaxed whitespace-pre-wrap break-words">
+                                        {message.content}
+                                      </p>
+                                    </div>
+
+                                    {/* Botão copiar */}
+                                    {message.role === 'assistant' && (
+                                      <button
+                                        onClick={() => handleCopy(message.content)}
+                                        className="opacity-0 group-hover:opacity-100 transition-opacity mt-2 p-2 bg-white/5 hover:bg-white/10 rounded-lg text-xs flex items-center gap-1 text-gray-400 hover:text-white"
+                                      >
+                                        {copied ? (
+                                          <>
+                                            <Check className="w-3 h-3" />
+                                            <span>Copiado!</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Copy className="w-3 h-3" />
+                                            <span>Copiar</span>
+                                          </>
+                                        )}
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
-                            </div>
-                          </div>
-                        </motion.div>
+                            </motion.div>
+                          ))}
+
+                          {/* Indicador de digitação */}
+                          {isTyping && (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              className="px-3 sm:px-6 py-4 sm:py-6 bg-white/5"
+                            >
+                              <div className="max-w-4xl mx-auto">
+                                <div className="flex gap-3 sm:gap-4 items-start">
+                                  <div className="flex-shrink-0 w-7 h-7 sm:w-9 sm:h-9 rounded-lg flex items-center justify-center bg-gradient-to-br from-purple-500 to-pink-500 shadow-lg">
+                                    <Bot className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <span className="text-xs sm:text-sm font-bold text-gray-300">Assistente IA</span>
+                                    </div>
+                                    <div className="flex gap-1">
+                                      <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                      <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                      <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </motion.div>
+                          )}
+
+                          <div ref={chatEndRef} />
+                        </div>
                       )}
-                      <div ref={chatEndRef} />
                     </div>
 
-                    {/* Input */}
-                    <div className="border-t border-white/10 p-4 bg-black/20">
-                      <div className="flex gap-3">
-                        <input
-                          type="text"
-                          value={chatInput}
-                          onChange={(e) => setChatInput(e.target.value)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' && !e.shiftKey) {
-                              e.preventDefault();
-                              handleSendMessage();
-                            }
-                          }}
-                          placeholder="Digite sua mensagem..."
-                          disabled={loading}
-                          className="flex-1 p-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50"
-                        />
-                        <motion.button
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
-                          onClick={handleSendMessage}
-                          disabled={loading || !chatInput.trim()}
-                          className="px-6 py-3 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 shadow-lg hover:shadow-purple-500/50 transition-all"
-                        >
-                          <Send className="w-5 h-5" />
-                          <span className="hidden sm:inline">Enviar</span>
-                        </motion.button>
+                    {/* Input - Sticky no bottom */}
+                    <div className="border-t border-white/10 bg-black/30 backdrop-blur-sm p-3 sm:p-4">
+                      <div className="max-w-4xl mx-auto">
+                        <div className="flex gap-2 sm:gap-3 items-end">
+                          <div className="flex-1">
+                            <textarea
+                              value={chatInput}
+                              onChange={(e) => setChatInput(e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' && !e.shiftKey) {
+                                  e.preventDefault();
+                                  handleSendMessage();
+                                }
+                              }}
+                              placeholder="Digite sua mensagem... (Enter para enviar, Shift+Enter para nova linha)"
+                              disabled={loading || isTyping}
+                              rows={1}
+                              className="w-full p-3 sm:p-4 bg-white/5 border border-white/10 rounded-xl sm:rounded-2xl text-white placeholder-gray-500 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all disabled:opacity-50 resize-none text-sm sm:text-base min-h-[44px] max-h-32"
+                              style={{
+                                height: 'auto',
+                                overflowY: chatInput.length > 100 ? 'auto' : 'hidden'
+                              }}
+                            />
+                          </div>
+                          <motion.button
+                            whileHover={{ scale: 1.05 }}
+                            whileTap={{ scale: 0.95 }}
+                            onClick={handleSendMessage}
+                            disabled={loading || isTyping || !chatInput.trim()}
+                            className="px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-violet-500 to-fuchsia-500 rounded-xl sm:rounded-2xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 shadow-lg hover:shadow-purple-500/50 transition-all min-w-[44px] flex-shrink-0"
+                          >
+                            {loading || isTyping ? (
+                              <Loader2 className="w-5 h-5 animate-spin" />
+                            ) : (
+                              <>
+                                <Send className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <span className="hidden sm:inline text-sm">Enviar</span>
+                              </>
+                            )}
+                          </motion.button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-2 text-center">
+                          {chatMessages.length} mensagens salvas • Pressione Enter para enviar
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -793,23 +907,23 @@ const handleEnhanceImage = async () => {
               {/* ABA APRIMORAR IMAGEM */}
               {/* ========================================= */}
               {activeTab === 'enhance' && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-gradient-to-br from-pink-500 to-rose-500 rounded-2xl">
-                      <Wand2 className="w-6 h-6" />
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 bg-gradient-to-br from-pink-500 to-rose-500 rounded-xl sm:rounded-2xl shadow-lg">
+                      <Wand2 className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold">Aprimorador de Imagens</h2>
-                      <p className="text-sm text-gray-400">Transforme imagens com IA de última geração</p>
+                      <h2 className="text-xl sm:text-2xl font-bold">Aprimorador de Imagens</h2>
+                      <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">Transforme imagens com IA de última geração</p>
                     </div>
                   </div>
 
                   {/* SELETOR DE EFEITOS */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-3">
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-300 mb-2 sm:mb-3">
                       Escolha o efeito
                     </label>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-2 sm:gap-3">
                       {enhanceEffects.map(effect => (
                         <motion.button
                           key={effect.id}
@@ -817,30 +931,30 @@ const handleEnhanceImage = async () => {
                           whileTap={{ scale: 0.98 }}
                           onClick={() => setSelectedEffect(effect.id)}
                           className={cn(
-                            "p-4 rounded-xl border-2 transition-all text-left",
+                            "p-3 sm:p-4 rounded-xl border-2 transition-all text-left",
                             selectedEffect === effect.id
-                              ? "border-pink-500 bg-pink-500/10"
+                              ? "border-pink-500 bg-pink-500/10 shadow-lg shadow-pink-500/20"
                               : "border-white/10 bg-white/5 hover:border-white/20"
                           )}
                         >
-                          <div className="text-2xl mb-2">{effect.icon}</div>
-                          <div className="font-semibold text-sm mb-1">{effect.name}</div>
-                          <div className="text-xs text-gray-400">{effect.description}</div>
+                          <div className="text-xl sm:text-2xl mb-1 sm:mb-2">{effect.icon}</div>
+                          <div className="font-semibold text-xs sm:text-sm mb-1">{effect.name}</div>
+                          <div className="text-xs text-gray-400 hidden sm:block">{effect.description}</div>
                         </motion.button>
                       ))}
                     </div>
                   </div>
 
                   {/* ÁREA DE UPLOAD E RESULTADO */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <label className="block text-sm font-semibold text-gray-300">
+                  <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+                    <div className="space-y-2 sm:space-y-3">
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-300">
                         Imagem Original
                       </label>
                       <motion.div
                         whileHover={{ scale: 1.01 }}
                         onClick={() => imageInputRef.current?.click()}
-                        className="relative aspect-square rounded-2xl border-2 border-dashed border-white/20 hover:border-pink-500 transition-all cursor-pointer group overflow-hidden bg-black/20"
+                        className="relative aspect-square rounded-xl sm:rounded-2xl border-2 border-dashed border-white/20 hover:border-pink-500 transition-all cursor-pointer group overflow-hidden bg-black/20"
                       >
                         {imagePreview ? (
                           <>
@@ -852,15 +966,15 @@ const handleEnhanceImage = async () => {
                             />
                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <div className="text-center">
-                                <RotateCcw className="w-8 h-8 mx-auto mb-2" />
-                                <p className="font-semibold">Trocar imagem</p>
+                                <RotateCcw className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2" />
+                                <p className="font-semibold text-sm sm:text-base">Trocar imagem</p>
                               </div>
                             </div>
                           </>
                         ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 group-hover:text-pink-400 transition-colors">
-                            <Upload className="w-12 h-12 mb-3" />
-                            <p className="font-semibold">Clique para enviar</p>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 group-hover:text-pink-400 transition-colors p-4">
+                            <Upload className="w-8 h-8 sm:w-12 sm:h-12 mb-2 sm:mb-3" />
+                            <p className="font-semibold text-sm sm:text-base">Clique para enviar</p>
                             <p className="text-xs mt-1">JPG, PNG até 10MB</p>
                           </div>
                         )}
@@ -874,11 +988,11 @@ const handleEnhanceImage = async () => {
                       />
                     </div>
 
-                    <div className="space-y-3">
-                      <label className="block text-sm font-semibold text-gray-300">
+                    <div className="space-y-2 sm:space-y-3">
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-300">
                         Resultado Aprimorado
                       </label>
-                      <div className="relative aspect-square rounded-2xl border-2 border-white/10 bg-black/20 overflow-hidden">
+                      <div className="relative aspect-square rounded-xl sm:rounded-2xl border-2 border-white/10 bg-black/20 overflow-hidden">
                         {enhancedImage ? (
                           <>
                             <Image
@@ -892,20 +1006,20 @@ const handleEnhanceImage = async () => {
                               whileTap={{ scale: 0.9 }}
                               onClick={() => downloadAsset(enhancedImage, 'enhanced-image.png')}
                               disabled={downloadingAssets.has(enhancedImage)}
-                              className="absolute bottom-4 right-4 p-3 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full text-white shadow-2xl hover:shadow-pink-500/50 transition-all disabled:opacity-50"
+                              className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 p-2 sm:p-3 bg-gradient-to-r from-pink-500 to-rose-500 rounded-full text-white shadow-2xl hover:shadow-pink-500/50 transition-all disabled:opacity-50"
                             >
                               {downloadingAssets.has(enhancedImage) ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                               ) : (
-                                <Download className="w-5 h-5" />
+                                <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                               )}
                             </motion.button>
                           </>
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center text-gray-600">
-                            <div className="text-center">
-                              <Sparkles className="w-12 h-12 mx-auto mb-3" />
-                              <p className="text-sm">Resultado aparecerá aqui</p>
+                            <div className="text-center p-4">
+                              <Sparkles className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3" />
+                              <p className="text-xs sm:text-sm">Resultado aparecerá aqui</p>
                             </div>
                           </div>
                         )}
@@ -919,17 +1033,17 @@ const handleEnhanceImage = async () => {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleEnhanceImage}
                     disabled={loading || !imageFile}
-                    className="w-full py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-lg rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-2xl hover:shadow-pink-500/50 transition-all"
+                    className="w-full py-3 sm:py-4 bg-gradient-to-r from-pink-500 to-rose-500 text-white font-bold text-base sm:text-lg rounded-xl sm:rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 shadow-2xl hover:shadow-pink-500/50 transition-all"
                   >
                     {loading ? (
                       <>
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                        Processando...
+                        <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
+                        <span className="text-sm sm:text-base">Processando...</span>
                       </>
                     ) : (
                       <>
-                        <Wand2 className="w-6 h-6" />
-                        Aprimorar Imagem
+                        <Wand2 className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <span className="text-sm sm:text-base">Aprimorar Imagem</span>
                       </>
                     )}
                   </motion.button>
@@ -940,40 +1054,40 @@ const handleEnhanceImage = async () => {
               {/* ABA ÁUDIO PARA TEXTO */}
               {/* ========================================= */}
               {activeTab === 'stt' && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-2xl">
-                      <Mic className="w-6 h-6" />
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 bg-gradient-to-br from-emerald-500 to-teal-500 rounded-xl sm:rounded-2xl shadow-lg">
+                      <Mic className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold">Áudio para Texto</h2>
-                      <p className="text-sm text-gray-400">Transcrição instantânea com precisão perfeita</p>
+                      <h2 className="text-xl sm:text-2xl font-bold">Áudio para Texto</h2>
+                      <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">Transcrição instantânea com precisão perfeita</p>
                     </div>
                   </div>
 
                   {/* UPLOAD */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-300 mb-3">
+                    <label className="block text-xs sm:text-sm font-semibold text-gray-300 mb-2 sm:mb-3">
                       Arquivo de áudio
                     </label>
                     <motion.div
                       whileHover={{ scale: 1.01 }}
                       onClick={() => audioInputRef.current?.click()}
-                      className="rounded-2xl border-2 border-dashed border-white/20 hover:border-emerald-500 transition-all cursor-pointer p-10 text-center bg-black/20 group"
+                      className="rounded-xl sm:rounded-2xl border-2 border-dashed border-white/20 hover:border-emerald-500 transition-all cursor-pointer p-6 sm:p-10 text-center bg-black/20 group"
                     >
                       {audioFile ? (
                         <div className="space-y-2">
-                          <FileAudio className="w-12 h-12 mx-auto text-emerald-400" />
-                          <p className="font-semibold">{audioFile.name}</p>
-                          <p className="text-sm text-gray-400">
+                          <FileAudio className="w-8 h-8 sm:w-12 sm:h-12 mx-auto text-emerald-400" />
+                          <p className="font-semibold text-sm sm:text-base break-all">{audioFile.name}</p>
+                          <p className="text-xs sm:text-sm text-gray-400">
                             {(audioFile.size / 1024 / 1024).toFixed(2)} MB
                           </p>
                         </div>
                       ) : (
                         <div className="space-y-2 text-gray-400 group-hover:text-emerald-400 transition-colors">
-                          <Upload className="w-12 h-12 mx-auto" />
-                          <p className="font-semibold">Clique para enviar áudio</p>
-                          <p className="text-sm">MP3, WAV, M4A até 25MB</p>
+                          <Upload className="w-8 h-8 sm:w-12 sm:h-12 mx-auto" />
+                          <p className="font-semibold text-sm sm:text-base">Clique para enviar áudio</p>
+                          <p className="text-xs sm:text-sm">MP3, WAV, M4A até 25MB</p>
                         </div>
                       )}
                     </motion.div>
@@ -991,21 +1105,21 @@ const handleEnhanceImage = async () => {
                     <motion.div
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="bg-emerald-500/10 rounded-2xl p-6 border border-emerald-500/30"
+                      className="bg-emerald-500/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-emerald-500/30"
                     >
                       <div className="flex justify-between items-start mb-3">
-                        <h3 className="font-semibold flex items-center gap-2">
-                          <FileAudio className="w-5 h-5 text-emerald-400" />
+                        <h3 className="font-semibold flex items-center gap-2 text-sm sm:text-base">
+                          <FileAudio className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-400" />
                           Transcrição
                         </h3>
                         <button
                           onClick={() => handleCopy(transcription)}
                           className="p-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
                         >
-                          {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
+                          {copied ? <Check className="w-3 h-3 sm:w-4 sm:h-4 text-emerald-400" /> : <Copy className="w-3 h-3 sm:w-4 sm:h-4" />}
                         </button>
                       </div>
-                      <p className="whitespace-pre-wrap leading-relaxed text-gray-300">
+                      <p className="whitespace-pre-wrap leading-relaxed text-gray-300 text-sm sm:text-base">
                         {transcription}
                       </p>
                     </motion.div>
@@ -1017,17 +1131,17 @@ const handleEnhanceImage = async () => {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleSpeechToText}
                     disabled={loading || !audioFile}
-                    className="w-full py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-lg rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-2xl hover:shadow-emerald-500/50 transition-all"
+                    className="w-full py-3 sm:py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-bold text-base sm:text-lg rounded-xl sm:rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 shadow-2xl hover:shadow-emerald-500/50 transition-all"
                   >
                     {loading ? (
                       <>
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                        Transcrevendo...
+                        <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
+                        <span className="text-sm sm:text-base">Transcrevendo...</span>
                       </>
                     ) : (
                       <>
-                        <Mic className="w-6 h-6" />
-                        Transcrever Áudio
+                        <Mic className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <span className="text-sm sm:text-base">Transcrever Áudio</span>
                       </>
                     )}
                   </motion.button>
@@ -1038,27 +1152,27 @@ const handleEnhanceImage = async () => {
               {/* ABA REMOVER FUNDO */}
               {/* ========================================= */}
               {activeTab === 'remove-bg' && (
-                <div className="space-y-6">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-2xl">
-                      <Camera className="w-6 h-6" />
+                <div className="space-y-4 sm:space-y-6">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-xl sm:rounded-2xl shadow-lg">
+                      <Camera className="w-5 h-5 sm:w-6 sm:h-6" />
                     </div>
                     <div>
-                      <h2 className="text-2xl font-bold">Remover Fundo</h2>
-                      <p className="text-sm text-gray-400">Remoção profissional em segundos</p>
+                      <h2 className="text-xl sm:text-2xl font-bold">Remover Fundo</h2>
+                      <p className="text-xs sm:text-sm text-gray-400 hidden sm:block">Remoção profissional em segundos</p>
                     </div>
                   </div>
 
                   {/* UPLOAD E RESULTADO */}
-                  <div className="grid md:grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <label className="block text-sm font-semibold text-gray-300">
+                  <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
+                    <div className="space-y-2 sm:space-y-3">
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-300">
                         Imagem Original
                       </label>
                       <motion.div
                         whileHover={{ scale: 1.01 }}
                         onClick={() => removeBgInputRef.current?.click()}
-                        className="relative aspect-square rounded-2xl border-2 border-dashed border-white/20 hover:border-blue-500 transition-all cursor-pointer group overflow-hidden bg-black/20"
+                        className="relative aspect-square rounded-xl sm:rounded-2xl border-2 border-dashed border-white/20 hover:border-blue-500 transition-all cursor-pointer group overflow-hidden bg-black/20"
                       >
                         {removeBgImage ? (
                           <>
@@ -1070,15 +1184,15 @@ const handleEnhanceImage = async () => {
                             />
                             <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                               <div className="text-center">
-                                <RotateCcw className="w-8 h-8 mx-auto mb-2" />
-                                <p className="font-semibold">Trocar imagem</p>
+                                <RotateCcw className="w-6 h-6 sm:w-8 sm:h-8 mx-auto mb-2" />
+                                <p className="font-semibold text-sm sm:text-base">Trocar imagem</p>
                               </div>
                             </div>
                           </>
                         ) : (
-                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 group-hover:text-blue-400 transition-colors">
-                            <Upload className="w-12 h-12 mb-3" />
-                            <p className="font-semibold">Clique para enviar</p>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-400 group-hover:text-blue-400 transition-colors p-4">
+                            <Upload className="w-8 h-8 sm:w-12 sm:h-12 mb-2 sm:mb-3" />
+                            <p className="font-semibold text-sm sm:text-base">Clique para enviar</p>
                             <p className="text-xs mt-1">JPG, PNG até 10MB</p>
                           </div>
                         )}
@@ -1092,11 +1206,11 @@ const handleEnhanceImage = async () => {
                       />
                     </div>
 
-                    <div className="space-y-3">
-                      <label className="block text-sm font-semibold text-gray-300">
+                    <div className="space-y-2 sm:space-y-3">
+                      <label className="block text-xs sm:text-sm font-semibold text-gray-300">
                         Sem Fundo
                       </label>
-                      <div className="relative aspect-square rounded-2xl border-2 border-white/10 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 overflow-hidden">
+                      <div className="relative aspect-square rounded-xl sm:rounded-2xl border-2 border-white/10 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 overflow-hidden">
                         {removeBgResult ? (
                           <>
                             <div
@@ -1116,20 +1230,20 @@ const handleEnhanceImage = async () => {
                               whileTap={{ scale: 0.9 }}
                               onClick={() => downloadAsset(removeBgResult, 'no-background.png')}
                               disabled={downloadingAssets.has(removeBgResult)}
-                              className="absolute bottom-4 right-4 p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all disabled:opacity-50"
+                              className="absolute bottom-3 right-3 sm:bottom-4 sm:right-4 p-2 sm:p-3 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full text-white shadow-2xl hover:shadow-blue-500/50 transition-all disabled:opacity-50"
                             >
                               {downloadingAssets.has(removeBgResult) ? (
-                                <Loader2 className="w-5 h-5 animate-spin" />
+                                <Loader2 className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" />
                               ) : (
-                                <Download className="w-5 h-5" />
+                                <Download className="w-4 h-4 sm:w-5 sm:h-5" />
                               )}
                             </motion.button>
                           </>
                         ) : (
                           <div className="absolute inset-0 flex items-center justify-center text-gray-600">
-                            <div className="text-center">
-                              <Camera className="w-12 h-12 mx-auto mb-3" />
-                              <p className="text-sm">Resultado aparecerá aqui</p>
+                            <div className="text-center p-4">
+                              <Camera className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-2 sm:mb-3" />
+                              <p className="text-xs sm:text-sm">Resultado aparecerá aqui</p>
                             </div>
                           </div>
                         )}
@@ -1143,17 +1257,17 @@ const handleEnhanceImage = async () => {
                     whileTap={{ scale: 0.98 }}
                     onClick={handleRemoveBackground}
                     disabled={loading || !removeBgImage}
-                    className="w-full py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-lg rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-3 shadow-2xl hover:shadow-blue-500/50 transition-all"
+                    className="w-full py-3 sm:py-4 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold text-base sm:text-lg rounded-xl sm:rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 sm:gap-3 shadow-2xl hover:shadow-blue-500/50 transition-all"
                   >
                     {loading ? (
                       <>
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                        Removendo...
+                        <Loader2 className="w-5 h-5 sm:w-6 sm:h-6 animate-spin" />
+                        <span className="text-sm sm:text-base">Removendo...</span>
                       </>
                     ) : (
                       <>
-                        <Camera className="w-6 h-6" />
-                        Remover Fundo
+                        <Camera className="w-5 h-5 sm:w-6 sm:h-6" />
+                        <span className="text-sm sm:text-base">Remover Fundo</span>
                       </>
                     )}
                   </motion.button>
@@ -1168,9 +1282,9 @@ const handleEnhanceImage = async () => {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.5 }}
-          className="text-center mt-12 space-y-4"
+          className="text-center mt-8 sm:mt-12 space-y-4"
         >
-          <div className="flex justify-center gap-3">
+          <div className="flex justify-center gap-2 sm:gap-3">
             {[
               { icon: Share2, color: 'hover:text-blue-400' },
               { icon: Heart, color: 'hover:text-red-400' },
@@ -1180,20 +1294,20 @@ const handleEnhanceImage = async () => {
                 key={i}
                 whileHover={{ scale: 1.1, rotate: 5 }}
                 whileTap={{ scale: 0.9 }}
-                className={cn("p-3 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 transition-all", item.color)}
+                className={cn("p-2 sm:p-3 bg-white/5 backdrop-blur-sm rounded-full border border-white/10 transition-all", item.color)}
               >
-                <item.icon className="w-5 h-5" />
+                <item.icon className="w-4 h-4 sm:w-5 sm:h-5" />
               </motion.button>
             ))}
           </div>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs sm:text-sm text-gray-500">
             Feito com 💜 por AI Studio Pro
           </p>
         </motion.div>
       </div>
 
       {/* ESTILOS GLOBAIS */}
-       <style jsx global>{`
+      <style jsx global>{`
         @keyframes confetti-fall {
           to {
             transform: translateY(100vh) rotate(720deg);
@@ -1208,6 +1322,42 @@ const handleEnhanceImage = async () => {
           top: -10px;
           animation: confetti-fall 3s linear forwards;
           z-index: 9999;
+        }
+
+        /* SCROLLBAR CUSTOMIZADO ESTILO CHATGPT */
+        .chat-scrollbar {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(139, 92, 246, 0.3) transparent;
+        }
+
+        .chat-scrollbar::-webkit-scrollbar {
+          width: 8px;
+        }
+
+        .chat-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+
+        .chat-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(139, 92, 246, 0.3);
+          border-radius: 4px;
+          border: 2px solid transparent;
+          background-clip: content-box;
+        }
+
+        .chat-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(139, 92, 246, 0.5);
+          background-clip: content-box;
+        }
+
+        /* HIDE SCROLLBAR */
+        .scrollbar-hide {
+          -ms-overflow-style: none;
+          scrollbar-width: none;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+          display: none;
         }
 
         .scrollbar-thin::-webkit-scrollbar {
@@ -1239,7 +1389,6 @@ const handleEnhanceImage = async () => {
           animation-delay: 1000ms;
         }
 
-        /* ✨ NOVAS ANIMAÇÕES PARA TORNAR MAIS VIRAL */
         @keyframes float {
           0%, 100% {
             transform: translateY(0px);
@@ -1286,38 +1435,76 @@ const handleEnhanceImage = async () => {
           animation: shimmer 3s infinite;
         }
 
-        /* MELHOR RESPONSIVIDADE EM MOBILE */
-        @media (max-width: 640px) {
-          .text-5xl {
-            font-size: 2.5rem !important;
-          }
-
-          .text-7xl {
-            font-size: 3rem !important;
-          }
-
-          .aspect-square {
-            aspect-ratio: 4/3 !important;
-          }
-
-          .p-6 {
-            padding: 1rem !important;
-          }
-
-          .gap-6 {
-            gap: 1rem !important;
-          }
-        }
-
-        /* SMOOTH SCROLL PARA MELHOR UX */
         html {
           scroll-behavior: smooth;
         }
 
-        /* PREVENIR SELEÇÃO ACIDENTAL EM MOBILE */
         button, .cursor-pointer {
           -webkit-tap-highlight-color: transparent;
           user-select: none;
+        }
+
+        /* RESPONSIVIDADE MOBILE PERFEITA */
+        @media (max-width: 640px) {
+          .text-3xl {
+            font-size: 1.875rem !important;
+            line-height: 2.25rem !important;
+          }
+
+          .text-5xl {
+            font-size: 2.5rem !important;
+            line-height: 1.2 !important;
+          }
+
+          .text-7xl {
+            font-size: 3rem !important;
+            line-height: 1.2 !important;
+          }
+
+          /* Ajustes de toque para mobile */
+          button, a, input, textarea {
+            min-height: 44px;
+            min-width: 44px;
+          }
+
+          /* Prevenir zoom em input focus no iOS */
+          input, textarea, select {
+            font-size: 16px !important;
+          }
+        }
+
+        /* ANIMAÇÃO SUAVE PARA MENSAGENS */
+        @keyframes slideInFromRight {
+          from {
+            opacity: 0;
+            transform: translateX(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        @keyframes slideInFromLeft {
+          from {
+            opacity: 0;
+            transform: translateX(-20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+
+        /* MELHOR SELEÇÃO DE TEXTO */
+        ::selection {
+          background-color: rgba(139, 92, 246, 0.3);
+          color: white;
+        }
+
+        ::-moz-selection {
+          background-color: rgba(139, 92, 246, 0.3);
+          color: white;
         }
       `}</style>
     </div>
