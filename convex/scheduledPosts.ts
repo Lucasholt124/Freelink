@@ -188,16 +188,13 @@ export const getPostsByDateRange = query({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    const startTimestamp = new Date(args.startDate).getTime();
-    const endTimestamp = new Date(args.endDate).getTime();
-
     const posts = await ctx.db
       .query("scheduledPosts")
-      .withIndex("by_user_scheduled", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .filter((q) =>
         q.and(
-          q.gte(q.field("scheduledTimestamp"), startTimestamp),
-          q.lte(q.field("scheduledTimestamp"), endTimestamp)
+          q.gte(q.field("scheduledDate"), args.startDate),
+          q.lte(q.field("scheduledDate"), args.endDate)
         )
       )
       .collect();
@@ -205,6 +202,7 @@ export const getPostsByDateRange = query({
     return posts;
   },
 });
+
 
 export const getPost = query({
   args: { postId: v.id("scheduledPosts") },

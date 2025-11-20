@@ -1,4 +1,4 @@
-// app/hooks/useBrain.ts - HOOK CUSTOMIZADO PARA BRAIN (CORRIGIDO)
+// app/hooks/useBrain.ts - HOOK ATUALIZADO COM TODAS AS FEATURES
 "use client";
 
 import { useQuery, useMutation, useAction, usePaginatedQuery } from "convex/react";
@@ -7,19 +7,17 @@ import { Id } from "@/convex/_generated/dataModel";
 import { usePushNotifications } from "./usePushNotifications";
 
 // ============================================
-// CAMPANHAS (AGORA PAGINADO)
+// CAMPANHAS
 // ============================================
 export function useBrainCampaigns() {
-  // ✅ CORREÇÃO: Trocamos useQuery por usePaginatedQuery
-  // O backend 'listCampaigns' agora exige paginação, então este hook deve refletir isso.
   const {
     results: campaigns,
     status,
     loadMore
   } = usePaginatedQuery(
     api.brainCampaigns.listCampaigns,
-    {}, // Argumentos da query (vazio pois só tem paginationOpts)
-    { initialNumItems: 20 } // Carrega 20 por vez
+    {},
+    { initialNumItems: 20 }
   );
 
   const currentCampaign = useQuery(api.brainCampaigns.getCurrentCampaign);
@@ -29,9 +27,9 @@ export function useBrainCampaigns() {
   const deleteCampaign = useMutation(api.brainCampaigns.deleteCampaign);
 
   return {
-    campaigns,        // Lista atual de campanhas
-    campaignsStatus: status, // Para saber se está carregando
-    loadMoreCampaigns: loadMore, // Função para botão "Carregar Mais"
+    campaigns,
+    campaignsStatus: status,
+    loadMoreCampaigns: loadMore,
     currentCampaign,
     createCampaign,
     updateCampaign,
@@ -40,10 +38,9 @@ export function useBrainCampaigns() {
 }
 
 // ============================================
-// POSTS AGENDADOS
+// POSTS AGENDADOS (COM EDIÇÃO)
 // ============================================
 export function useScheduledPosts(campaignId?: Id<"brainCampaigns">) {
-  // ✅ MANTIDO: Passando objeto vazio como segundo argumento
   const allPosts = useQuery(api.posts.listScheduledPosts, {});
 
   const campaignPosts = useQuery(
@@ -52,8 +49,8 @@ export function useScheduledPosts(campaignId?: Id<"brainCampaigns">) {
   );
 
   const createPost = useMutation(api.posts.schedulePost);
-  const updatePost = useMutation(api.posts.updatePost);
-  const deletePost = useMutation(api.posts.deletePost);
+  const updatePost = useMutation(api.calendar.updateScheduledPost);
+  const deletePost = useMutation(api.calendar.deleteScheduledPost);
   const markAsCompleted = useMutation(api.posts.markAsCompleted);
 
   return {
@@ -67,34 +64,82 @@ export function useScheduledPosts(campaignId?: Id<"brainCampaigns">) {
 }
 
 // ============================================
-// INTEGRAÇÃO COM PUSH NOTIFICATIONS
+// CALENDÁRIO CUSTOMIZÁVEL
+// ============================================
+export function useCalendar() {
+  const createEvent = useMutation(api.calendar.createCustomEvent);
+  const updateEvent = useMutation(api.calendar.updateCustomEvent);
+  const deleteEvent = useMutation(api.calendar.deleteCustomEvent);
+  const toggleEventStatus = useMutation(api.calendar.toggleEventStatus);
+
+  return {
+    createEvent,
+    updateEvent,
+    deleteEvent,
+    toggleEventStatus,
+  };
+}
+
+// ============================================
+// NOTIFICAÇÕES MULTI-CANAL
 // ============================================
 export function useNotificationIntegration() {
   const {
-    isSupported,
-    isSubscribed,
-    isLoading,
-    subscribe,
-    unsubscribe,
+    isSupported: isPushSupported,
+    isSubscribed: isPushActive,
+    isLoading: isPushLoading,
+    subscribe: subscribePush,
+    unsubscribe: unsubscribePush,
   } = usePushNotifications();
 
-  const subscriptions = useQuery(api.push.getUserSubscriptions);
-  const notificationHistory = useQuery(api.push.getNotificationHistory);
+  // WhatsApp
+  const whatsappData = useQuery(api.notifications.getWhatsAppIntegration);
+  const addWhatsApp = useMutation(api.notifications.addWhatsAppIntegration);
+  const verifyWhatsApp = useMutation(api.notifications.verifyWhatsApp);
+  const toggleWhatsApp = useMutation(api.notifications.toggleWhatsApp);
+
+  // SMS
+  const smsData = useQuery(api.notifications.getSmsIntegration);
+  const addSms = useMutation(api.notifications.addSmsIntegration);
+  const verifySms = useMutation(api.notifications.verifySms);
+  const toggleSms = useMutation(api.notifications.toggleSms);
+
+  // Stats
+  const stats = useQuery(api.notifications.getNotificationStats);
+
+  // Envio
+  const sendNotification = useAction(api.notifications.sendPostNotification);
+
+  const isConnected =
+    isPushActive ||
+    (whatsappData?.active ?? false) ||
+    (smsData?.active ?? false);
 
   return {
-    // Estado das notificações
-    isSupported,
-    isConnected: isSubscribed,
-    hasProfiles: isSubscribed,
-    isLoading,
+    // Push
+    isPushSupported,
+    isPushActive,
+    isPushLoading,
+    subscribePush,
+    unsubscribePush,
 
-    // Dados
-    subscriptions,
-    notificationHistory,
+    // WhatsApp
+    whatsappData,
+    addWhatsApp,
+    verifyWhatsApp,
+    toggleWhatsApp,
 
-    // Ações
-    connect: subscribe,
-    disconnect: unsubscribe,
+    // SMS
+    smsData,
+    addSms,
+    verifySms,
+    toggleSms,
+
+    // Geral
+    isConnected,
+    hasAnyMethod: isConnected,
+    stats,
+    sendNotification,
   };
 }
 
@@ -112,9 +157,6 @@ export function useContentGeneration() {
 // ============================================
 // ALIAS PARA COMPATIBILIDADE
 // ============================================
-/**
- * @deprecated Use useNotificationIntegration()
- */
 export function useBufferIntegration() {
   return useNotificationIntegration();
 }

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -8,7 +9,8 @@ import confetti from "canvas-confetti";
 import {
   Sparkles, Brain, Video, RefreshCcw, Layers, Camera,
   MessageSquare, Wand2, Calendar, Trash2, Menu, FolderOpen,
-  Crown, Flame, Settings, Clock, Loader2, ChevronDown
+  Crown, Flame, Clock, Loader2, ChevronDown, Bell,
+  CheckCircle2
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -20,19 +22,18 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-// ✅ CORREÇÃO 1: Importar usePaginatedQuery
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 
 import { useContentGeneration, useNotificationIntegration, useScheduledPosts } from "@/app/hooks/useBrain";
 import PostScheduleModal from "./brain/PostScheduleModal";
-import SettingsModal from "./brain/SettingsModal";
-import CalendarView from "./brain/CalendarView";
+
 import { BrainResults, ContentType, ScheduleModalData } from "@/app/types/brain";
 import { CarouselCard, ImagePostCard, ReelCard, StoryCard } from "./brain/ContentCards";
+import SettingsModal from "./brain/SettingsModal";
+import CalendarView from "./brain/CalendarView";
 
 // =================================================================
 // COMPONENTES AUXILIARES
@@ -75,7 +76,6 @@ const AnimatedCounter = ({ value }: { value: number }) => {
   return <span>{displayValue}</span>;
 };
 
-// ✅ CORREÇÃO 2: Tipagem alinhada com o Schema
 interface BrainCampaign {
   _id: Id<"brainCampaigns">;
   _creationTime: number;
@@ -99,7 +99,7 @@ interface BrainCampaign {
 // COMPONENTE PRINCIPAL
 // =================================================================
 
-export default function FreelinkBrainTool() {
+export default function FreelinkBrainToolUltra() {
   const [theme, setTheme] = useState("");
   const [results, setResults] = useState<BrainResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -108,7 +108,7 @@ export default function FreelinkBrainTool() {
   const [showViralMode] = useState(true);
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [currentCampaign, setCurrentCampaign] = useState<BrainCampaign | null>(null); // Estado local para campanha atual
+  const [currentCampaign, setCurrentCampaign] = useState<BrainCampaign | null>(null);
 
   const [scheduleModalData, setScheduleModalData] = useState<ScheduleModalData>({
     isOpen: false
@@ -118,7 +118,6 @@ export default function FreelinkBrainTool() {
 
   const { generateIdeas } = useContentGeneration();
 
-  // ✅ CORREÇÃO 3: Usar usePaginatedQuery em vez de useQuery
   const {
     results: campaigns,
     status: campaignsStatus,
@@ -133,7 +132,7 @@ export default function FreelinkBrainTool() {
   const deleteCampaign = useMutation(api.brainCampaigns.deleteCampaign);
 
   useScheduledPosts();
-  const { isConnected: isNotificationConnected } = useNotificationIntegration();
+  const { isConnected: hasAnyNotification } = useNotificationIntegration();
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault();
@@ -150,7 +149,6 @@ export default function FreelinkBrainTool() {
       const data = await generateIdeas({ theme });
       setResults(data);
 
-      // Cria a campanha no banco
       const campaignId = await createCampaign({
         theme,
         themeSummary: data.theme_summary,
@@ -163,11 +161,10 @@ export default function FreelinkBrainTool() {
         contentPack: JSON.stringify(data.content_pack),
       });
 
-      // Define campanha atual localmente para uso imediato
       setCurrentCampaign({
         _id: campaignId,
         _creationTime: Date.now(),
-        userId: "", // Não crítico para display imediato
+        userId: "",
         theme,
         themeSummary: data.theme_summary,
         targetAudience: data.target_audience_suggestion,
@@ -242,7 +239,6 @@ export default function FreelinkBrainTool() {
     });
   };
 
-  // ✅ CORREÇÃO 4: Tipagem explícita no parâmetro
   const handleCampaignSelect = (campaign: BrainCampaign) => {
     try {
         const parsedContent = JSON.parse(campaign.contentPack);
@@ -257,7 +253,7 @@ export default function FreelinkBrainTool() {
         setMainView("generator");
         setIsHistorySidebarOpen(false);
         toast.success("Campanha carregada!");
-    } catch  {
+    } catch {
         toast.error("Erro ao carregar campanha antiga");
     }
   };
@@ -342,26 +338,30 @@ export default function FreelinkBrainTool() {
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Button
-                      variant={isNotificationConnected ? "default" : "outline"}
+                      variant={hasAnyNotification ? "default" : "outline"}
                       size="icon"
                       onClick={() => setIsSettingsOpen(true)}
                       className={cn(
                         "relative h-8 w-8 sm:h-9 sm:w-9",
-                        isNotificationConnected && "bg-green-600 hover:bg-green-700"
+                        hasAnyNotification && "bg-green-600 hover:bg-green-700"
                       )}
                     >
-                      {isNotificationConnected ? (
-                        <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                      {hasAnyNotification ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       ) : (
-                        <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                        <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                       )}
-                      {isNotificationConnected && (
+                      {hasAnyNotification && (
                         <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                       )}
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{isNotificationConnected ? "Buffer Conectado" : "Configurar Buffer"}</p>
+                    <p>
+                      {hasAnyNotification
+                        ? "Notificações Ativas"
+                        : "Configurar Notificações"}
+                    </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -417,7 +417,7 @@ export default function FreelinkBrainTool() {
         </div>
       </motion.div>
 
-      {/* ================= SIDEBAR HISTÓRICO (CORRIGIDO) ================= */}
+      {/* ================= SIDEBAR HISTÓRICO ================= */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
         <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
           <SheetHeader className="px-4 sm:px-6 py-4 border-b">
@@ -439,7 +439,6 @@ export default function FreelinkBrainTool() {
               </div>
             ) : (
               <div className="divide-y">
-                {/* ✅ CORREÇÃO 5: Iterar sobre 'campaigns' (que agora é results) */}
                 {campaigns.map((campaign) => (
                   <div
                     key={campaign._id}
@@ -472,7 +471,6 @@ export default function FreelinkBrainTool() {
                   </div>
                 ))}
 
-                {/* ✅ CORREÇÃO 6: Botão Carregar Mais */}
                 {campaignsStatus === "CanLoadMore" && (
                    <div className="p-4">
                      <Button
@@ -525,7 +523,7 @@ export default function FreelinkBrainTool() {
                 <LoadingSpinner />
               ) : results && currentCampaign ? (
                 <div className="space-y-4 sm:space-y-6">
-                  {/* Header dos Resultados - Mobile Optimized */}
+                  {/* Header dos Resultados */}
                   <Card className="shadow-lg p-4 sm:p-6">
                     <div className="flex flex-col gap-3 sm:gap-4">
                       <div className="flex items-start justify-between gap-3">
@@ -548,7 +546,7 @@ export default function FreelinkBrainTool() {
                         </Button>
                       </div>
 
-                      {/* Stats - Grid Responsivo */}
+                      {/* Stats */}
                       <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
                         <div className="text-center p-2 sm:p-3 bg-muted/50 rounded-lg">
                           <p className="text-lg sm:text-2xl font-bold text-primary">
@@ -578,34 +576,22 @@ export default function FreelinkBrainTool() {
                     </div>
                   </Card>
 
-                  {/* Tabs de Conteúdo - Mobile Friendly */}
+                  {/* Tabs de Conteúdo */}
                   <Tabs value={activeTab} onValueChange={setActiveTab}>
                     <TabsList className="grid grid-cols-4 w-full h-auto gap-1 bg-transparent sm:bg-muted p-0 sm:p-1">
-                      <TabsTrigger
-                        value="reels"
-                        className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm"
-                      >
+                      <TabsTrigger value="reels" className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm">
                         <Video className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="hidden xs:inline sm:ml-1.5">Reels</span>
                       </TabsTrigger>
-                      <TabsTrigger
-                        value="carousels"
-                        className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm"
-                      >
+                      <TabsTrigger value="carousels" className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm">
                         <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="hidden xs:inline sm:ml-1.5">Carr.</span>
                       </TabsTrigger>
-                      <TabsTrigger
-                        value="image_posts"
-                        className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm"
-                      >
+                      <TabsTrigger value="image_posts" className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm">
                         <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="hidden xs:inline sm:ml-1.5">Posts</span>
                       </TabsTrigger>
-                      <TabsTrigger
-                        value="story_sequences"
-                        className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm"
-                      >
+                      <TabsTrigger value="story_sequences" className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm">
                         <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span className="hidden xs:inline sm:ml-1.5">Stories</span>
                       </TabsTrigger>

@@ -66,32 +66,16 @@ export const schedulePost = mutation({
 // LISTAR POSTS AGENDADOS DO USUÁRIO
 // ============================================
 export const listScheduledPosts = query({
-  args: {
-    status: v.optional(
-      v.union(
-        v.literal("draft"),
-        v.literal("scheduled"),
-        v.literal("notified"),
-        v.literal("completed"),
-        v.literal("cancelled")
-      )
-    ),
-  },
-  handler: async (ctx, args) => {
+  args: {},
+  handler: async (ctx) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
 
-    const userId = identity.subject;
-
-    let posts = await ctx.db
+    const posts = await ctx.db
       .query("scheduledPosts")
-      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
       .order("desc")
       .collect();
-
-    if (args.status) {
-      posts = posts.filter((p) => p.status === args.status);
-    }
 
     return posts;
   },
@@ -101,9 +85,7 @@ export const listScheduledPosts = query({
 // PEGAR POSTS POR CAMPANHA
 // ============================================
 export const getPostsByCampaign = query({
-  args: {
-    campaignId: v.id("brainCampaigns"),
-  },
+  args: { campaignId: v.id("brainCampaigns") },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return [];
@@ -111,12 +93,35 @@ export const getPostsByCampaign = query({
     const posts = await ctx.db
       .query("scheduledPosts")
       .withIndex("by_campaign", (q) => q.eq("campaignId", args.campaignId))
-      .order("desc")
+      .filter((q) => q.eq(q.field("userId"), identity.subject))
       .collect();
 
     return posts;
   },
 });
+
+// ============================================
+// PEGAR POSTS POR PERÍODO (para calendário)
+// ============================================
+export const getPostsByDateRange = query({
+  args: {
+    startDate: v.string(), // YYYY-MM-DD
+    endDate: v.string(),   // YYYY-MM-DD
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) return [];
+
+    const posts = await ctx.db
+      .query("scheduledPosts")
+      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
+      .filter((q) => q.and(q.gte(q.field("scheduledDate"), args.startDate), q.lte(q.field("scheduledDate"), args.endDate)))
+      .collect();
+
+    return posts;
+  },
+});
+
 
 // ============================================
 // ATUALIZAR POST
@@ -204,33 +209,18 @@ export const deletePost = mutation({
 // MARCAR COMO COMPLETADO (usuário postou manualmente)
 // ============================================
 export const markAsCompleted = mutation({
-  args: {
-    postId: v.id("scheduledPosts"),
-    performance: v.optional(
-      v.object({
-        views: v.optional(v.number()),
-        likes: v.optional(v.number()),
-        comments: v.optional(v.number()),
-        shares: v.optional(v.number()),
-        saves: v.optional(v.number()),
-        reach: v.optional(v.number()),
-        engagement: v.optional(v.number()),
-      })
-    ),
-  },
+  args: { postId: v.id("scheduledPosts") },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autenticado");
 
-    const userId = identity.subject;
-
     const post = await ctx.db.get(args.postId);
-    if (!post) throw new Error("Post não encontrado");
-    if (post.userId !== userId) throw new Error("Sem permissão");
+    if (!post || post.userId !== identity.subject) {
+      throw new Error("Post não encontrado");
+    }
 
     await ctx.db.patch(args.postId, {
       status: "completed",
-      performance: args.performance,
       updatedAt: Date.now(),
     });
 
@@ -242,18 +232,16 @@ export const markAsCompleted = mutation({
 // PEGAR POST INDIVIDUAL
 // ============================================
 export const getPost = query({
-  args: {
-    postId: v.id("scheduledPosts"),
-  },
+  args: { postId: v.id("scheduledPosts") },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) return null;
 
-    const userId = identity.subject;
-
     const post = await ctx.db.get(args.postId);
-    if (!post) return null;
-    if (post.userId !== userId) return null;
+
+    if (!post || post.userId !== identity.subject) {
+      return null;
+    }
 
     return post;
   },
