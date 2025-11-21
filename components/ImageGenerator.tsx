@@ -22,6 +22,16 @@ import Image from "next/image";
 import Link from "next/link";
 
 // =================================================================
+// 🎨 TIPOS DE DADOS
+// =================================================================
+interface ImageType {
+  _id: Id<"generatedImages"> | "temp";
+  imageUrl: string;
+  prompt: string;
+  storageId?: Id<"_storage">; // Opcional para a imagem temporária
+}
+
+// =================================================================
 // 🎨 DADOS VISUAIS
 // =================================================================
 const STYLES = [
@@ -46,7 +56,11 @@ export default function ImageGeneratorTool() {
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("realistic");
   const [activeTab, setActiveTab] = useState("create");
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+
+  // CORREÇÃO 1: Agora guardamos o objeto COMPLETO da imagem, não só a URL string
+  // Isso permite acessar o _id e storageId dentro do Modal/Lightbox. Usando um tipo específico.
+  const [selectedImage, setSelectedImage] = useState<ImageType | null>(null);
+
   const [isGenerating, setIsGenerating] = useState(false);
   const [latestImage, setLatestImage] = useState<string | null>(null);
   const [enhancedPromptResult, setEnhancedPromptResult] = useState<string>("");
@@ -127,12 +141,26 @@ export default function ImageGeneratorTool() {
   };
 
   const handleDelete = async (imageId: Id<"generatedImages">, storageId: Id<"_storage">) => {
-    if (!confirm("Excluir esta imagem?")) return;
+    if (!confirm("Excluir esta imagem permanentemente?")) return;
     try {
       await deleteImageMutation({ imageId, storageId });
       toast.success("Imagem removida.");
+      // Se estivermos no modal, fecha ele após deletar
+      if (selectedImage?._id === imageId) {
+        setSelectedImage(null);
+      }
     } catch {
       toast.error("Erro ao remover.");
+    }
+  };
+
+  // Função wrapper para garantir que temos os IDs corretos antes de deletar
+  const handleDeleteWrapper = () => {
+    // Garante que a imagem selecionada não é a temporária e tem os IDs necessários
+    if (selectedImage && selectedImage._id !== "temp" && selectedImage.storageId) {
+      handleDelete(selectedImage._id, selectedImage.storageId);
+    } else {
+      toast.error("Não é possível deletar esta imagem.");
     }
   };
 
@@ -146,8 +174,10 @@ export default function ImageGeneratorTool() {
         <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-purple-100/50 rounded-full blur-[100px]" />
       </div>
 
-      {/* Navbar Clean */}
-      <div className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-md shadow-sm">
+      {/* CORREÇÃO 3: Navbar Clean
+         Mudei z-50 para z-30. Isso deve resolver o conflito com o menu lateral (que geralmente é z-40 ou z-50).
+      */}
+      <div className="sticky top-0 z-30 border-b border-slate-200 bg-white/80 backdrop-blur-md shadow-sm">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition-colors p-2">
             <ArrowLeft className="w-5 h-5" />
@@ -305,11 +335,13 @@ export default function ImageGeneratorTool() {
                         unoptimized
                       />
                       {/* Botões de ação sobrepostos no Preview */}
+                      {/* CORREÇÃO: Botões sempre visíveis no preview gerado para facilitar */}
                       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/50 to-transparent flex justify-center gap-3">
                           <Button onClick={() => handleDownload(latestImage, `ai-${Date.now()}.png`)} className="bg-white text-slate-900 hover:bg-slate-100 rounded-full shadow-lg font-semibold">
                             <Download className="w-4 h-4 mr-2" /> Salvar
                           </Button>
-                          <Button onClick={() => setSelectedImage(latestImage)} className="bg-white/20 backdrop-blur-md border border-white/40 text-white hover:bg-white/30 rounded-full shadow-lg">
+                          {/* Para o preview da geração, passamos um objeto temporário simulado apenas com a URL para o modal funcionar se for clicado */}
+                          <Button onClick={() => setSelectedImage({ imageUrl: latestImage, _id: "temp", prompt: "Nova imagem" })} className="bg-white/20 backdrop-blur-md border border-white/40 text-white hover:bg-white/30 rounded-full shadow-lg">
                             <Maximize2 className="w-4 h-4" />
                           </Button>
                       </div>
@@ -357,7 +389,8 @@ export default function ImageGeneratorTool() {
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
                       className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 cursor-pointer border border-slate-200 shadow-md hover:shadow-xl transition-all"
-                      onClick={() => setSelectedImage(img.imageUrl)}
+                      // CORREÇÃO: Passamos o objeto img inteiro aqui
+                      onClick={() => setSelectedImage(img)}
                     >
                       <Image
                         src={img.imageUrl}
@@ -367,7 +400,15 @@ export default function ImageGeneratorTool() {
                         sizes="(max-width: 768px) 50vw, 33vw"
                       />
 
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 p-3 flex flex-col justify-end">
+                      {/* CORREÇÃO 2: Visibilidade dos botões em Mobile/Tablet
+                          Antes: opacity-100 sm:opacity-0 (escondia em tablets que são > sm)
+                          Agora: opacity-100 lg:opacity-0 (só esconde em DESKTOP/Laptop grande).
+                          Em celulares e tablets, a barra preta ficará sempre visível.
+                      */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent
+                                    opacity-100 lg:opacity-0 lg:group-hover:opacity-100
+                                    transition-opacity duration-300 p-3 flex flex-col justify-end">
+
                         <p className="text-xs text-white font-medium line-clamp-2 mb-3 drop-shadow-md">{img.prompt}</p>
 
                         <div className="flex gap-2 justify-between items-center">
@@ -394,7 +435,7 @@ export default function ImageGeneratorTool() {
                             size="icon"
                             variant="secondary"
                             className="h-8 w-8 rounded-full bg-white/90 text-slate-900 shadow-lg hover:bg-white hidden sm:flex"
-                            onClick={() => handleShare(img.imageUrl)}
+                            onClick={(e) => { e.stopPropagation(); handleShare(img.imageUrl); }}
                           >
                             <Share2 className="w-4 h-4" />
                           </Button>
@@ -453,10 +494,6 @@ export default function ImageGeneratorTool() {
               onClick={(e) => e.stopPropagation()}
             >
 
-              {/* 🔥 CORREÇÃO DO X (CLOSE BUTTON)
-                  Agora está posicionado 'absolute' dentro do container da imagem.
-                  Ficará em cima da imagem no canto superior direito.
-              */}
               <Button
                   variant="ghost"
                   size="icon"
@@ -471,8 +508,9 @@ export default function ImageGeneratorTool() {
 
               {/* Imagem */}
               <div className="relative w-full h-full flex items-center justify-center bg-black/20">
+                {/* CORREÇÃO: selectedImage agora é um objeto, então acessamos .imageUrl */}
                 <img
-                  src={selectedImage}
+                  src={selectedImage.imageUrl}
                   alt="Full view"
                   className="max-w-full max-h-[70vh] md:max-h-[75vh] object-contain"
                 />
@@ -481,29 +519,31 @@ export default function ImageGeneratorTool() {
               {/* Barra de Ações Inferior */}
               <div className="w-full p-4 md:p-6 bg-slate-900/80 backdrop-blur-md border-t border-white/10 flex flex-wrap justify-center gap-3 md:gap-4">
                 <Button
-                  onClick={() => handleDownload(selectedImage, `ai-art-${Date.now()}.png`)}
+                  onClick={() => handleDownload(selectedImage.imageUrl, `ai-art-${Date.now()}.png`)}
                   className="bg-white text-slate-900 hover:bg-slate-200 rounded-full px-6 h-12 text-base font-bold shadow-xl flex-1 sm:flex-none min-w-[140px]"
                 >
                   <Download className="w-4 h-4 mr-2" /> Baixar
                 </Button>
 
                 <Button
-                  onClick={() => handleShare(selectedImage)}
+                  onClick={() => handleShare(selectedImage.imageUrl)}
                   className="bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-full px-6 h-12 text-base font-bold shadow-xl flex-1 sm:flex-none min-w-[140px]"
                 >
                   <Share2 className="w-4 h-4 mr-2" /> Compartilhar
                 </Button>
 
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setSelectedImage(null);
-                    toast.info("Para deletar, use o botão de lixeira na galeria.");
-                  }}
-                  className="rounded-full px-4 h-12 shadow-xl bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30"
-                >
-                  <Trash2 className="w-5 h-5" />
-                </Button>
+                {/* CORREÇÃO 1B: Botão de Excluir no Lightbox agora FUNCIONA
+                   Verifica se o selectedImage tem _id (pra não quebrar se for o preview temporário)
+                */}
+                {selectedImage._id !== "temp" && (
+                  <Button
+                    variant="destructive"
+                    onClick={handleDeleteWrapper}
+                    className="rounded-full px-4 h-12 shadow-xl bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                )}
               </div>
 
             </motion.div>
