@@ -1,73 +1,73 @@
-// Service Worker para Modo Offline
-const CACHE_NAME = 'gestao-pro-v1';
-const OFFLINE_URL = '/offline.html';
+// Service Worker Focado em Push Notifications
+// Versão Limpa (Sem erros de ESLint)
 
-const STATIC_ASSETS = [
-  '/',
-  '/offline.html',
-  '/manifest.json',
-];
-
-// Instalação do Service Worker
-self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      console.log('📦 Cache aberto');
-      return cache.addAll(STATIC_ASSETS);
-    })
-  );
+self.addEventListener('install', () => {
+  // Força o SW a se ativar imediatamente, sem esperar o antigo fechar
   self.skipWaiting();
 });
 
-// Ativação do Service Worker
 self.addEventListener('activate', (event) => {
-  event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME) {
-            console.log('🗑️ Removendo cache antigo:', cacheName);
-            return caches.delete(cacheName);
-          }
-        })
-      );
-    })
-  );
-  self.clients.claim();
+  // Assume o controle de todas as abas abertas imediatamente
+  event.waitUntil(clients.claim());
 });
 
-// Interceptação de requisições
-self.addEventListener('fetch', (event) => {
-  // Apenas para requisições GET
-  if (event.request.method !== 'GET') return;
+// ========================================================
+// 🔔 CÓDIGO DE NOTIFICAÇÃO PUSH
+// ========================================================
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        // Se online, salva no cache
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
-        return response;
-      })
-      .catch(() => {
-        // Se offline, busca do cache
-        return caches.match(event.request).then((response) => {
-          return response || caches.match(OFFLINE_URL);
-        });
-      })
-  );
-});
+// 1. Ouvir quando o Push chega do servidor
+self.addEventListener('push', function (event) {
+  if (!event.data) {
+    console.log('Push event sem dados');
+    return;
+  }
 
-// Sincronização em background
-self.addEventListener('sync', (event) => {
-  if (event.tag === 'sync-sales') {
-    event.waitUntil(syncOfflineSales());
+  try {
+    const data = event.data.json();
+
+    const options = {
+      body: data.body,
+      icon: data.icon || '/icon-192x192.png', // Certifique-se que existe na pasta public
+      badge: data.badge || '/badge-72x72.png', // Certifique-se que existe na pasta public
+      vibrate: [100, 50, 100],
+      data: {
+        url: data.url || '/',
+        postId: data.postId
+      },
+      actions: [
+        {
+          action: 'open',
+          title: 'Ver Post'
+        }
+      ]
+    };
+
+    event.waitUntil(
+      self.registration.showNotification(data.title, options)
+    );
+  } catch (err) {
+    console.error('Erro ao processar notificação push:', err);
   }
 });
 
-async function syncOfflineSales() {
-  console.log('🔄 Sincronizando vendas offline...');
-  // A sincronização real será feita pelo frontend
-}
+// 2. Ouvir o clique na notificação
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close(); // Fecha a notificação
+
+  // Abre o link no navegador
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
+      // Se já tiver uma aba aberta com o link, foca nela
+      for (var i = 0; i < clientList.length; i++) {
+        var client = clientList[i];
+        if (client.url === event.notification.data.url && 'focus' in client) {
+          return client.focus();
+        }
+      }
+      // Senão, abre uma nova aba
+      if (clients.openWindow) {
+        return clients.openWindow(event.notification.data.url);
+      }
+    })
+  );
+});

@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useState, useRef, useEffect } from "react";
@@ -10,7 +9,7 @@ import {
   Sparkles, Brain, Video, RefreshCcw, Layers, Camera,
   MessageSquare, Wand2, Calendar, Trash2, Menu, FolderOpen,
   Crown, Flame, Clock, Loader2, ChevronDown, Bell,
-  CheckCircle2
+  CheckCircle2, Search,
 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -370,10 +369,10 @@ export default function FreelinkBrainToolUltra() {
                 variant="outline"
                 size="sm"
                 onClick={() => setIsHistorySidebarOpen(true)}
-                className="h-8 sm:h-9 px-2 sm:px-3"
+                className="h-8 sm:h-9 px-2 sm:px-3 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all"
               >
                 <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                <span className="hidden sm:inline text-sm">Histórico</span>
+                <span className="hidden sm:inline text-sm font-medium">Histórico</span>
               </Button>
 
               <Sheet>
@@ -417,70 +416,117 @@ export default function FreelinkBrainToolUltra() {
         </div>
       </motion.div>
 
-      {/* ================= SIDEBAR HISTÓRICO ================= */}
+      {/* ================= SIDEBAR HISTÓRICO (MELHORADO) ================= */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-        <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
-          <SheetHeader className="px-4 sm:px-6 py-4 border-b">
-            <SheetTitle className="text-lg">Histórico de Campanhas</SheetTitle>
-            <SheetDescription className="text-sm">
-              Acesse suas campanhas anteriores
-            </SheetDescription>
+        <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md">
+          <SheetHeader className="px-6 py-6 border-b bg-white dark:bg-gray-950">
+            <div className="flex items-center justify-between">
+              <div>
+                <SheetTitle className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                  Histórico Viral
+                </SheetTitle>
+                <SheetDescription className="text-sm mt-1">
+                  Suas ideias geradas anteriormente
+                </SheetDescription>
+              </div>
+              <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-full">
+                <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+              </div>
+            </div>
           </SheetHeader>
 
-          <ScrollArea className="flex-1">
+          <div className="p-4 bg-white dark:bg-gray-950 border-b">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar campanha..."
+                className="pl-9 bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-800"
+              />
+            </div>
+          </div>
+
+          <ScrollArea className="flex-1 px-4 py-4">
             {campaignsStatus === "LoadingFirstPage" ? (
-              <div className="p-8 flex justify-center">
-                <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+              <div className="p-8 flex flex-col items-center justify-center gap-3">
+                <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                <p className="text-sm text-muted-foreground">Carregando seu histórico...</p>
               </div>
             ) : !campaigns || campaigns.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground">
-                <FolderOpen className="h-12 w-12 mx-auto mb-3 opacity-20" />
-                <p className="text-sm">Nenhuma campanha encontrada</p>
+              <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-4">
+                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                  <FolderOpen className="h-8 w-8 opacity-30" />
+                </div>
+                <div>
+                  <p className="font-medium mb-1">Nenhuma campanha ainda</p>
+                  <p className="text-sm opacity-70">Crie sua primeira campanha viral agora!</p>
+                </div>
+                <Button onClick={() => setIsHistorySidebarOpen(false)} variant="outline" className="mt-2">
+                  Criar Campanha
+                </Button>
               </div>
             ) : (
-              <div className="divide-y">
-                {campaigns.map((campaign) => (
-                  <div
-                    key={campaign._id}
-                    className="flex items-center justify-between p-3 sm:p-4 hover:bg-muted/50 transition-colors cursor-pointer active:bg-muted"
-                    onClick={() => handleCampaignSelect(campaign)}
-                  >
-                    <div className="flex items-start gap-2 sm:gap-3 flex-1 min-w-0">
-                      <Brain className="h-4 w-4 sm:h-5 sm:w-5 text-primary mt-0.5 flex-shrink-0" />
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-medium text-sm truncate">{campaign.theme}</h4>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(campaign.createdAt).toLocaleDateString('pt-BR', {
-                            day: '2-digit',
-                            month: 'short'
-                          })}
-                        </p>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 flex-shrink-0 hover:text-red-500 hover:bg-red-50"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleCampaignDelete(campaign._id);
-                      }}
+              <div className="space-y-3">
+                <AnimatePresence mode="popLayout">
+                  {campaigns.map((campaign) => (
+                    <motion.div
+                      layout
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      key={campaign._id}
+                      className="group relative bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-200 cursor-pointer overflow-hidden"
+                      onClick={() => handleCampaignSelect(campaign)}
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                ))}
+                      <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 bg-gradient-to-l from-white via-white to-transparent dark:from-gray-900 dark:via-gray-900">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCampaignDelete(campaign._id);
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+
+                      <div className="flex items-start gap-3">
+                        <div className="p-2 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg flex-shrink-0 mt-0.5">
+                          <Brain className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                        </div>
+
+                        <div className="flex-1 min-w-0 pr-6">
+                          <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 leading-tight mb-1 line-clamp-2 break-words" title={campaign.theme}>
+                            {campaign.theme}
+                          </h4>
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <span className="flex items-center gap-1">
+                              <Calendar className="w-3 h-3" />
+                              {new Date(campaign.createdAt).toLocaleDateString('pt-BR', {
+                                day: '2-digit',
+                                month: 'short'
+                              })}
+                            </span>
+                            <span>•</span>
+                            <span className="text-purple-600 dark:text-purple-400 font-medium">
+                              Completo
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  ))}
+                </AnimatePresence>
 
                 {campaignsStatus === "CanLoadMore" && (
-                   <div className="p-4">
-                     <Button
-                       variant="outline"
-                       className="w-full"
-                       onClick={() => loadMoreCampaigns(10)}
-                     >
-                       <ChevronDown className="w-4 h-4 mr-2"/> Carregar Mais
-                     </Button>
-                   </div>
+                   <Button
+                     variant="ghost"
+                     className="w-full text-muted-foreground hover:text-purple-600 mt-4"
+                     onClick={() => loadMoreCampaigns(10)}
+                   >
+                     <ChevronDown className="w-4 h-4 mr-2"/> Carregar Mais Antigos
+                   </Button>
                 )}
               </div>
             )}

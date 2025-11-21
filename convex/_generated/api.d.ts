@@ -27,6 +27,7 @@ import type * as lib_getBaseUrl from "../lib/getBaseUrl.js";
 import type * as lib_links from "../lib/links.js";
 import type * as lib_usernames from "../lib/usernames.js";
 import type * as migrations from "../migrations.js";
+import type * as notificationHelpers from "../notificationHelpers.js";
 import type * as notificationQueries from "../notificationQueries.js";
 import type * as notificationSender from "../notificationSender.js";
 import type * as notifications from "../notifications.js";
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   "lib/links": typeof lib_links;
   "lib/usernames": typeof lib_usernames;
   migrations: typeof migrations;
+  notificationHelpers: typeof notificationHelpers;
   notificationQueries: typeof notificationQueries;
   notificationSender: typeof notificationSender;
   notifications: typeof notifications;
