@@ -282,11 +282,14 @@ export default function FreelinkBrainToolUltra() {
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-purple-50/30 via-pink-50/30 to-orange-50/30 dark:from-gray-950 dark:to-black">
 
-      {/* ================= HEADER ================= */}
+      {/* ================= HEADER =================
+          CORREÇÃO: Mudei de z-50 para z-30.
+          Isso garante que o header fique ABAIXO dos menus laterais e Sheets (que geralmente são z-50 ou z-100).
+      */}
       <motion.div
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className="sticky top-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-purple-200/50 dark:border-white/10 shadow-lg"
+        className="sticky top-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-purple-200/50 dark:border-white/10 shadow-lg"
       >
         <div className="container">
           <div className="flex items-center justify-between gap-2 py-2 sm:py-3 px-2 sm:px-4">
@@ -417,8 +420,7 @@ export default function FreelinkBrainToolUltra() {
         </div>
       </motion.div>
 
-      {/* ================= SIDEBAR HISTÓRICO (COMPLETA) ================= */}
-     {/* ================= SIDEBAR HISTÓRICO (CORRIGIDA E OTIMIZADA) ================= */}
+      {/* ================= SIDEBAR HISTÓRICO (CORRIGIDA E OTIMIZADA) ================= */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
         <SheetContent
           side="right"
