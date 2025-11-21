@@ -1,4 +1,3 @@
-// convex/schema.ts
 import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
@@ -168,6 +167,9 @@ export default defineSchema({
     ),
   }).index("by_user", ["userId"]),
 
+  // ============================================
+  // 🎨 CORREÇÃO APLICADA AQUI
+  // ============================================
   generatedImages: defineTable({
     userId: v.string(),
     prompt: v.string(),
@@ -175,7 +177,11 @@ export default defineSchema({
     storageId: v.id("_storage"),
     method: v.optional(v.string()),
     createdAt: v.optional(v.number()),
+    // NOVOS CAMPOS ADICIONADOS:
+    enhancedPrompt: v.optional(v.string()),
+    style: v.optional(v.string()),
   }).index("by_user", ["userId"]),
+  // ============================================
 
   dailyImageUsage: defineTable({
     userId: v.string(),
@@ -592,13 +598,13 @@ export default defineSchema({
     updatedAt: v.optional(v.number()),
   })
     .index("by_user", ["userId"])
-  .index("by_business", ["businessId"])
-  .index("by_user_active", ["userId", "active"])
-  .index("by_sku", ["userId", "sku"])
-  .index("by_supplier", ["supplierId"])
-  .index("by_category", ["userId", "category"])
-  .index("by_featured", ["userId", "featured"])
-  ,
+    .index("by_business", ["businessId"])
+    .index("by_user_active", ["userId", "active"])
+    .index("by_sku", ["userId", "sku"])
+    .index("by_supplier", ["supplierId"])
+    .index("by_category", ["userId", "category"])
+    .index("by_featured", ["userId", "featured"]),
+
   sales: defineTable({
     userId: v.string(),
     businessId: v.optional(v.id("businesses")),
@@ -917,7 +923,8 @@ export default defineSchema({
     .index("by_user_date", ["userId", "date"])
     .index("by_business", ["businessId"])
     .index("by_type", ["userId", "type"]),
-    userOnboarding: defineTable({
+
+  userOnboarding: defineTable({
     userId: v.string(),
     currentStep: v.number(),
     completed: v.boolean(),
@@ -942,7 +949,7 @@ export default defineSchema({
     longestStreak: v.number(),
     totalSales: v.number(),
     totalRevenue: v.number(),
-    totalProfit: v.optional(v.number()), // ✅ CAMPO ADICIONADO
+    totalProfit: v.optional(v.number()),
     level: v.number(),
     xp: v.number(),
     lastActivityDate: v.string(),
@@ -952,32 +959,33 @@ export default defineSchema({
   }).index("by_user", ["userId"]),
 
   enhanceUsage: defineTable({
-  userId: v.string(),
-  date: v.string(), // YYYY-MM-DD
-  count: v.number(),
-  createdAt: v.number(),
-  updatedAt: v.number(),
-})
-  .index("by_user_date", ["userId", "date"])
-  .index("by_user", ["userId"]),
+    userId: v.string(),
+    date: v.string(), // YYYY-MM-DD
+    count: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_date", ["userId", "date"])
+    .index("by_user", ["userId"]),
 
-removeBgUsage: defineTable({
-  userId: v.string(),
-  date: v.string(), // YYYY-MM-DD
-  count: v.number(),
-  createdAt: v.number(),
-  updatedAt: v.number(),
-})
-  .index("by_user_date", ["userId", "date"])
-  .index("by_user", ["userId"]),
+  removeBgUsage: defineTable({
+    userId: v.string(),
+    date: v.string(), // YYYY-MM-DD
+    count: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_user_date", ["userId", "date"])
+    .index("by_user", ["userId"]),
+
   tempStorageFiles: defineTable({
-  storageId: v.id("_storage"),
-  type: v.union(v.literal("enhance"), v.literal("remove_bg")),
-  expiresAt: v.number(),
-  createdAt: v.number(),
-})
-  .index("by_expiration", ["expiresAt"])
-  .index("by_type", ["type"]),
+    storageId: v.id("_storage"),
+    type: v.union(v.literal("enhance"), v.literal("remove_bg")),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+  })
+    .index("by_expiration", ["expiresAt"])
+    .index("by_type", ["type"]),
 
   achievements: defineTable({
     userId: v.string(),
@@ -988,145 +996,143 @@ removeBgUsage: defineTable({
     unlockedAt: v.number(),
     seen: v.boolean(),
   })
-
-
     .index("by_user", ["userId"])
     .index("by_user_unseen", ["userId", "seen"]),
 
-    whatsappIntegrations: defineTable({
-  userId: v.string(),
-  phoneNumber: v.string(), // Formato: +5579999999999
-  verified: v.boolean(),
-  verificationCode: v.optional(v.string()),
-  verificationExpiry: v.optional(v.number()),
-  provider: v.union(
-    v.literal("twilio"),
-    v.literal("wppconnect"),
-    v.literal("evolution_api")
-  ),
-  config: v.optional(v.object({
-    apiKey: v.optional(v.string()),
-    instanceId: v.optional(v.string()),
-  })),
-  active: v.boolean(),
-  lastMessageSent: v.optional(v.number()),
-  messagesCount: v.number(),
-  createdAt: v.number(),
-  updatedAt: v.optional(v.number()),
-})
-  .index("by_user", ["userId"])
-  .index("by_phone", ["phoneNumber"])
-  .index("by_user_active", ["userId", "active"]),
+  whatsappIntegrations: defineTable({
+    userId: v.string(),
+    phoneNumber: v.string(),
+    verified: v.boolean(),
+    verificationCode: v.optional(v.string()),
+    verificationExpiry: v.optional(v.number()),
+    provider: v.union(
+      v.literal("twilio"),
+      v.literal("wppconnect"),
+      v.literal("evolution_api")
+    ),
+    config: v.optional(v.object({
+      apiKey: v.optional(v.string()),
+      instanceId: v.optional(v.string()),
+    })),
+    active: v.boolean(),
+    lastMessageSent: v.optional(v.number()),
+    messagesCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_phone", ["phoneNumber"])
+    .index("by_user_active", ["userId", "active"]),
 
-smsIntegrations: defineTable({
-  userId: v.string(),
-  phoneNumber: v.string(),
-  verified: v.boolean(),
-  verificationCode: v.optional(v.string()),
-  verificationExpiry: v.optional(v.number()),
-  provider: v.union(
-    v.literal("twilio"),
-    v.literal("zenvia"),
-    v.literal("total_voice")
-  ),
-  active: v.boolean(),
-  creditsRemaining: v.optional(v.number()),
-  lastSmsSent: v.optional(v.number()),
-  smsCount: v.number(),
-  createdAt: v.number(),
-  updatedAt: v.optional(v.number()),
-})
-  .index("by_user", ["userId"])
-  .index("by_phone", ["phoneNumber"])
-  .index("by_user_active", ["userId", "active"]),
+  smsIntegrations: defineTable({
+    userId: v.string(),
+    phoneNumber: v.string(),
+    verified: v.boolean(),
+    verificationCode: v.optional(v.string()),
+    verificationExpiry: v.optional(v.number()),
+    provider: v.union(
+      v.literal("twilio"),
+      v.literal("zenvia"),
+      v.literal("total_voice")
+    ),
+    active: v.boolean(),
+    creditsRemaining: v.optional(v.number()),
+    lastSmsSent: v.optional(v.number()),
+    smsCount: v.number(),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_phone", ["phoneNumber"])
+    .index("by_user_active", ["userId", "active"]),
 
-notificationLogs: defineTable({
-  userId: v.string(),
-  postId: v.id("scheduledPosts"),
-  method: v.union(
-    v.literal("push"),
-    v.literal("whatsapp"),
-    v.literal("sms"),
-    v.literal("email")
-  ),
-  recipient: v.string(),
-  message: v.string(),
-  status: v.union(
-    v.literal("sent"),
-    v.literal("delivered"),
-    v.literal("failed"),
-    v.literal("read")
-  ),
-  error: v.optional(v.string()),
-  sentAt: v.number(),
-  deliveredAt: v.optional(v.number()),
-  readAt: v.optional(v.number()),
-})
-  .index("by_user", ["userId"])
-  .index("by_post", ["postId"])
-  .index("by_method", ["method"])
-  .index("by_status", ["status"]),
-
-// ============================================
-// 📅 CALENDÁRIO CUSTOMIZÁVEL
-// ============================================
-
-customCalendarEvents: defineTable({
-  userId: v.string(),
-  businessId: v.optional(v.id("businesses")),
-  title: v.string(),
-  description: v.optional(v.string()),
-  type: v.union(
-    v.literal("meeting"),
-    v.literal("task"),
-    v.literal("reminder"),
-    v.literal("deadline"),
-    v.literal("custom")
-  ),
-  date: v.string(), // YYYY-MM-DD
-  time: v.optional(v.string()), // HH:MM
-  duration: v.optional(v.number()), // minutos
-  color: v.optional(v.string()),
-  icon: v.optional(v.string()),
-  reminderBefore: v.optional(v.number()), // minutos antes
-  notificationMethods: v.array(
-    v.union(
+  notificationLogs: defineTable({
+    userId: v.string(),
+    postId: v.id("scheduledPosts"),
+    method: v.union(
       v.literal("push"),
       v.literal("whatsapp"),
       v.literal("sms"),
       v.literal("email")
-    )
-  ),
-  status: v.union(
-    v.literal("pending"),
-    v.literal("completed"),
-    v.literal("cancelled")
-  ),
-  recurring: v.optional(v.boolean()),
-  recurrenceRule: v.optional(v.string()), // Ex: "daily", "weekly", "monthly"
-  tags: v.optional(v.array(v.string())),
-  attachments: v.optional(v.array(v.id("_storage"))),
-  createdAt: v.number(),
-  updatedAt: v.optional(v.number()),
-})
-  .index("by_user", ["userId"])
-  .index("by_user_date", ["userId", "date"])
-  .index("by_business", ["businessId"])
-  .index("by_status", ["userId", "status"])
-  .index("by_date", ["date"]),
+    ),
+    recipient: v.string(),
+    message: v.string(),
+    status: v.union(
+      v.literal("sent"),
+      v.literal("delivered"),
+      v.literal("failed"),
+      v.literal("read")
+    ),
+    error: v.optional(v.string()),
+    sentAt: v.number(),
+    deliveredAt: v.optional(v.number()),
+    readAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_post", ["postId"])
+    .index("by_method", ["method"])
+    .index("by_status", ["status"]),
 
-// ============================================
-// ✏️ EDIÇÕES DE POSTS (HISTÓRICO)
-// ============================================
+  // ============================================
+  // 📅 CALENDÁRIO CUSTOMIZÁVEL
+  // ============================================
 
-postEditHistory: defineTable({
-  postId: v.id("scheduledPosts"),
-  userId: v.string(),
-  fieldChanged: v.string(), // "caption", "hashtags", "date", etc.
-  oldValue: v.string(),
-  newValue: v.string(),
-  editedAt: v.number(),
-})
-  .index("by_post", ["postId"])
-  .index("by_user", ["userId"]),
+  customCalendarEvents: defineTable({
+    userId: v.string(),
+    businessId: v.optional(v.id("businesses")),
+    title: v.string(),
+    description: v.optional(v.string()),
+    type: v.union(
+      v.literal("meeting"),
+      v.literal("task"),
+      v.literal("reminder"),
+      v.literal("deadline"),
+      v.literal("custom")
+    ),
+    date: v.string(), // YYYY-MM-DD
+    time: v.optional(v.string()), // HH:MM
+    duration: v.optional(v.number()), // minutos
+    color: v.optional(v.string()),
+    icon: v.optional(v.string()),
+    reminderBefore: v.optional(v.number()), // minutos antes
+    notificationMethods: v.array(
+      v.union(
+        v.literal("push"),
+        v.literal("whatsapp"),
+        v.literal("sms"),
+        v.literal("email")
+      )
+    ),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("completed"),
+      v.literal("cancelled")
+    ),
+    recurring: v.optional(v.boolean()),
+    recurrenceRule: v.optional(v.string()),
+    tags: v.optional(v.array(v.string())),
+    attachments: v.optional(v.array(v.id("_storage"))),
+    createdAt: v.number(),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_date", ["userId", "date"])
+    .index("by_business", ["businessId"])
+    .index("by_status", ["userId", "status"])
+    .index("by_date", ["date"]),
+
+  // ============================================
+  // ✏️ EDIÇÕES DE POSTS (HISTÓRICO)
+  // ============================================
+
+  postEditHistory: defineTable({
+    postId: v.id("scheduledPosts"),
+    userId: v.string(),
+    fieldChanged: v.string(),
+    oldValue: v.string(),
+    newValue: v.string(),
+    editedAt: v.number(),
+  })
+    .index("by_post", ["postId"])
+    .index("by_user", ["userId"]),
 });

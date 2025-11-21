@@ -306,12 +306,12 @@ export default function ImageGeneratorTool() {
                       />
                       {/* Botões de ação sobrepostos no Preview */}
                       <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/50 to-transparent flex justify-center gap-3">
-                         <Button onClick={() => handleDownload(latestImage, `ai-${Date.now()}.png`)} className="bg-white text-slate-900 hover:bg-slate-100 rounded-full shadow-lg font-semibold">
-                           <Download className="w-4 h-4 mr-2" /> Salvar
-                         </Button>
-                         <Button onClick={() => setSelectedImage(latestImage)} className="bg-white/20 backdrop-blur-md border border-white/40 text-white hover:bg-white/30 rounded-full shadow-lg">
-                           <Maximize2 className="w-4 h-4" />
-                         </Button>
+                          <Button onClick={() => handleDownload(latestImage, `ai-${Date.now()}.png`)} className="bg-white text-slate-900 hover:bg-slate-100 rounded-full shadow-lg font-semibold">
+                            <Download className="w-4 h-4 mr-2" /> Salvar
+                          </Button>
+                          <Button onClick={() => setSelectedImage(latestImage)} className="bg-white/20 backdrop-blur-md border border-white/40 text-white hover:bg-white/30 rounded-full shadow-lg">
+                            <Maximize2 className="w-4 h-4" />
+                          </Button>
                       </div>
                     </div>
                   ) : (
@@ -367,10 +367,6 @@ export default function ImageGeneratorTool() {
                         sizes="(max-width: 768px) 50vw, 33vw"
                       />
 
-                      {/* 🔥 CORREÇÃO MOBILE:
-                        Removemos 'opacity-0 group-hover:opacity-100' e usamos um bg gradiente fixo no mobile
-                        ou garantimos que os botões estejam sempre clicáveis.
-                      */}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 p-3 flex flex-col justify-end">
                         <p className="text-xs text-white font-medium line-clamp-2 mb-3 drop-shadow-md">{img.prompt}</p>
 
@@ -447,57 +443,69 @@ export default function ImageGeneratorTool() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-8"
             onClick={() => setSelectedImage(null)}
           >
-            {/* Botão Fechar Grande e Visível */}
-            <div className="absolute top-4 right-4 z-[110]">
-               <Button
-                 variant="ghost"
-                 size="icon"
-                 className="rounded-full bg-white text-black hover:bg-gray-200 w-12 h-12 shadow-lg"
-                 onClick={(e) => {
-                   e.stopPropagation();
-                   setSelectedImage(null);
-                 }}
-               >
-                 <X className="w-6 h-6" />
-               </Button>
-            </div>
-
             <motion.div
-              initial={{ scale: 0.9 }}
-              animate={{ scale: 1 }}
-              className="relative max-w-5xl w-full max-h-full flex flex-col items-center"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="relative max-w-5xl w-full max-h-[90vh] flex flex-col items-center bg-slate-900/50 rounded-2xl overflow-hidden border border-white/10 shadow-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <img
-                src={selectedImage}
-                alt="Full view"
-                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/10"
-              />
 
-              <div className="flex flex-wrap justify-center gap-4 mt-6 w-full px-4">
-                <Button onClick={() => handleDownload(selectedImage, `ai-art-${Date.now()}.png`)} className="bg-white text-black hover:bg-gray-200 rounded-full px-8 h-14 text-lg font-bold shadow-xl flex-1 sm:flex-none">
-                  <Download className="w-5 h-5 mr-2" /> Baixar
+              {/* 🔥 CORREÇÃO DO X (CLOSE BUTTON)
+                  Agora está posicionado 'absolute' dentro do container da imagem.
+                  Ficará em cima da imagem no canto superior direito.
+              */}
+              <Button
+                  variant="ghost"
+                  size="icon"
+                  className="absolute top-3 right-3 z-[120] bg-black/50 hover:bg-black/70 text-white rounded-full w-10 h-10 backdrop-blur-sm border border-white/20 shadow-lg transition-all hover:scale-110"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedImage(null);
+                  }}
+                >
+                  <X className="w-5 h-5" />
+              </Button>
+
+              {/* Imagem */}
+              <div className="relative w-full h-full flex items-center justify-center bg-black/20">
+                <img
+                  src={selectedImage}
+                  alt="Full view"
+                  className="max-w-full max-h-[70vh] md:max-h-[75vh] object-contain"
+                />
+              </div>
+
+              {/* Barra de Ações Inferior */}
+              <div className="w-full p-4 md:p-6 bg-slate-900/80 backdrop-blur-md border-t border-white/10 flex flex-wrap justify-center gap-3 md:gap-4">
+                <Button
+                  onClick={() => handleDownload(selectedImage, `ai-art-${Date.now()}.png`)}
+                  className="bg-white text-slate-900 hover:bg-slate-200 rounded-full px-6 h-12 text-base font-bold shadow-xl flex-1 sm:flex-none min-w-[140px]"
+                >
+                  <Download className="w-4 h-4 mr-2" /> Baixar
                 </Button>
-                <Button onClick={() => handleShare(selectedImage)} className="bg-white/20 border border-white/30 backdrop-blur-md text-white hover:bg-white/30 rounded-full px-8 h-14 text-lg font-bold shadow-xl flex-1 sm:flex-none">
-                  <Share2 className="w-5 h-5 mr-2" /> Compartilhar
+
+                <Button
+                  onClick={() => handleShare(selectedImage)}
+                  className="bg-white/10 border border-white/20 text-white hover:bg-white/20 rounded-full px-6 h-12 text-base font-bold shadow-xl flex-1 sm:flex-none min-w-[140px]"
+                >
+                  <Share2 className="w-4 h-4 mr-2" /> Compartilhar
                 </Button>
+
                 <Button
                   variant="destructive"
                   onClick={() => {
-                    // Precisamos encontrar o ID da imagem selecionada.
-                    // Como selectedImage é apenas a URL, idealmente o estado deveria guardar o objeto inteiro.
-                    // Para simplificar, aqui fechamos o modal e o usuário deleta na galeria.
                     setSelectedImage(null);
                     toast.info("Para deletar, use o botão de lixeira na galeria.");
                   }}
-                  className="rounded-full px-4 h-14 shadow-xl bg-red-500/80 hover:bg-red-600"
+                  className="rounded-full px-4 h-12 shadow-xl bg-red-500/20 text-red-400 border border-red-500/30 hover:bg-red-500/30"
                 >
                   <Trash2 className="w-5 h-5" />
                 </Button>
               </div>
+
             </motion.div>
           </motion.div>
         )}

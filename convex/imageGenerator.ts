@@ -53,7 +53,7 @@ async function enhancePromptWithGroq(userPrompt: string, style: string): Promise
           content: userPrompt
         }
       ],
-      model: "llama-3.1-70b-versatile",
+      model: "llama-3.3-70b-versatile",
       temperature: 0.7,
       max_tokens: 200,
     });
@@ -214,14 +214,20 @@ export const saveGeneratedImage = internalMutation({
   args: {
     userId: v.string(),
     prompt: v.string(),
-    enhancedPrompt: v.optional(v.string()),
+    enhancedPrompt: v.optional(v.string()), // AGORA INCLUÍDO NO SCHEMA
     imageUrl: v.string(),
     storageId: v.id("_storage"),
-    style: v.string(),
+    style: v.optional(v.string()), // AGORA INCLUÍDO NO SCHEMA
   },
   handler: async (ctx, args): Promise<Id<"generatedImages">> => {
     return await ctx.db.insert("generatedImages", {
-      ...args,
+      userId: args.userId,
+      prompt: args.prompt,
+      enhancedPrompt: args.enhancedPrompt,
+      imageUrl: args.imageUrl,
+      storageId: args.storageId,
+      style: args.style,
+      method: "flux", // Valor padrão para o método
       createdAt: Date.now(),
     });
   },
