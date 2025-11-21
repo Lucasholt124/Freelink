@@ -28,7 +28,7 @@ export default function RealTimeClock() {
         {hours}:{minutes}:{seconds}
       </span>
       <Badge className="bg-white/20 text-white border-0 text-xs font-bold">
-        Sergipe
+        Brasil
       </Badge>
     </div>
   );
