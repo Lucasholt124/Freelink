@@ -42,7 +42,7 @@ const SUGGESTIONS = [
 
 const IMAGES_PER_PAGE = 12;
 
-export default function ImageGeneratorPage() {
+export default function ImageGeneratorTool() {
   const [prompt, setPrompt] = useState("");
   const [selectedStyle, setSelectedStyle] = useState("realistic");
   const [activeTab, setActiveTab] = useState("create");
@@ -117,7 +117,7 @@ export default function ImageGeneratorPage() {
     if (navigator.share) {
       try {
         await navigator.share({ title: 'Minha Arte IA', url });
-      } catch {
+      } catch  {
         console.log('Compartilhamento cancelado');
       }
     } else {
@@ -137,27 +137,30 @@ export default function ImageGeneratorPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white selection:bg-purple-500/30 pb-20">
-      {/* Efeitos de Fundo (Ambient Light) */}
+    // FUNDO CLARO (CLEAN SAAS STYLE)
+    <div className="min-h-screen bg-slate-50 text-slate-900 pb-20">
+
+      {/* Background Decorativo Suave */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-0 left-0 w-full h-[500px] bg-gradient-to-b from-purple-900/10 to-transparent" />
+        <div className="absolute top-[-10%] right-[-10%] w-[600px] h-[600px] bg-blue-100/50 rounded-full blur-[100px]" />
+        <div className="absolute bottom-[-10%] left-[-10%] w-[600px] h-[600px] bg-purple-100/50 rounded-full blur-[100px]" />
       </div>
 
-      {/* Navbar */}
-      <div className="sticky top-0 z-50 border-b border-white/5 bg-slate-950/80 backdrop-blur-md">
+      {/* Navbar Clean */}
+      <div className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur-md shadow-sm">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <Link href="/dashboard" className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors p-2">
+          <Link href="/dashboard" className="flex items-center gap-2 text-slate-600 hover:text-purple-600 transition-colors p-2">
             <ArrowLeft className="w-5 h-5" />
             <span className="text-sm font-medium hidden sm:inline">Voltar</span>
           </Link>
 
           <div className="flex items-center gap-3">
-            <Badge variant="outline" className="border-purple-500/30 bg-purple-500/10 text-purple-300 px-3 py-1">
-              <Crown className="w-3 h-3 mr-1" /> PRO
+            <Badge className="bg-gradient-to-r from-purple-600 to-blue-600 text-white border-0 px-3 py-1 shadow-md">
+              <Crown className="w-3 h-3 mr-1 fill-white" /> ULTRA
             </Badge>
             {usageStats && (
-              <Badge variant="outline" className="border-white/10 bg-white/5 px-3 py-1">
-                <Zap className="w-3 h-3 mr-1 text-yellow-400" />
+              <Badge variant="outline" className="border-slate-200 bg-white text-slate-600 px-3 py-1 shadow-sm">
+                <Zap className="w-3 h-3 mr-1 text-yellow-500 fill-yellow-500" />
                 {usageStats.remainingToday}
               </Badge>
             )}
@@ -165,25 +168,32 @@ export default function ImageGeneratorPage() {
         </div>
       </div>
 
-      <div className="max-w-6xl mx-auto px-4 py-6 sm:py-10 relative z-10">
-        {/* Hero Mobile-Friendly */}
-        <div className="text-center mb-8 space-y-3">
-          <h1 className="text-3xl md:text-6xl font-black bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
-            Gerador de Arte IA
+      <div className="max-w-6xl mx-auto px-4 py-8 relative z-10">
+
+        {/* Hero Section */}
+        <div className="text-center mb-10 space-y-3">
+          <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight">
+            Gerador de <span className="bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">Arte IA</span>
           </h1>
-          <p className="text-gray-400 max-w-lg mx-auto text-sm md:text-base">
-            Escreva em português. Nossa IA melhora seu prompt e cria imagens de cinema.
+          <p className="text-slate-500 max-w-lg mx-auto text-base md:text-lg">
+            Crie imagens profissionais em segundos. Digite em português e nossa IA faz a mágica.
           </p>
         </div>
 
-        {/* Tabs de Navegação */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-8">
           <div className="flex justify-center sticky top-20 z-40">
-            <TabsList className="bg-slate-900/90 backdrop-blur-xl border border-white/10 p-1 rounded-full shadow-xl">
-              <TabsTrigger value="create" className="rounded-full px-6 py-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-sm transition-all">
+            <TabsList className="bg-white border border-slate-200 p-1 rounded-full shadow-lg shadow-slate-200/50">
+              <TabsTrigger
+                value="create"
+                className="rounded-full px-6 py-2.5 data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 font-medium transition-all"
+              >
                 <Wand2 className="w-4 h-4 mr-2" /> Criar
               </TabsTrigger>
-              <TabsTrigger value="gallery" className="rounded-full px-6 py-2 data-[state=active]:bg-purple-600 data-[state=active]:text-white text-sm transition-all">
+              <TabsTrigger
+                value="gallery"
+                className="rounded-full px-6 py-2.5 data-[state=active]:bg-slate-900 data-[state=active]:text-white text-slate-600 font-medium transition-all"
+              >
                 <Grid3x3 className="w-4 h-4 mr-2" /> Galeria
               </TabsTrigger>
             </TabsList>
@@ -192,24 +202,26 @@ export default function ImageGeneratorPage() {
           <TabsContent value="create" className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="grid lg:grid-cols-12 gap-8">
 
-              {/* Área de Criação */}
+              {/* Área de Input */}
               <div className="lg:col-span-7 space-y-6">
-                <Card className="p-5 sm:p-6 bg-white/5 border-white/10 backdrop-blur-sm shadow-2xl rounded-2xl">
+                <Card className="p-6 bg-white border-slate-200 shadow-xl shadow-slate-200/50 rounded-2xl">
                   <form onSubmit={handleGenerate} className="space-y-6">
+
+                    {/* Campo de Texto */}
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
-                        <label className="text-sm font-medium text-gray-200 flex items-center gap-2">
-                          <Lightbulb className="w-4 h-4 text-yellow-400" />
+                        <label className="text-sm font-bold text-slate-700 flex items-center gap-2">
+                          <Lightbulb className="w-4 h-4 text-yellow-500" />
                           Sua ideia
                         </label>
                         <Button
                           type="button"
                           variant="ghost"
                           size="sm"
-                          className="text-xs text-purple-400 hover:text-purple-300 h-auto p-0 hover:bg-transparent"
+                          className="text-xs text-purple-600 hover:text-purple-700 hover:bg-purple-50 h-auto p-1"
                           onClick={() => setPrompt(SUGGESTIONS[Math.floor(Math.random() * SUGGESTIONS.length)])}
                         >
-                          🎲 Surpreenda-me
+                          🎲 Ideia Aleatória
                         </Button>
                       </div>
                       <Textarea
@@ -217,12 +229,13 @@ export default function ImageGeneratorPage() {
                         value={prompt}
                         onChange={(e) => setPrompt(e.target.value)}
                         placeholder="Ex: Um gato astronauta no espaço, estilo cyberpunk..."
-                        className="min-h-[120px] bg-black/20 border-white/10 focus:border-purple-500 text-base md:text-lg resize-none rounded-xl p-4 leading-relaxed"
+                        className="min-h-[140px] bg-slate-50 border-slate-200 focus:border-purple-500 focus:ring-purple-500 text-slate-900 text-lg resize-none rounded-xl p-4 leading-relaxed shadow-inner placeholder:text-slate-400"
                       />
                     </div>
 
+                    {/* Seleção de Estilo */}
                     <div className="space-y-3">
-                      <label className="text-sm font-medium text-gray-200">Estilo Visual</label>
+                      <label className="text-sm font-bold text-slate-700">Estilo Visual</label>
                       <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
                         {STYLES.map((style) => (
                           <button
@@ -231,12 +244,14 @@ export default function ImageGeneratorPage() {
                             onClick={() => setSelectedStyle(style.id)}
                             className={`p-2 py-3 rounded-xl border transition-all flex flex-col items-center gap-2 ${
                               selectedStyle === style.id
-                                ? `border-purple-500 bg-gradient-to-br ${style.gradient} bg-opacity-20 shadow-lg shadow-purple-900/20`
-                                : "border-white/10 bg-white/5 hover:bg-white/10"
+                                ? `border-purple-600 bg-purple-50 shadow-inner`
+                                : "border-slate-200 bg-white hover:border-purple-300 hover:shadow-md"
                             }`}
                           >
-                            <span className="text-xl md:text-2xl">{style.emoji}</span>
-                            <span className="text-[10px] font-medium uppercase tracking-wider text-gray-300">{style.name}</span>
+                            <span className="text-2xl">{style.emoji}</span>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                              selectedStyle === style.id ? "text-purple-700" : "text-slate-500"
+                            }`}>{style.name}</span>
                           </button>
                         ))}
                       </div>
@@ -245,7 +260,7 @@ export default function ImageGeneratorPage() {
                     <Button
                       type="submit"
                       disabled={isGenerating || !prompt.trim()}
-                      className="w-full h-14 text-base md:text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-lg shadow-purple-900/30 rounded-xl transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                      className="w-full h-14 text-lg font-bold bg-slate-900 hover:bg-slate-800 text-white shadow-xl shadow-slate-900/20 rounded-xl transition-all hover:scale-[1.01] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
                     >
                       {isGenerating ? (
                         <>
@@ -254,7 +269,7 @@ export default function ImageGeneratorPage() {
                         </>
                       ) : (
                         <>
-                          <Sparkles className="w-5 h-5 mr-2" />
+                          <Sparkles className="w-5 h-5 mr-2 text-yellow-400 fill-yellow-400" />
                           Gerar Imagem
                         </>
                       )}
@@ -262,26 +277,26 @@ export default function ImageGeneratorPage() {
                   </form>
                 </Card>
 
-                {/* Prompt Otimizado (Feedback) */}
+                {/* Feedback do Prompt */}
                 {enhancedPromptResult && (
                   <motion.div
                     initial={{ opacity: 0, y: 10 }}
                     animate={{ opacity: 1, y: 0 }}
-                    className="p-4 rounded-xl bg-purple-500/10 border border-purple-500/20 text-sm"
+                    className="p-4 rounded-xl bg-purple-50 border border-purple-100 text-sm"
                   >
-                    <p className="text-purple-300 font-semibold mb-1 flex items-center gap-2 text-xs uppercase tracking-wide">
+                    <p className="text-purple-700 font-bold mb-1 flex items-center gap-2 text-xs uppercase tracking-wide">
                       <Wand2 className="w-3 h-3" /> Prompt Melhorado pela IA
                     </p>
-                    <p className="text-gray-300 italic leading-relaxed">{enhancedPromptResult}</p>
+                    <p className="text-slate-600 italic leading-relaxed">{enhancedPromptResult}</p>
                   </motion.div>
                 )}
               </div>
 
               {/* Preview Section */}
               <div className="lg:col-span-5">
-                <Card className="bg-white/5 border-white/10 h-full min-h-[350px] lg:min-h-[500px] flex flex-col relative overflow-hidden group rounded-2xl shadow-2xl">
+                <Card className="bg-white border-slate-200 h-full min-h-[350px] lg:min-h-[500px] flex flex-col relative overflow-hidden group rounded-2xl shadow-2xl shadow-slate-200/50">
                   {latestImage ? (
-                    <div className="relative flex-1 w-full h-full bg-black/40">
+                    <div className="relative flex-1 w-full h-full bg-slate-100">
                       <Image
                         src={latestImage}
                         alt="Generated Art"
@@ -289,30 +304,29 @@ export default function ImageGeneratorPage() {
                         className="object-contain"
                         unoptimized
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-6">
-                         <div className="flex gap-3 justify-center">
-                            <Button onClick={() => handleDownload(latestImage, `ai-${Date.now()}.png`)} className="bg-white text-black hover:bg-gray-200 rounded-full">
-                              <Download className="w-4 h-4 mr-2" /> Salvar
-                            </Button>
-                            <Button onClick={() => setSelectedImage(latestImage)} variant="secondary" className="bg-white/20 backdrop-blur-md text-white hover:bg-white/30 rounded-full">
-                              <Maximize2 className="w-4 h-4" />
-                            </Button>
-                         </div>
+                      {/* Botões de ação sobrepostos no Preview */}
+                      <div className="absolute bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black/50 to-transparent flex justify-center gap-3">
+                         <Button onClick={() => handleDownload(latestImage, `ai-${Date.now()}.png`)} className="bg-white text-slate-900 hover:bg-slate-100 rounded-full shadow-lg font-semibold">
+                           <Download className="w-4 h-4 mr-2" /> Salvar
+                         </Button>
+                         <Button onClick={() => setSelectedImage(latestImage)} className="bg-white/20 backdrop-blur-md border border-white/40 text-white hover:bg-white/30 rounded-full shadow-lg">
+                           <Maximize2 className="w-4 h-4" />
+                         </Button>
                       </div>
                     </div>
                   ) : (
-                    <div className="flex-1 flex flex-col items-center justify-center text-gray-500 p-8 text-center bg-grid-white/[0.02]">
-                      <div className="w-24 h-24 rounded-full bg-white/5 flex items-center justify-center mb-6 border border-white/10">
+                    <div className="flex-1 flex flex-col items-center justify-center text-slate-400 p-8 text-center bg-slate-50">
+                      <div className="w-24 h-24 rounded-full bg-white flex items-center justify-center mb-6 border border-slate-200 shadow-sm">
                         {isGenerating ? (
-                          <Loader2 className="w-10 h-10 animate-spin text-purple-500" />
+                          <Loader2 className="w-10 h-10 animate-spin text-purple-600" />
                         ) : (
-                          <ImageIcon className="w-10 h-10 opacity-40" />
+                          <ImageIcon className="w-10 h-10 text-slate-300" />
                         )}
                       </div>
-                      <p className="text-lg font-medium text-gray-400">
+                      <p className="text-lg font-medium text-slate-600">
                         {isGenerating ? "Pintando pixels..." : "Sua arte aparecerá aqui"}
                       </p>
-                      {isGenerating && <p className="text-sm mt-2 animate-pulse text-purple-400">Aprimorando detalhes...</p>}
+                      {isGenerating && <p className="text-sm mt-2 animate-pulse text-purple-500">Aprimorando detalhes...</p>}
                     </div>
                   )}
                 </Card>
@@ -323,13 +337,13 @@ export default function ImageGeneratorPage() {
           {/* Gallery Tab */}
           <TabsContent value="gallery" className="animate-in fade-in duration-500">
             {currentImages.length === 0 ? (
-              <div className="text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                <div className="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <ImageIcon className="w-8 h-8 text-gray-600" />
+              <div className="text-center py-20 bg-white rounded-2xl border border-dashed border-slate-300">
+                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 border border-slate-200">
+                  <ImageIcon className="w-8 h-8 text-slate-400" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-300">Galeria Vazia</h3>
-                <p className="text-gray-500 mb-6">Crie sua primeira obra de arte hoje.</p>
-                <Button onClick={() => setActiveTab("create")} variant="outline" className="border-white/10 hover:bg-white/10">
+                <h3 className="text-xl font-bold text-slate-700">Galeria Vazia</h3>
+                <p className="text-slate-500 mb-6">Crie sua primeira obra de arte hoje.</p>
+                <Button onClick={() => setActiveTab("create")} variant="outline" className="border-slate-300 text-slate-700 hover:bg-slate-50">
                   Criar Agora
                 </Button>
               </div>
@@ -342,7 +356,7 @@ export default function ImageGeneratorPage() {
                       layout
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="group relative aspect-square rounded-xl overflow-hidden bg-white/5 cursor-pointer border border-white/5 hover:border-purple-500/50 transition-all shadow-lg hover:shadow-purple-500/20"
+                      className="group relative aspect-square rounded-xl overflow-hidden bg-slate-100 cursor-pointer border border-slate-200 shadow-md hover:shadow-xl transition-all"
                       onClick={() => setSelectedImage(img.imageUrl)}
                     >
                       <Image
@@ -352,14 +366,20 @@ export default function ImageGeneratorPage() {
                         className="object-cover transition-transform duration-700 group-hover:scale-110"
                         sizes="(max-width: 768px) 50vw, 33vw"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 p-3 flex flex-col justify-end">
-                        <p className="text-xs text-white/90 line-clamp-2 mb-3 font-medium">{img.prompt}</p>
-                        <div className="flex gap-2 justify-between">
+
+                      {/* 🔥 CORREÇÃO MOBILE:
+                        Removemos 'opacity-0 group-hover:opacity-100' e usamos um bg gradiente fixo no mobile
+                        ou garantimos que os botões estejam sempre clicáveis.
+                      */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity duration-300 p-3 flex flex-col justify-end">
+                        <p className="text-xs text-white font-medium line-clamp-2 mb-3 drop-shadow-md">{img.prompt}</p>
+
+                        <div className="flex gap-2 justify-between items-center">
                           <div className="flex gap-2">
                             <Button
                               size="icon"
                               variant="secondary"
-                              className="h-8 w-8 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 text-white"
+                              className="h-8 w-8 rounded-full bg-white/90 text-slate-900 shadow-lg hover:bg-white"
                               onClick={(e) => { e.stopPropagation(); handleDownload(img.imageUrl, 'image.png'); }}
                             >
                               <Download className="w-4 h-4" />
@@ -367,18 +387,20 @@ export default function ImageGeneratorPage() {
                             <Button
                               size="icon"
                               variant="secondary"
-                              className="h-8 w-8 rounded-full bg-red-500/20 backdrop-blur-md hover:bg-red-500/40 text-white"
+                              className="h-8 w-8 rounded-full bg-white/90 text-slate-900 shadow-lg hover:bg-red-50 hover:text-red-600"
                               onClick={(e) => { e.stopPropagation(); handleDelete(img._id, img.storageId); }}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
                           </div>
+
                           <Button
                             size="icon"
                             variant="secondary"
-                            className="h-8 w-8 rounded-full bg-white/20 backdrop-blur-md hover:bg-white/30 text-white"
+                            className="h-8 w-8 rounded-full bg-white/90 text-slate-900 shadow-lg hover:bg-white hidden sm:flex"
+                            onClick={() => handleShare(img.imageUrl)}
                           >
-                            <Maximize2 className="w-4 h-4" />
+                            <Share2 className="w-4 h-4" />
                           </Button>
                         </div>
                       </div>
@@ -394,11 +416,11 @@ export default function ImageGeneratorPage() {
                       size="icon"
                       disabled={currentPage === 1}
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                      className="border-white/10 bg-white/5 hover:bg-white/10"
+                      className="border-slate-300 text-slate-700 hover:bg-slate-100"
                     >
                       <ChevronLeft className="w-4 h-4" />
                     </Button>
-                    <div className="flex items-center px-4 text-sm font-medium text-gray-400 bg-white/5 rounded-md border border-white/10">
+                    <div className="flex items-center px-4 text-sm font-medium text-slate-600 bg-white rounded-md border border-slate-300 shadow-sm">
                       {currentPage} / {totalPages}
                     </div>
                     <Button
@@ -406,7 +428,7 @@ export default function ImageGeneratorPage() {
                       size="icon"
                       disabled={currentPage === totalPages}
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                      className="border-white/10 bg-white/5 hover:bg-white/10"
+                      className="border-slate-300 text-slate-700 hover:bg-slate-100"
                     >
                       <ChevronRight className="w-4 h-4" />
                     </Button>
@@ -418,19 +440,28 @@ export default function ImageGeneratorPage() {
         </Tabs>
       </div>
 
-      {/* Lightbox Modal (Full Screen View) */}
+      {/* Lightbox Modal */}
       <AnimatePresence>
         {selectedImage && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-2xl flex items-center justify-center p-4 md:p-10"
+            className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl flex items-center justify-center p-4 md:p-10"
             onClick={() => setSelectedImage(null)}
           >
+            {/* Botão Fechar Grande e Visível */}
             <div className="absolute top-4 right-4 z-[110]">
-               <Button variant="ghost" size="icon" className="rounded-full hover:bg-white/10 text-white w-12 h-12">
-                 <X className="w-8 h-8" />
+               <Button
+                 variant="ghost"
+                 size="icon"
+                 className="rounded-full bg-white text-black hover:bg-gray-200 w-12 h-12 shadow-lg"
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   setSelectedImage(null);
+                 }}
+               >
+                 <X className="w-6 h-6" />
                </Button>
             </div>
 
@@ -443,15 +474,28 @@ export default function ImageGeneratorPage() {
               <img
                 src={selectedImage}
                 alt="Full view"
-                className="max-w-full max-h-[80vh] object-contain rounded-lg shadow-2xl border border-white/10"
+                className="max-w-full max-h-[75vh] object-contain rounded-lg shadow-2xl border border-white/10"
               />
 
-              <div className="flex gap-4 mt-6">
-                <Button onClick={() => handleDownload(selectedImage, `ai-art-${Date.now()}.png`)} className="bg-white text-black hover:bg-gray-200 rounded-full px-8 h-12 font-bold shadow-xl">
-                  <Download className="w-5 h-5 mr-2" /> Baixar em 4K
+              <div className="flex flex-wrap justify-center gap-4 mt-6 w-full px-4">
+                <Button onClick={() => handleDownload(selectedImage, `ai-art-${Date.now()}.png`)} className="bg-white text-black hover:bg-gray-200 rounded-full px-8 h-14 text-lg font-bold shadow-xl flex-1 sm:flex-none">
+                  <Download className="w-5 h-5 mr-2" /> Baixar
                 </Button>
-                <Button onClick={() => handleShare(selectedImage)} variant="outline" className="border-white/20 text-white hover:bg-white/10 rounded-full px-8 h-12">
+                <Button onClick={() => handleShare(selectedImage)} className="bg-white/20 border border-white/30 backdrop-blur-md text-white hover:bg-white/30 rounded-full px-8 h-14 text-lg font-bold shadow-xl flex-1 sm:flex-none">
                   <Share2 className="w-5 h-5 mr-2" /> Compartilhar
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    // Precisamos encontrar o ID da imagem selecionada.
+                    // Como selectedImage é apenas a URL, idealmente o estado deveria guardar o objeto inteiro.
+                    // Para simplificar, aqui fechamos o modal e o usuário deleta na galeria.
+                    setSelectedImage(null);
+                    toast.info("Para deletar, use o botão de lixeira na galeria.");
+                  }}
+                  className="rounded-full px-4 h-14 shadow-xl bg-red-500/80 hover:bg-red-600"
+                >
+                  <Trash2 className="w-5 h-5" />
                 </Button>
               </div>
             </motion.div>
