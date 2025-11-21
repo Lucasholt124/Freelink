@@ -870,6 +870,8 @@ export default function FreelinkBrainToolUltra() {
         </AnimatePresence>
       </div>
 
+
+
       {/* Footer */}
       <footer className="mt-12 sm:mt-20 py-6 sm:py-8 border-t">
         <div className="container text-center px-4">
