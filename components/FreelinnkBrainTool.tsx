@@ -416,10 +416,11 @@ export default function FreelinkBrainToolUltra() {
         </div>
       </motion.div>
 
-      {/* ================= SIDEBAR HISTÓRICO (MELHORADO) ================= */}
+      {/* ================= SIDEBAR HISTÓRICO (MOBILE FIX + SCROLL) ================= */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-        <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md">
-          <SheetHeader className="px-6 py-6 border-b bg-white dark:bg-gray-950">
+        {/* h-[100dvh] garante a altura total no mobile ignorando barra do navegador */}
+        <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col h-[100dvh] bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-md">
+          <SheetHeader className="px-6 py-6 border-b bg-white dark:bg-gray-950 flex-shrink-0">
             <div className="flex items-center justify-between">
               <div>
                 <SheetTitle className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
@@ -435,7 +436,7 @@ export default function FreelinkBrainToolUltra() {
             </div>
           </SheetHeader>
 
-          <div className="p-4 bg-white dark:bg-gray-950 border-b">
+          <div className="p-4 bg-white dark:bg-gray-950 border-b flex-shrink-0">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
@@ -445,91 +446,95 @@ export default function FreelinkBrainToolUltra() {
             </div>
           </div>
 
-          <ScrollArea className="flex-1 px-4 py-4">
-            {campaignsStatus === "LoadingFirstPage" ? (
-              <div className="p-8 flex flex-col items-center justify-center gap-3">
-                <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
-                <p className="text-sm text-muted-foreground">Carregando seu histórico...</p>
-              </div>
-            ) : !campaigns || campaigns.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-4">
-                <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                  <FolderOpen className="h-8 w-8 opacity-30" />
+          <ScrollArea className="flex-1 w-full">
+            <div className="p-4 pb-20"> {/* pb-20 dá espaço extra no final do scroll */}
+              {campaignsStatus === "LoadingFirstPage" ? (
+                <div className="p-8 flex flex-col items-center justify-center gap-3">
+                  <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
+                  <p className="text-sm text-muted-foreground">Carregando seu histórico...</p>
                 </div>
-                <div>
-                  <p className="font-medium mb-1">Nenhuma campanha ainda</p>
-                  <p className="text-sm opacity-70">Crie sua primeira campanha viral agora!</p>
+              ) : !campaigns || campaigns.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                    <FolderOpen className="h-8 w-8 opacity-30" />
+                  </div>
+                  <div>
+                    <p className="font-medium mb-1">Nenhuma campanha ainda</p>
+                    <p className="text-sm opacity-70">Crie sua primeira campanha viral agora!</p>
+                  </div>
+                  <Button onClick={() => setIsHistorySidebarOpen(false)} variant="outline" className="mt-2">
+                    Criar Campanha
+                  </Button>
                 </div>
-                <Button onClick={() => setIsHistorySidebarOpen(false)} variant="outline" className="mt-2">
-                  Criar Campanha
-                </Button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                <AnimatePresence mode="popLayout">
-                  {campaigns.map((campaign) => (
-                    <motion.div
-                      layout
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      key={campaign._id}
-                      className="group relative bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-200 cursor-pointer overflow-hidden"
-                      onClick={() => handleCampaignSelect(campaign)}
-                    >
-                      <div className="absolute top-0 right-0 p-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-10 bg-gradient-to-l from-white via-white to-transparent dark:from-gray-900 dark:via-gray-900">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-7 w-7 text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleCampaignDelete(campaign._id);
-                          }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
-                      </div>
-
-                      <div className="flex items-start gap-3">
-                        <div className="p-2 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg flex-shrink-0 mt-0.5">
-                          <Brain className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+              ) : (
+                <div className="space-y-3">
+                  <AnimatePresence mode="popLayout">
+                    {campaigns.map((campaign) => (
+                      <motion.div
+                        layout
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        exit={{ opacity: 0, x: -20 }}
+                        key={campaign._id}
+                        className="group relative bg-white dark:bg-gray-900 p-4 rounded-xl border border-gray-200 dark:border-gray-800 shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-200 cursor-pointer overflow-hidden"
+                        onClick={() => handleCampaignSelect(campaign)}
+                      >
+                        {/* Botão de Excluir: Sempre visível no mobile (opacity-100), hover no desktop (md:opacity-0) */}
+                        <div className="absolute top-2 right-2 md:top-0 md:right-0 md:p-2 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity duration-200 z-20">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 bg-white/80 md:bg-transparent backdrop-blur-sm md:backdrop-blur-none text-red-500 md:text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-full shadow-sm md:shadow-none"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCampaignDelete(campaign._id);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
 
-                        <div className="flex-1 min-w-0 pr-6">
-                          <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 leading-tight mb-1 line-clamp-2 break-words" title={campaign.theme}>
-                            {campaign.theme}
-                          </h4>
-                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
-                            <span className="flex items-center gap-1">
-                              <Calendar className="w-3 h-3" />
-                              {new Date(campaign.createdAt).toLocaleDateString('pt-BR', {
-                                day: '2-digit',
-                                month: 'short'
-                              })}
-                            </span>
-                            <span>•</span>
-                            <span className="text-purple-600 dark:text-purple-400 font-medium">
-                              Completo
-                            </span>
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg flex-shrink-0 mt-0.5">
+                            <Brain className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                          </div>
+
+                          {/* Padding Right maior no mobile para o texto não ficar embaixo da lixeira */}
+                          <div className="flex-1 min-w-0 pr-8 sm:pr-6">
+                            <h4 className="font-semibold text-sm text-gray-900 dark:text-gray-100 leading-tight mb-1 line-clamp-2 break-words" title={campaign.theme}>
+                              {campaign.theme}
+                            </h4>
+                            <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="w-3 h-3" />
+                                {new Date(campaign.createdAt).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: 'short'
+                                })}
+                              </span>
+                              <span>•</span>
+                              <span className="text-purple-600 dark:text-purple-400 font-medium">
+                                Completo
+                              </span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </AnimatePresence>
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
 
-                {campaignsStatus === "CanLoadMore" && (
-                   <Button
-                     variant="ghost"
-                     className="w-full text-muted-foreground hover:text-purple-600 mt-4"
-                     onClick={() => loadMoreCampaigns(10)}
-                   >
-                     <ChevronDown className="w-4 h-4 mr-2"/> Carregar Mais Antigos
-                   </Button>
-                )}
-              </div>
-            )}
+                  {campaignsStatus === "CanLoadMore" && (
+                     <Button
+                       variant="ghost"
+                       className="w-full text-muted-foreground hover:text-purple-600 mt-4"
+                       onClick={() => loadMoreCampaigns(10)}
+                     >
+                       <ChevronDown className="w-4 h-4 mr-2"/> Carregar Mais Antigos
+                     </Button>
+                  )}
+                </div>
+              )}
+            </div>
           </ScrollArea>
         </SheetContent>
       </Sheet>
