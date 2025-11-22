@@ -10,7 +10,8 @@ import {
   Calculator
 } from "lucide-react";
 import clsx from "clsx";
-import { UserButton } from "@clerk/nextjs";
+import { UserButton, useClerk } from "@clerk/nextjs"; // Importação do useClerk adicionada
+import { useAuth } from "@clerk/clerk-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -18,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePushNotifications } from "@/app/hooks/usePushNotifications";
-import { useAuth } from "@clerk/clerk-react";
 
 const Z_INDEX = {
   base: 0,
@@ -79,7 +79,7 @@ type PlanType = "free" | "pro" | "ultra";
 
 interface SidebarProps {
   userPlan?: PlanType;
-  uniqueId: string; // ✅ CORREÇÃO: Identificador único para isolar animações
+  uniqueId: string;
 }
 
 interface Notification {
@@ -183,7 +183,6 @@ function FreelinkLogo({ size = 32 }: { size?: number }) {
   );
 }
 
-// ✅ COMPONENTE SIDEBAR CORRIGIDO PARA EVITAR CRASH
 function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
   const pathname = usePathname();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -210,7 +209,6 @@ function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
   return (
     <nav className="flex flex-col h-full">
       <ul className="flex-grow space-y-0.5 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200/50 dark:scrollbar-thumb-slate-700/50 hover:scrollbar-thumb-slate-300 dark:hover:scrollbar-thumb-slate-600 transition-colors">
-        {/* ✅ LayoutGroup com ID único previne conflito de animação Desktop vs Mobile */}
         <LayoutGroup id={uniqueId}>
           {navItems.map((item, idx) => (
             <li key={idx}>
@@ -228,7 +226,7 @@ function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
                   >
                     {isActive(item.href) && (
                       <motion.div
-                        layoutId={`${uniqueId}-activeTab`} // ✅ ID DINÂMICO: A chave para resolver o bug
+                        layoutId={`${uniqueId}-activeTab`}
                         className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 -z-10"
                         transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
                       />
@@ -420,24 +418,15 @@ function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
                 </div>
 
                 <div className="space-y-2 mb-3">
-                  <motion.div
-                    className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400"
-                    whileHover={{ x: 2 }}
-                  >
+                  <motion.div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400" whileHover={{ x: 2 }}>
                     <TrendingUp className="w-3 h-3 text-green-500" />
                     <span>Analytics avançados</span>
                   </motion.div>
-                  <motion.div
-                    className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400"
-                    whileHover={{ x: 2 }}
-                  >
+                  <motion.div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400" whileHover={{ x: 2 }}>
                     <Shield className="w-3 h-3 text-blue-500" />
                     <span>Recursos exclusivos</span>
                   </motion.div>
-                  <motion.div
-                    className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400"
-                    whileHover={{ x: 2 }}
-                  >
+                  <motion.div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400" whileHover={{ x: 2 }}>
                     <Clock className="w-3 h-3 text-purple-500" />
                     <span>Suporte prioritário</span>
                   </motion.div>
@@ -478,12 +467,15 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
   const pathname = usePathname();
+
   const [userPlan] = useState<PlanType>("free");
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState<boolean>(true);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
 
+  // ✅ HOOKS DO CLERK
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
+  const { signOut } = useClerk(); // Importante: Hook para realizar o logout programático
   const { isSupported, isSubscribed, subscribe } = usePushNotifications();
 
   useEffect(() => {
@@ -498,17 +490,10 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   const handleEnableNotifications = async () => {
     try {
-      if (!('Notification' in window)) {
-        console.error('Navegador não suporta notificações');
-        return;
-      }
-      if (!('serviceWorker' in navigator)) {
-        console.error('Service Worker não suportado');
-        return;
-      }
+      if (!('Notification' in window)) return;
+      if (!('serviceWorker' in navigator)) return;
       const permission = await Notification.requestPermission();
       if (permission !== 'granted') {
-        console.log('Permissão de notificação negada');
         setShowPushPrompt(false);
         localStorage.setItem('hasSeenPushPrompt', 'true');
         return;
@@ -516,7 +501,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       try {
         await navigator.serviceWorker.register('/sw.js');
       } catch (swError) {
-        console.error('Erro ao registrar service worker:', swError);
+        console.error('Erro SW:', swError);
       }
       const success = await subscribe();
       if (success) {
@@ -528,8 +513,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           badge: '/icon-192x192.png',
         });
       }
-    } catch (error) {
-      console.error('Erro ao ativar notificações:', error);
+    } catch  {
       setShowPushPrompt(false);
       localStorage.setItem('hasSeenPushPrompt', 'true');
     }
@@ -550,7 +534,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       setSearchLoading(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchTerm)}`);
-        if (!res.ok) throw new Error("Erro ao buscar resultados.");
+        if (!res.ok) throw new Error("Erro na busca.");
         const data: SearchResponse[] = await res.json();
         const resultsWithIcons: SearchResult[] = data.map(item => ({
           label: item.label,
@@ -559,8 +543,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           description: item.description
         }));
         setSearchResults(resultsWithIcons);
-      } catch (error) {
-        console.error("Erro na busca:", error);
+      } catch {
         setSearchResults([]);
       } finally {
         setSearchLoading(false);
@@ -575,23 +558,17 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   };
 
   const fetchNotifications = async () => {
-    // if (notificationsLoading) return; // Comentado para permitir refresh manual
     setNotificationsLoading(true);
     try {
       const res = await fetch("/api/notifications", {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Cache-Control': 'no-cache',
-        },
+        headers: { 'Content-Type': 'application/json', 'Cache-Control': 'no-cache' },
       });
-      if (!res.ok) {
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
+      if (!res.ok) throw new Error(`HTTP error!`);
       const data: Notification[] = await res.json();
       setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS));
     } catch (error) {
-      console.error("Erro ao carregar notificações:", error);
+      console.error("Erro notificações:", error);
     } finally {
       setNotificationsLoading(false);
     }
@@ -603,14 +580,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       current.map(n => n.id === id ? { ...n, isRead: true } : n)
     );
     try {
-      const res = await fetch("/api/notifications", {
+      await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ id }),
       });
-      if (!res.ok) throw new Error("Erro ao marcar como lida.");
-    } catch (error) {
-      console.error("Erro ao marcar notificação como lida:", error);
+    } catch  {
       setUserNotifications(originalNotifications);
     }
   };
@@ -621,37 +596,32 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       current.map(n => ({ ...n, isRead: true }))
     );
     try {
-      const res = await fetch("/api/notifications", {
+      await fetch("/api/notifications", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ markAll: true }),
       });
-      if (!res.ok) throw new Error("Erro ao marcar todas como lidas.");
-    } catch (error) {
-      console.error("Erro ao marcar todas as notificações como lidas:", error);
+    } catch  {
       setUserNotifications(originalNotifications);
     }
   };
 
   const unreadNotificationsCount = userNotifications.filter(n => !n.isRead).length;
 
-  // ✅ LÓGICA DE NOTIFICAÇÕES CORRIGIDA PARA EVITAR MEMORY LEAK
   useEffect(() => {
     fetchNotifications();
-
     let eventSource: EventSource | null = null;
     let pollInterval: NodeJS.Timeout | null = null;
 
     const setupPolling = () => {
-        if (!pollInterval) {
-            pollInterval = setInterval(fetchNotifications, 30000);
-        }
+      if (!pollInterval) {
+        pollInterval = setInterval(fetchNotifications, 30000);
+      }
     };
 
     if (typeof window !== 'undefined' && 'EventSource' in window) {
       try {
         eventSource = new EventSource('/api/notifications/stream');
-
         eventSource.onmessage = (event) => {
           try {
             const notification = JSON.parse(event.data);
@@ -660,13 +630,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               if (exists) return prev;
               return [notification, ...prev].slice(0, 50);
             });
-          } catch (err) {
-            console.error('Erro ao processar notificação:', err);
-          }
+          } catch  { }
         };
-
         eventSource.onerror = () => {
-          console.warn("SSE connection lost, switching to polling");
           eventSource?.close();
           setupPolling();
         };
@@ -693,9 +659,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
     } else {
       document.body.style.overflow = 'unset';
     }
-    return () => {
-      document.body.style.overflow = 'unset';
-    };
+    return () => { document.body.style.overflow = 'unset'; };
   }, [isSidebarOpen]);
 
   const getPlanBadge = () => {
@@ -704,29 +668,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         return (
           <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
             <Badge className="bg-gradient-to-r from-blue-500 via-cyan-500 to-blue-500 text-white shadow-lg shadow-blue-500/20 font-bold">
-              <Star className="w-3.5 h-3.5 mr-1" />
-              PRO
+              <Star className="w-3.5 h-3.5 mr-1" /> PRO
             </Badge>
           </motion.div>
         );
       case "ultra":
         return (
           <motion.div
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            animate={{
-              backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-            }}
+            whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
+            animate={{ backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"] }}
             transition={{ duration: 3, repeat: Infinity }}
           >
             <Badge className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 text-white shadow-lg shadow-purple-500/20 font-bold">
-              <Crown className="w-3.5 h-3.5 mr-1" />
-              ULTRA
+              <Crown className="w-3.5 h-3.5 mr-1" /> ULTRA
             </Badge>
           </motion.div>
         );
-      default:
-        return null;
+      default: return null;
     }
   };
 
@@ -762,14 +720,11 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               >
                 Freelinnk
               </motion.span>
-              {userPlan !== "free" && (
-                <div className="mt-1">{getPlanBadge()}</div>
-              )}
+              {userPlan !== "free" && <div className="mt-1">{getPlanBadge()}</div>}
             </div>
           </Link>
         </div>
         <div className="flex-1 overflow-hidden">
-          {/* ✅ PASSA ID ÚNICO PARA DESKTOP */}
           <Sidebar userPlan={userPlan} uniqueId="desktop-sidebar" />
         </div>
         <motion.div
@@ -819,15 +774,18 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     </motion.div>
                   </Link>
                   <div className="border-t border-slate-200 dark:border-slate-700 my-2" />
-                  <Link href="/">
-                    <motion.div
-                      className="flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer group"
-                      whileHover={{ x: 2 }}
-                    >
-                      <LogOut className="w-4 h-4 text-red-500 group-hover:text-red-600" />
-                      <span className="text-sm font-medium text-red-500 group-hover:text-red-600">Sair</span>
-                    </motion.div>
-                  </Link>
+
+                  {/* ✅ BOTÃO DE SAIR CORRIGIDO - AGORA FUNCIONA O LOGOUT REAL */}
+                  <motion.button
+                    onClick={() => signOut({ redirectUrl: '/' })}
+                    className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer group text-left"
+                    whileHover={{ x: 2 }}
+                  >
+                    <LogOut className="w-4 h-4 text-red-500 group-hover:text-red-600" />
+                    <span className="text-sm font-medium text-red-500 group-hover:text-red-600">Sair</span>
+                  </motion.button>
+                  {/* ✅ FIM DA CORREÇÃO */}
+
                 </div>
               </PopoverContent>
             </Popover>
@@ -870,7 +828,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </motion.button>
               </div>
               <div className="flex-1 overflow-hidden">
-                {/* ✅ PASSA ID ÚNICO PARA MOBILE */}
                 <Sidebar userPlan={userPlan} uniqueId="mobile-sidebar" />
               </div>
               <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
@@ -904,13 +861,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             >
               <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 p-[2px]">
                 <div className="bg-white dark:bg-slate-800 rounded-t-2xl p-5 relative">
-                  <button
-                    onClick={handleDismissPrompt}
-                    className="absolute top-3 right-3 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors"
-                  >
+                  <button onClick={handleDismissPrompt} className="absolute top-3 right-3 p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors">
                     <X className="w-4 h-4" />
                   </button>
-
                   <div className="flex items-start gap-4">
                     <motion.div
                       className="bg-gradient-to-br from-purple-500 to-pink-500 p-3 rounded-xl shadow-lg flex-shrink-0"
@@ -920,26 +873,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       <Bell className="w-6 h-6 text-white" />
                     </motion.div>
                     <div className="flex-1 pr-8 min-w-0">
-                      <h4 className="font-black text-lg mb-1 text-slate-800 dark:text-slate-200 truncate">
-                        🔔 Notificações Inteligentes
-                      </h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">
-                        Receba alertas personalizados para nunca perder o momento certo de postar
-                      </p>
+                      <h4 className="font-black text-lg mb-1 text-slate-800 dark:text-slate-200 truncate">🔔 Notificações Inteligentes</h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 leading-relaxed">Receba alertas personalizados para nunca perder o momento certo de postar</p>
                       <div className="flex flex-col sm:flex-row gap-2">
                         <motion.button
                           onClick={handleEnableNotifications}
                           className="px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-shadow text-sm"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         >
                           Ativar Agora
                         </motion.button>
                         <motion.button
                           onClick={handleDismissPrompt}
                           className="px-4 py-2 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-400 font-medium rounded-xl hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors text-sm"
-                          whileHover={{ scale: 1.05 }}
-                          whileTap={{ scale: 0.95 }}
+                          whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}
                         >
                           Talvez Depois
                         </motion.button>
@@ -955,25 +902,20 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        {/* Header - Sticky em todas as telas */}
         <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 dark:border-slate-700/50 flex-shrink-0 shadow-sm" style={{ zIndex: Z_INDEX.overlay }}>
           <div className="px-3 sm:px-6 py-3 sm:py-4 flex justify-between items-center gap-2">
             <div className="flex items-center gap-2 sm:gap-4 flex-1 min-w-0">
               <motion.button
                 onClick={() => setIsSidebarOpen(true)}
                 className="lg:hidden p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                aria-label="Abrir menu"
+                whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} aria-label="Abrir menu"
               >
                 <Menu className="w-5 h-5" />
               </motion.button>
-
               <div className="flex items-center gap-2 min-w-0 flex-1 lg:flex-initial">
                 <Link href="/dashboard" className="flex-shrink-0 lg:hidden">
                   <FreelinkLogo size={28} />
                 </Link>
-
                 <motion.h1
                   className="text-base sm:text-lg lg:text-2xl font-black text-slate-800 dark:text-slate-200 truncate"
                   initial={{ opacity: 0, x: -20 }}
@@ -984,32 +926,21 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 </motion.h1>
               </div>
             </div>
-
-            {/* Header Actions */}
             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0">
-              <motion.div
-                className="hidden md:block"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              <motion.div className="hidden md:block" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Link href="/dashboard/new-link">
                         <Button className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white shadow-lg hover:shadow-xl transition-all font-bold whitespace-nowrap">
-                          <PlusCircle className="w-4 h-4 mr-2" />
-                          Novo Link
+                          <PlusCircle className="w-4 h-4 mr-2" /> Novo Link
                         </Button>
                       </Link>
                     </TooltipTrigger>
-                    <TooltipContent className="font-medium">
-                      Criar novo link personalizado
-                    </TooltipContent>
+                    <TooltipContent className="font-medium">Criar novo link personalizado</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </motion.div>
-
-              {/* Search */}
               <AnimatePresence mode="wait">
                 {isSearchOpen ? (
                   <motion.div
@@ -1017,9 +948,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     initial={{ width: 0, opacity: 0 }}
                     animate={{ width: "auto", opacity: 1 }}
                     exit={{ width: 0, opacity: 0 }}
-
                     className="absolute left-0 right-0 top-0 h-full bg-white/98 dark:bg-slate-800/98 backdrop-blur-xl supports-[backdrop-filter]:bg-white/95"
-                    style={{ zIndex: Z_INDEX.sticky }}>
+                    style={{ zIndex: Z_INDEX.sticky }}
+                  >
                     <div className="w-full relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" />
                       <Input
@@ -1031,18 +962,13 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                         autoFocus
                       />
                       <motion.button
-                        onClick={() => {
-                          setIsSearchOpen(false);
-                          setSearchTerm("");
-                        }}
+                        onClick={() => { setIsSearchOpen(false); setSearchTerm(""); }}
                         className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700"
-                        whileHover={{ scale: 1.1, rotate: 90 }}
-                        whileTap={{ scale: 0.9 }}
+                        whileHover={{ scale: 1.1, rotate: 90 }} whileTap={{ scale: 0.9 }}
                       >
                         <X className="w-4 h-4" />
                       </motion.button>
                     </div>
-
                     {debouncedSearchTerm && (
                       <motion.div
                         initial={{ opacity: 0, y: 10 }}
@@ -1051,11 +977,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       >
                         {searchLoading ? (
                           <div className="p-8 text-center">
-                            <motion.div
-                              className="w-8 h-8 mx-auto mb-3 border-3 border-purple-500 border-t-transparent rounded-full"
-                              animate={{ rotate: 360 }}
-                              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                            />
+                            <motion.div className="w-8 h-8 mx-auto mb-3 border-3 border-purple-500 border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
                             <p className="text-sm text-slate-500">Buscando...</p>
                           </div>
                         ) : searchResults.length > 0 ? (
@@ -1063,31 +985,16 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                             {searchResults.map((item, idx) => {
                               const IconComponent = item.icon;
                               return (
-                                <motion.div
-                                  key={item.href}
-                                  initial={{ opacity: 0, x: -20 }}
-                                  animate={{ opacity: 1, x: 0 }}
-                                  transition={{ delay: idx * 0.05 }}
-                                >
-                                  <Link
-                                    href={item.href}
-                                    onClick={handleSearchLinkClick}
-                                    className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all group"
-                                  >
+                                <motion.div key={item.href} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}>
+                                  <Link href={item.href} onClick={handleSearchLinkClick} className="flex items-center gap-3 p-3 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-all group">
                                     {IconComponent && (
                                       <div className="w-10 h-10 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform flex-shrink-0">
                                         <IconComponent className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                                       </div>
                                     )}
                                     <div className="flex-1 min-w-0">
-                                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">
-                                        {item.label}
-                                      </p>
-                                      {item.description && (
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
-                                          {item.description}
-                                        </p>
-                                      )}
+                                      <p className="font-semibold text-sm text-slate-800 dark:text-slate-200 truncate">{item.label}</p>
+                                      {item.description && <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">{item.description}</p>}
                                     </div>
                                     <ArrowRight className="w-4 h-4 text-slate-400 group-hover:translate-x-1 transition-transform flex-shrink-0" />
                                   </Link>
@@ -1097,46 +1004,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                           </div>
                         ) : (
                           <div className="p-8 text-center">
-                            <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center">
-                              <Search className="w-6 h-6 text-slate-400" />
-                            </div>
-                            <p className="text-sm text-slate-500 dark:text-slate-400">
-                              Nenhum resultado encontrado
-                            </p>
+                            <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center"><Search className="w-6 h-6 text-slate-400" /></div>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Nenhum resultado encontrado</p>
                           </div>
                         )}
                       </motion.div>
                     )}
                   </motion.div>
                 ) : (
-                  <motion.button
-                    key="search-button"
-                    onClick={() => setIsSearchOpen(true)}
-                    className="p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    aria-label="Buscar"
-                  >
+                  <motion.button key="search-button" onClick={() => setIsSearchOpen(true)} className="p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }} aria-label="Buscar">
                     <Search className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.button>
                 )}
               </AnimatePresence>
-
-              {/* Notifications */}
               <Popover>
                 <PopoverTrigger asChild>
-                  <motion.button
-                    className="relative p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
+                  <motion.button className="relative p-2 sm:p-2.5 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                     <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
                     {unreadNotificationsCount > 0 && (
-                      <motion.span
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg"
-                      >
+                      <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} className="absolute -top-1 -right-1 w-4 h-4 sm:w-5 sm:h-5 bg-gradient-to-r from-red-500 to-pink-500 text-white text-[10px] font-bold flex items-center justify-center rounded-full shadow-lg">
                         {unreadNotificationsCount > 9 ? '9+' : unreadNotificationsCount}
                       </motion.span>
                     )}
@@ -1145,80 +1031,33 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 <PopoverContent className="w-[calc(100vw-2rem)] sm:w-96 p-0 shadow-2xl border-slate-200/50 dark:border-slate-700/50 rounded-xl overflow-hidden" align="end">
                   <div className="bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 p-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-                        <Bell className="w-4 h-4 sm:w-5 sm:h-5" />
-                        Notificações
-                      </h4>
+                      <h4 className="text-base sm:text-lg font-bold text-white flex items-center gap-2"><Bell className="w-4 h-4 sm:w-5 sm:h-5" /> Notificações</h4>
                       {unreadNotificationsCount > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-white/80 hover:text-white hover:bg-white/20 text-xs sm:text-sm"
-                          onClick={markAllAsRead}
-                        >
-                          Marcar todas
-                        </Button>
+                        <Button variant="ghost" size="sm" className="text-white/80 hover:text-white hover:bg-white/20 text-xs sm:text-sm" onClick={markAllAsRead}>Marcar todas</Button>
                       )}
                     </div>
                   </div>
                   <div className="max-h-[60vh] sm:max-h-[400px] overflow-y-auto">
                     {notificationsLoading ? (
                       <div className="p-8 text-center">
-                        <motion.div
-                          className="w-8 h-8 mx-auto mb-3 border-3 border-purple-500 border-t-transparent rounded-full"
-                          animate={{ rotate: 360 }}
-                          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                        />
+                        <motion.div className="w-8 h-8 mx-auto mb-3 border-3 border-purple-500 border-t-transparent rounded-full" animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} />
                         <p className="text-sm text-slate-500">Carregando...</p>
                       </div>
                     ) : userNotifications.length > 0 ? (
                       <div className="p-2 space-y-2">
                         {userNotifications.map((notification, idx) => (
-                          <motion.div
-                            key={notification.id}
-                            initial={{ opacity: 0, x: -20 }}
-                            animate={{ opacity: 1, x: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                          >
-                            <Link
-                              href={notification.link || '#'}
-                              onClick={() => markNotificationAsRead(notification.id)}
-                            >
+                          <motion.div key={notification.id} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: idx * 0.05 }}>
+                            <Link href={notification.link || '#'} onClick={() => markNotificationAsRead(notification.id)}>
                               <motion.div
-                                className={clsx(
-                                  "p-3 sm:p-4 rounded-xl cursor-pointer transition-all",
-                                  notification.isRead
-                                    ? "bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700"
-                                    : "bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 hover:from-purple-100 hover:to-blue-100 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30"
-                                )}
+                                className={clsx("p-3 sm:p-4 rounded-xl cursor-pointer transition-all", notification.isRead ? "bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700" : "bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 hover:from-purple-100 hover:to-blue-100 dark:hover:from-purple-900/30 dark:hover:to-blue-900/30")}
                                 whileHover={{ x: 4 }}
                               >
                                 <div className="flex justify-between items-start gap-3">
                                   <div className="flex-1 min-w-0">
-                                    <p className={clsx(
-                                      "text-sm leading-relaxed break-words",
-                                      notification.isRead
-                                        ? "text-slate-600 dark:text-slate-400"
-                                        : "text-slate-800 dark:text-slate-200 font-semibold"
-                                    )}>
-                                      {notification.message}
-                                    </p>
-                                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">
-                                      {new Date(notification.timestamp).toLocaleDateString("pt-BR", {
-                                        day: '2-digit',
-                                        month: 'short',
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </p>
+                                    <p className={clsx("text-sm leading-relaxed break-words", notification.isRead ? "text-slate-600 dark:text-slate-400" : "text-slate-800 dark:text-slate-200 font-semibold")}>{notification.message}</p>
+                                    <p className="text-xs text-slate-500 dark:text-slate-500 mt-1">{new Date(notification.timestamp).toLocaleDateString("pt-BR", { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
                                   </div>
-                                  {!notification.isRead && (
-                                    <motion.div
-                                      initial={{ scale: 0 }}
-                                      animate={{ scale: 1 }}
-                                      className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full shadow-lg flex-shrink-0 mt-2"
-                                    />
-                                  )}
+                                  {!notification.isRead && <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-2 h-2 bg-gradient-to-r from-blue-500 to-purple-500 rounded-full shadow-lg flex-shrink-0 mt-2" />}
                                 </div>
                               </motion.div>
                             </Link>
@@ -1227,59 +1066,34 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                       </div>
                     ) : (
                       <div className="p-8 text-center">
-                        <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center">
-                          <Bell className="w-6 h-6 text-slate-400" />
-                        </div>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">
-                          Nenhuma notificação
-                        </p>
+                        <div className="w-12 h-12 mx-auto mb-3 bg-slate-100 dark:bg-slate-700 rounded-xl flex items-center justify-center"><Bell className="w-6 h-6 text-slate-400" /></div>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">Nenhuma notificação</p>
                       </div>
                     )}
                   </div>
                 </PopoverContent>
               </Popover>
-
-              {/* Help Button - Hidden on small mobile */}
-              <motion.div
-                className="hidden sm:block"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
+              <motion.div className="hidden sm:block" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Link href="/dashboard/help">
-                        <Button variant="ghost" size="icon" className="rounded-xl flex-shrink-0">
-                          <HelpCircle className="w-5 h-5" />
-                        </Button>
+                        <Button variant="ghost" size="icon" className="rounded-xl flex-shrink-0"><HelpCircle className="w-5 h-5" /></Button>
                       </Link>
                     </TooltipTrigger>
-                    <TooltipContent className="font-medium">
-                      Central de Ajuda
-                    </TooltipContent>
+                    <TooltipContent className="font-medium">Central de Ajuda</TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
               </motion.div>
-
-              {/* Plan Badge or Upgrade - Hidden on mobile */}
               <div className="hidden md:block flex-shrink-0">
-                {userPlan !== "free" ? (
-                  getPlanBadge()
-                ) : (
+                {userPlan !== "free" ? getPlanBadge() : (
                   <Link href="/dashboard/billing">
-                    <motion.button
-                      className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 text-purple-700 dark:text-purple-300 rounded-xl font-bold text-sm hover:from-purple-200 hover:to-pink-200 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all shadow-sm hover:shadow-md whitespace-nowrap"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      <Sparkles className="w-4 h-4 inline mr-1.5" />
-                      Upgrade
+                    <motion.button className="px-4 py-2 bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/20 dark:to-pink-900/20 text-purple-700 dark:text-purple-300 rounded-xl font-bold text-sm hover:from-purple-200 hover:to-pink-200 dark:hover:from-purple-900/30 dark:hover:to-pink-900/30 transition-all shadow-sm hover:shadow-md whitespace-nowrap" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                      <Sparkles className="w-4 h-4 inline mr-1.5" /> Upgrade
                     </motion.button>
                   </Link>
                 )}
               </div>
-
-              {/* Mobile User Button */}
               <div className="lg:hidden flex-shrink-0">
                 <UserButton afterSignOutUrl="/" />
               </div>
@@ -1287,92 +1101,41 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        {/* Main Content Area */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 pb-24 lg:pb-4">
           <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-6 lg:py-8 max-w-screen-2xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
               {children}
             </motion.div>
           </div>
         </main>
 
-        {/* Mobile Bottom Navigation */}
-        <motion.div
-          className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 px-2 py-2 safe-area-bottom"
-          initial={{ y: 100 }}
-          animate={{ y: 0 }}
-          transition={{ type: "spring", damping: 30, stiffness: 300 }}
-          style={{ zIndex: Z_INDEX.overlay }}>
+        <motion.div className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-t border-slate-200/50 dark:border-slate-700/50 px-2 py-2 safe-area-bottom" initial={{ y: 100 }} animate={{ y: 0 }} transition={{ type: "spring", damping: 30, stiffness: 300 }} style={{ zIndex: Z_INDEX.overlay }}>
           <div className="flex items-center justify-around max-w-lg mx-auto">
             <Link href="/dashboard" className="flex-1">
-              <motion.button
-                className={clsx(
-                  "flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[60px]",
-                  pathname === "/dashboard"
-                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-                whileTap={{ scale: 0.95 }}
-              >
+              <motion.button className={clsx("flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[60px]", pathname === "/dashboard" ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300")} whileTap={{ scale: 0.95 }}>
                 <Home className="w-5 h-5 mb-1 flex-shrink-0" />
                 <span className="text-[10px] font-semibold truncate w-full text-center">Início</span>
               </motion.button>
             </Link>
-
             <Link href="/dashboard/links" className="flex-1">
-              <motion.button
-                className={clsx(
-                  "flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[60px]",
-                  pathname.startsWith("/dashboard/links")
-                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-                whileTap={{ scale: 0.95 }}
-              >
+              <motion.button className={clsx("flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[60px]", pathname.startsWith("/dashboard/links") ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300")} whileTap={{ scale: 0.95 }}>
                 <LayoutGrid className="w-5 h-5 mb-1 flex-shrink-0" />
                 <span className="text-[10px] font-semibold truncate w-full text-center">Links</span>
               </motion.button>
             </Link>
-
             <Link href="/dashboard/new-link" className="flex-1">
-              <motion.button
-                className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white p-3 rounded-2xl shadow-xl flex flex-col items-center justify-center relative overflow-hidden -mt-4 min-h-[68px] mx-2"
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-              >
-                <motion.div
-                  className="absolute inset-0 bg-white/20"
-                  animate={{ rotate: [0, 360] }}
-                  transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                />
+              <motion.button className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 text-white p-3 rounded-2xl shadow-xl flex flex-col items-center justify-center relative overflow-hidden -mt-4 min-h-[68px] mx-2" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <motion.div className="absolute inset-0 bg-white/20" animate={{ rotate: [0, 360] }} transition={{ duration: 10, repeat: Infinity, ease: "linear" }} />
                 <PlusCircle className="w-6 h-6 relative flex-shrink-0" style={{ zIndex: Z_INDEX.dropdown }} />
               </motion.button>
             </Link>
-
             <Link href="/dashboard/mentor-ia" className="flex-1">
-              <motion.button
-                className={clsx(
-                  "flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[60px]",
-                  pathname.startsWith("/dashboard/mentor-ia") || pathname.startsWith("/dashboard/brain") || pathname.startsWith("/dashboard/ai-studio")
-                    ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400"
-                    : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-                )}
-                whileTap={{ scale: 0.95 }}
-              >
+              <motion.button className={clsx("flex flex-col items-center justify-center p-2 rounded-2xl transition-all w-full min-h-[60px]", pathname.startsWith("/dashboard/mentor-ia") || pathname.startsWith("/dashboard/brain") || pathname.startsWith("/dashboard/ai-studio") ? "bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 text-blue-600 dark:text-blue-400" : "text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300")} whileTap={{ scale: 0.95 }}>
                 <Wand2 className="w-5 h-5 mb-1 flex-shrink-0" />
                 <span className="text-[10px] font-semibold truncate w-full text-center">IA</span>
               </motion.button>
             </Link>
-
-            <motion.button
-              onClick={() => setIsSidebarOpen(true)}
-              className="flex flex-col items-center justify-center p-2 rounded-2xl transition-all flex-1 min-h-[60px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300"
-              whileTap={{ scale: 0.95 }}
-            >
+            <motion.button onClick={() => setIsSidebarOpen(true)} className="flex flex-col items-center justify-center p-2 rounded-2xl transition-all flex-1 min-h-[60px] text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-300" whileTap={{ scale: 0.95 }}>
               <Menu className="w-5 h-5 mb-1 flex-shrink-0" />
               <span className="text-[10px] font-semibold truncate w-full text-center">Menu</span>
             </motion.button>
