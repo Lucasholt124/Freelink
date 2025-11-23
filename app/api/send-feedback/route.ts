@@ -2,21 +2,20 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// ❌ NÃO INICIALIZE AQUI FORA
+// const resend = new Resend(process.env.RESEND_API_KEY);
 
 export async function POST(req: Request) {
   try {
+    // ✅ INICIALIZE AQUI DENTRO
+    // Assim ele só pede a chave quando alguém realmente tentar enviar o email
+    const resend = new Resend(process.env.RESEND_API_KEY);
+
     const { email, feedback, reason, userId } = await req.json();
 
     await resend.emails.send({
-      // ⚠️ IMPORTANTE: O 'from' deve ser um email, não um site.
-      // Enquanto não verificar seu domínio, use este email padrão do Resend:
-      from: 'Freelinnk System <onboarding@resend.dev>',
-
-      // Se já verificou o domínio 'freelinnk.com' no painel do Resend, use:
-      // from: 'Freelinnk System <nao-responda@freelinnk.com>',
-
-      to: 'lucasholt2021@gmail.com', // ✅ Aqui chega pra você
+      from: 'Freelinnk System <onboarding@resend.dev>', // Ou seu email verificado
+      to: 'lucasholt2021@gmail.com',
       subject: `⚠️ Cancelamento de Assinatura: ${email}`,
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
@@ -32,7 +31,7 @@ export async function POST(req: Request) {
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error(error); // Bom para ver o erro no terminal se der ruim
+    console.error(error);
     return NextResponse.json({ error: 'Erro ao enviar email' }, { status: 500 });
   }
 }
