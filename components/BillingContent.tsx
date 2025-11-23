@@ -17,6 +17,8 @@ import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
+
 
 declare global {
   interface Window {
@@ -491,6 +493,12 @@ export default function BillingContent() {
   const router = useRouter();
   const liveViewers = useLiveViewers(87);
 
+  // ✅ NOVO: Estados para o Feedback de Cancelamento
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
+  const [cancelFeedback, setCancelFeedback] = useState("");
+  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
+
   // ✅ Scroll tracking
   useScrollTracking();
 
@@ -643,8 +651,9 @@ export default function BillingContent() {
     }
   }
 
+  // ✅ Função original de cancelamento (agora chamada pelo modal)
   async function handleCancel() {
-    if (!confirm("⚠️ Tem certeza que deseja cancelar?\n\nVocê manterá o acesso aos recursos premium até o final do seu ciclo de faturamento atual.")) return;
+    // Nota: Removido o confirm() nativo pois agora temos o modal customizado
 
     setLoading("cancel");
 
@@ -686,6 +695,34 @@ export default function BillingContent() {
     }
   }
 
+  // ✅ NOVO: Função para confirmar cancelamento com feedback
+  async function handleConfirmCancel() {
+    setIsSendingFeedback(true);
+
+    try {
+        // Enviar o feedback por email (API gratuita)
+        await fetch("/api/send-feedback", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                email: user?.primaryEmailAddress?.emailAddress,
+                userId: user?.id,
+                reason: cancelReason,
+                feedback: cancelFeedback
+            })
+        });
+    } catch (error) {
+        console.error("Erro ao enviar feedback", error);
+        // Não impede o cancelamento se o email falhar
+    }
+
+    setIsSendingFeedback(false);
+    setShowCancelModal(false);
+
+    // Chama a função real de cancelamento
+    handleCancel();
+  }
+
   async function handleManageSubscription() {
     setLoading("portal");
 
@@ -719,6 +756,86 @@ export default function BillingContent() {
 
   return (
     <div className="bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 min-h-screen">
+
+      {/* ✅ NOVO: Modal de Pesquisa de Cancelamento */}
+      <AnimatePresence>
+        {showCancelModal && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    onClick={() => setShowCancelModal(false)}
+                    className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                />
+
+                <motion.div
+                    initial={{ scale: 0.95, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0.95, opacity: 0 }}
+                    className="relative w-full max-w-md bg-white dark:bg-slate-900 rounded-xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700"
+                >
+                    <div className="p-6">
+                        <div className="flex items-center gap-3 mb-4 text-amber-600 dark:text-amber-500">
+                            <AlertCircle className="w-8 h-8" />
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">Antes de você ir...</h3>
+                        </div>
+
+                        <p className="text-gray-600 dark:text-gray-300 mb-6 text-sm">
+                            Poxa, sentimos muito que você queira cancelar. Para que possamos evoluir o Freelinnk, poderia nos dizer o motivo?
+                        </p>
+
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">O que te motivou a cancelar?</label>
+                                <select
+                                    className="w-full p-2 rounded-md border border-gray-300 dark:border-gray-700 bg-white dark:bg-slate-800 text-sm"
+                                    value={cancelReason}
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                >
+                                    <option value="">Selecione um motivo...</option>
+                                    <option value="Muito caro">Achei o valor alto</option>
+                                    <option value="Não usei o suficiente">Não usei o suficiente</option>
+                                    <option value="Faltou recurso">Falta algum recurso específico</option>
+                                    <option value="Dificuldade">Achei difícil de usar</option>
+                                    <option value="Outro">Outro motivo</option>
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium mb-2 text-gray-700 dark:text-gray-300">Como podemos melhorar? (Opcional)</label>
+                                <Textarea
+                                    placeholder="Sua opinião é muito importante para mim..."
+                                    className="resize-none"
+                                    value={cancelFeedback}
+                                    onChange={(e) => setCancelFeedback(e.target.value)}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3 mt-8">
+                            <Button
+                                variant="outline"
+                                className="flex-1"
+                                onClick={() => setShowCancelModal(false)}
+                            >
+                                Voltar e Não Cancelar
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                className="flex-1"
+                                onClick={handleConfirmCancel}
+                                disabled={isSendingFeedback || !cancelReason}
+                            >
+                                {isSendingFeedback ? <Loader2 className="w-4 h-4 animate-spin" /> : "Confirmar Cancelamento"}
+                            </Button>
+                        </div>
+                    </div>
+                </motion.div>
+            </div>
+        )}
+      </AnimatePresence>
+
       <div className="max-w-7xl mx-auto px-4 py-8 sm:py-16">
 
         {/* Banner de Urgência com Live Viewers */}
@@ -925,7 +1042,7 @@ export default function BillingContent() {
               billingCycle={billingCycle}
               loading={loading}
               onCheckout={handleCheckout}
-              onCancel={handleCancel}
+              onCancel={() => setShowCancelModal(true)} // ✅ ALTERADO: Abre o modal
               toggleFeatureSection={toggleFeatureSection}
               expandedFeatures={expandedFeatures}
             />

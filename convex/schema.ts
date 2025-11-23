@@ -8,10 +8,17 @@ export default defineSchema({
   usernames: defineTable({
     userId: v.string(),
     username: v.string(),
-  })
-    .index("by_user_id", ["userId"])
-    .index("by_username", ["username"]),
+    email: v.optional(v.string()),         // Para o Resend enviar
+    plan: v.optional(v.string()),          // "free", "pro", "ultra"
+    createdAt: v.optional(v.number()),     // Para saber se faz 3, 6 ou 12 dias
 
+    // ✅ CONTROLE DA DRIP CAMPAIGN
+    marketingStage: v.optional(v.number()),      // 0, 1, 2, 3
+    lastMarketingSentAt: v.optional(v.number()), // Data do último envio
+  })
+  .index("by_user_id", ["userId"])
+    .index("by_username", ["username"])
+    .index("by_plan", ["plan"]), //
   links: defineTable({
     userId: v.string(),
     title: v.string(),
