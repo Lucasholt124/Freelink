@@ -39,11 +39,9 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // CORREÇÃO: Obter o cliente do Clerk
     const clerk = await clerkClient();
     const user = await clerk.users.getUser(userId);
 
-    // CORREÇÃO: Tipar corretamente o email
     const userEmail = user.emailAddresses.find(
       (email) => email.id === user.primaryEmailAddressId
     )?.emailAddress;
@@ -54,6 +52,19 @@ export async function POST(req: NextRequest) {
         { status: 400 }
       );
     }
+
+    // --- LÓGICA DE MARKETING INTELIGENTE ---
+    // Antes de enviar para o Stripe, marcamos que ele iniciou o checkout.
+    // Se ele não completar, o sistema de e-mail saberá.
+    await clerk.users.updateUser(userId, {
+      publicMetadata: {
+        ...user.publicMetadata,
+        cartAbandoned: true, // Marca como abandonado até que o webhook diga o contrário
+        lastCheckoutAttempt: Date.now(), // Data da tentativa
+        attemptedPlan: plan, // Qual plano ele tentou comprar
+      },
+    });
+    // ---------------------------------------
 
     let stripeCustomerId = user.privateMetadata?.stripeCustomerId as string | undefined;
 

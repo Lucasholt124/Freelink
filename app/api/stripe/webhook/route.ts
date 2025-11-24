@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { clerkClient } from "@clerk/nextjs/server";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
- apiVersion: '2025-10-29.clover',
+  apiVersion: '2025-10-29.clover', // Ajuste para a versão exata que você está usando se necessário
 });
 
 export async function POST(req: Request) {
@@ -59,10 +59,14 @@ export async function POST(req: Request) {
         const priceId = subscription.items.data[0]?.price.id;
         const plan = priceIdToPlan[priceId] || "free";
 
+        // ATUALIZAÇÃO DO CLERK
+        // Aqui removemos o "cartAbandoned" pois ele COMPROU com sucesso.
         await clerk.users.updateUser(userId, {
           publicMetadata: {
             subscriptionPlan: plan,
             subscriptionStatus: "active",
+            cartAbandoned: false, // IMPORTANTE: Remove a flag de abandono
+            lastPurchaseDate: Date.now(),
           },
           privateMetadata: {
             stripeCustomerId: session.customer as string,
@@ -83,15 +87,7 @@ export async function POST(req: Request) {
 
     case "invoice.payment_succeeded": {
       const invoice = event.data.object as Stripe.Invoice;
-
-      // CORREÇÃO: Acessar subscription de forma segura com type assertion
       const subscriptionId = (invoice as unknown as { subscription: string | null }).subscription as string | null;
-
-      // Alternativa mais segura: usar o campo lines para obter o subscription ID
-      // const firstLineItem = invoice.lines.data[0];
-      // const subscriptionId = firstLineItem && 'subscription' in firstLineItem
-      //   ? firstLineItem.subscription as string
-      //   : null;
 
       if (!subscriptionId) {
         console.log("➡️ Ignorando invoice.payment_succeeded sem subscriptionId");
@@ -103,14 +99,12 @@ export async function POST(req: Request) {
         const userId = subscription.metadata.userId;
 
         if (!userId) {
-          // Se não tiver userId no metadata da subscription, tenta buscar pelo customer
           const customerId = invoice.customer as string;
           if (customerId) {
             const customer = await stripe.customers.retrieve(customerId) as Stripe.Customer;
             const clerkUserId = customer.metadata?.clerkUserId;
 
             if (clerkUserId) {
-              // Atualiza a subscription com o userId para futuros eventos
               await stripe.subscriptions.update(subscriptionId, {
                 metadata: { userId: clerkUserId },
               });
@@ -122,6 +116,7 @@ export async function POST(req: Request) {
                 publicMetadata: {
                   subscriptionPlan: plan,
                   subscriptionStatus: subscription.status,
+                  cartAbandoned: false, // Garante que está limpo na renovação
                 },
               });
 
@@ -129,7 +124,6 @@ export async function POST(req: Request) {
               break;
             }
           }
-
           console.warn(`⚠️ invoice.payment_succeeded sem userId identificável`);
           break;
         }
@@ -141,6 +135,7 @@ export async function POST(req: Request) {
           publicMetadata: {
             subscriptionPlan: plan,
             subscriptionStatus: subscription.status,
+            cartAbandoned: false,
           },
         });
 
@@ -192,6 +187,7 @@ export async function POST(req: Request) {
           publicMetadata: {
             subscriptionPlan: "free",
             subscriptionStatus: "canceled",
+            cartAbandoned: false,
           },
         });
 

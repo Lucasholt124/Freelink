@@ -16,12 +16,4 @@ crons.interval(
   internal.aiStudio.cleanupExpiredStorage
 );
 
-// ✅ NOVO CRON (CORRIGIDO)
-// Aponta para marketingActions (onde está o "use node")
-crons.daily(
-  "marketing-drip-campaign",
-  { hourUTC: 9, minuteUTC: 0 },
-  internal.marketingActions.sendDailyEmails
-);
-
 export default crons;
