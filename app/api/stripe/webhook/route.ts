@@ -3,7 +3,7 @@ import Stripe from "stripe";
 import { clerkClient } from "@clerk/nextjs/server";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: '2025-10-29.clover', // Ajuste para a versão exata que você está usando se necessário
+  apiVersion: '2025-10-29.clover', // Mantive sua versão original
 });
 
 export async function POST(req: Request) {
@@ -59,13 +59,12 @@ export async function POST(req: Request) {
         const priceId = subscription.items.data[0]?.price.id;
         const plan = priceIdToPlan[priceId] || "free";
 
-        // ATUALIZAÇÃO DO CLERK
-        // Aqui removemos o "cartAbandoned" pois ele COMPROU com sucesso.
+        // ATUALIZAÇÃO DO CLERK - Mantive sua lógica original
         await clerk.users.updateUser(userId, {
           publicMetadata: {
             subscriptionPlan: plan,
             subscriptionStatus: "active",
-            cartAbandoned: false, // IMPORTANTE: Remove a flag de abandono
+            cartAbandoned: false, // Remove a flag de abandono
             lastPurchaseDate: Date.now(),
           },
           privateMetadata: {
@@ -116,7 +115,7 @@ export async function POST(req: Request) {
                 publicMetadata: {
                   subscriptionPlan: plan,
                   subscriptionStatus: subscription.status,
-                  cartAbandoned: false, // Garante que está limpo na renovação
+                  cartAbandoned: false,
                 },
               });
 
