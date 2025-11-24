@@ -8,7 +8,7 @@
   "regions": ["iad1"],
   "crons": [
     {
-      "path": "/api/cron/email-marketing",
+      "path": "/api/cron/marketing-system",
       "schedule": "0 10 * * *"
     }
   ]
