@@ -1,7 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // ✅ MOVIDO de experimental para raiz
+  // ✅ Evita redirects em API routes
+  skipTrailingSlashRedirect: true,
+
   serverExternalPackages: ['@prisma/client', 'prisma'],
 
   images: {
@@ -16,7 +18,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "**", // Permite qualquer domínio
+        hostname: "**",
       },
     ],
     dangerouslyAllowSVG: true,
@@ -24,7 +26,6 @@ const nextConfig: NextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // Otimizações
   compress: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
@@ -39,7 +40,6 @@ const nextConfig: NextConfig = {
 
   reactStrictMode: true,
 
-  // ✅ Experimental features válidas
   experimental: {
     optimizePackageImports: [
       "lucide-react",
