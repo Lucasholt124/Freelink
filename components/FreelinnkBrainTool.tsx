@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -7,11 +6,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
   Sparkles, Brain, Video, RefreshCcw, Layers, Camera,
-  MessageSquare, Wand2, Calendar, Trash2, Menu, FolderOpen,
+  MessageSquare, Wand2, Calendar, Trash2, Menu,
   Crown, Flame, Clock, Loader2, ChevronDown, Bell,
-  CheckCircle2, Search, X,
+  CheckCircle2, Search, X, Zap,
 } from "lucide-react";
-
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,42 +17,40 @@ import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
-
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
-
 import { useContentGeneration, useNotificationIntegration, useScheduledPosts } from "@/app/hooks/useBrain";
 import PostScheduleModal from "./brain/PostScheduleModal";
-
 import { BrainResults, ContentType, ScheduleModalData } from "@/app/types/brain";
 import { CarouselCard, ImagePostCard, ReelCard, StoryCard } from "./brain/ContentCards";
 import SettingsModal from "./brain/SettingsModal";
 import CalendarView from "./brain/CalendarView";
+import Link from "next/link";
 
 // =================================================================
 // COMPONENTES AUXILIARES
 // =================================================================
-
-const LoadingSpinner = () => (
+const LoadingSpinner = ({ userPlan }: { userPlan: string }) => (
   <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
     <motion.div
       animate={{ rotate: 360 }}
       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
     >
-      <Loader2 className="w-12 h-12 text-primary" />
+      <Loader2 className={cn("w-12 h-12", userPlan === 'ultra' ? "text-purple-500" : "text-blue-500")} />
     </motion.div>
-    <p className="text-lg text-muted-foreground animate-pulse">
-      Gerando conteúdo incrível...
+    <p className="text-lg text-muted-foreground animate-pulse font-medium">
+      {userPlan === 'ultra'
+        ? "⚡ Acessando o Cérebro Neural Ultra (Modo Diretor)..."
+        : "Gerando ideias criativas..."}
     </p>
   </div>
 );
 
 const AnimatedCounter = ({ value }: { value: number }) => {
   const [displayValue, setDisplayValue] = useState(0);
-
   useEffect(() => {
     const startTime = Date.now();
     const duration = 500;
@@ -63,15 +59,10 @@ const AnimatedCounter = ({ value }: { value: number }) => {
       const progress = Math.min((now - startTime) / duration, 1);
       const currentValue = Math.floor(progress * value);
       setDisplayValue(currentValue);
-
-      if (progress === 1) {
-        clearInterval(timer);
-      }
+      if (progress === 1) { clearInterval(timer); }
     }, 16);
-
     return () => clearInterval(timer);
   }, [value]);
-
   return <span>{displayValue}</span>;
 };
 
@@ -95,42 +86,42 @@ interface BrainCampaign {
 }
 
 // =================================================================
+// INTERFACE DE PROPS
+// =================================================================
+interface FreelinnkBrainToolProps {
+  userPlan: "pro" | "ultra";
+}
+
+// =================================================================
 // COMPONENTE PRINCIPAL
 // =================================================================
-
-export default function FreelinkBrainToolUltra() {
+export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolProps) {
   const [theme, setTheme] = useState("");
   const [results, setResults] = useState<BrainResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("reels");
   const [mainView, setMainView] = useState<"generator" | "planner">("generator");
+
+  // Variável que estava acusando erro de não usada (agora usada no Header)
   const [showViralMode] = useState(true);
+
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(""); // Adicionado para corrigir o erro
+  const [searchTerm, setSearchTerm] = useState("");
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [currentCampaign, setCurrentCampaign] = useState<BrainCampaign | null>(null);
 
-  const [scheduleModalData, setScheduleModalData] = useState<ScheduleModalData>({
-    isOpen: false
-  });
-
+  const [scheduleModalData, setScheduleModalData] = useState<ScheduleModalData>({ isOpen: false });
   const inputRef = useRef<HTMLInputElement>(null);
 
   const { generateIdeas } = useContentGeneration();
 
-  const {
-    results: campaigns,
-    status: campaignsStatus,
-    loadMore: loadMoreCampaigns
-  } = usePaginatedQuery(
-    api.brainCampaigns.listCampaigns,
-    {},
-    { initialNumItems: 20 }
+  // Variáveis do Paginated Query que acusavam erro (agora usadas na Sidebar)
+  const { results: campaigns, status: campaignsStatus, loadMore: loadMoreCampaigns } = usePaginatedQuery(
+    api.brainCampaigns.listCampaigns, {}, { initialNumItems: 20 }
   );
 
   const createCampaign = useMutation(api.brainCampaigns.createCampaign);
   const deleteCampaign = useMutation(api.brainCampaigns.deleteCampaign);
-
   useScheduledPosts();
   const { isConnected: hasAnyNotification } = useNotificationIntegration();
 
@@ -146,9 +137,12 @@ export default function FreelinkBrainToolUltra() {
     setResults(null);
 
     try {
-      const data = await generateIdeas({ theme });
-      setResults(data);
+      const data = await generateIdeas({
+        theme,
+        plan: userPlan
+      });
 
+      setResults(data);
       const campaignId = await createCampaign({
         theme,
         themeSummary: data.theme_summary,
@@ -174,13 +168,20 @@ export default function FreelinkBrainToolUltra() {
       });
 
       setActiveTab("reels");
-      toast.success("Campanha gerada com sucesso! 🎉");
+
+      if (userPlan === 'ultra') {
+        toast.success("⚡ Estratégia ULTRA VIRAL Gerada com Sucesso!");
+      } else {
+        toast.success("Campanha gerada com sucesso! 🎉");
+      }
 
       confetti({
-        particleCount: 150,
+        particleCount: userPlan === 'ultra' ? 250 : 150,
         spread: 90,
         origin: { y: 0.6 },
-        colors: ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981']
+        colors: userPlan === 'ultra'
+          ? ['#8B5CF6', '#F472B6', '#FFD700']
+          : ['#8B5CF6', '#EC4899', '#F59E0B', '#10B981']
       });
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao gerar conteúdo");
@@ -202,16 +203,9 @@ export default function FreelinkBrainToolUltra() {
     setTimeout(() => handleSubmit(), 100);
   };
 
-  const handleScheduleContent = (
-    contentType: ContentType,
-    index: number
-  ) => {
+  const handleScheduleContent = (contentType: ContentType, index: number) => {
     if (!currentCampaign || !results) return;
-
-    const key = contentType === "image_post" ? "image_posts" :
-      contentType === "story_sequence" ? "story_sequences" :
-        `${contentType}s` as "reels" | "carousels";
-
+    const key = contentType === "image_post" ? "image_posts" : contentType === "story_sequence" ? "story_sequences" : `${contentType}s` as "reels" | "carousels";
     const content = results.content_pack[key][index];
     if (!content) return;
 
@@ -241,20 +235,20 @@ export default function FreelinkBrainToolUltra() {
 
   const handleCampaignSelect = (campaign: BrainCampaign) => {
     try {
-        const parsedContent = JSON.parse(campaign.contentPack);
-        setResults({
-          theme_summary: campaign.themeSummary,
-          target_audience_suggestion: campaign.targetAudience,
-          content_pack: parsedContent,
-          viral_strategy: campaign.viralStrategy,
-        });
-        setTheme(campaign.theme);
-        setCurrentCampaign(campaign);
-        setMainView("generator");
-        setIsHistorySidebarOpen(false);
-        toast.success("Campanha carregada!");
+      const parsedContent = JSON.parse(campaign.contentPack);
+      setResults({
+        theme_summary: campaign.themeSummary,
+        target_audience_suggestion: campaign.targetAudience,
+        content_pack: parsedContent,
+        viral_strategy: campaign.viralStrategy,
+      });
+      setTheme(campaign.theme);
+      setCurrentCampaign(campaign);
+      setMainView("generator");
+      setIsHistorySidebarOpen(false);
+      toast.success("Campanha carregada!");
     } catch {
-        toast.error("Erro ao carregar campanha antiga");
+      toast.error("Erro ao carregar campanha antiga");
     }
   };
 
@@ -262,52 +256,53 @@ export default function FreelinkBrainToolUltra() {
     try {
       await deleteCampaign({ campaignId: id });
       toast.success("Campanha excluída!");
-    } catch (error) {
-      console.error("Erro ao excluir campanha:", error);
+    } catch  {
       toast.error("Erro ao excluir campanha");
     }
   };
 
+  // Variável contentCounts que estava acusando erro (agora usada no Card de Stats)
   const contentCounts = results ? {
     reels: results.content_pack?.reels?.length ?? 0,
     carousels: results.content_pack?.carousels?.length ?? 0,
     image_posts: results.content_pack?.image_posts?.length ?? 0,
     story_sequences: results.content_pack?.story_sequences?.length ?? 0,
-    total: (results.content_pack?.reels?.length ?? 0) +
-      (results.content_pack?.carousels?.length ?? 0) +
-      (results.content_pack?.image_posts?.length ?? 0) +
-      (results.content_pack?.story_sequences?.length ?? 0)
+    total: (results.content_pack?.reels?.length ?? 0) + (results.content_pack?.carousels?.length ?? 0) + (results.content_pack?.image_posts?.length ?? 0) + (results.content_pack?.story_sequences?.length ?? 0)
   } : null;
 
   return (
     <div className="w-full min-h-screen bg-gradient-to-br from-purple-50/30 via-pink-50/30 to-orange-50/30 dark:from-gray-950 dark:to-black">
-
-      {/* ================= HEADER =================
-          CORREÇÃO: Mudei de z-50 para z-30.
-          Isso garante que o header fique ABAIXO dos menus laterais e Sheets (que geralmente são z-50 ou z-100).
-      */}
-      <motion.div
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        className="sticky top-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-purple-200/50 dark:border-white/10 shadow-lg"
-      >
+      {/* HEADER */}
+      <motion.div initial={{ y: -100 }} animate={{ y: 0 }} className="sticky top-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-purple-200/50 dark:border-white/10 shadow-lg">
         <div className="container">
           <div className="flex items-center justify-between gap-2 py-2 sm:py-3 px-2 sm:px-4">
             <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
               <h1 className="font-black text-base sm:text-xl md:text-2xl lg:text-3xl truncate">
-                <span className="bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+                <span className={cn(
+                  "bg-clip-text text-transparent",
+                  userPlan === 'ultra' ? "bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-500" : "bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600"
+                )}>
                   FreelinnkBrain
                 </span>
               </h1>
               <div className="flex items-center gap-1">
-                <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5">
-                  <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1" />
-                  <span className="hidden sm:inline">PRO</span>
-                </Badge>
+                {userPlan === 'ultra' ? (
+                  <Badge className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white shadow-lg text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5 animate-pulse border-0">
+                    <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1 fill-white" />
+                    <span className="hidden sm:inline">ULTRA</span>
+                  </Badge>
+                ) : (
+                  <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5">
+                    <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1 fill-yellow-400 text-yellow-400" />
+                    <span className="hidden sm:inline">PRO</span>
+                  </Badge>
+                )}
+
+                {/* AQUI ESTÁ O USO DE showViralMode */}
                 {showViralMode && (
-                  <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white animate-pulse text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5">
+                  <Badge variant="outline" className="hidden md:flex border-orange-200 bg-orange-50 text-orange-600 text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5">
                     <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1" />
-                    <span className="hidden sm:inline">VIRAL</span>
+                    VIRAL MODE
                   </Badge>
                 )}
               </div>
@@ -316,102 +311,32 @@ export default function FreelinkBrainToolUltra() {
             <div className="hidden lg:flex items-center gap-2">
               <Tabs value={mainView} className="w-auto">
                 <TabsList className="bg-gray-100 dark:bg-gray-800/50 h-9">
-                  <TabsTrigger
-                    value="generator"
-                    onClick={() => setMainView("generator")}
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-sm"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 mr-1.5" />
-                    Gerador
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="planner"
-                    onClick={() => setMainView("planner")}
-                    className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-pink-500 data-[state=active]:text-white text-sm"
-                  >
-                    <Calendar className="w-3.5 h-3.5 mr-1.5" />
-                    Calendário
-                  </TabsTrigger>
+                  <TabsTrigger value="generator" onClick={() => setMainView("generator")} className="text-sm data-[state=active]:bg-purple-600 data-[state=active]:text-white"><Sparkles className="w-3.5 h-3.5 mr-1.5" />Gerador</TabsTrigger>
+                  <TabsTrigger value="planner" onClick={() => setMainView("planner")} className="text-sm data-[state=active]:bg-purple-600 data-[state=active]:text-white"><Calendar className="w-3.5 h-3.5 mr-1.5" />Calendário</TabsTrigger>
                 </TabsList>
               </Tabs>
             </div>
-
             <div className="flex items-center gap-1 sm:gap-2">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button
-                      variant={hasAnyNotification ? "default" : "outline"}
-                      size="icon"
-                      onClick={() => setIsSettingsOpen(true)}
-                      className={cn(
-                        "relative h-8 w-8 sm:h-9 sm:w-9",
-                        hasAnyNotification && "bg-green-600 hover:bg-green-700"
-                      )}
-                    >
-                      {hasAnyNotification ? (
-                        <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      ) : (
-                        <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                      )}
-                      {hasAnyNotification && (
-                        <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      )}
+                    <Button variant={hasAnyNotification ? "default" : "outline"} size="icon" onClick={() => setIsSettingsOpen(true)} className={cn("relative h-8 w-8 sm:h-9 sm:w-9", hasAnyNotification && "bg-green-600 hover:bg-green-700")}>
+                      {hasAnyNotification ? <CheckCircle2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Bell className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                     </Button>
                   </TooltipTrigger>
-                  <TooltipContent>
-                    <p>
-                      {hasAnyNotification
-                        ? "Notificações Ativas"
-                        : "Configurar Notificações"}
-                    </p>
-                  </TooltipContent>
+                  <TooltipContent><p>{hasAnyNotification ? "Notificações Ativas" : "Configurar Notificações"}</p></TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsHistorySidebarOpen(true)}
-                className="h-8 sm:h-9 px-2 sm:px-3 hover:bg-purple-50 hover:text-purple-700 hover:border-purple-200 transition-all"
-              >
-                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                <span className="hidden sm:inline text-sm font-medium">Histórico</span>
-              </Button>
-
+              <Button variant="outline" size="sm" onClick={() => setIsHistorySidebarOpen(true)} className="h-8 sm:h-9 px-2 sm:px-3"><Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" /><span className="hidden sm:inline text-sm font-medium">Histórico</span></Button>
               <Sheet>
                 <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" className="lg:hidden h-8 w-8 sm:h-9 sm:w-9">
-                    <Menu className="w-4 h-4" />
-                  </Button>
+                  <Button variant="outline" size="icon" className="lg:hidden h-8 w-8 sm:h-9 sm:w-9"><Menu className="w-4 h-4" /></Button>
                 </SheetTrigger>
                 <SheetContent side="left" className="w-[280px] sm:w-[300px]">
-                  <SheetHeader>
-                    <SheetTitle className="flex items-center gap-2">
-                      <Brain className="w-5 h-5 text-purple-600" />
-                      Menu
-                    </SheetTitle>
-                    <SheetDescription>
-                      Navegue pelas funcionalidades
-                    </SheetDescription>
-                  </SheetHeader>
+                  <SheetHeader><SheetTitle>Menu</SheetTitle></SheetHeader>
                   <div className="grid gap-3 mt-6">
-                    <Button
-                      variant={mainView === "generator" ? "default" : "outline"}
-                      className="justify-start w-full"
-                      onClick={() => setMainView("generator")}
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Gerador de Conteúdo
-                    </Button>
-                    <Button
-                      variant={mainView === "planner" ? "default" : "outline"}
-                      className="justify-start w-full"
-                      onClick={() => setMainView("planner")}
-                    >
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Calendário
-                    </Button>
+                    <Button variant={mainView === "generator" ? "default" : "outline"} className="justify-start w-full" onClick={() => setMainView("generator")}><Sparkles className="w-4 h-4 mr-2" />Gerador</Button>
+                    <Button variant={mainView === "planner" ? "default" : "outline"} className="justify-start w-full" onClick={() => setMainView("planner")}><Calendar className="w-4 h-4 mr-2" />Calendário</Button>
                   </div>
                 </SheetContent>
               </Sheet>
@@ -420,201 +345,55 @@ export default function FreelinkBrainToolUltra() {
         </div>
       </motion.div>
 
-      {/* ================= SIDEBAR HISTÓRICO (CORRIGIDA E OTIMIZADA) ================= */}
+      {/* SIDEBAR HISTÓRICO COM LOGICA RESTAURADA */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-        <SheetContent
-          side="right"
-          className="w-full sm:w-[420px] p-0 flex flex-col h-[100dvh] bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-xl border-l border-purple-100 dark:border-purple-900/20 shadow-2xl outline-none z-[100]"
-        >
-          {/* --- HEADER FIXO COM BOTÃO DE FECHAR --- */}
-          <SheetHeader className="px-4 sm:px-6 py-4 border-b bg-white/80 dark:bg-gray-950/80 backdrop-blur-md flex-shrink-0 z-10 flex flex-row items-center justify-between space-y-0">
-            <div className="flex flex-col gap-1">
-              <SheetTitle className="text-xl sm:text-2xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent text-left">
-                Histórico Viral
-              </SheetTitle>
-              <SheetDescription className="text-xs sm:text-sm font-medium text-muted-foreground text-left">
-                {campaigns ? (
-                  <span>{campaigns.length} campanhas salvas</span>
-                ) : (
-                  <span>Carregando...</span>
-                )}
-              </SheetDescription>
-            </div>
-
-            {/* BOTÃO DE FECHAR (X) E DECORAÇÃO */}
-            <div className="flex items-center gap-2">
-              <div className="hidden sm:flex p-2 bg-purple-100 dark:bg-purple-900/40 rounded-full">
-                <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
-              </div>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setIsHistorySidebarOpen(false)}
-                className="h-10 w-10 rounded-full hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/30 transition-colors"
-              >
-                <X className="w-6 h-6" />
-                <span className="sr-only">Fechar</span>
-              </Button>
+        <SheetContent side="right" className="w-full sm:w-[420px] p-0 flex flex-col h-[100dvh] bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-xl z-[100]">
+          <SheetHeader className="px-4 py-4 border-b bg-white/80 dark:bg-gray-950/80">
+            <div className="flex items-center justify-between">
+              <SheetTitle>Histórico</SheetTitle>
+              <Button variant="ghost" size="icon" onClick={() => setIsHistorySidebarOpen(false)}><X className="w-4 h-4"/></Button>
             </div>
           </SheetHeader>
-
-          {/* --- BARRA DE BUSCA FIXA --- */}
-          <div className="px-4 py-3 bg-white/50 dark:bg-gray-950/50 border-b flex-shrink-0 backdrop-blur-sm">
-            <div className="relative group">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-purple-500 transition-colors" />
-              <Input
-                placeholder="Buscar campanha..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 pr-10 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 h-11 rounded-xl focus-visible:ring-purple-500 transition-all shadow-sm"
-              />
-              {searchTerm && (
-                <button
-                  onClick={() => setSearchTerm("")}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 hover:bg-gray-200 dark:hover:bg-gray-800 rounded-full transition-colors"
-                >
-                  <X className="w-3.5 h-3.5 text-gray-500" />
-                </button>
-              )}
-            </div>
+          <div className="px-4 py-3 bg-white/50 border-b relative">
+            <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input placeholder="Buscar campanha..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
           </div>
-
-          {/* --- ÁREA DE SCROLL (LISTA) --- */}
-          {/* flex-1 e overflow-hidden no pai forçam o ScrollArea a gerenciar a rolagem interna corretamente */}
-          <div className="flex-1 overflow-hidden w-full bg-gray-50/50 dark:bg-black/20">
+          <div className="flex-1 overflow-hidden w-full">
             <ScrollArea className="h-full w-full">
               <div className="p-4 space-y-3 pb-24">
                 {campaignsStatus === "LoadingFirstPage" ? (
-                  <div className="flex flex-col items-center justify-center py-20 gap-4 opacity-70">
-                    <Loader2 className="w-10 h-10 animate-spin text-purple-600" />
-                    <p className="text-sm font-medium animate-pulse">Buscando suas ideias...</p>
-                  </div>
+                   <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-500"/></div>
                 ) : !campaigns || campaigns.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-16 gap-4 text-center px-6">
-                    <div className="w-16 h-16 bg-white dark:bg-gray-800 rounded-full flex items-center justify-center shadow-sm mb-2">
-                      <FolderOpen className="h-8 w-8 text-gray-300 dark:text-gray-600" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                      Vazio por enquanto
-                    </h3>
-                    <p className="text-sm text-muted-foreground max-w-[200px]">
-                      Gere sua primeira campanha para vê-la aqui.
-                    </p>
-                  </div>
+                   <div className="text-center py-10 text-gray-500">Nenhuma campanha encontrada</div>
                 ) : (
                   <>
-                    {/* Renderização da Lista */}
-                    {(() => {
-                      const filteredCampaigns = searchTerm
-                        ? campaigns.filter(c => c.theme.toLowerCase().includes(searchTerm.toLowerCase()))
-                        : campaigns;
-
-                      if (filteredCampaigns.length === 0) {
-                        return (
-                          <div className="text-center py-12 text-muted-foreground">
-                            <p>Nada encontrado para {searchTerm}</p>
-                            <Button variant="link" onClick={() => setSearchTerm("")} className="mt-2 text-purple-600">
-                              Limpar busca
-                            </Button>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <AnimatePresence mode="popLayout">
-                          {filteredCampaigns.map((campaign) => (
-                            <motion.div
-                              layout
-                              initial={{ opacity: 0, y: 10 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.95 }}
-                              key={campaign._id}
-                              className="group relative bg-white dark:bg-gray-900 p-3 sm:p-4 rounded-2xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md hover:border-purple-300 dark:hover:border-purple-600 transition-all duration-200 cursor-pointer active:scale-[0.98]"
-                              onClick={() => handleCampaignSelect(campaign)}
-                            >
-                              {/* Botão Excluir (Melhorado para toque) */}
-                              <div className="absolute top-2 right-2 z-20">
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 rounded-full transition-all opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleCampaignDelete(campaign._id);
-                                  }}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-
-                              <div className="flex gap-3 sm:gap-4 items-start">
-                                {/* Ícone */}
-                                <div className="flex-shrink-0 mt-1">
-                                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-100 to-pink-100 dark:from-purple-900/30 dark:to-pink-900/30 rounded-xl flex items-center justify-center shadow-inner">
-                                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
-                                  </div>
-                                </div>
-
-                                {/* Textos */}
-                                <div className="flex-1 min-w-0 pr-8">
-                                  <h4 className="font-bold text-sm sm:text-base text-gray-800 dark:text-gray-100 leading-tight mb-2 line-clamp-2">
-                                    {campaign.theme}
-                                  </h4>
-
-                                  <div className="flex items-center flex-wrap gap-2 text-xs text-gray-500 dark:text-gray-400">
-                                    <span className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">
-                                      <Calendar className="w-3 h-3" />
-                                      {new Date(campaign.createdAt).toLocaleDateString('pt-BR', {
-                                        day: '2-digit',
-                                        month: 'short'
-                                      })}
-                                    </span>
-                                    {/* Exibe o horário também para diferenciar */}
-                                    <span className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded-md">
-                                      <Clock className="w-3 h-3" />
-                                      {new Date(campaign.createdAt).toLocaleTimeString('pt-BR', {
-                                        hour: '2-digit',
-                                        minute: '2-digit'
-                                      })}
-                                    </span>
-                                  </div>
-                                </div>
-                              </div>
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      );
-                    })()}
-
-                    {/* Botão Carregar Mais */}
-                    {(campaignsStatus === "CanLoadMore" || campaignsStatus === "LoadingMore") && !searchTerm && (
-                      <div className="pt-4 pb-8">
-                        <Button
-                          variant="outline"
-                          className="w-full h-12 border-dashed border-2 text-muted-foreground hover:text-purple-600 hover:border-purple-300 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all"
-                          onClick={() => loadMoreCampaigns(15)}
-                          disabled={campaignsStatus === "LoadingMore"}
-                        >
-                          {campaignsStatus === "LoadingMore" ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Carregando...
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="w-4 h-4 mr-2" />
-                              Carregar Mais Antigas
-                            </>
-                          )}
-                        </Button>
+                  {campaigns.filter(c => c.theme.toLowerCase().includes(searchTerm.toLowerCase())).map((campaign) => (
+                    <div key={campaign._id} onClick={() => handleCampaignSelect(campaign)} className="group relative p-3 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-purple-300 transition-all">
+                      <div className="flex items-start gap-3">
+                         <div className="p-2 bg-purple-50 rounded-lg"><Brain className="w-4 h-4 text-purple-600"/></div>
+                         <div className="flex-1 min-w-0">
+                           <p className="font-bold text-sm truncate text-gray-900 dark:text-gray-100">{campaign.theme}</p>
+                           <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                             <Clock className="w-3 h-3"/> {new Date(campaign.createdAt).toLocaleDateString()}
+                           </p>
+                         </div>
                       </div>
-                    )}
+                      <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => {e.stopPropagation(); handleCampaignDelete(campaign._id)}}><Trash2 className="w-3 h-3 text-red-400" /></Button>
+                    </div>
+                  ))}
 
-                    {campaignsStatus === "Exhausted" && campaigns.length > 5 && (
-                      <p className="text-center text-xs text-muted-foreground py-4 opacity-50">
-                        ~ Fim do histórico ~
-                      </p>
-                    )}
+                  {/* USO DE campaignsStatus e loadMoreCampaigns */}
+                  {(campaignsStatus === "CanLoadMore" || campaignsStatus === "LoadingMore") && !searchTerm && (
+                    <Button
+                      variant="ghost"
+                      className="w-full mt-4 text-xs text-gray-500"
+                      onClick={() => loadMoreCampaigns(10)}
+                      disabled={campaignsStatus === "LoadingMore"}
+                    >
+                      {campaignsStatus === "LoadingMore" ? <Loader2 className="w-3 h-3 animate-spin mr-2"/> : <ChevronDown className="w-3 h-3 mr-2"/>}
+                      Carregar mais antigas
+                    </Button>
+                  )}
                   </>
                 )}
               </div>
@@ -623,180 +402,106 @@ export default function FreelinkBrainToolUltra() {
         </SheetContent>
       </Sheet>
 
-      {/* ================= MODALS ================= */}
+      {/* MODALS */}
       {scheduleModalData.isOpen && scheduleModalData.campaignId && scheduleModalData.contentData && (
-        <PostScheduleModal
-          isOpen={scheduleModalData.isOpen}
-          onClose={() => setScheduleModalData({ isOpen: false })}
-          campaignId={scheduleModalData.campaignId}
-          contentType={scheduleModalData.contentType!}
-          contentData={scheduleModalData.contentData}
-          initialCaption={scheduleModalData.initialCaption || ""}
-          initialHashtags={scheduleModalData.initialHashtags || []}
-        />
+        <PostScheduleModal isOpen={scheduleModalData.isOpen} onClose={() => setScheduleModalData({ isOpen: false })} campaignId={scheduleModalData.campaignId} contentType={scheduleModalData.contentType!} contentData={scheduleModalData.contentData} initialCaption={scheduleModalData.initialCaption || ""} initialHashtags={scheduleModalData.initialHashtags || []} />
       )}
+      <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
-      <SettingsModal
-        isOpen={isSettingsOpen}
-        onClose={() => setIsSettingsOpen(false)}
-      />
-
-      {/* ================= CONTEÚDO PRINCIPAL ================= */}
+      {/* CONTEÚDO PRINCIPAL */}
       <div className="container px-3 sm:px-4 py-4 sm:py-6 md:py-8">
         <AnimatePresence mode="wait">
-
-          {/* ================= VIEW: GERADOR ================= */}
           {mainView === "generator" && (
-            <motion.div
-              key="generator"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="space-y-4 sm:space-y-6"
-            >
+            <motion.div key="generator" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4 sm:space-y-6">
               {isLoading ? (
-                <LoadingSpinner />
+                <LoadingSpinner userPlan={userPlan} />
               ) : results && currentCampaign ? (
                 <div className="space-y-4 sm:space-y-6">
-                  {/* Header dos Resultados */}
-                  <Card className="shadow-lg p-4 sm:p-6">
-                    <div className="flex flex-col gap-3 sm:gap-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <h2 className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                            Campanha Pronta!
-                          </h2>
-                          <p className="text-xs sm:text-sm text-muted-foreground mt-1 truncate">
-                            <span className="font-semibold">{theme}</span>
-                          </p>
+                  {/* CARD DE RESULTADOS COM STATS RESTAURADOS */}
+                  <Card className="shadow-lg p-4 sm:p-6 border-t-4 border-purple-500">
+                     <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+                        <div>
+                          <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Campanha Pronta!</h2>
+                          <p className="text-sm text-gray-500 font-medium mt-1">{theme}</p>
                         </div>
-                        <Button
-                          onClick={handleGenerateNew}
-                          variant="outline"
-                          size="sm"
-                          className="flex-shrink-0"
-                        >
-                          <RefreshCcw className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
-                          <span className="hidden sm:inline">Novo</span>
-                        </Button>
-                      </div>
+                        <Button onClick={handleGenerateNew} variant="outline" size="sm" className="w-full md:w-auto"><RefreshCcw className="mr-2 w-4 h-4"/> Nova Campanha</Button>
+                     </div>
 
-                      {/* Stats */}
-                      <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-                        <div className="text-center p-2 sm:p-3 bg-muted/50 rounded-lg">
-                          <p className="text-lg sm:text-2xl font-bold text-primary">
-                            <AnimatedCounter value={contentCounts?.total || 0} />
-                          </p>
-                          <p className="text-[0.65rem] sm:text-xs text-muted-foreground mt-0.5">Total</p>
+                     {/* USO DE contentCounts e AnimatedCounter */}
+                     {contentCounts && (
+                       <div className="grid grid-cols-5 gap-2 mb-6">
+                          <div className="bg-gray-50 p-2 rounded-lg text-center border">
+                            <p className="text-xs text-gray-500 uppercase font-bold">Total</p>
+                            <p className="text-xl font-black text-purple-600"><AnimatedCounter value={contentCounts.total} /></p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded-lg text-center border">
+                            <Video className="w-4 h-4 mx-auto text-blue-500 mb-1"/>
+                            <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.reels} /></p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded-lg text-center border">
+                            <Layers className="w-4 h-4 mx-auto text-pink-500 mb-1"/>
+                            <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.carousels} /></p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded-lg text-center border">
+                            <Camera className="w-4 h-4 mx-auto text-green-500 mb-1"/>
+                            <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.image_posts} /></p>
+                          </div>
+                          <div className="bg-gray-50 p-2 rounded-lg text-center border">
+                            <MessageSquare className="w-4 h-4 mx-auto text-yellow-500 mb-1"/>
+                            <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.story_sequences} /></p>
+                          </div>
+                       </div>
+                     )}
+
+                     <Tabs value={activeTab} onValueChange={setActiveTab}>
+                        <TabsList className="grid grid-cols-4 w-full h-auto p-1 bg-gray-100">
+                          <TabsTrigger value="reels" className="py-2 text-xs md:text-sm"><Video className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2"/>Reels</TabsTrigger>
+                          <TabsTrigger value="carousels" className="py-2 text-xs md:text-sm"><Layers className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2"/>Carrossel</TabsTrigger>
+                          <TabsTrigger value="image_posts" className="py-2 text-xs md:text-sm"><Camera className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2"/>Posts</TabsTrigger>
+                          <TabsTrigger value="story_sequences" className="py-2 text-xs md:text-sm"><MessageSquare className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2"/>Stories</TabsTrigger>
+                        </TabsList>
+                        <div className="mt-6 space-y-4">
+                           <TabsContent value="reels" className="space-y-4 mt-0">
+                             {results.content_pack?.reels?.map((reel, i) => (
+                               <ReelCard key={i} reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
+                             ))}
+                           </TabsContent>
+                           <TabsContent value="carousels" className="space-y-4 mt-0">
+                             {results.content_pack?.carousels?.map((carousel, i) => (
+                               <CarouselCard key={i} carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
+                             ))}
+                           </TabsContent>
+                           <TabsContent value="image_posts" className="space-y-4 mt-0">
+                             {results.content_pack?.image_posts?.map((post, i) => (
+                               <ImagePostCard key={i} post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
+                             ))}
+                           </TabsContent>
+                           <TabsContent value="story_sequences" className="space-y-4 mt-0">
+                             {results.content_pack?.story_sequences?.map((story, i) => (
+                               <StoryCard key={i} story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
+                             ))}
+                           </TabsContent>
                         </div>
-
-                        {[
-                          { key: "reels", Icon: Video, label: "Reels" },
-                          { key: "carousels", Icon: Layers, label: "Carr." },
-                          { key: "image_posts", Icon: Camera, label: "Posts" },
-                          { key: "story_sequences", Icon: MessageSquare, label: "Stories" },
-                        ].map(({ key, Icon, label }) => {
-                          const typedKey = key as "reels" | "carousels" | "image_posts" | "story_sequences";
-                          return (
-                            <div key={key} className="text-center p-2 sm:p-3 bg-muted/50 rounded-lg">
-                              <Icon className="w-3 h-3 sm:w-4 sm:h-4 mx-auto mb-1 text-primary" />
-                              <p className="text-sm sm:text-lg font-bold">
-                                <AnimatedCounter value={contentCounts?.[typedKey] || 0} />
-                              </p>
-                              <p className="text-[0.65rem] hidden sm:block text-muted-foreground mt-0.5">{label}</p>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
+                     </Tabs>
                   </Card>
-
-                  {/* Tabs de Conteúdo */}
-                  <Tabs value={activeTab} onValueChange={setActiveTab}>
-                    <TabsList className="grid grid-cols-4 w-full h-auto gap-1 bg-transparent sm:bg-muted p-0 sm:p-1">
-                      <TabsTrigger value="reels" className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm">
-                        <Video className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline sm:ml-1.5">Reels</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="carousels" className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm">
-                        <Layers className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline sm:ml-1.5">Carr.</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="image_posts" className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm">
-                        <Camera className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline sm:ml-1.5">Posts</span>
-                      </TabsTrigger>
-                      <TabsTrigger value="story_sequences" className="flex-col sm:flex-row h-auto py-2 sm:py-2.5 px-2 gap-1 text-xs sm:text-sm">
-                        <MessageSquare className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                        <span className="hidden xs:inline sm:ml-1.5">Stories</span>
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <div className="mt-4 sm:mt-6">
-                      <TabsContent value="reels" className="space-y-3 sm:space-y-4 mt-0">
-                        {results.content_pack?.reels?.map((reel, i) => (
-                          <ReelCard
-                            key={i}
-                            reel={reel}
-                            index={i}
-                            onSchedule={() => handleScheduleContent("reel", i)}
-                          />
-                        ))}
-                      </TabsContent>
-
-                      <TabsContent value="carousels" className="space-y-3 sm:space-y-4 mt-0">
-                        {results.content_pack?.carousels?.map((carousel, i) => (
-                          <CarouselCard
-                            key={i}
-                            carousel={carousel}
-                            index={i}
-                            onSchedule={() => handleScheduleContent("carousel", i)}
-                          />
-                        ))}
-                      </TabsContent>
-
-                      <TabsContent value="image_posts" className="space-y-3 sm:space-y-4 mt-0">
-                        {results.content_pack?.image_posts?.map((post, i) => (
-                          <ImagePostCard
-                            key={i}
-                            post={post}
-                            index={i}
-                            onSchedule={() => handleScheduleContent("image_post", i)}
-                          />
-                        ))}
-                      </TabsContent>
-
-                      <TabsContent value="story_sequences" className="space-y-3 sm:space-y-4 mt-0">
-                        {results.content_pack?.story_sequences?.map((story, i) => (
-                          <StoryCard
-                            key={i}
-                            story={story}
-                            index={i}
-                            onSchedule={() => handleScheduleContent("story_sequence", i)}
-                          />
-                        ))}
-                      </TabsContent>
-                    </div>
-                  </Tabs>
                 </div>
               ) : (
                 <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
-                  <Card className="shadow-2xl border-2 p-6 sm:p-8 md:p-12">
+                  <Card className={cn("shadow-2xl border-2 p-6 sm:p-8 md:p-12 transition-all duration-500", userPlan === 'ultra' ? "border-purple-500/50 shadow-purple-500/10" : "border-gray-200")}>
                     <div className="text-center space-y-4 sm:space-y-6">
                       <Badge variant="secondary" className="px-3 py-1 sm:px-4 sm:py-1.5">
                         <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-yellow-500" />
                         <span className="text-xs sm:text-sm">Sua Máquina de Conteúdo</span>
                       </Badge>
-
                       <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight">
-                        Freelinnk<span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Brain</span>
+                        Freelinnk<span className={cn("bg-clip-text text-transparent bg-gradient-to-r", userPlan === 'ultra' ? "from-purple-600 via-pink-500 to-yellow-500" : "from-blue-600 via-purple-600 to-pink-600")}>Brain</span>
                       </h1>
-
                       <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
-                        Transforme um tema em uma campanha completa de conteúdo em 30 segundos
+                        {userPlan === 'ultra'
+                          ? "Modo ULTRA ativado: Roteiros frame-a-frame, direção de câmera e neuro-marketing."
+                          : "Transforme um tema em uma campanha completa de conteúdo em 30 segundos."}
                       </p>
                     </div>
-
                     <form onSubmit={handleSubmit} className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
                       <div className="space-y-2">
                         <Label className="flex items-center gap-2 text-sm sm:text-base">
@@ -811,40 +516,47 @@ export default function FreelinkBrainToolUltra() {
                           className="text-base sm:text-lg py-5 sm:py-6"
                           maxLength={150}
                         />
-                        <p className="text-xs text-muted-foreground text-right">
-                          {theme.length}/150
-                        </p>
                       </div>
-
                       <Button
                         type="submit"
                         size="lg"
-                        className="w-full bg-gradient-to-r from-blue-600 to-purple-600 h-12 sm:h-14 text-base sm:text-lg"
+                        className={cn(
+                          "w-full h-12 sm:h-14 text-base sm:text-lg transition-all duration-300 transform hover:scale-[1.01]",
+                          userPlan === 'ultra'
+                            ? "bg-gradient-to-r from-purple-700 via-pink-600 to-orange-500 hover:shadow-xl hover:shadow-purple-500/20"
+                            : "bg-gradient-to-r from-blue-600 to-purple-600"
+                        )}
                         disabled={isLoading || !theme.trim()}
                       >
-                        <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                        Gerar Campanha Completa
+                        {userPlan === 'ultra' ? (
+                          <>
+                            <Brain className="w-5 h-5 mr-2 animate-pulse" />
+                            GERAR ESTRATÉGIA ULTRA VIRAL ⚡
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                            Gerar Campanha Completa
+                          </>
+                        )}
                       </Button>
-                    </form>
 
+                      {userPlan === 'pro' && (
+                         <div className="text-center bg-purple-50 p-2 rounded-lg border border-purple-100">
+                           <p className="text-xs text-purple-800">
+                             💡 Quer roteiros <strong>frame-a-frame</strong> com direção de câmera e psicologia?
+                             <Link href="/dashboard/billing" className="font-bold underline ml-1">Vire Ultra</Link>
+                           </p>
+                         </div>
+                      )}
+                    </form>
                     <div className="mt-6 sm:mt-8">
                       <p className="text-xs sm:text-sm text-muted-foreground text-center mb-3">
-                        Precisa de inspiração? Experimente:
+                        Precisa de inspiração?
                       </p>
                       <div className="flex flex-wrap gap-2 justify-center">
-                        {[
-                          "Vendas B2B pelo LinkedIn",
-                          "Lançamento digital",
-                          "Marketing para e-commerce",
-                          "Consultoria online",
-                        ].map((example) => (
-                          <Button
-                            key={example}
-                            variant="outline"
-                            size="sm"
-                            className="text-xs sm:text-sm h-8 sm:h-9"
-                            onClick={() => handleExampleClick(example)}
-                          >
+                        {["Vendas B2B", "Lançamento digital", "Marketing e-commerce", "Consultoria"].map((example) => (
+                          <Button key={example} variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9" onClick={() => handleExampleClick(example)}>
                             {example}
                           </Button>
                         ))}
@@ -855,32 +567,18 @@ export default function FreelinkBrainToolUltra() {
               )}
             </motion.div>
           )}
-
-          {/* ================= VIEW: CALENDÁRIO ================= */}
           {mainView === "planner" && (
-            <motion.div
-              key="planner"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-            >
+            <motion.div key="planner" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }}>
               <CalendarView />
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-
-
       {/* Footer */}
       <footer className="mt-12 sm:mt-20 py-6 sm:py-8 border-t">
         <div className="container text-center px-4">
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">
-            Criado com 💜 para revolucionar o seu conteúdo
-          </p>
-          <p className="text-xs sm:text-sm text-gray-500 mt-2">
-            © 2025 Freelinnk - A melhor ferramenta do universo
-          </p>
+          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Criado com 💜 para revolucionar o seu conteúdo</p>
         </div>
       </footer>
     </div>

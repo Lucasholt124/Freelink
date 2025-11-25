@@ -299,7 +299,7 @@ export default async function BrainPage() {
 
       {/* Ferramenta */}
       <div className="animate-fadeIn">
-        <FreelinnkBrainTool />
+        <FreelinnkBrainTool userPlan={subscription.plan} />
       </div>
     </div>
   );
