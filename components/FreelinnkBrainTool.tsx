@@ -8,7 +8,7 @@ import {
   Sparkles, Brain, Video, RefreshCcw, Layers, Camera,
   MessageSquare, Wand2, Calendar, Trash2, Menu,
   Crown, Flame, Clock, Loader2, ChevronDown, Bell,
-  CheckCircle2, Search, X, Zap
+  CheckCircle2, Search,  Zap, ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -181,7 +181,6 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
     setTheme("");
     setCurrentCampaign(null);
     setActiveTab("reels");
-    // Pequeno delay para garantir foco no mobile sem pular o teclado
     setTimeout(() => inputRef.current?.focus(), 100);
   };
 
@@ -338,51 +337,106 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
         </div>
       </motion.div>
 
-      {/* SIDEBAR HISTÓRICO */}
+      {/* SIDEBAR HISTÓRICO - CORRIGIDA E MELHORADA */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-        <SheetContent side="right" className="w-full sm:w-[420px] p-0 flex flex-col h-[100dvh] bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-xl z-[100]">
-          <SheetHeader className="px-4 py-4 border-b bg-white/80 dark:bg-gray-950/80">
-            <div className="flex items-center justify-between">
-              <SheetTitle>Histórico</SheetTitle>
-              <Button variant="ghost" size="icon" onClick={() => setIsHistorySidebarOpen(false)}><X className="w-4 h-4" /></Button>
-            </div>
+        <SheetContent side="right" className="w-full sm:w-[450px] p-0 flex flex-col h-[100dvh] bg-white dark:bg-gray-950 shadow-2xl z-[100]">
+          {/* Header do Sidebar - Removido o botão de X duplicado */}
+          <SheetHeader className="px-5 py-4 border-b bg-white dark:bg-gray-950 flex flex-row items-center justify-between space-y-0">
+            <SheetTitle className="text-lg font-bold flex items-center gap-2">
+              <Clock className="w-5 h-5 text-purple-600" />
+              Histórico de Campanhas
+            </SheetTitle>
+            {/* O SheetContent do shadcn já renderiza um X no canto direito, não precisamos de outro aqui */}
           </SheetHeader>
-          <div className="px-4 py-3 bg-white/50 border-b relative">
-            <Search className="absolute left-7 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-            <Input placeholder="Buscar campanha..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="pl-10" />
+
+          {/* Barra de Busca - Melhorada */}
+          <div className="px-5 py-4 bg-gray-50/50 dark:bg-gray-900/50 border-b relative">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <Input
+                placeholder="Buscar campanha por tema..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-9 h-10 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-800 focus-visible:ring-purple-500 transition-all"
+              />
+            </div>
           </div>
-          <div className="flex-1 overflow-hidden w-full">
+
+          {/* Lista de Campanhas - Layout Refeito */}
+          <div className="flex-1 overflow-hidden w-full bg-gray-50/30 dark:bg-gray-950">
             <ScrollArea className="h-full w-full">
               <div className="p-4 space-y-3 pb-24">
                 {campaignsStatus === "LoadingFirstPage" ? (
-                  <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-500" /></div>
+                  <div className="flex flex-col items-center justify-center py-20 space-y-3">
+                    <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
+                    <p className="text-sm text-gray-500">Carregando histórico...</p>
+                  </div>
                 ) : !campaigns || campaigns.length === 0 ? (
-                  <div className="text-center py-10 text-gray-500">Nenhuma campanha encontrada</div>
+                  <div className="text-center py-20 px-6">
+                    <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <Brain className="w-8 h-8 text-gray-400" />
+                    </div>
+                    <p className="font-medium text-gray-900 dark:text-gray-100">Nenhuma campanha ainda</p>
+                    <p className="text-sm text-gray-500 mt-1">Gere sua primeira estratégia para vê-la aqui.</p>
+                  </div>
                 ) : (
                   <>
-                    {campaigns.filter(c => c.theme.toLowerCase().includes(searchTerm.toLowerCase())).map((campaign) => (
-                      <div key={campaign._id} onClick={() => handleCampaignSelect(campaign)} className="group relative p-3 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-purple-300 transition-all active:scale-[0.98]">
-                        <div className="flex items-start gap-3">
-                          <div className="p-2 bg-purple-50 rounded-lg shrink-0"><Brain className="w-4 h-4 text-purple-600" /></div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-bold text-sm truncate text-gray-900 dark:text-gray-100">{campaign.theme}</p>
-                            <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                              <Clock className="w-3 h-3" /> {new Date(campaign.createdAt).toLocaleDateString()}
-                            </p>
+                    <div className="space-y-3">
+                      {campaigns.filter(c => c.theme.toLowerCase().includes(searchTerm.toLowerCase())).map((campaign) => (
+                        <div
+                          key={campaign._id}
+                          className="group relative flex items-stretch bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700 transition-all overflow-hidden"
+                        >
+                          {/* Área clicável da campanha */}
+                          <div
+                            onClick={() => handleCampaignSelect(campaign)}
+                            className="flex-1 p-3.5 cursor-pointer flex items-start gap-3.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                          >
+                            <div className="p-2.5 bg-purple-50 dark:bg-purple-900/20 rounded-lg shrink-0 flex items-center justify-center h-fit">
+                              <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                            </div>
+                            <div className="flex-1 min-w-0 flex flex-col justify-center">
+                              <p className="font-semibold text-sm sm:text-base text-gray-900 dark:text-gray-100 leading-snug break-words line-clamp-2">
+                                {campaign.theme}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1.5">
+                                <span className="text-[10px] sm:text-xs font-medium text-gray-500 flex items-center bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded">
+                                  <Clock className="w-3 h-3 mr-1" />
+                                  {new Date(campaign.createdAt).toLocaleDateString('pt-BR')}
+                                </span>
+                                <span className="text-[10px] sm:text-xs text-purple-600 font-medium opacity-0 group-hover:opacity-100 transition-opacity flex items-center">
+                                  Abrir <ArrowRight className="w-3 h-3 ml-0.5" />
+                                </span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Botão de Excluir - Separado e Melhorado */}
+                          <div className="border-l border-gray-100 dark:border-gray-800 flex flex-col">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleCampaignDelete(campaign._id);
+                              }}
+                              className="h-full px-4 flex items-center justify-center bg-transparent hover:bg-red-50 dark:hover:bg-red-900/20 text-gray-400 hover:text-red-500 transition-colors cursor-pointer active:scale-95"
+                              title="Excluir campanha"
+                            >
+                              <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                            </button>
                           </div>
                         </div>
-                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); handleCampaignDelete(campaign._id) }}><Trash2 className="w-3 h-3 text-red-400" /></Button>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+
                     {(campaignsStatus === "CanLoadMore" || campaignsStatus === "LoadingMore") && !searchTerm && (
                       <Button
                         variant="ghost"
-                        className="w-full mt-4 text-xs text-gray-500"
+                        className="w-full mt-6 py-6 text-sm text-gray-500 border border-dashed border-gray-200"
                         onClick={() => loadMoreCampaigns(10)}
                         disabled={campaignsStatus === "LoadingMore"}
                       >
-                        {campaignsStatus === "LoadingMore" ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <ChevronDown className="w-3 h-3 mr-2" />}
-                        Carregar mais antigas
+                        {campaignsStatus === "LoadingMore" ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <ChevronDown className="w-4 h-4 mr-2" />}
+                        Carregar campanhas antigas
                       </Button>
                     )}
                   </>
