@@ -8,7 +8,7 @@ import {
   Sparkles, Brain, Video, RefreshCcw, Layers, Camera,
   MessageSquare, Wand2, Calendar, Trash2, Menu,
   Crown, Flame, Clock, Loader2, ChevronDown, Bell,
-  CheckCircle2, Search, X, Zap,
+  CheckCircle2, Search, X, Zap
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,7 @@ import { api } from "@/convex/_generated/api";
 import { useContentGeneration, useNotificationIntegration, useScheduledPosts } from "@/app/hooks/useBrain";
 import PostScheduleModal from "./brain/PostScheduleModal";
 import { BrainResults, ContentType, ScheduleModalData } from "@/app/types/brain";
+// Importa os cards do arquivo separado (que vamos criar no passo 2)
 import { CarouselCard, ImagePostCard, ReelCard, StoryCard } from "./brain/ContentCards";
 import SettingsModal from "./brain/SettingsModal";
 import CalendarView from "./brain/CalendarView";
@@ -80,29 +81,21 @@ interface BrainCampaign {
   };
   contentPack: string;
   createdAt: number;
-  updatedAt?: number;
-  favorite?: boolean;
-  notes?: string;
 }
 
 // =================================================================
-// INTERFACE DE PROPS
+// PROPS CORRETAS (Resolve o erro do TS)
 // =================================================================
 interface FreelinnkBrainToolProps {
   userPlan: "pro" | "ultra";
 }
 
-// =================================================================
-// COMPONENTE PRINCIPAL
-// =================================================================
-export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolProps) {
+export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps) {
   const [theme, setTheme] = useState("");
   const [results, setResults] = useState<BrainResults | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("reels");
   const [mainView, setMainView] = useState<"generator" | "planner">("generator");
-
-  // Variável que estava acusando erro de não usada (agora usada no Header)
   const [showViralMode] = useState(true);
 
   const [isHistorySidebarOpen, setIsHistorySidebarOpen] = useState(false);
@@ -115,7 +108,6 @@ export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolP
 
   const { generateIdeas } = useContentGeneration();
 
-  // Variáveis do Paginated Query que acusavam erro (agora usadas na Sidebar)
   const { results: campaigns, status: campaignsStatus, loadMore: loadMoreCampaigns } = usePaginatedQuery(
     api.brainCampaigns.listCampaigns, {}, { initialNumItems: 20 }
   );
@@ -137,6 +129,7 @@ export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolP
     setResults(null);
 
     try {
+      // Passa o plano para a API
       const data = await generateIdeas({
         theme,
         plan: userPlan
@@ -261,7 +254,6 @@ export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolP
     }
   };
 
-  // Variável contentCounts que estava acusando erro (agora usada no Card de Stats)
   const contentCounts = results ? {
     reels: results.content_pack?.reels?.length ?? 0,
     carousels: results.content_pack?.carousels?.length ?? 0,
@@ -297,8 +289,6 @@ export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolP
                     <span className="hidden sm:inline">PRO</span>
                   </Badge>
                 )}
-
-                {/* AQUI ESTÁ O USO DE showViralMode */}
                 {showViralMode && (
                   <Badge variant="outline" className="hidden md:flex border-orange-200 bg-orange-50 text-orange-600 text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5">
                     <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1" />
@@ -345,7 +335,7 @@ export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolP
         </div>
       </motion.div>
 
-      {/* SIDEBAR HISTÓRICO COM LOGICA RESTAURADA */}
+      {/* SIDEBAR HISTÓRICO */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
         <SheetContent side="right" className="w-full sm:w-[420px] p-0 flex flex-col h-[100dvh] bg-gray-50/95 dark:bg-gray-900/95 backdrop-blur-xl z-[100]">
           <SheetHeader className="px-4 py-4 border-b bg-white/80 dark:bg-gray-950/80">
@@ -382,7 +372,6 @@ export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolP
                     </div>
                   ))}
 
-                  {/* USO DE campaignsStatus e loadMoreCampaigns */}
                   {(campaignsStatus === "CanLoadMore" || campaignsStatus === "LoadingMore") && !searchTerm && (
                     <Button
                       variant="ghost"
@@ -417,7 +406,7 @@ export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolP
                 <LoadingSpinner userPlan={userPlan} />
               ) : results && currentCampaign ? (
                 <div className="space-y-4 sm:space-y-6">
-                  {/* CARD DE RESULTADOS COM STATS RESTAURADOS */}
+                  {/* CARD DE RESULTADOS */}
                   <Card className="shadow-lg p-4 sm:p-6 border-t-4 border-purple-500">
                      <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
                         <div>
@@ -427,7 +416,6 @@ export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolP
                         <Button onClick={handleGenerateNew} variant="outline" size="sm" className="w-full md:w-auto"><RefreshCcw className="mr-2 w-4 h-4"/> Nova Campanha</Button>
                      </div>
 
-                     {/* USO DE contentCounts e AnimatedCounter */}
                      {contentCounts && (
                        <div className="grid grid-cols-5 gap-2 mb-6">
                           <div className="bg-gray-50 p-2 rounded-lg text-center border">
@@ -517,6 +505,14 @@ export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolP
                           maxLength={150}
                         />
                       </div>
+
+                      <div className="flex items-center justify-center gap-2 flex-wrap">
+                        <span className="text-xs text-gray-500 font-medium hidden sm:block">Ou tente um exemplo:</span>
+                        <Button type="button" size="sm" variant="outline" className="text-xs" onClick={() => handleExampleClick("Como ganhar seguidores no TikTok")}>Ganhar seguidores</Button>
+                        <Button type="button" size="sm" variant="outline" className="text-xs" onClick={() => handleExampleClick("Ideias de conteúdo para nutricionistas")}>Nutrição</Button>
+                        <Button type="button" size="sm" variant="outline" className="text-xs" onClick={() => handleExampleClick("Como investir em ações do zero")}>Investimentos</Button>
+                      </div>
+
                       <Button
                         type="submit"
                         size="lg"
@@ -550,18 +546,6 @@ export default function FreelinkBrainToolUltra({ userPlan }: FreelinnkBrainToolP
                          </div>
                       )}
                     </form>
-                    <div className="mt-6 sm:mt-8">
-                      <p className="text-xs sm:text-sm text-muted-foreground text-center mb-3">
-                        Precisa de inspiração?
-                      </p>
-                      <div className="flex flex-wrap gap-2 justify-center">
-                        {["Vendas B2B", "Lançamento digital", "Marketing e-commerce", "Consultoria"].map((example) => (
-                          <Button key={example} variant="outline" size="sm" className="text-xs sm:text-sm h-8 sm:h-9" onClick={() => handleExampleClick(example)}>
-                            {example}
-                          </Button>
-                        ))}
-                      </div>
-                    </div>
                   </Card>
                 </div>
               )}

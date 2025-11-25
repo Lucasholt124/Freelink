@@ -4,7 +4,6 @@ import {
   BrainCircuit,
   Sparkles,
   Zap,
-  Star,
   Users,
   ArrowRight,
   Check,
@@ -15,12 +14,17 @@ import {
   Layout,
   Award,
   Clock,
-  Infinity,
-  Brain
+  Infinity as InfinityIcon,
+  Brain,
+  Star
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import FreelinnkBrainTool from "@/components/FreelinnkBrainTool";
+
+
+
 
 function LockedBrainPage() {
   return (
@@ -74,7 +78,7 @@ function LockedBrainPage() {
                 <span className="text-[10px] md:text-xs font-medium text-purple-700 whitespace-nowrap">Carrosséis</span>
               </div>
               <div className="flex items-center gap-1 md:gap-1.5 px-2 md:px-3 py-1 md:py-1.5 bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg shadow-sm border border-purple-200">
-                <Infinity className="w-3 md:w-4 h-3 md:h-4 text-purple-500 flex-shrink-0" />
+                <InfinityIcon className="w-3 md:w-4 h-3 md:h-4 text-purple-500 flex-shrink-0" />
                 <span className="text-[10px] md:text-xs font-medium text-purple-700 whitespace-nowrap">Ilimitado</span>
               </div>
             </div>
@@ -265,6 +269,9 @@ export default async function BrainPage() {
     return <LockedBrainPage />;
   }
 
+  // CORREÇÃO 2: Cria uma variável tipada corretamente para evitar erro de TS
+  const userPlan = (subscription.plan === 'ultra' ? 'ultra' : 'pro') as "pro" | "ultra";
+
   return (
     <div className="space-y-3 md:space-y-4">
       {/* Cabeçalho Compacto */}
@@ -277,17 +284,14 @@ export default async function BrainPage() {
             <h1 className="text-xl sm:text-2xl md:text-3xl font-black bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
               Freelinnk Brain™
             </h1>
-            <span className="inline-flex items-center px-2 md:px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-bold bg-gradient-to-r from-purple-500 to-violet-500 text-white shadow animate-pulse whitespace-nowrap">
-              {subscription.plan === 'ultra' ? (
-                <>
-                  <Crown className="w-2.5 md:w-3 h-2.5 md:h-3 mr-0.5 md:mr-1" />
-                  ULTRA
-                </>
+            <span className={cn(
+               "inline-flex items-center px-2 md:px-2.5 py-0.5 rounded-full text-[10px] md:text-xs font-bold text-white shadow animate-pulse whitespace-nowrap",
+               userPlan === 'ultra' ? "bg-gradient-to-r from-yellow-500 to-orange-500" : "bg-gradient-to-r from-purple-500 to-violet-500"
+            )}>
+              {userPlan === 'ultra' ? (
+                <><Crown className="w-2.5 md:w-3 h-2.5 md:h-3 mr-0.5 md:mr-1" />ULTRA</>
               ) : (
-                <>
-                  <Zap className="w-2.5 md:w-3 h-2.5 md:h-3 mr-0.5 md:mr-1" />
-                  PRO
-                </>
+                <><Zap className="w-2.5 md:w-3 h-2.5 md:h-3 mr-0.5 md:mr-1" />PRO</>
               )}
             </span>
           </div>
@@ -299,7 +303,7 @@ export default async function BrainPage() {
 
       {/* Ferramenta */}
       <div className="animate-fadeIn">
-        <FreelinnkBrainTool userPlan={subscription.plan} />
+        <FreelinnkBrainTool userPlan={userPlan} />
       </div>
     </div>
   );

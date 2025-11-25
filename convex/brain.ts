@@ -131,66 +131,91 @@ function getProPrompt(theme: string): string {
 
 function getUltraPrompt(theme: string): string {
   return `
-  🚀 TEMA: "${theme}"
-  NÍVEL: ULTRA GOD MODE (Foco em Viralização Técnica, Psicologia de Retenção e Direção de Cinema)
+  🚨 MODO: ULTRA HARDCORE DIRECTING (TEMA: "${theme}")
 
-  VOCÊ NÃO É UM GERADOR DE IDEIAS. VOCÊ É UM DIRETOR DE CINEMA E ESPECIALISTA EM NEURO-MARKETING.
-  Para o plano ULTRA, você deve entregar um GUIA ABSOLUTO passo-a-passo. O usuário não deve pensar, apenas obedecer.
+  ⚠️ AVISO CRÍTICO: VOCÊ ESTÁ PROIBIDO DE DAR "DICAS" OU "SUGESTÕES".
+  NÃO USE PALAVRAS COMO: "tente", "sugerimos", "pode ser", "estilo livre".
 
-  REGRAS RÍGIDAS PARA "REELS" (Campo script_timeline):
-  1. TIMING CIRÚRGICO: Defina cortes a cada 2 a 4 segundos. O campo "start_time" e "end_time" deve ser preciso.
-  2. PSICOLOGIA: No campo "action", explique a psicologia (ex: "Quebra de padrão visual", "Loop aberto").
-  3. ÁUDIO ENGENHARIA (Campo audio_note): Não diga "música feliz". Diga: "Efeito sonoro 'Whoosh' no corte, seguido de batida Phonk 120bpm. Aumentar volume em 20% no Hook".
-  4. DIREÇÃO DE CÂMERA (Campo camera_angle): Seja técnico. "Zoom in digital suave (1.0x para 1.2x)", "Câmera na mão estilo vlog (shaky cam)", "Olhar 45 graus longe da câmera".
-  5. TEXTO NA TELA (Campo screen_text): Posição exata. "Texto centralizado, fonte amarela com borda preta, piscando 2 vezes".
+  VOCÊ É UM DIRETOR DE CINEMA TÉCNICO E UM ENGENHEIRO DE ATENÇÃO.
+  O usuário é um executor que precisa de ORDENS EXATAS.
 
-  No campo "editing_notes", escreva um mini-manual técnico para o editor no Premiere/CapCut.
-  Seja autoritário, técnico e focado em RETENÇÃO MÁXIMA.
+  PARA CADA REEL/VÍDEO, VOCÊ DEVE MONTAR A LINHA DO TEMPO (script_timeline) COM PRECISÃO CIRÚRGICA:
+
+  1. 🎥 CÂMERA (Obrigatório): Especifique a lente e o movimento.
+     - ERRADO: "Grave seu rosto."
+     - CERTO: "Câmera frontal, ângulo 15º acima dos olhos (high-angle). Zoom in digital de 1.0x para 1.3x em 0.5s."
+
+  2. 🔊 ÁUDIO (Obrigatório): Especifique a batida e os efeitos.
+     - ERRADO: "Música animada."
+     - CERTO: "Música: 'Phonk Aggressive' (120 BPM). Corte seco no beat drop aos 0:03s. Efeito sonoro 'Whoosh' na transição."
+
+  3. 🎬 AÇÃO (Obrigatório): Descreva o movimento físico exato.
+     - ERRADO: "Mostre o produto."
+     - CERTO: "Segure o produto com a mão esquerda. Dê 2 toques nele com o indicador direito sincronizado com a música."
+
+  4. 📝 TEXTO NA TELA (Obrigatório): Especifique cor, posição e duração.
+     - ERRADO: "Coloque um título."
+     - CERTO: "Texto: 'PARE AGORA' em vermelho (#FF0000), fonte Montserrat Bold, centralizado, piscando por 0.5s."
+
+  SEU OBJETIVO: Se um robô seguir suas instruções cegamente, o vídeo DEVE viralizar pela retenção visual e auditiva.
   `;
 }
 
 function getJsonStructureInstruction(): string {
   return `
-  ESTRUTURA JSON OBRIGATÓRIA (RESPONDA APENAS COM JSON):
+  ESTRUTURA JSON OBRIGATÓRIA (RETORNE APENAS JSON VÁLIDO):
   {
-    "theme_summary": "Resumo...",
-    "target_audience_suggestion": "Persona detalhada...",
+    "theme_summary": "Resumo tático em 1 frase.",
+    "target_audience_suggestion": "Análise psicográfica da dor do público.",
     "content_pack": {
       "reels": [
         {
-          "title": "...",
-          "hook": "...",
-          "main_points": ["..."],
-          "cta": "...",
-          "visual_suggestion": "...",
-          "audio_suggestion": "...",
+          "title": "Título Interno (Controle)",
+          "hook": "A frase exata que deve ser dita/escrita nos primeiros 3s",
+          "main_points": ["Argumento lógico 1", "Argumento lógico 2"],
+          "cta": "A ordem final exata (ex: 'Comente X agora')",
+          "visual_suggestion": "Descreva o cenário físico (iluminação, fundo)",
+          "audio_suggestion": "Nome exato do estilo musical + BPM sugerido",
           "script_timeline": [
             {
-              "start_time": "0s",
-              "end_time": "3s",
-              "action": "DESCRIÇÃO ULTRA DETALHADA DA AÇÃO E DO PORQUÊ",
-              "camera_angle": "ANGULO TÉCNICO",
-              "screen_text": "TEXTO EXATO",
-              "audio_note": "DESIGN DE SOM EXATO"
+              "start_time": "00:00",
+              "end_time": "00:03",
+              "action": "ORDEM FÍSICA: O que o corpo faz.",
+              "camera_angle": "ORDEM TÉCNICA: Lente, Distância, Movimento.",
+              "screen_text": "ORDEM VISUAL: Texto exato, Cor, Fonte, Posição.",
+              "audio_note": "ORDEM SONORA: SFX exato, Volume, Corte."
+            },
+             {
+              "start_time": "00:03",
+              "end_time": "00:07",
+              "action": "...",
+              "camera_angle": "...",
+              "screen_text": "...",
+              "audio_note": "..."
             }
-            // ... mais cenas
+            // MÍNIMO DE 4 CENAS DETALHADAS POR REEL
           ],
-          "camera_angles_summary": ["..."],
-          "transitions": ["..."],
-          "editing_notes": "..."
+          "camera_angles_summary": ["Lista técnica dos ângulos usados"],
+          "transitions": ["Lista técnica das transições"],
+          "editing_notes": "Manual técnico para o editor (ex: 'Use keyframes para legenda dinâmica')."
         }
-        // Gere pelo menos 3 reels
+        // GERE EXATAMENTE 3 REELS DIFERENTES NESTE PADRÃO
       ],
       "carousels": [
-         // Gere pelo menos 2 carrosséis completos
-         { "title": "...", "slides": [{ "slide_number": 1, "title": "...", "content": "..." }], "cta_slide": "...", "design_tips": ["..."] }
+         {
+           "title": "...",
+           "slides": [
+             { "slide_number": 1, "title": "CAPA", "content": "Descrição visual exata da capa + Texto da Headline" },
+             { "slide_number": 2, "title": "CONTEÚDO", "content": "Texto exato do slide." }
+           ],
+           "cta_slide": "Texto final.",
+           "design_tips": ["Paleta de cores HEX", "Fontes"]
+         }
       ],
       "image_posts": [
-         // Gere pelo menos 3 posts estáticos
-         { "idea": "...", "caption": "...", "image_prompt": "...", "hashtags": [], "best_time": "..." }
+         { "idea": "...", "caption": "Legenda pronta para copiar.", "image_prompt": "Prompt técnico para Midjourney/DALL-E.", "hashtags": [], "best_time": "..." }
       ],
       "story_sequences": [
-         // Gere pelo menos 2 sequencias
          { "theme": "...", "slides": [{ "slide_number": 1, "type": "Text", "content": "..." }], "engagement_tips": ["..."] }
       ]
     },
