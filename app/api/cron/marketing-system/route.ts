@@ -9,7 +9,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 // ============================================================
 
 const MAX_EMAILS_FIRST_MONTH = 5;
-const MAX_EMAILS_PER_MONTH_ONGOING = 2; // Após primeiro mês: máximo 2/mês
+const MAX_EMAILS_PER_MONTH_ONGOING = 2;
 
 interface UserContext {
   email: string;
@@ -28,7 +28,7 @@ interface UserContext {
   linksCreated: number;
   totalClicks: number;
   lastLogin: number | null;
-  isActive: boolean; // Logou nos últimos 30 dias
+  isActive: boolean;
 }
 
 interface EmailTemplate {
@@ -41,88 +41,38 @@ interface EmailTemplate {
 }
 
 // ============================================================
-// 📧 TEMPLATES - PRIMEIRO MÊS (5 emails)
+// 📅 CÁLCULO DE DATAS ESPECIAIS
 // ============================================================
 
-function getWelcomeDay0Email(ctx: UserContext): EmailTemplate {
-  return {
-    subject: `Bem-vindo ao Freelinnk, ${ctx.firstName}! 🎉`,
-    preheader: 'Sua conta foi criada com sucesso',
-    priority: 95,
-    cooldownHours: 24,
-    countTowardsLimit: true,
-    html: `
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-</head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
-  <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
+function getBlackFridayDate(year: number): Date {
+  let firstFriday = 1;
+  while (new Date(year, 10, firstFriday).getDay() !== 5) {
+    firstFriday++;
+  }
 
-    <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 16px; padding: 48px 40px; text-align: center; color: white;">
-
-      <span style="font-size: 56px; display: block; margin-bottom: 20px;">🎉</span>
-
-      <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 12px 0;">
-        Bem-vindo ao Freelinnk!
-      </h1>
-
-      <p style="font-size: 17px; opacity: 0.95; margin: 0 0 32px 0; line-height: 1.6;">
-        ${ctx.firstName}, sua conta foi criada com sucesso.<br>
-        Estamos animados em ter você aqui!
-      </p>
-
-      <a href="https://freelinnk.com/dashboard"
-         style="display: inline-block; background: white; color: #6366f1; padding: 16px 48px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px; box-shadow: 0 4px 14px rgba(0,0,0,0.15);">
-        Acessar meu painel
-      </a>
-
-    </div>
-
-    <div style="background: white; border-radius: 16px; padding: 32px; margin-top: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-
-      <h2 style="color: #1e293b; font-size: 18px; margin: 0 0 20px 0;">
-        Seus primeiros passos:
-      </h2>
-
-      <div style="margin-bottom: 16px; display: flex; align-items: center;">
-        <div style="background: #f0f4ff; color: #6366f1; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 14px; font-weight: 600; flex-shrink: 0;">1</div>
-        <div>
-          <p style="margin: 0; color: #1e293b; font-weight: 500;">Personalize sua URL</p>
-          <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">freelinnk.com/<strong>seu-nome</strong></p>
-        </div>
-      </div>
-
-      <div style="margin-bottom: 16px; display: flex; align-items: center;">
-        <div style="background: #f0f4ff; color: #6366f1; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 14px; font-weight: 600; flex-shrink: 0;">2</div>
-        <div>
-          <p style="margin: 0; color: #1e293b; font-weight: 500;">Adicione uma foto de perfil</p>
-          <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">Perfis com foto convertem 47% mais</p>
-        </div>
-      </div>
-
-      <div style="display: flex; align-items: center;">
-        <div style="background: #f0f4ff; color: #6366f1; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin-right: 14px; font-weight: 600; flex-shrink: 0;">3</div>
-        <div>
-          <p style="margin: 0; color: #1e293b; font-weight: 500;">Crie seus primeiros links</p>
-          <p style="margin: 4px 0 0 0; color: #64748b; font-size: 14px;">Conecte suas redes, produtos e conteúdos</p>
-        </div>
-      </div>
-
-    </div>
-
-    <p style="color: #94a3b8; font-size: 13px; text-align: center; margin-top: 24px; line-height: 1.6;">
-      Dúvidas? Responda este email. Estamos aqui pra ajudar! 💜
-    </p>
-
-  </div>
-</body>
-</html>
-    `
-  };
+  return new Date(year, 10, firstFriday + 21);
 }
+
+function isBlackFridayWeekend(date: Date): boolean {
+  const year = date.getFullYear();
+  const blackFriday = getBlackFridayDate(year);
+
+  const start = new Date(blackFriday);
+  const end = new Date(blackFriday);
+  end.setDate(end.getDate() + 2);
+
+  return date >= start && date <= end;
+}
+
+function isEndOfYear(date: Date): boolean {
+  const month = date.getMonth() + 1;
+  const day = date.getDate();
+  return month === 12 && day >= 28;
+}
+
+// ============================================================
+// 📧 TEMPLATES - PRIMEIRO MÊS
+// ============================================================
 
 function getValueDay3Email(ctx: UserContext): EmailTemplate {
   return {
@@ -177,7 +127,7 @@ function getValueDay3Email(ctx: UserContext): EmailTemplate {
       </p>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard/billing"
+        <a href="https://www.freelinnk.com/dashboard/billing"
            style="display: inline-block; background: #1e293b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">
           Conhecer o FreelinnkBrain
         </a>
@@ -244,7 +194,7 @@ function getSocialProofDay7Email(ctx: UserContext): EmailTemplate {
       </div>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard/billing"
+        <a href="https://www.freelinnk.com/dashboard/billing"
            style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">
           Quero resultados assim
         </a>
@@ -322,7 +272,7 @@ function getMidMonthDay14Email(ctx: UserContext): EmailTemplate {
       </div>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard/billing"
+        <a href="https://www.freelinnk.com/dashboard/billing"
            style="display: inline-block; background: #1e293b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">
           Ver planos Pro
         </a>
@@ -376,7 +326,7 @@ function getLastChanceDay25Email(ctx: UserContext): EmailTemplate {
         </p>
       </div>
 
-      <a href="https://freelinnk.com/dashboard/"
+      <a href="https://www.freelinnk.com/dashboard/billing"
          style="display: inline-block; background: #fbbf24; color: #1e1b4b; padding: 18px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">
         Ativar desconto
       </a>
@@ -455,7 +405,7 @@ function getCartAbandonedEmail(ctx: UserContext): EmailTemplate {
       </div>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard/billing"
+        <a href="https://www.freelinnk.com/dashboard/billing"
            style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 18px 48px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;">
           Continuar de onde parei
         </a>
@@ -474,13 +424,12 @@ function getCartAbandonedEmail(ctx: UserContext): EmailTemplate {
 // 📧 TEMPLATES - NURTURING CONTÍNUO (Após primeiro mês)
 // ============================================================
 
-// 🎁 SORTEIOS - Funcionalidade específica
 function getGiveawayFeatureEmail(ctx: UserContext): EmailTemplate {
   return {
     subject: `O truque para ganhar 1.000 seguidores em uma semana`,
     preheader: 'Como criadores grandes crescem rápido',
     priority: 50,
-    cooldownHours: 336, // 14 dias
+    cooldownHours: 336,
     countTowardsLimit: true,
     html: `
 <!DOCTYPE html>
@@ -527,7 +476,7 @@ function getGiveawayFeatureEmail(ctx: UserContext): EmailTemplate {
       </p>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard/billing"
+        <a href="https://www.freelinnk.com/dashboard/billing"
            style="display: inline-block; background: #f59e0b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">
           Criar meu primeiro sorteio
         </a>
@@ -542,9 +491,8 @@ function getGiveawayFeatureEmail(ctx: UserContext): EmailTemplate {
   };
 }
 
-// 🎨 IMAGENS COM IA - Funcionalidade Ultra
 function getImageAIFeatureEmail(ctx: UserContext): EmailTemplate {
-  console.log('Generating Image AI Feature Email for', ctx.firstName);
+  console.log('Generating Image AI Feature Email for', ctx.email);
   return {
     subject: `Suas imagens estão te sabotando?`,
     preheader: 'A diferença entre 100 e 10.000 views',
@@ -571,14 +519,14 @@ function getImageAIFeatureEmail(ctx: UserContext): EmailTemplate {
         É o tempo que seu seguidor leva pra decidir se para ou continua scrollando.
       </p>
 
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 24px 0;">
-        <div style="background: #fee2e2; border-radius: 12px; padding: 20px; text-align: center;">
+      <div style="display: flex; gap: 16px; margin: 24px 0;">
+        <div style="flex: 1; background: #fee2e2; border-radius: 12px; padding: 20px; text-align: center;">
           <span style="font-size: 32px;">📱</span>
           <p style="color: #991b1b; font-size: 14px; font-weight: 600; margin: 12px 0 4px 0;">Imagem genérica</p>
           <p style="color: #b91c1c; font-size: 24px; font-weight: 700; margin: 0;">127</p>
           <p style="color: #991b1b; font-size: 12px; margin: 0;">views</p>
         </div>
-        <div style="background: #d1fae5; border-radius: 12px; padding: 20px; text-align: center;">
+        <div style="flex: 1; background: #d1fae5; border-radius: 12px; padding: 20px; text-align: center;">
           <span style="font-size: 32px;">✨</span>
           <p style="color: #065f46; font-size: 14px; font-weight: 600; margin: 12px 0 4px 0;">Imagem com IA</p>
           <p style="color: #059669; font-size: 24px; font-weight: 700; margin: 0;">12.4K</p>
@@ -597,7 +545,7 @@ function getImageAIFeatureEmail(ctx: UserContext): EmailTemplate {
       </ul>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard/billing"
+        <a href="https://www.freelinnk.com/dashboard/billing"
            style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">
           Testar geração de imagens
         </a>
@@ -612,7 +560,6 @@ function getImageAIFeatureEmail(ctx: UserContext): EmailTemplate {
   };
 }
 
-// 📊 ANALYTICS - Valor dos dados
 function getAnalyticsFeatureEmail(ctx: UserContext): EmailTemplate {
   return {
     subject: `Você sabe de onde vêm seus cliques?`,
@@ -669,7 +616,7 @@ function getAnalyticsFeatureEmail(ctx: UserContext): EmailTemplate {
       </p>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard/billing"
+        <a href="https://www.freelinnk.com/dashboard/billing"
            style="display: inline-block; background: #1e293b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">
           Desbloquear Analytics
         </a>
@@ -684,7 +631,6 @@ function getAnalyticsFeatureEmail(ctx: UserContext): EmailTemplate {
   };
 }
 
-// 🎬 VÍDEOS VIRAIS - Roteiros prontos
 function getVideoScriptsEmail(ctx: UserContext): EmailTemplate {
   return {
     subject: `5 roteiros prontos pra você gravar hoje`,
@@ -740,7 +686,7 @@ function getVideoScriptsEmail(ctx: UserContext): EmailTemplate {
       </p>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard/billing"
+        <a href="https://www.freelinnk.com/dashboard/billing"
            style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">
           Gerar meus roteiros
         </a>
@@ -755,7 +701,6 @@ function getVideoScriptsEmail(ctx: UserContext): EmailTemplate {
   };
 }
 
-// 💰 ECONOMIA - Comparação de preços
 function getSavingsComparisonEmail(ctx: UserContext): EmailTemplate {
   return {
     subject: `Você está pagando R$ 208/mês em ferramentas separadas?`,
@@ -825,7 +770,7 @@ function getSavingsComparisonEmail(ctx: UserContext): EmailTemplate {
       </div>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard/billing"
+        <a href="https://www.freelinnk.com/dashboard/billing"
            style="display: inline-block; background: #059669; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">
           Economizar agora
         </a>
@@ -840,13 +785,12 @@ function getSavingsComparisonEmail(ctx: UserContext): EmailTemplate {
   };
 }
 
-// 🔥 RE-ENGAJAMENTO - Usuário sumiu
 function getReEngagementEmail(ctx: UserContext): EmailTemplate {
   return {
     subject: `${ctx.firstName}, sentimos sua falta`,
     preheader: 'Faz tempo que você não aparece',
     priority: 55,
-    cooldownHours: 720, // 30 dias
+    cooldownHours: 720,
     countTowardsLimit: true,
     html: `
 <!DOCTYPE html>
@@ -892,7 +836,7 @@ function getReEngagementEmail(ctx: UserContext): EmailTemplate {
       </div>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard"
+        <a href="https://www.freelinnk.com/dashboard"
            style="display: inline-block; background: #6366f1; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">
           Ver o que há de novo
         </a>
@@ -911,7 +855,6 @@ function getReEngagementEmail(ctx: UserContext): EmailTemplate {
   };
 }
 
-// 📅 NOVO MÊS - Motivacional
 function getNewMonthEmail(ctx: UserContext): EmailTemplate {
   const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
                       'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
@@ -921,7 +864,7 @@ function getNewMonthEmail(ctx: UserContext): EmailTemplate {
     subject: `${currentMonth} chegou! Qual sua meta esse mês?`,
     preheader: 'Um novo mês, novas oportunidades',
     priority: 45,
-    cooldownHours: 672, // 28 dias (para não repetir no mesmo mês)
+    cooldownHours: 672,
     countTowardsLimit: true,
     html: `
 <!DOCTYPE html>
@@ -968,7 +911,7 @@ function getNewMonthEmail(ctx: UserContext): EmailTemplate {
       </p>
 
       <div style="text-align: center;">
-        <a href="https://freelinnk.com/dashboard"
+        <a href="https://www.freelinnk.com/dashboard"
            style="display: inline-block; background: #1e293b; color: white; padding: 14px 36px; text-decoration: none; border-radius: 12px; font-weight: 600;">
           Começar ${currentMonth.toLowerCase()} bem
         </a>
@@ -988,7 +931,8 @@ function getNewMonthEmail(ctx: UserContext): EmailTemplate {
 // ============================================================
 
 function getBlackFridayEmail(ctx: UserContext): EmailTemplate {
-  console.log('Generating Black Friday Email for', ctx.firstName);
+  console.log('Generating Black Friday email for', ctx.email);
+  const year = new Date().getFullYear();
   return {
     subject: `⚫ 60% OFF no Ultra – Só hoje`,
     preheader: 'A maior oferta do ano no Freelinnk',
@@ -1008,7 +952,7 @@ function getBlackFridayEmail(ctx: UserContext): EmailTemplate {
     <div style="background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%); border: 1px solid #333; border-radius: 16px; padding: 48px 40px; text-align: center;">
 
       <p style="color: #fbbf24; font-size: 14px; font-weight: 600; letter-spacing: 2px; margin: 0 0 16px 0;">
-        BLACK FRIDAY 2026
+        BLACK FRIDAY ${year}
       </p>
 
       <h1 style="color: white; font-size: 64px; font-weight: 800; margin: 0 0 8px 0;">
@@ -1028,7 +972,7 @@ function getBlackFridayEmail(ctx: UserContext): EmailTemplate {
         </p>
       </div>
 
-      <a href="https://freelinnk.com/dashboard/billing"
+      <a href="https://www.freelinnk.com/dashboard/billing"
          style="display: block; background: #fbbf24; color: #000; padding: 20px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 18px;">
         GARANTIR OFERTA
       </a>
@@ -1047,8 +991,9 @@ function getBlackFridayEmail(ctx: UserContext): EmailTemplate {
 }
 
 function getEndOfYearEmail(ctx: UserContext): EmailTemplate {
+  const nextYear = new Date().getFullYear() + 1;
   return {
-    subject: `2025 pode ser diferente, ${ctx.firstName}`,
+    subject: `${nextYear} pode ser diferente, ${ctx.firstName}`,
     preheader: 'Comece o ano com as ferramentas certas',
     priority: 80,
     cooldownHours: 0,
@@ -1068,7 +1013,7 @@ function getEndOfYearEmail(ctx: UserContext): EmailTemplate {
       <span style="font-size: 48px; display: block; margin-bottom: 20px;">🎆</span>
 
       <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 16px 0;">
-        E se 2025 fosse o ano que você realmente cresce?
+        E se ${nextYear} fosse o ano que você realmente cresce?
       </h1>
 
       <p style="font-size: 16px; opacity: 0.9; margin: 0 0 32px 0;">
@@ -1084,9 +1029,9 @@ function getEndOfYearEmail(ctx: UserContext): EmailTemplate {
         </p>
       </div>
 
-      <a href="https://freelinnk.com/dashboard/billing"
+      <a href="https://www.freelinnk.com/dashboard/billing"
          style="display: inline-block; background: white; color: #1e3a5f; padding: 18px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">
-        Começar 2025 no Pro
+        Começar ${nextYear} no Pro
       </a>
 
     </div>
@@ -1104,8 +1049,6 @@ function getEndOfYearEmail(ctx: UserContext): EmailTemplate {
 
 function selectEmailForUser(ctx: UserContext): EmailTemplate | null {
   const today = new Date();
-  const currentMonth = today.getMonth() + 1;
-  const currentDay = today.getDate();
   const dayOfMonth = today.getDate();
 
   // =================================================================
@@ -1113,22 +1056,20 @@ function selectEmailForUser(ctx: UserContext): EmailTemplate | null {
   // =================================================================
 
   if (ctx.plan === 'ultra') {
-    // Ultra só recebe Black Friday (para upgrade anual) e Fim de Ano
-    if (currentMonth === 11 && currentDay >= 24 && currentDay <= 26) {
+    if (isBlackFridayWeekend(today)) {
       return getBlackFridayEmail(ctx);
     }
-    if (currentMonth === 12 && currentDay >= 28) {
+    if (isEndOfYear(today)) {
       return getEndOfYearEmail(ctx);
     }
     return null;
   }
 
   if (ctx.plan === 'pro') {
-    // Pro recebe: Black Friday (upgrade pra Ultra), Fim de Ano
-    if (currentMonth === 11 && currentDay >= 24 && currentDay <= 26) {
+    if (isBlackFridayWeekend(today)) {
       return getBlackFridayEmail(ctx);
     }
-    if (currentMonth === 12 && currentDay >= 28) {
+    if (isEndOfYear(today)) {
       return getEndOfYearEmail(ctx);
     }
     return null;
@@ -1139,10 +1080,10 @@ function selectEmailForUser(ctx: UserContext): EmailTemplate | null {
   // =================================================================
 
   // PRIORIDADE 1: Datas especiais (não contam no limite)
-  if (currentMonth === 11 && currentDay >= 24 && currentDay <= 26) {
+  if (isBlackFridayWeekend(today)) {
     return getBlackFridayEmail(ctx);
   }
-  if (currentMonth === 12 && currentDay >= 28) {
+  if (isEndOfYear(today)) {
     return getEndOfYearEmail(ctx);
   }
 
@@ -1156,27 +1097,28 @@ function selectEmailForUser(ctx: UserContext): EmailTemplate | null {
   }
 
   // PRIORIDADE 3: Primeiro mês (máximo 5 emails)
+  // NOTA: O email de boas-vindas (Dia 0) é enviado pelo webhook do Clerk
   if (ctx.daysSinceSignup <= 30) {
     if (ctx.emailsThisMonth >= MAX_EMAILS_FIRST_MONTH) {
       return null;
     }
 
-    if (ctx.daysSinceSignup === 0 && ctx.emailsThisMonth === 0) {
-      return getWelcomeDay0Email(ctx);
-    }
-
+    // Dia 3-4: FreelinnkBrain
     if (ctx.daysSinceSignup >= 3 && ctx.daysSinceSignup <= 4 && ctx.emailsThisMonth < 2) {
       return getValueDay3Email(ctx);
     }
 
+    // Dia 7-9: Prova Social
     if (ctx.daysSinceSignup >= 7 && ctx.daysSinceSignup <= 9 && ctx.emailsThisMonth < 3) {
       return getSocialProofDay7Email(ctx);
     }
 
+    // Dia 14-16: Reflexão
     if (ctx.daysSinceSignup >= 14 && ctx.daysSinceSignup <= 16 && ctx.emailsThisMonth < 4) {
       return getMidMonthDay14Email(ctx);
     }
 
+    // Dia 25-30: Última chance
     if (ctx.daysSinceSignup >= 25 && ctx.daysSinceSignup <= 30 && ctx.emailsThisMonth < 5) {
       return getLastChanceDay25Email(ctx);
     }
@@ -1209,44 +1151,26 @@ function selectEmailForUser(ctx: UserContext): EmailTemplate | null {
   }
 
   // CICLO DE FUNCIONALIDADES (rotação baseada no mês desde signup)
-  const featureCycle = ctx.monthsSinceSignup % 6;
+  if (dayOfMonth >= 10 && dayOfMonth <= 15) {
+    const featureCycle = ctx.monthsSinceSignup % 6;
 
-  switch (featureCycle) {
-    case 1: // Mês 2, 8, 14...
-      if (dayOfMonth >= 10 && dayOfMonth <= 15) {
+    switch (featureCycle) {
+      case 1:
         return getGiveawayFeatureEmail(ctx);
-      }
-      break;
-
-    case 2: // Mês 3, 9, 15...
-      if (dayOfMonth >= 10 && dayOfMonth <= 15) {
+      case 2:
         return getImageAIFeatureEmail(ctx);
-      }
-      break;
-
-    case 3: // Mês 4, 10, 16...
-      if (dayOfMonth >= 10 && dayOfMonth <= 15) {
+      case 3:
         return getAnalyticsFeatureEmail(ctx);
-      }
-      break;
-
-    case 4: // Mês 5, 11, 17...
-      if (dayOfMonth >= 10 && dayOfMonth <= 15) {
+      case 4:
         return getVideoScriptsEmail(ctx);
-      }
-      break;
-
-    case 5: // Mês 6, 12, 18...
-      if (dayOfMonth >= 10 && dayOfMonth <= 15) {
+      case 5:
         return getSavingsComparisonEmail(ctx);
-      }
-      break;
-
-    case 0: // Mês 1, 7, 13... (primeiro mês já coberto acima)
-      if (ctx.monthsSinceSignup >= 6 && dayOfMonth >= 10 && dayOfMonth <= 15) {
-        return getGiveawayFeatureEmail(ctx); // Recomeça o ciclo
-      }
-      break;
+      case 0:
+        if (ctx.monthsSinceSignup >= 6) {
+          return getGiveawayFeatureEmail(ctx);
+        }
+        break;
+    }
   }
 
   return null;
@@ -1283,7 +1207,7 @@ export async function GET(req: Request) {
   const today = new Date();
   const thirtyDaysAgo = Date.now() - (30 * 24 * 3600 * 1000);
 
-  console.log(`🚀 Iniciando - ${users.data.length} usuários | ${today.toISOString()}`);
+  console.log(`🚀 Marketing System - ${users.data.length} usuários | ${today.toISOString()}`);
 
   for (const user of users.data) {
     const email = user.emailAddresses.find(e => e.id === user.primaryEmailAddressId)?.emailAddress;
@@ -1340,7 +1264,7 @@ export async function GET(req: Request) {
 
     try {
       await resend.emails.send({
-        from: 'Time Freelinnk <oi@freelinnk.com>',
+        from: 'Freelinnk <oi@freelinnk.com>',
         to: email,
         subject: emailTemplate.subject,
         html: emailTemplate.html,
@@ -1359,7 +1283,7 @@ export async function GET(req: Request) {
         },
       });
 
-           const newCount = emailsThisMonth + (emailTemplate.countTowardsLimit ? 1 : 0);
+      const newCount = emailsThisMonth + (emailTemplate.countTowardsLimit ? 1 : 0);
 
       emailLog.push({
         user: email,
