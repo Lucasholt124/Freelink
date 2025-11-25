@@ -1264,7 +1264,8 @@ export async function GET(req: Request) {
 
     try {
       await resend.emails.send({
-        from: 'Freelinnk <oi@freelinnk.com>',
+        from: 'Freelinnk <noreply@freelinnk.com>',
+        replyTo: 'lucasholt2021@gmail.com',
         to: email,
         subject: emailTemplate.subject,
         html: emailTemplate.html,

@@ -59,7 +59,8 @@ export async function POST(req: Request) {
     if (email) {
       try {
         await resend.emails.send({
-          from: 'Freelinnk <oi@freelinnk.com>',
+          from: 'Freelinnk <noreply@freelinnk.com>',
+          replyTo: 'lucasholt2021@gmail.com',
           to: email,
           subject: `Bem-vindo ao Freelinnk, ${name}! 🎉`,
           html: getWelcomeEmailHTML(name)
