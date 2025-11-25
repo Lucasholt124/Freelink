@@ -178,8 +178,8 @@ const plans: Plan[] = [
     priceDetails: "/mês",
     spotsLeft: 47,
     popularFeatures: [
-      "🧠 FreelinnkBrain - 5 ideias virais/dia",
-      "🎬 5 roteiros de vídeos virais/dia",
+      "🧠 FreelinnkBrain - 6 ideias virais/dia",
+      "🎬 3 roteiros de vídeos virais/dia",
       "📊 Analytics avançados completos",
       "🚫 Sem marca d'água Freelinnk"
     ],
@@ -195,8 +195,8 @@ const plans: Plan[] = [
       {
         title: "Ferramentas de IA",
         features: [
-          { text: "FreelinnkBrain: 5 ideias virais por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "5 roteiros de vídeos virais por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "FreelinnkBrain: 6 ideias virais por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
+          { text: "3 roteiros de vídeos virais por dia", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Templates prontos para posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "Geração de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
           { text: "Aprimoramento de imagens com IA", icon: <XCircle className="w-4 h-4 text-gray-300" />, ultraOnly: true },
@@ -253,7 +253,7 @@ const plans: Plan[] = [
           { text: "FreelinnkBrain ILIMITADO", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Vídeos virais ILIMITADOS", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
           { text: "Calendário de conteúdo personalizado", icon: <CheckCircle className="w-4 h-4 text-green-500" />, highlight: true },
-          { text: "Agendamento automático de posts", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
+          { text: "Agendamento automático de posts com notificações", icon: <CheckCircle className="w-4 h-4 text-green-500" /> },
           { text: "AI-Studio completo", icon: <CheckCircle className="w-4 h-4 text-green-500" /> }
         ]
       },

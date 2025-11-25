@@ -25,7 +25,6 @@ import { api } from "@/convex/_generated/api";
 import { useContentGeneration, useNotificationIntegration, useScheduledPosts } from "@/app/hooks/useBrain";
 import PostScheduleModal from "./brain/PostScheduleModal";
 import { BrainResults, ContentType, ScheduleModalData } from "@/app/types/brain";
-// Importa os cards do arquivo separado (que vamos criar no passo 2)
 import { CarouselCard, ImagePostCard, ReelCard, StoryCard } from "./brain/ContentCards";
 import SettingsModal from "./brain/SettingsModal";
 import CalendarView from "./brain/CalendarView";
@@ -35,14 +34,14 @@ import Link from "next/link";
 // COMPONENTES AUXILIARES
 // =================================================================
 const LoadingSpinner = ({ userPlan }: { userPlan: string }) => (
-  <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4">
+  <div className="flex flex-col items-center justify-center min-h-[400px] space-y-4 px-4 text-center">
     <motion.div
       animate={{ rotate: 360 }}
       transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
     >
-      <Loader2 className={cn("w-12 h-12", userPlan === 'ultra' ? "text-purple-500" : "text-blue-500")} />
+      <Loader2 className={cn("w-10 h-10 sm:w-12 sm:h-12", userPlan === 'ultra' ? "text-purple-500" : "text-blue-500")} />
     </motion.div>
-    <p className="text-lg text-muted-foreground animate-pulse font-medium">
+    <p className="text-base sm:text-lg text-muted-foreground animate-pulse font-medium">
       {userPlan === 'ultra'
         ? "⚡ Acessando o Cérebro Neural Ultra (Modo Diretor)..."
         : "Gerando ideias criativas..."}
@@ -70,7 +69,6 @@ const AnimatedCounter = ({ value }: { value: number }) => {
 interface BrainCampaign {
   _id: Id<"brainCampaigns">;
   _creationTime: number;
-  userId: string;
   theme: string;
   themeSummary: string;
   targetAudience: string;
@@ -83,9 +81,6 @@ interface BrainCampaign {
   createdAt: number;
 }
 
-// =================================================================
-// PROPS CORRETAS (Resolve o erro do TS)
-// =================================================================
 interface FreelinnkBrainToolProps {
   userPlan: "pro" | "ultra";
 }
@@ -129,7 +124,6 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
     setResults(null);
 
     try {
-      // Passa o plano para a API
       const data = await generateIdeas({
         theme,
         plan: userPlan
@@ -151,7 +145,6 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
       setCurrentCampaign({
         _id: campaignId,
         _creationTime: Date.now(),
-        userId: "",
         theme,
         themeSummary: data.theme_summary,
         targetAudience: data.target_audience_suggestion,
@@ -188,7 +181,8 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
     setTheme("");
     setCurrentCampaign(null);
     setActiveTab("reels");
-    inputRef.current?.focus();
+    // Pequeno delay para garantir foco no mobile sem pular o teclado
+    setTimeout(() => inputRef.current?.focus(), 100);
   };
 
   const handleExampleClick = (exampleTheme: string) => {
@@ -249,7 +243,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
     try {
       await deleteCampaign({ campaignId: id });
       toast.success("Campanha excluída!");
-    } catch  {
+    } catch {
       toast.error("Erro ao excluir campanha");
     }
   };
@@ -263,13 +257,14 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
   } : null;
 
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-purple-50/30 via-pink-50/30 to-orange-50/30 dark:from-gray-950 dark:to-black">
+    <div className="w-full min-h-screen bg-gradient-to-br from-purple-50/30 via-pink-50/30 to-orange-50/30 dark:from-gray-950 dark:to-black pb-20 sm:pb-0">
       {/* HEADER */}
       <motion.div initial={{ y: -100 }} animate={{ y: 0 }} className="sticky top-0 z-30 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-purple-200/50 dark:border-white/10 shadow-lg">
-        <div className="container">
-          <div className="flex items-center justify-between gap-2 py-2 sm:py-3 px-2 sm:px-4">
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
-              <h1 className="font-black text-base sm:text-xl md:text-2xl lg:text-3xl truncate">
+        <div className="container px-2 sm:px-4">
+          <div className="flex items-center justify-between gap-2 py-2 sm:py-3">
+            {/* Logo e Badge */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-2 min-w-0 flex-1">
+              <h1 className="font-black text-lg sm:text-2xl lg:text-3xl truncate leading-tight">
                 <span className={cn(
                   "bg-clip-text text-transparent",
                   userPlan === 'ultra' ? "bg-gradient-to-r from-purple-600 via-pink-500 to-yellow-500" : "bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600"
@@ -277,27 +272,28 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                   FreelinnkBrain
                 </span>
               </h1>
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1.5">
                 {userPlan === 'ultra' ? (
-                  <Badge className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white shadow-lg text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5 animate-pulse border-0">
-                    <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1 fill-white" />
-                    <span className="hidden sm:inline">ULTRA</span>
+                  <Badge className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white shadow-lg text-[0.6rem] sm:text-xs px-1.5 py-0.5 animate-pulse border-0 shrink-0">
+                    <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1 fill-white" />
+                    ULTRA
                   </Badge>
                 ) : (
-                  <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5">
-                    <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1 fill-yellow-400 text-yellow-400" />
-                    <span className="hidden sm:inline">PRO</span>
+                  <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-lg text-[0.6rem] sm:text-xs px-1.5 py-0.5 shrink-0">
+                    <Zap className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1 fill-yellow-400 text-yellow-400" />
+                    PRO
                   </Badge>
                 )}
                 {showViralMode && (
-                  <Badge variant="outline" className="hidden md:flex border-orange-200 bg-orange-50 text-orange-600 text-[0.6rem] sm:text-xs px-1 py-0 sm:px-2 sm:py-0.5">
-                    <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 sm:mr-1" />
-                    VIRAL MODE
+                  <Badge variant="outline" className="hidden md:flex border-orange-200 bg-orange-50 text-orange-600 text-[0.6rem] sm:text-xs px-1.5 py-0.5 shrink-0">
+                    <Flame className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-1" />
+                    VIRAL
                   </Badge>
                 )}
               </div>
             </div>
 
+            {/* Desktop Tabs */}
             <div className="hidden lg:flex items-center gap-2">
               <Tabs value={mainView} className="w-auto">
                 <TabsList className="bg-gray-100 dark:bg-gray-800/50 h-9">
@@ -306,7 +302,9 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                 </TabsList>
               </Tabs>
             </div>
-            <div className="flex items-center gap-1 sm:gap-2">
+
+            {/* Actions Mobile/Desktop */}
+            <div className="flex items-center gap-1.5 sm:gap-2">
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -317,7 +315,12 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                   <TooltipContent><p>{hasAnyNotification ? "Notificações Ativas" : "Configurar Notificações"}</p></TooltipContent>
                 </Tooltip>
               </TooltipProvider>
-              <Button variant="outline" size="sm" onClick={() => setIsHistorySidebarOpen(true)} className="h-8 sm:h-9 px-2 sm:px-3"><Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" /><span className="hidden sm:inline text-sm font-medium">Histórico</span></Button>
+
+              <Button variant="outline" size="sm" onClick={() => setIsHistorySidebarOpen(true)} className="h-8 sm:h-9 px-2 sm:px-3">
+                <Clock className="w-3.5 h-3.5 sm:w-4 sm:h-4 sm:mr-2" />
+                <span className="hidden sm:inline text-sm font-medium">Histórico</span>
+              </Button>
+
               <Sheet>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="icon" className="lg:hidden h-8 w-8 sm:h-9 sm:w-9"><Menu className="w-4 h-4" /></Button>
@@ -341,7 +344,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
           <SheetHeader className="px-4 py-4 border-b bg-white/80 dark:bg-gray-950/80">
             <div className="flex items-center justify-between">
               <SheetTitle>Histórico</SheetTitle>
-              <Button variant="ghost" size="icon" onClick={() => setIsHistorySidebarOpen(false)}><X className="w-4 h-4"/></Button>
+              <Button variant="ghost" size="icon" onClick={() => setIsHistorySidebarOpen(false)}><X className="w-4 h-4" /></Button>
             </div>
           </SheetHeader>
           <div className="px-4 py-3 bg-white/50 border-b relative">
@@ -352,37 +355,36 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
             <ScrollArea className="h-full w-full">
               <div className="p-4 space-y-3 pb-24">
                 {campaignsStatus === "LoadingFirstPage" ? (
-                   <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-500"/></div>
+                  <div className="text-center py-10"><Loader2 className="w-8 h-8 animate-spin mx-auto text-purple-500" /></div>
                 ) : !campaigns || campaigns.length === 0 ? (
-                   <div className="text-center py-10 text-gray-500">Nenhuma campanha encontrada</div>
+                  <div className="text-center py-10 text-gray-500">Nenhuma campanha encontrada</div>
                 ) : (
                   <>
-                  {campaigns.filter(c => c.theme.toLowerCase().includes(searchTerm.toLowerCase())).map((campaign) => (
-                    <div key={campaign._id} onClick={() => handleCampaignSelect(campaign)} className="group relative p-3 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-purple-300 transition-all">
-                      <div className="flex items-start gap-3">
-                         <div className="p-2 bg-purple-50 rounded-lg"><Brain className="w-4 h-4 text-purple-600"/></div>
-                         <div className="flex-1 min-w-0">
-                           <p className="font-bold text-sm truncate text-gray-900 dark:text-gray-100">{campaign.theme}</p>
-                           <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
-                             <Clock className="w-3 h-3"/> {new Date(campaign.createdAt).toLocaleDateString()}
-                           </p>
-                         </div>
+                    {campaigns.filter(c => c.theme.toLowerCase().includes(searchTerm.toLowerCase())).map((campaign) => (
+                      <div key={campaign._id} onClick={() => handleCampaignSelect(campaign)} className="group relative p-3 bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-100 dark:border-gray-800 cursor-pointer hover:border-purple-300 transition-all active:scale-[0.98]">
+                        <div className="flex items-start gap-3">
+                          <div className="p-2 bg-purple-50 rounded-lg shrink-0"><Brain className="w-4 h-4 text-purple-600" /></div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-bold text-sm truncate text-gray-900 dark:text-gray-100">{campaign.theme}</p>
+                            <p className="text-xs text-gray-500 flex items-center gap-1 mt-1">
+                              <Clock className="w-3 h-3" /> {new Date(campaign.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
+                        <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity" onClick={(e) => { e.stopPropagation(); handleCampaignDelete(campaign._id) }}><Trash2 className="w-3 h-3 text-red-400" /></Button>
                       </div>
-                      <Button variant="ghost" size="icon" className="absolute top-2 right-2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity" onClick={(e) => {e.stopPropagation(); handleCampaignDelete(campaign._id)}}><Trash2 className="w-3 h-3 text-red-400" /></Button>
-                    </div>
-                  ))}
-
-                  {(campaignsStatus === "CanLoadMore" || campaignsStatus === "LoadingMore") && !searchTerm && (
-                    <Button
-                      variant="ghost"
-                      className="w-full mt-4 text-xs text-gray-500"
-                      onClick={() => loadMoreCampaigns(10)}
-                      disabled={campaignsStatus === "LoadingMore"}
-                    >
-                      {campaignsStatus === "LoadingMore" ? <Loader2 className="w-3 h-3 animate-spin mr-2"/> : <ChevronDown className="w-3 h-3 mr-2"/>}
-                      Carregar mais antigas
-                    </Button>
-                  )}
+                    ))}
+                    {(campaignsStatus === "CanLoadMore" || campaignsStatus === "LoadingMore") && !searchTerm && (
+                      <Button
+                        variant="ghost"
+                        className="w-full mt-4 text-xs text-gray-500"
+                        onClick={() => loadMoreCampaigns(10)}
+                        disabled={campaignsStatus === "LoadingMore"}
+                      >
+                        {campaignsStatus === "LoadingMore" ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <ChevronDown className="w-3 h-3 mr-2" />}
+                        Carregar mais antigas
+                      </Button>
+                    )}
                   </>
                 )}
               </div>
@@ -398,7 +400,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
       {/* CONTEÚDO PRINCIPAL */}
-      <div className="container px-3 sm:px-4 py-4 sm:py-6 md:py-8">
+      <div className="container px-2 sm:px-4 py-4 sm:py-6 md:py-8">
         <AnimatePresence mode="wait">
           {mainView === "generator" && (
             <motion.div key="generator" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} className="space-y-4 sm:space-y-6">
@@ -407,92 +409,99 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
               ) : results && currentCampaign ? (
                 <div className="space-y-4 sm:space-y-6">
                   {/* CARD DE RESULTADOS */}
-                  <Card className="shadow-lg p-4 sm:p-6 border-t-4 border-purple-500">
-                     <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
-                        <div>
-                          <h2 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Campanha Pronta!</h2>
-                          <p className="text-sm text-gray-500 font-medium mt-1">{theme}</p>
+                  <Card className="shadow-lg p-3 sm:p-6 border-t-4 border-purple-500 overflow-hidden">
+                    <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
+                      <div className="min-w-0">
+                        <h2 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">Campanha Pronta!</h2>
+                        <p className="text-sm text-gray-500 font-medium mt-1 truncate">{theme}</p>
+                      </div>
+                      <Button onClick={handleGenerateNew} variant="outline" size="sm" className="w-full md:w-auto hover:bg-purple-50"><RefreshCcw className="mr-2 w-4 h-4" /> Nova Campanha</Button>
+                    </div>
+
+                    {contentCounts && (
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2 sm:gap-3 mb-6">
+                        <div className="col-span-2 sm:col-span-1 bg-gray-50 dark:bg-gray-800 p-2 sm:p-3 rounded-lg text-center border">
+                          <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-bold">Total</p>
+                          <p className="text-xl sm:text-2xl font-black text-purple-600"><AnimatedCounter value={contentCounts.total} /></p>
                         </div>
-                        <Button onClick={handleGenerateNew} variant="outline" size="sm" className="w-full md:w-auto"><RefreshCcw className="mr-2 w-4 h-4"/> Nova Campanha</Button>
-                     </div>
+                        <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-3 rounded-lg text-center border">
+                          <Video className="w-4 h-4 mx-auto text-blue-500 mb-1" />
+                          <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.reels} /></p>
+                          <p className="text-[10px] text-gray-400 sm:hidden">Reels</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-3 rounded-lg text-center border">
+                          <Layers className="w-4 h-4 mx-auto text-pink-500 mb-1" />
+                          <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.carousels} /></p>
+                          <p className="text-[10px] text-gray-400 sm:hidden">Carrossel</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-3 rounded-lg text-center border">
+                          <Camera className="w-4 h-4 mx-auto text-green-500 mb-1" />
+                          <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.image_posts} /></p>
+                          <p className="text-[10px] text-gray-400 sm:hidden">Posts</p>
+                        </div>
+                        <div className="bg-gray-50 dark:bg-gray-800 p-2 sm:p-3 rounded-lg text-center border">
+                          <MessageSquare className="w-4 h-4 mx-auto text-yellow-500 mb-1" />
+                          <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.story_sequences} /></p>
+                          <p className="text-[10px] text-gray-400 sm:hidden">Stories</p>
+                        </div>
+                      </div>
+                    )}
 
-                     {contentCounts && (
-                       <div className="grid grid-cols-5 gap-2 mb-6">
-                          <div className="bg-gray-50 p-2 rounded-lg text-center border">
-                            <p className="text-xs text-gray-500 uppercase font-bold">Total</p>
-                            <p className="text-xl font-black text-purple-600"><AnimatedCounter value={contentCounts.total} /></p>
-                          </div>
-                          <div className="bg-gray-50 p-2 rounded-lg text-center border">
-                            <Video className="w-4 h-4 mx-auto text-blue-500 mb-1"/>
-                            <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.reels} /></p>
-                          </div>
-                          <div className="bg-gray-50 p-2 rounded-lg text-center border">
-                            <Layers className="w-4 h-4 mx-auto text-pink-500 mb-1"/>
-                            <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.carousels} /></p>
-                          </div>
-                          <div className="bg-gray-50 p-2 rounded-lg text-center border">
-                            <Camera className="w-4 h-4 mx-auto text-green-500 mb-1"/>
-                            <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.image_posts} /></p>
-                          </div>
-                          <div className="bg-gray-50 p-2 rounded-lg text-center border">
-                            <MessageSquare className="w-4 h-4 mx-auto text-yellow-500 mb-1"/>
-                            <p className="text-lg font-bold"><AnimatedCounter value={contentCounts.story_sequences} /></p>
-                          </div>
-                       </div>
-                     )}
-
-                     <Tabs value={activeTab} onValueChange={setActiveTab}>
-                        <TabsList className="grid grid-cols-4 w-full h-auto p-1 bg-gray-100">
-                          <TabsTrigger value="reels" className="py-2 text-xs md:text-sm"><Video className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2"/>Reels</TabsTrigger>
-                          <TabsTrigger value="carousels" className="py-2 text-xs md:text-sm"><Layers className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2"/>Carrossel</TabsTrigger>
-                          <TabsTrigger value="image_posts" className="py-2 text-xs md:text-sm"><Camera className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2"/>Posts</TabsTrigger>
-                          <TabsTrigger value="story_sequences" className="py-2 text-xs md:text-sm"><MessageSquare className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2"/>Stories</TabsTrigger>
+                    <Tabs value={activeTab} onValueChange={setActiveTab}>
+                      <ScrollArea className="w-full whitespace-nowrap pb-2">
+                        <TabsList className="w-full sm:w-auto inline-flex h-auto p-1 bg-gray-100 dark:bg-gray-800/50">
+                          <TabsTrigger value="reels" className="flex-1 min-w-[80px] py-2 text-xs md:text-sm"><Video className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />Reels</TabsTrigger>
+                          <TabsTrigger value="carousels" className="flex-1 min-w-[90px] py-2 text-xs md:text-sm"><Layers className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />Carrossel</TabsTrigger>
+                          <TabsTrigger value="image_posts" className="flex-1 min-w-[80px] py-2 text-xs md:text-sm"><Camera className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />Posts</TabsTrigger>
+                          <TabsTrigger value="story_sequences" className="flex-1 min-w-[80px] py-2 text-xs md:text-sm"><MessageSquare className="w-3 h-3 md:w-4 md:h-4 mr-1 md:mr-2" />Stories</TabsTrigger>
                         </TabsList>
-                        <div className="mt-6 space-y-4">
-                           <TabsContent value="reels" className="space-y-4 mt-0">
-                             {results.content_pack?.reels?.map((reel, i) => (
-                               <ReelCard key={i} reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
-                             ))}
-                           </TabsContent>
-                           <TabsContent value="carousels" className="space-y-4 mt-0">
-                             {results.content_pack?.carousels?.map((carousel, i) => (
-                               <CarouselCard key={i} carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
-                             ))}
-                           </TabsContent>
-                           <TabsContent value="image_posts" className="space-y-4 mt-0">
-                             {results.content_pack?.image_posts?.map((post, i) => (
-                               <ImagePostCard key={i} post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
-                             ))}
-                           </TabsContent>
-                           <TabsContent value="story_sequences" className="space-y-4 mt-0">
-                             {results.content_pack?.story_sequences?.map((story, i) => (
-                               <StoryCard key={i} story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
-                             ))}
-                           </TabsContent>
-                        </div>
-                     </Tabs>
+                      </ScrollArea>
+
+                      <div className="mt-4 sm:mt-6 space-y-4">
+                        <TabsContent value="reels" className="space-y-4 mt-0">
+                          {results.content_pack?.reels?.map((reel, i) => (
+                            <ReelCard key={i} reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
+                          ))}
+                        </TabsContent>
+                        <TabsContent value="carousels" className="space-y-4 mt-0">
+                          {results.content_pack?.carousels?.map((carousel, i) => (
+                            <CarouselCard key={i} carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
+                          ))}
+                        </TabsContent>
+                        <TabsContent value="image_posts" className="space-y-4 mt-0">
+                          {results.content_pack?.image_posts?.map((post, i) => (
+                            <ImagePostCard key={i} post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
+                          ))}
+                        </TabsContent>
+                        <TabsContent value="story_sequences" className="space-y-4 mt-0">
+                          {results.content_pack?.story_sequences?.map((story, i) => (
+                            <StoryCard key={i} story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
+                          ))}
+                        </TabsContent>
+                      </div>
+                    </Tabs>
                   </Card>
                 </div>
               ) : (
-                <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8">
-                  <Card className={cn("shadow-2xl border-2 p-6 sm:p-8 md:p-12 transition-all duration-500", userPlan === 'ultra' ? "border-purple-500/50 shadow-purple-500/10" : "border-gray-200")}>
+                <div className="max-w-4xl mx-auto space-y-4 sm:space-y-8 mt-2 sm:mt-8">
+                  <Card className={cn("shadow-xl sm:shadow-2xl border-2 p-4 sm:p-8 md:p-12 transition-all duration-500", userPlan === 'ultra' ? "border-purple-500/50 shadow-purple-500/10" : "border-gray-200")}>
                     <div className="text-center space-y-4 sm:space-y-6">
-                      <Badge variant="secondary" className="px-3 py-1 sm:px-4 sm:py-1.5">
+                      <Badge variant="secondary" className="px-3 py-1 sm:px-4 sm:py-1.5 inline-flex items-center">
                         <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-1.5 sm:mr-2 text-yellow-500" />
-                        <span className="text-xs sm:text-sm">Sua Máquina de Conteúdo</span>
+                        <span className="text-[10px] sm:text-sm uppercase tracking-wide">Sua Máquina de Conteúdo</span>
                       </Badge>
-                      <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight">
+                      <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold leading-tight sm:leading-tight">
                         Freelinnk<span className={cn("bg-clip-text text-transparent bg-gradient-to-r", userPlan === 'ultra' ? "from-purple-600 via-pink-500 to-yellow-500" : "from-blue-600 via-purple-600 to-pink-600")}>Brain</span>
                       </h1>
-                      <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2">
+                      <p className="text-sm sm:text-base md:text-lg text-muted-foreground max-w-2xl mx-auto px-2 leading-relaxed">
                         {userPlan === 'ultra'
                           ? "Modo ULTRA ativado: Roteiros frame-a-frame, direção de câmera e neuro-marketing."
                           : "Transforme um tema em uma campanha completa de conteúdo em 30 segundos."}
                       </p>
                     </div>
-                    <form onSubmit={handleSubmit} className="mt-6 sm:mt-8 space-y-4 sm:space-y-6">
+                    <form onSubmit={handleSubmit} className="mt-6 sm:mt-10 space-y-4 sm:space-y-6">
                       <div className="space-y-2">
-                        <Label className="flex items-center gap-2 text-sm sm:text-base">
+                        <Label className="flex items-center gap-2 text-sm sm:text-base font-semibold">
                           <Wand2 className="w-4 h-4 text-purple-500" />
                           Qual tema você quer dominar?
                         </Label>
@@ -507,17 +516,17 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                       </div>
 
                       <div className="flex items-center justify-center gap-2 flex-wrap">
-                        <span className="text-xs text-gray-500 font-medium hidden sm:block">Ou tente um exemplo:</span>
-                        <Button type="button" size="sm" variant="outline" className="text-xs" onClick={() => handleExampleClick("Como ganhar seguidores no TikTok")}>Ganhar seguidores</Button>
-                        <Button type="button" size="sm" variant="outline" className="text-xs" onClick={() => handleExampleClick("Ideias de conteúdo para nutricionistas")}>Nutrição</Button>
-                        <Button type="button" size="sm" variant="outline" className="text-xs" onClick={() => handleExampleClick("Como investir em ações do zero")}>Investimentos</Button>
+                        <span className="text-xs text-gray-500 font-medium w-full sm:w-auto text-center mb-1 sm:mb-0">Ou tente um exemplo:</span>
+                        <Button type="button" size="sm" variant="outline" className="text-xs h-8" onClick={() => handleExampleClick("Como ganhar seguidores no TikTok")}>Ganhar seguidores</Button>
+                        <Button type="button" size="sm" variant="outline" className="text-xs h-8" onClick={() => handleExampleClick("Ideias de conteúdo para nutricionistas")}>Nutrição</Button>
+                        <Button type="button" size="sm" variant="outline" className="text-xs h-8" onClick={() => handleExampleClick("Como investir em ações do zero")}>Investimentos</Button>
                       </div>
 
                       <Button
                         type="submit"
                         size="lg"
                         className={cn(
-                          "w-full h-12 sm:h-14 text-base sm:text-lg transition-all duration-300 transform hover:scale-[1.01]",
+                          "w-full h-12 sm:h-14 text-sm sm:text-lg font-bold transition-all duration-300 transform hover:scale-[1.01] active:scale-[0.99]",
                           userPlan === 'ultra'
                             ? "bg-gradient-to-r from-purple-700 via-pink-600 to-orange-500 hover:shadow-xl hover:shadow-purple-500/20"
                             : "bg-gradient-to-r from-blue-600 to-purple-600"
@@ -538,12 +547,12 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                       </Button>
 
                       {userPlan === 'pro' && (
-                         <div className="text-center bg-purple-50 p-2 rounded-lg border border-purple-100">
-                           <p className="text-xs text-purple-800">
-                             💡 Quer roteiros <strong>frame-a-frame</strong> com direção de câmera e psicologia?
-                             <Link href="/dashboard/billing" className="font-bold underline ml-1">Vire Ultra</Link>
-                           </p>
-                         </div>
+                        <div className="text-center bg-purple-50 p-2 sm:p-3 rounded-lg border border-purple-100">
+                          <p className="text-xs sm:text-sm text-purple-800">
+                            💡 Quer roteiros <strong>frame-a-frame</strong> com direção de câmera e psicologia?
+                            <Link href="/dashboard/billing" className="font-bold underline ml-1">Vire Ultra</Link>
+                          </p>
+                        </div>
                       )}
                     </form>
                   </Card>
@@ -560,9 +569,9 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
       </div>
 
       {/* Footer */}
-      <footer className="mt-12 sm:mt-20 py-6 sm:py-8 border-t">
+      <footer className="mt-8 sm:mt-16 py-6 border-t bg-white/50 dark:bg-black/20">
         <div className="container text-center px-4">
-          <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Criado com 💜 para revolucionar o seu conteúdo</p>
+          <p className="text-xs sm:text-sm text-gray-500">FreelinnkBrain © {new Date().getFullYear()} - Criado com 💜</p>
         </div>
       </footer>
     </div>
