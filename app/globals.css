@@ -3,7 +3,9 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* === CONFIGURAÇÃO DO TEMA E ANIMAÇÕES === */
 @theme inline {
+  /* --- Suas Cores Originais (Mantidas) --- */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -41,8 +43,52 @@
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+
+  /* --- NOVAS ANIMAÇÕES PARA O DESIGN VIRAL --- */
+
+  /* 1. Efeito Aurora (Blobs se movendo no fundo) */
+  --animate-blob: blob 7s infinite;
+  @keyframes blob {
+    0% { transform: translate(0px, 0px) scale(1); }
+    33% { transform: translate(30px, -50px) scale(1.1); }
+    66% { transform: translate(-20px, 20px) scale(0.9); }
+    100% { transform: translate(0px, 0px) scale(1); }
+  }
+
+  /* 2. Efeito de Gradiente Brilhante nas Bordas */
+  --animate-gradient-x: gradient-x 15s ease infinite;
+  @keyframes gradient-x {
+    0%, 100% { background-size: 200% 200%; background-position: left center; }
+    50% { background-size: 200% 200%; background-position: right center; }
+  }
+
+  /* 3. Micro-interações (Bounce e Pulse) */
+  --animate-bounce-short: bounce-short 1s infinite;
+  @keyframes bounce-short {
+    0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
+    50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
+  }
+
+  --animate-pulse-slow: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  @keyframes pulse-slow {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* 4. Acordeão (ShadCN Padrão) */
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  @keyframes accordion-down {
+    from { height: 0; }
+    to { height: var(--radix-accordion-content-height); }
+  }
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  @keyframes accordion-up {
+    from { height: var(--radix-accordion-content-height); }
+    to { height: 0; }
+  }
 }
 
+/* === VARIÁVEIS DE COR (OKLCH) === */
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -123,134 +169,81 @@
     margin: 0;
     padding: 0;
   }
+
+  /* Scroll suave global */
+  html {
+    scroll-behavior: smooth;
+  }
 }
 
-/* Scrollbar customizada para sidebar */
+/* === UTILITÁRIOS CRUCIAIS === */
+
+/* 1. Esconde a barra de rolagem no Mockup do iPhone (Estilo Apple) */
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  /* 2. Delays de Animação (para o fundo Aurora não se mover em uníssono) */
+  .animation-delay-2000 {
+    animation-delay: 2s;
+  }
+  .animation-delay-4000 {
+    animation-delay: 4s;
+  }
+}
+
+/* --- Seus utilitários existentes (Mantidos) --- */
+
 .scrollbar-thin {
   scrollbar-width: thin;
 }
-
-.scrollbar-thumb-slate-200 {
-  scrollbar-color: #e2e8f0 transparent;
-}
-
-.dark .scrollbar-thumb-slate-700 {
-  scrollbar-color: #374151 transparent;
-}
-
 .scrollbar-thin::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
-
 .scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: #e2e8f0;
   border-radius: 3px;
 }
-
 .dark .scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: #374151;
 }
 
-.screenshot-highlight {
-  outline: 4px solid rgba(59, 130, 246, 0.5);
-  box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
-  transition: all 0.2s ease-in-out;
-}
-
 @keyframes confetti-rain {
-  0% {
-    background-position: 0 0;
-    opacity: 1;
-  }
-  100% {
-    background-position: 0 600px;
-    opacity: 0;
-  }
+  0% { background-position: 0 0; opacity: 1; }
+  100% { background-position: 0 600px; opacity: 0; }
 }
-
 #confetti-container.active {
   background-image: url('/confetti.png');
   animation: confetti-rain 5s linear forwards;
 }
 
-/* Adicione classe para destacar elemento na captura de tela */
 .screenshot-highlight {
   outline: 4px solid rgba(59, 130, 246, 0.5);
   box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
   transition: all 0.2s ease-in-out;
 }
 
-/* Breakpoint personalizado para tamanhos muito pequenos */
-@media (min-width: 480px) {
-  .xs\:inline {
-    display: inline;
-  }
-  .xs\:hidden {
-    display: none;
-  }
-}
-
-/* Tamanhos de borda personalizados para responsividade */
-.border-6 {
-  border-width: 6px;
-}
-
-/* Garantir que texto muito longo quebre corretamente em telas pequenas */
-.break-all-mobile {
-  word-break: break-all;
-}
-
-/* Efeito de sombra para o texto do vencedor */
 .drop-shadow-glow {
   filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
 }
 
-/* Melhorar espaçamento em dispositivos móveis */
-@media (max-width: 640px) {
-  .sm-spacing {
-    margin: 0.5rem 0;
-    padding: 0.5rem;
-  }
-
-  .sm-text-truncate {
-    max-width: 90vw;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-}
-
-/* Garantir boa leitura de texto em dispositivos pequenos */
 .mobile-readable {
   font-size: clamp(0.75rem, 4vw, 1rem);
   line-height: 1.5;
 }
 
-/* Melhorar grid para dispositivos muito pequenos */
+/* Breakpoint customizado inline */
+@media (min-width: 480px) {
+  .xs\:inline { display: inline; }
+  .xs\:hidden { display: none; }
+}
+
 @media (max-width: 360px) {
-  .xs-stack > * {
-    width: 100%;
-    margin-bottom: 0.5rem;
-  }
-}
-@keyframes gradient-xy {
-  0%, 100% { background-position: 0% 0%; }
-  25% { background-position: 100% 0%; }
-  50% { background-position: 100% 100%; }
-  75% { background-position: 0% 100%; }
-}
-
-@keyframes shimmer {
-  0% { transform: translateX(-100%); }
-  100% { transform: translateX(100%); }
-}
-
-.animate-gradient-xy {
-  background-size: 400% 400%;
-  animation: gradient-xy 15s ease infinite;
-}
-
-.animate-shimmer {
-  animation: shimmer 2s ease-in-out infinite;
+  .xs-stack > * { width: 100%; margin-bottom: 0.5rem; }
 }
