@@ -4,298 +4,171 @@ import UsernameForm from "@/components/UsernameForm";
 import CustomizationForm from "@/components/CustomizationForm";
 import {
   Settings,
-  Link2,
-  Palette,
+
   Sparkles,
   Shield,
-  Zap,
 
-  ChevronRight,
-
-  Rocket,
-  Eye,
   Check,
+  Rocket,
 
 } from "lucide-react";
 
 export default function SettingsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/20 to-pink-50/20">
-      {/* Background Decoration */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-purple-400/10 to-pink-400/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-indigo-400/10 to-purple-400/10 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-gray-50/50 selection:bg-purple-100 selection:text-purple-900">
+
+      {/* Background Decorativo "Aurora" - Otimizado para performance */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute -top-[20%] -right-[10%] w-[70vw] h-[70vw] bg-purple-200/20 rounded-full blur-[100px] mix-blend-multiply animate-blob" />
+        <div className="absolute top-[20%] -left-[10%] w-[70vw] h-[70vw] bg-pink-200/20 rounded-full blur-[100px] mix-blend-multiply animate-blob animation-delay-2000" />
+        <div className="absolute -bottom-[20%] left-[20%] w-[70vw] h-[70vw] bg-indigo-200/20 rounded-full blur-[100px] mix-blend-multiply animate-blob animation-delay-4000" />
       </div>
 
-      <div className="relative space-y-6 sm:space-y-8 lg:space-y-12 max-w-6xl mx-auto px-3 sm:px-6 lg:px-8 py-6 sm:py-8 lg:py-12">
+      <div className="relative z-10 space-y-8 sm:space-y-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
 
         {/* Header Premium */}
         <header className="relative">
-          {/* Título Principal */}
-          <div className="flex items-start justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-              <div className="flex items-center gap-3 mb-2">
-                <div className="p-2.5 sm:p-3 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl sm:rounded-2xl shadow-xl">
-                  <Settings className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+              <div className="flex items-center gap-3 mb-3">
+                <div className="p-3 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl shadow-lg shadow-purple-200">
+                  <Settings className="w-6 h-6 text-white" />
                 </div>
-                <h1 className="text-2xl sm:text-3xl lg:text-4xl xl:text-5xl font-black bg-gradient-to-r from-gray-900 via-purple-900 to-pink-900 bg-clip-text text-transparent">
+                <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black text-gray-900 tracking-tight">
                   Configurações
                 </h1>
               </div>
-              <p className="text-sm sm:text-base lg:text-lg text-gray-600 max-w-3xl">
-                Personalize sua página e deixe ela com a <span className="font-semibold text-purple-600">sua cara</span>
+              <p className="text-base sm:text-lg text-gray-600 max-w-2xl leading-relaxed">
+                Transforme seu link em uma experiência. Personalize cada detalhe e deixe com a <span className="font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">sua identidade única</span>.
               </p>
             </div>
           </div>
 
-          {/* Progress Bar */}
-          <div className="mt-6 bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium text-gray-700">Configure seu perfil</span>
-              <span className="text-sm font-bold text-purple-600">Passo 1 de 2</span>
+          {/* Barra de Progresso Gamificada */}
+          <div className="mt-8 bg-white/60 backdrop-blur-xl rounded-2xl p-4 shadow-sm border border-white/50 ring-1 ring-gray-100">
+            <div className="flex items-center justify-between mb-3">
+              <span className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-purple-500" />
+                Nível do Perfil
+              </span>
+              <span className="text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded-full">Passo 1 de 2</span>
             </div>
-            <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-              <div className="h-full w-1/2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-500" />
+            <div className="w-full h-2.5 bg-gray-100 rounded-full overflow-hidden">
+              <div className="h-full w-1/2 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 rounded-full animate-gradient-x" />
             </div>
             <p className="text-xs text-gray-500 mt-2">
-              Complete as duas etapas para <span className="font-semibold text-purple-600">ativar sua página</span>
+              Complete as etapas para liberar recursos <span className="font-semibold text-purple-600">virais</span>.
             </p>
           </div>
         </header>
 
-        {/* Seção de URL Personalizada */}
-        <section className="relative">
-          {/* Indicador de Importância */}
-          <div className="absolute -top-3 right-4 z-10">
-            <div className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-blue-500 to-indigo-500 text-white text-xs font-bold rounded-full shadow-lg">
-              <Zap className="w-3 h-3" />
-              <span>ETAPA 1</span>
-            </div>
-          </div>
+        {/* === SEÇÃO 1: URL === */}
+        <section className="relative scroll-mt-20" id="username">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
 
-          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
             {/* Sidebar Info */}
-            <aside className="lg:w-1/3 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-blue-100 to-indigo-100 rounded-xl">
-                  <Link2 className="w-5 h-5 text-indigo-600" />
+            <aside className="lg:w-1/3 space-y-6">
+              <div className="sticky top-24">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-blue-100 text-blue-700 font-bold text-sm">1</span>
+                  <h2 className="text-2xl font-bold text-gray-800">Sua Identidade</h2>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-                  URL Personalizada
-                </h2>
-              </div>
 
-              <p className="text-sm sm:text-base text-gray-600">
-                Escolha um nome único e <span className="font-semibold text-purple-600">memorável</span> para sua página.
-              </p>
+                <div className="space-y-4">
+                  <p className="text-gray-600 leading-relaxed">
+                    Escolha um nome curto. É assim que seus seguidores vão te encontrar.
+                  </p>
 
-              {/* Benefits List */}
-              <div className="space-y-2 p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-100">
-                <p className="text-xs font-semibold text-purple-700 mb-2">POR QUE É IMPORTANTE:</p>
-                {[
-                  "URL curta e profissional",
-                  "Fácil de compartilhar",
-                  "Melhor para SEO",
-                  "Aumenta credibilidade"
-                ].map((benefit, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex-shrink-0" />
-                    <span className="text-xs sm:text-sm text-gray-700">{benefit}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Tips Card - Desktop */}
-              <div className="hidden lg:block p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
-                <div className="flex items-start gap-2">
-                  <Sparkles className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-xs font-semibold text-yellow-800 mb-1">DICA:</p>
-                    <p className="text-xs text-yellow-700">
-                      Use seu @instagram ou nome da marca para facilitar a memorização!
-                    </p>
+                  <div className="bg-white/50 backdrop-blur-sm rounded-xl p-4 border border-white/60 shadow-sm">
+                    <p className="text-xs font-bold text-blue-600 mb-3 tracking-wide uppercase">Vantagens</p>
+                    <ul className="space-y-2.5">
+                      {[
+                        "Link curto e profissional",
+                        "Melhor rankeamento no Google",
+                        "Fácil de memorizar"
+                      ].map((benefit, i) => (
+                        <li key={i} className="flex items-center gap-2.5 text-sm text-gray-700">
+                          <Check className="w-4 h-4 text-blue-500 flex-shrink-0" />
+                          {benefit}
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 </div>
               </div>
             </aside>
 
-            {/* Form Card */}
+            {/* Form Container */}
             <div className="flex-1">
-              <div className="relative bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                {/* Gradient Border Top */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500" />
+              <div className="relative bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden group hover:shadow-2xl hover:shadow-blue-900/5 transition-all duration-500">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-500 bg-[length:200%_auto] animate-gradient-x" />
 
-                <div className="p-6 sm:p-8">
-                  {/* Security Badge */}
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                      <Shield className="w-4 h-4 text-green-500" />
-                      <span className="text-xs text-gray-600">Alteração segura e instantânea</span>
-                    </div>
+                <div className="p-6 sm:p-8 lg:p-10">
+                  <div className="flex items-center gap-2 mb-6 text-green-600 bg-green-50 w-fit px-3 py-1 rounded-full text-xs font-medium">
+                    <Shield className="w-3.5 h-3.5" />
+                    Alteração Segura
                   </div>
 
                   <UsernameForm />
-
-                  {/* Example URL Preview */}
-                  <div className="mt-6 p-4 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl border border-gray-200">
-                    <p className="text-xs text-gray-500 mb-2">Sua URL ficará assim:</p>
-                    <div className="flex items-center gap-2">
-                      <div className="px-3 py-1.5 bg-white rounded-lg border border-gray-300 shadow-sm">
-                        <code className="text-sm font-mono text-purple-600">
-                          freelinnk.com/seunome
-                        </code>
-                      </div>
-                      <Check className="w-4 h-4 text-green-500" />
-                    </div>
-                  </div>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Mobile Tips */}
-          <div className="lg:hidden mt-4 p-4 bg-gradient-to-br from-yellow-50 to-orange-50 rounded-xl border border-yellow-200">
-            <div className="flex items-start gap-2">
-              <Sparkles className="w-4 h-4 text-yellow-600 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="text-xs font-semibold text-yellow-800 mb-1">DICA:</p>
-                <p className="text-xs text-yellow-700">
-                  Use seu @instagram ou nome da marca para facilitar a memorização!
-                </p>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Divider com Decoração */}
-        <div className="relative">
-          <hr className="border-gray-200/50" />
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-purple-100 to-pink-100 px-4 py-1 rounded-full">
-            <Sparkles className="w-4 h-4 text-purple-600" />
+        {/* Divider */}
+        <div className="relative py-4">
+          <div className="absolute inset-0 flex items-center" aria-hidden="true">
+            <div className="w-full border-t border-gray-200/60" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-gray-50 px-4 text-gray-400">
+              <Sparkles className="w-5 h-5" />
+            </span>
           </div>
         </div>
 
-        {/* Seção de Aparência */}
-        <section className="relative">
-          {/* Badge de Etapa */}
-          <div className="absolute -top-3 right-4 z-10">
-            <div className="inline-flex items-center gap-1 px-2 py-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white text-xs font-bold rounded-full shadow-lg">
-              <Palette className="w-3 h-3" />
-              <span>ETAPA 2</span>
-            </div>
-          </div>
+        {/* === SEÇÃO 2: APARÊNCIA === */}
+        <section className="relative scroll-mt-20" id="appearance">
+          <div className="flex flex-col lg:flex-row gap-6 lg:gap-10">
 
-          <div className="flex flex-col lg:flex-row gap-4 sm:gap-6 lg:gap-8">
             {/* Sidebar Info */}
-            <aside className="lg:w-1/3 space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-gradient-to-br from-purple-100 to-pink-100 rounded-xl">
-                  <Palette className="w-5 h-5 text-purple-600" />
+            <aside className="lg:w-1/3 space-y-6">
+              <div className="sticky top-24">
+                <div className="flex items-center gap-3 mb-4">
+                  <span className="flex items-center justify-center w-8 h-8 rounded-full bg-purple-100 text-purple-700 font-bold text-sm">2</span>
+                  <h2 className="text-2xl font-bold text-gray-800">Estilo Visual</h2>
                 </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-800">
-                  Aparência da Página
-                </h2>
-              </div>
 
-              <p className="text-sm sm:text-base text-gray-600">
-                Crie uma página <span className="font-semibold text-purple-600">única e profissional</span> que represente você.
-              </p>
+                <p className="text-gray-600 leading-relaxed">
+                  Crie uma página que prenda a atenção. Use fotos, cores e efeitos para se destacar da multidão.
+                </p>
 
-              {/* Features Grid */}
-              <div className="grid grid-cols-2 gap-2">
-                {[
-                  { icon: "🎨", label: "Cores da marca" },
-                  { icon: "📸", label: "Foto de perfil" },
-                  { icon: "✍️", label: "Bio personalizada" },
-                  { icon: "🖼️", label: "Fundo customizado" }
-                ].map((feature, i) => (
-                  <div key={i} className="p-3 bg-white rounded-lg border border-gray-200 shadow-sm">
-                    <div className="text-xl mb-1">{feature.icon}</div>
-                    <p className="text-xs text-gray-700">{feature.label}</p>
+                <div className="bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl p-5 border border-purple-100/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Rocket className="w-4 h-4 text-purple-600" />
+                    <span className="text-xs font-bold text-purple-700 uppercase">Dica Pro</span>
                   </div>
-                ))}
-              </div>
-
-              {/* Importance Card */}
-              <div className="p-4 bg-gradient-to-br from-indigo-50 to-purple-50 rounded-xl border border-indigo-100">
-                <div className="flex items-center gap-2 mb-3">
-                  <Rocket className="w-4 h-4 text-indigo-600" />
-                  <p className="text-xs font-semibold text-indigo-700">POR QUE PERSONALIZAR</p>
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-start gap-2">
-                    <Check className="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-gray-700">Páginas com foto convertem mais</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-gray-700">Cores consistentes geram confiança</p>
-                  </div>
-                  <div className="flex items-start gap-2">
-                    <Check className="w-3.5 h-3.5 text-green-500 mt-0.5 flex-shrink-0" />
-                    <p className="text-xs text-gray-700">Bio completa aumenta cliques</p>
-                  </div>
+                  <p className="text-sm text-purple-900/80 italic">
+                    Páginas com foto de fundo desfocada aumentam a retenção em até 40%.
+                  </p>
                 </div>
               </div>
             </aside>
 
-            {/* Form Card */}
+            {/* Customization Form (Com o iPhone Mockup) */}
             <div className="flex-1">
-              <div className="relative bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
-                {/* Gradient Border Top */}
-                <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 via-pink-500 to-indigo-500" />
+              <div className="relative bg-white rounded-[2rem] shadow-xl shadow-gray-200/50 border border-gray-100 overflow-hidden group hover:shadow-2xl hover:shadow-purple-900/5 transition-all duration-500">
+                <div className="absolute top-0 left-0 w-full h-1.5 bg-gradient-to-r from-purple-500 via-pink-500 to-orange-500 bg-[length:200%_auto] animate-gradient-x" />
 
-                <div className="p-6 sm:p-8">
-                  {/* Live Preview Badge */}
-                  <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                      <span className="text-xs text-gray-600">Salva automaticamente</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Eye className="w-3 h-3 text-gray-400" />
-                      <span className="text-xs text-gray-500">Preview em tempo real</span>
-                    </div>
-                  </div>
-
+                <div className="p-6 sm:p-8 lg:p-10">
                   <CustomizationForm />
-
-                  {/* Quick Actions */}
-                  <div className="mt-6 p-4 bg-gradient-to-br from-purple-50 to-pink-50 rounded-xl border border-purple-100">
-                    <p className="text-xs font-semibold text-purple-700 mb-3">AÇÕES RÁPIDAS:</p>
-                    <div className="flex flex-wrap gap-2">
-                      <button className="px-3 py-1.5 text-xs bg-white rounded-lg border border-purple-200 hover:border-purple-400 hover:shadow-md transition-all">
-                        Resetar cores
-                      </button>
-                      <button className="px-3 py-1.5 text-xs bg-white rounded-lg border border-purple-200 hover:border-purple-400 hover:shadow-md transition-all">
-                        Remover fundo
-                      </button>
-                      <button className="px-3 py-1.5 text-xs bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:shadow-md transition-all">
-                        Ver página
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Success Message - Aparece quando tudo estiver configurado */}
-        <div className="mt-8 p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl border border-green-200">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-white rounded-lg shadow-sm">
-              <Check className="w-5 h-5 text-green-600" />
-            </div>
-            <div className="flex-1">
-              <p className="text-sm font-semibold text-green-800">Tudo pronto!</p>
-              <p className="text-xs text-green-600 mt-0.5">
-                Suas configurações estão salvas. Sua página está no ar!
-              </p>
-            </div>
-            <ChevronRight className="w-5 h-5 text-green-600" />
-          </div>
-        </div>
       </div>
     </div>
   );
