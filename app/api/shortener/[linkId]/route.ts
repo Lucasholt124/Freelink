@@ -35,6 +35,17 @@ export async function GET(req: Request) {
     const clicks = await prisma.click.findMany({
       where: { linkId: linkId },
       orderBy: { timestamp: 'desc' },
+      select: {
+        id: true,
+        timestamp: true,
+        visitorId: true,
+        userAgent: true,
+        referrer: true,
+        // Trazendo os dados que vimos no seu dashboard
+        country: true,
+        city: true,
+        region: true,  // Se tiver a coluna 'region' ou 'state'. Se não, remova esta linha.
+      }
     });
 
     // ✅ CORREÇÃO: Incluindo createdAt e outros campos necessários
@@ -51,6 +62,8 @@ export async function GET(req: Request) {
         visitorId: click.visitorId,
         userAgent: click.userAgent, // ✅ CORREÇÃO: Usar o campo que existe
         referrer: click.referrer,
+        city: click.city || 'Desconhecido',
+        region: click.region || 'Desconhecido'
       })),
     };
 
