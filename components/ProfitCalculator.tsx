@@ -370,7 +370,7 @@ const [quickSaleForm, setQuickSaleForm] = useState({
   });
 
   const [priceCalcResult, setPriceCalcResult] = useState<PriceCalculationResult | null>(null);
-
+const [productSearchTerm, setProductSearchTerm] = useState("");
   const productsQuery = useQuery(api.profitCalculator.getProducts, { activeOnly: false });
   const products = useMemo(() => productsQuery ?? [], [productsQuery]);
   const sales = useQuery(api.profitCalculator.getSalesByMonth, { month: selectedMonth }) ?? [];
@@ -1323,7 +1323,9 @@ const getPaymentMethodLabel = (method: string) => {
   };
   const [productsPage, setProductsPage] = useState(1);
 const PRODUCTS_PER_PAGE = 12;
-
+useEffect(() => {
+  setProductsPage(1);
+}, [searchQuery, filterCategory]);
   const filteredProducts = useMemo(() => {
   if (!products) return [];
 
@@ -2224,39 +2226,40 @@ const chartData = useMemo(() => {
             <TabsContent value="produtos">
               <div className="space-y-4">
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="relative flex-1 md:flex-none md:w-64">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        placeholder="Buscar produtos..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    {categories.length > 0 && (
-                      <Select value={filterCategory} onValueChange={setFilterCategory}>
-                        <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Categoria" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas</SelectItem>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat} value={cat || ""}>
-                              {cat}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
+<div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
+  <div className="relative w-full sm:w-64">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+    <Input
+      placeholder="Buscar produtos..."
+      value={searchQuery}
+      onChange={(e) => setSearchQuery(e.target.value)}
+      className="pl-10 w-full"
+    />
+  </div>
+  {categories.length > 0 && (
+    <Select value={filterCategory} onValueChange={setFilterCategory}>
+      <SelectTrigger className="w-full sm:w-40">
+        <SelectValue placeholder="Categoria" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">Todas</SelectItem>
+        {categories.map((cat) => (
+          <SelectItem key={cat} value={cat || ""}>
+            {cat}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )}
+</div>
                   <div className="flex gap-2 w-full md:w-auto">
                     <Button
                       onClick={() => {
-                        if (filteredProducts.length > 0) {
-                          const exporter = new PDFExporter();
-                          exporter.exportProductsReport(filteredProducts);
-                          toast.success("📄 PDF de produtos gerado com sucesso!");
+                        if (filteredProducts.length > 0) { // filteredProducts respeita a busca atual
+    const exporter = new PDFExporter();
+    exporter.exportProductsReport(filteredProducts);
+    toast.success("📄 PDF de produtos gerado com sucesso!");
+
                         } else {
                           toast.error("❌ Nenhum produto para exportar");
                         }
@@ -3362,24 +3365,73 @@ const chartData = useMemo(() => {
             <div className="space-y-4">
               <div>
                 <Label>Produto *</Label>
-                <Select
-                  value={saleForm.productId}
-                  onValueChange={(v) => setSaleForm({ ...saleForm, productId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um produto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products
-                      .filter((p) => p.active)
-                      .map((p) => (
-                        <SelectItem key={p._id} value={p._id}>
-                          {p.name} - {formatCurrency(p.salePrice)}{" "}
-                          {p.stock !== undefined && `(Estoque: ${p.stock})`}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+              <div className="space-y-2">
+  <Label>Buscar Produto *</Label>
+  <div className="relative">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+    <Input
+      placeholder="Digite o nome do produto..."
+      value={productSearchTerm}
+      onChange={(e) => setProductSearchTerm(e.target.value)}
+      className="pl-10 bg-white"
+    />
+  </div>
+
+  {/* Lista de sugestões que aparece quando digita ou se não tiver produto selecionado */}
+  {!saleForm.productId && (
+    <div className="border rounded-md max-h-40 overflow-y-auto bg-slate-50 p-1">
+      {products
+        .filter((p) => p.active && p.name.toLowerCase().includes(productSearchTerm.toLowerCase()))
+        .length === 0 ? (
+          <p className="text-sm text-gray-500 p-2 text-center">Nenhum produto encontrado</p>
+        ) : (
+          products
+            .filter((p) => p.active && p.name.toLowerCase().includes(productSearchTerm.toLowerCase()))
+            .map((p) => (
+              <div
+                key={p._id}
+                onClick={() => {
+                  setSaleForm({ ...saleForm, productId: p._id });
+                  setProductSearchTerm(p.name); // Preenche o nome no input visualmente
+                }}
+                className="p-2 hover:bg-blue-100 cursor-pointer rounded text-sm flex justify-between items-center transition-colors"
+              >
+                <span className="font-medium">{p.name}</span>
+                <span className="text-emerald-600 font-bold">{formatCurrency(p.salePrice)}</span>
+              </div>
+            ))
+        )}
+    </div>
+  )}
+
+  {/* Produto Selecionado (Visualização) */}
+  {saleForm.productId && (
+    <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg mt-2">
+      <div className="flex items-center gap-2">
+        <CheckCircle2 className="w-5 h-5 text-blue-600" />
+        <div>
+          <p className="font-bold text-sm text-blue-900">
+            {products.find(p => p._id === saleForm.productId)?.name}
+          </p>
+          <p className="text-xs text-blue-700">
+            Preço: {formatCurrency(products.find(p => p._id === saleForm.productId)?.salePrice || 0)}
+          </p>
+        </div>
+      </div>
+      <Button
+        size="sm"
+        variant="ghost"
+        className="text-red-500 hover:bg-red-50 h-8 w-8 p-0"
+        onClick={() => {
+          setSaleForm({ ...saleForm, productId: "" });
+          setProductSearchTerm("");
+        }}
+      >
+        <Trash2 className="w-4 h-4" />
+      </Button>
+    </div>
+  )}
+</div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
