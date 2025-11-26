@@ -2389,9 +2389,19 @@ const chartData = useMemo(() => {
 
                 )}
 
+                {filteredProducts.length > 0 && (
+                  <Pagination
+                    currentPage={productsPage}
+                    totalPages={totalProductsPages}
+                    onPageChange={setProductsPage}
+                    totalItems={filteredProducts.length}
+                    itemsPerPage={PRODUCTS_PER_PAGE}
+                  />
+                )}
               </div>
 
             </TabsContent>
+
 
 
             <TabsContent value="vendas">

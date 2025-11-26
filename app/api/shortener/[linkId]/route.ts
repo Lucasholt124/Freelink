@@ -1,15 +1,11 @@
+// Em /app/api/shortener/[linkId]/route.ts
+// (Substitua o arquivo inteiro)
+
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 
-// ----------------------------------------------------------------------
-// ✅ CORREÇÃO NEXT.JS 15: params agora é uma Promise
-// ----------------------------------------------------------------------
-
-export async function GET(
-  req: Request,
-  props: { params: Promise<{ linkId: string }> }
-) {
+export async function GET(req: Request) {
   try {
     const { userId } = await auth();
 
@@ -17,9 +13,9 @@ export async function GET(
       return new NextResponse("Não autenticado", { status: 401 });
     }
 
-    // ✅ Await no params para Next.js 15
-    const params = await props.params;
-    const linkId = params.linkId;
+    const url = new URL(req.url);
+    const pathSegments = url.pathname.split('/');
+    const linkId = pathSegments.pop() || '';
 
     if (!linkId) {
       return new NextResponse("ID do link é obrigatório", { status: 400 });
@@ -39,73 +35,84 @@ export async function GET(
     const clicks = await prisma.click.findMany({
       where: { linkId: linkId },
       orderBy: { timestamp: 'desc' },
-      select: {
-        id: true,
-        timestamp: true,
-        visitorId: true,
-        userAgent: true,
-        referrer: true,
-        country: true,
-        city: true,
-        region: true,
-      }
     });
 
+    // ✅ CORREÇÃO: Incluindo createdAt e outros campos necessários
     const formattedData = {
       link: {
         id: link.id,
         url: link.url,
-        createdAt: link.createdAt.getTime(),
+        createdAt: link.createdAt.getTime(), // ← Adicionado este campo
       },
       clicks: clicks.map(click => ({
         id: click.id,
         timestamp: click.timestamp.getTime(),
+        country: click.country,
         visitorId: click.visitorId,
-        userAgent: click.userAgent || 'Desconhecido',
-        referrer: click.referrer || 'Direto',
-        country: click.country || 'Desconhecido',
-        city: click.city || 'Desconhecido',
-        region: click.region || 'Desconhecido'
+        userAgent: click.userAgent, // ✅ CORREÇÃO: Usar o campo que existe
+        referrer: click.referrer,
       })),
     };
 
     return NextResponse.json(formattedData);
 
   } catch (error) {
-    console.error(`[GET_LINK_ERROR]`, error);
+    console.error(`[SHORTENER_LINKID_GET_ERROR]`, error);
     return new NextResponse("Erro interno do servidor", { status: 500 });
   }
 }
 
-export async function DELETE(
-  req: Request,
-  props: { params: Promise<{ linkId: string }> }
-) {
+export async function DELETE(req: Request) {
   try {
     const { userId } = await auth();
-    if (!userId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
-    // ✅ Await no params para Next.js 15
-    const params = await props.params;
-    const linkId = params.linkId;
+    if (!userId) {
+      return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
+    }
 
-    if (!linkId) return NextResponse.json({ error: "ID obrigatório" }, { status: 400 });
+    const url = new URL(req.url);
+    const pathSegments = url.pathname.split('/');
+    const linkId = pathSegments.pop() || '';
 
+    if (!linkId) {
+      return NextResponse.json({ error: "ID do link é obrigatório" }, { status: 400 });
+    }
+
+    // Verificar se o link pertence ao usuário
     const link = await prisma.link.findFirst({
-      where: { id: linkId, userId: userId },
+      where: {
+        id: linkId,
+        userId: userId,
+      },
     });
 
-    if (!link) return NextResponse.json({ error: "Link não encontrado" }, { status: 404 });
+    if (!link) {
+      return NextResponse.json(
+        { error: "Link não encontrado ou acesso negado" },
+        { status: 404 }
+      );
+    }
 
-    await prisma.$transaction([
-      prisma.click.deleteMany({ where: { linkId: linkId } }),
-      prisma.link.delete({ where: { id: linkId } })
-    ]);
+    // Excluir todos os cliques relacionados primeiro
+    await prisma.click.deleteMany({
+      where: { linkId: linkId }
+    });
 
-    return NextResponse.json({ success: true, message: "Link excluído" });
+    // Excluir o link
+    await prisma.link.delete({
+      where: { id: linkId }
+    });
+
+    return NextResponse.json({
+      success: true,
+      message: "Link excluído com sucesso"
+    });
 
   } catch (error) {
-    console.error(`[DELETE_LINK_ERROR]`, error);
-    return NextResponse.json({ error: "Erro interno" }, { status: 500 });
+    console.error(`[SHORTENER_LINKID_DELETE_ERROR]`, error);
+    return NextResponse.json(
+      { error: "Erro interno do servidor" },
+      { status: 500 }
+    );
   }
 }

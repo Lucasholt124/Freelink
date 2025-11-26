@@ -1,504 +1,1115 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useParams, useRouter } from "next/navigation";
-
-import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
-import {
-  ArrowLeft, Globe, Loader2, Users, ExternalLink,
-  Link as LinkIcon, Download, Smartphone, Laptop, Share2, Copy,
-  MapPin, Zap, MousePointer,
-} from "lucide-react";
-
-// Imports de UI (Mantenha seus caminhos atuais)
+import { useState, useEffect, JSX } from "react";
+import { useParams } from "next/navigation";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
+import {
+  ArrowLeft,
+  BarChart2,
+  Globe,
+  Loader2,
+  Users,
+  ExternalLink,
+  LinkIcon,
+  Download,
+  Calendar,
+  MousePointer,
+  Smartphone,
+  Laptop,
+  Share2,
+  Copy,
+  Activity,
+  TrendingUp,
+  TrendingDown,
+  Zap,
+  Eye,
+  Sparkles,
+  ChevronRight,
+  Filter,
+  MoreHorizontal,
+  RefreshCw
+} from "lucide-react";
+import { useUser } from "@clerk/nextjs";
+import { toast } from "sonner";
 import clsx from "clsx";
+import { motion, AnimatePresence } from "framer-motion";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
-// ==========================================
-// 🧠 TIPAGEM ESTRITA (Zero 'any')
-// ==========================================
-
-interface ClickData {
-  id: string;
+type LinkData = { id: string; url: string; createdAt: number; };
+type ClickData = {
+  id: number;
   timestamp: number;
   country: string | null;
-  region: string | null;
-  city: string | null;
   visitorId: string;
-  userAgent?: string | null;
-  referrer?: string | null;
+  userAgent?: string;
+  referrer?: string;
+};
+type PageData = { link: LinkData; clicks: ClickData[] };
+
+// 🎨 Animated Counter Component
+function AnimatedNumber({ value, duration = 1000 }: { value: number; duration?: number }) {
+  const [displayValue, setDisplayValue] = useState(0);
+
+  useEffect(() => {
+    let startTime: number;
+    const startValue = displayValue;
+
+    const animate = (currentTime: number) => {
+      if (!startTime) startTime = currentTime;
+      const progress = Math.min((currentTime - startTime) / duration, 1);
+      const easeOut = 1 - Math.pow(1 - progress, 3);
+      setDisplayValue(Math.floor(startValue + (value - startValue) * easeOut));
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [value, duration]);
+
+  return <span>{displayValue.toLocaleString('pt-BR')}</span>;
 }
 
-interface LinkData {
-  id: string;
-  url: string;
-  createdAt: number;
-}
+// 🎯 Hero Stats Card - Instagram/TikTok Style
+function HeroStatsCard({ clicks, plan }: { clicks: ClickData[]; plan: string }) {
+  const uniqueVisitors = new Set(clicks.map((c) => c.visitorId)).size;
 
-interface PageData {
-  link: LinkData;
-  clicks: ClickData[];
-}
+  const getTrend = () => {
+    if (clicks.length < 2) return { value: 0, isPositive: true };
+    const now = Date.now();
+    const dayAgo = now - 24 * 60 * 60 * 1000;
+    const todayClicks = clicks.filter(c => c.timestamp > dayAgo).length;
+    const yesterdayClicks = clicks.filter(c => c.timestamp <= dayAgo && c.timestamp > dayAgo - 24 * 60 * 60 * 1000).length;
 
-interface GeoBarProps {
-  label: string;
-  count: number;
-  total: number;
-  color: string;
-}
-
-interface MetricCardProps {
-  title: string;
-  value: string | number;
-  icon: React.ElementType;
-  color: string;
-  delay: number;
-}
-
-// ==========================================
-// 🧩 COMPONENTES VISUAIS
-// ==========================================
-
-// 1. HEATMAP (Com Tipagem Correta e Scroll Mobile)
-function TimeHeatmap({ clicks }: { clicks: ClickData[] }) {
-  const data = useMemo(() => {
-    // Inicializa grid 7x24 com zeros
-    const grid: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0));
-    let max = 0;
-
-    clicks.forEach((c) => {
-      const d = new Date(c.timestamp);
-      const day = d.getDay(); // 0-6
-      const hour = d.getHours(); // 0-23
-      grid[day][hour]++;
-      if (grid[day][hour] > max) max = grid[day][hour];
-    });
-
-    return { grid, max };
-  }, [clicks]);
-
-  const days = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-
-  return (
-    <div className="w-full overflow-x-auto pb-4">
-      {/* min-w define que em telas pequenas ele vai scrollar em vez de esmagar */}
-      <div className="min-w-[600px] flex flex-col gap-1.5">
-        <div className="flex pl-8 mb-1">
-          {Array.from({ length: 12 }).map((_, i) => (
-            <div key={i} className="flex-1 text-[10px] text-muted-foreground text-center border-l border-dashed border-gray-200 dark:border-gray-800 h-2">
-              {i * 2}h
-            </div>
-          ))}
-        </div>
-        {data.grid.map((row, d) => (
-          <div key={d} className="flex items-center gap-1">
-            <span className="w-8 text-[10px] font-bold text-muted-foreground uppercase">{days[d]}</span>
-            {row.map((val, h) => (
-              <div
-                key={`${d}-${h}`}
-                className="flex-1 aspect-square rounded-[2px] relative group transition-all hover:scale-110 hover:z-10"
-                style={{
-                  backgroundColor: val === 0
-                    ? 'var(--muted)'
-                    : `rgba(124, 58, 237, ${Math.min(Math.max(val / (data.max || 1), 0.2), 1)})`,
-                  opacity: val === 0 ? 0.2 : 1
-                }}
-                title={`${val} clicks às ${h}h`}
-              />
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// 2. RANKING GEO (Tipado)
-function GeoBar({ label, count, total, color }: GeoBarProps) {
-  return (
-    <div className="mb-3 last:mb-0 group">
-      <div className="flex justify-between text-sm mb-1">
-        <span className="font-medium text-gray-700 dark:text-gray-300 truncate max-w-[70%]">{label}</span>
-        <span className="text-xs font-mono bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-gray-500">{count}</span>
-      </div>
-      <div className="h-2 w-full bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-        <motion.div
-          initial={{ width: 0 }}
-          animate={{ width: `${(count / Math.max(total, 1)) * 100}%` }}
-          transition={{ duration: 1, ease: "easeOut" }}
-          className={clsx("h-full rounded-full shadow-sm", color)}
-        />
-      </div>
-    </div>
-  );
-}
-
-// 3. TABELA RESPONSIVA (Tipada)
-function ClicksTable({ clicks }: { clicks: ClickData[] }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 10;
-
-  const filtered = useMemo(() => {
-    const lowerSearch = searchTerm.toLowerCase();
-    return clicks.filter(c =>
-      (c.city || "").toLowerCase().includes(lowerSearch) ||
-      (c.country || "").toLowerCase().includes(lowerSearch) ||
-      (c.referrer || "").toLowerCase().includes(lowerSearch)
-    );
-  }, [clicks, searchTerm]);
-
-  const paginated = filtered.slice((page - 1) * itemsPerPage, page * itemsPerPage);
-  const totalPages = Math.ceil(filtered.length / itemsPerPage);
-
-  const exportCsv = () => {
-    const headers = ["Data", "Hora", "País", "Cidade", "Origem", "Dispositivo"];
-    const rows = filtered.map(c => [
-      new Date(c.timestamp).toLocaleDateString(),
-      new Date(c.timestamp).toLocaleTimeString(),
-      c.country || "N/A",
-      c.city || "N/A",
-      c.referrer || "Direto",
-      c.userAgent || "N/A"
-    ]);
-    const csvContent = [headers.join(","), ...rows.map(e => e.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "relatorio_clicks.csv");
-    document.body.appendChild(link);
-    link.click();
-    URL.revokeObjectURL(url); // Limpeza de memória
-    toast.success("Download iniciado!");
+    if (yesterdayClicks === 0) return { value: todayClicks > 0 ? 100 : 0, isPositive: true };
+    const change = ((todayClicks - yesterdayClicks) / yesterdayClicks) * 100;
+    return { value: Math.abs(Math.round(change)), isPositive: change >= 0 };
   };
 
-  return (
-    <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row gap-3 justify-between">
-        <Input
-          placeholder="Pesquisar cidade, país..."
-          className="max-w-xs bg-white dark:bg-slate-900"
-          value={searchTerm}
-          onChange={(e) => { setSearchTerm(e.target.value); setPage(1); }}
-        />
-        <Button variant="outline" size="sm" onClick={exportCsv} className="w-full sm:w-auto">
-          <Download className="w-4 h-4 mr-2"/> CSV
-        </Button>
-      </div>
+  const trend = getTrend();
 
-      <div className="rounded-xl border bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm text-left">
-            <thead className="bg-gray-50 dark:bg-gray-800/50 text-gray-500 font-medium">
-              <tr>
-                <th className="p-4 w-[140px]">Data</th>
-                <th className="p-4">Local</th>
-                <th className="p-4 hidden md:table-cell">Origem</th>
-                <th className="p-4 text-center">Device</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {paginated.map((click) => (
-                <tr key={click.id} className="hover:bg-gray-50/50 dark:hover:bg-gray-800/50 transition-colors">
-                  <td className="p-4">
-                    <div className="font-medium text-gray-900 dark:text-gray-100">{new Date(click.timestamp).toLocaleDateString()}</div>
-                    <div className="text-xs text-gray-400">{new Date(click.timestamp).toLocaleTimeString()}</div>
-                  </td>
-                  <td className="p-4">
-                    <div className="flex items-center gap-2">
-                       <span className="text-lg">{click.country === 'Brasil' || click.country === 'Brazil' ? '🇧🇷' : '🌍'}</span>
-                       <div>
-                         <div className="font-medium truncate max-w-[100px] sm:max-w-[200px]">{click.city || "Desconhecido"}</div>
-                         <div className="text-xs text-gray-400">{click.region || click.country}</div>
-                       </div>
-                    </div>
-                  </td>
-                  <td className="p-4 hidden md:table-cell">
-                    <span className="truncate block max-w-[150px] text-gray-500" title={click.referrer || "Direto"}>
-                      {(click.referrer && click.referrer.replace('https://', '')) || 'Direto'}
-                    </span>
-                  </td>
-                  <td className="p-4 text-center">
-                    <div className="flex justify-center text-gray-500">
-                      {(click.userAgent || "").toLowerCase().includes('mobile') ? <Smartphone className="w-4 h-4 text-blue-500"/> : <Laptop className="w-4 h-4 text-purple-500"/>}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {paginated.length === 0 && <div className="p-8 text-center text-gray-500">Nenhum dado encontrado.</div>}
-      </div>
-
-      {/* Paginação */}
-      <div className="flex items-center justify-between pt-2">
-        <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Anterior</Button>
-        <span className="text-xs text-gray-500">Pág {page} de {totalPages || 1}</span>
-        <Button variant="ghost" size="sm" disabled={page === totalPages || totalPages === 0} onClick={() => setPage(p => p + 1)}>Próxima</Button>
-      </div>
-    </div>
-  );
-}
-
-// 4. CARD MÉTRICA (Tipado)
-function MetricCard({ title, value, icon: Icon, color, delay }: MetricCardProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ delay }}
-      className="relative overflow-hidden rounded-2xl bg-white dark:bg-slate-900 border p-5 shadow-sm group hover:shadow-md transition-shadow"
+      className="relative overflow-hidden"
     >
-      <div className={`absolute -right-4 -top-4 opacity-5 group-hover:opacity-10 transition-opacity ${color}`}>
-        <Icon className="w-24 h-24" />
-      </div>
-      <div className="relative z-10">
-        <div className="flex items-center gap-2 mb-3">
-          <div className={`p-2 rounded-lg bg-gray-50 dark:bg-gray-800 ${color.replace('text-', 'text-opacity-80 ')}`}>
-            <Icon className={`w-4 h-4 ${color}`} />
-          </div>
-          <span className="text-sm font-medium text-gray-500">{title}</span>
+      {/* Gradient Background */}
+      <div className="absolute inset-0 bg-gradient-to-br from-violet-600 via-purple-600 to-indigo-700 rounded-3xl" />
+
+      <div className="relative p-6 sm:p-8">
+        {/* Main Stat */}
+        <div className="text-center mb-8">
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", delay: 0.2 }}
+            className="inline-flex items-center gap-2 bg-white/20 backdrop-blur-sm rounded-full px-4 py-2 mb-4"
+          >
+            <Zap className="w-4 h-4 text-yellow-300" />
+            <span className="text-white/90 text-sm font-medium">Estatísticas em Tempo Real</span>
+          </motion.div>
+
+          <motion.h2
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+            className="text-6xl sm:text-7xl font-bold text-white mb-2"
+          >
+            <AnimatedNumber value={clicks.length} />
+          </motion.h2>
+          <p className="text-white/70 text-lg">cliques totais</p>
+
+          {/* Trend Badge */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.5 }}
+            className={clsx(
+              "inline-flex items-center gap-1 mt-4 px-3 py-1.5 rounded-full text-sm font-medium",
+              trend.isPositive
+                ? "bg-emerald-500/20 text-emerald-300"
+                : "bg-red-500/20 text-red-300"
+            )}
+          >
+            {trend.isPositive ? (
+              <TrendingUp className="w-4 h-4" />
+            ) : (
+              <TrendingDown className="w-4 h-4" />
+            )}
+            {trend.value}% vs ontem
+          </motion.div>
         </div>
-        <div className="text-3xl font-bold tracking-tight text-gray-900 dark:text-gray-100">
-          {value}
+
+        {/* Secondary Stats */}
+        <div className="grid grid-cols-3 gap-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4 }}
+            className="text-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl"
+          >
+            <Users className="w-5 h-5 text-white/70 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-white">
+              {plan !== "free" ? <AnimatedNumber value={uniqueVisitors} /> : "—"}
+            </p>
+            <p className="text-xs text-white/60">Visitantes</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+            className="text-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl"
+          >
+            <Eye className="w-5 h-5 text-white/70 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-white">
+              <AnimatedNumber value={clicks.filter(c => Date.now() - c.timestamp < 24 * 60 * 60 * 1000).length} />
+            </p>
+            <p className="text-xs text-white/60">Hoje</p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.6 }}
+            className="text-center p-4 bg-white/10 backdrop-blur-sm rounded-2xl"
+          >
+            <Globe className="w-5 h-5 text-white/70 mx-auto mb-2" />
+            <p className="text-2xl font-bold text-white">
+              <AnimatedNumber value={new Set(clicks.map(c => c.country || 'BR')).size} />
+            </p>
+            <p className="text-xs text-white/60">Países</p>
+          </motion.div>
         </div>
       </div>
     </motion.div>
   );
 }
 
-// ==========================================
-// 🚀 PÁGINA PRINCIPAL (Tipada)
-// ==========================================
+// 📊 Modern Chart Component
+function ModernChart({ data, labels }: { data: number[], labels: string[] }) {
+  const maxValue = Math.max(...data, 1);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+  return (
+    <div className="space-y-4">
+      {/* Chart Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="font-semibold text-gray-900 dark:text-white">Últimos 7 dias</h3>
+          <p className="text-sm text-gray-500">Performance do seu link</p>
+        </div>
+        <div className="flex items-center gap-2 text-sm">
+          <div className="w-3 h-3 rounded-full bg-gradient-to-r from-violet-500 to-purple-500" />
+          <span className="text-gray-600 dark:text-gray-400">Cliques</span>
+        </div>
+      </div>
+
+      {/* Chart */}
+      <div className="h-52 flex items-end gap-2 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl">
+        {data.map((value, index) => {
+          const isHovered = hoveredIndex === index;
+          const height = Math.max((value / maxValue) * 100, 8);
+
+          return (
+            <div
+              key={index}
+              className="relative flex-1 flex flex-col items-center justify-end h-full cursor-pointer group"
+              onMouseEnter={() => setHoveredIndex(index)}
+              onMouseLeave={() => setHoveredIndex(null)}
+            >
+              {/* Tooltip */}
+              <AnimatePresence>
+                {isHovered && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 10 }}
+                    className="absolute -top-12 bg-gray-900 text-white text-xs rounded-lg px-3 py-2 shadow-lg z-10"
+                  >
+                    <p className="font-bold">{value} cliques</p>
+                    <p className="text-gray-400">
+                      {new Date(labels[index]).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric' })}
+                    </p>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              {/* Bar */}
+              <motion.div
+                initial={{ height: 0 }}
+                animate={{ height: `${height}%` }}
+                transition={{ delay: index * 0.1, duration: 0.5, type: "spring" }}
+                className={clsx(
+                  "w-full rounded-xl transition-all duration-200",
+                  isHovered
+                    ? "bg-gradient-to-t from-violet-600 to-purple-500 shadow-lg shadow-purple-500/30"
+                    : "bg-gradient-to-t from-violet-500/60 to-purple-400/60"
+                )}
+              />
+
+              {/* Label */}
+              <span className={clsx(
+                "text-xs mt-2 transition-colors",
+                isHovered ? "text-purple-600 font-medium" : "text-gray-400"
+              )}>
+                {new Date(labels[index]).toLocaleDateString('pt-BR', { weekday: 'short' })}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// 📱 Click Card for Mobile - Instagram Story Style
+function ClickCard({ click, index }: { click: ClickData; index: number }) {
+  const getDeviceInfo = (userAgent?: string) => {
+    if (!userAgent) return { type: 'Desconhecido', icon: Globe, color: 'gray' };
+    const ua = userAgent.toLowerCase();
+    if (ua.includes('iphone')) return { type: 'iPhone', icon: Smartphone, color: 'blue' };
+    if (ua.includes('android')) return { type: 'Android', icon: Smartphone, color: 'green' };
+    if (ua.includes('ipad')) return { type: 'iPad', icon: Smartphone, color: 'purple' };
+    if (ua.includes('mac')) return { type: 'Mac', icon: Laptop, color: 'gray' };
+    if (ua.includes('windows')) return { type: 'Windows', icon: Laptop, color: 'blue' };
+    return { type: 'Desktop', icon: Laptop, color: 'purple' };
+  };
+
+  const device = getDeviceInfo(click.userAgent);
+  const DeviceIcon = device.icon;
+
+  const timeAgo = (timestamp: number) => {
+    const seconds = Math.floor((Date.now() - timestamp) / 1000);
+    if (seconds < 60) return 'agora';
+    if (seconds < 3600) return `${Math.floor(seconds / 60)}min`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)}h`;
+    return `${Math.floor(seconds / 86400)}d`;
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, x: -20 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ delay: index * 0.05 }}
+      className="flex items-center gap-4 p-4 bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700 hover:shadow-lg hover:shadow-purple-500/5 transition-all duration-300 group"
+    >
+      {/* Device Icon */}
+      <div className={clsx(
+        "w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110",
+        device.color === 'blue' && "bg-blue-100 dark:bg-blue-900/30",
+        device.color === 'green' && "bg-green-100 dark:bg-green-900/30",
+        device.color === 'purple' && "bg-purple-100 dark:bg-purple-900/30",
+        device.color === 'gray' && "bg-gray-100 dark:bg-gray-700"
+      )}>
+        <DeviceIcon className={clsx(
+          "w-6 h-6",
+          device.color === 'blue' && "text-blue-600 dark:text-blue-400",
+          device.color === 'green' && "text-green-600 dark:text-green-400",
+          device.color === 'purple' && "text-purple-600 dark:text-purple-400",
+          device.color === 'gray' && "text-gray-600 dark:text-gray-400"
+        )} />
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="font-semibold text-gray-900 dark:text-white">{device.type}</span>
+          <span className="text-xs text-gray-400">•</span>
+          <span className="text-xs text-gray-500">{click.country || "Brasil"}</span>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 truncate">
+          {new Date(click.timestamp).toLocaleTimeString('pt-BR', {
+            hour: '2-digit',
+            minute: '2-digit'
+          })} — {click.referrer || "Acesso direto"}
+        </p>
+      </div>
+
+      {/* Time */}
+      <div className="text-right flex-shrink-0">
+        <span className="text-sm font-medium text-purple-600 dark:text-purple-400">
+          {timeAgo(click.timestamp)}
+        </span>
+      </div>
+    </motion.div>
+  );
+}
+
+// 📊 Device Breakdown - Pie Chart Style
+function ModernDeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
+  const devices = clicks.reduce((acc, click) => {
+    const ua = click.userAgent?.toLowerCase() || '';
+    if (ua.includes('iphone') || ua.includes('android') || ua.includes('mobile')) {
+      acc['Mobile'] = (acc['Mobile'] || 0) + 1;
+    } else if (ua.includes('ipad') || ua.includes('tablet')) {
+      acc['Tablet'] = (acc['Tablet'] || 0) + 1;
+    } else {
+      acc['Desktop'] = (acc['Desktop'] || 0) + 1;
+    }
+    return acc;
+  }, {} as Record<string, number>);
+
+  const total = clicks.length;
+  const deviceData = Object.entries(devices).map(([name, count]) => ({
+    name,
+    count,
+    percentage: total ? Math.round((count / total) * 100) : 0
+  })).sort((a, b) => b.count - a.count);
+
+  const colors = {
+    Mobile: { bg: 'bg-blue-500', light: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600 dark:text-blue-400' },
+    Tablet: { bg: 'bg-green-500', light: 'bg-green-100 dark:bg-green-900/30', text: 'text-green-600 dark:text-green-400' },
+    Desktop: { bg: 'bg-purple-500', light: 'bg-purple-100 dark:bg-purple-900/30', text: 'text-purple-600 dark:text-purple-400' }
+  };
+
+  return (
+    <div className="space-y-4">
+      {/* Visual Pie Alternative */}
+      <div className="flex items-center justify-center py-6">
+        <div className="relative w-40 h-40">
+          <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+            {deviceData.reduce((acc, device) => {
+              const previousTotal = acc.total;
+              const strokeDasharray = (device.percentage / 100) * 283;
+              const strokeDashoffset = -previousTotal * 2.83;
+
+              acc.elements.push(
+                <circle
+                  key={device.name}
+                  cx="50"
+                  cy="50"
+                  r="45"
+                  fill="none"
+                  stroke={device.name === 'Mobile' ? '#3B82F6' : device.name === 'Tablet' ? '#10B981' : '#8B5CF6'}
+                  strokeWidth="10"
+                  strokeDasharray={`${strokeDasharray} 283`}
+                  strokeDashoffset={strokeDashoffset}
+                  className="transition-all duration-500"
+                />
+              );
+              acc.total += device.percentage;
+              return acc;
+            }, { elements: [] as JSX.Element[], total: 0 }).elements}
+          </svg>
+          <div className="absolute inset-0 flex items-center justify-center flex-col">
+            <span className="text-3xl font-bold text-gray-900 dark:text-white">{total}</span>
+            <span className="text-xs text-gray-500">total</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="space-y-3">
+        {deviceData.map((device, index) => (
+          <motion.div
+            key={device.name}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: index * 0.1 }}
+            className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl"
+          >
+            <div className="flex items-center gap-3">
+              <div className={clsx("w-4 h-4 rounded-full", colors[device.name as keyof typeof colors]?.bg || 'bg-gray-400')} />
+              <span className="font-medium text-gray-900 dark:text-white">{device.name}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-500">{device.count} cliques</span>
+              <span className={clsx(
+                "text-sm font-bold",
+                colors[device.name as keyof typeof colors]?.text || 'text-gray-600'
+              )}>
+                {device.percentage}%
+              </span>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// 🌍 Country List - Modern Style
+function ModernCountryList({ clicks }: { clicks: ClickData[] }) {
+  const countries = clicks.reduce((acc, click) => {
+    const country = click.country || 'Brasil';
+    acc[country] = (acc[country] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+
+  const countryData = Object.entries(countries)
+    .map(([name, count]) => ({ name, count, percentage: Math.round((count / clicks.length) * 100) }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5);
+
+  const countryFlags: Record<string, string> = {
+    'Brasil': '🇧🇷',
+    'Portugal': '🇵🇹',
+    'United States': '🇺🇸',
+    'Spain': '🇪🇸',
+    'Argentina': '🇦🇷',
+    'Mexico': '🇲🇽',
+    'Germany': '🇩🇪',
+    'France': '🇫🇷',
+    'Italy': '🇮🇹',
+    'United Kingdom': '🇬🇧',
+  };
+
+  return (
+    <div className="space-y-3">
+      {countryData.map((country, index) => (
+        <motion.div
+          key={country.name}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: index * 0.1 }}
+          className="relative overflow-hidden"
+        >
+          {/* Background Bar */}
+          <div
+            className="absolute inset-y-0 left-0 bg-gradient-to-r from-purple-500/10 to-transparent rounded-xl transition-all duration-500"
+            style={{ width: `${country.percentage}%` }}
+          />
+
+          <div className="relative flex items-center justify-between p-4 bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-700">
+            <div className="flex items-center gap-3">
+              <span className="text-2xl">{countryFlags[country.name] || '🌍'}</span>
+              <span className="font-medium text-gray-900 dark:text-white">{country.name}</span>
+            </div>
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-gray-500">{country.count}</span>
+              <span className="text-sm font-bold text-purple-600 dark:text-purple-400">
+                {country.percentage}%
+              </span>
+            </div>
+          </div>
+        </motion.div>
+      ))}
+
+      {countryData.length === 0 && (
+        <div className="text-center py-8 text-gray-500">
+          <Globe className="w-12 h-12 mx-auto mb-3 opacity-30" />
+          <p>Nenhum dado disponível</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// 📋 Clicks Table - Full Featured
+function FullClicksTable({ clicks }: { clicks: ClickData[] }) {
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [filteredClicks, setFilteredClicks] = useState<ClickData[]>(clicks);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  useEffect(() => {
+    let filtered = [...clicks];
+    const now = Date.now();
+
+    if (timeFilter === 'today') {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      filtered = filtered.filter(click => click.timestamp >= today.getTime());
+    } else if (timeFilter === 'week') {
+      filtered = filtered.filter(click => now - click.timestamp < 7 * 24 * 60 * 60 * 1000);
+    } else if (timeFilter === 'month') {
+      filtered = filtered.filter(click => now - click.timestamp < 30 * 24 * 60 * 60 * 1000);
+    }
+
+    setFilteredClicks(filtered);
+  }, [timeFilter, clicks]);
+
+  const handleRefresh = () => {
+    setIsRefreshing(true);
+    setTimeout(() => setIsRefreshing(false), 1000);
+  };
+
+  const exportCSV = () => {
+    const headers = ['ID', 'Data', 'Hora', 'País', 'Dispositivo', 'Referrer'];
+    const rows = filteredClicks.map(click => [
+      click.id,
+      new Date(click.timestamp).toLocaleDateString('pt-BR'),
+      new Date(click.timestamp).toLocaleTimeString('pt-BR'),
+      click.country || 'Brasil',
+      click.userAgent?.includes('Mobile') ? 'Mobile' : 'Desktop',
+      click.referrer || 'Direto',
+    ]);
+
+    const csv = [headers.join(','), ...rows.map(row => row.join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `clicks-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    toast.success('Relatório exportado! 📊');
+  };
+
+  if (clicks.length === 0) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center py-16"
+      >
+        <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-3xl flex items-center justify-center">
+          <MousePointer className="w-10 h-10 text-purple-500" />
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">
+          Nenhum click ainda
+        </h3>
+        <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+          Compartilhe seu link nas redes sociais para começar a rastrear seus clicks em tempo real
+        </p>
+        <Button className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
+          <Share2 className="w-4 h-4 mr-2" />
+          Compartilhar Link
+        </Button>
+      </motion.div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      {/* Controls */}
+      <div className="flex flex-col sm:flex-row gap-3 justify-between">
+        <div className="flex gap-2">
+          <Select value={timeFilter} onValueChange={setTimeFilter}>
+            <SelectTrigger className="w-[160px] bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 rounded-xl">
+              <Filter className="w-4 h-4 mr-2 text-gray-400" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="today">Hoje</SelectItem>
+              <SelectItem value="week">Últimos 7 dias</SelectItem>
+              <SelectItem value="month">Últimos 30 dias</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            variant="outline"
+            size="icon"
+            className="rounded-xl"
+            onClick={handleRefresh}
+          >
+            <RefreshCw className={clsx("w-4 h-4", isRefreshing && "animate-spin")} />
+          </Button>
+        </div>
+
+        <Button
+          variant="outline"
+          className="rounded-xl gap-2"
+          onClick={exportCSV}
+        >
+          <Download className="w-4 h-4" />
+          Exportar CSV
+        </Button>
+      </div>
+
+      {/* Stats Bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        <div className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-900/20 dark:to-blue-800/20 rounded-xl p-4 border border-blue-200/50 dark:border-blue-800/50">
+          <p className="text-xs text-blue-600 dark:text-blue-400 font-medium">Filtrados</p>
+          <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{filteredClicks.length}</p>
+        </div>
+        <div className="bg-gradient-to-br from-purple-50 to-purple-100/50 dark:from-purple-900/20 dark:to-purple-800/20 rounded-xl p-4 border border-purple-200/50 dark:border-purple-800/50">
+          <p className="text-xs text-purple-600 dark:text-purple-400 font-medium">Total</p>
+          <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{clicks.length}</p>
+        </div>
+        <div className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-900/20 dark:to-emerald-800/20 rounded-xl p-4 border border-emerald-200/50 dark:border-emerald-800/50">
+          <p className="text-xs text-emerald-600 dark:text-emerald-400 font-medium">Únicos</p>
+          <p className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">
+            {new Set(filteredClicks.map(c => c.visitorId)).size}
+          </p>
+        </div>
+        <div className="bg-gradient-to-br from-amber-50 to-amber-100/50 dark:from-amber-900/20 dark:to-amber-800/20 rounded-xl p-4 border border-amber-200/50 dark:border-amber-800/50">
+          <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">Países</p>
+          <p className="text-2xl font-bold text-amber-700 dark:text-amber-300">
+            {new Set(filteredClicks.map(c => c.country || 'BR')).size}
+          </p>
+        </div>
+      </div>
+
+      {/* Mobile List */}
+      <div className="space-y-2">
+        <AnimatePresence>
+          {filteredClicks.slice(0, 50).map((click, index) => (
+            <ClickCard key={click.id} click={click} index={index} />
+          ))}
+        </AnimatePresence>
+
+        {filteredClicks.length > 50 && (
+          <div className="text-center py-4">
+            <p className="text-sm text-gray-500">
+              Mostrando 50 de {filteredClicks.length} clicks
+            </p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// 🔗 Link Header Component
+function LinkHeader({ link, shortUrl }: { link: LinkData; shortUrl: string }) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    await navigator.clipboard.writeText(shortUrl);
+    setCopied(true);
+    toast.success('Link copiado! 🎉');
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 p-6 shadow-sm"
+    >
+      <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="w-14 h-14 bg-gradient-to-br from-violet-500 to-purple-600 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-lg shadow-purple-500/20">
+            <LinkIcon className="w-7 h-7 text-white" />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white truncate">
+              freelinnk.com/r/{link.id}
+            </h1>
+            <p className="text-sm text-gray-500 truncate max-w-[250px] sm:max-w-md">
+              {link.url}
+            </p>
+          </div>
+        </div>
+
+        <div className="flex gap-2 w-full sm:w-auto">
+          <Button
+            onClick={handleCopy}
+            className={clsx(
+              "flex-1 sm:flex-none rounded-xl gap-2 transition-all",
+              copied
+                ? "bg-emerald-500 hover:bg-emerald-600"
+                : "bg-gradient-to-r from-violet-600 to-purple-600 hover:from-violet-700 hover:to-purple-700"
+            )}
+          >
+            {copied ? (
+              <>
+                <Sparkles className="w-4 h-4" />
+                Copiado!
+              </>
+            ) : (
+              <>
+                <Copy className="w-4 h-4" />
+                Copiar
+              </>
+            )}
+          </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="icon" className="rounded-xl">
+                <MoreHorizontal className="w-4 h-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="rounded-xl">
+              <DropdownMenuItem onClick={() => window.open(link.url, '_blank')}>
+                <ExternalLink className="w-4 h-4 mr-2" />
+                Visitar Original
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => window.open(shortUrl, '_blank')}>
+                <Eye className="w-4 h-4 mr-2" />
+                Testar Link
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                navigator.share?.({ url: shortUrl, title: 'Meu Link' });
+              }}>
+                <Share2 className="w-4 h-4 mr-2" />
+                Compartilhar
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      </div>
+
+      {/* Meta Info */}
+      <div className="flex flex-wrap gap-4 mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+        <div className="flex items-center gap-2 text-sm text-gray-500">
+          <Calendar className="w-4 h-4" />
+          <span>Criado em {new Date(link.createdAt).toLocaleDateString('pt-BR')}</span>
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+// 🏠 Main Page Component
 export default function ShortLinkDetailsPage() {
   const params = useParams();
   const linkId = params.linkId as string;
-  const router = useRouter();
-
-  const [data, setData] = useState<PageData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("overview");
+  const { user } = useUser();
+  const [data, setData] = useState<PageData | undefined | null>(undefined);
+  const [currentTab, setCurrentTab] = useState("overview");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!linkId) return;
-
-    fetch(`/api/shortener/${linkId}`)
-      .then((res) => {
-        if (!res.ok) throw new Error("Falha ao buscar dados");
-        return res.json();
-      })
-      .then((d: PageData) => {
-        setData(d);
-        setLoading(false);
-      })
-      .catch((err) => {
-        console.error(err);
-        setLoading(false);
-        // Opcional: toast.error("Erro ao carregar link");
-      });
+    if (linkId) {
+      fetch(`/api/shortener/${linkId}`)
+        .then((res) => {
+          if (!res.ok) {
+            return res.json().then((err) => {
+              throw new Error(err.error || "Falha ao buscar dados");
+            });
+          }
+          return res.json();
+        })
+        .then((data) => setData(data))
+        .catch((err) => {
+          setErrorMessage(err.message);
+          setData(null);
+        });
+    }
   }, [linkId]);
 
-  if (loading) return (
-    <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
-      <Loader2 className="w-8 h-8 animate-spin text-purple-600" />
-      <span className="text-sm text-gray-500 animate-pulse">Carregando analytics...</span>
-    </div>
-  );
+  const isAdmin = user?.id === "user_301NTkVsE3v48SXkoCEp0XOXifI";
+  const userPlan = (user?.publicMetadata?.subscriptionPlan as string) ?? "free";
+  const plan = isAdmin ? "ultra" : userPlan;
 
-  if (!data) return (
-    <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4">
-      <h2 className="text-xl font-bold">Link não encontrado</h2>
-      <Button onClick={() => router.back()} variant="outline"><ArrowLeft className="mr-2 w-4 h-4"/> Voltar</Button>
-    </div>
-  );
+  const generateChartData = (clicks: ClickData[]) => {
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      return d.toISOString().split('T')[0];
+    }).reverse();
 
-  const { link, clicks } = data;
-  const shortUrl = typeof window !== 'undefined' ? `${window.location.origin}/r/${link.id}` : '';
+    const clicksByDay = clicks.reduce((acc, click) => {
+      const date = new Date(click.timestamp).toISOString().split('T')[0];
+      acc[date] = (acc[date] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>);
 
-  // Métricas Calculadas
-  const uniqueVisitors = new Set(clicks.map(c => c.visitorId)).size;
-  const mobileCount = clicks.filter(c => (c.userAgent || "").toLowerCase().includes('mobile')).length;
-  const desktopCount = clicks.length - mobileCount;
+    return {
+      labels: last7Days,
+      data: last7Days.map(day => clicksByDay[day] || 0)
+    };
+  };
 
-  // Agrupamento Geo (Tipado)
-  const cities = clicks.reduce<Record<string, number>>((acc, c) => {
-    const k = c.city || 'Desconhecido';
-    acc[k] = (acc[k] || 0) + 1;
-    return acc;
-  }, {});
+  // Loading State
+  if (data === undefined) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] gap-4">
+        <motion.div
+          animate={{ rotate: 360 }}
+          transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+        >
+          <Loader2 className="w-10 h-10 text-purple-500" />
+        </motion.div>
+        <p className="text-gray-500">Carregando analytics...</p>
+      </div>
+    );
+  }
 
-  // Converte objeto para array de tuplas [string, number] para ordenar
-  const topCities = Object.entries(cities)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  // Error State
+  if (errorMessage || data === null) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-center py-20 px-4"
+      >
+        <div className="w-20 h-20 mx-auto mb-6 bg-red-100 dark:bg-red-900/30 rounded-3xl flex items-center justify-center">
+          <LinkIcon className="w-10 h-10 text-red-500" />
+        </div>
+        <h2 className="text-2xl font-bold mb-2">Link não encontrado</h2>
+        <p className="text-gray-500 mb-6 max-w-md mx-auto">
+          {errorMessage || "O link que você está procurando não existe ou você não tem permissão para acessá-lo."}
+        </p>
+        <Button asChild variant="outline" className="rounded-xl">
+          <Link href="/dashboard/shortener">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar para Links
+          </Link>
+        </Button>
+      </motion.div>
+    );
+  }
 
-  const states = clicks.reduce<Record<string, number>>((acc, c) => {
-    const k = c.region || 'Desconhecido';
-    acc[k] = (acc[k] || 0) + 1;
-    return acc;
-  }, {});
-
-  const topStates = Object.entries(states)
-    .sort((a, b) => b[1] - a[1])
-    .slice(0, 5);
+  const { link } = data;
+  const shortUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/r/${link.id}`;
+  const clicks = Array.isArray(data.clicks) ? data.clicks : [];
+  const chartData = generateChartData(clicks);
 
   return (
-    <main className="max-w-7xl mx-auto w-full px-4 sm:px-6 py-8 space-y-8 pb-20">
+    <main className="max-w-5xl mx-auto w-full px-4 pb-20 space-y-6">
+      {/* Back Button */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+      >
+        <Button asChild variant="ghost" className="rounded-xl -ml-2 text-gray-600 hover:text-gray-900">
+          <Link href="/dashboard/shortener">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
+          </Link>
+        </Button>
+      </motion.div>
 
-      {/* 1. HERO HEADER */}
-      <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-slate-900 border shadow-sm p-6 sm:p-8">
-        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/5 rounded-full blur-3xl -mr-32 -mt-32 pointer-events-none"></div>
+      {/* Link Header */}
+      <LinkHeader link={link} shortUrl={shortUrl} />
 
-        <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-          <div className="flex items-center gap-5 overflow-hidden w-full md:w-auto">
-            <div className="p-4 bg-gradient-to-br from-purple-600 to-indigo-700 rounded-2xl text-white shadow-lg shadow-purple-500/20 shrink-0">
-              <LinkIcon className="w-6 h-6" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <div className="flex items-center gap-2 mb-1">
-                <h1 className="text-2xl sm:text-3xl font-bold tracking-tight truncate">/{link.id}</h1>
-                <span className="px-2.5 py-0.5 rounded-full text-[10px] uppercase font-bold bg-green-100 text-green-700 border border-green-200">
-                  Ativo
-                </span>
-              </div>
-              <a href={link.url} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-purple-600 transition-colors truncate">
-                {link.url} <ExternalLink className="w-3 h-3"/>
-              </a>
-            </div>
-          </div>
+      {/* Hero Stats */}
+      <HeroStatsCard clicks={clicks} plan={plan} />
 
-          <div className="flex gap-3 w-full md:w-auto">
-            <Button variant="outline" className="flex-1 md:flex-none h-11" onClick={() => { navigator.clipboard.writeText(shortUrl); toast.success("Copiado!"); }}>
-              <Copy className="w-4 h-4 mr-2"/> Copiar
-            </Button>
-            <Button className="flex-1 md:flex-none h-11 bg-purple-600 hover:bg-purple-700 shadow-lg shadow-purple-500/20" onClick={() => { navigator.clipboard.writeText(`${shortUrl}?source=share`); toast.success("Link de share copiado!"); }}>
-              <Share2 className="w-4 h-4 mr-2"/> Compartilhar
-            </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* 2. GRID MÉTRICAS */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <MetricCard title="Cliques Totais" value={clicks.length} icon={MousePointer} color="text-blue-600" delay={0} />
-        <MetricCard title="Visitantes Únicos" value={uniqueVisitors} icon={Users} color="text-purple-600" delay={0.1} />
-        <MetricCard title="Acessos Mobile" value={mobileCount} icon={Smartphone} color="text-pink-600" delay={0.2} />
-        <MetricCard title="Top Cidade" value={topCities[0]?.[0] || '-'} icon={MapPin} color="text-emerald-600" delay={0.3} />
-      </div>
-
-      {/* 3. TABS DE ANÁLISE */}
-      <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-        <div className="w-full overflow-x-auto pb-1">
-          <TabsList className="bg-transparent h-auto p-0 space-x-2 w-max">
-            {['overview', 'geo', 'list'].map(tab => (
+      {/* Tabs Section */}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.2 }}
+      >
+        <Tabs value={currentTab} onValueChange={setCurrentTab} className="space-y-6">
+          {/* Tab List - Scrollable on Mobile */}
+          <div className="bg-white dark:bg-gray-800 rounded-2xl p-1.5 border border-gray-200 dark:border-gray-700 overflow-x-auto">
+            <TabsList className="bg-transparent w-full sm:w-auto inline-flex min-w-max">
               <TabsTrigger
-                key={tab}
-                value={tab}
-                className="rounded-full border border-transparent data-[state=active]:border-purple-200 data-[state=active]:bg-purple-50 dark:data-[state=active]:bg-purple-900/20 data-[state=active]:text-purple-700 px-5 py-2.5 text-sm font-medium transition-all"
+                value="overview"
+                className="rounded-xl px-4 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
               >
-                {tab === 'overview' ? 'Visão Geral' : tab === 'geo' ? 'Geografia' : 'Histórico'}
+                <BarChart2 className="w-4 h-4 mr-2" />
+                Visão Geral
               </TabsTrigger>
-            ))}
-          </TabsList>
-        </div>
+              <TabsTrigger
+                value="clicks"
+                className="rounded-xl px-4 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
+              >
+                <Activity className="w-4 h-4 mr-2" />
+                Clicks
+              </TabsTrigger>
+              <TabsTrigger
+                value="devices"
+                className="rounded-xl px-4 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
+                disabled={plan === "free"}
+              >
+                <Smartphone className="w-4 h-4 mr-2" />
+                Dispositivos
+                {plan === "free" && <span className="ml-1 text-xs opacity-60">Pro</span>}
+              </TabsTrigger>
+              <TabsTrigger
+                value="geo"
+                className="rounded-xl px-4 py-2.5 data-[state=active]:bg-gradient-to-r data-[state=active]:from-violet-500 data-[state=active]:to-purple-500 data-[state=active]:text-white data-[state=active]:shadow-lg transition-all"
+                disabled={plan !== "ultra"}
+              >
+                <Globe className="w-4 h-4 mr-2" />
+                Geografia
+                {plan !== "ultra" && <span className="ml-1 text-xs opacity-60">Ultra</span>}
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        <AnimatePresence mode="wait">
-          {/* ABA 1: VISÃO GERAL */}
-          <TabsContent value="overview" className="space-y-6 focus:outline-none">
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }} className="grid lg:grid-cols-3 gap-6">
+          {/* Tab Contents */}
+          <AnimatePresence mode="wait">
+            <TabsContent value="overview" className="m-0 space-y-6">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                {/* Chart Card */}
+                <Card className="rounded-3xl border-gray-200 dark:border-gray-700 overflow-hidden">
+                  <CardContent className="p-6">
+                    <ModernChart data={chartData.data} labels={chartData.labels} />
+                  </CardContent>
+                </Card>
 
-              {/* Heatmap */}
-              <Card className="lg:col-span-2 shadow-sm border-0 ring-1 ring-gray-100 dark:ring-gray-800">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-lg">
-                    <Zap className="w-5 h-5 text-amber-500 fill-amber-500"/> Horários de Pico
-                  </CardTitle>
-                  <CardDescription>Intensidade de cliques por horário</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  {clicks.length > 0 ? <TimeHeatmap clicks={clicks} /> : <div className="py-12 text-center text-gray-400 bg-gray-50 rounded-lg">Sem dados suficientes</div>}
-                </CardContent>
-              </Card>
+                {/* Quick Stats Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+                  {plan !== "free" && (
+                    <Card className="rounded-3xl border-gray-200 dark:border-gray-700">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Smartphone className="w-5 h-5 text-purple-500" />
+                          Dispositivos
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ModernDeviceBreakdown clicks={clicks} />
+                      </CardContent>
+                    </Card>
+                  )}
 
-              {/* Devices */}
-              <Card className="shadow-sm border-0 ring-1 ring-gray-100 dark:ring-gray-800">
-                <CardHeader>
-                  <CardTitle className="text-lg">Dispositivos</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-pink-500"/> Mobile</span>
-                      <span className="font-bold">{clicks.length ? Math.round((mobileCount/clicks.length)*100) : 0}%</span>
+                  {plan === "ultra" && (
+                    <Card className="rounded-3xl border-gray-200 dark:border-gray-700">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Globe className="w-5 h-5 text-purple-500" />
+                          Países
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <ModernCountryList clicks={clicks} />
+                      </CardContent>
+                    </Card>
+                  )}
+                </div>
+
+                {/* Recent Clicks Preview */}
+                <Card className="rounded-3xl border-gray-200 dark:border-gray-700 mt-6">
+                  <CardHeader className="flex flex-row items-center justify-between">
+                    <div>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Activity className="w-5 h-5 text-purple-500" />
+                        Clicks Recentes
+                      </CardTitle>
+                      <CardDescription>Últimos acessos ao seu link</CardDescription>
                     </div>
-                    <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-pink-500 rounded-full" style={{ width: `${(mobileCount/(clicks.length||1))*100}%` }}></div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="rounded-xl"
+                      onClick={() => setCurrentTab("clicks")}
+                    >
+                      Ver todos
+                      <ChevronRight className="w-4 h-4 ml-1" />
+                    </Button>
+                  </CardHeader>
+                  <CardContent className="space-y-2">
+                    {clicks.slice(0, 5).map((click, index) => (
+                      <ClickCard key={click.id} click={click} index={index} />
+                    ))}
+                    {clicks.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <MousePointer className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                        <p>Nenhum click registrado ainda</p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="clicks" className="m-0">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                <Card className="rounded-3xl border-gray-200 dark:border-gray-700">
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Activity className="w-5 h-5 text-purple-500" />
+                      Histórico Completo
+                    </CardTitle>
+                    <CardDescription>
+                      Todos os clicks com detalhes completos
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <FullClicksTable clicks={clicks} />
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="devices" className="m-0">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                {plan !== "free" ? (
+                  <Card className="rounded-3xl border-gray-200 dark:border-gray-700">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Smartphone className="w-5 h-5 text-purple-500" />
+                        Análise de Dispositivos
+                      </CardTitle>
+                      <CardDescription>
+                        Veja quais dispositivos seus visitantes usam
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ModernDeviceBreakdown clicks={clicks} />
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-3xl flex items-center justify-center">
+                      <Smartphone className="w-10 h-10 text-purple-500" />
                     </div>
+                    <h3 className="text-xl font-bold mb-2">Recurso Pro</h3>
+                    <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+                      Faça upgrade para ver análises detalhadas de dispositivos
+                    </p>
+                    <Button asChild className="rounded-xl bg-gradient-to-r from-violet-600 to-purple-600">
+                      <Link href="/dashboard/billing">Ver Planos</Link>
+                    </Button>
                   </div>
-                  <div className="space-y-2">
-                    <div className="flex justify-between text-sm">
-                      <span className="flex items-center gap-2"><Laptop className="w-4 h-4 text-purple-500"/> Desktop</span>
-                      <span className="font-bold">{clicks.length ? Math.round((desktopCount/clicks.length)*100) : 0}%</span>
+                )}
+              </motion.div>
+            </TabsContent>
+
+            <TabsContent value="geo" className="m-0">
+              <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+              >
+                {plan === "ultra" ? (
+                  <Card className="rounded-3xl border-gray-200 dark:border-gray-700">
+                    <CardHeader>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-purple-500" />
+                        Distribuição Geográfica
+                      </CardTitle>
+                      <CardDescription>
+                        Veja de onde vêm seus visitantes
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <ModernCountryList clicks={clicks} />
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="text-center py-16">
+                    <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-3xl flex items-center justify-center">
+                      <Globe className="w-10 h-10 text-purple-500" />
                     </div>
-                    <div className="h-2.5 w-full bg-gray-100 rounded-full overflow-hidden">
-                      <div className="h-full bg-purple-500 rounded-full" style={{ width: `${(desktopCount/(clicks.length||1))*100}%` }}></div>
-                    </div>
+                    <h3 className="text-xl font-bold mb-2">Recurso Ultra</h3>
+                    <p className="text-gray-500 mb-6 max-w-sm mx-auto">
+                      Faça upgrade para ver análises geográficas detalhadas
+                    </p>
+                    <Button asChild className="rounded-xl bg-gradient-to-r from-violet-600 to-purple-600">
+                      <Link href="/dashboard/billing">Ver Planos</Link>
+                    </Button>
                   </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-
-          {/* ABA 2: GEOGRAFIA */}
-          <TabsContent value="geo" className="focus:outline-none">
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="grid md:grid-cols-2 gap-6">
-              <Card className="shadow-sm border-0 ring-1 ring-gray-100 dark:ring-gray-800">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><MapPin className="w-5 h-5 text-emerald-500"/> Top Cidades</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {topCities.length > 0 ? topCities.map(([name, count]) => (
-                    <GeoBar key={name} label={name} count={count} total={topCities[0][1]} color="bg-emerald-500" />
-                  )) : <div className="text-center py-8 text-gray-400">Sem dados de cidade</div>}
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-sm border-0 ring-1 ring-gray-100 dark:ring-gray-800">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2"><Globe className="w-5 h-5 text-blue-500"/> Top Estados</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {topStates.length > 0 ? topStates.map(([name, count]) => (
-                    <GeoBar key={name} label={name} count={count} total={topStates[0][1]} color="bg-blue-500" />
-                  )) : <div className="text-center py-8 text-gray-400">Sem dados de estado</div>}
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-
-          {/* ABA 3: HISTÓRICO */}
-          <TabsContent value="list" className="focus:outline-none">
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }}>
-              <Card className="shadow-sm border-0 ring-1 ring-gray-100 dark:ring-gray-800">
-                <CardHeader>
-                  <CardTitle>Histórico de Cliques</CardTitle>
-                  <CardDescription>Registro detalhado de todos os acessos</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <ClicksTable clicks={clicks} />
-                </CardContent>
-              </Card>
-            </motion.div>
-          </TabsContent>
-        </AnimatePresence>
-      </Tabs>
+                )}
+              </motion.div>
+            </TabsContent>
+          </AnimatePresence>
+        </Tabs>
+      </motion.div>
     </main>
   );
 }
