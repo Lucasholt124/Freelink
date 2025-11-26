@@ -1243,7 +1243,7 @@ const getPaymentMethodLabel = (method: string) => {
 };
 
 
-
+const [productSearchSale, setProductSearchSale] = useState("");
   const handleClearAll = async () => {
   // ✅ PRIMEIRA CONFIRMAÇÃO
   if (!confirm(
@@ -1333,28 +1333,33 @@ const getPaymentMethodLabel = (method: string) => {
   const [productsPage, setProductsPage] = useState(1);
 const PRODUCTS_PER_PAGE = 12;
 
-  const filteredProducts = useMemo(() => {
-  // ✅ CORREÇÃO: Validação robusta antes de filtrar
+ const filteredProducts = useMemo(() => {
+  // ✅ Validação robusta
   if (!products || !Array.isArray(products) || products.length === 0) {
     return [];
   }
 
-  const lowerSearch = searchQuery.toLowerCase().trim();
+  const term = normalizeText(searchQuery);
 
   return products.filter((product) => {
-    // ✅ CORREÇÃO: Validar se product existe e tem propriedades necessárias
-    if (!product || !product.name) return false;
+    // ✅ Validação completa do produto
+    if (!product || !product._id || !product.name) return false;
 
-    // Filtro de busca
-    if (lowerSearch) {
-      const matchesName = product.name.toLowerCase().includes(lowerSearch);
-      const matchesSku = product.sku?.toLowerCase().includes(lowerSearch);
-      if (!matchesName && !matchesSku) return false;
-    }
-
-    // Filtro de categoria
+    // ✅ Filtro de categoria ANTES da busca (mais eficiente)
     if (filterCategory !== "all" && product.category !== filterCategory) {
       return false;
+    }
+
+    // ✅ Filtro de busca (somente se houver termo)
+    if (term) {
+      const matchesName = normalizeText(product.name).includes(term);
+      const matchesSku = product.sku ? normalizeText(product.sku).includes(term) : false;
+      const matchesCategory = product.category ? normalizeText(product.category).includes(term) : false;
+
+      // ✅ Agora busca também na categoria
+      if (!matchesName && !matchesSku && !matchesCategory) {
+        return false;
+      }
     }
 
     return true;
@@ -1362,16 +1367,19 @@ const PRODUCTS_PER_PAGE = 12;
 }, [products, searchQuery, filterCategory]);
 
 const paginatedProducts = useMemo(() => {
-  // ✅ CORREÇÃO: Validar antes de paginar
-  if (!filteredProducts || !Array.isArray(filteredProducts)) {
-    return [];
-  }
-
   const startIndex = (productsPage - 1) * PRODUCTS_PER_PAGE;
-  return filteredProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
+  const endIndex = startIndex + PRODUCTS_PER_PAGE;
+  return filteredProducts.slice(startIndex, endIndex);
 }, [filteredProducts, productsPage]);
 
-const totalProductsPages = Math.max(1, Math.ceil((filteredProducts?.length || 0) / PRODUCTS_PER_PAGE));
+const totalProductsPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
+const normalizeText = (text: string) => {
+  return text
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
+    .trim();
+};
 
 const chartData = useMemo(() => {
   // ✅ CORREÇÃO: Validação robusta
@@ -2245,184 +2253,200 @@ const chartData = useMemo(() => {
             </TabsContent>
 
             <TabsContent value="produtos">
-              <div className="space-y-4">
-                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-                  <div className="flex items-center gap-3 w-full md:w-auto">
-                    <div className="relative flex-1 md:flex-none md:w-64">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                      <Input
-                        placeholder="Buscar produtos..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10"
-                      />
-                    </div>
-                    {categories.length > 0 && (
-                      <Select value={filterCategory} onValueChange={setFilterCategory}>
-                        <SelectTrigger className="w-40">
-                          <SelectValue placeholder="Categoria" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">Todas</SelectItem>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat} value={cat || ""}>
-                              {cat}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                  <div className="flex gap-2 w-full md:w-auto">
-                    <Button
-                      onClick={() => {
-                        if (filteredProducts.length > 0) {
-                          const exporter = new PDFExporter();
-                          exporter.exportProductsReport(filteredProducts);
-                          toast.success("📄 PDF de produtos gerado com sucesso!");
-                        } else {
-                          toast.error("❌ Nenhum produto para exportar");
-                        }
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Exportar PDF
-                    </Button>
-                    <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600 hover:bg-purple-700">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Novo Produto
-                    </Button>
-                  </div>
-                </div>
+  <div className="space-y-4">
+    {/* --- BARRA DE PESQUISA E AÇÕES (CORRIGIDO PARA MOBILE) --- */}
+    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white/50 p-4 rounded-2xl border border-blue-100 shadow-sm">
 
-                {filteredProducts.length === 0 ? (
-                  <Card className="p-12 text-center border-2 border-dashed">
-                    <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <h3 className="text-xl font-bold mb-2">
-                      {searchQuery || filterCategory !== "all" ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
-                    </h3>
-                    <p className="text-gray-500 mb-4">
-                      {searchQuery || filterCategory !== "all" ? "Tente ajustar os filtros" : "Comece cadastrando seu primeiro produto"}
-                    </p>
-                    {!searchQuery && filterCategory === "all" && (
-                      <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
-                        Cadastrar Primeiro Produto
-                      </Button>
-                    )}
-                  </Card>
-                ) : (
-                   <AnimatePresence mode="popLayout">
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-     {paginatedProducts && paginatedProducts.length > 0 ? (
-      paginatedProducts
-      .filter(Boolean) // Filter out any null/undefined products first
-      .map((product, index) => {
-         if (!product?._id || !product?.name) return null;
-         const profit = (product.salePrice || 0) - (product.costPrice || 0);
-    const profitMargin = product.salePrice > 0
-      ? (profit / product.salePrice) * 100
-      : 0;
+      {/* Área de Busca e Filtro */}
+      <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
 
-        const isLowStock =
-      product.stock !== undefined &&
-      product.minStock !== undefined &&
-      product.stock <= product.minStock;
+        {/* Input de Busca */}
+        <div className="relative w-full sm:w-64">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+          <Input
+            placeholder="Buscar produtos..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-10 bg-white border-blue-200 focus:border-blue-500 rounded-xl h-11"
+          />
+        </div>
 
-        return (
-          <AnimatedCard
-            key={product._id}
-            delay={index * 0.05}
-            className="h-full"
-          >
-                        <Card key={product._id} className={`p-3 md:p-4 hover:shadow-lg transition-shadow ${!product.active ? "opacity-50" : ""}`}>
-                          <div className="flex justify-between gap-2 mb-3">
-                            <div className="flex-1 min-w-0">
-                              <h4 className="font-bold text-base md:text-lg truncate">{product.name}</h4>
-                              <div className="flex gap-1.5 mt-1.5 flex-wrap">
-                                {product.category && <Badge variant="outline" className="text-xs">{product.category}</Badge>}
-                                {!product.active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
-                                {isLowStock && <Badge variant="destructive" className="text-xs">Estoque Baixo</Badge>}
-                              </div>
-                            </div>
+        {/* Select de Categoria (Corrigido bug visual mobile) */}
+       {categories.length > 0 && (
+  <Select value={filterCategory} onValueChange={setFilterCategory}>
+    <SelectTrigger className="w-full sm:w-48 bg-white border-blue-200 rounded-xl h-11">
+      <SelectValue placeholder="Todas as Categorias" />
+    </SelectTrigger>
+    <SelectContent className="max-h-[300px]"> {/* ✅ Scroll em caso de muitas categorias */}
+      <SelectItem value="all">
+        <div className="flex items-center gap-2">
+          <span>📦</span>
+          <span>Todas as Categorias</span>
+        </div>
+      </SelectItem>
+      {categories.map((cat) => (
+        <SelectItem key={cat || "sem-categoria"} value={cat || ""}>
+          <div className="flex items-center gap-2">
+            <span>🏷️</span>
+            <span>{cat || "Sem Categoria"}</span>
+          </div>
+        </SelectItem>
+      ))}
+    </SelectContent>
+  </Select>
+)}
+      </div>
 
-                            <DropdownMenu>
-                              <DropdownMenuTrigger asChild>
-                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0">
-                                  <Settings className="w-4 h-4" />
-                                </Button>
-                              </DropdownMenuTrigger>
-                              <DropdownMenuContent align="end">
-                                <DropdownMenuItem onClick={() => openEditProduct(product._id)}>
-                                  <Edit className="w-4 h-4 mr-2" />
-                                  Editar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, false)} className="text-orange-600">
-                                  <AlertCircle className="w-4 h-4 mr-2" />
-                                  Desativar
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, true)} className="text-red-600">
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Deletar
-                                </DropdownMenuItem>
-                              </DropdownMenuContent>
-                            </DropdownMenu>
-                          </div>
+      {/* Botões de Ação */}
+      <div className="flex gap-2 w-full lg:w-auto">
+        <Button
+         onClick={() => {
+  if (filteredProducts.length === 0) {
+    toast.error("❌ Nenhum produto para exportar com os filtros atuais");
+    return;
+  }
 
-                          <div className="space-y-1.5 text-sm mb-3">
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-600 text-xs md:text-sm">Custo:</span>
-                              <span className="font-semibold text-sm md:text-base">{formatCurrency(product.costPrice)}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                              <span className="text-gray-600 text-xs md:text-sm">Venda:</span>
-                              <span className="font-semibold text-blue-600 text-sm md:text-base">{formatCurrency(product.salePrice)}</span>
-                            </div>
-                            {product.stock !== undefined && (
-                              <div className="flex justify-between items-center">
-                                <span className="text-gray-600 text-xs md:text-sm">Estoque:</span>
-                                <span className={`font-semibold text-sm md:text-base ${isLowStock ? "text-red-600" : ""}`}>
-                                  {product.stock} {product.unit || "un"}
-                                </span>
-                              </div>
-                            )}
+  const exporter = new PDFExporter();
+  exporter.exportProductsReport(filteredProducts);
 
-                          </div>
+  if (searchQuery || filterCategory !== "all") {
+    toast.success(
+      `📄 Exportando ${filteredProducts.length} produtos filtrados!\n\n` +
+      `${searchQuery ? `Busca: "${searchQuery}"` : ""}` +
+      `${filterCategory !== "all" ? `\nCategoria: ${filterCategory}` : ""}`
+    );
+  } else {
+    toast.success(`📄 Exportando todos os ${filteredProducts.length} produtos!`);
+  }
+}}
+          variant="outline"
+          className="flex-1 lg:flex-none border-blue-200 text-blue-700 hover:bg-blue-50 h-11 rounded-xl"
+        >
+          <Download className="w-4 h-4 mr-2" />
+          PDF
+        </Button>
+        <Button
+          onClick={() => setShowAddProduct(true)}
+          className="flex-1 lg:flex-none bg-purple-600 hover:bg-purple-700 h-11 rounded-xl shadow-lg shadow-purple-200"
+        >
+          <Plus className="w-4 h-4 mr-2" />
+          Novo
+        </Button>
+      </div>
+    </div>
 
-
-                          <Separator className="my-2 md:my-3" />
-
-                          <div className="bg-emerald-50 rounded-lg p-2.5 md:p-3">
-                            <div className="flex justify-between items-center gap-2">
-                              <div className="flex-1">
-                                <p className="text-[10px] md:text-xs text-gray-600">Lucro/un:</p>
-                                <p className="font-bold text-emerald-600 text-sm md:text-base truncate">{formatCurrency(profit)}</p>
-                              </div>
-                              <div className="text-right flex-1">
-                                <p className="text-[10px] md:text-xs text-gray-600">Margem:</p>
-                                <p className="font-bold text-emerald-600 text-sm md:text-base">{profitMargin.toFixed(1)}%</p>
-                              </div>
-                            </div>
-                          </div>
-                        </Card>
-                        </AnimatedCard>
-      );
-      })
+    {/* --- GRID DE PRODUTOS (PAGINAÇÃO 12 ITENS) --- */}
+    {filteredProducts.length === 0 ? (
+      <Card className="p-12 text-center border-2 border-dashed border-gray-200 bg-gray-50/50">
+        <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+        <h3 className="text-xl font-bold mb-2 text-gray-700">
+          {searchQuery ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
+        </h3>
+        <p className="text-gray-500 mb-4">
+          {searchQuery ? `Não encontramos nada com "${searchQuery}"` : "Comece cadastrando seu estoque."}
+        </p>
+        {!searchQuery && (
+          <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
+            Cadastrar Primeiro Produto
+          </Button>
+        )}
+      </Card>
     ) : (
-      <div className="col-span-full text-center py-8 text-gray-500">
-    Nenhum produto encontrado
-  </div>
+      <>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <AnimatePresence mode="popLayout">
+            {paginatedProducts.map((product, index) => {
+               if (!product?._id) return null;
+
+               const profit = (product.salePrice || 0) - (product.costPrice || 0);
+               const profitMargin = product.salePrice > 0 ? (profit / product.salePrice) * 100 : 0;
+               const isLowStock = product.stock !== undefined && product.minStock !== undefined && product.stock <= product.minStock;
+
+               return (
+                 <AnimatedCard key={product._id} delay={index * 0.03}>
+                   <Card className={`h-full flex flex-col p-4 hover:shadow-xl transition-all duration-300 border-gray-100 hover:border-purple-200 group ${!product.active ? "opacity-60 bg-gray-50" : "bg-white"}`}>
+
+                     {/* Cabeçalho do Card */}
+                     <div className="flex justify-between items-start mb-3">
+                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center font-bold text-gray-500 group-hover:from-purple-100 group-hover:to-purple-200 group-hover:text-purple-600 transition-colors">
+                          {product.name.charAt(0).toUpperCase()}
+                       </div>
+
+                       <DropdownMenu>
+                         <DropdownMenuTrigger asChild>
+                           <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-gray-700">
+                             <Settings className="w-4 h-4" />
+                           </Button>
+                         </DropdownMenuTrigger>
+                         <DropdownMenuContent align="end">
+                           <DropdownMenuItem onClick={() => openEditProduct(product._id)}>
+                             <Edit className="w-4 h-4 mr-2" /> Editar
+                           </DropdownMenuItem>
+                           <DropdownMenuSeparator />
+                           <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, true)} className="text-red-600">
+                             <Trash2 className="w-4 h-4 mr-2" /> Deletar
+                           </DropdownMenuItem>
+                         </DropdownMenuContent>
+                       </DropdownMenu>
+                     </div>
+
+                     {/* Info Principal */}
+                     <div className="flex-1 mb-3">
+                       <h4 className="font-bold text-gray-800 line-clamp-1" title={product.name}>{product.name}</h4>
+                       <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mt-1">{product.category || "Geral"}</p>
+
+                       <div className="flex flex-wrap gap-1 mt-2">
+                         {isLowStock && <Badge variant="destructive" className="text-[10px] h-5">Estoque Baixo</Badge>}
+                         {!product.active && <Badge variant="secondary" className="text-[10px] h-5">Inativo</Badge>}
+                         {product.sku && <Badge variant="outline" className="text-[10px] h-5 text-gray-400">{product.sku}</Badge>}
+                       </div>
+                     </div>
+
+                     <Separator className="bg-gray-100 mb-3" />
+
+                     {/* Valores */}
+                     <div className="grid grid-cols-2 gap-2 text-sm">
+                       <div className="bg-gray-50 p-2 rounded-lg">
+                         <p className="text-[10px] text-gray-500 uppercase">Venda</p>
+                         <p className="font-bold text-blue-600">{formatCurrency(product.salePrice)}</p>
+                       </div>
+                       <div className="bg-emerald-50 p-2 rounded-lg">
+                         <p className="text-[10px] text-emerald-800 uppercase">Lucro</p>
+                         <p className="font-bold text-emerald-600">
+                           {formatCurrency(profit)} ({profitMargin.toFixed(1)}%)
+                         </p>
+                       </div>
+                       <div className={`p-2 rounded-lg ${isLowStock ? "bg-red-50" : "bg-gray-50"}`}>
+                         <p className="text-[10px] text-gray-500 uppercase">Estoque</p>
+                         <p className={`font-bold ${isLowStock ? "text-red-600" : "text-gray-700"}`}>
+                           {product.stock || 0} <span className="text-[10px] font-normal">{product.unit}</span>
+                         </p>
+                       </div>
+                     </div>
+                   </Card>
+                 </AnimatedCard>
+               );
+            })}
+          </AnimatePresence>
+        </div>
+
+        {/* --- PAGINAÇÃO --- */}
+        <div className="pt-4 pb-8 flex justify-center">
+          <Pagination
+            currentPage={productsPage}
+            totalPages={totalProductsPages}
+            onPageChange={(page) => {
+              setProductsPage(page);
+              window.scrollTo({ top: 0, behavior: 'smooth' }); // Sobe a tela ao mudar página
+            }}
+            totalItems={filteredProducts.length}
+            itemsPerPage={PRODUCTS_PER_PAGE}
+          />
+        </div>
+      </>
     )}
-                  </div>
-                  </AnimatePresence>
-
-                )}
-
-              </div>
-
-            </TabsContent>
+  </div>
+</TabsContent>
 
 
             <TabsContent value="vendas">
@@ -3410,26 +3434,124 @@ const chartData = useMemo(() => {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <Label>Produto *</Label>
-                <Select
-                  value={saleForm.productId}
-                  onValueChange={(v) => setSaleForm({ ...saleForm, productId: v })}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Selecione um produto" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {products
-                      .filter((p) => p.active)
-                      .map((p) => (
-                        <SelectItem key={p._id} value={p._id}>
-                          {p.name} - {formatCurrency(p.salePrice)}{" "}
-                          {p.stock !== undefined && `(Estoque: ${p.stock})`}
-                        </SelectItem>
-                      ))}
-                  </SelectContent>
-                </Select>
+  <Label>Produto *</Label>
+
+  {/* ✅ Input de busca de produtos */}
+  <div className="relative mb-2">
+    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+    <Input
+      placeholder="Buscar produto por nome ou SKU..."
+      value={productSearchSale}
+      onChange={(e) => setProductSearchSale(e.target.value)}
+      className="pl-10 bg-gray-50 border-gray-200"
+    />
+    {productSearchSale && (
+      <button
+        onClick={() => setProductSearchSale("")}
+        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+      >
+        ✕
+      </button>
+    )}
+  </div>
+
+  <Select
+    value={saleForm.productId}
+    onValueChange={(v) => setSaleForm({ ...saleForm, productId: v })}
+  >
+    <SelectTrigger>
+      <SelectValue placeholder="Selecione um produto" />
+    </SelectTrigger>
+    <SelectContent className="max-h-[300px]">
+      {products
+        .filter((p) => {
+          if (!p.active) return false;
+          if (!productSearchSale) return true;
+
+          const term = normalizeText(productSearchSale);
+          const matchesName = normalizeText(p.name).includes(term);
+          const matchesSku = p.sku ? normalizeText(p.sku).includes(term) : false;
+          const matchesCategory = p.category ? normalizeText(p.category).includes(term) : false;
+
+          return matchesName || matchesSku || matchesCategory;
+        })
+        .map((p) => {
+          const profit = p.salePrice - p.costPrice;
+          const margin = ((profit / p.salePrice) * 100).toFixed(1);
+          const isLowStock = p.stock !== undefined && p.minStock !== undefined && p.stock <= p.minStock;
+
+          return (
+            <SelectItem key={p._id} value={p._id}>
+              <div className="flex flex-col gap-1 py-1">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold">{p.name}</span>
+                  <span className="text-emerald-600 font-bold">{formatCurrency(p.salePrice)}</span>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-gray-500">
+                  {p.sku && <span>SKU: {p.sku}</span>}
+                  {p.category && <span>• {p.category}</span>}
+                  {p.stock !== undefined && (
+                    <span className={isLowStock ? "text-red-600 font-semibold" : ""}>
+                      • Estoque: {p.stock} {p.unit}
+                      {isLowStock && " ⚠️"}
+                    </span>
+                  )}
+                </div>
+                <div className="text-xs text-gray-400">
+                  Lucro: {formatCurrency(profit)} ({margin}%)
+                </div>
               </div>
+            </SelectItem>
+          );
+        })}
+
+      {products.filter((p) => {
+        if (!p.active) return false;
+        if (!productSearchSale) return true;
+        const term = normalizeText(productSearchSale);
+        return normalizeText(p.name).includes(term) || (p.sku && normalizeText(p.sku).includes(term));
+      }).length === 0 && (
+        <div className="p-4 text-center text-gray-500 text-sm">
+          Nenhum produto encontrado com {productSearchSale}
+        </div>
+      )}
+    </SelectContent>
+  </Select>
+
+  {/* ✅ Info do produto selecionado */}
+  {saleForm.productId && products.find(p => p._id === saleForm.productId) && (
+    <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+      {(() => {
+        const selectedProduct = products.find(p => p._id === saleForm.productId);
+        if (!selectedProduct) return null;
+
+        const profit = selectedProduct.salePrice - selectedProduct.costPrice;
+        const margin = ((profit / selectedProduct.salePrice) * 100).toFixed(1);
+
+        return (
+          <div className="space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-gray-600">Preço de Venda:</span>
+              <span className="font-bold text-blue-600">{formatCurrency(selectedProduct.salePrice)}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-gray-600">Lucro Unitário:</span>
+              <span className="font-bold text-emerald-600">{formatCurrency(profit)} ({margin}%)</span>
+            </div>
+            {selectedProduct.stock !== undefined && (
+              <div className="flex justify-between">
+                <span className="text-gray-600">Estoque Atual:</span>
+                <span className={`font-bold ${selectedProduct.stock <= (selectedProduct.minStock || 0) ? 'text-red-600' : 'text-gray-700'}`}>
+                  {selectedProduct.stock} {selectedProduct.unit}
+                </span>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+    </div>
+  )}
+</div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
