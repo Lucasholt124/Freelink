@@ -1,4 +1,4 @@
-// types/brain.ts - TIPOS COMPARTILHADOS PARA FREELINKBRAIN
+// app/types/brain.ts - ATUALIZADO
 import { Id } from "@/convex/_generated/dataModel";
 
 // ============================================
@@ -86,13 +86,17 @@ export type PostStatus =
   | "queued"
   | "publishing"
   | "published"
-  | "failed";
+  | "failed"
+  | "notified"
+  | "completed"
+  | "cancelled";
 
 export type SocialPlatform =
   | "instagram"
   | "facebook"
   | "linkedin"
-  | "twitter";
+  | "twitter"
+  | "tiktok";
 
 // ============================================
 // BRAIN RESULTS
