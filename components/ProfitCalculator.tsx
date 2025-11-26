@@ -189,7 +189,9 @@ export default function FinancialManagerPro() {
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSync, setPendingSync] = useState({ sales: 0, expenses: 0, total: 0 });
 
-
+useEffect(() => {
+  setProductsPage(1);
+}, [searchQuery, filterCategory]);
   useEffect(() => {
     const checkFirstAccess = async () => {
       const seen = localStorage.getItem("onboarding_completed");
@@ -414,6 +416,7 @@ const [expensesPage, setExpensesPage] = useState(1);
 const EXPENSES_PER_PAGE = 10;
 
 const paginatedExpenses = useMemo(() => {
+  if (!expenses || !Array.isArray(expenses)) return [];
   const startIndex = (expensesPage - 1) * EXPENSES_PER_PAGE;
   return expenses.slice(startIndex, startIndex + EXPENSES_PER_PAGE);
 }, [expenses, expensesPage]);
@@ -424,18 +427,21 @@ const CUSTOMERS_PER_PAGE = 12;
 
 
 const paginatedCustomers = useMemo(() => {
+  if (!customers || !Array.isArray(customers)) return [];
   const startIndex = (customersPage - 1) * CUSTOMERS_PER_PAGE;
   return customers.slice(startIndex, startIndex + CUSTOMERS_PER_PAGE);
 }, [customers, customersPage]);
 
-const totalCustomersPages = Math.ceil(customers.length / CUSTOMERS_PER_PAGE);
-const totalExpensesPages = Math.ceil(expenses.length / EXPENSES_PER_PAGE);
-const totalSalesPages = Math.ceil(sales.length / SALES_PER_PAGE);
+
+const totalCustomersPages = Math.max(1, Math.ceil((customers?.length || 0) / CUSTOMERS_PER_PAGE));
+const totalExpensesPages = Math.max(1, Math.ceil((expenses?.length || 0) / EXPENSES_PER_PAGE));
+const totalSalesPages = Math.max(1, Math.ceil((sales?.length || 0) / SALES_PER_PAGE));
 
   const paginatedSales = useMemo(() => {
-    const startIndex = (salesPage - 1) * SALES_PER_PAGE;
-    return sales.slice(startIndex, startIndex + SALES_PER_PAGE);
-  }, [sales, salesPage]);
+  if (!sales || !Array.isArray(sales)) return [];
+  const startIndex = (salesPage - 1) * SALES_PER_PAGE;
+  return sales.slice(startIndex, startIndex + SALES_PER_PAGE);
+}, [sales, salesPage]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -446,11 +452,12 @@ const [suppliersPage, setSuppliersPage] = useState(1);
 const SUPPLIERS_PER_PAGE = 12;
 
 const paginatedSuppliers = useMemo(() => {
+  if (!suppliers || !Array.isArray(suppliers)) return [];
   const startIndex = (suppliersPage - 1) * SUPPLIERS_PER_PAGE;
   return suppliers.slice(startIndex, startIndex + SUPPLIERS_PER_PAGE);
 }, [suppliers, suppliersPage]);
 
-const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
+const totalSuppliersPages = Math.max(1, Math.ceil((suppliers?.length || 0) / SUPPLIERS_PER_PAGE));
   const quickSaleLucro = useMemo(() => {
     const cost = parseFloat(quickSaleForm.costPrice);
     const sale = parseFloat(quickSaleForm.salePrice);
@@ -504,7 +511,7 @@ const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
     });
   };
 
-  const navigateMonth = (direction: "prev" | "next") => {
+ const navigateMonth = (direction: "prev" | "next") => {
   const [year, month] = selectedMonth.split("-").map(Number);
   const date = new Date(year, month - 1);
   date.setMonth(date.getMonth() + (direction === "next" ? 1 : -1));
@@ -519,9 +526,11 @@ const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
     return;
   }
 
-  // Permite navegar até o final do mês atual
-  const endOfCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-  if (date > endOfCurrentMonth) {
+  // ✅ CORREÇÃO: Validar apenas ano/mês, não o dia
+  const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const targetMonth = new Date(date.getFullYear(), date.getMonth(), 1);
+
+  if (targetMonth > currentMonth) {
     toast.error("⚠️ Não é possível navegar para meses futuros");
     return;
   }
@@ -1325,11 +1334,17 @@ const getPaymentMethodLabel = (method: string) => {
 const PRODUCTS_PER_PAGE = 12;
 
   const filteredProducts = useMemo(() => {
-  if (!products) return [];
+  // ✅ CORREÇÃO: Validação robusta antes de filtrar
+  if (!products || !Array.isArray(products) || products.length === 0) {
+    return [];
+  }
 
   const lowerSearch = searchQuery.toLowerCase().trim();
 
   return products.filter((product) => {
+    // ✅ CORREÇÃO: Validar se product existe e tem propriedades necessárias
+    if (!product || !product.name) return false;
+
     // Filtro de busca
     if (lowerSearch) {
       const matchesName = product.name.toLowerCase().includes(lowerSearch);
@@ -1347,14 +1362,22 @@ const PRODUCTS_PER_PAGE = 12;
 }, [products, searchQuery, filterCategory]);
 
 const paginatedProducts = useMemo(() => {
+  // ✅ CORREÇÃO: Validar antes de paginar
+  if (!filteredProducts || !Array.isArray(filteredProducts)) {
+    return [];
+  }
+
   const startIndex = (productsPage - 1) * PRODUCTS_PER_PAGE;
   return filteredProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
 }, [filteredProducts, productsPage]);
 
-const totalProductsPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
+const totalProductsPages = Math.max(1, Math.ceil((filteredProducts?.length || 0) / PRODUCTS_PER_PAGE));
 
 const chartData = useMemo(() => {
-  if (!dailySummary || !sales || !expenses) return [];
+  // ✅ CORREÇÃO: Validação robusta
+  if (!Array.isArray(sales) || !Array.isArray(expenses)) {
+    return [];
+  }
 
   const last7Days: string[] = [];
   for (let i = 6; i >= 0; i--) {
@@ -1365,16 +1388,16 @@ const chartData = useMemo(() => {
   }
 
   return last7Days.map(date => {
-    const daySales = sales.filter(s => s.date === date);
-    const dayExpenses = expenses.filter(e => e.date === date);
+    const daySales = sales.filter(s => s?.date === date);
+    const dayExpenses = expenses.filter(e => e?.date === date);
 
-    const revenue = daySales.reduce((sum, s) => sum + (s.totalRevenue || 0), 0);
-    const expensesTotal = dayExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
+    const revenue = daySales.reduce((sum, s) => sum + (s?.totalRevenue || 0), 0);
+    const expensesTotal = dayExpenses.reduce((sum, e) => sum + (e?.amount || 0), 0);
     const profit = revenue - expensesTotal;
 
     return { date, revenue, expenses: expensesTotal, profit };
   });
-}, [sales, expenses, dailySummary]);
+}, [sales, expenses]);
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
 
   const isLoading = products === undefined || dashboard === undefined;
@@ -2293,13 +2316,20 @@ const chartData = useMemo(() => {
                 ) : (
                    <AnimatePresence mode="popLayout">
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
-      {paginatedProducts.map((product, index) => {
-        const profit = product.salePrice - product.costPrice;
-        const profitMargin = (profit / product.salePrice) * 100;
+     {paginatedProducts && paginatedProducts.length > 0 ? (
+      paginatedProducts
+      .filter(Boolean) // Filter out any null/undefined products first
+      .map((product, index) => {
+         if (!product?._id || !product?.name) return null;
+         const profit = (product.salePrice || 0) - (product.costPrice || 0);
+    const profitMargin = product.salePrice > 0
+      ? (profit / product.salePrice) * 100
+      : 0;
+
         const isLowStock =
-          product.stock !== undefined &&
-          product.minStock !== undefined &&
-          product.stock <= product.minStock;
+      product.stock !== undefined &&
+      product.minStock !== undefined &&
+      product.stock <= product.minStock;
 
         return (
           <AnimatedCard
@@ -2378,9 +2408,13 @@ const chartData = useMemo(() => {
                           </div>
                         </Card>
                         </AnimatedCard>
-
-                      );
-                    })}
+      );
+      })
+    ) : (
+      <div className="col-span-full text-center py-8 text-gray-500">
+    Nenhum produto encontrado
+  </div>
+    )}
                   </div>
                   </AnimatePresence>
 
@@ -2867,6 +2901,7 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={quickSaleForm.costPrice}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setQuickSaleForm({ ...quickSaleForm, costPrice: e.target.value })}
                     placeholder="Ex: 50,00"
                     className="pl-10 text-xl font-bold h-14 border-red-200 focus:border-red-400"
@@ -2883,6 +2918,7 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={quickSaleForm.salePrice}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setQuickSaleForm({ ...quickSaleForm, salePrice: e.target.value })}
                     placeholder="Ex: 100,00"
                     className="pl-10 text-xl font-bold h-14 border-emerald-200 focus:border-emerald-400"
@@ -2898,6 +2934,7 @@ const chartData = useMemo(() => {
                   <Input
                     type="date"
                     value={quickSaleForm.date}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setQuickSaleForm({ ...quickSaleForm, date: e.target.value })}
                     className="pl-10 h-12 border-blue-200 focus:border-blue-400"
                   />
@@ -2939,6 +2976,7 @@ const chartData = useMemo(() => {
                 <Label>Descrição (opcional)</Label>
                 <Input
                   value={quickSaleForm.description}
+                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setQuickSaleForm({ ...quickSaleForm, description: e.target.value })}
                   placeholder="Ex: Venda de camiseta"
                 />
@@ -3006,6 +3044,7 @@ const chartData = useMemo(() => {
                 <Label>Descrição *</Label>
                 <Input
                   value={quickExpenseForm.description}
+                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setQuickExpenseForm({ ...quickExpenseForm, description: e.target.value })}
                   placeholder="Ex: Conta de luz"
                   autoFocus
@@ -3020,6 +3059,7 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={quickExpenseForm.amount}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setQuickExpenseForm({ ...quickExpenseForm, amount: e.target.value })}
                     placeholder="0,00"
                     className="pl-10 text-2xl font-bold h-14"
@@ -3139,6 +3179,7 @@ const chartData = useMemo(() => {
                   <Label>SKU / Código</Label>
                   <Input
                     value={productForm.sku}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
                     placeholder="Ex: CAM-001"
                   />
@@ -3152,6 +3193,7 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={productForm.costPrice}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
                     placeholder="0,00"
                   />
@@ -3162,6 +3204,7 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={productForm.salePrice}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
                     placeholder="0,00"
                   />
@@ -3174,6 +3217,7 @@ const chartData = useMemo(() => {
                   <Input
                     type="number"
                     value={productForm.stock}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
                     placeholder="0"
                   />
@@ -3182,6 +3226,7 @@ const chartData = useMemo(() => {
                   <Label>Estoque Mínimo</Label>
                   <Input
                     type="number"
+                    onWheel={(e) => e.currentTarget.blur()}
                     value={productForm.minStock}
                     onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
                     placeholder="0"
@@ -3297,6 +3342,7 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={productForm.costPrice}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
                   />
                 </div>
@@ -3306,6 +3352,7 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={productForm.salePrice}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
                   />
                 </div>
@@ -3317,6 +3364,7 @@ const chartData = useMemo(() => {
                   <Input
                     type="number"
                     value={productForm.stock}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
                   />
                 </div>
@@ -3325,6 +3373,7 @@ const chartData = useMemo(() => {
                   <Input
                     type="number"
                     value={productForm.minStock}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
                   />
                 </div>
@@ -3389,6 +3438,7 @@ const chartData = useMemo(() => {
                     type="number"
                     min="1"
                     value={saleForm.quantity}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setSaleForm({ ...saleForm, quantity: e.target.value })}
                     placeholder="1"
                   />
@@ -3429,6 +3479,7 @@ const chartData = useMemo(() => {
                   step="0.01"
                   min="0"
                   value={saleForm.discount}
+                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setSaleForm({ ...saleForm, discount: e.target.value })}
                   placeholder="0,00"
                 />
@@ -3479,6 +3530,7 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={expenseForm.amount}
+                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
                   />
                 </div>
@@ -3678,6 +3730,7 @@ const chartData = useMemo(() => {
                 <Input
                   type="number"
                   value={goalForm.targetValue}
+                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setGoalForm({ ...goalForm, targetValue: e.target.value })}
                   placeholder="10000"
                 />
@@ -3728,6 +3781,8 @@ const chartData = useMemo(() => {
                   type="number"
                   step="0.01"
                   value={priceCalcForm.costPrice}
+                  onWheel={(e) => e.currentTarget.blur()}
+
                   onChange={(e) => setPriceCalcForm({ ...priceCalcForm, costPrice: e.target.value })}
                   placeholder="Ex: 50.00"
                 />
@@ -3738,6 +3793,7 @@ const chartData = useMemo(() => {
                 <Input
                   type="number"
                   value={priceCalcForm.targetMargin}
+                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setPriceCalcForm({ ...priceCalcForm, targetMargin: e.target.value })}
                   placeholder="Ex: 40"
                 />
@@ -3747,6 +3803,7 @@ const chartData = useMemo(() => {
                 <Label>Categoria</Label>
                 <Input
                   value={priceCalcForm.category}
+
                   onChange={(e) => setPriceCalcForm({ ...priceCalcForm, category: e.target.value })}
                   placeholder="Ex: roupas, eletrônicos"
                 />

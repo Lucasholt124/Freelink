@@ -1,5 +1,5 @@
 // convex/profitCalculator.ts
-import { action, mutation, query, internalMutation, internalAction } from "./_generated/server";
+import { action, mutation, query, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
@@ -681,144 +681,57 @@ export const getDashboard = query({
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-    const allProducts = await ctx.db
-      .query("products")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    const products = args.businessId
-      ? allProducts.filter((p) => p.businessId === args.businessId)
-      : allProducts;
+    // 🚀 OTIMIZAÇÃO: Busca paralela (Promise.all)
+    // Em vez de esperar um por um, buscamos tudo junto
+    const [
+        allProducts,
+        allSales,
+        allExpenses,
+        allPendingSales,
+        allOverdueExpenses,
+        allActiveGoals,
+        allUnreadAlerts,
+        allCustomers
+    ] = await Promise.all([
+        ctx.db.query("products").withIndex("by_user", (q) => q.eq("userId", identity.subject)).collect(),
+        ctx.db.query("sales").withIndex("by_user_month", (q) => q.eq("userId", identity.subject).eq("month", currentMonth)).collect(),
+        ctx.db.query("expenses").withIndex("by_user_month", (q) => q.eq("userId", identity.subject).eq("month", currentMonth)).collect(),
+        ctx.db.query("sales").withIndex("by_payment_status", (q) => q.eq("userId", identity.subject).eq("paymentStatus", "pending")).collect(),
+        ctx.db.query("expenses").withIndex("by_payment_status", (q) => q.eq("userId", identity.subject).eq("paymentStatus", "overdue")).collect(),
+        ctx.db.query("financialGoals").withIndex("by_status", (q) => q.eq("userId", identity.subject).eq("status", "active")).collect(),
+        ctx.db.query("alerts").withIndex("by_user_unread", (q) => q.eq("userId", identity.subject).eq("read", false)).collect(),
+        ctx.db.query("customers").withIndex("by_user", (q) => q.eq("userId", identity.subject)).collect()
+    ]);
 
+    // Filtragem em memória (mantida igual para garantir lógica de negócio)
+    const products = args.businessId ? allProducts.filter((p) => p.businessId === args.businessId) : allProducts;
+    const sales = args.businessId ? allSales.filter((s) => s.businessId === args.businessId) : allSales;
+    const expenses = args.businessId ? allExpenses.filter((e) => e.businessId === args.businessId) : allExpenses;
+    const pendingSales = args.businessId ? allPendingSales.filter((s) => s.businessId === args.businessId) : allPendingSales;
+    const overdueExpenses = args.businessId ? allOverdueExpenses.filter((e) => e.businessId === args.businessId) : allOverdueExpenses;
+    const activeGoals = args.businessId ? allActiveGoals.filter((g) => g.businessId === args.businessId) : allActiveGoals;
+    const unreadAlerts = args.businessId ? allUnreadAlerts.filter((a) => a.businessId === args.businessId) : allUnreadAlerts;
+    const customers = args.businessId ? allCustomers.filter((c) => c.businessId === args.businessId) : allCustomers;
+
+    // ... (O resto da lógica de cálculo continua igual ao seu código original)
     const activeProducts = products.filter((p) => p.active);
+    const lowStockProducts = activeProducts.filter((p) => p.stock !== undefined && p.minStock !== undefined && p.stock <= p.minStock);
+    const vipCustomers = customers.filter((c) => c.tags?.includes("VIP")).slice(0, 10);
 
-    const lowStockProducts = activeProducts.filter(
-      (p) =>
-        p.stock !== undefined &&
-        p.minStock !== undefined &&
-        p.stock <= p.minStock
-    );
-
-    const allSales = await ctx.db
-      .query("sales")
-      .withIndex("by_user_month", (q) =>
-        q.eq("userId", identity.subject).eq("month", currentMonth)
-      )
-      .collect();
-    const sales = args.businessId
-      ? allSales.filter((s) => s.businessId === args.businessId)
-      : allSales;
-
-    const allExpenses = await ctx.db
-      .query("expenses")
-      .withIndex("by_user_month", (q) =>
-        q.eq("userId", identity.subject).eq("month", currentMonth)
-      )
-      .collect();
-    const expenses = args.businessId
-      ? allExpenses.filter((e) => e.businessId === args.businessId)
-      : allExpenses;
-
-    const allPendingSales = await ctx.db
-      .query("sales")
-      .withIndex("by_payment_status", (q) =>
-        q.eq("userId", identity.subject).eq("paymentStatus", "pending")
-      )
-      .collect();
-    const pendingSales = args.businessId
-      ? allPendingSales.filter((s) => s.businessId === args.businessId)
-      : allPendingSales;
-
-    const allOverdueExpenses = await ctx.db
-      .query("expenses")
-      .withIndex("by_payment_status", (q) =>
-        q.eq("userId", identity.subject).eq("paymentStatus", "overdue")
-      )
-      .collect();
-    const overdueExpenses = args.businessId
-      ? allOverdueExpenses.filter((e) => e.businessId === args.businessId)
-      : allOverdueExpenses;
-
-    const allActiveGoals = await ctx.db
-      .query("financialGoals")
-      .withIndex("by_status", (q) =>
-        q.eq("userId", identity.subject).eq("status", "active")
-      )
-      .collect();
-    const activeGoals = args.businessId
-      ? allActiveGoals.filter((g) => g.businessId === args.businessId)
-      : allActiveGoals;
-
-    // Alertas não lidos
-    const allUnreadAlerts = await ctx.db
-      .query("alerts")
-      .withIndex("by_user_unread", (q) =>
-        q.eq("userId", identity.subject).eq("read", false)
-      )
-      .collect();
-    const unreadAlerts = args.businessId
-      ? allUnreadAlerts.filter((a) => a.businessId === args.businessId)
-      : allUnreadAlerts;
-
-    const allCustomers = await ctx.db
-      .query("customers")
-      .withIndex("by_user", (q) => q.eq("userId", identity.subject))
-      .collect();
-    const customers = args.businessId
-      ? allCustomers.filter((c) => c.businessId === args.businessId)
-      : allCustomers;
-
-    const vipCustomers = customers
-      .filter((c) => c.tags?.includes("VIP"))
-      .slice(0, 10);
-
-    // Cálculos
     const totalRevenue = sales.reduce((sum, s) => sum + s.totalRevenue, 0);
     const totalCost = sales.reduce((sum, s) => sum + s.totalCost, 0);
     const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
     const netProfit = totalRevenue - totalCost - totalExpenses;
-    const profitMargin =
-      totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
 
     return {
-      overview: {
-        totalRevenue,
-        totalCost,
-        totalExpenses,
-        netProfit,
-        profitMargin,
-        totalSales: sales.length,
-        totalProducts: products.length,
-        totalCustomers: customers.length,
-      },
-      products: {
-        total: products.length,
-        lowStock: lowStockProducts.length,
-        lowStockList: lowStockProducts.slice(0, 5),
-      },
-      sales: {
-        total: sales.length,
-        pending: pendingSales.length,
-        pendingAmount: pendingSales.reduce((sum, s) => sum + s.totalRevenue, 0),
-      },
-      expenses: {
-        total: expenses.length,
-        overdue: overdueExpenses.slice(0, 50).length,
-        overdueAmount: overdueExpenses.reduce((sum, e) => sum + e.amount, 0),
-      },
-      goals: {
-        active: activeGoals.length,
-        list: activeGoals.slice(0, 10),
-      },
-      alerts: {
-        unread: unreadAlerts.length,
-        critical: unreadAlerts.filter((a) => a.severity === "critical").length,
-        list: unreadAlerts.slice(0, 5),
-      },
-      customers: {
-        total: customers.length,
-        vip: vipCustomers.length,
-        vipList: vipCustomers,
-      },
+      overview: { totalRevenue, totalCost, totalExpenses, netProfit, profitMargin, totalSales: sales.length, totalProducts: products.length, totalCustomers: customers.length },
+      products: { total: products.length, lowStock: lowStockProducts.length, lowStockList: lowStockProducts.slice(0, 5) },
+      sales: { total: sales.length, pending: pendingSales.length, pendingAmount: pendingSales.reduce((sum, s) => sum + s.totalRevenue, 0) },
+      expenses: { total: expenses.length, overdue: overdueExpenses.slice(0, 50).length, overdueAmount: overdueExpenses.reduce((sum, e) => sum + e.amount, 0) },
+      goals: { active: activeGoals.length, list: activeGoals.slice(0, 10) },
+      alerts: { unread: unreadAlerts.length, critical: unreadAlerts.filter((a) => a.severity === "critical").length, list: unreadAlerts.slice(0, 5) },
+      customers: { total: customers.length, vip: vipCustomers.length, vipList: vipCustomers },
     };
   },
 });
@@ -2592,18 +2505,126 @@ export const generateMonthlyReport = action({
 });
 
 // ✅ INTERNAL ACTION PARA REGENERAR RELATÓRIO MENSAL
-export const regenerateMonthlyReport = internalAction({
+export const regenerateMonthlyReport = internalMutation({
   args: {
     userId: v.string(),
     month: v.string(),
     businessId: v.optional(v.id("businesses")),
   },
   handler: async (ctx, args) => {
-    // ✅ INTERNAL ACTIONS não têm identity, então não verificamos auth
-    // Chama a action generateMonthlyReport que faz todo o trabalho
-    await ctx.runAction(api.profitCalculator.generateMonthlyReport, {
-      month: args.month,
+    // ✅ CORREÇÃO: Internal mutation pode acessar db diretamente
+
+    // 🔍 BUSCAR VENDAS DO MÊS
+    const sales = await ctx.db
+      .query("sales")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", args.userId).eq("month", args.month)
+      )
+      .collect();
+
+    // 🔍 BUSCAR GASTOS DO MÊS
+    const expenses = await ctx.db
+      .query("expenses")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", args.userId).eq("month", args.month)
+      )
+      .collect();
+
+    // 🎯 FILTRAR POR BUSINESS SE NECESSÁRIO
+    const filteredSales = args.businessId
+      ? sales.filter((s) => s.businessId === args.businessId)
+      : sales;
+
+    const filteredExpenses = args.businessId
+      ? expenses.filter((e) => e.businessId === args.businessId)
+      : expenses;
+
+    // 💰 CALCULAR TOTAIS
+    const totalSales = filteredSales.reduce((sum, s) => sum + s.quantity, 0);
+    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.totalRevenue, 0);
+    const totalCost = filteredSales.reduce((sum, s) => sum + s.totalCost, 0);
+    const grossProfit = totalRevenue - totalCost;
+
+    const totalExpenses = filteredExpenses.reduce((sum, e) => sum + e.amount, 0);
+    const fixedExpenses = filteredExpenses
+      .filter((e) => e.type === "fixed")
+      .reduce((sum, e) => sum + e.amount, 0);
+    const variableExpenses = filteredExpenses
+      .filter((e) => e.type === "variable")
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const netProfit = grossProfit - totalExpenses;
+    const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0;
+
+    // 📊 GASTOS POR CATEGORIA
+    const expensesByCategory: Record<string, number> = {};
+    filteredExpenses.forEach((expense) => {
+      const category = expense.categoryName.toLowerCase().replace(/[\s\/]/g, "_");
+      expensesByCategory[category] = (expensesByCategory[category] || 0) + expense.amount;
+    });
+
+    // ⭐ TOP PRODUTOS
+    const productsMap = new Map<string, { name: string; quantity: number; revenue: number; profit: number }>();
+
+    filteredSales.forEach((sale) => {
+      const productId = sale.productId || sale._id;
+      const existing = productsMap.get(productId) || {
+        name: sale.productName,
+        quantity: 0,
+        revenue: 0,
+        profit: 0,
+      };
+      productsMap.set(productId, {
+        name: sale.productName,
+        quantity: existing.quantity + sale.quantity,
+        revenue: existing.revenue + sale.totalRevenue,
+        profit: existing.profit + sale.profit,
+      });
+    });
+
+    const topProducts = Array.from(productsMap.entries())
+      .map(([id, data]) => ({
+        productId: id,
+        productName: data.name,
+        quantity: data.quantity,
+        revenue: data.revenue,
+        profit: data.profit,
+      }))
+      .sort((a, b) => b.profit - a.profit)
+      .slice(0, 10);
+
+    // 🗑️ DELETAR RELATÓRIOS ANTIGOS DO MÊS
+    const existingReports = await ctx.db
+      .query("monthlyReports")
+      .withIndex("by_user_month", (q) =>
+        q.eq("userId", args.userId).eq("month", args.month)
+      )
+      .collect();
+
+    for (const report of existingReports) {
+      if (!args.businessId || report.businessId === args.businessId) {
+        await ctx.db.delete(report._id);
+      }
+    }
+
+    // ✅ CRIAR NOVO RELATÓRIO
+    await ctx.db.insert("monthlyReports", {
+      userId: args.userId,
       businessId: args.businessId,
+      month: args.month,
+      totalSales,
+      totalRevenue,
+      totalCost,
+      grossProfit,
+      totalExpenses,
+      fixedExpenses,
+      variableExpenses,
+      expensesByCategory,
+      netProfit,
+      profitMargin,
+      topProducts,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
     });
   },
 });
