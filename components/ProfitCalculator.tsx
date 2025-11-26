@@ -189,9 +189,7 @@ export default function FinancialManagerPro() {
   const [isOnline, setIsOnline] = useState(true);
   const [pendingSync, setPendingSync] = useState({ sales: 0, expenses: 0, total: 0 });
 
-useEffect(() => {
-  setProductsPage(1);
-}, [searchQuery, filterCategory]);
+
   useEffect(() => {
     const checkFirstAccess = async () => {
       const seen = localStorage.getItem("onboarding_completed");
@@ -416,7 +414,6 @@ const [expensesPage, setExpensesPage] = useState(1);
 const EXPENSES_PER_PAGE = 10;
 
 const paginatedExpenses = useMemo(() => {
-  if (!expenses || !Array.isArray(expenses)) return [];
   const startIndex = (expensesPage - 1) * EXPENSES_PER_PAGE;
   return expenses.slice(startIndex, startIndex + EXPENSES_PER_PAGE);
 }, [expenses, expensesPage]);
@@ -427,21 +424,18 @@ const CUSTOMERS_PER_PAGE = 12;
 
 
 const paginatedCustomers = useMemo(() => {
-  if (!customers || !Array.isArray(customers)) return [];
   const startIndex = (customersPage - 1) * CUSTOMERS_PER_PAGE;
   return customers.slice(startIndex, startIndex + CUSTOMERS_PER_PAGE);
 }, [customers, customersPage]);
 
-
-const totalCustomersPages = Math.max(1, Math.ceil((customers?.length || 0) / CUSTOMERS_PER_PAGE));
-const totalExpensesPages = Math.max(1, Math.ceil((expenses?.length || 0) / EXPENSES_PER_PAGE));
-const totalSalesPages = Math.max(1, Math.ceil((sales?.length || 0) / SALES_PER_PAGE));
+const totalCustomersPages = Math.ceil(customers.length / CUSTOMERS_PER_PAGE);
+const totalExpensesPages = Math.ceil(expenses.length / EXPENSES_PER_PAGE);
+const totalSalesPages = Math.ceil(sales.length / SALES_PER_PAGE);
 
   const paginatedSales = useMemo(() => {
-  if (!sales || !Array.isArray(sales)) return [];
-  const startIndex = (salesPage - 1) * SALES_PER_PAGE;
-  return sales.slice(startIndex, startIndex + SALES_PER_PAGE);
-}, [sales, salesPage]);
+    const startIndex = (salesPage - 1) * SALES_PER_PAGE;
+    return sales.slice(startIndex, startIndex + SALES_PER_PAGE);
+  }, [sales, salesPage]);
 
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(value);
@@ -452,12 +446,11 @@ const [suppliersPage, setSuppliersPage] = useState(1);
 const SUPPLIERS_PER_PAGE = 12;
 
 const paginatedSuppliers = useMemo(() => {
-  if (!suppliers || !Array.isArray(suppliers)) return [];
   const startIndex = (suppliersPage - 1) * SUPPLIERS_PER_PAGE;
   return suppliers.slice(startIndex, startIndex + SUPPLIERS_PER_PAGE);
 }, [suppliers, suppliersPage]);
 
-const totalSuppliersPages = Math.max(1, Math.ceil((suppliers?.length || 0) / SUPPLIERS_PER_PAGE));
+const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
   const quickSaleLucro = useMemo(() => {
     const cost = parseFloat(quickSaleForm.costPrice);
     const sale = parseFloat(quickSaleForm.salePrice);
@@ -511,7 +504,7 @@ const totalSuppliersPages = Math.max(1, Math.ceil((suppliers?.length || 0) / SUP
     });
   };
 
- const navigateMonth = (direction: "prev" | "next") => {
+  const navigateMonth = (direction: "prev" | "next") => {
   const [year, month] = selectedMonth.split("-").map(Number);
   const date = new Date(year, month - 1);
   date.setMonth(date.getMonth() + (direction === "next" ? 1 : -1));
@@ -526,11 +519,9 @@ const totalSuppliersPages = Math.max(1, Math.ceil((suppliers?.length || 0) / SUP
     return;
   }
 
-  // ✅ CORREÇÃO: Validar apenas ano/mês, não o dia
-  const currentMonth = new Date(today.getFullYear(), today.getMonth(), 1);
-  const targetMonth = new Date(date.getFullYear(), date.getMonth(), 1);
-
-  if (targetMonth > currentMonth) {
+  // Permite navegar até o final do mês atual
+  const endOfCurrentMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+  if (date > endOfCurrentMonth) {
     toast.error("⚠️ Não é possível navegar para meses futuros");
     return;
   }
@@ -1243,7 +1234,7 @@ const getPaymentMethodLabel = (method: string) => {
 };
 
 
-const [productSearchSale, setProductSearchSale] = useState("");
+
   const handleClearAll = async () => {
   // ✅ PRIMEIRA CONFIRMAÇÃO
   if (!confirm(
@@ -1333,33 +1324,22 @@ const [productSearchSale, setProductSearchSale] = useState("");
   const [productsPage, setProductsPage] = useState(1);
 const PRODUCTS_PER_PAGE = 12;
 
- const filteredProducts = useMemo(() => {
-  // ✅ Validação robusta
-  if (!products || !Array.isArray(products) || products.length === 0) {
-    return [];
-  }
+  const filteredProducts = useMemo(() => {
+  if (!products) return [];
 
-  const term = normalizeText(searchQuery);
+  const lowerSearch = searchQuery.toLowerCase().trim();
 
   return products.filter((product) => {
-    // ✅ Validação completa do produto
-    if (!product || !product._id || !product.name) return false;
-
-    // ✅ Filtro de categoria ANTES da busca (mais eficiente)
-    if (filterCategory !== "all" && product.category !== filterCategory) {
-      return false;
+    // Filtro de busca
+    if (lowerSearch) {
+      const matchesName = product.name.toLowerCase().includes(lowerSearch);
+      const matchesSku = product.sku?.toLowerCase().includes(lowerSearch);
+      if (!matchesName && !matchesSku) return false;
     }
 
-    // ✅ Filtro de busca (somente se houver termo)
-    if (term) {
-      const matchesName = normalizeText(product.name).includes(term);
-      const matchesSku = product.sku ? normalizeText(product.sku).includes(term) : false;
-      const matchesCategory = product.category ? normalizeText(product.category).includes(term) : false;
-
-      // ✅ Agora busca também na categoria
-      if (!matchesName && !matchesSku && !matchesCategory) {
-        return false;
-      }
+    // Filtro de categoria
+    if (filterCategory !== "all" && product.category !== filterCategory) {
+      return false;
     }
 
     return true;
@@ -1368,24 +1348,13 @@ const PRODUCTS_PER_PAGE = 12;
 
 const paginatedProducts = useMemo(() => {
   const startIndex = (productsPage - 1) * PRODUCTS_PER_PAGE;
-  const endIndex = startIndex + PRODUCTS_PER_PAGE;
-  return filteredProducts.slice(startIndex, endIndex);
+  return filteredProducts.slice(startIndex, startIndex + PRODUCTS_PER_PAGE);
 }, [filteredProducts, productsPage]);
 
-const totalProductsPages = Math.max(1, Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE));
-const normalizeText = (text: string) => {
-  return text
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "") // Remove acentos
-    .trim();
-};
+const totalProductsPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
 
 const chartData = useMemo(() => {
-  // ✅ CORREÇÃO: Validação robusta
-  if (!Array.isArray(sales) || !Array.isArray(expenses)) {
-    return [];
-  }
+  if (!dailySummary || !sales || !expenses) return [];
 
   const last7Days: string[] = [];
   for (let i = 6; i >= 0; i--) {
@@ -1396,16 +1365,16 @@ const chartData = useMemo(() => {
   }
 
   return last7Days.map(date => {
-    const daySales = sales.filter(s => s?.date === date);
-    const dayExpenses = expenses.filter(e => e?.date === date);
+    const daySales = sales.filter(s => s.date === date);
+    const dayExpenses = expenses.filter(e => e.date === date);
 
-    const revenue = daySales.reduce((sum, s) => sum + (s?.totalRevenue || 0), 0);
-    const expensesTotal = dayExpenses.reduce((sum, e) => sum + (e?.amount || 0), 0);
+    const revenue = daySales.reduce((sum, s) => sum + (s.totalRevenue || 0), 0);
+    const expensesTotal = dayExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
     const profit = revenue - expensesTotal;
 
     return { date, revenue, expenses: expensesTotal, profit };
   });
-}, [sales, expenses]);
+}, [sales, expenses, dailySummary]);
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
 
   const isLoading = products === undefined || dashboard === undefined;
@@ -2253,200 +2222,173 @@ const chartData = useMemo(() => {
             </TabsContent>
 
             <TabsContent value="produtos">
-  <div className="space-y-4">
-    {/* --- BARRA DE PESQUISA E AÇÕES (CORRIGIDO PARA MOBILE) --- */}
-    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 bg-white/50 p-4 rounded-2xl border border-blue-100 shadow-sm">
+              <div className="space-y-4">
+                <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                  <div className="flex items-center gap-3 w-full md:w-auto">
+                    <div className="relative flex-1 md:flex-none md:w-64">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <Input
+                        placeholder="Buscar produtos..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                    {categories.length > 0 && (
+                      <Select value={filterCategory} onValueChange={setFilterCategory}>
+                        <SelectTrigger className="w-40">
+                          <SelectValue placeholder="Categoria" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="all">Todas</SelectItem>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat} value={cat || ""}>
+                              {cat}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                  <div className="flex gap-2 w-full md:w-auto">
+                    <Button
+                      onClick={() => {
+                        if (filteredProducts.length > 0) {
+                          const exporter = new PDFExporter();
+                          exporter.exportProductsReport(filteredProducts);
+                          toast.success("📄 PDF de produtos gerado com sucesso!");
+                        } else {
+                          toast.error("❌ Nenhum produto para exportar");
+                        }
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="bg-purple-50 hover:bg-purple-100 text-purple-700 border-purple-300"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Exportar PDF
+                    </Button>
+                    <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600 hover:bg-purple-700">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Novo Produto
+                    </Button>
+                  </div>
+                </div>
 
-      {/* Área de Busca e Filtro */}
-      <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
+                {filteredProducts.length === 0 ? (
+                  <Card className="p-12 text-center border-2 border-dashed">
+                    <Package className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                    <h3 className="text-xl font-bold mb-2">
+                      {searchQuery || filterCategory !== "all" ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
+                    </h3>
+                    <p className="text-gray-500 mb-4">
+                      {searchQuery || filterCategory !== "all" ? "Tente ajustar os filtros" : "Comece cadastrando seu primeiro produto"}
+                    </p>
+                    {!searchQuery && filterCategory === "all" && (
+                      <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
+                        Cadastrar Primeiro Produto
+                      </Button>
+                    )}
+                  </Card>
+                ) : (
+                   <AnimatePresence mode="popLayout">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
+      {paginatedProducts.map((product, index) => {
+        const profit = product.salePrice - product.costPrice;
+        const profitMargin = (profit / product.salePrice) * 100;
+        const isLowStock =
+          product.stock !== undefined &&
+          product.minStock !== undefined &&
+          product.stock <= product.minStock;
 
-        {/* Input de Busca */}
-        <div className="relative w-full sm:w-64">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-          <Input
-            placeholder="Buscar produtos..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 bg-white border-blue-200 focus:border-blue-500 rounded-xl h-11"
-          />
-        </div>
+        return (
+          <AnimatedCard
+            key={product._id}
+            delay={index * 0.05}
+            className="h-full"
+          >
+                        <Card key={product._id} className={`p-3 md:p-4 hover:shadow-lg transition-shadow ${!product.active ? "opacity-50" : ""}`}>
+                          <div className="flex justify-between gap-2 mb-3">
+                            <div className="flex-1 min-w-0">
+                              <h4 className="font-bold text-base md:text-lg truncate">{product.name}</h4>
+                              <div className="flex gap-1.5 mt-1.5 flex-wrap">
+                                {product.category && <Badge variant="outline" className="text-xs">{product.category}</Badge>}
+                                {!product.active && <Badge variant="secondary" className="text-xs">Inativo</Badge>}
+                                {isLowStock && <Badge variant="destructive" className="text-xs">Estoque Baixo</Badge>}
+                              </div>
+                            </div>
 
-        {/* Select de Categoria (Corrigido bug visual mobile) */}
-       {categories.length > 0 && (
-  <Select value={filterCategory} onValueChange={setFilterCategory}>
-    <SelectTrigger className="w-full sm:w-48 bg-white border-blue-200 rounded-xl h-11">
-      <SelectValue placeholder="Todas as Categorias" />
-    </SelectTrigger>
-    <SelectContent className="max-h-[300px]"> {/* ✅ Scroll em caso de muitas categorias */}
-      <SelectItem value="all">
-        <div className="flex items-center gap-2">
-          <span>📦</span>
-          <span>Todas as Categorias</span>
-        </div>
-      </SelectItem>
-      {categories.map((cat) => (
-        <SelectItem key={cat || "sem-categoria"} value={cat || ""}>
-          <div className="flex items-center gap-2">
-            <span>🏷️</span>
-            <span>{cat || "Sem Categoria"}</span>
-          </div>
-        </SelectItem>
-      ))}
-    </SelectContent>
-  </Select>
-)}
-      </div>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0">
+                                  <Settings className="w-4 h-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => openEditProduct(product._id)}>
+                                  <Edit className="w-4 h-4 mr-2" />
+                                  Editar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, false)} className="text-orange-600">
+                                  <AlertCircle className="w-4 h-4 mr-2" />
+                                  Desativar
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, true)} className="text-red-600">
+                                  <Trash2 className="w-4 h-4 mr-2" />
+                                  Deletar
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
+                          </div>
 
-      {/* Botões de Ação */}
-      <div className="flex gap-2 w-full lg:w-auto">
-        <Button
-         onClick={() => {
-  if (filteredProducts.length === 0) {
-    toast.error("❌ Nenhum produto para exportar com os filtros atuais");
-    return;
-  }
+                          <div className="space-y-1.5 text-sm mb-3">
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 text-xs md:text-sm">Custo:</span>
+                              <span className="font-semibold text-sm md:text-base">{formatCurrency(product.costPrice)}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-gray-600 text-xs md:text-sm">Venda:</span>
+                              <span className="font-semibold text-blue-600 text-sm md:text-base">{formatCurrency(product.salePrice)}</span>
+                            </div>
+                            {product.stock !== undefined && (
+                              <div className="flex justify-between items-center">
+                                <span className="text-gray-600 text-xs md:text-sm">Estoque:</span>
+                                <span className={`font-semibold text-sm md:text-base ${isLowStock ? "text-red-600" : ""}`}>
+                                  {product.stock} {product.unit || "un"}
+                                </span>
+                              </div>
+                            )}
 
-  const exporter = new PDFExporter();
-  exporter.exportProductsReport(filteredProducts);
+                          </div>
 
-  if (searchQuery || filterCategory !== "all") {
-    toast.success(
-      `📄 Exportando ${filteredProducts.length} produtos filtrados!\n\n` +
-      `${searchQuery ? `Busca: "${searchQuery}"` : ""}` +
-      `${filterCategory !== "all" ? `\nCategoria: ${filterCategory}` : ""}`
-    );
-  } else {
-    toast.success(`📄 Exportando todos os ${filteredProducts.length} produtos!`);
-  }
-}}
-          variant="outline"
-          className="flex-1 lg:flex-none border-blue-200 text-blue-700 hover:bg-blue-50 h-11 rounded-xl"
-        >
-          <Download className="w-4 h-4 mr-2" />
-          PDF
-        </Button>
-        <Button
-          onClick={() => setShowAddProduct(true)}
-          className="flex-1 lg:flex-none bg-purple-600 hover:bg-purple-700 h-11 rounded-xl shadow-lg shadow-purple-200"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Novo
-        </Button>
-      </div>
-    </div>
 
-    {/* --- GRID DE PRODUTOS (PAGINAÇÃO 12 ITENS) --- */}
-    {filteredProducts.length === 0 ? (
-      <Card className="p-12 text-center border-2 border-dashed border-gray-200 bg-gray-50/50">
-        <Package className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-        <h3 className="text-xl font-bold mb-2 text-gray-700">
-          {searchQuery ? "Nenhum produto encontrado" : "Nenhum produto cadastrado"}
-        </h3>
-        <p className="text-gray-500 mb-4">
-          {searchQuery ? `Não encontramos nada com "${searchQuery}"` : "Comece cadastrando seu estoque."}
-        </p>
-        {!searchQuery && (
-          <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600">
-            Cadastrar Primeiro Produto
-          </Button>
-        )}
-      </Card>
-    ) : (
-      <>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          <AnimatePresence mode="popLayout">
-            {paginatedProducts.map((product, index) => {
-               if (!product?._id) return null;
+                          <Separator className="my-2 md:my-3" />
 
-               const profit = (product.salePrice || 0) - (product.costPrice || 0);
-               const profitMargin = product.salePrice > 0 ? (profit / product.salePrice) * 100 : 0;
-               const isLowStock = product.stock !== undefined && product.minStock !== undefined && product.stock <= product.minStock;
+                          <div className="bg-emerald-50 rounded-lg p-2.5 md:p-3">
+                            <div className="flex justify-between items-center gap-2">
+                              <div className="flex-1">
+                                <p className="text-[10px] md:text-xs text-gray-600">Lucro/un:</p>
+                                <p className="font-bold text-emerald-600 text-sm md:text-base truncate">{formatCurrency(profit)}</p>
+                              </div>
+                              <div className="text-right flex-1">
+                                <p className="text-[10px] md:text-xs text-gray-600">Margem:</p>
+                                <p className="font-bold text-emerald-600 text-sm md:text-base">{profitMargin.toFixed(1)}%</p>
+                              </div>
+                            </div>
+                          </div>
+                        </Card>
+                        </AnimatedCard>
 
-               return (
-                 <AnimatedCard key={product._id} delay={index * 0.03}>
-                   <Card className={`h-full flex flex-col p-4 hover:shadow-xl transition-all duration-300 border-gray-100 hover:border-purple-200 group ${!product.active ? "opacity-60 bg-gray-50" : "bg-white"}`}>
+                      );
+                    })}
+                  </div>
+                  </AnimatePresence>
 
-                     {/* Cabeçalho do Card */}
-                     <div className="flex justify-between items-start mb-3">
-                       <div className="w-10 h-10 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center font-bold text-gray-500 group-hover:from-purple-100 group-hover:to-purple-200 group-hover:text-purple-600 transition-colors">
-                          {product.name.charAt(0).toUpperCase()}
-                       </div>
+                )}
 
-                       <DropdownMenu>
-                         <DropdownMenuTrigger asChild>
-                           <Button size="icon" variant="ghost" className="h-8 w-8 text-gray-400 hover:text-gray-700">
-                             <Settings className="w-4 h-4" />
-                           </Button>
-                         </DropdownMenuTrigger>
-                         <DropdownMenuContent align="end">
-                           <DropdownMenuItem onClick={() => openEditProduct(product._id)}>
-                             <Edit className="w-4 h-4 mr-2" /> Editar
-                           </DropdownMenuItem>
-                           <DropdownMenuSeparator />
-                           <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, true)} className="text-red-600">
-                             <Trash2 className="w-4 h-4 mr-2" /> Deletar
-                           </DropdownMenuItem>
-                         </DropdownMenuContent>
-                       </DropdownMenu>
-                     </div>
+              </div>
 
-                     {/* Info Principal */}
-                     <div className="flex-1 mb-3">
-                       <h4 className="font-bold text-gray-800 line-clamp-1" title={product.name}>{product.name}</h4>
-                       <p className="text-xs text-gray-500 font-medium uppercase tracking-wide mt-1">{product.category || "Geral"}</p>
-
-                       <div className="flex flex-wrap gap-1 mt-2">
-                         {isLowStock && <Badge variant="destructive" className="text-[10px] h-5">Estoque Baixo</Badge>}
-                         {!product.active && <Badge variant="secondary" className="text-[10px] h-5">Inativo</Badge>}
-                         {product.sku && <Badge variant="outline" className="text-[10px] h-5 text-gray-400">{product.sku}</Badge>}
-                       </div>
-                     </div>
-
-                     <Separator className="bg-gray-100 mb-3" />
-
-                     {/* Valores */}
-                     <div className="grid grid-cols-2 gap-2 text-sm">
-                       <div className="bg-gray-50 p-2 rounded-lg">
-                         <p className="text-[10px] text-gray-500 uppercase">Venda</p>
-                         <p className="font-bold text-blue-600">{formatCurrency(product.salePrice)}</p>
-                       </div>
-                       <div className="bg-emerald-50 p-2 rounded-lg">
-                         <p className="text-[10px] text-emerald-800 uppercase">Lucro</p>
-                         <p className="font-bold text-emerald-600">
-                           {formatCurrency(profit)} ({profitMargin.toFixed(1)}%)
-                         </p>
-                       </div>
-                       <div className={`p-2 rounded-lg ${isLowStock ? "bg-red-50" : "bg-gray-50"}`}>
-                         <p className="text-[10px] text-gray-500 uppercase">Estoque</p>
-                         <p className={`font-bold ${isLowStock ? "text-red-600" : "text-gray-700"}`}>
-                           {product.stock || 0} <span className="text-[10px] font-normal">{product.unit}</span>
-                         </p>
-                       </div>
-                     </div>
-                   </Card>
-                 </AnimatedCard>
-               );
-            })}
-          </AnimatePresence>
-        </div>
-
-        {/* --- PAGINAÇÃO --- */}
-        <div className="pt-4 pb-8 flex justify-center">
-          <Pagination
-            currentPage={productsPage}
-            totalPages={totalProductsPages}
-            onPageChange={(page) => {
-              setProductsPage(page);
-              window.scrollTo({ top: 0, behavior: 'smooth' }); // Sobe a tela ao mudar página
-            }}
-            totalItems={filteredProducts.length}
-            itemsPerPage={PRODUCTS_PER_PAGE}
-          />
-        </div>
-      </>
-    )}
-  </div>
-</TabsContent>
+            </TabsContent>
 
 
             <TabsContent value="vendas">
@@ -2925,7 +2867,6 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={quickSaleForm.costPrice}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setQuickSaleForm({ ...quickSaleForm, costPrice: e.target.value })}
                     placeholder="Ex: 50,00"
                     className="pl-10 text-xl font-bold h-14 border-red-200 focus:border-red-400"
@@ -2942,7 +2883,6 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={quickSaleForm.salePrice}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setQuickSaleForm({ ...quickSaleForm, salePrice: e.target.value })}
                     placeholder="Ex: 100,00"
                     className="pl-10 text-xl font-bold h-14 border-emerald-200 focus:border-emerald-400"
@@ -2958,7 +2898,6 @@ const chartData = useMemo(() => {
                   <Input
                     type="date"
                     value={quickSaleForm.date}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setQuickSaleForm({ ...quickSaleForm, date: e.target.value })}
                     className="pl-10 h-12 border-blue-200 focus:border-blue-400"
                   />
@@ -3000,7 +2939,6 @@ const chartData = useMemo(() => {
                 <Label>Descrição (opcional)</Label>
                 <Input
                   value={quickSaleForm.description}
-                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setQuickSaleForm({ ...quickSaleForm, description: e.target.value })}
                   placeholder="Ex: Venda de camiseta"
                 />
@@ -3068,7 +3006,6 @@ const chartData = useMemo(() => {
                 <Label>Descrição *</Label>
                 <Input
                   value={quickExpenseForm.description}
-                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setQuickExpenseForm({ ...quickExpenseForm, description: e.target.value })}
                   placeholder="Ex: Conta de luz"
                   autoFocus
@@ -3083,7 +3020,6 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={quickExpenseForm.amount}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setQuickExpenseForm({ ...quickExpenseForm, amount: e.target.value })}
                     placeholder="0,00"
                     className="pl-10 text-2xl font-bold h-14"
@@ -3203,7 +3139,6 @@ const chartData = useMemo(() => {
                   <Label>SKU / Código</Label>
                   <Input
                     value={productForm.sku}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
                     placeholder="Ex: CAM-001"
                   />
@@ -3217,7 +3152,6 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={productForm.costPrice}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
                     placeholder="0,00"
                   />
@@ -3228,7 +3162,6 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={productForm.salePrice}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
                     placeholder="0,00"
                   />
@@ -3241,7 +3174,6 @@ const chartData = useMemo(() => {
                   <Input
                     type="number"
                     value={productForm.stock}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
                     placeholder="0"
                   />
@@ -3250,7 +3182,6 @@ const chartData = useMemo(() => {
                   <Label>Estoque Mínimo</Label>
                   <Input
                     type="number"
-                    onWheel={(e) => e.currentTarget.blur()}
                     value={productForm.minStock}
                     onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
                     placeholder="0"
@@ -3366,7 +3297,6 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={productForm.costPrice}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
                   />
                 </div>
@@ -3376,7 +3306,6 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={productForm.salePrice}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
                   />
                 </div>
@@ -3388,7 +3317,6 @@ const chartData = useMemo(() => {
                   <Input
                     type="number"
                     value={productForm.stock}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
                   />
                 </div>
@@ -3397,7 +3325,6 @@ const chartData = useMemo(() => {
                   <Input
                     type="number"
                     value={productForm.minStock}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
                   />
                 </div>
@@ -3434,124 +3361,26 @@ const chartData = useMemo(() => {
             </DialogHeader>
             <div className="space-y-4">
               <div>
-  <Label>Produto *</Label>
-
-  {/* ✅ Input de busca de produtos */}
-  <div className="relative mb-2">
-    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-    <Input
-      placeholder="Buscar produto por nome ou SKU..."
-      value={productSearchSale}
-      onChange={(e) => setProductSearchSale(e.target.value)}
-      className="pl-10 bg-gray-50 border-gray-200"
-    />
-    {productSearchSale && (
-      <button
-        onClick={() => setProductSearchSale("")}
-        className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-      >
-        ✕
-      </button>
-    )}
-  </div>
-
-  <Select
-    value={saleForm.productId}
-    onValueChange={(v) => setSaleForm({ ...saleForm, productId: v })}
-  >
-    <SelectTrigger>
-      <SelectValue placeholder="Selecione um produto" />
-    </SelectTrigger>
-    <SelectContent className="max-h-[300px]">
-      {products
-        .filter((p) => {
-          if (!p.active) return false;
-          if (!productSearchSale) return true;
-
-          const term = normalizeText(productSearchSale);
-          const matchesName = normalizeText(p.name).includes(term);
-          const matchesSku = p.sku ? normalizeText(p.sku).includes(term) : false;
-          const matchesCategory = p.category ? normalizeText(p.category).includes(term) : false;
-
-          return matchesName || matchesSku || matchesCategory;
-        })
-        .map((p) => {
-          const profit = p.salePrice - p.costPrice;
-          const margin = ((profit / p.salePrice) * 100).toFixed(1);
-          const isLowStock = p.stock !== undefined && p.minStock !== undefined && p.stock <= p.minStock;
-
-          return (
-            <SelectItem key={p._id} value={p._id}>
-              <div className="flex flex-col gap-1 py-1">
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold">{p.name}</span>
-                  <span className="text-emerald-600 font-bold">{formatCurrency(p.salePrice)}</span>
-                </div>
-                <div className="flex items-center gap-2 text-xs text-gray-500">
-                  {p.sku && <span>SKU: {p.sku}</span>}
-                  {p.category && <span>• {p.category}</span>}
-                  {p.stock !== undefined && (
-                    <span className={isLowStock ? "text-red-600 font-semibold" : ""}>
-                      • Estoque: {p.stock} {p.unit}
-                      {isLowStock && " ⚠️"}
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-gray-400">
-                  Lucro: {formatCurrency(profit)} ({margin}%)
-                </div>
+                <Label>Produto *</Label>
+                <Select
+                  value={saleForm.productId}
+                  onValueChange={(v) => setSaleForm({ ...saleForm, productId: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecione um produto" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {products
+                      .filter((p) => p.active)
+                      .map((p) => (
+                        <SelectItem key={p._id} value={p._id}>
+                          {p.name} - {formatCurrency(p.salePrice)}{" "}
+                          {p.stock !== undefined && `(Estoque: ${p.stock})`}
+                        </SelectItem>
+                      ))}
+                  </SelectContent>
+                </Select>
               </div>
-            </SelectItem>
-          );
-        })}
-
-      {products.filter((p) => {
-        if (!p.active) return false;
-        if (!productSearchSale) return true;
-        const term = normalizeText(productSearchSale);
-        return normalizeText(p.name).includes(term) || (p.sku && normalizeText(p.sku).includes(term));
-      }).length === 0 && (
-        <div className="p-4 text-center text-gray-500 text-sm">
-          Nenhum produto encontrado com {productSearchSale}
-        </div>
-      )}
-    </SelectContent>
-  </Select>
-
-  {/* ✅ Info do produto selecionado */}
-  {saleForm.productId && products.find(p => p._id === saleForm.productId) && (
-    <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
-      {(() => {
-        const selectedProduct = products.find(p => p._id === saleForm.productId);
-        if (!selectedProduct) return null;
-
-        const profit = selectedProduct.salePrice - selectedProduct.costPrice;
-        const margin = ((profit / selectedProduct.salePrice) * 100).toFixed(1);
-
-        return (
-          <div className="space-y-1 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">Preço de Venda:</span>
-              <span className="font-bold text-blue-600">{formatCurrency(selectedProduct.salePrice)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">Lucro Unitário:</span>
-              <span className="font-bold text-emerald-600">{formatCurrency(profit)} ({margin}%)</span>
-            </div>
-            {selectedProduct.stock !== undefined && (
-              <div className="flex justify-between">
-                <span className="text-gray-600">Estoque Atual:</span>
-                <span className={`font-bold ${selectedProduct.stock <= (selectedProduct.minStock || 0) ? 'text-red-600' : 'text-gray-700'}`}>
-                  {selectedProduct.stock} {selectedProduct.unit}
-                </span>
-              </div>
-            )}
-          </div>
-        );
-      })()}
-    </div>
-  )}
-</div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -3560,7 +3389,6 @@ const chartData = useMemo(() => {
                     type="number"
                     min="1"
                     value={saleForm.quantity}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setSaleForm({ ...saleForm, quantity: e.target.value })}
                     placeholder="1"
                   />
@@ -3601,7 +3429,6 @@ const chartData = useMemo(() => {
                   step="0.01"
                   min="0"
                   value={saleForm.discount}
-                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setSaleForm({ ...saleForm, discount: e.target.value })}
                   placeholder="0,00"
                 />
@@ -3652,7 +3479,6 @@ const chartData = useMemo(() => {
                     type="number"
                     step="0.01"
                     value={expenseForm.amount}
-                    onWheel={(e) => e.currentTarget.blur()}
                     onChange={(e) => setExpenseForm({ ...expenseForm, amount: e.target.value })}
                   />
                 </div>
@@ -3852,7 +3678,6 @@ const chartData = useMemo(() => {
                 <Input
                   type="number"
                   value={goalForm.targetValue}
-                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setGoalForm({ ...goalForm, targetValue: e.target.value })}
                   placeholder="10000"
                 />
@@ -3903,8 +3728,6 @@ const chartData = useMemo(() => {
                   type="number"
                   step="0.01"
                   value={priceCalcForm.costPrice}
-                  onWheel={(e) => e.currentTarget.blur()}
-
                   onChange={(e) => setPriceCalcForm({ ...priceCalcForm, costPrice: e.target.value })}
                   placeholder="Ex: 50.00"
                 />
@@ -3915,7 +3738,6 @@ const chartData = useMemo(() => {
                 <Input
                   type="number"
                   value={priceCalcForm.targetMargin}
-                  onWheel={(e) => e.currentTarget.blur()}
                   onChange={(e) => setPriceCalcForm({ ...priceCalcForm, targetMargin: e.target.value })}
                   placeholder="Ex: 40"
                 />
@@ -3925,7 +3747,6 @@ const chartData = useMemo(() => {
                 <Label>Categoria</Label>
                 <Input
                   value={priceCalcForm.category}
-
                   onChange={(e) => setPriceCalcForm({ ...priceCalcForm, category: e.target.value })}
                   placeholder="Ex: roupas, eletrônicos"
                 />
