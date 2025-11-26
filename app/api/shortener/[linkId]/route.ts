@@ -2,8 +2,14 @@ import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';
 
-// ✅ CORREÇÃO: Usar { params } é a forma segura do Next.js pegar o ID
-export async function GET(req: Request, { params }: { params: { linkId: string } }) {
+// ----------------------------------------------------------------------
+// ✅ CORREÇÃO NEXT.JS 15: params agora é uma Promise
+// ----------------------------------------------------------------------
+
+export async function GET(
+  req: Request,
+  props: { params: Promise<{ linkId: string }> }
+) {
   try {
     const { userId } = await auth();
 
@@ -11,26 +17,28 @@ export async function GET(req: Request, { params }: { params: { linkId: string }
       return new NextResponse("Não autenticado", { status: 401 });
     }
 
+    // ✅ Await no params para Next.js 15
+    const params = await props.params;
     const linkId = params.linkId;
 
     if (!linkId) {
       return new NextResponse("ID do link é obrigatório", { status: 400 });
     }
 
-    // Busca o Link
     const link = await prisma.link.findFirst({
-      where: { id: linkId, userId: userId },
+      where: {
+        id: linkId,
+        userId: userId,
+      },
     });
 
     if (!link) {
-      return new NextResponse("Link não encontrado", { status: 404 });
+      return new NextResponse("Link não encontrado ou acesso negado", { status: 404 });
     }
 
-    // Busca os Cliques
     const clicks = await prisma.click.findMany({
       where: { linkId: linkId },
       orderBy: { timestamp: 'desc' },
-      // ✅ Trazemos tudo, mas tratamos nulos no retorno
       select: {
         id: true,
         timestamp: true,
@@ -43,7 +51,6 @@ export async function GET(req: Request, { params }: { params: { linkId: string }
       }
     });
 
-    // ✅ Formatação Segura
     const formattedData = {
       link: {
         id: link.id,
@@ -56,7 +63,6 @@ export async function GET(req: Request, { params }: { params: { linkId: string }
         visitorId: click.visitorId,
         userAgent: click.userAgent || 'Desconhecido',
         referrer: click.referrer || 'Direto',
-        // Garante que não quebre se o campo for null no banco
         country: click.country || 'Desconhecido',
         city: click.city || 'Desconhecido',
         region: click.region || 'Desconhecido'
@@ -71,12 +77,18 @@ export async function GET(req: Request, { params }: { params: { linkId: string }
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { linkId: string } }) {
+export async function DELETE(
+  req: Request,
+  props: { params: Promise<{ linkId: string }> }
+) {
   try {
     const { userId } = await auth();
     if (!userId) return NextResponse.json({ error: "Não autenticado" }, { status: 401 });
 
+    // ✅ Await no params para Next.js 15
+    const params = await props.params;
     const linkId = params.linkId;
+
     if (!linkId) return NextResponse.json({ error: "ID obrigatório" }, { status: 400 });
 
     const link = await prisma.link.findFirst({
@@ -85,7 +97,6 @@ export async function DELETE(req: Request, { params }: { params: { linkId: strin
 
     if (!link) return NextResponse.json({ error: "Link não encontrado" }, { status: 404 });
 
-    // Transaction para garantir limpeza total
     await prisma.$transaction([
       prisma.click.deleteMany({ where: { linkId: linkId } }),
       prisma.link.delete({ where: { id: linkId } })
