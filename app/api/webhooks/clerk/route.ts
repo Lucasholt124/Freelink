@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     if (email) {
       try {
         await resend.emails.send({
-          from: 'Freelinnk <contato@freelinnk.com>',
+          from: 'Freelinnk <contato@send.freelinnk.com>',
           replyTo: 'lucasholt2021@gmail.com',
           to: email,
           subject: `Bem-vindo ao Freelinnk, ${name}! 🎉`,
