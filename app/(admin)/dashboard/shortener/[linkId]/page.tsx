@@ -9,7 +9,6 @@ import {
   BarChart2,
   Clock,
   Globe,
-
   Users,
   ExternalLink,
   LinkIcon,
@@ -25,11 +24,8 @@ import {
   TrendingDown,
   Zap,
   Sparkles,
-
-  Filter,
-
+  Filter
 } from "lucide-react";
-import { useUser } from "@clerk/nextjs";
 import { toast } from "sonner";
 import clsx from "clsx";
 import { motion, AnimatePresence } from "framer-motion";
@@ -86,7 +82,7 @@ function AnimatedNumber({ value }: { value: number }) {
   return <span>{displayValue.toLocaleString('pt-BR')}</span>;
 }
 
-// 🎯 Click Row Component - ORIGINAL com design melhorado
+// 🎯 Click Row Component
 function ClickRow({ click, index }: { click: ClickData; index: number }) {
   const formatDate = (timestamp: number) => {
     const date = new Date(timestamp);
@@ -185,7 +181,7 @@ function ClickRow({ click, index }: { click: ClickData; index: number }) {
   );
 }
 
-// 🎯 Clicks Table - ORIGINAL com design melhorado
+// 🎯 Clicks Table
 function ClicksTable({ clicks }: { clicks: ClickData[] }) {
   const [timeFilter, setTimeFilter] = useState('all');
   const [filteredClicks, setFilteredClicks] = useState<ClickData[]>(clicks);
@@ -287,7 +283,7 @@ function ClicksTable({ clicks }: { clicks: ClickData[] }) {
         </Button>
       </div>
 
-      {/* Contador de Clicks - Redesenhado */}
+      {/* Contador de Clicks */}
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -321,27 +317,13 @@ function ClicksTable({ clicks }: { clicks: ClickData[] }) {
           <table className="w-full">
             <thead>
               <tr className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  ID
-                </th>
-                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  Data
-                </th>
-                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  ⏰ Horário Exato
-                </th>
-                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  País
-                </th>
-                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  Dispositivo
-                </th>
-                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  Visitor ID
-                </th>
-                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">
-                  Referrer
-                </th>
+                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">ID</th>
+                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Data</th>
+                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">⏰ Horário Exato</th>
+                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">País</th>
+                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Dispositivo</th>
+                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Visitor ID</th>
+                <th className="text-left p-4 text-xs font-bold text-gray-600 dark:text-gray-400 uppercase tracking-wider">Referrer</th>
               </tr>
             </thead>
             <tbody>
@@ -355,7 +337,7 @@ function ClicksTable({ clicks }: { clicks: ClickData[] }) {
         </div>
       </div>
 
-      {/* Cards Mobile - Redesenhados */}
+      {/* Cards Mobile */}
       <div className="md:hidden space-y-3">
         <AnimatePresence>
           {filteredClicks.map((click, index) => (
@@ -382,7 +364,6 @@ function ClicksTable({ clicks }: { clicks: ClickData[] }) {
                 </span>
               </div>
 
-              {/* Horário em destaque */}
               <div className="flex items-center gap-3 bg-gradient-to-r from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-xl p-4">
                 <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400" />
                 <span className="text-lg font-mono font-bold text-purple-700 dark:text-purple-300">
@@ -425,7 +406,7 @@ function ClicksTable({ clicks }: { clicks: ClickData[] }) {
   );
 }
 
-// 📊 Analytics Chart - ORIGINAL com design melhorado
+// 📊 Analytics Chart
 function AnalyticsChart({ data, labels, title }: { data: number[], labels: string[], title: string }) {
   const maxValue = Math.max(...data, 5);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -444,7 +425,6 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
               onMouseEnter={() => setHoveredIndex(index)}
               onMouseLeave={() => setHoveredIndex(null)}
             >
-              {/* Tooltip */}
               <AnimatePresence>
                 {isHovered && (
                   <motion.div
@@ -489,7 +469,7 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
   );
 }
 
-// 📱 Device Breakdown - ORIGINAL com design melhorado
+// 📱 Device Breakdown
 function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
   const validClicks = Array.isArray(clicks) ? clicks : [];
 
@@ -514,15 +494,14 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
 
   const getDeviceInfo = (device: string) => {
     if (device.toLowerCase().includes('mobile'))
-      return { icon: Smartphone, color: 'blue', emoji: '📱' };
+      return { icon: Smartphone, color: 'blue' };
     if (device.toLowerCase().includes('tablet'))
-      return { icon: Smartphone, color: 'green', emoji: '📱' };
-    return { icon: Laptop, color: 'purple', emoji: '💻' };
+      return { icon: Smartphone, color: 'green' };
+    return { icon: Laptop, color: 'purple' };
   };
 
   return (
     <div className="space-y-4 mt-4">
-      {/* Visual Ring */}
       <div className="flex items-center justify-center py-4">
         <div className="relative w-32 h-32">
           <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
@@ -559,7 +538,6 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
         </div>
       </div>
 
-      {/* Legend */}
       {deviceData.map((device, index) => {
         const info = getDeviceInfo(device.name);
         const Icon = info.icon;
@@ -620,7 +598,7 @@ function DeviceBreakdown({ clicks }: { clicks: ClickData[] }) {
   );
 }
 
-// 🌍 Country Map - ORIGINAL com design melhorado
+// 🌍 Country Map
 function CountryMap({ clicks }: { clicks: ClickData[] }) {
   const validClicks = Array.isArray(clicks) ? clicks : [];
 
@@ -659,7 +637,6 @@ function CountryMap({ clicks }: { clicks: ClickData[] }) {
             transition={{ delay: index * 0.1 }}
             className="relative overflow-hidden"
           >
-            {/* Background progress bar */}
             <motion.div
               initial={{ width: 0 }}
               animate={{ width: `${country.percentage}%` }}
@@ -691,8 +668,8 @@ function CountryMap({ clicks }: { clicks: ClickData[] }) {
   );
 }
 
-// 📊 Analytics Metrics - ORIGINAL com design melhorado
-function AnalyticsMetrics({ clicks, plan }: { clicks: ClickData[]; plan: string }) {
+// 📊 Analytics Metrics
+function AnalyticsMetrics({ clicks }: { clicks: ClickData[] }) {
   const validClicks = Array.isArray(clicks) ? clicks : [];
   const uniqueVisitors = new Set(validClicks.map((c) => c.visitorId)).size;
 
@@ -710,9 +687,6 @@ function AnalyticsMetrics({ clicks, plan }: { clicks: ClickData[]; plan: string 
   };
 
   const topCountryName = calculateTopCountry();
-
-  const impressions = validClicks.length * 2.5;
-  const ctr = impressions > 0 ? (validClicks.length / impressions) * 100 : 0;
 
   const calculateTrend = () => {
     if (validClicks.length < 2) return { value: 0, isPositive: true };
@@ -738,45 +712,35 @@ function AnalyticsMetrics({ clicks, plan }: { clicks: ClickData[]; plan: string 
     {
       title: "Cliques Totais",
       value: validClicks.length,
-      subtitle: `${trend.value > 0 ? (trend.isPositive ? "↑" : "↓") : "="} nos últimos 7 dias`,
       trend,
       icon: BarChart2,
       gradient: "from-blue-500 to-cyan-500",
       bgLight: "from-blue-50 to-cyan-50",
-      bgDark: "from-blue-900/20 to-cyan-900/20",
-      locked: false
     },
     {
       title: "Visitantes Únicos",
-      value: plan === "free" ? "—" : uniqueVisitors,
-      subtitle: plan !== "free" ? `${Math.round((uniqueVisitors / Math.max(validClicks.length, 1)) * 100)}% únicos` : "Upgrade para Pro",
+      value: uniqueVisitors,
       icon: Users,
       gradient: "from-purple-500 to-pink-500",
       bgLight: "from-purple-50 to-pink-50",
-      bgDark: "from-purple-900/20 to-pink-900/20",
-      locked: plan === "free",
-      badge: "Pro"
     },
     {
-      title: "Taxa de Cliques",
-      value: plan === "ultra" ? `${ctr.toFixed(1)}%` : "—",
-      subtitle: plan === "ultra" ? `${Math.round(impressions)} impressões` : "Upgrade para Ultra",
+      title: "Hoje",
+      value: validClicks.filter(c => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        return c.timestamp >= today.getTime();
+      }).length,
       icon: MousePointer,
       gradient: "from-emerald-500 to-teal-500",
       bgLight: "from-emerald-50 to-teal-50",
-      bgDark: "from-emerald-900/20 to-teal-900/20",
-      locked: plan !== "ultra",
-      badge: "Ultra"
     },
     {
       title: "Principal País",
-      value: plan === "ultra" ? topCountryName : "🇧🇷",
+      value: topCountryName,
       icon: Globe,
       gradient: "from-amber-500 to-orange-500",
       bgLight: "from-amber-50 to-orange-50",
-      bgDark: "from-amber-900/20 to-orange-900/20",
-      locked: plan !== "ultra",
-      badge: "Ultra"
     }
   ];
 
@@ -791,37 +755,17 @@ function AnalyticsMetrics({ clicks, plan }: { clicks: ClickData[]; plan: string 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: index * 0.1 }}
-            className={clsx(
-              "relative overflow-hidden rounded-2xl border transition-all duration-300 hover:shadow-lg",
-              metric.locked
-                ? "bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700"
-                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700"
-            )}
+            className="relative overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-purple-300 dark:hover:border-purple-700 transition-all duration-300 hover:shadow-lg"
           >
-            {/* Gradient top border */}
             <div className={`h-1 bg-gradient-to-r ${metric.gradient}`} />
 
             <div className="p-5">
               <div className="flex items-start justify-between mb-3">
-                <div className={clsx(
-                  "p-2.5 rounded-xl bg-gradient-to-br",
-                  metric.locked
-                    ? "from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600"
-                    : `${metric.bgLight} dark:${metric.bgDark}`
-                )}>
-                  <Icon className={clsx(
-                    "w-5 h-5",
-                    metric.locked ? "text-gray-400" : "text-gray-700 dark:text-gray-300"
-                  )} />
+                <div className={`p-2.5 rounded-xl bg-gradient-to-br ${metric.bgLight} dark:from-gray-700 dark:to-gray-600`}>
+                  <Icon className="w-5 h-5 text-gray-700 dark:text-gray-300" />
                 </div>
 
-                {metric.locked && metric.badge && (
-                  <span className="text-xs font-bold bg-gradient-to-r from-purple-500 to-pink-500 text-white px-2 py-1 rounded-full">
-                    {metric.badge}
-                  </span>
-                )}
-
-                {!metric.locked && metric.trend && (
+                {metric.trend && (
                   <span className={clsx(
                     "text-xs font-bold px-2 py-1 rounded-full flex items-center gap-1",
                     metric.trend.isPositive
@@ -835,18 +779,9 @@ function AnalyticsMetrics({ clicks, plan }: { clicks: ClickData[]; plan: string 
               </div>
 
               <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">{metric.title}</p>
-
-              {metric.locked ? (
-                <div className="h-8 bg-gray-200 dark:bg-gray-700 rounded-lg animate-pulse" />
-              ) : (
-                <p className="text-2xl font-bold text-gray-900 dark:text-white">
-                  {typeof metric.value === 'number' ? <AnimatedNumber value={metric.value} /> : metric.value}
-                </p>
-              )}
-
-              {metric.subtitle && !metric.locked && (
-                <p className="text-xs text-gray-500 mt-1">{metric.subtitle}</p>
-              )}
+              <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                {typeof metric.value === 'number' ? <AnimatedNumber value={metric.value} /> : metric.value}
+              </p>
             </div>
           </motion.div>
         );
@@ -855,7 +790,7 @@ function AnalyticsMetrics({ clicks, plan }: { clicks: ClickData[]; plan: string 
   );
 }
 
-// 🔧 Generate Chart Data - ORIGINAL
+// 🔧 Generate Chart Data
 const generateChartData = (clicks: ClickData[]) => {
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
@@ -875,11 +810,10 @@ const generateChartData = (clicks: ClickData[]) => {
   };
 };
 
-// 🏠 Main Page Component - ORIGINAL com design melhorado
+// 🏠 Main Page Component
 export default function ShortLinkDetailsPage() {
   const params = useParams();
   const linkId = params.linkId as string;
-  const { user } = useUser();
   const [data, setData] = useState<PageData | undefined | null>(undefined);
   const [currentTab, setCurrentTab] = useState("overview");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -906,10 +840,6 @@ export default function ShortLinkDetailsPage() {
         });
     }
   }, [linkId]);
-
-  const isAdmin = user?.id === "user_2xQFGvNnpYHVJevgeCLWsnqdLqp";
-  const userPlan = (user?.publicMetadata?.subscriptionPlan as string) ?? "free";
-  const plan = isAdmin ? "ultra" : userPlan;
 
   const chartData = data?.clicks && Array.isArray(data.clicks) ? generateChartData(data.clicks) : null;
 
@@ -976,7 +906,7 @@ export default function ShortLinkDetailsPage() {
         </Button>
       </motion.div>
 
-      {/* Header Card - Redesenhado */}
+      {/* Header Card */}
       <motion.header
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1077,10 +1007,10 @@ export default function ShortLinkDetailsPage() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
       >
-        <AnalyticsMetrics clicks={clicks} plan={plan} />
+        <AnalyticsMetrics clicks={clicks} />
       </motion.section>
 
-      {/* Tabs Section - Redesenhado */}
+      {/* Tabs Section */}
       <motion.section
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1107,21 +1037,17 @@ export default function ShortLinkDetailsPage() {
               </TabsTrigger>
               <TabsTrigger
                 value="devices"
-                className="px-5 py-3 rounded-xl border-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 h-11 transition-all duration-300 font-medium disabled:opacity-50"
-                disabled={plan === "free"}
+                className="px-5 py-3 rounded-xl border-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 h-11 transition-all duration-300 font-medium"
               >
                 <Smartphone className="w-4 h-4 mr-2" />
                 Dispositivos
-                {plan === "free" && <span className="ml-1.5 text-xs bg-purple-200 dark:bg-purple-800 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded-full">Pro</span>}
               </TabsTrigger>
               <TabsTrigger
                 value="geo"
-                className="px-5 py-3 rounded-xl border-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 h-11 transition-all duration-300 font-medium disabled:opacity-50"
-                disabled={plan !== "ultra"}
+                className="px-5 py-3 rounded-xl border-0 data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-500 data-[state=active]:to-indigo-500 data-[state=active]:text-white data-[state=active]:shadow-lg data-[state=active]:shadow-purple-500/25 h-11 transition-all duration-300 font-medium"
               >
                 <Globe className="w-4 h-4 mr-2" />
                 Geografia
-                {plan !== "ultra" && <span className="ml-1.5 text-xs bg-amber-200 dark:bg-amber-800 text-amber-700 dark:text-amber-300 px-1.5 py-0.5 rounded-full">Ultra</span>}
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1158,39 +1084,35 @@ export default function ShortLinkDetailsPage() {
                   )}
 
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {plan !== "free" && (
-                      <Card className="rounded-2xl border-gray-200 dark:border-gray-700">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <Smartphone className="w-5 h-5 text-purple-600" />
-                            Dispositivos
-                          </CardTitle>
-                          <CardDescription>
-                            Distribuição de acessos por tipo de dispositivo
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <DeviceBreakdown clicks={clicks} />
-                        </CardContent>
-                      </Card>
-                    )}
+                    <Card className="rounded-2xl border-gray-200 dark:border-gray-700">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Smartphone className="w-5 h-5 text-purple-600" />
+                          Dispositivos
+                        </CardTitle>
+                        <CardDescription>
+                          Distribuição de acessos por tipo de dispositivo
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <DeviceBreakdown clicks={clicks} />
+                      </CardContent>
+                    </Card>
 
-                    {plan === "ultra" && (
-                      <Card className="rounded-2xl border-gray-200 dark:border-gray-700">
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-lg flex items-center gap-2">
-                            <Globe className="w-5 h-5 text-purple-600" />
-                            Localização
-                          </CardTitle>
-                          <CardDescription>
-                            Distribuição geográfica dos cliques
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent>
-                          <CountryMap clicks={clicks} />
-                        </CardContent>
-                      </Card>
-                    )}
+                    <Card className="rounded-2xl border-gray-200 dark:border-gray-700">
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                          <Globe className="w-5 h-5 text-purple-600" />
+                          Localização
+                        </CardTitle>
+                        <CardDescription>
+                          Distribuição geográfica dos cliques
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <CountryMap clicks={clicks} />
+                      </CardContent>
+                    </Card>
                   </div>
                 </motion.div>
               </TabsContent>
@@ -1202,20 +1124,7 @@ export default function ShortLinkDetailsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                 >
-                  <Card className="rounded-2xl border-gray-200 dark:border-gray-700 border-0 shadow-none">
-                    <CardHeader className="pb-4 px-0 pt-0">
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        <Activity className="w-5 h-5 text-purple-600" />
-                        Histórico Completo de Clicks
-                      </CardTitle>
-                      <CardDescription>
-                        Visualize todos os clicks com horário exato e detalhes completos
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent className="px-0">
-                      <ClicksTable clicks={clicks} />
-                    </CardContent>
-                  </Card>
+                  <ClicksTable clicks={clicks} />
                 </motion.div>
               </TabsContent>
 
@@ -1226,35 +1135,20 @@ export default function ShortLinkDetailsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                 >
-                  {plan !== "free" ? (
-                    <Card className="rounded-2xl border-0 shadow-none">
-                      <CardHeader className="px-0 pt-0">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Smartphone className="w-5 h-5 text-purple-600" />
-                          Análise de Dispositivos
-                        </CardTitle>
-                        <CardDescription>
-                          Distribuição detalhada por dispositivos, navegadores e sistemas
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="px-0">
-                        <DeviceBreakdown clicks={clicks} />
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="text-center py-16">
-                      <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-purple-100 to-indigo-100 dark:from-purple-900/30 dark:to-indigo-900/30 rounded-3xl flex items-center justify-center">
-                        <Smartphone className="w-10 h-10 text-purple-500" />
-                      </div>
-                      <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Recurso disponível no plano Pro</h3>
-                      <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-                        Faça upgrade para visualizar estatísticas detalhadas de dispositivos.
-                      </p>
-                      <Button asChild className="rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700">
-                        <Link href="/dashboard/billing">Ver Planos</Link>
-                      </Button>
-                    </div>
-                  )}
+                  <Card className="rounded-2xl border-0 shadow-none">
+                    <CardHeader className="px-0 pt-0">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Smartphone className="w-5 h-5 text-purple-600" />
+                        Análise de Dispositivos
+                      </CardTitle>
+                      <CardDescription>
+                        Distribuição detalhada por dispositivos
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="px-0">
+                      <DeviceBreakdown clicks={clicks} />
+                    </CardContent>
+                  </Card>
                 </motion.div>
               </TabsContent>
 
@@ -1265,35 +1159,20 @@ export default function ShortLinkDetailsPage() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                 >
-                  {plan === "ultra" ? (
-                    <Card className="rounded-2xl border-0 shadow-none">
-                      <CardHeader className="px-0 pt-0">
-                        <CardTitle className="text-lg flex items-center gap-2">
-                          <Globe className="w-5 h-5 text-purple-600" />
-                          Distribuição Geográfica
-                        </CardTitle>
-                        <CardDescription>
-                          Distribuição detalhada por país e região
-                        </CardDescription>
-                      </CardHeader>
-                      <CardContent className="px-0">
-                        <CountryMap clicks={clicks} />
-                      </CardContent>
-                    </Card>
-                  ) : (
-                    <div className="text-center py-16">
-                      <div className="w-20 h-20 mx-auto mb-6 bg-gradient-to-br from-amber-100 to-orange-100 dark:from-amber-900/30 dark:to-orange-900/30 rounded-3xl flex items-center justify-center">
-                        <Globe className="w-10 h-10 text-amber-500" />
-                      </div>
-                      <h3 className="text-xl font-bold mb-2 text-gray-900 dark:text-white">Recurso disponível no plano Ultra</h3>
-                      <p className="text-gray-500 mb-6 max-w-sm mx-auto">
-                        Faça upgrade para visualizar estatísticas geográficas detalhadas.
-                      </p>
-                      <Button asChild className="rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600">
-                        <Link href="/dashboard/billing">Ver Planos</Link>
-                      </Button>
-                    </div>
-                  )}
+                  <Card className="rounded-2xl border-0 shadow-none">
+                    <CardHeader className="px-0 pt-0">
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        <Globe className="w-5 h-5 text-purple-600" />
+                        Distribuição Geográfica
+                      </CardTitle>
+                      <CardDescription>
+                        Distribuição detalhada por país
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent className="px-0">
+                      <CountryMap clicks={clicks} />
+                    </CardContent>
+                  </Card>
                 </motion.div>
               </TabsContent>
             </AnimatePresence>
