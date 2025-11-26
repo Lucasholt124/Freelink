@@ -839,7 +839,7 @@ export async function GET(req: Request) {
       try {
         // Enviar Email via Resend
         const { error } = await resend.emails.send({
-          from: 'Freelinnk <contato@send.freelinnk.com>',
+          from: 'Freelinnk <contato@freelinnk.com>',
           replyTo: 'suporte@freelinnk.com',
           to: item.email,
           subject: item.template.subject,
