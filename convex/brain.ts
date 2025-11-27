@@ -2,10 +2,10 @@
 import { action } from "./_generated/server";
 import { v } from "convex/values";
 import OpenAI from 'openai';
-import { api } from "./_generated/api";
+
 
 // =================================================================
-// ESTRUTURAS DE DADOS (Mantidas iguais para compatibilidade)
+// 1. ESTRUTURAS DE DADOS (Tipagem Rigorosa)
 // =================================================================
 interface ScriptTimelineItem {
   start_time: string;
@@ -67,13 +67,12 @@ interface BrainResults {
 }
 
 // =================================================================
-// CONFIGURAÇÃO
+// 2. CONFIGURAÇÃO E CLIENTES AI
 // =================================================================
 const GROQ_MODELS = {
-  primary: 'llama-3.3-70b-versatile',
-  default: 'llama-3.3-70b-versatile',
-  fallback: 'mixtral-8x7b-32768',
-  fast: 'llama-3.1-8b-instant',
+  optimizer: 'llama-3.1-8b-instant', // Rápido para melhorar o prompt
+  generator_ultra: 'llama-3.3-70b-versatile', // Potente para o conteúdo
+  generator_pro: 'llama-3.3-70b-versatile',
 };
 
 const groq = new OpenAI({
@@ -81,345 +80,233 @@ const groq = new OpenAI({
   baseURL: 'https://api.groq.com/openai/v1',
 });
 
-const openai = process.env.OPENAI_API_KEY ? new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-}) : null;
-
 // =================================================================
-// PARSER JSON
+// 3. ENGENHARIA EXTREMA: OTIMIZADOR DE CONTEXTO
 // =================================================================
-function parseAiJsonResponse<T>(text: string): T {
+// Transforma inputs ruins ("academia") em contextos ricos
+async function optimizeUserTheme(rawTheme: string): Promise<string> {
   try {
-    const jsonStart = text.indexOf('{');
-    const arrayStart = text.indexOf('[');
-    let start = -1;
-    if (jsonStart === -1 && arrayStart === -1) throw new Error("JSON não encontrado");
-    if (jsonStart !== -1 && (arrayStart === -1 || jsonStart < arrayStart)) {
-      start = jsonStart;
-    } else {
-      start = arrayStart;
-    }
-    const jsonEnd = text.lastIndexOf('}');
-    const arrayEnd = text.lastIndexOf(']');
-    const end = Math.max(jsonEnd, arrayEnd);
-    if (start === -1 || end === -1) throw new Error("Delimitadores JSON inválidos");
-    const jsonString = text.substring(start, end + 1);
-    return JSON.parse(jsonString) as T;
-  } catch (error) {
-    console.error("Erro parse JSON:", error);
-    throw new Error("Falha ao parsear resposta da IA");
+    const response = await groq.chat.completions.create({
+      model: GROQ_MODELS.optimizer,
+      messages: [
+        {
+          role: "system",
+          content: "Você é um especialista em Marketing Digital de Elite. Sua função é receber um tema vago de um usuário leigo e transformá-lo em um CONTEXTO RICO e ESPECÍFICO para criação de conteúdo viral. Identifique o nicho, a dor do público e o desejo oculto. Responda apenas com o contexto melhorado, nada mais."
+        },
+        {
+          role: "user",
+          content: `Tema vago do usuário: "${rawTheme}". Melhore isso para um contexto profissional de alta conversão.`
+        }
+      ],
+      temperature: 0.6,
+      max_tokens: 200,
+    });
+    const optimized = response.choices[0]?.message?.content || rawTheme;
+    console.log(`✨ Tema Otimizado: "${rawTheme}" -> "${optimized}"`);
+    return optimized;
+  } catch (e) {
+    console.warn("Falha na otimização, usando tema original", e);
+    return rawTheme;
   }
 }
 
 // =================================================================
-// PROMPTS DIFERENCIADOS (PRO vs ULTRA)
+// 4. PROMPTS DE ALTA ENGENHARIA
 // =================================================================
 
-function getProPrompt(theme: string): string {
+function getProPrompt(context: string): string {
   return `
-  🎬 TEMA: "${theme}"
-  NÍVEL: PRO (Foco em ideias criativas e estrutura sólida)
+  CONTEXTO PROFISSIONAL: "${context}"
+  OBJETIVO: Criar uma campanha de conteúdo SÓLIDA e EDUCACIONAL (Nível PRO).
 
-  Você é um estrategista de conteúdo. Gere uma campanha criativa com:
-  1. Ganchos fortes que chamem a atenção.
-  2. Estrutura de roteiro clara (início, meio, fim).
-  3. Sugestões visuais boas.
+  Você é um estrategista de conteúdo sênior. Gere:
+  1. Roteiros que educam e constroem autoridade.
+  2. Ganchos claros (sem clickbait excessivo).
+  3. Estrutura lógica (Problema -> Agitação -> Solução).
 
-  Mantenha o tom profissional e útil.
+  Mantenha o tom útil, inspirador e direto.
   `;
 }
 
-function getUltraPrompt(theme: string): string {
+function getUltraPrompt(context: string): string {
   return `
-🚨 MODO ULTRA: DIRETOR DE RETENÇÃO MÁXIMA ATIVADO
-TEMA EXATO DO CLIENTE: "${theme}"
+🚨 MODO ULTRA: ENGENHARIA DE ATENÇÃO & NEURO-MARKETING
+CONTEXTO OTIMIZADO: "${context}"
 
-VOCÊ NÃO É UM REDATOR.
-VOCÊ É O DIRETOR QUE FEZ O REEL DE 110 MILHÕES DE VIEWS.
+VOCÊ É O DIRETOR CRIATIVO POR TRÁS DOS VÍDEOS MAIS VIRAIS DO MUNDO.
+Esqueça o marketing tradicional. Aqui usamos PSICOLOGIA DE RETENÇÃO.
 
-REGRAS IMUTÁVEIS DO MODO ULTRA (SIGA OU MORRA):
+REGRAS ABSOLUTAS DO MODO ULTRA (FALHAR NISSO É INACEITÁVEL):
 
-1. O PRIMEIRO 1.0 A 2.9 SEGUNDO DECIDE TUDO
-   → O hook TEM que fazer a pessoa PARAR O POLEGAR FISICAMENTE.
-   → Use uma das 5 fórmulas comprovadas que funcionam em 2025:
-     - "Pare de [ação comum] se você quer [resultado desejado]"
-     - "Eu ganhei R$127k em 21 dias fazendo isso que 99% odeiam"
-     - "Isso aqui tá destruindo seus resultados e você nem percebe"
-     - "O erro de R$0 que 90% dos [nicho] ainda cometem"
-     - "Fiz X em Y dias sem [coisa que o público odeia fazer]"
+1. A LEI DOS 3 SEGUNDOS (O HOOK VISUAL/SONORO):
+   - Não use "Olá pessoal". Comece com uma QUEBRA DE PADRÃO.
+   - Use gatilhos: Curiosidade, Medo de Perder (FOMO), Ganância ou Controvérsia.
+   - Ex: "Pare de jogar dinheiro fora fazendo X", "O segredo que os gurus de ${context} escondem".
 
-2. RETENÇÃO É DEUS. CADA FRAME TEM QUE JUSTIFICAR SUA EXISTÊNCIA
-   → Cada corte deve acontecer em beat drop ou mudança de estímulo visual/sonoro
-   → Máximo 2.1 segundos por cena (exceto cenas de prova social ou transformação)
-   → Mínimo 5 mudanças visuais nos primeiros 8 segundos
+2. EDIÇÃO DOPAMINÉRGICA (Script Timeline):
+   - Mude o estímulo visual a cada 2.5 segundos.
+   - O roteiro deve ditar: "Zoom in violento", "Corte seco no beat", "Texto piscando em vermelho".
+   - O áudio é 50% do vídeo: Especifique SFX (woosh, pop, camera shutter) em momentos chave.
 
-3. CÂMERA = ARMA DE DESTRUIÇÃO EM MASSA
-   → Nunca mais diga "grave seu rosto"
-   → Sempre especifique:
-        • Tipo de lente (wide, 50mm, telefoto)
-        • Distância exata (close-up 30cm, medium shot 1m, etc)
-        • Movimento obrigatório (push in lento de 1.0x → 1.4x, orbit 15°, dolly zoom, etc)
-        • Ângulo psicológico (olho-no-olho, high angle = autoridade, low angle = desejo)
+3. ROTEIRO HIPNÓTICO:
+   - Use loops abertos (fale algo no início que só se resolve no final).
+   - Use palavras sensoriais (crocante, brilhante, ensurdecedor, macio).
+   - O Call to Action (CTA) deve ser irresistível e específico.
 
-4. ÁUDIO = 70% DO VÍRUS
-   → Nome da música exata + segundo exato do beat drop
-   → Se não souber o nome, diga o estilo + BPM + segundo exato do corte
-   → Sempre inclua SFX obrigatório (whoosh, impact, glass break, etc)
+4. ESTRUTURA DOS 3 REELS OBRIGATÓRIOS:
+   - REEL 1 (Topo de Funil): Viralização Pura. Polêmico ou "Mito x Verdade".
+   - REEL 2 (Meio de Funil): Conexão/História. "Como eu superei X" ou "Bastidores".
+   - REEL 3 (Fundo de Funil): Autoridade Técnica. Tutorial rápido e denso.
 
-5. TEXTO NA TELA = HIPNOSE VISUAL
-   → Texto deve aparecer em 0.3s e sumir em 0.7s (exceto CTA final)
-   → Primeira legenda SEMPRE em vermelho ou amarelo (#FF0066 ou #FFFF00)
-   → Fonte: Montserrat Black ou Impact Pro
-   → Tamanho mínimo 80px em 1080p
-   → Efeito obrigatório: scale in + shake leve ou pop + glow
-
-6. ESTRUTURA OBRIGATÓRIA DE REEL ULTRA (3 REELS OBRIGATÓRIOS):
-
-REEL 1 → FORMATO "PROVA SOCIAL IMPOSSÍVEL"
-   Hook nos 2 primeiros segundos tem que ser inacreditável mas real
-   Usar print de resultado + reação genuína + zoom progressivo no número
-
-REEL 2 → FORMATO "O ERRO QUE VOCÊ TÁ COMETENDO AGORA"
-   Começa com cena do erro → corte seco → texto gigante "VOCÊ TÁ FAZENDO ISSO ERRADO"
-   Depois mostra o jeito certo com transformação visual clara
-
-REEL 3 → FORMATO "TRANSFORMAÇÃO EM 15 SEGUNDOS"
-   Antes/depois ou passo a passo hiper acelerado
-   Usar time-warp + zoom em detalhes + texto contando os dias/ganhos
-
-7. CTA FINAL OBRIGATÓRIO (uma dessas 3):
-   - "Comente a palavra TAL pra eu te mandar o método completo"
-   - "Salve esse Reel antes que o algoritmo esconda ele de você"
-   - "Dueto esse vídeo fazendo do seu jeito que eu comento o que tá faltando"
-
-8. QUANTIDADE EXATA A GERAR:
-   - 3 Reels com script_timeline MÍNIMO de 6 cenas cada (start_time preciso)
-   - 2 Carrosséis (um educativo 8-10 slides, um de prova social)
-   - 4 Image Posts (prompts prontos pro Midjourney com estilo viral 2025)
-   - 2 Sequências de Stories com enquetes que geram 100+ respostas garantidas
-
-RETORNE APENAS JSON VÁLIDO. SEM TEXTO ANTES OU DEPOIS.
-SEMPRE USE ORDENS NO IMPERATIVO. NUNCA USE "PODE", "TENTE", "SUGIRO".
-
-EXECUTE AGORA COM PERFEIÇÃO CIRÚRGICA PARA O TEMA: "${theme}"
+RETORNE APENAS JSON PURO. SEM MARKDOWN. SEM INTRODUÇÕES.
+SEJA AGRESSIVO NA QUALIDADE.
   `.trim();
 }
 
 function getJsonStructureInstruction(): string {
   return `
-  ESTRUTURA JSON OBRIGATÓRIA (RETORNE APENAS JSON VÁLIDO):
+  SAÍDA OBRIGATÓRIA EM JSON VÁLIDO:
   {
-    "theme_summary": "Resumo tático em 1 frase.",
-    "target_audience_suggestion": "Análise psicográfica da dor do público.",
+    "theme_summary": "Resumo estratégico em 1 frase curta.",
+    "target_audience_suggestion": "Perfil psicológico do comprador ideal.",
     "content_pack": {
       "reels": [
         {
-          "title": "Título Interno (Controle)",
-          "hook": "A frase exata que deve ser dita/escrita nos primeiros 3s",
-          "main_points": ["Argumento lógico 1", "Argumento lógico 2"],
-          "cta": "A ordem final exata (ex: 'Comente X agora')",
-          "visual_suggestion": "Descreva o cenário físico (iluminação, fundo)",
-          "audio_suggestion": "Nome exato do estilo musical + BPM sugerido",
+          "title": "Nome interno do vídeo",
+          "hook": "Texto exato do gancho verbal/escrito",
+          "main_points": ["Ponto 1", "Ponto 2"],
+          "cta": "Chamada para ação final",
+          "visual_suggestion": "Cenário e iluminação",
+          "audio_suggestion": "Estilo musical + SFX",
           "script_timeline": [
             {
               "start_time": "00:00",
               "end_time": "00:03",
-              "action": "ORDEM FÍSICA: O que o corpo faz.",
-              "camera_angle": "ORDEM TÉCNICA: Lente, Distância, Movimento.",
-              "screen_text": "ORDEM VISUAL: Texto exato, Cor, Fonte, Posição.",
-              "audio_note": "ORDEM SONORA: SFX exato, Volume, Corte."
-            },
-             {
-              "start_time": "00:03",
-              "end_time": "00:07",
-              "action": "...",
-              "camera_angle": "...",
-              "screen_text": "...",
-              "audio_note": "..."
+              "action": "Ação física do ator/cena",
+              "camera_angle": "Direção técnica (Ex: Close-up, Dolly Zoom)",
+              "screen_text": "Texto na tela (se houver)",
+              "audio_note": "Efeitos sonoros (Ex: Boom sound)"
             }
-            // MÍNIMO DE 4 CENAS DETALHADAS POR REEL
+            // Mínimo 5 cenas por Reel
           ],
-          "camera_angles_summary": ["Lista técnica dos ângulos usados"],
-          "transitions": ["Lista técnica das transições"],
-          "editing_notes": "Manual técnico para o editor (ex: 'Use keyframes para legenda dinâmica')."
+          "camera_angles_summary": ["Lista de ângulos"],
+          "transitions": ["Lista de transições"],
+          "editing_notes": "Instruções para o editor de vídeo"
         }
-        // GERE EXATAMENTE 3 REELS DIFERENTES NESTE PADRÃO
+        // Exatamente 3 Reels
       ],
       "carousels": [
          {
-           "title": "...",
+           "title": "Título",
            "slides": [
-             { "slide_number": 1, "title": "CAPA", "content": "Descrição visual exata da capa + Texto da Headline" },
-             { "slide_number": 2, "title": "CONTEÚDO", "content": "Texto exato do slide." }
+             { "slide_number": 1, "title": "Headline", "content": "Texto do slide" }
            ],
-           "cta_slide": "Texto final.",
-           "design_tips": ["Paleta de cores HEX", "Fontes"]
+           "cta_slide": "Texto final",
+           "design_tips": ["Cores", "Estilo"]
          }
+         // 2 Carrosséis
       ],
       "image_posts": [
-         { "idea": "...", "caption": "Legenda pronta para copiar.", "image_prompt": "Prompt técnico para Midjourney/DALL-E.", "hashtags": [], "best_time": "..." }
+         { "idea": "Conceito", "caption": "Legenda completa", "image_prompt": "Prompt Midjourney v6", "hashtags": [], "best_time": "00:00" }
+         // 3 Posts
       ],
       "story_sequences": [
-         { "theme": "...", "slides": [{ "slide_number": 1, "type": "Text", "content": "..." }], "engagement_tips": ["..."] }
+         { "theme": "Tema", "slides": [{ "slide_number": 1, "type": "Poll", "content": "Pergunta", "options": ["A", "B"] }], "engagement_tips": ["Dica"] }
+         // 2 Sequências
       ]
     },
     "viral_strategy": {
-      "best_times": [],
-      "hashtag_strategy": "...",
-      "engagement_hacks": []
+      "best_times": ["Horário 1", "Horário 2"],
+      "hashtag_strategy": "Explicação da escolha de tags",
+      "engagement_hacks": ["Hack 1", "Hack 2"]
     }
   }
   `;
 }
 
 // =================================================================
-// FUNÇÃO DE GERAÇÃO
+// 5. PARSER JSON RESILIENTE
 // =================================================================
+function parseAiJsonResponse<T>(text: string): T {
+  try {
+    // Remove blocos de código markdown se existirem (```json ... ```)
+    const cleanText = text.replace(/```json/g, '').replace(/```/g, '').trim();
 
-async function generateWithGroq(theme: string, plan: "pro" | "ultra"): Promise<BrainResults> {
-  // 1. Seleciona o Prompt baseado no plano
-  const specificInstructions = plan === 'ultra' ? getUltraPrompt(theme) : getProPrompt(theme);
-  const prompt = `${specificInstructions}\n\n${getJsonStructureInstruction()}\n\nEXECUTE AGORA PARA O TEMA: "${theme}"`;
+    const jsonStart = cleanText.indexOf('{');
+    const jsonEnd = cleanText.lastIndexOf('}');
 
-  // 2. Seleção de Modelos (Ultra usa modelos mais potentes primeiro)
-  const modelsToTry = plan === 'ultra'
-    ? [GROQ_MODELS.primary, GROQ_MODELS.default]
-    : [GROQ_MODELS.default, GROQ_MODELS.fast];
+    if (jsonStart === -1 || jsonEnd === -1) throw new Error("JSON não encontrado na resposta");
 
-  let lastError: unknown = null;
-
-  for (const model of modelsToTry) {
-    try {
-      console.log(`🔄 [${plan.toUpperCase()}] Gerando com modelo: ${model}...`);
-
-      const response = await groq.chat.completions.create({
-        model,
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'system',
-            content: plan === 'ultra'
-              ? 'Você é um DIRETOR DE CONTEÚDO VIRAL de elite mundial. Entregue roteiros tecnicamente perfeitos.'
-              : 'Você é um assistente criativo de marketing digital competente.'
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: plan === 'ultra' ? 0.7 : 0.85, // Ultra é mais preciso/técnico
-        max_tokens: 8000,
-      });
-
-      const resultText = response.choices[0]?.message?.content;
-      if (!resultText) throw new Error(`Modelo ${model} retornou vazio`);
-
-      console.log(`✅ Sucesso [${plan}]: ${model}`);
-      return parseAiJsonResponse<BrainResults>(resultText);
-    } catch (error) {
-      console.error(`❌ Erro modelo ${model}:`, error);
-      lastError = error;
-      continue;
-    }
+    const jsonString = cleanText.substring(jsonStart, jsonEnd + 1);
+    return JSON.parse(jsonString) as T;
+  } catch (error) {
+    console.error("Erro fatal no parse do JSON:", error);
+    console.error("Texto recebido:", text);
+    throw new Error("A IA gerou um formato inválido. Tente novamente.");
   }
-
-  // Fallback OpenAI
-  if (openai) {
-    try {
-      console.log("🔄 Fallback para OpenAI...");
-      // OpenAI lógica similar simplificada para fallback
-      return await generateFallbackContent(theme);
-    } catch (e) { console.error(e); }
-  }
-
-  console.error("❌ Falha total. Usando fallback estático.", lastError);
-  return generateFallbackContent(theme);
 }
 
 // =================================================================
-// FALLBACK ESTÁTICO (Mantido para segurança)
-// =================================================================
-function generateFallbackContent(theme: string): BrainResults {
-  const safeTheme = theme || "seu nicho";
-  return {
-    theme_summary: `[MODO OFFLINE] Plano de contingência para: ${safeTheme}.`,
-    target_audience_suggestion: `Pessoas interessadas em ${safeTheme}.`,
-    content_pack: {
-      reels: [
-        {
-          title: `Erro comum em ${safeTheme}`,
-          hook: `Pare de fazer isso agora! 🛑`,
-          main_points: ["O erro", "A solução", "O benefício"],
-          cta: "Siga para mais!",
-          visual_suggestion: "Fale para a câmera.",
-          audio_suggestion: "Trending audio.",
-          script_timeline: [],
-          camera_angles_summary: [],
-          transitions: [],
-          editing_notes: "Cortes rápidos."
-        }
-      ],
-      carousels: [],
-      image_posts: [],
-      story_sequences: []
-    },
-    viral_strategy: {
-      best_times: ["18:00"],
-      hashtag_strategy: "Genérica",
-      engagement_hacks: ["Responda comentários"]
-    }
-  };
-}
-
-// =================================================================
-// ACTION PRINCIPAL
+// 6. ACTION PRINCIPAL (O CÉREBRO)
 // =================================================================
 export const generateContentIdeas = action({
   args: {
     theme: v.string(),
-    plan: v.string(), // <--- NOVO ARGUMENTO
+    plan: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Usuário não autenticado");
+    if (!identity) throw new Error("Não autorizado");
 
-    if (!args.theme || args.theme.trim().length < 3) {
-      throw new Error("Tema muito curto.");
+    if (!args.theme || args.theme.trim().length < 2) {
+      throw new Error("Tema inválido.");
     }
 
-    // Normaliza o plano
-    const userPlan = (args.plan === 'ultra') ? 'ultra' : 'pro';
+    const userPlan = args.plan === 'ultra' ? 'ultra' : 'pro';
 
-    // Rate Limit Inteligente
-    const lastCampaign = await ctx.runQuery(api.brainCampaigns.getCurrentCampaign);
-    if (lastCampaign) {
-      const timeSinceLastGen = Date.now() - lastCampaign.createdAt;
-      // Usuários ULTRA esperam menos tempo (10s vs 20s)
-      const COOLDOWN_MS = userPlan === 'ultra' ? 10000 : 20000;
+    // 1. Otimização do Tema (A Mágica da Engenharia Extrema)
+    // Transforma "sapato" em "Estratégia de e-commerce para calçados confortáveis focada em público feminino 40+"
+    const optimizedContext = await optimizeUserTheme(args.theme);
 
-      if (timeSinceLastGen < COOLDOWN_MS) {
-        const waitSeconds = Math.ceil((COOLDOWN_MS - timeSinceLastGen) / 1000);
-        throw new Error(`Aguarde ${waitSeconds}s para gerar novamente.`);
-      }
-    }
+    // 2. Seleção do Prompt e Modelo
+    const specificInstructions = userPlan === 'ultra'
+      ? getUltraPrompt(optimizedContext)
+      : getProPrompt(optimizedContext);
+
+    const prompt = `${specificInstructions}\n\n${getJsonStructureInstruction()}`;
+    const model = userPlan === 'ultra' ? GROQ_MODELS.generator_ultra : GROQ_MODELS.generator_pro;
 
     try {
-      console.log(`🚀 Iniciando FreelinnkBrain [${userPlan.toUpperCase()}] para: "${args.theme}"`);
-      const results = await generateWithGroq(args.theme, userPlan);
-      return results;
+      console.log(`🧠 Gerando [${userPlan.toUpperCase()}] | Contexto: "${optimizedContext}"`);
+
+      const response = await groq.chat.completions.create({
+        model: model,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: 'Você é uma API JSON estrita. Você gera estratégias de conteúdo viral.'
+          },
+          { role: 'user', content: prompt },
+        ],
+        temperature: userPlan === 'ultra' ? 0.75 : 0.85,
+        max_tokens: 7000,
+      });
+
+      const resultText = response.choices[0]?.message?.content;
+      if (!resultText) throw new Error("Resposta vazia da IA");
+
+      return parseAiJsonResponse<BrainResults>(resultText);
+
     } catch (error) {
-      console.error("Erro final:", error);
-      return generateFallbackContent(args.theme);
+      console.error("Erro na geração:", error);
+      // Fallback simples para não deixar o usuário na mão
+      return {
+        theme_summary: "Erro na geração inteligente. Modo de segurança ativado.",
+        target_audience_suggestion: "Público geral.",
+        content_pack: { reels: [], carousels: [], image_posts: [], story_sequences: [] },
+        viral_strategy: { best_times: [], hashtag_strategy: "Erro", engagement_hacks: [] }
+      };
     }
   },
-});
-
-// A action generateOutreachMessage pode ser mantida como estava no seu código original
-export const generateOutreachMessage = action({
-  args: {
-    businessType: v.string(),
-    messageType: v.string(),
-    customization: v.optional(v.string())
-  },
-  handler: async (ctx, args) => {
-    // ... (Mantenha o código original dessa função aqui se ainda a usar)
-    return { title: "Demo", content: "Função mantida", businessType: args.businessType, messageType: args.messageType };
-  }
 });

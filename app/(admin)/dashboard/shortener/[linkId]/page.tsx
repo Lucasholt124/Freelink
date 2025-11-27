@@ -405,46 +405,74 @@ function ClicksTable({ clicks }: { clicks: ClickData[] }) {
   );
 }
 
-// 📊 Gráfico de Analytics
+// 📊 Gráfico de Analytics (CORRIGIDO E MELHORADO)
 function AnalyticsChart({ data, labels, title }: { data: number[], labels: string[], title: string }) {
-  const maxValue = Math.max(...data, 1); // Mudado de 5 para 1 para evitar divisão por valores muito altos
+  const maxValue = Math.max(...data, 1);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
+  // Fecha o tooltip se clicar fora (simples implementação)
+  useEffect(() => {
+    const handleClick = () => setHoveredIndex(null);
+    window.addEventListener('click', handleClick);
+    return () => window.removeEventListener('click', handleClick);
+  }, []);
+
   return (
-    <div className="mt-4">
-      <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-4">{title}</h3>
+    <div className="mt-4" onClick={(e) => e.stopPropagation()}>
+      <div className="flex items-center justify-between mb-6">
+         <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400">{title}</h3>
+      </div>
 
       {/* Container com scroll horizontal no mobile */}
-      <div className="overflow-x-auto -mx-4 px-4 pb-2">
-        <div className="h-52 flex items-end gap-2 min-w-[500px] sm:min-w-0">
+      <div className="overflow-x-auto overflow-y-visible -mx-4 px-4 pb-4 select-none">
+        <div className="h-56 flex items-end gap-3 min-w-[500px] sm:min-w-0 pt-8">
           {data.map((value, index) => {
             const isHovered = hoveredIndex === index;
             const heightPercentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
+            // Altura visual mínima para barras com valor, para não ficarem invisíveis
+            const visualHeight = value > 0 ? Math.max(heightPercentage, 8) : 4;
 
             return (
               <div
                 key={index}
-                className="group relative flex flex-col items-center flex-1 h-full justify-end cursor-pointer"
+                className="group relative flex flex-col items-center flex-1 h-full justify-end"
                 onMouseEnter={() => setHoveredIndex(index)}
                 onMouseLeave={() => setHoveredIndex(null)}
-                onTouchStart={() => setHoveredIndex(index)}
+                // Touch start para mobile, prevenindo propagação
+                onTouchStart={(e) => {
+                   e.stopPropagation();
+                   setHoveredIndex(index === hoveredIndex ? null : index);
+                }}
               >
-                {/* Tooltip */}
+                {/* Highlight vertical no hover/active */}
+                <div
+                    className={clsx(
+                        "absolute bottom-0 w-full h-[110%] rounded-xl transition-all duration-300 pointer-events-none",
+                        isHovered
+                        ? "bg-gray-100/80 dark:bg-gray-700/50 opacity-100"
+                        : "opacity-0"
+                    )}
+                />
+
+                {/* Tooltip melhorado */}
                 <AnimatePresence>
                   {isHovered && (
                     <motion.div
-                      initial={{ opacity: 0, y: 10, scale: 0.9 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 10, scale: 0.9 }}
-                      className="absolute bottom-full mb-3 bg-gray-900 text-white text-xs rounded-xl px-3 py-2 shadow-xl z-10 whitespace-nowrap"
+                      initial={{ opacity: 0, y: 5, scale: 0.9 }}
+                      animate={{ opacity: 1, y: -5, scale: 1 }}
+                      exit={{ opacity: 0, y: 5, scale: 0.9 }}
+                      className="absolute bottom-full mb-1 z-20"
                     >
-                      <p className="font-bold text-sm">{value} {value === 1 ? 'clique' : 'cliques'}</p>
-                      <p className="text-gray-400 text-xs mt-0.5">
-                        {new Date(labels[index]).toLocaleDateString('pt-BR', { weekday: 'short', day: 'numeric', month: 'short' })}
-                      </p>
-                      <div className="absolute top-full left-1/2 transform -translate-x-1/2 -mt-1">
-                        <div className="border-4 border-transparent border-t-gray-900"></div>
-                      </div>
+                        <div className="bg-gray-900 text-white text-xs rounded-xl px-3 py-2 shadow-xl whitespace-nowrap flex flex-col items-center gap-0.5">
+                            <span className="font-bold text-sm">
+                                {value} <span className="text-gray-400 font-normal">{value === 1 ? 'click' : 'clicks'}</span>
+                            </span>
+                            <span className="text-[10px] text-gray-400 uppercase tracking-wide">
+                                {new Date(labels[index] + 'T00:00:00').toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit' })}
+                            </span>
+                        </div>
+                         {/* Seta do tooltip */}
+                        <div className="w-2 h-2 bg-gray-900 rotate-45 mx-auto -mt-1"></div>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -452,24 +480,24 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
                 {/* Barra */}
                 <motion.div
                   initial={{ height: 0 }}
-                  animate={{ height: `${Math.max(heightPercentage, value > 0 ? 8 : 4)}%` }}
-                  transition={{ delay: index * 0.08, duration: 0.6, ease: "easeOut" }}
+                  animate={{ height: `${visualHeight}%` }}
+                  transition={{ delay: index * 0.05, duration: 0.5, type: "spring", stiffness: 100 }}
                   className={clsx(
-                    "w-full rounded-xl transition-all duration-300",
+                    "w-full max-w-[40px] rounded-t-xl rounded-b-lg relative z-10 transition-all duration-300 cursor-pointer",
                     isHovered
-                      ? "bg-gradient-to-t from-purple-600 to-violet-500 shadow-lg shadow-purple-500/40 scale-105"
+                      ? "bg-gradient-to-t from-purple-600 to-violet-500 shadow-lg shadow-purple-500/40"
                       : value > 0
-                        ? "bg-gradient-to-t from-purple-500 to-violet-400"
-                        : "bg-gray-200 dark:bg-gray-700"
+                        ? "bg-gradient-to-t from-purple-400 to-purple-300/80 dark:from-purple-600 dark:to-purple-800"
+                        : "bg-gray-100 dark:bg-gray-800/50"
                   )}
                 />
 
                 {/* Label */}
                 <span className={clsx(
-                  "text-xs mt-3 whitespace-nowrap font-medium transition-colors",
-                  isHovered ? "text-purple-600 dark:text-purple-400" : "text-gray-500 dark:text-gray-400"
+                  "text-[10px] sm:text-xs mt-3 whitespace-nowrap font-medium transition-colors relative z-10",
+                  isHovered ? "text-purple-600 dark:text-purple-400 font-bold" : "text-gray-400 dark:text-gray-500"
                 )}>
-                  {new Date(labels[index]).toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}
+                  {new Date(labels[index] + 'T00:00:00').toLocaleDateString('pt-BR', {day: '2-digit', month: '2-digit'})}
                 </span>
               </div>
             );
@@ -478,8 +506,8 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
       </div>
 
       {/* Indicador de scroll no mobile */}
-      <p className="text-xs text-center text-gray-400 mt-2 sm:hidden">
-        ← Deslize para ver mais →
+      <p className="text-[10px] text-center text-gray-400 mt-4 sm:hidden flex items-center justify-center gap-1 opacity-60">
+        <TrendingUp className="w-3 h-3"/> Toque nas barras para ver detalhes
       </p>
     </div>
   );
@@ -849,16 +877,19 @@ function AnalyticsMetrics({ clicks }: { clicks: ClickData[] }) {
   );
 }
 
-// 🔧 Generate Chart Data
+// 🔧 Generate Chart Data (CORRIGIDO PARA USO DE LOCAL TIME)
 const generateChartData = (clicks: ClickData[]) => {
+  // Gera os últimos 7 dias usando en-CA para garantir formato YYYY-MM-DD
+  // mas baseando-se no horário LOCAL do cliente, não UTC.
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    return d.toISOString().split('T')[0];
+    return d.toLocaleDateString('en-CA'); // Retorna YYYY-MM-DD em Local Time
   }).reverse();
 
   const clicksByDay = clicks.reduce((acc, click) => {
-    const date = new Date(click.timestamp).toISOString().split('T')[0];
+    // Converte o timestamp do click também para o Local Time YYYY-MM-DD
+    const date = new Date(click.timestamp).toLocaleDateString('en-CA');
     acc[date] = (acc[date] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
