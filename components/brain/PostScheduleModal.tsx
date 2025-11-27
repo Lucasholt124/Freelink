@@ -53,15 +53,8 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { useScheduledPosts, useNotificationIntegration } from "@/app/hooks/useBrain";
-import type {
-  ReelContent,
-  CarouselContent,
-  ImagePostContent,
-  StorySequenceContent,
-} from "@/app/types/brain";
+import { ContentData } from "@/app/types/brain";
 
-// Define ContentData type according to your application's needs
-type ContentData = ReelContent | CarouselContent | ImagePostContent | StorySequenceContent;
 interface PostScheduleModalProps {
   isOpen: boolean;
   onClose: () => void;
