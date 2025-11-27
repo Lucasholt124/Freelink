@@ -10,6 +10,8 @@ import {
   MessageSquare, Calendar, Trash2, Menu,
   Crown, Clock, Loader2, ChevronDown, Bell,
   CheckCircle2, Search, Zap,
+  X,
+  ChevronRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -469,118 +471,245 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
       </motion.div>
 
       {/* SIDEBAR HISTÓRICO */}
-      <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-        <SheetContent
-          side="right"
-          className="w-full sm:w-[420px] max-w-full p-0 flex flex-col h-full border-l border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950"
-        >
-          {/* Header Fixo */}
-          <SheetHeader className="px-4 py-4 border-b border-gray-200 dark:border-gray-800 flex-shrink-0 bg-white dark:bg-gray-950">
-            <SheetTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-purple-600" />
-              Histórico de Campanhas
-            </SheetTitle>
-          </SheetHeader>
-
-          {/* Busca Fixa */}
-          <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50 flex-shrink-0">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-              <Input
-                placeholder="Buscar campanha..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9 h-9 bg-white dark:bg-black/50"
-              />
-            </div>
+{/* SIDEBAR HISTÓRICO - VERSÃO CORRIGIDA */}
+<Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
+  <SheetContent
+    side="right"
+    className={cn(
+      "w-full sm:w-[400px] md:w-[450px] max-w-[100vw]",
+      "p-0 flex flex-col",
+      "border-l border-gray-200 dark:border-gray-800",
+      "bg-white dark:bg-gray-950"
+    )}
+  >
+    {/* Header Fixo */}
+    <div className="flex-shrink-0 px-4 py-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-950">
+      <SheetHeader className="space-y-0">
+        <SheetTitle className="flex items-center gap-2 text-lg">
+          <div className="p-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-lg">
+            <Clock className="w-4 h-4 text-purple-600" />
           </div>
+          Histórico de Campanhas
+        </SheetTitle>
+      </SheetHeader>
+    </div>
 
-          {/* Lista com Scroll */}
-          <div className="flex-1 overflow-hidden">
-            <ScrollArea className="h-full">
-              <div className="p-4 space-y-3">
-                {campaignsStatus === "LoadingFirstPage" ? (
-                  <div className="flex flex-col items-center justify-center py-16">
-                    <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-                    <p className="text-sm text-muted-foreground mt-2">Carregando...</p>
-                  </div>
-                ) : filteredCampaigns.length === 0 ? (
-                  <div className="text-center py-16 px-4">
-                    <Brain className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p className="font-medium text-gray-600">
-                      {searchTerm ? "Nenhuma campanha encontrada" : "Nenhuma campanha ainda"}
-                    </p>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {searchTerm ? "Tente outro termo de busca" : "Gere sua primeira campanha!"}
-                    </p>
-                  </div>
-                ) : (
-                  <>
-                    {filteredCampaigns.map((campaign) => (
-                      <motion.div
-                        key={campaign._id}
-                        initial={{ opacity: 0, x: 20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700 transition-all overflow-hidden shadow-sm hover:shadow-md"
-                      >
-                        <div className="flex items-stretch">
-                          {/* Conteúdo Principal */}
-                          <button
-                            onClick={() => handleCampaignSelect(campaign as unknown as BrainCampaign)}
-                            className="flex-1 flex items-center gap-3 p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors min-w-0"
-                          >
-                            <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg flex-shrink-0">
-                              <Brain className="w-4 h-4 text-purple-600" />
-                            </div>
+    {/* Busca Fixa */}
+    <div className="flex-shrink-0 px-4 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+        <Input
+          placeholder="Buscar campanha..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="pl-9 h-10 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700"
+        />
+        {searchTerm && (
+          <button
+            onClick={() => setSearchTerm("")}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+    </div>
 
-                            <div className="flex-1 min-w-0 overflow-hidden">
-                              <p className="font-semibold text-sm text-gray-900 dark:text-gray-100 truncate">
-                                {campaign.theme}
-                              </p>
-                              <p className="text-xs text-muted-foreground truncate mt-0.5">
-                                {new Date(campaign.createdAt).toLocaleDateString('pt-BR', {
-                                  day: '2-digit',
-                                  month: 'short',
-                                  year: 'numeric'
-                                })}
-                              </p>
-                            </div>
-                          </button>
-
-                          {/* Botão de Excluir */}
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleCampaignDelete(campaign._id);
-                            }}
-                            className="flex-shrink-0 w-12 flex items-center justify-center border-l border-gray-100 dark:border-gray-800 hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-500 transition-colors"
-                            title="Excluir campanha"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </button>
-                        </div>
-                      </motion.div>
-                    ))}
-
-                    {campaignsStatus === "CanLoadMore" && !searchTerm && (
-                      <Button
-                        variant="ghost"
-                        className="w-full mt-4"
-                        onClick={() => loadMoreCampaigns(10)}
-                      >
-                        <ChevronDown className="w-4 h-4 mr-2" />
-                        Carregar mais
-                      </Button>
-                    )}
-
-                    <div className="h-4" />
-                  </>
-                )}
+    {/* Lista com Scroll - Container com altura calculada */}
+    <div className="flex-1 min-h-0 overflow-hidden">
+      <ScrollArea className="h-full w-full">
+        <div className="p-3 sm:p-4">
+          {/* Loading State */}
+          {campaignsStatus === "LoadingFirstPage" && (
+            <div className="flex flex-col items-center justify-center py-20">
+              <div className="relative">
+                <div className="w-12 h-12 border-4 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
               </div>
-            </ScrollArea>
-          </div>
-        </SheetContent>
-      </Sheet>
+              <p className="text-sm text-muted-foreground mt-4">Carregando campanhas...</p>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {campaignsStatus !== "LoadingFirstPage" && filteredCampaigns.length === 0 && (
+            <div className="flex flex-col items-center justify-center py-20 px-4">
+              <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                <Brain className="w-8 h-8 text-gray-400" />
+              </div>
+              <p className="font-semibold text-gray-700 dark:text-gray-300 text-center">
+                {searchTerm ? "Nenhuma campanha encontrada" : "Nenhuma campanha ainda"}
+              </p>
+              <p className="text-sm text-muted-foreground mt-1 text-center max-w-[200px]">
+                {searchTerm
+                  ? "Tente buscar com outros termos"
+                  : "Gere sua primeira campanha para começar!"
+                }
+              </p>
+              {!searchTerm && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="mt-4"
+                  onClick={() => setIsHistorySidebarOpen(false)}
+                >
+                  <Sparkles className="w-4 h-4 mr-2" />
+                  Criar Campanha
+                </Button>
+              )}
+            </div>
+          )}
+
+          {/* Lista de Campanhas */}
+          {campaignsStatus !== "LoadingFirstPage" && filteredCampaigns.length > 0 && (
+            <div className="space-y-2 sm:space-y-3">
+              {filteredCampaigns.map((campaign, index) => (
+                <motion.div
+                  key={campaign._id}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.03 }}
+                  className={cn(
+                    "group relative",
+                    "bg-white dark:bg-gray-900",
+                    "rounded-xl",
+                    "border border-gray-200 dark:border-gray-800",
+                    "hover:border-purple-300 dark:hover:border-purple-700",
+                    "hover:shadow-md",
+                    "transition-all duration-200",
+                    "overflow-hidden"
+                  )}
+                >
+                  <div className="flex items-center">
+                    {/* Área Clicável Principal */}
+                    <button
+                      onClick={() => handleCampaignSelect(campaign as unknown as BrainCampaign)}
+                      className={cn(
+                        "flex-1 flex items-center gap-3",
+                        "p-3 sm:p-4",
+                        "text-left",
+                        "hover:bg-gray-50 dark:hover:bg-gray-800/50",
+                        "transition-colors duration-150",
+                        "min-w-0" // Importante para truncate funcionar
+                      )}
+                    >
+                      {/* Ícone */}
+                      <div className={cn(
+                        "flex-shrink-0",
+                        "w-10 h-10 sm:w-11 sm:h-11",
+                        "bg-gradient-to-br from-purple-100 to-pink-100",
+                        "dark:from-purple-900/40 dark:to-pink-900/40",
+                        "rounded-xl",
+                        "flex items-center justify-center"
+                      )}>
+                        <Brain className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+
+                      {/* Conteúdo de Texto */}
+                      <div className="flex-1 min-w-0">
+                        <p className={cn(
+                          "font-semibold text-sm sm:text-base",
+                          "text-gray-900 dark:text-gray-100",
+                          "truncate",
+                          "leading-tight"
+                        )}>
+                          {campaign.theme}
+                        </p>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs text-muted-foreground">
+                            {new Date(campaign.createdAt).toLocaleDateString('pt-BR', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric'
+                            })}
+                          </span>
+                          {campaign.themeSummary && (
+                            <>
+                              <span className="text-gray-300 dark:text-gray-600">•</span>
+                              <span className="text-xs text-muted-foreground truncate max-w-[120px]">
+                                {campaign.themeSummary}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Chevron para indicar que é clicável */}
+                      <ChevronRight className="w-4 h-4 text-gray-400 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity" />
+                    </button>
+
+                    {/* Separador Vertical */}
+                    <div className="w-px h-12 bg-gray-100 dark:bg-gray-800 flex-shrink-0" />
+
+                    {/* Botão de Excluir - SEMPRE VISÍVEL */}
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleCampaignDelete(campaign._id);
+                      }}
+                      className={cn(
+                        "flex-shrink-0",
+                        "w-12 sm:w-14",
+                        "h-full min-h-[60px] sm:min-h-[68px]",
+                        "flex items-center justify-center",
+                        "text-gray-400",
+                        "hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-950/30",
+                        "active:bg-red-100 dark:active:bg-red-950/50",
+                        "transition-all duration-150"
+                      )}
+                      title="Excluir campanha"
+                      aria-label="Excluir campanha"
+                    >
+                      <Trash2 className="w-4 h-4 sm:w-5 sm:h-5" />
+                    </button>
+                  </div>
+                </motion.div>
+              ))}
+
+              {/* Botão Carregar Mais */}
+              {campaignsStatus === "CanLoadMore" && !searchTerm && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="pt-2"
+                >
+                  <Button
+                    variant="ghost"
+                    className="w-full h-12 text-purple-600 hover:text-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30"
+                    onClick={() => loadMoreCampaigns(10)}
+                  >
+                    <ChevronDown className="w-4 h-4 mr-2" />
+                    Carregar mais campanhas
+                  </Button>
+                </motion.div>
+              )}
+
+              {/* Loading More State */}
+              {campaignsStatus === "LoadingMore" && (
+                <div className="flex items-center justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-purple-500" />
+                  <span className="ml-2 text-sm text-muted-foreground">Carregando...</span>
+                </div>
+              )}
+
+              {/* Espaçamento inferior para não cortar o último item */}
+              <div className="h-6" />
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+    </div>
+
+    {/* Footer com contagem (opcional) */}
+    {filteredCampaigns.length > 0 && (
+      <div className="flex-shrink-0 px-4 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-900/50">
+        <p className="text-xs text-center text-muted-foreground">
+          {filteredCampaigns.length} campanha{filteredCampaigns.length !== 1 ? 's' : ''}
+          {searchTerm ? ' encontrada' + (filteredCampaigns.length !== 1 ? 's' : '') : ''}
+        </p>
+      </div>
+    )}
+  </SheetContent>
+</Sheet>
 
       {/* MODALS */}
       {scheduleModalData.isOpen && scheduleModalData.campaignId && scheduleModalData.contentData && (
