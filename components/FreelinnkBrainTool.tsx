@@ -93,6 +93,8 @@ const FloatingParticles = ({ count = 20, color = "purple" }: { count?: number; c
   );
 };
 
+
+
 // =================================================================
 // COMPONENTES DE LOADING DIFERENCIADOS
 // =================================================================

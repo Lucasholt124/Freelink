@@ -1,7 +1,7 @@
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-// Adiciona os tipos estendidos de autoTable ao jsPDF para evitar erros de tipagem
+// Adiciona os tipos estendidos de autoTable
 interface jsPDFWithPlugin extends jsPDF {
   autoTable: typeof autoTable;
   lastAutoTable: {
@@ -52,35 +52,25 @@ interface MonthlyReport {
   }>;
 }
 
-// 🎨 Paleta de Cores Premium Freelinnk
 const COLORS = {
-  // Gradiente Principal Freelinnk
-  primary: [124, 58, 237] as [number, number, number],      // Violet-600
-  primaryDark: [109, 40, 217] as [number, number, number],  // Violet-700
-  primaryLight: [167, 139, 250] as [number, number, number], // Violet-400
-
-  // Cores de Destaque
-  indigo: [99, 102, 241] as [number, number, number],       // Indigo-500
-  purple: [147, 51, 234] as [number, number, number],       // Purple-600
-
-  // Status
-  success: [16, 185, 129] as [number, number, number],      // Emerald-500
-  successLight: [209, 250, 229] as [number, number, number], // Emerald-100
-  danger: [239, 68, 68] as [number, number, number],        // Red-500
-  dangerLight: [254, 226, 226] as [number, number, number], // Red-100
-  warning: [245, 158, 11] as [number, number, number],      // Amber-500
-
-  // Neutros
-  dark: [17, 24, 39] as [number, number, number],           // Gray-900
-  gray: [107, 114, 128] as [number, number, number],        // Gray-500
-  grayLight: [156, 163, 175] as [number, number, number],   // Gray-400
-  muted: [209, 213, 219] as [number, number, number],       // Gray-300
-  background: [249, 250, 251] as [number, number, number],  // Gray-50
+  primary: [124, 58, 237] as [number, number, number],
+  primaryDark: [109, 40, 217] as [number, number, number],
+  primaryLight: [167, 139, 250] as [number, number, number],
+  indigo: [99, 102, 241] as [number, number, number],
+  purple: [147, 51, 234] as [number, number, number],
+  success: [16, 185, 129] as [number, number, number],
+  successLight: [209, 250, 229] as [number, number, number],
+  danger: [239, 68, 68] as [number, number, number],
+  dangerLight: [254, 226, 226] as [number, number, number],
+  warning: [245, 158, 11] as [number, number, number],
+  dark: [17, 24, 39] as [number, number, number],
+  gray: [107, 114, 128] as [number, number, number],
+  grayLight: [156, 163, 175] as [number, number, number],
+  muted: [209, 213, 219] as [number, number, number],
+  background: [249, 250, 251] as [number, number, number],
   white: [255, 255, 255] as [number, number, number],
-
-  // Cores para Tabelas
   tableHeader: [124, 58, 237] as [number, number, number],
-  tableAlt: [245, 243, 255] as [number, number, number],    // Violet-50
+  tableAlt: [245, 243, 255] as [number, number, number],
 };
 
 export class PDFExporter {
@@ -91,7 +81,12 @@ export class PDFExporter {
   private contentWidth: number;
 
   constructor() {
-    this.doc = new jsPDF() as jsPDFWithPlugin;
+    this.doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    }) as jsPDFWithPlugin;
+
     this.pageWidth = this.doc.internal.pageSize.width;
     this.pageHeight = this.doc.internal.pageSize.height;
     this.margin = 15;
@@ -106,64 +101,53 @@ export class PDFExporter {
   }
 
   private formatDate(dateStr: string): string {
-    return new Date(dateStr + 'T00:00:00').toLocaleDateString('pt-BR');
+    if (!dateStr) return '-';
+    try {
+      return new Date(dateStr).toLocaleDateString('pt-BR', { timeZone: 'UTC' });
+    } catch {
+      return dateStr;
+    }
   }
 
   private formatNumber(value: number): string {
     return new Intl.NumberFormat('pt-BR').format(value);
   }
 
-  // 🎨 Desenha o Logo "F" da Freelinnk
   private drawFreelinnkLogo(x: number, y: number, size: number = 12) {
-    // Fundo com gradiente simulado (quadrado arredondado)
-
-
-    // Desenha retângulo arredondado para o logo
+    this.doc.setFillColor(...COLORS.primary);
     this.doc.roundedRect(x, y, size, size, 2, 2, 'F');
-
-    // Adiciona um efeito de profundidade
     this.doc.setFillColor(...COLORS.primaryDark);
     this.doc.roundedRect(x + 0.5, y + size - 2, size - 1, 1.5, 0.5, 0.5, 'F');
-
-    // Letra "F" em branco
     this.doc.setTextColor(...COLORS.white);
     this.doc.setFontSize(size * 0.7);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.text('F', x + size/2, y + size * 0.72, { align: 'center' });
 
-    // Reset cor do texto
+    const textWidth = this.doc.getTextWidth('F');
+    const textOffset = (size - textWidth) / 2;
+    this.doc.text('F', x + textOffset, y + size * 0.72);
     this.doc.setTextColor(...COLORS.dark);
   }
 
-  // 🎨 Header Premium com Branding Freelinnk
   private addHeader(title: string, subtitle?: string) {
-    // ===== FAIXA SUPERIOR DECORATIVA =====
-    // Gradiente superior (simulado com retângulos)
     this.doc.setFillColor(...COLORS.primary);
     this.doc.rect(0, 0, this.pageWidth, 3, 'F');
-
     this.doc.setFillColor(...COLORS.indigo);
     this.doc.rect(0, 3, this.pageWidth, 1, 'F');
 
-    // ===== ÁREA DO LOGO E MARCA =====
     const headerY = 12;
 
-    // Logo F
     this.drawFreelinnkLogo(this.margin, headerY, 14);
 
-    // Nome da marca "Freelinnk"
     this.doc.setFontSize(18);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...COLORS.primary);
     this.doc.text('Freelinnk', this.margin + 18, headerY + 10);
 
-    // Tagline
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...COLORS.gray);
-    this.doc.text('Gestão Inteligente para seu Negócio', this.margin + 18, headerY + 15);
+    this.doc.text('Gestao Inteligente para seu Negocio', this.margin + 18, headerY + 15);
 
-    // ===== BADGE "PRO" =====
     const badgeX = this.margin + 65;
     const badgeY = headerY + 5;
     this.doc.setFillColor(...COLORS.success);
@@ -173,42 +157,26 @@ export class PDFExporter {
     this.doc.setTextColor(...COLORS.white);
     this.doc.text('PRO', badgeX + 6, badgeY + 3.5, { align: 'center' });
 
-    // ===== DATA E HORA NO CANTO DIREITO =====
     const now = new Date();
-    const dateStr = now.toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: 'short',
-      year: 'numeric'
-    });
-    const timeStr = now.toLocaleTimeString('pt-BR', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    const dateStr = now.toLocaleDateString('pt-BR');
+    const timeStr = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 
     this.doc.setFontSize(8);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...COLORS.grayLight);
-    this.doc.text(`${dateStr} às ${timeStr}`, this.pageWidth - this.margin, headerY + 8, { align: 'right' });
+    this.doc.text(`${dateStr} - ${timeStr}`, this.pageWidth - this.margin, headerY + 8, { align: 'right' });
 
-    // Ícone de calendário (simulado com texto)
-    this.doc.setFontSize(7);
-    this.doc.text('📅', this.pageWidth - this.margin - 38, headerY + 8);
-
-    // ===== TÍTULO DO RELATÓRIO =====
     const titleY = headerY + 28;
 
-    // Linha decorativa antes do título
     this.doc.setDrawColor(...COLORS.muted);
     this.doc.setLineWidth(0.3);
     this.doc.line(this.margin, titleY - 5, this.pageWidth - this.margin, titleY - 5);
 
-    // Título principal
     this.doc.setFontSize(20);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...COLORS.dark);
     this.doc.text(title, this.margin, titleY + 5);
 
-    // Subtítulo se existir
     if (subtitle) {
       this.doc.setFontSize(11);
       this.doc.setFont('helvetica', 'normal');
@@ -216,64 +184,53 @@ export class PDFExporter {
       this.doc.text(subtitle, this.margin, titleY + 13);
     }
 
-    // ===== LINHA DECORATIVA INFERIOR =====
     const lineY = subtitle ? titleY + 20 : titleY + 12;
 
-    // Linha principal roxa
     this.doc.setDrawColor(...COLORS.primary);
     this.doc.setLineWidth(1);
     this.doc.line(this.margin, lineY, this.margin + 50, lineY);
 
-    // Continuação mais fina
     this.doc.setDrawColor(...COLORS.muted);
     this.doc.setLineWidth(0.3);
     this.doc.line(this.margin + 52, lineY, this.pageWidth - this.margin, lineY);
 
-    return lineY + 10; // Retorna a posição Y para começar o conteúdo
+    return lineY + 10;
   }
 
-  // 🎨 Footer Premium com Branding
   private addFooter(pageNumber: number, totalPages?: number) {
     const footerY = this.pageHeight - 12;
 
-    // Linha separadora do footer
     this.doc.setDrawColor(...COLORS.muted);
     this.doc.setLineWidth(0.3);
     this.doc.line(this.margin, footerY - 5, this.pageWidth - this.margin, footerY - 5);
 
-    // Logo pequeno no footer
     this.drawFreelinnkLogo(this.margin, footerY - 2, 6);
 
-    // Texto do footer
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...COLORS.grayLight);
     this.doc.text('Freelinnk', this.margin + 8, footerY + 2);
 
-    // Separador
     this.doc.setTextColor(...COLORS.muted);
     this.doc.text('|', this.margin + 22, footerY + 2);
 
-    // Slogan
     this.doc.setTextColor(...COLORS.grayLight);
-    this.doc.text('Transformando dados em decisões inteligentes', this.margin + 25, footerY + 2);
+    this.doc.text('Transformando dados em decisoes inteligentes', this.margin + 25, footerY + 2);
 
-    // Número da página
     const pageText = totalPages
-      ? `Página ${pageNumber} de ${totalPages}`
-      : `Página ${pageNumber}`;
+      ? `Pagina ${pageNumber} de ${totalPages}`
+      : `Pagina ${pageNumber}`;
     this.doc.setTextColor(...COLORS.gray);
     this.doc.setFont('helvetica', 'bold');
     this.doc.text(pageText, this.pageWidth - this.margin, footerY + 2, { align: 'right' });
 
-    // Website
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...COLORS.primary);
     this.doc.setFontSize(6);
     this.doc.text('freelinnk.com', this.pageWidth - this.margin, footerY - 2, { align: 'right' });
   }
 
-  // 🎨 Card de Métrica Individual (Premium Design)
+  // 🎨 Card sem Emojis (Usa Círculos coloridos)
   private drawMetricCard(
     x: number,
     y: number,
@@ -281,55 +238,47 @@ export class PDFExporter {
     height: number,
     label: string,
     value: string,
-    icon: string,
+    // Icon parameter removed to prevent errors
     accentColor: [number, number, number] = COLORS.primary,
     trend?: { value: number; isPositive: boolean }
   ) {
-    // Sombra simulada
     this.doc.setFillColor(230, 230, 230);
     this.doc.roundedRect(x + 1, y + 1, width, height, 3, 3, 'F');
 
-    // Card principal
     this.doc.setFillColor(...COLORS.white);
     this.doc.roundedRect(x, y, width, height, 3, 3, 'F');
 
-    // Borda sutil
     this.doc.setDrawColor(...COLORS.muted);
     this.doc.setLineWidth(0.2);
     this.doc.roundedRect(x, y, width, height, 3, 3, 'S');
 
-    // Linha de destaque no topo
     this.doc.setFillColor(...accentColor);
     this.doc.roundedRect(x, y, width, 2, 3, 3, 'F');
     this.doc.setFillColor(...COLORS.white);
     this.doc.rect(x, y + 1.5, width, 1.5, 'F');
 
-    // Ícone
-    this.doc.setFontSize(14);
-    this.doc.text(icon, x + 6, y + 13);
+    // Desenha um círculo decorativo no lugar do emoji
+    this.doc.setFillColor(...accentColor);
+    this.doc.circle(x + 10, y + 12, 3, 'F');
 
-    // Label
     this.doc.setFontSize(7);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...COLORS.gray);
     this.doc.text(label, x + 6, y + 20);
 
-    // Valor
-    this.doc.setFontSize(12);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...COLORS.dark);
 
-    // Ajusta tamanho da fonte se o valor for muito grande
     const maxWidth = width - 12;
     let fontSize = 12;
     this.doc.setFontSize(fontSize);
-    while (this.doc.getTextWidth(value) > maxWidth && fontSize > 8) {
+
+    while (this.doc.getTextWidth(value) > maxWidth && fontSize > 7) {
       fontSize -= 0.5;
       this.doc.setFontSize(fontSize);
     }
     this.doc.text(value, x + 6, y + 28);
 
-    // Trend indicator se existir
     if (trend) {
       const trendX = x + width - 18;
       const trendY = y + 8;
@@ -341,104 +290,67 @@ export class PDFExporter {
       this.doc.setFontSize(5);
       this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(...COLORS.white);
-      const trendText = `${trend.isPositive ? '↑' : '↓'} ${Math.abs(trend.value)}%`;
+      // Seta simples usando caracteres ASCII
+      const symbol = trend.isPositive ? '+' : '-';
+      const trendText = `${symbol} ${Math.abs(trend.value)}%`;
       this.doc.text(trendText, trendX + 7, trendY + 4, { align: 'center' });
     }
   }
 
-  // 🎨 Seção com Título Decorado
-  private addSectionTitle(title: string, icon: string, y: number, color: [number, number, number] = COLORS.primary): number {
-    // Ícone
-    this.doc.setFontSize(12);
-    this.doc.text(icon, this.margin, y + 1);
-
-    // Título
+  private addSectionTitle(title: string, y: number, color: [number, number, number] = COLORS.primary): number {
     this.doc.setFontSize(13);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...color);
-    this.doc.text(title, this.margin + 8, y);
+    this.doc.text(title, this.margin, y);
 
-    // Linha decorativa
     const textWidth = this.doc.getTextWidth(title);
     this.doc.setDrawColor(...color);
     this.doc.setLineWidth(0.5);
-    this.doc.line(this.margin + 10 + textWidth, y - 1, this.margin + 10 + textWidth + 15, y - 1);
+    this.doc.line(this.margin + textWidth + 2, y - 1, this.margin + textWidth + 17, y - 1);
 
-    // Reset
     this.doc.setTextColor(...COLORS.dark);
-
     return y + 8;
   }
 
-  // 🎨 Caixa de Destaque/Insight
   private drawInsightBox(x: number, y: number, width: number, text: string, type: 'success' | 'warning' | 'info' = 'info'): number {
     const colors = {
-      success: { bg: COLORS.successLight, border: COLORS.success, icon: '💡' },
-      warning: { bg: COLORS.dangerLight, border: COLORS.danger, icon: '⚠️' },
-      info: { bg: COLORS.tableAlt, border: COLORS.primary, icon: '✨' }
+      success: { bg: COLORS.successLight, border: COLORS.success },
+      warning: { bg: COLORS.dangerLight, border: COLORS.danger },
+      info: { bg: COLORS.tableAlt, border: COLORS.primary }
     };
 
     const config = colors[type];
     const padding = 4;
     const lineHeight = 4;
 
-    // Calcula altura baseada no texto
     this.doc.setFontSize(8);
-    const lines = this.doc.splitTextToSize(text, width - padding * 2 - 8);
-    const height = lines.length * lineHeight + padding * 2;
+    const lines = this.doc.splitTextToSize(text, width - padding * 2 - 15);
+    const height = Math.max(lines.length * lineHeight + padding * 2, 12);
 
-    // Fundo
     this.doc.setFillColor(...config.bg);
     this.doc.roundedRect(x, y, width, height, 2, 2, 'F');
 
-    // Borda lateral
     this.doc.setFillColor(...config.border);
     this.doc.roundedRect(x, y, 2, height, 1, 1, 'F');
 
-    // Ícone
-    this.doc.setFontSize(10);
-    this.doc.text(config.icon, x + 5, y + 6);
-
-    // Texto
     this.doc.setFontSize(8);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...COLORS.dark);
-    this.doc.text(lines, x + 12, y + padding + 3);
+    this.doc.text(lines, x + 8, y + padding + 3);
 
     return y + height + 5;
   }
 
-  // 🎨 Badge de Ranking
-  private drawRankBadge(x: number, y: number, rank: number) {
-    const colors: { [key: number]: [number, number, number] } = {
-      1: [255, 215, 0],   // Gold
-      2: [192, 192, 192], // Silver
-      3: [205, 127, 50],  // Bronze
-    };
-
-    const bgColor = colors[rank] || COLORS.grayLight;
-
-    this.doc.setFillColor(...bgColor);
-    this.doc.circle(x + 4, y + 4, 4, 'F');
-
-    this.doc.setFontSize(7);
-    this.doc.setFont('helvetica', 'bold');
-    this.doc.setTextColor(...COLORS.dark);
-    this.doc.text(rank.toString(), x + 4, y + 5.5, { align: 'center' });
-  }
-
-  // 🎨 Marca d'água sutil
   private addWatermark() {
     this.doc.setFontSize(60);
     this.doc.setFont('helvetica', 'bold');
-    this.doc.setTextColor(245, 243, 255); // Muito claro
+    this.doc.setTextColor(245, 243, 255);
     this.doc.text('F', this.pageWidth - 40, this.pageHeight - 30, {
       align: 'center',
       angle: 15
     });
   }
 
-  // 📊 RELATÓRIO MENSAL - PREMIUM
   public exportMonthlyReport(report: MonthlyReport, sales: Sale[], expenses: Expense[]) {
     const monthName = new Date(report.month + '-01').toLocaleDateString('pt-BR', {
       month: 'long',
@@ -446,53 +358,48 @@ export class PDFExporter {
     });
 
     let yPos = this.addHeader(
-      '📊 Relatório Mensal',
-      `Análise completa de ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}`
+      'Relatorio Mensal',
+      `Analise completa de ${monthName}`
     );
 
-    // Marca d'água
     this.addWatermark();
-
-    // ===== CARDS DE MÉTRICAS PRINCIPAIS =====
     yPos += 5;
-    const cardWidth = (this.contentWidth - 12) / 4;
+
+    const gap = 4;
+    const cardsPerRow = 4;
+    const cardWidth = (this.contentWidth - (gap * (cardsPerRow - 1))) / cardsPerRow;
     const cardHeight = 32;
 
-    // Card 1: Receita Total
     this.drawMetricCard(
       this.margin, yPos, cardWidth, cardHeight,
       'Receita Total', this.formatCurrency(report.totalRevenue),
-      '💰', COLORS.success
+      COLORS.success
     );
 
-    // Card 2: Gastos Totais
     this.drawMetricCard(
-      this.margin + cardWidth + 4, yPos, cardWidth, cardHeight,
+      this.margin + cardWidth + gap, yPos, cardWidth, cardHeight,
       'Gastos Totais', this.formatCurrency(report.totalExpenses),
-      '💸', COLORS.danger
+      COLORS.danger
     );
 
-    // Card 3: Lucro Líquido
     const profitColor = report.netProfit >= 0 ? COLORS.success : COLORS.danger;
     this.drawMetricCard(
-      this.margin + (cardWidth + 4) * 2, yPos, cardWidth, cardHeight,
-      'Lucro Líquido', this.formatCurrency(report.netProfit),
-      '📈', profitColor
+      this.margin + (cardWidth + gap) * 2, yPos, cardWidth, cardHeight,
+      'Lucro Liquido', this.formatCurrency(report.netProfit),
+      profitColor
     );
 
-    // Card 4: Margem de Lucro
     this.drawMetricCard(
-      this.margin + (cardWidth + 4) * 3, yPos, cardWidth, cardHeight,
+      this.margin + (cardWidth + gap) * 3, yPos, cardWidth, cardHeight,
       'Margem de Lucro', `${report.profitMargin.toFixed(1)}%`,
-      '🎯', COLORS.primary
+      COLORS.primary
     );
 
     yPos += cardHeight + 10;
 
-    // ===== INSIGHT BOX =====
     const insightText = report.netProfit >= 0
-      ? `Excelente! Seu negócio teve um lucro de ${this.formatCurrency(report.netProfit)} este mês com margem de ${report.profitMargin.toFixed(1)}%.`
-      : `Atenção: Este mês apresentou prejuízo de ${this.formatCurrency(Math.abs(report.netProfit))}. Revise seus gastos.`;
+      ? `Excelente! Seu negocio teve um lucro de ${this.formatCurrency(report.netProfit)} este mes com margem de ${report.profitMargin.toFixed(1)}%.`
+      : `Atencao: Este mes apresentou prejuizo de ${this.formatCurrency(Math.abs(report.netProfit))}. Revise seus gastos.`;
 
     yPos = this.drawInsightBox(
       this.margin, yPos, this.contentWidth,
@@ -502,12 +409,11 @@ export class PDFExporter {
 
     yPos += 5;
 
-    // ===== TOP PRODUTOS =====
     if (report.topProducts.length > 0) {
-      yPos = this.addSectionTitle('Top Produtos do Mês', '⭐', yPos, COLORS.purple);
+      yPos = this.addSectionTitle('Top Produtos do Mes', yPos, COLORS.purple);
 
       const topProductsData = report.topProducts.map((p, index) => [
-        `${index + 1}º`,
+        `${index + 1}`,
         p.productName,
         this.formatNumber(p.quantity),
         this.formatCurrency(p.revenue),
@@ -516,7 +422,7 @@ export class PDFExporter {
 
       autoTable(this.doc, {
         startY: yPos,
-        head: [['#', 'Produto', 'Quantidade', 'Receita', 'Lucro']],
+        head: [['#', 'Produto', 'Qtd', 'Receita', 'Lucro']],
         body: topProductsData,
         theme: 'plain',
         headStyles: {
@@ -524,11 +430,14 @@ export class PDFExporter {
           textColor: COLORS.white,
           fontSize: 9,
           fontStyle: 'bold',
-          cellPadding: 4,
+          halign: 'center',
+          valign: 'middle',
+          cellPadding: 3,
         },
         bodyStyles: {
           fontSize: 9,
-          cellPadding: 4,
+          valign: 'middle',
+          cellPadding: 3,
         },
         alternateRowStyles: {
           fillColor: COLORS.tableAlt,
@@ -548,67 +457,62 @@ export class PDFExporter {
       yPos = this.doc.lastAutoTable.finalY + 15;
     }
 
-    // ===== RESUMO DO MÊS - MINI CARDS =====
-    yPos = this.addSectionTitle('Resumo de Performance', '📋', yPos, COLORS.indigo);
+    yPos = this.addSectionTitle('Resumo de Performance', yPos, COLORS.indigo);
 
-    const miniCardWidth = (this.contentWidth - 8) / 3;
+    const miniCardsPerRow = 3;
+    const miniCardWidth = (this.contentWidth - (gap * (miniCardsPerRow - 1))) / miniCardsPerRow;
     const miniCardHeight = 20;
 
-    // Mini Card 1: Total de Vendas
     this.drawMetricCard(
       this.margin, yPos, miniCardWidth, miniCardHeight,
       'Total de Vendas', report.totalSales.toString(),
-      '🛒', COLORS.indigo
+      COLORS.indigo
     );
 
-    // Mini Card 2: Ticket Médio
     const ticketMedio = report.totalSales > 0 ? report.totalRevenue / report.totalSales : 0;
     this.drawMetricCard(
-      this.margin + miniCardWidth + 4, yPos, miniCardWidth, miniCardHeight,
-      'Ticket Médio', this.formatCurrency(ticketMedio),
-      '🎫', COLORS.purple
+      this.margin + miniCardWidth + gap, yPos, miniCardWidth, miniCardHeight,
+      'Ticket Medio', this.formatCurrency(ticketMedio),
+      COLORS.purple
     );
 
-    // Mini Card 3: Produtos Vendidos
     const totalProductsSold = sales.reduce((sum, s) => sum + s.quantity, 0);
     this.drawMetricCard(
-      this.margin + (miniCardWidth + 4) * 2, yPos, miniCardWidth, miniCardHeight,
+      this.margin + (miniCardWidth + gap) * 2, yPos, miniCardWidth, miniCardHeight,
       'Itens Vendidos', this.formatNumber(totalProductsSold),
-      '📦', COLORS.primary
+      COLORS.primary
     );
 
-    // ===== NOVA PÁGINA: VENDAS DETALHADAS =====
     this.doc.addPage();
     this.addWatermark();
 
-    yPos = this.addHeader('🛒 Vendas Detalhadas', `${sales.length} vendas em ${monthName}`);
+    yPos = this.addHeader('Vendas Detalhadas', `${sales.length} vendas em ${monthName}`);
     yPos += 5;
 
     if (sales.length > 0) {
-      // Resumo rápido
       const totalRevenue = sales.reduce((sum, s) => sum + s.totalRevenue, 0);
       const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
 
-      // Mini cards de resumo
-      const summaryCardWidth = (this.contentWidth - 4) / 2;
+      const summaryCardsPerRow = 2;
+      const summaryCardWidth = (this.contentWidth - (gap * (summaryCardsPerRow - 1))) / summaryCardsPerRow;
 
       this.drawMetricCard(
         this.margin, yPos, summaryCardWidth, 22,
         'Receita em Vendas', this.formatCurrency(totalRevenue),
-        '💵', COLORS.success
+        COLORS.success
       );
 
       this.drawMetricCard(
-        this.margin + summaryCardWidth + 4, yPos, summaryCardWidth, 22,
+        this.margin + summaryCardWidth + gap, yPos, summaryCardWidth, 22,
         'Lucro em Vendas', this.formatCurrency(totalProfit),
-        '📈', COLORS.primary
+        COLORS.primary
       );
 
       yPos += 30;
 
       const salesData = sales.slice(0, 50).map((s) => [
         this.formatDate(s.date),
-        s.productName.length > 25 ? s.productName.substring(0, 25) + '...' : s.productName,
+        s.productName.length > 30 ? s.productName.substring(0, 30) + '...' : s.productName,
         s.quantity.toString(),
         this.formatCurrency(s.salePrice),
         this.formatCurrency(s.totalRevenue),
@@ -617,7 +521,7 @@ export class PDFExporter {
 
       autoTable(this.doc, {
         startY: yPos,
-        head: [['📅 Data', '📦 Produto', 'Qtd', '💵 Preço', '💰 Total', '📈 Lucro']],
+        head: [['Data', 'Produto', 'Qtd', 'Preco', 'Total', 'Lucro']],
         body: salesData,
         theme: 'striped',
         headStyles: {
@@ -625,22 +529,25 @@ export class PDFExporter {
           textColor: COLORS.white,
           fontSize: 8,
           fontStyle: 'bold',
+          halign: 'center',
+          valign: 'middle',
           cellPadding: 3,
         },
         bodyStyles: {
           fontSize: 8,
-          cellPadding: 3,
+          valign: 'middle',
+          cellPadding: 2,
         },
         alternateRowStyles: {
           fillColor: COLORS.successLight,
         },
         columnStyles: {
-          0: { cellWidth: 22 },
+          0: { cellWidth: 20, halign: 'center' },
           1: { cellWidth: 'auto' },
-          2: { cellWidth: 15, halign: 'center' },
-          3: { cellWidth: 25, halign: 'right' },
-          4: { cellWidth: 25, halign: 'right' },
-          5: { cellWidth: 25, halign: 'right', textColor: COLORS.success },
+          2: { cellWidth: 12, halign: 'center' },
+          3: { cellWidth: 22, halign: 'right' },
+          4: { cellWidth: 22, halign: 'right' },
+          5: { cellWidth: 22, halign: 'right', textColor: COLORS.success, fontStyle: 'bold' },
         },
         margin: { left: this.margin, right: this.margin },
       });
@@ -650,53 +557,52 @@ export class PDFExporter {
         this.doc.setFontSize(8);
         this.doc.setFont('helvetica', 'italic');
         this.doc.setTextColor(...COLORS.gray);
-        this.doc.text(`+ ${sales.length - 50} vendas adicionais não exibidas`, this.margin, yPos);
+        this.doc.text(`+ ${sales.length - 50} vendas adicionais nao exibidas`, this.margin, yPos);
       }
     } else {
       yPos = this.drawInsightBox(
         this.margin, yPos, this.contentWidth,
-        'Nenhuma venda registrada neste mês. Comece a vender para ver seus dados aqui!',
+        'Nenhuma venda registrada neste mes.',
         'info'
       );
     }
 
-    // ===== NOVA PÁGINA: GASTOS =====
     this.doc.addPage();
     this.addWatermark();
 
-    yPos = this.addHeader('💸 Gastos Detalhados', `${expenses.length} gastos em ${monthName}`);
+    yPos = this.addHeader('Gastos Detalhados', `${expenses.length} gastos em ${monthName}`);
     yPos += 5;
 
     if (expenses.length > 0) {
-      // Total de gastos
       const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0);
+      const summaryCardsPerRow = 2;
+      const summaryCardWidth = (this.contentWidth - (gap * (summaryCardsPerRow - 1))) / summaryCardsPerRow;
 
       this.drawMetricCard(
-        this.margin, yPos, this.contentWidth / 2 - 2, 22,
+        this.margin, yPos, summaryCardWidth, 22,
         'Total em Gastos', this.formatCurrency(totalExpenses),
-        '💸', COLORS.danger
+        COLORS.danger
       );
 
-      // Gasto médio
       const avgExpense = totalExpenses / expenses.length;
       this.drawMetricCard(
-        this.margin + this.contentWidth / 2 + 2, yPos, this.contentWidth / 2 - 2, 22,
-        'Gasto Médio', this.formatCurrency(avgExpense),
-        '📊', COLORS.warning
+        this.margin + summaryCardWidth + gap, yPos, summaryCardWidth, 22,
+        'Gasto Medio', this.formatCurrency(avgExpense),
+        COLORS.warning
       );
 
       yPos += 30;
 
       const expensesData = expenses.slice(0, 50).map((e) => [
         this.formatDate(e.date),
-        e.description.length > 30 ? e.description.substring(0, 30) + '...' : e.description,
+        e.description,
         e.categoryName,
         this.formatCurrency(e.amount),
       ]);
 
       autoTable(this.doc, {
         startY: yPos,
-        head: [['📅 Data', '📝 Descrição', '🏷️ Categoria', '💸 Valor']],
+        head: [['Data', 'Descricao', 'Categoria', 'Valor']],
         body: expensesData,
         theme: 'striped',
         headStyles: {
@@ -704,49 +610,47 @@ export class PDFExporter {
           textColor: COLORS.white,
           fontSize: 8,
           fontStyle: 'bold',
-          cellPadding: 3,
+          halign: 'center',
+          valign: 'middle',
         },
         bodyStyles: {
           fontSize: 8,
+          valign: 'middle',
           cellPadding: 3,
         },
         alternateRowStyles: {
           fillColor: COLORS.dangerLight,
         },
         columnStyles: {
-          0: { cellWidth: 22 },
+          0: { cellWidth: 20, halign: 'center' },
           1: { cellWidth: 'auto' },
-          2: { cellWidth: 35 },
-          3: { cellWidth: 30, halign: 'right', textColor: COLORS.danger, fontStyle: 'bold' },
+          2: { cellWidth: 35, halign: 'center' },
+          3: { cellWidth: 25, halign: 'right', textColor: COLORS.danger, fontStyle: 'bold' },
         },
         margin: { left: this.margin, right: this.margin },
       });
     } else {
       yPos = this.drawInsightBox(
         this.margin, yPos, this.contentWidth,
-        'Nenhum gasto registrado neste mês. Registre seus gastos para ter controle total!',
+        'Nenhum gasto registrado neste mes.',
         'info'
       );
     }
 
-    // ===== PÁGINA FINAL: COMPARTILHAMENTO =====
     this.doc.addPage();
     this.addWatermark();
 
-    // Header especial para página de compartilhamento
     this.doc.setFillColor(...COLORS.primary);
     this.doc.rect(0, 0, this.pageWidth, 60, 'F');
 
-    // Padrão decorativo
     this.doc.setFillColor(255, 255, 255, 0.1);
     for (let i = 0; i < 5; i++) {
       this.doc.circle(this.pageWidth - 20 - i * 15, 30, 25 + i * 5, 'F');
     }
 
-    // Logo grande
-    this.drawFreelinnkLogo(this.pageWidth / 2 - 15, 15, 30);
+    const logoSize = 30;
+    this.drawFreelinnkLogo((this.pageWidth - logoSize) / 2, 15, logoSize);
 
-    // Título
     this.doc.setFontSize(24);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...COLORS.white);
@@ -754,41 +658,34 @@ export class PDFExporter {
 
     yPos = 80;
 
-    // Mensagem de compartilhamento
     this.doc.setFontSize(16);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...COLORS.dark);
-    this.doc.text('📊 Meu Relatório de Performance', this.pageWidth / 2, yPos, { align: 'center' });
+    this.doc.text('Meu Relatorio de Performance', this.pageWidth / 2, yPos, { align: 'center' });
 
     yPos += 15;
 
-    // Card de destaque com resultados
-    const highlightCardX = this.margin + 20;
-    const highlightCardWidth = this.contentWidth - 40;
+    const highlightCardWidth = this.contentWidth * 0.8;
+    const highlightCardX = (this.pageWidth - highlightCardWidth) / 2;
     const highlightCardHeight = 50;
 
-    // Sombra
     this.doc.setFillColor(220, 220, 220);
     this.doc.roundedRect(highlightCardX + 2, yPos + 2, highlightCardWidth, highlightCardHeight, 5, 5, 'F');
 
-    // Card
     this.doc.setFillColor(...COLORS.white);
     this.doc.roundedRect(highlightCardX, yPos, highlightCardWidth, highlightCardHeight, 5, 5, 'F');
 
-    // Borda gradiente
     this.doc.setDrawColor(...COLORS.primary);
     this.doc.setLineWidth(1.5);
     this.doc.roundedRect(highlightCardX, yPos, highlightCardWidth, highlightCardHeight, 5, 5, 'S');
 
-    // Conteúdo do card
-    const cardCenterX = highlightCardX + highlightCardWidth / 2;
+    const cardCenterX = this.pageWidth / 2;
 
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...COLORS.gray);
     this.doc.text(`Resultados de ${monthName}`, cardCenterX, yPos + 12, { align: 'center' });
 
-    // Valor em destaque
     this.doc.setFontSize(28);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...(report.netProfit >= 0 ? COLORS.success : COLORS.danger));
@@ -797,88 +694,69 @@ export class PDFExporter {
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'normal');
     this.doc.setTextColor(...COLORS.gray);
-    this.doc.text(`de lucro líquido com margem de ${report.profitMargin.toFixed(1)}%`, cardCenterX, yPos + 40, { align: 'center' });
+    this.doc.text(`de lucro liquido com margem de ${report.profitMargin.toFixed(1)}%`, cardCenterX, yPos + 40, { align: 'center' });
 
     yPos += highlightCardHeight + 20;
 
-    // Estatísticas rápidas
     this.doc.setFontSize(11);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...COLORS.dark);
-    this.doc.text('✨ Destaques do Mês', this.pageWidth / 2, yPos, { align: 'center' });
+    this.doc.text('Destaques do Mes', this.pageWidth / 2, yPos, { align: 'center' });
 
     yPos += 10;
 
     const stats = [
-      { icon: '🛒', label: 'Vendas realizadas', value: report.totalSales.toString() },
-      { icon: '💰', label: 'Receita total', value: this.formatCurrency(report.totalRevenue) },
-      { icon: '📦', label: 'Produtos mais vendido', value: report.topProducts[0]?.productName || 'N/A' },
+      { label: 'Vendas realizadas', value: report.totalSales.toString() },
+      { label: 'Receita total', value: this.formatCurrency(report.totalRevenue) },
+      { label: 'Produto mais vendido', value: report.topProducts[0]?.productName || 'N/A' },
     ];
 
     stats.forEach((stat, index) => {
+      const lineY = yPos + index * 9;
+
       this.doc.setFontSize(9);
       this.doc.setFont('helvetica', 'normal');
       this.doc.setTextColor(...COLORS.gray);
-      this.doc.text(`${stat.icon} ${stat.label}:`, this.margin + 30, yPos + index * 8);
+      this.doc.text(`- ${stat.label}:`, highlightCardX + 10, lineY);
 
       this.doc.setFont('helvetica', 'bold');
       this.doc.setTextColor(...COLORS.dark);
-      this.doc.text(stat.value, this.pageWidth - this.margin - 30, yPos + index * 8, { align: 'right' });
+      this.doc.text(stat.value, highlightCardX + highlightCardWidth - 10, lineY, { align: 'right' });
     });
 
     yPos += 35;
 
-    // CTA de compartilhamento
-    const ctaY = yPos;
     const ctaHeight = 25;
+    const ctaWidth = highlightCardWidth;
+    const ctaX = highlightCardX;
 
     this.doc.setFillColor(...COLORS.primary);
-    this.doc.roundedRect(this.margin + 30, ctaY, this.contentWidth - 60, ctaHeight, 3, 3, 'F');
+    this.doc.roundedRect(ctaX, yPos, ctaWidth, ctaHeight, 3, 3, 'F');
 
     this.doc.setFontSize(10);
     this.doc.setFont('helvetica', 'bold');
     this.doc.setTextColor(...COLORS.white);
-    this.doc.text('🚀 Gerencie seu negócio com Freelinnk', this.pageWidth / 2, ctaY + 10, { align: 'center' });
+    this.doc.text('Gerencie seu negocio com Freelinnk', this.pageWidth / 2, yPos + 10, { align: 'center' });
 
     this.doc.setFontSize(8);
     this.doc.setFont('helvetica', 'normal');
-    this.doc.text('freelinnk.com | Gestão inteligente para seu negócio', this.pageWidth / 2, ctaY + 18, { align: 'center' });
+    this.doc.text('freelinnk.com | Gestao inteligente para seu negocio', this.pageWidth / 2, yPos + 18, { align: 'center' });
 
     yPos += ctaHeight + 20;
 
-    // QR Code placeholder / Redes sociais
-    this.doc.setFontSize(9);
-    this.doc.setFont('helvetica', 'normal');
-    this.doc.setTextColor(...COLORS.gray);
-    this.doc.text('Compartilhe seus resultados nas redes sociais! 📱', this.pageWidth / 2, yPos, { align: 'center' });
-
-    yPos += 8;
-
-    // Ícones de redes sociais (simulados)
-    const socialIcons = ['📘', '🐦', '💼', '📸'];
-    const socialStartX = this.pageWidth / 2 - (socialIcons.length * 12) / 2;
-
-    socialIcons.forEach((icon, index) => {
-      this.doc.setFontSize(14);
-      this.doc.text(icon, socialStartX + index * 12, yPos + 5);
-    });
-
-    // ===== ADICIONAR FOOTERS EM TODAS AS PÁGINAS =====
     const pageCount = this.doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       this.doc.setPage(i);
       this.addFooter(i, pageCount);
     }
 
-    // Salvar PDF
     const filename = `freelinnk_relatorio_${report.month}.pdf`;
     this.doc.save(filename);
   }
 
-  // 📦 RELATÓRIO DE PRODUTOS - PREMIUM
   public exportProductsReport(products: Product[]) {
     let yPos = this.addHeader(
-      '📦 Catálogo de Produtos',
+      'Catalogo de Produtos',
       `${products.length} produtos cadastrados`
     );
 
@@ -888,59 +766,51 @@ export class PDFExporter {
     if (products.length === 0) {
       yPos = this.drawInsightBox(
         this.margin, yPos, this.contentWidth,
-        'Nenhum produto cadastrado ainda. Adicione seus produtos para começar a vender!',
+        'Nenhum produto cadastrado ainda.',
         'info'
       );
-
-      const pageCount = this.doc.internal.getNumberOfPages();
-      for (let i = 1; i <= pageCount; i++) {
-        this.doc.setPage(i);
-        this.addFooter(i, pageCount);
-      }
-
       this.doc.save('freelinnk_produtos.pdf');
       return;
     }
 
-    // Estatísticas gerais
     const totalValue = products.reduce((sum, p) => sum + (p.stock || 0) * p.costPrice, 0);
     const avgMargin = products.reduce((sum, p) => {
       const margin = p.salePrice > 0 ? ((p.salePrice - p.costPrice) / p.salePrice) * 100 : 0;
       return sum + margin;
-    }, 0) / products.length;
+    }, 0) / (products.length || 1);
     const totalStock = products.reduce((sum, p) => sum + (p.stock || 0), 0);
 
-    // Cards de estatísticas
-    const cardWidth = (this.contentWidth - 8) / 3;
+    const gap = 4;
+    const cardsPerRow = 3;
+    const cardWidth = (this.contentWidth - (gap * (cardsPerRow - 1))) / cardsPerRow;
     const cardHeight = 25;
 
     this.drawMetricCard(
       this.margin, yPos, cardWidth, cardHeight,
       'Valor em Estoque', this.formatCurrency(totalValue),
-      '💰', COLORS.success
+      COLORS.success
     );
 
     this.drawMetricCard(
-      this.margin + cardWidth + 4, yPos, cardWidth, cardHeight,
-      'Margem Média', `${avgMargin.toFixed(1)}%`,
-      '📈', COLORS.primary
+      this.margin + cardWidth + gap, yPos, cardWidth, cardHeight,
+      'Margem Media', `${avgMargin.toFixed(1)}%`,
+      COLORS.primary
     );
 
     this.drawMetricCard(
-      this.margin + (cardWidth + 4) * 2, yPos, cardWidth, cardHeight,
+      this.margin + (cardWidth + gap) * 2, yPos, cardWidth, cardHeight,
       'Itens em Estoque', this.formatNumber(totalStock),
-      '📦', COLORS.indigo
+      COLORS.indigo
     );
 
     yPos += cardHeight + 15;
 
-    // Tabela de produtos
     const productsData = products.map((p, index) => {
       const profit = p.salePrice - p.costPrice;
       const margin = p.salePrice > 0 ? ((profit / p.salePrice) * 100).toFixed(1) : '0.0';
       return [
         (index + 1).toString(),
-        p.name.length > 20 ? p.name.substring(0, 20) + '...' : p.name,
+        p.name,
         p.sku || '-',
         p.category || '-',
         this.formatCurrency(p.costPrice),
@@ -960,10 +830,13 @@ export class PDFExporter {
         textColor: COLORS.white,
         fontSize: 8,
         fontStyle: 'bold',
+        halign: 'center',
+        valign: 'middle',
         cellPadding: 3,
       },
       bodyStyles: {
         fontSize: 7,
+        valign: 'middle',
         cellPadding: 3,
       },
       alternateRowStyles: {
@@ -972,17 +845,16 @@ export class PDFExporter {
       columnStyles: {
         0: { cellWidth: 10, halign: 'center' },
         1: { cellWidth: 'auto' },
-        2: { cellWidth: 20 },
-        3: { cellWidth: 25 },
-        4: { cellWidth: 22, halign: 'right' },
-        5: { cellWidth: 22, halign: 'right' },
+        2: { cellWidth: 20, halign: 'left' },
+        3: { cellWidth: 25, halign: 'left' },
+        4: { cellWidth: 20, halign: 'right' },
+        5: { cellWidth: 20, halign: 'right' },
         6: { cellWidth: 15, halign: 'center' },
-        7: { cellWidth: 18, halign: 'center', textColor: COLORS.success },
+        7: { cellWidth: 18, halign: 'center', textColor: COLORS.success, fontStyle: 'bold' },
       },
       margin: { left: this.margin, right: this.margin },
     });
 
-    // Footers
     const pageCount = this.doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       this.doc.setPage(i);
@@ -992,7 +864,6 @@ export class PDFExporter {
     this.doc.save('freelinnk_produtos.pdf');
   }
 
-  // 🛒 RELATÓRIO DE VENDAS - PREMIUM
   public exportSalesReport(sales: Sale[], month: string) {
     const monthName = new Date(month + '-01').toLocaleDateString('pt-BR', {
       month: 'long',
@@ -1000,66 +871,65 @@ export class PDFExporter {
     });
 
     let yPos = this.addHeader(
-      '🛒 Relatório de Vendas',
-      `${sales.length} vendas em ${monthName.charAt(0).toUpperCase() + monthName.slice(1)}`
+      'Relatorio de Vendas',
+      `${sales.length} vendas em ${monthName}`
     );
 
     this.addWatermark();
     yPos += 5;
 
-    // Resumo
     const totalRevenue = sales.reduce((sum, s) => sum + s.totalRevenue, 0);
     const totalProfit = sales.reduce((sum, s) => sum + s.profit, 0);
     const totalItems = sales.reduce((sum, s) => sum + s.quantity, 0);
     const avgTicket = sales.length > 0 ? totalRevenue / sales.length : 0;
 
-    // Cards de métricas
-    const cardWidth = (this.contentWidth - 12) / 4;
+    const gap = 4;
+    const cardsPerRow = 4;
+    const cardWidth = (this.contentWidth - (gap * (cardsPerRow - 1))) / cardsPerRow;
     const cardHeight = 28;
 
     this.drawMetricCard(
       this.margin, yPos, cardWidth, cardHeight,
       'Receita Total', this.formatCurrency(totalRevenue),
-      '💰', COLORS.success
+      COLORS.success
     );
 
     this.drawMetricCard(
-      this.margin + cardWidth + 4, yPos, cardWidth, cardHeight,
+      this.margin + cardWidth + gap, yPos, cardWidth, cardHeight,
       'Lucro Total', this.formatCurrency(totalProfit),
-      '📈', COLORS.primary
+      COLORS.primary
     );
 
     this.drawMetricCard(
-      this.margin + (cardWidth + 4) * 2, yPos, cardWidth, cardHeight,
+      this.margin + (cardWidth + gap) * 2, yPos, cardWidth, cardHeight,
       'Itens Vendidos', this.formatNumber(totalItems),
-      '📦', COLORS.indigo
+      COLORS.indigo
     );
 
     this.drawMetricCard(
-      this.margin + (cardWidth + 4) * 3, yPos, cardWidth, cardHeight,
-      'Ticket Médio', this.formatCurrency(avgTicket),
-      '🎫', COLORS.purple
+      this.margin + (cardWidth + gap) * 3, yPos, cardWidth, cardHeight,
+      'Ticket Medio', this.formatCurrency(avgTicket),
+      COLORS.purple
     );
 
     yPos += cardHeight + 10;
 
-    // Insight
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
     yPos = this.drawInsightBox(
       this.margin, yPos, this.contentWidth,
-      `Sua margem de lucro neste período foi de ${profitMargin.toFixed(1)}%. ${profitMargin >= 20 ? 'Excelente resultado! 🎉' : 'Considere revisar seus preços para melhorar a margem.'}`,
+      `Sua margem de lucro neste periodo foi de ${profitMargin.toFixed(1)}%.`,
       profitMargin >= 20 ? 'success' : 'warning'
     );
 
     yPos += 5;
 
     if (sales.length > 0) {
-      yPos = this.addSectionTitle('Detalhamento das Vendas', '📋', yPos, COLORS.success);
+      yPos = this.addSectionTitle('Detalhamento das Vendas', yPos, COLORS.success);
 
       const salesData = sales.slice(0, 100).map((s, index) => [
         (index + 1).toString(),
         this.formatDate(s.date),
-        s.productName.length > 22 ? s.productName.substring(0, 22) + '...' : s.productName,
+        s.productName,
         s.quantity.toString(),
         this.formatCurrency(s.salePrice),
         this.formatCurrency(s.totalRevenue),
@@ -1068,7 +938,7 @@ export class PDFExporter {
 
       autoTable(this.doc, {
         startY: yPos,
-        head: [['#', '📅 Data', '📦 Produto', 'Qtd', '💵 Preço', '💰 Total', '📈 Lucro']],
+        head: [['#', 'Data', 'Produto', 'Qtd', 'Preco', 'Total', 'Lucro']],
         body: salesData,
         theme: 'striped',
         headStyles: {
@@ -1076,10 +946,13 @@ export class PDFExporter {
           textColor: COLORS.white,
           fontSize: 8,
           fontStyle: 'bold',
+          halign: 'center',
+          valign: 'middle',
           cellPadding: 3,
         },
         bodyStyles: {
           fontSize: 8,
+          valign: 'middle',
           cellPadding: 3,
         },
         alternateRowStyles: {
@@ -1087,24 +960,23 @@ export class PDFExporter {
         },
         columnStyles: {
           0: { cellWidth: 10, halign: 'center' },
-          1: { cellWidth: 22 },
+          1: { cellWidth: 20, halign: 'center' },
           2: { cellWidth: 'auto' },
           3: { cellWidth: 12, halign: 'center' },
-          4: { cellWidth: 24, halign: 'right' },
-          5: { cellWidth: 24, halign: 'right' },
-          6: { cellWidth: 24, halign: 'right', textColor: COLORS.success },
+          4: { cellWidth: 22, halign: 'right' },
+          5: { cellWidth: 22, halign: 'right' },
+          6: { cellWidth: 22, halign: 'right', textColor: COLORS.success, fontStyle: 'bold' },
         },
         margin: { left: this.margin, right: this.margin },
       });
     } else {
       yPos = this.drawInsightBox(
         this.margin, yPos, this.contentWidth,
-        'Nenhuma venda registrada neste período. Comece a vender para ver seus dados aqui!',
+        'Nenhuma venda registrada neste periodo.',
         'info'
       );
     }
 
-    // Footers
     const pageCount = this.doc.internal.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       this.doc.setPage(i);

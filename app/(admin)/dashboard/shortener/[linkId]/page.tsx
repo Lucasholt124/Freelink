@@ -155,6 +155,19 @@ function ShareModal({
     toast.success(`Compartilhando no ${platform}! 🚀`);
   };
 
+  // ✅ CORREÇÃO: Fecha o modal com tecla ESC
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleEsc);
+    }
+
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
@@ -181,16 +194,22 @@ function ShareModal({
             <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
               {/* Header com Gradiente */}
               <div className="relative bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 p-6 pb-12">
-                {/* Botão Fechar */}
+                {/* ✅ CORREÇÃO: Botão Fechar FUNCIONANDO */}
                 <button
-                  onClick={onClose}
-                  className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors text-white"
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onClose();
+                  }}
+                  className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors text-white z-10 cursor-pointer"
+                  aria-label="Fechar modal"
                 >
                   <X className="w-5 h-5" />
                 </button>
 
                 {/* Decoração de fundo */}
-                <div className="absolute inset-0 overflow-hidden">
+                <div className="absolute inset-0 overflow-hidden pointer-events-none">
                   <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
                   <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
                 </div>
@@ -255,6 +274,7 @@ function ShareModal({
                     return (
                       <motion.button
                         key={option.name}
+                        type="button"
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.1 + index * 0.05 }}
@@ -278,6 +298,7 @@ function ShareModal({
 
                 {/* Copiar Mensagem Completa */}
                 <motion.button
+                  type="button"
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
