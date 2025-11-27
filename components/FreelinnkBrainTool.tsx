@@ -8,20 +8,21 @@ import confetti from "canvas-confetti";
 import {
   Sparkles, Brain, Video, RefreshCcw, Layers, Camera,
   MessageSquare, Wand2, Calendar, Trash2, Menu,
-  Crown, Clock, Loader2, ChevronDown, Bell,
-  CheckCircle2, Search, Zap, ArrowRight,  TrendingUp,
-  Film, Music, Scissors,
+  Crown, Clock, Loader2, Bell,
+  CheckCircle2, Search, Zap, ArrowRight, TrendingUp,
+  Film, Music, Scissors, X, Plus,
+  ChevronRight, Target, Flame, Hash
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { Progress } from "@/components/ui/progress";
+
 import { cn } from "@/lib/utils";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -56,149 +57,286 @@ interface FreelinnkBrainToolProps {
 }
 
 // =================================================================
-// COMPONENTES DE LOADING DIFERENCIADOS
+// COMPONENTES DE PARTÍCULAS ANIMADAS
 // =================================================================
-const LoadingSpinnerPro = () => (
-  <div className="flex flex-col items-center justify-center min-h-[400px] space-y-6 px-4 text-center">
-    <div className="relative">
-      <motion.div
-        animate={{ rotate: 360 }}
-        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-        className="w-20 h-20 rounded-full border-4 border-purple-200 border-t-purple-600"
-      />
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ repeat: Infinity, duration: 1, repeatType: "reverse" }}
-        className="absolute inset-0 flex items-center justify-center"
-      >
-        <Brain className="w-8 h-8 text-purple-600" />
-      </motion.div>
-    </div>
-    <div className="space-y-2">
-      <p className="text-lg font-bold text-gray-900 dark:text-white">
-        Gerando suas ideias...
-      </p>
-      <p className="text-sm text-muted-foreground">
-        Analisando tendências e criando conteúdo viral
-      </p>
-    </div>
-    <div className="flex gap-1">
-      {[0, 1, 2].map((i) => (
+const FloatingParticles = ({ count = 20, color = "purple" }: { count?: number; color?: string }) => {
+  return (
+    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+      {[...Array(count)].map((_, i) => (
         <motion.div
           key={i}
-          animate={{ y: [0, -10, 0] }}
-          transition={{ duration: 0.6, repeat: Infinity, delay: i * 0.2 }}
-          className="w-3 h-3 bg-purple-500 rounded-full"
+          className={cn(
+            "absolute w-1 h-1 rounded-full opacity-40",
+            color === "purple" && "bg-purple-500",
+            color === "pink" && "bg-pink-500",
+            color === "orange" && "bg-orange-500",
+            color === "multi" && i % 3 === 0 ? "bg-purple-500" : i % 3 === 1 ? "bg-pink-500" : "bg-orange-500"
+          )}
+          initial={{
+            x: Math.random() * 100 + "%",
+            y: "100%",
+            scale: Math.random() * 0.5 + 0.5,
+          }}
+          animate={{
+            y: "-10%",
+            x: `calc(${Math.random() * 100}% + ${Math.sin(i) * 50}px)`,
+          }}
+          transition={{
+            duration: Math.random() * 10 + 15,
+            repeat: Infinity,
+            ease: "linear",
+            delay: Math.random() * 5,
+          }}
         />
       ))}
     </div>
-  </div>
+  );
+};
+
+// =================================================================
+// COMPONENTES DE LOADING DIFERENCIADOS
+// =================================================================
+const LoadingSpinnerPro = () => (
+  <motion.div
+    initial={{ opacity: 0, scale: 0.9 }}
+    animate={{ opacity: 1, scale: 1 }}
+    className="flex flex-col items-center justify-center min-h-[50vh] space-y-8 px-4 text-center"
+  >
+    {/* Círculo principal animado */}
+    <div className="relative">
+      {/* Anel externo */}
+      <motion.div
+        animate={{ rotate: 360 }}
+        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+        className="w-28 h-28 sm:w-32 sm:h-32 rounded-full"
+        style={{
+          background: "conic-gradient(from 0deg, #8B5CF6, #EC4899, #8B5CF6)",
+          padding: "3px",
+        }}
+      >
+        <div className="w-full h-full rounded-full bg-white dark:bg-gray-950 flex items-center justify-center">
+          {/* Anel interno */}
+          <motion.div
+            animate={{ rotate: -360 }}
+            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-dashed border-purple-300 dark:border-purple-700"
+          />
+        </div>
+      </motion.div>
+
+      {/* Ícone central */}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: [1, 1.1, 1], opacity: 1 }}
+        transition={{ repeat: Infinity, duration: 2, ease: "easeInOut" }}
+        className="absolute inset-0 flex items-center justify-center"
+      >
+        <div className="p-4 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl shadow-lg shadow-purple-500/30">
+          <Brain className="w-8 h-8 text-white" />
+        </div>
+      </motion.div>
+
+      {/* Órbitas */}
+      {[0, 1, 2].map((i) => (
+        <motion.div
+          key={i}
+          className="absolute w-3 h-3 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full shadow-lg"
+          animate={{
+            rotate: 360,
+          }}
+          transition={{
+            duration: 2 + i * 0.5,
+            repeat: Infinity,
+            ease: "linear",
+            delay: i * 0.3,
+          }}
+          style={{
+            top: "50%",
+            left: "50%",
+            transformOrigin: `${-30 - i * 15}px 0px`,
+          }}
+        />
+      ))}
+    </div>
+
+    {/* Texto */}
+    <div className="space-y-3">
+      <motion.p
+        animate={{ opacity: [0.5, 1, 0.5] }}
+        transition={{ duration: 2, repeat: Infinity }}
+        className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent"
+      >
+        Gerando sua campanha...
+      </motion.p>
+      <p className="text-sm sm:text-base text-muted-foreground max-w-xs mx-auto">
+        Analisando tendências e criando conteúdo viral para você
+      </p>
+    </div>
+
+    {/* Barra de progresso animada */}
+    <div className="w-64 sm:w-80 space-y-2">
+      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
+        <motion.div
+          className="h-full bg-gradient-to-r from-purple-600 via-pink-600 to-purple-600 rounded-full"
+          initial={{ x: "-100%" }}
+          animate={{ x: "100%" }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          style={{ width: "50%" }}
+        />
+      </div>
+    </div>
+  </motion.div>
 );
 
 const LoadingSpinnerUltra = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const steps = [
-    { icon: Brain, text: "Analisando psicologia do público...", color: "text-purple-500" },
-    { icon: Film, text: "Criando roteiro cinematográfico...", color: "text-pink-500" },
-    { icon: Camera, text: "Definindo ângulos de câmera...", color: "text-blue-500" },
-    { icon: Music, text: "Sincronizando com áudio viral...", color: "text-orange-500" },
-    { icon: Scissors, text: "Otimizando cortes e transições...", color: "text-green-500" },
+    { icon: Brain, text: "Analisando psicologia viral...", color: "from-purple-500 to-violet-600" },
+    { icon: Film, text: "Criando roteiro cinematográfico...", color: "from-pink-500 to-rose-600" },
+    { icon: Camera, text: "Definindo ângulos de câmera...", color: "from-blue-500 to-cyan-600" },
+    { icon: Music, text: "Sincronizando áudio trending...", color: "from-orange-500 to-amber-600" },
+    { icon: Scissors, text: "Otimizando cortes e transições...", color: "from-green-500 to-emerald-600" },
+    { icon: Target, text: "Maximizando engajamento...", color: "from-red-500 to-pink-600" },
   ];
 
   useEffect(() => {
     const interval = setInterval(() => {
       setCurrentStep((prev) => (prev + 1) % steps.length);
-    }, 2000);
+    }, 2500);
     return () => clearInterval(interval);
   }, []);
 
   const CurrentIcon = steps[currentStep].icon;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[450px] space-y-8 px-4">
-      {/* Círculo animado com gradiente */}
-      <div className="relative">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="flex flex-col items-center justify-center min-h-[55vh] space-y-8 px-4 relative"
+    >
+      <FloatingParticles count={30} color="multi" />
+
+      {/* Container principal */}
+      <div className="relative z-10">
+        {/* Círculo animado com gradiente */}
         <motion.div
           animate={{ rotate: 360 }}
-          transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-          className="w-32 h-32 rounded-full"
-          style={{
-            background: "conic-gradient(from 0deg, #8B5CF6, #EC4899, #F59E0B, #10B981, #8B5CF6)",
-            padding: "4px",
-          }}
+          transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
+          className="w-36 h-36 sm:w-44 sm:h-44 rounded-full relative"
         >
-          <div className="w-full h-full rounded-full bg-white dark:bg-gray-950 flex items-center justify-center">
-            <motion.div
-              key={currentStep}
-              initial={{ scale: 0, rotate: -180 }}
-              animate={{ scale: 1, rotate: 0 }}
-              exit={{ scale: 0, rotate: 180 }}
-              transition={{ duration: 0.5 }}
-            >
-              <CurrentIcon className={cn("w-12 h-12", steps[currentStep].color)} />
-            </motion.div>
+          {/* Gradiente rotativo externo */}
+          <div
+            className="absolute inset-0 rounded-full opacity-50"
+            style={{
+              background: "conic-gradient(from 0deg, #8B5CF6, #EC4899, #F59E0B, #10B981, #3B82F6, #8B5CF6)",
+              filter: "blur(8px)",
+            }}
+          />
+          <div
+            className="absolute inset-1 rounded-full"
+            style={{
+              background: "conic-gradient(from 0deg, #8B5CF6, #EC4899, #F59E0B, #10B981, #3B82F6, #8B5CF6)",
+              padding: "4px",
+            }}
+          >
+            <div className="w-full h-full rounded-full bg-white dark:bg-gray-950 flex items-center justify-center">
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentStep}
+                  initial={{ scale: 0, rotate: -180, opacity: 0 }}
+                  animate={{ scale: 1, rotate: 0, opacity: 1 }}
+                  exit={{ scale: 0, rotate: 180, opacity: 0 }}
+                  transition={{ duration: 0.5, type: "spring" }}
+                  className={cn(
+                    "p-5 sm:p-6 rounded-2xl bg-gradient-to-br shadow-2xl",
+                    steps[currentStep].color
+                  )}
+                >
+                  <CurrentIcon className="w-10 h-10 sm:w-12 sm:h-12 text-white" />
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         </motion.div>
 
-        {/* Partículas */}
-        {[...Array(8)].map((_, i) => (
+        {/* Partículas orbitais */}
+        {[...Array(12)].map((_, i) => (
           <motion.div
             key={i}
-            className="absolute w-2 h-2 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full"
+            className="absolute w-2 h-2 rounded-full"
+            style={{
+              background: `linear-gradient(135deg, ${['#8B5CF6', '#EC4899', '#F59E0B', '#10B981'][i % 4]}, transparent)`,
+              top: "50%",
+              left: "50%",
+            }}
             animate={{
-              x: [0, Math.cos(i * 45 * Math.PI / 180) * 60],
-              y: [0, Math.sin(i * 45 * Math.PI / 180) * 60],
+              x: [0, Math.cos(i * 30 * Math.PI / 180) * 80],
+              y: [0, Math.sin(i * 30 * Math.PI / 180) * 80],
               opacity: [1, 0],
               scale: [1, 0],
             }}
             transition={{
-              duration: 1.5,
+              duration: 2,
               repeat: Infinity,
-              delay: i * 0.2,
-            }}
-            style={{
-              left: "50%",
-              top: "50%",
-              marginLeft: "-4px",
-              marginTop: "-4px",
+              delay: i * 0.15,
+              ease: "easeOut",
             }}
           />
         ))}
       </div>
 
       {/* Badge Ultra */}
-      <Badge className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white px-4 py-1.5 text-sm font-bold animate-pulse">
-        <Crown className="w-4 h-4 mr-2 fill-white" />
-        MODO ULTRA ATIVADO
-      </Badge>
+      <motion.div
+        initial={{ y: 20, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.3 }}
+      >
+        <Badge className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white px-5 py-2 text-sm font-bold shadow-lg shadow-orange-500/30 border-0">
+          <Crown className="w-4 h-4 mr-2 fill-white animate-pulse" />
+          MODO ULTRA ATIVADO
+          <Zap className="w-4 h-4 ml-2 fill-yellow-200" />
+        </Badge>
+      </motion.div>
 
       {/* Texto animado */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentStep}
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          exit={{ opacity: 0, y: -20 }}
-          className="text-center space-y-2"
-        >
-          <p className="text-xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+      <div className="text-center space-y-3 relative z-10">
+        <AnimatePresence mode="wait">
+          <motion.p
+            key={currentStep}
+            initial={{ opacity: 0, y: 20, filter: "blur(10px)" }}
+            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -20, filter: "blur(10px)" }}
+            transition={{ duration: 0.4 }}
+            className="text-xl sm:text-2xl font-bold bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent"
+          >
             {steps[currentStep].text}
-          </p>
-          <p className="text-sm text-muted-foreground">
-            Criando roteiro frame-a-frame com direção profissional
-          </p>
-        </motion.div>
-      </AnimatePresence>
-
-      {/* Progress bar */}
-      <div className="w-64 space-y-2">
-        <Progress value={(currentStep + 1) * 20} className="h-2" />
-        <p className="text-xs text-center text-muted-foreground">
-          Etapa {currentStep + 1} de {steps.length}
+          </motion.p>
+        </AnimatePresence>
+        <p className="text-sm sm:text-base text-muted-foreground max-w-sm mx-auto">
+          Criando roteiro frame-a-frame com direção profissional de Hollywood
         </p>
       </div>
-    </div>
+
+      {/* Progress steps */}
+      <div className="flex items-center gap-2">
+        {steps.map((_, idx) => (
+          <motion.div
+            key={idx}
+            className={cn(
+              "h-2 rounded-full transition-all duration-500",
+              idx === currentStep ? "w-8 bg-gradient-to-r from-purple-600 to-pink-600" : "w-2 bg-gray-300 dark:bg-gray-700"
+            )}
+            animate={idx === currentStep ? { scale: [1, 1.2, 1] } : {}}
+            transition={{ duration: 0.5 }}
+          />
+        ))}
+      </div>
+
+      {/* Contador */}
+      <p className="text-xs text-muted-foreground">
+        Etapa {currentStep + 1} de {steps.length}
+      </p>
+    </motion.div>
   );
 };
 
@@ -209,8 +347,8 @@ const AnimatedCounter = ({ value, suffix = "" }: { value: number; suffix?: strin
   const [displayValue, setDisplayValue] = useState(0);
 
   useEffect(() => {
-    const duration = 1000;
-    const steps = 30;
+    const duration = 1200;
+    const steps = 40;
     const increment = value / steps;
     let current = 0;
 
@@ -246,100 +384,126 @@ const ViralStatsCard = ({ results, userPlan }: { results: BrainResults; userPlan
       label: "Reels",
       value: results.content_pack?.reels?.length ?? 0,
       color: "from-blue-500 to-cyan-500",
-      bgColor: "bg-blue-50 dark:bg-blue-950/30",
+      bgLight: "bg-blue-50 dark:bg-blue-950/40",
+      iconBg: "bg-blue-500",
     },
     {
       icon: Layers,
       label: "Carrosséis",
       value: results.content_pack?.carousels?.length ?? 0,
       color: "from-purple-500 to-pink-500",
-      bgColor: "bg-purple-50 dark:bg-purple-950/30",
+      bgLight: "bg-purple-50 dark:bg-purple-950/40",
+      iconBg: "bg-purple-500",
     },
     {
       icon: Camera,
       label: "Posts",
       value: results.content_pack?.image_posts?.length ?? 0,
       color: "from-green-500 to-emerald-500",
-      bgColor: "bg-green-50 dark:bg-green-950/30",
+      bgLight: "bg-green-50 dark:bg-green-950/40",
+      iconBg: "bg-green-500",
     },
     {
       icon: MessageSquare,
       label: "Stories",
       value: results.content_pack?.story_sequences?.length ?? 0,
-      color: "from-orange-500 to-yellow-500",
-      bgColor: "bg-orange-50 dark:bg-orange-950/30",
+      color: "from-orange-500 to-amber-500",
+      bgLight: "bg-orange-50 dark:bg-orange-950/40",
+      iconBg: "bg-orange-500",
     },
   ];
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 30 }}
       animate={{ opacity: 1, y: 0 }}
-      className="mb-6"
+      transition={{ duration: 0.5 }}
+      className="mb-6 sm:mb-8"
     >
       <Card className={cn(
-        "p-4 sm:p-6 border-2 overflow-hidden relative",
+        "relative overflow-hidden border-0 shadow-2xl",
         userPlan === 'ultra'
-          ? "border-purple-500/50 bg-gradient-to-br from-purple-50/50 via-pink-50/50 to-orange-50/50 dark:from-purple-950/20 dark:via-pink-950/20 dark:to-orange-950/20"
-          : "border-blue-500/30 bg-gradient-to-br from-blue-50/50 to-purple-50/50 dark:from-blue-950/20 dark:to-purple-950/20"
+          ? "bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500"
+          : "bg-gradient-to-br from-purple-600 via-indigo-600 to-blue-600"
       )}>
-        {/* Background decoration */}
-        {userPlan === 'ultra' && (
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl from-yellow-400/20 to-transparent rounded-bl-full" />
-        )}
+        {/* Background pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute inset-0" style={{
+            backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
+            backgroundSize: "32px 32px",
+          }} />
+        </div>
 
-        <div className="relative z-10">
+        <div className="relative z-10 p-5 sm:p-8">
           {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-3">
-              <div className={cn(
-                "p-2.5 rounded-xl",
-                userPlan === 'ultra'
-                  ? "bg-gradient-to-br from-purple-600 to-pink-600"
-                  : "bg-gradient-to-br from-blue-600 to-purple-600"
-              )}>
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">Campanha Gerada!</h3>
-                <p className="text-sm text-muted-foreground">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div className="flex items-center gap-4">
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", delay: 0.2 }}
+                className="p-3 sm:p-4 bg-white/20 backdrop-blur-sm rounded-2xl"
+              >
+                <Sparkles className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+              </motion.div>
+              <div className="text-white">
+                <motion.h3
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.3 }}
+                  className="font-black text-xl sm:text-2xl flex items-center gap-2"
+                >
+                  Campanha Gerada!
+                  {userPlan === 'ultra' && (
+                    <span className="text-2xl">⚡</span>
+                  )}
+                </motion.h3>
+                <motion.p
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="text-white/80 text-sm sm:text-base"
+                >
                   {totalContent} conteúdos prontos para viralizar
-                </p>
+                </motion.p>
               </div>
             </div>
 
             {userPlan === 'ultra' && (
-              <Badge className="bg-gradient-to-r from-yellow-500 to-orange-500 text-white border-0 animate-pulse">
-                <Crown className="w-3 h-3 mr-1 fill-white" />
-                ULTRA
-              </Badge>
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ type: "spring", delay: 0.5 }}
+              >
+                <Badge className="bg-white/20 backdrop-blur-sm text-white border-white/30 px-4 py-2 text-sm font-bold">
+                  <Crown className="w-4 h-4 mr-2 fill-yellow-300 text-yellow-300" />
+                  ULTRA QUALITY
+                </Badge>
+              </motion.div>
             )}
           </div>
 
           {/* Stats Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {stats.map((stat, idx) => (
               <motion.div
                 key={stat.label}
-                initial={{ opacity: 0, scale: 0.8 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: idx * 0.1 }}
-                className={cn(
-                  "p-3 rounded-xl text-center transition-all hover:scale-105",
-                  stat.bgColor
-                )}
+                initial={{ opacity: 0, y: 20, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ delay: 0.3 + idx * 0.1, type: "spring" }}
+                whileHover={{ scale: 1.05, y: -5 }}
+                className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 sm:p-5 border border-white/20 cursor-pointer transition-all"
               >
-                <div className={cn(
-                  "w-10 h-10 mx-auto mb-2 rounded-lg flex items-center justify-center bg-gradient-to-br",
-                  stat.color
-                )}>
-                  <stat.icon className="w-5 h-5 text-white" />
+                <div className="flex items-center gap-3 mb-3">
+                  <div className={cn("p-2.5 rounded-xl", stat.iconBg)}>
+                    <stat.icon className="w-5 h-5 text-white" />
+                  </div>
+                  <span className="text-white/90 font-medium text-sm sm:text-base">
+                    {stat.label}
+                  </span>
                 </div>
-                <p className="text-2xl font-black">
+                <p className="text-3xl sm:text-4xl font-black text-white">
                   <AnimatedCounter value={stat.value} />
-                </p>
-                <p className="text-xs text-muted-foreground font-medium">
-                  {stat.label}
                 </p>
               </motion.div>
             ))}
@@ -347,23 +511,35 @@ const ViralStatsCard = ({ results, userPlan }: { results: BrainResults; userPlan
 
           {/* Viral Strategy Preview */}
           {results.viral_strategy && (
-            <div className="mt-4 p-3 bg-white/50 dark:bg-black/20 rounded-lg border border-gray-200 dark:border-gray-800">
-              <div className="flex items-center gap-2 mb-2">
-                <TrendingUp className="w-4 h-4 text-green-600" />
-                <span className="text-sm font-semibold">Estratégia Viral</span>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7 }}
+              className="mt-6 p-4 bg-white/10 backdrop-blur-sm rounded-2xl border border-white/20"
+            >
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-green-500 rounded-lg">
+                  <TrendingUp className="w-4 h-4 text-white" />
+                </div>
+                <span className="font-bold text-white">Estratégia Viral Ativa</span>
               </div>
               <div className="flex flex-wrap gap-2">
                 {results.viral_strategy.best_times.slice(0, 3).map((time, i) => (
-                  <Badge key={i} variant="secondary" className="text-xs">
-                    <Clock className="w-3 h-3 mr-1" />
+                  <Badge key={i} className="bg-white/20 text-white border-0 backdrop-blur-sm">
+                    <Clock className="w-3 h-3 mr-1.5" />
                     {time}
                   </Badge>
                 ))}
-                <Badge variant="outline" className="text-xs text-purple-600">
-                  +{results.viral_strategy.engagement_hacks.length} hacks
+                <Badge className="bg-yellow-500/30 text-yellow-100 border-yellow-400/30">
+                  <Flame className="w-3 h-3 mr-1.5" />
+                  {results.viral_strategy.engagement_hacks.length} hacks
+                </Badge>
+                <Badge className="bg-purple-500/30 text-purple-100 border-purple-400/30">
+                  <Hash className="w-3 h-3 mr-1.5" />
+                  Hashtags otimizadas
                 </Badge>
               </div>
-            </div>
+            </motion.div>
           )}
         </div>
       </Card>
@@ -372,7 +548,7 @@ const ViralStatsCard = ({ results, userPlan }: { results: BrainResults; userPlan
 };
 
 // =================================================================
-// TELA INICIAL HERO
+// TELA INICIAL HERO - COMPLETAMENTE REDESENHADA
 // =================================================================
 const HeroSection = ({
   userPlan,
@@ -390,188 +566,286 @@ const HeroSection = ({
   inputRef: React.RefObject<HTMLInputElement | null>;
 }) => {
   const examples = [
-    { text: "Como ganhar seguidores no TikTok", icon: "🚀" },
-    { text: "Receitas fitness em 60 segundos", icon: "🥗" },
-    { text: "Dicas de investimento para iniciantes", icon: "💰" },
-    { text: "Marketing digital para pequenos negócios", icon: "📱" },
+    { text: "Como ganhar seguidores no TikTok", icon: "🚀", gradient: "from-pink-500 to-rose-500" },
+    { text: "Receitas fitness em 60 segundos", icon: "🥗", gradient: "from-green-500 to-emerald-500" },
+    { text: "Dicas de investimento para iniciantes", icon: "💰", gradient: "from-yellow-500 to-amber-500" },
+    { text: "Marketing digital para negócios", icon: "📱", gradient: "from-blue-500 to-cyan-500" },
   ];
 
+  const features = userPlan === 'ultra'
+    ? [
+        { icon: Film, text: "Roteiros Frame-a-Frame" },
+        { icon: Camera, text: "Direção de Câmera" },
+        { icon: Brain, text: "Neuro-Marketing" },
+      ]
+    : [
+        { icon: Sparkles, text: "Ideias Virais" },
+        { icon: Layers, text: "Multi-Formato" },
+        { icon: TrendingUp, text: "Estratégia Viral" },
+      ];
+
   return (
-    <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 mt-4 sm:mt-8 px-2">
+    <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
       <motion.div
-        initial={{ opacity: 0, y: 30 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6 }}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        className="relative"
       >
+        {/* Background Card */}
         <Card className={cn(
-          "relative overflow-hidden border-2 p-6 sm:p-10 md:p-12",
+          "relative overflow-hidden border-0 shadow-2xl",
           userPlan === 'ultra'
-            ? "border-purple-500/50 shadow-2xl shadow-purple-500/10"
-            : "border-gray-200 shadow-xl"
+            ? "bg-gradient-to-br from-gray-900 via-purple-900/50 to-gray-900"
+            : "bg-white dark:bg-gray-900"
         )}>
-          {/* Background Effects */}
+          {/* Efeitos de Background para Ultra */}
           {userPlan === 'ultra' && (
             <>
-              <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-bl from-purple-500/10 via-pink-500/10 to-transparent rounded-bl-full" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-gradient-to-tr from-orange-500/10 via-yellow-500/10 to-transparent rounded-tr-full" />
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-gradient-to-bl from-purple-600/30 via-pink-600/20 to-transparent rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-gradient-to-tr from-orange-600/20 via-yellow-600/10 to-transparent rounded-full blur-3xl" />
+              <FloatingParticles count={25} color="multi" />
             </>
           )}
 
-          <div className="relative z-10 text-center space-y-6">
-            {/* Badge */}
+          {/* Efeitos de Background para Pro */}
+          {userPlan === 'pro' && (
+            <>
+              <div className="absolute top-0 right-0 w-96 h-96 bg-gradient-to-bl from-purple-100 to-transparent dark:from-purple-900/20 rounded-full blur-3xl" />
+              <div className="absolute bottom-0 left-0 w-64 h-64 bg-gradient-to-tr from-pink-100 to-transparent dark:from-pink-900/20 rounded-full blur-3xl" />
+            </>
+          )}
+
+          <div className="relative z-10 p-6 sm:p-10 lg:p-16">
+            {/* Badge Superior */}
             <motion.div
-              initial={{ scale: 0 }}
-              animate={{ scale: 1 }}
+              initial={{ scale: 0, y: -20 }}
+              animate={{ scale: 1, y: 0 }}
               transition={{ delay: 0.2, type: "spring" }}
+              className="flex justify-center mb-6 sm:mb-8"
             >
               <Badge
-                variant="secondary"
                 className={cn(
-                  "px-4 py-1.5 text-sm font-semibold",
-                  userPlan === 'ultra' && "bg-gradient-to-r from-purple-100 to-pink-100 dark:from-purple-900/50 dark:to-pink-900/50"
+                  "px-4 sm:px-6 py-2 sm:py-2.5 text-sm sm:text-base font-bold border-0 shadow-lg",
+                  userPlan === 'ultra'
+                    ? "bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white shadow-orange-500/30"
+                    : "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-purple-500/30"
                 )}
               >
                 {userPlan === 'ultra' ? (
                   <>
-                    <Crown className="w-4 h-4 mr-2 text-yellow-500 fill-yellow-500" />
-                    Modo Diretor Ativado
+                    <Crown className="w-4 h-4 sm:w-5 sm:h-5 mr-2 fill-white" />
+                    Modo Diretor Cinematográfico
+                    <Zap className="w-4 h-4 sm:w-5 sm:h-5 ml-2 fill-yellow-200" />
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-4 h-4 mr-2 text-purple-500" />
-                    Sua Máquina de Conteúdo
+                    <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+                    Sua Máquina de Conteúdo Viral
                   </>
                 )}
               </Badge>
             </motion.div>
 
-            {/* Título */}
-            <motion.h1
-              className="text-4xl sm:text-5xl md:text-6xl font-black leading-tight"
-              initial={{ opacity: 0, y: 20 }}
+            {/* Título Principal */}
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+              className="text-center mb-6 sm:mb-8"
             >
-              Freelinnk
-              <span className={cn(
-                "bg-clip-text text-transparent bg-gradient-to-r",
-                userPlan === 'ultra'
-                  ? "from-purple-600 via-pink-500 to-orange-500"
-                  : "from-blue-600 via-purple-600 to-pink-600"
+              <h1 className={cn(
+                "text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-tight tracking-tight",
+                userPlan === 'ultra' && "text-white"
               )}>
-                Brain
-              </span>
-              {userPlan === 'ultra' && (
-                <motion.span
-                  initial={{ opacity: 0, scale: 0 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5 }}
-                  className="inline-block ml-2"
-                >
-                  ⚡
-                </motion.span>
-              )}
-            </motion.h1>
+                Freelinnk
+                <span className={cn(
+                  "bg-clip-text text-transparent bg-gradient-to-r inline-block",
+                  userPlan === 'ultra'
+                    ? "from-purple-400 via-pink-400 to-orange-400"
+                    : "from-purple-600 via-pink-600 to-orange-600"
+                )}>
+                  Brain
+                </span>
+                {userPlan === 'ultra' && (
+                  <motion.span
+                    animate={{
+                      rotate: [0, 10, -10, 0],
+                      scale: [1, 1.2, 1]
+                    }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="inline-block ml-3"
+                  >
+                    ⚡
+                  </motion.span>
+                )}
+              </h1>
+            </motion.div>
 
             {/* Subtítulo */}
             <motion.p
-              className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.4 }}
+              className={cn(
+                "text-center text-base sm:text-lg md:text-xl max-w-2xl mx-auto mb-8 sm:mb-10 leading-relaxed",
+                userPlan === 'ultra' ? "text-gray-300" : "text-muted-foreground"
+              )}
             >
               {userPlan === 'ultra' ? (
                 <>
-                  Roteiros <span className="font-bold text-purple-600">frame-a-frame</span> com direção de câmera,
-                  psicologia de atenção e <span className="font-bold text-pink-600">neuro-marketing</span> aplicado.
+                  Crie roteiros <span className="font-bold text-purple-400">profissionais</span> com direção de câmera,
+                  psicologia de atenção e técnicas de <span className="font-bold text-pink-400">Hollywood</span>.
                 </>
               ) : (
                 <>
                   Transforme qualquer tema em uma <span className="font-bold text-purple-600">campanha completa</span> de
-                  conteúdo viral em <span className="font-bold text-pink-600">30 segundos</span>.
+                  conteúdo viral em <span className="font-bold text-pink-600">segundos</span>.
                 </>
               )}
             </motion.p>
 
-            {/* Form */}
-            <motion.form
-              onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
-              className="space-y-4 pt-4"
+            {/* Features Pills */}
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.5 }}
+              className="flex flex-wrap justify-center gap-3 mb-8 sm:mb-10"
             >
-              <div className="space-y-2">
-                <Label className="flex items-center justify-center gap-2 text-sm sm:text-base font-semibold">
-                  <Wand2 className="w-4 h-4 text-purple-500" />
+              {features.map((feature, idx) => (
+                <motion.div
+                  key={idx}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium",
+                    userPlan === 'ultra'
+                      ? "bg-white/10 text-white border border-white/20 backdrop-blur-sm"
+                      : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300"
+                  )}
+                >
+                  <feature.icon className="w-4 h-4" />
+                  {feature.text}
+                </motion.div>
+              ))}
+            </motion.div>
+
+            {/* Form */}
+            <motion.form
+              onSubmit={(e) => { e.preventDefault(); onSubmit(); }}
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 }}
+              className="max-w-2xl mx-auto space-y-6"
+            >
+              <div className="space-y-3">
+                <Label className={cn(
+                  "flex items-center justify-center gap-2 text-base sm:text-lg font-bold",
+                  userPlan === 'ultra' && "text-white"
+                )}>
+                  <Wand2 className="w-5 h-5 text-purple-500" />
                   Qual tema você quer dominar?
                 </Label>
-                <div className="relative max-w-xl mx-auto">
-                  <Input
-                    ref={inputRef}
-                    value={theme}
-                    onChange={(e) => setTheme(e.target.value)}
-                    placeholder="Ex: Como vender pelo Instagram, Receitas fitness..."
-                    className={cn(
-                      "text-base sm:text-lg py-6 sm:py-7 px-4 sm:px-6 pr-12 rounded-xl border-2 transition-all",
-                      "focus:ring-4 focus:ring-purple-500/20",
-                      userPlan === 'ultra' && "border-purple-300 focus:border-purple-500"
-                    )}
-                    maxLength={150}
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">
-                    {theme.length}/150
+
+                <div className="relative group">
+                  {/* Glow effect */}
+                  <div className={cn(
+                    "absolute -inset-1 rounded-2xl blur-lg opacity-50 group-hover:opacity-75 transition-opacity",
+                    userPlan === 'ultra'
+                      ? "bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600"
+                      : "bg-gradient-to-r from-purple-400 to-pink-400"
+                  )} />
+
+                  <div className="relative">
+                    <Input
+                      ref={inputRef}
+                      value={theme}
+                      onChange={(e) => setTheme(e.target.value)}
+                      placeholder="Ex: Como vender pelo Instagram, Receitas fitness..."
+                      className={cn(
+                        "text-base sm:text-lg py-7 sm:py-8 px-5 sm:px-6 pr-16 rounded-xl border-2 transition-all",
+                        "focus:ring-4 focus:ring-purple-500/20 shadow-lg",
+                        userPlan === 'ultra'
+                          ? "bg-white/10 border-white/30 text-white placeholder:text-gray-400 focus:border-purple-400 backdrop-blur-sm"
+                          : "bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 focus:border-purple-500"
+                      )}
+                      maxLength={150}
+                    />
+                    <div className={cn(
+                      "absolute right-4 top-1/2 -translate-y-1/2 text-xs font-medium px-2 py-1 rounded-full",
+                      userPlan === 'ultra'
+                        ? "bg-white/10 text-gray-300"
+                        : "bg-gray-100 dark:bg-gray-800 text-gray-500"
+                    )}>
+                      {theme.length}/150
+                    </div>
                   </div>
                 </div>
               </div>
 
               {/* Exemplos */}
-              <div className="flex flex-wrap items-center justify-center gap-2">
-                <span className="text-xs text-muted-foreground font-medium">Experimente:</span>
-                {examples.slice(0, 3).map((example, idx) => (
-                  <motion.button
-                    key={idx}
-                    type="button"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setTheme(example.text)}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 rounded-full hover:bg-purple-100 dark:hover:bg-purple-900/50 transition-colors"
-                  >
-                    <span>{example.icon}</span>
-                    <span className="hidden sm:inline">{example.text.slice(0, 25)}...</span>
-                    <span className="sm:hidden">{example.text.split(' ').slice(0, 3).join(' ')}...</span>
-                  </motion.button>
-                ))}
+              <div className="space-y-3">
+                <p className={cn(
+                  "text-center text-sm font-medium",
+                  userPlan === 'ultra' ? "text-gray-400" : "text-muted-foreground"
+                )}>
+                  ✨ Experimente um destes:
+                </p>
+                <div className="flex flex-wrap justify-center gap-2 sm:gap-3">
+                  {examples.map((example, idx) => (
+                    <motion.button
+                      key={idx}
+                      type="button"
+                      whileHover={{ scale: 1.05, y: -2 }}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setTheme(example.text)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 sm:px-4 py-2 sm:py-2.5 text-xs sm:text-sm rounded-full transition-all font-medium",
+                        userPlan === 'ultra'
+                          ? "bg-white/5 hover:bg-white/15 text-white border border-white/10 hover:border-white/30"
+                          : "bg-gray-100 dark:bg-gray-800 hover:bg-purple-100 dark:hover:bg-purple-900/50 text-gray-700 dark:text-gray-300"
+                      )}
+                    >
+                      <span className="text-base">{example.icon}</span>
+                      <span className="hidden sm:inline">{example.text}</span>
+                      <span className="sm:hidden">{example.text.split(' ').slice(0, 3).join(' ')}...</span>
+                    </motion.button>
+                  ))}
+                </div>
               </div>
 
               {/* Botão Principal */}
-              <Button
-                type="submit"
-                size="lg"
-                disabled={isLoading || !theme.trim()}
-                className={cn(
-                  "w-full max-w-md mx-auto h-14 sm:h-16 text-base sm:text-lg font-bold rounded-xl",
-                  "transform transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]",
-                  "shadow-lg hover:shadow-xl",
-                  userPlan === 'ultra'
-                    ? "bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-700 hover:via-pink-700 hover:to-orange-600"
-                    : "bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                )}
+              <motion.div
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
               >
-                {userPlan === 'ultra' ? (
-                  <>
-                    <Brain className="w-5 h-5 sm:w-6 sm:h-6 mr-2" />
-                    GERAR ROTEIRO ULTRA VIRAL
-                    <Zap className="w-5 h-5 sm:w-6 sm:h-6 ml-2 fill-yellow-300 text-yellow-300" />
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="w-5 h-5 mr-2" />
-                    Gerar Campanha Completa
-                    <ArrowRight className="w-5 h-5 ml-2" />
-                  </>
-                )}
-              </Button>
+                <Button
+                  type="submit"
+                  size="lg"
+                  disabled={isLoading || !theme.trim()}
+                  className={cn(
+                    "w-full h-16 sm:h-18 text-base sm:text-lg font-bold rounded-xl",
+                    "shadow-2xl transition-all duration-300",
+                    "disabled:opacity-50 disabled:cursor-not-allowed",
+                    userPlan === 'ultra'
+                      ? "bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:from-purple-500 hover:via-pink-500 hover:to-orange-400 shadow-purple-500/30"
+                      : "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-purple-500/30"
+                  )}
+                >
+                  {userPlan === 'ultra' ? (
+                    <>
+                      <Brain className="w-6 h-6 mr-3" />
+                      GERAR ROTEIRO ULTRA VIRAL
+                      <Zap className="w-6 h-6 ml-3 fill-yellow-300 text-yellow-300 animate-pulse" />
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="w-5 h-5 mr-2" />
+                      Gerar Campanha Completa
+                      <ArrowRight className="w-5 h-5 ml-2" />
+                    </>
+                  )}
+                </Button>
+              </motion.div>
             </motion.form>
 
             {/* Upgrade CTA para PRO */}
@@ -579,32 +853,58 @@ const HeroSection = ({
               <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
-                className="pt-4"
+                transition={{ delay: 0.8 }}
+                className="mt-8 sm:mt-10"
               >
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-lg border border-purple-200 dark:border-purple-800">
-                  <Crown className="w-4 h-4 text-yellow-500" />
-                  <span className="text-sm text-gray-700 dark:text-gray-300">
-                    Quer roteiros <strong>frame-a-frame</strong> com direção de câmera?
-                  </span>
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4 p-4 sm:p-5 bg-gradient-to-r from-purple-50 via-pink-50 to-orange-50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-orange-950/30 rounded-2xl border border-purple-200 dark:border-purple-800">
+                  <div className="flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-yellow-500 animate-pulse" />
+                    <span className="text-sm sm:text-base text-gray-700 dark:text-gray-300">
+                      Quer roteiros <strong>frame-a-frame</strong> com direção de câmera profissional?
+                    </span>
+                  </div>
                   <Link
                     href="/dashboard/billing"
-                    className="text-sm font-bold text-purple-600 hover:text-purple-700 underline underline-offset-2"
+                    className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-sm rounded-full shadow-lg shadow-orange-500/30 hover:shadow-xl hover:shadow-orange-500/40 transition-all hover:-translate-y-0.5"
                   >
-                    Vire Ultra →
+                    Upgrade para Ultra
+                    <ChevronRight className="w-4 h-4" />
                   </Link>
                 </div>
               </motion.div>
             )}
           </div>
         </Card>
+
+        {/* Stats abaixo do card */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.9 }}
+          className="flex flex-wrap justify-center gap-6 sm:gap-10 mt-8 px-4"
+        >
+          {[
+            { value: "50K+", label: "Conteúdos Gerados" },
+            { value: "98%", label: "Satisfação" },
+            { value: "5x", label: "Mais Engajamento" },
+          ].map((stat, idx) => (
+            <div key={idx} className="text-center">
+              <p className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+                {stat.value}
+              </p>
+              <p className="text-xs sm:text-sm text-muted-foreground font-medium">
+                {stat.label}
+              </p>
+            </div>
+          ))}
+        </motion.div>
       </motion.div>
     </div>
   );
 };
 
 // =================================================================
-// NAVEGAÇÃO MOBILE INFERIOR
+// NAVEGAÇÃO MOBILE INFERIOR - REDESENHADA
 // =================================================================
 const MobileBottomNav = ({
   activeTab,
@@ -618,61 +918,122 @@ const MobileBottomNav = ({
   if (!contentCounts) return null;
 
   const tabs = [
-    { id: "reels", icon: Video, label: "Reels", count: contentCounts.reels, color: "text-blue-500" },
-    { id: "carousels", icon: Layers, label: "Carrossel", count: contentCounts.carousels, color: "text-purple-500" },
-    { id: "image_posts", icon: Camera, label: "Posts", count: contentCounts.image_posts, color: "text-green-500" },
-    { id: "story_sequences", icon: MessageSquare, label: "Stories", count: contentCounts.story_sequences, color: "text-orange-500" },
+    { id: "reels", icon: Video, label: "Reels", count: contentCounts.reels, color: "bg-blue-500", textColor: "text-blue-600" },
+    { id: "carousels", icon: Layers, label: "Carrossel", count: contentCounts.carousels, color: "bg-purple-500", textColor: "text-purple-600" },
+    { id: "image_posts", icon: Camera, label: "Posts", count: contentCounts.image_posts, color: "bg-green-500", textColor: "text-green-600" },
+    { id: "story_sequences", icon: MessageSquare, label: "Stories", count: contentCounts.story_sequences, color: "bg-orange-500", textColor: "text-orange-600" },
   ];
 
   return (
     <motion.div
       initial={{ y: 100 }}
       animate={{ y: 0 }}
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800 px-2 pb-safe sm:hidden"
+      transition={{ type: "spring", damping: 20 }}
+      className="fixed bottom-0 left-0 right-0 z-50 sm:hidden"
     >
-      <div className="flex items-center justify-around py-2">
+      {/* Blur background */}
+      <div className="absolute inset-0 bg-white/80 dark:bg-gray-950/80 backdrop-blur-xl border-t border-gray-200 dark:border-gray-800" />
+
+      <div className="relative flex items-center justify-around px-2 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))]">
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
-            <button
+            <motion.button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
+              whileTap={{ scale: 0.9 }}
               className={cn(
-                "flex flex-col items-center gap-1 py-2 px-3 rounded-xl transition-all min-w-[60px]",
-                isActive
-                  ? "bg-purple-100 dark:bg-purple-900/50"
-                  : "hover:bg-gray-100 dark:hover:bg-gray-800"
+                "relative flex flex-col items-center gap-1 py-2 px-4 rounded-2xl transition-all",
+                isActive && "bg-gray-100 dark:bg-gray-800"
               )}
             >
+              {/* Indicador ativo */}
+              {isActive && (
+                <motion.div
+                  layoutId="activeTab"
+                  className={cn("absolute -top-1 left-1/2 -translate-x-1/2 w-8 h-1 rounded-full", tab.color)}
+                  transition={{ type: "spring", stiffness: 500, damping: 30 }}
+                />
+              )}
+
               <div className="relative">
                 <tab.icon className={cn(
-                  "w-5 h-5 transition-colors",
-                  isActive ? tab.color : "text-gray-400"
+                  "w-6 h-6 transition-all",
+                  isActive ? tab.textColor : "text-gray-400"
                 )} />
                 {tab.count > 0 && (
-                  <span className={cn(
-                    "absolute -top-1 -right-1 w-4 h-4 text-[10px] font-bold rounded-full flex items-center justify-center",
-                    isActive
-                      ? "bg-purple-600 text-white"
-                      : "bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300"
-                  )}>
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    className={cn(
+                      "absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] text-[10px] font-bold rounded-full flex items-center justify-center text-white",
+                      tab.color
+                    )}
+                  >
                     {tab.count}
-                  </span>
+                  </motion.span>
                 )}
               </div>
               <span className={cn(
-                "text-[10px] font-medium",
-                isActive ? "text-purple-600" : "text-gray-500"
+                "text-[10px] font-semibold transition-colors",
+                isActive ? tab.textColor : "text-gray-500"
               )}>
                 {tab.label}
               </span>
-            </button>
+            </motion.button>
           );
         })}
       </div>
     </motion.div>
   );
 };
+
+// =================================================================
+// COMPONENTE DE TAB DESKTOP MELHORADO
+// =================================================================
+const DesktopTabButton = ({
+  active,
+  icon: Icon,
+  label,
+  count,
+  color,
+  onClick,
+}: {
+  active: boolean;
+  icon: React.ElementType;
+  label: string;
+  count: number;
+  color: string;
+  onClick: () => void;
+}) => (
+  <motion.button
+    onClick={onClick}
+    whileHover={{ y: -2 }}
+    whileTap={{ scale: 0.98 }}
+    className={cn(
+      "relative flex items-center gap-3 px-5 py-3.5 rounded-xl font-semibold transition-all",
+      active
+        ? "bg-white dark:bg-gray-900 shadow-lg text-gray-900 dark:text-white"
+        : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-gray-800/50"
+    )}
+  >
+    {active && (
+      <motion.div
+        layoutId="activeDesktopTab"
+        className={cn("absolute bottom-0 left-1/2 -translate-x-1/2 w-12 h-1 rounded-full", color)}
+        transition={{ type: "spring", stiffness: 500, damping: 30 }}
+      />
+    )}
+    <Icon className={cn("w-5 h-5", active && color.replace("bg-", "text-"))} />
+    <span>{label}</span>
+    <span className={cn(
+      "px-2 py-0.5 text-xs font-bold rounded-full",
+      active ? `${color} text-white` : "bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400"
+    )}>
+      {count}
+    </span>
+  </motion.button>
+);
 
 // =================================================================
 // COMPONENTE PRINCIPAL
@@ -752,23 +1113,10 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
         colors,
       });
 
-      // Segundo burst para ultra
       if (userPlan === 'ultra') {
         setTimeout(() => {
-          confetti({
-            particleCount: 100,
-            angle: 60,
-            spread: 55,
-            origin: { x: 0 },
-            colors,
-          });
-          confetti({
-            particleCount: 100,
-            angle: 120,
-            spread: 55,
-            origin: { x: 1 },
-            colors,
-          });
+          confetti({ particleCount: 100, angle: 60, spread: 55, origin: { x: 0 }, colors });
+          confetti({ particleCount: 100, angle: 120, spread: 55, origin: { x: 1 }, colors });
         }, 250);
       }
 
@@ -867,220 +1215,325 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
            (results.content_pack?.story_sequences?.length ?? 0)
   } : null;
 
+  const tabsConfig = [
+    { id: "reels", icon: Video, label: "Reels", count: contentCounts?.reels ?? 0, color: "bg-blue-500" },
+    { id: "carousels", icon: Layers, label: "Carrosséis", count: contentCounts?.carousels ?? 0, color: "bg-purple-500" },
+    { id: "image_posts", icon: Camera, label: "Posts", count: contentCounts?.image_posts ?? 0, color: "bg-green-500" },
+    { id: "story_sequences", icon: MessageSquare, label: "Stories", count: contentCounts?.story_sequences ?? 0, color: "bg-orange-500" },
+  ];
+
   return (
-    <div className="w-full min-h-screen bg-gradient-to-br from-purple-50/30 via-pink-50/30 to-orange-50/30 dark:from-gray-950 dark:to-black pb-24 sm:pb-0">
+    <div className={cn(
+      "w-full min-h-screen pb-24 sm:pb-0",
+      userPlan === 'ultra'
+        ? "bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-purple-900/20 via-gray-950 to-black"
+        : "bg-gradient-to-br from-purple-50/50 via-pink-50/30 to-orange-50/30 dark:from-gray-950 dark:via-purple-950/10 dark:to-gray-950"
+    )}>
       {/* HEADER */}
-      <motion.div
+      <motion.header
         initial={{ y: -100 }}
         animate={{ y: 0 }}
-        className="sticky top-0 z-40 bg-white/95 dark:bg-gray-950/95 backdrop-blur-xl border-b border-purple-200/50 dark:border-white/10 shadow-lg"
+        transition={{ type: "spring", damping: 20 }}
+        className="sticky top-0 z-40"
       >
-        <div className="container px-3 sm:px-4">
-          <div className="flex items-center justify-between gap-2 py-3">
-            {/* Logo */}
-            <div className="flex items-center gap-2 min-w-0">
-              <h1 className="font-black text-xl sm:text-2xl truncate">
-                <span className={cn(
-                  "bg-clip-text text-transparent bg-gradient-to-r",
-                  userPlan === 'ultra'
-                    ? "from-purple-600 via-pink-500 to-orange-500"
-                    : "from-purple-600 via-pink-600 to-orange-600"
-                )}>
-                  FreelinnkBrain
-                </span>
-              </h1>
+        <div className={cn(
+          "backdrop-blur-xl border-b",
+          userPlan === 'ultra'
+            ? "bg-gray-950/80 border-white/10"
+            : "bg-white/80 dark:bg-gray-950/80 border-gray-200 dark:border-gray-800"
+        )}>
+          <div className="container px-3 sm:px-4 lg:px-6">
+            <div className="flex items-center justify-between gap-3 h-16 sm:h-18">
+              {/* Logo */}
+              <div className="flex items-center gap-3">
+                <motion.div
+                  whileHover={{ rotate: 360, scale: 1.1 }}
+                  transition={{ duration: 0.5 }}
+                  className={cn(
+                    "p-2 rounded-xl",
+                    userPlan === 'ultra'
+                      ? "bg-gradient-to-br from-purple-600 to-pink-600"
+                      : "bg-gradient-to-br from-purple-600 to-pink-600"
+                  )}
+                >
+                  <Brain className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                </motion.div>
 
-              {userPlan === 'ultra' ? (
-                <Badge className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white text-[10px] px-2 py-0.5 animate-pulse border-0">
-                  <Crown className="w-3 h-3 mr-1 fill-white" />
-                  ULTRA
-                </Badge>
-              ) : (
-                <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] px-2 py-0.5">
-                  <Zap className="w-3 h-3 mr-1" />
-                  PRO
-                </Badge>
-              )}
-            </div>
+                <div className="flex items-center gap-2">
+                  <h1 className={cn(
+                    "font-black text-lg sm:text-xl",
+                    userPlan === 'ultra' ? "text-white" : "text-gray-900 dark:text-white"
+                  )}>
+                    <span className="bg-clip-text text-transparent bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600">
+                      FreelinnkBrain
+                    </span>
+                  </h1>
 
-            {/* Desktop Tabs */}
-            <div className="hidden lg:flex items-center gap-2">
-              <Tabs value={mainView} className="w-auto">
-                <TabsList className="bg-gray-100 dark:bg-gray-800/50 h-10">
-                  <TabsTrigger
-                    value="generator"
-                    onClick={() => setMainView("generator")}
-                    className="text-sm data-[state=active]:bg-purple-600 data-[state=active]:text-white px-4"
-                  >
-                    <Sparkles className="w-4 h-4 mr-2" />
-                    Gerador
-                  </TabsTrigger>
-                  <TabsTrigger
-                    value="planner"
-                    onClick={() => setMainView("planner")}
-                    className="text-sm data-[state=active]:bg-purple-600 data-[state=active]:text-white px-4"
-                  >
-                    <Calendar className="w-4 h-4 mr-2" />
-                    Calendário
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </div>
+                  {userPlan === 'ultra' ? (
+                    <Badge className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white text-[10px] px-2 py-0.5 border-0 shadow-lg shadow-orange-500/20">
+                      <Crown className="w-3 h-3 mr-1 fill-white" />
+                      ULTRA
+                    </Badge>
+                  ) : (
+                    <Badge className="bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] px-2 py-0.5 border-0">
+                      <Zap className="w-3 h-3 mr-1" />
+                      PRO
+                    </Badge>
+                  )}
+                </div>
+              </div>
 
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      variant={hasAnyNotification ? "default" : "outline"}
-                      size="icon"
-                      onClick={() => setIsSettingsOpen(true)}
+              {/* Desktop Navigation */}
+              <div className="hidden lg:flex items-center gap-2 bg-gray-100 dark:bg-gray-800/50 rounded-xl p-1">
+                <motion.button
+                  onClick={() => setMainView("generator")}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all",
+                    mainView === "generator"
+                      ? "bg-white dark:bg-gray-900 shadow-md text-purple-600"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  )}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Gerador
+                </motion.button>
+                <motion.button
+                  onClick={() => setMainView("planner")}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  className={cn(
+                    "flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm transition-all",
+                    mainView === "planner"
+                      ? "bg-white dark:bg-gray-900 shadow-md text-purple-600"
+                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                  )}
+                >
+                  <Calendar className="w-4 h-4" />
+                  Calendário
+                </motion.button>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        onClick={() => setIsSettingsOpen(true)}
+                        className={cn(
+                          "p-2.5 rounded-xl transition-all",
+                          hasAnyNotification
+                            ? "bg-green-500 text-white shadow-lg shadow-green-500/30"
+                            : userPlan === 'ultra'
+                              ? "bg-white/10 text-white hover:bg-white/20"
+                              : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700"
+                        )}
+                      >
+                        {hasAnyNotification ? (
+                          <CheckCircle2 className="w-5 h-5" />
+                        ) : (
+                          <Bell className="w-5 h-5" />
+                        )}
+                      </motion.button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      {hasAnyNotification ? "Notificações Ativas" : "Configurar Notificações"}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+
+                <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => setIsHistorySidebarOpen(true)}
+                  className={cn(
+                    "hidden sm:flex items-center gap-2 px-4 py-2.5 rounded-xl font-medium text-sm transition-all",
+                    userPlan === 'ultra'
+                      ? "bg-white/10 text-white hover:bg-white/20 border border-white/10"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
+                  )}
+                >
+                  <Clock className="w-4 h-4" />
+                  Histórico
+                </motion.button>
+
+                {/* Mobile Menu */}
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <motion.button
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
                       className={cn(
-                        "h-9 w-9",
-                        hasAnyNotification && "bg-green-600 hover:bg-green-700"
+                        "lg:hidden p-2.5 rounded-xl",
+                        userPlan === 'ultra'
+                          ? "bg-white/10 text-white"
+                          : "bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400"
                       )}
                     >
-                      {hasAnyNotification ? (
-                        <CheckCircle2 className="w-4 h-4" />
-                      ) : (
-                        <Bell className="w-4 h-4" />
-                      )}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    {hasAnyNotification ? "Notificações Ativas" : "Configurar Notificações"}
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setIsHistorySidebarOpen(true)}
-                className="h-9 px-3"
-              >
-                <Clock className="w-4 h-4 sm:mr-2" />
-                <span className="hidden sm:inline text-sm font-medium">Histórico</span>
-              </Button>
-
-              {/* Mobile Menu */}
-              <Sheet>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="icon" className="lg:hidden h-9 w-9">
-                    <Menu className="w-4 h-4" />
-                  </Button>
-                </SheetTrigger>
-                <SheetContent side="left" className="w-[280px]">
-                  <SheetHeader>
-                    <SheetTitle>Menu</SheetTitle>
-                  </SheetHeader>
-                  <div className="grid gap-3 mt-6">
-                    <Button
-                      variant={mainView === "generator" ? "default" : "outline"}
-                      className="justify-start w-full"
-                      onClick={() => { setMainView("generator"); }}
-                    >
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Gerador
-                    </Button>
-                    <Button
-                      variant={mainView === "planner" ? "default" : "outline"}
-                      className="justify-start w-full"
-                      onClick={() => { setMainView("planner"); }}
-                    >
-                      <Calendar className="w-4 h-4 mr-2" />
-                      Calendário
-                    </Button>
-                  </div>
-                </SheetContent>
-              </Sheet>
+                      <Menu className="w-5 h-5" />
+                    </motion.button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px] p-0">
+                    <SheetHeader className="p-6 border-b">
+                      <SheetTitle className="flex items-center gap-2">
+                        <Brain className="w-5 h-5 text-purple-600" />
+                        FreelinnkBrain
+                      </SheetTitle>
+                    </SheetHeader>
+                    <div className="p-4 space-y-2">
+                      <Button
+                        variant={mainView === "generator" ? "default" : "ghost"}
+                        className="w-full justify-start h-12"
+                        onClick={() => setMainView("generator")}
+                      >
+                        <Sparkles className="w-5 h-5 mr-3" />
+                        Gerador
+                      </Button>
+                      <Button
+                        variant={mainView === "planner" ? "default" : "ghost"}
+                        className="w-full justify-start h-12"
+                        onClick={() => setMainView("planner")}
+                      >
+                        <Calendar className="w-5 h-5 mr-3" />
+                        Calendário
+                      </Button>
+                      <hr className="my-4" />
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start h-12"
+                        onClick={() => setIsHistorySidebarOpen(true)}
+                      >
+                        <Clock className="w-5 h-5 mr-3" />
+                        Histórico
+                      </Button>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
             </div>
           </div>
         </div>
-      </motion.div>
+      </motion.header>
 
       {/* SIDEBAR HISTÓRICO */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-        <SheetContent side="right" className="w-full sm:w-[400px] p-0 flex flex-col">
-          <SheetHeader className="px-4 py-4 border-b">
-            <SheetTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5 text-purple-600" />
-              Histórico de Campanhas
+        <SheetContent side="right" className="w-full sm:w-[420px] p-0 flex flex-col">
+          <SheetHeader className="p-5 border-b bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
+            <SheetTitle className="flex items-center gap-3">
+              <div className="p-2 bg-purple-600 rounded-xl">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <span className="block">Histórico</span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {campaigns?.length ?? 0} campanhas salvas
+                </span>
+              </div>
             </SheetTitle>
           </SheetHeader>
 
-          <div className="px-4 py-3 border-b bg-gray-50/50 dark:bg-gray-900/50">
+          <div className="px-4 py-3 border-b">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 placeholder="Buscar campanha..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-9"
+                className="pl-10 h-11 rounded-xl"
               />
+              {searchTerm && (
+                <button
+                  onClick={() => setSearchTerm("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              )}
             </div>
           </div>
 
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-3">
               {campaignsStatus === "LoadingFirstPage" ? (
-                <div className="flex flex-col items-center justify-center py-16">
-                  <Loader2 className="w-8 h-8 animate-spin text-purple-500" />
-                  <p className="text-sm text-muted-foreground mt-2">Carregando...</p>
+                <div className="flex flex-col items-center justify-center py-20">
+                  <Loader2 className="w-10 h-10 animate-spin text-purple-500" />
+                  <p className="text-sm text-muted-foreground mt-3">Carregando histórico...</p>
                 </div>
               ) : !campaigns || campaigns.length === 0 ? (
-                <div className="text-center py-16">
-                  <Brain className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p className="font-medium text-gray-600">Nenhuma campanha</p>
-                  <p className="text-sm text-muted-foreground">Gere sua primeira estratégia</p>
+                <div className="text-center py-20">
+                  <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                    <Brain className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+                  </div>
+                  <p className="font-semibold text-gray-700 dark:text-gray-300">
+                    Nenhuma campanha ainda
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Gere sua primeira campanha viral
+                  </p>
                 </div>
               ) : (
                 <>
                   {campaigns
                     .filter(c => c.theme.toLowerCase().includes(searchTerm.toLowerCase()))
-                    .map((campaign) => (
+                    .map((campaign, idx) => (
                       <motion.div
                         key={campaign._id}
                         initial={{ opacity: 0, x: 20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="group flex items-stretch bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700 transition-all overflow-hidden shadow-sm hover:shadow-md"
+                        transition={{ delay: idx * 0.05 }}
+                        className="group"
                       >
-                        <button
-                          onClick={() => handleCampaignSelect(campaign)}
-                          className="flex-1 p-3 text-left flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
-                        >
-                          <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-lg shrink-0">
-                            <Brain className="w-4 h-4 text-purple-600" />
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-sm line-clamp-2 leading-tight">
-                              {campaign.theme}
-                            </p>
-                            <p className="text-xs text-muted-foreground mt-1 flex items-center gap-1">
-                              <Clock className="w-3 h-3" />
-                              {new Date(campaign.createdAt).toLocaleDateString('pt-BR')}
-                            </p>
-                          </div>
-                        </button>
-                        <button
-                          onClick={() => handleCampaignDelete(campaign._id)}
-                          className="px-3 border-l border-gray-100 dark:border-gray-800 hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-500 transition-colors"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        <div className="flex items-stretch bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-purple-300 dark:hover:border-purple-700 transition-all overflow-hidden shadow-sm hover:shadow-lg">
+                          <button
+                            onClick={() => handleCampaignSelect(campaign)}
+                            className="flex-1 p-4 text-left flex items-start gap-3 hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors"
+                          >
+                            <div className="p-2.5 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl shrink-0">
+                              <Brain className="w-5 h-5 text-white" />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="font-semibold text-sm line-clamp-2 leading-snug text-gray-900 dark:text-white">
+                                {campaign.theme}
+                              </p>
+                              <p className="text-xs text-muted-foreground mt-1.5 flex items-center gap-1.5">
+                                <Clock className="w-3 h-3" />
+                                {new Date(campaign.createdAt).toLocaleDateString('pt-BR', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </p>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors shrink-0 self-center" />
+                          </button>
+                          <button
+                            onClick={() => handleCampaignDelete(campaign._id)}
+                            className="px-4 border-l border-gray-100 dark:border-gray-800 hover:bg-red-50 dark:hover:bg-red-950/30 text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </div>
                       </motion.div>
                     ))}
 
                   {campaignsStatus === "CanLoadMore" && !searchTerm && (
-                    <Button
-                      variant="ghost"
-                      className="w-full mt-4"
-                      onClick={() => loadMoreCampaigns(10)}
+                    <motion.div
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
                     >
-                      <ChevronDown className="w-4 h-4 mr-2" />
-                      Carregar mais
-                    </Button>
+                      <Button
+                        variant="ghost"
+                        className="w-full mt-4 h-12"
+                        onClick={() => loadMoreCampaigns(10)}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Carregar mais campanhas
+                      </Button>
+                    </motion.div>
                   )}
                 </>
               )}
@@ -1104,7 +1557,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
       <SettingsModal isOpen={isSettingsOpen} onClose={() => setIsSettingsOpen(false)} />
 
       {/* CONTEÚDO PRINCIPAL */}
-      <div className="container px-2 sm:px-4 py-4 sm:py-6">
+      <main className="container px-3 sm:px-4 lg:px-6 py-4 sm:py-8">
         <AnimatePresence mode="wait">
           {mainView === "generator" && (
             <motion.div
@@ -1112,82 +1565,70 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
             >
               {isLoading ? (
                 userPlan === 'ultra' ? <LoadingSpinnerUltra /> : <LoadingSpinnerPro />
               ) : results && currentCampaign ? (
-                <div className="space-y-4">
+                <div className="max-w-5xl mx-auto space-y-6">
                   {/* Stats Card */}
                   <ViralStatsCard results={results} userPlan={userPlan} />
 
-                  {/* Botão Nova Campanha */}
-                  <div className="flex justify-end mb-4">
-                    <Button onClick={handleGenerateNew} variant="outline" size="sm">
-                      <RefreshCcw className="w-4 h-4 mr-2" />
+                  {/* Action Bar */}
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6"
+                  >
+                    <div>
+                      <h2 className={cn(
+                        "text-xl sm:text-2xl font-bold",
+                        userPlan === 'ultra' && "text-white"
+                      )}>
+                        Seus Conteúdos
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        {contentCounts?.total} peças de conteúdo geradas
+                      </p>
+                    </div>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      onClick={handleGenerateNew}
+                      className={cn(
+                        "flex items-center gap-2 px-5 py-2.5 rounded-xl font-semibold text-sm transition-all",
+                        userPlan === 'ultra'
+                          ? "bg-white/10 text-white hover:bg-white/20 border border-white/20"
+                          : "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 hover:bg-purple-200 dark:hover:bg-purple-900/50"
+                      )}
+                    >
+                      <RefreshCcw className="w-4 h-4" />
                       Nova Campanha
-                    </Button>
-                  </div>
+                    </motion.button>
+                  </motion.div>
 
                   {/* Tabs Desktop */}
                   <div className="hidden sm:block">
-                    <Tabs value={activeTab} onValueChange={setActiveTab}>
-                      <TabsList className="w-full justify-start bg-gray-100 dark:bg-gray-800/50 p-1 h-auto flex-wrap">
-                        <TabsTrigger value="reels" className="flex-1 min-w-[100px] py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900">
-                          <Video className="w-4 h-4 mr-2" />
-                          Reels ({contentCounts?.reels})
-                        </TabsTrigger>
-                        <TabsTrigger value="carousels" className="flex-1 min-w-[100px] py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900">
-                          <Layers className="w-4 h-4 mr-2" />
-                          Carrosséis ({contentCounts?.carousels})
-                        </TabsTrigger>
-                        <TabsTrigger value="image_posts" className="flex-1 min-w-[100px] py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900">
-                          <Camera className="w-4 h-4 mr-2" />
-                          Posts ({contentCounts?.image_posts})
-                        </TabsTrigger>
-                        <TabsTrigger value="story_sequences" className="flex-1 min-w-[100px] py-2.5 data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900">
-                          <MessageSquare className="w-4 h-4 mr-2" />
-                          Stories ({contentCounts?.story_sequences})
-                        </TabsTrigger>
-                      </TabsList>
+                    <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 overflow-x-auto">
+                      {tabsConfig.map((tab) => (
+                        <DesktopTabButton
+                          key={tab.id}
+                          active={activeTab === tab.id}
+                          icon={tab.icon}
+                          label={tab.label}
+                          count={tab.count}
+                          color={tab.color}
+                          onClick={() => setActiveTab(tab.id)}
+                        />
+                      ))}
+                    </div>
 
-                      <div className="mt-6 space-y-4">
-                        <TabsContent value="reels" className="space-y-4 mt-0">
-                          {results.content_pack?.reels?.map((reel, i) => (
-                            userPlan === 'ultra' ? (
-                              <ReelCardUltra key={i} reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
-                            ) : (
-                              <ReelCardPro key={i} reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
-                            )
-                          ))}
-                        </TabsContent>
-                        <TabsContent value="carousels" className="space-y-4 mt-0">
-                          {results.content_pack?.carousels?.map((carousel, i) => (
-                            <CarouselCard key={i} carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
-                          ))}
-                        </TabsContent>
-                        <TabsContent value="image_posts" className="space-y-4 mt-0">
-                          {results.content_pack?.image_posts?.map((post, i) => (
-                            <ImagePostCard key={i} post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
-                          ))}
-                        </TabsContent>
-                        <TabsContent value="story_sequences" className="space-y-4 mt-0">
-                          {results.content_pack?.story_sequences?.map((story, i) => (
-                            <StoryCard key={i} story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
-                          ))}
-                        </TabsContent>
-                      </div>
-                    </Tabs>
-                  </div>
-
-                  {/* Conteúdo Mobile */}
-                  <div className="sm:hidden space-y-4">
-                    <AnimatePresence mode="wait">
+                    <div className="space-y-4">
                       {activeTab === "reels" && results.content_pack?.reels?.map((reel, i) => (
                         <motion.div
                           key={`reel-${i}`}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
                           transition={{ delay: i * 0.1 }}
                         >
                           {userPlan === 'ultra' ? (
@@ -1202,7 +1643,6 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                           key={`carousel-${i}`}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
                           transition={{ delay: i * 0.1 }}
                         >
                           <CarouselCard carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
@@ -1213,7 +1653,6 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                           key={`post-${i}`}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
                           transition={{ delay: i * 0.1 }}
                         >
                           <ImagePostCard post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
@@ -1224,8 +1663,61 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                           key={`story-${i}`}
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
-                          exit={{ opacity: 0, y: -20 }}
                           transition={{ delay: i * 0.1 }}
+                        >
+                          <StoryCard story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Conteúdo Mobile */}
+                  <div className="sm:hidden space-y-4">
+                    <AnimatePresence mode="wait">
+                      {activeTab === "reels" && results.content_pack?.reels?.map((reel, i) => (
+                        <motion.div
+                          key={`reel-mobile-${i}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ delay: i * 0.05 }}
+                        >
+                          {userPlan === 'ultra' ? (
+                            <ReelCardUltra reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
+                          ) : (
+                            <ReelCardPro reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
+                          )}
+                        </motion.div>
+                      ))}
+                      {activeTab === "carousels" && results.content_pack?.carousels?.map((carousel, i) => (
+                        <motion.div
+                          key={`carousel-mobile-${i}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ delay: i * 0.05 }}
+                        >
+                          <CarouselCard carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
+                        </motion.div>
+                      ))}
+                      {activeTab === "image_posts" && results.content_pack?.image_posts?.map((post, i) => (
+                        <motion.div
+                          key={`post-mobile-${i}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ delay: i * 0.05 }}
+                        >
+                          <ImagePostCard post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
+                        </motion.div>
+                      ))}
+                      {activeTab === "story_sequences" && results.content_pack?.story_sequences?.map((story, i) => (
+                        <motion.div
+                          key={`story-mobile-${i}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -20 }}
+                          transition={{ delay: i * 0.05 }}
                         >
                           <StoryCard story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
                         </motion.div>
@@ -1252,12 +1744,13 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.3 }}
             >
               <CalendarView />
             </motion.div>
           )}
         </AnimatePresence>
-      </div>
+      </main>
 
       {/* Navegação Mobile Inferior */}
       {results && mainView === "generator" && (
@@ -1269,10 +1762,24 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
       )}
 
       {/* Footer */}
-      <footer className="mt-16 py-6 border-t bg-white/50 dark:bg-black/20">
+      <footer className={cn(
+        "mt-20 py-8 border-t",
+        userPlan === 'ultra'
+          ? "bg-gray-950/50 border-white/10"
+          : "bg-white/50 dark:bg-black/20 border-gray-200 dark:border-gray-800"
+      )}>
         <div className="container text-center px-4">
-          <p className="text-sm text-gray-500">
-            FreelinnkBrain © {new Date().getFullYear()} • Criado com 💜
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <Brain className="w-5 h-5 text-purple-600" />
+            <span className="font-bold bg-clip-text text-transparent bg-gradient-to-r from-purple-600 to-pink-600">
+              FreelinnkBrain
+            </span>
+          </div>
+          <p className={cn(
+            "text-sm",
+            userPlan === 'ultra' ? "text-gray-400" : "text-gray-500"
+          )}>
+            © {new Date().getFullYear()} • Criado com 💜 para criadores de conteúdo
           </p>
         </div>
       </footer>

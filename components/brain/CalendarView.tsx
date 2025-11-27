@@ -1,4 +1,4 @@
-// components/brain/CalendarView.tsx - VERSÃO MELHORADA
+// components/brain/CalendarView.tsx - VERSÃO ULTRA APRIMORADA
 "use client";
 
 import { useState, useMemo } from "react";
@@ -23,7 +23,11 @@ import {
   Save,
   MoreVertical,
   Sparkles,
-  TrendingUp,
+
+  CalendarDays,
+  Bell,
+  Target,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,6 +42,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Select,
@@ -52,28 +57,124 @@ import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 import { Doc, Id } from "@/convex/_generated/dataModel";
 
+// =================================================================
+// CONFIGURAÇÕES
+// =================================================================
 const CONTENT_TYPE_CONFIG = {
-  reel: { icon: Video, label: "Reel", color: "bg-blue-500", textColor: "text-blue-600", bgLight: "bg-blue-50 dark:bg-blue-950/30" },
-  carousel: { icon: Layers, label: "Carrossel", color: "bg-purple-500", textColor: "text-purple-600", bgLight: "bg-purple-50 dark:bg-purple-950/30" },
-  image_post: { icon: Camera, label: "Post", color: "bg-pink-500", textColor: "text-pink-600", bgLight: "bg-pink-50 dark:bg-pink-950/30" },
-  story_sequence: { icon: MessageSquare, label: "Story", color: "bg-indigo-500", textColor: "text-indigo-600", bgLight: "bg-indigo-50 dark:bg-indigo-950/30" },
+  reel: {
+    icon: Video,
+    label: "Reel",
+    color: "bg-blue-500",
+    textColor: "text-blue-600",
+    bgLight: "bg-blue-50 dark:bg-blue-950/40",
+    borderColor: "border-blue-200 dark:border-blue-800",
+    gradient: "from-blue-500 to-cyan-500",
+  },
+  carousel: {
+    icon: Layers,
+    label: "Carrossel",
+    color: "bg-purple-500",
+    textColor: "text-purple-600",
+    bgLight: "bg-purple-50 dark:bg-purple-950/40",
+    borderColor: "border-purple-200 dark:border-purple-800",
+    gradient: "from-purple-500 to-pink-500",
+  },
+  image_post: {
+    icon: Camera,
+    label: "Post",
+    color: "bg-pink-500",
+    textColor: "text-pink-600",
+    bgLight: "bg-pink-50 dark:bg-pink-950/40",
+    borderColor: "border-pink-200 dark:border-pink-800",
+    gradient: "from-pink-500 to-rose-500",
+  },
+  story_sequence: {
+    icon: MessageSquare,
+    label: "Story",
+    color: "bg-orange-500",
+    textColor: "text-orange-600",
+    bgLight: "bg-orange-50 dark:bg-orange-950/40",
+    borderColor: "border-orange-200 dark:border-orange-800",
+    gradient: "from-orange-500 to-amber-500",
+  },
 } as const;
 
 const STATUS_CONFIG = {
-  draft: { icon: AlertCircle, label: "Rascunho", color: "text-gray-500", bg: "bg-gray-100" },
-  scheduled: { icon: CalendarIcon, label: "Agendado", color: "text-blue-500", bg: "bg-blue-100" },
-  queued: { icon: Clock, label: "Na Fila", color: "text-yellow-500", bg: "bg-yellow-100" },
-  publishing: { icon: Loader2, label: "Publicando", color: "text-orange-500 animate-spin", bg: "bg-orange-100" },
-  published: { icon: Check, label: "Publicado", color: "text-green-500", bg: "bg-green-100" },
-  failed: { icon: AlertCircle, label: "Falhou", color: "text-red-500", bg: "bg-red-100" },
-  notified: { icon: Check, label: "Notificado", color: "text-cyan-500", bg: "bg-cyan-100" },
-  completed: { icon: CheckCircle2, label: "Concluído", color: "text-green-500", bg: "bg-green-100" },
-  cancelled: { icon: X, label: "Cancelado", color: "text-gray-500", bg: "bg-gray-100" },
+  draft: { icon: AlertCircle, label: "Rascunho", color: "text-gray-500", bg: "bg-gray-100 dark:bg-gray-800" },
+  scheduled: { icon: CalendarIcon, label: "Agendado", color: "text-blue-500", bg: "bg-blue-100 dark:bg-blue-900/30" },
+  queued: { icon: Clock, label: "Na Fila", color: "text-yellow-500", bg: "bg-yellow-100 dark:bg-yellow-900/30" },
+  publishing: { icon: Loader2, label: "Publicando", color: "text-orange-500 animate-spin", bg: "bg-orange-100 dark:bg-orange-900/30" },
+  published: { icon: Check, label: "Publicado", color: "text-green-500", bg: "bg-green-100 dark:bg-green-900/30" },
+  failed: { icon: AlertCircle, label: "Falhou", color: "text-red-500", bg: "bg-red-100 dark:bg-red-900/30" },
+  notified: { icon: Bell, label: "Notificado", color: "text-cyan-500", bg: "bg-cyan-100 dark:bg-cyan-900/30" },
+  completed: { icon: CheckCircle2, label: "Concluído", color: "text-green-500", bg: "bg-green-100 dark:bg-green-900/30" },
+  cancelled: { icon: X, label: "Cancelado", color: "text-gray-500", bg: "bg-gray-100 dark:bg-gray-800" },
 } as const;
 
+const WEEKDAYS_FULL = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const WEEKDAYS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const WEEKDAYS_SHORT = ["D", "S", "T", "Q", "Q", "S", "S"];
 
+const EVENT_TYPES = [
+  { value: "task", label: "✅ Tarefa", icon: "✅" },
+  { value: "meeting", label: "📅 Reunião", icon: "📅" },
+  { value: "reminder", label: "⏰ Lembrete", icon: "⏰" },
+  { value: "deadline", label: "🎯 Deadline", icon: "🎯" },
+  { value: "custom", label: "📝 Personalizado", icon: "📝" },
+] as const;
+
+// =================================================================
+// COMPONENTE STAT CARD
+// =================================================================
+const StatCard = ({
+  icon: Icon,
+  value,
+  label,
+  gradient,
+  delay = 0,
+}: {
+  icon: React.ElementType;
+  value: number;
+  label: string;
+  gradient: string;
+  delay?: number;
+}) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20, scale: 0.9 }}
+    animate={{ opacity: 1, y: 0, scale: 1 }}
+    transition={{ delay, type: "spring" }}
+    whileHover={{ scale: 1.03, y: -2 }}
+    className="relative overflow-hidden"
+  >
+    <Card className={cn(
+      "p-3 sm:p-4 border-0 shadow-lg cursor-pointer transition-shadow hover:shadow-xl",
+      `bg-gradient-to-br ${gradient}`
+    )}>
+      <div className="relative z-10 flex items-center gap-3">
+        <div className="p-2 sm:p-2.5 bg-white/20 backdrop-blur-sm rounded-xl">
+          <Icon className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        </div>
+        <div>
+          <motion.p
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ delay: delay + 0.2, type: "spring" }}
+            className="text-2xl sm:text-3xl font-black text-white"
+          >
+            {value}
+          </motion.p>
+          <p className="text-[10px] sm:text-xs text-white/80 font-medium">{label}</p>
+        </div>
+      </div>
+      {/* Decoração */}
+      <div className="absolute top-0 right-0 w-16 h-16 bg-white/10 rounded-bl-full" />
+    </Card>
+  </motion.div>
+);
+
+// =================================================================
+// COMPONENTE PRINCIPAL
+// =================================================================
 export default function CalendarView() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
@@ -106,6 +207,9 @@ export default function CalendarView() {
   const deleteEvent = useMutation(api.calendar.deleteCustomEvent);
   const toggleEventStatus = useMutation(api.calendar.toggleEventStatus);
 
+  // =================================================================
+  // DADOS DO CALENDÁRIO
+  // =================================================================
   const calendarDays = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
@@ -136,13 +240,23 @@ export default function CalendarView() {
       isCurrentMonth: boolean;
       isToday: boolean;
       isPast: boolean;
+      isWeekend: boolean;
       posts: Doc<"scheduledPosts">[];
       events: Doc<"customCalendarEvents">[];
     }> = [];
 
     // Dias do mês anterior
     for (let i = 0; i < startingDayOfWeek; i++) {
-      days.push({ date: "", day: 0, isCurrentMonth: false, isToday: false, isPast: true, posts: [], events: [] });
+      days.push({
+        date: "",
+        day: 0,
+        isCurrentMonth: false,
+        isToday: false,
+        isPast: true,
+        isWeekend: false,
+        posts: [],
+        events: [],
+      });
     }
 
     const today = new Date();
@@ -155,6 +269,8 @@ export default function CalendarView() {
       const currentDayDate = new Date(year, month, day);
       const isToday = today.getDate() === day && today.getMonth() === month && today.getFullYear() === year;
       const isPast = currentDayDate < today && !isToday;
+      const dayOfWeek = currentDayDate.getDay();
+      const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
 
       days.push({
         date: dateStr,
@@ -162,6 +278,7 @@ export default function CalendarView() {
         isCurrentMonth: true,
         isToday,
         isPast,
+        isWeekend,
         posts: dayPosts,
         events: dayEvents,
       });
@@ -170,6 +287,9 @@ export default function CalendarView() {
     return days;
   }, [currentDate, posts, customEvents]);
 
+  // =================================================================
+  // HANDLERS
+  // =================================================================
   const handlePrevMonth = () => {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1));
     setSelectedDate(null);
@@ -202,7 +322,7 @@ export default function CalendarView() {
   const handleSavePost = async () => {
     if (!editingPost) return;
 
-    const loading = toast.loading("Salvando...");
+    const loadingId = toast.loading("Salvando alterações...");
     try {
       await updatePost({
         postId: editingPost._id,
@@ -211,38 +331,40 @@ export default function CalendarView() {
         scheduledDate: editingPost.scheduledDate,
         scheduledTime: editingPost.scheduledTime,
       });
-      toast.dismiss(loading);
-      toast.success("✅ Post atualizado!");
+      toast.dismiss(loadingId);
+      toast.success("✅ Post atualizado com sucesso!");
       setIsEditModalOpen(false);
       setEditingPost(null);
     } catch (error) {
-      toast.dismiss(loading);
+      toast.dismiss(loadingId);
       toast.error(error instanceof Error ? error.message : "Erro ao salvar");
     }
   };
 
   const handleDeletePost = async (postId: Id<"scheduledPosts">) => {
-    if (!confirm("Tem certeza que deseja excluir este post?")) return;
+    if (!confirm("Tem certeza que deseja excluir este post agendado?")) return;
 
-    const loading = toast.loading("Excluindo...");
+    const loadingId = toast.loading("Excluindo...");
     try {
       await deletePost({ postId });
-      toast.dismiss(loading);
+      toast.dismiss(loadingId);
       toast.success("Post excluído!");
     } catch {
-      toast.dismiss(loading);
+      toast.dismiss(loadingId);
       toast.error("Erro ao excluir");
     }
   };
 
   const handleCreateEvent = async () => {
     if (!newEventTitle.trim() || !selectedDate) {
-      toast.error("Preencha o título");
+      toast.error("Preencha o título do evento");
       return;
     }
 
-    const loading = toast.loading("Criando evento...");
+    const loadingId = toast.loading("Criando evento...");
     try {
+      const eventIcon = EVENT_TYPES.find(e => e.value === newEventType)?.icon || "📝";
+
       await createEvent({
         title: newEventTitle,
         description: newEventDesc,
@@ -250,21 +372,25 @@ export default function CalendarView() {
         date: selectedDate,
         time: newEventTime || undefined,
         color: "#8B5CF6",
-        icon: newEventType === "meeting" ? "📅" : newEventType === "reminder" ? "⏰" : "✅",
+        icon: eventIcon,
         notificationMethods: [],
       });
 
-      toast.dismiss(loading);
-      toast.success("✅ Evento criado!");
+      toast.dismiss(loadingId);
+      toast.success("✅ Evento criado com sucesso!");
       setIsNewEventModalOpen(false);
-      setNewEventTitle("");
-      setNewEventDesc("");
-      setNewEventTime("");
-      setNewEventType("task");
+      resetNewEventForm();
     } catch {
-      toast.dismiss(loading);
+      toast.dismiss(loadingId);
       toast.error("Erro ao criar evento");
     }
+  };
+
+  const resetNewEventForm = () => {
+    setNewEventTitle("");
+    setNewEventDesc("");
+    setNewEventTime("");
+    setNewEventType("task");
   };
 
   const handleToggleEvent = async (eventId: Id<"customCalendarEvents">) => {
@@ -287,434 +413,598 @@ export default function CalendarView() {
     }
   };
 
+  // =================================================================
+  // RENDER
+  // =================================================================
   return (
-    <div className="space-y-4">
-      {/* Header Stats */}
-      {stats && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <Card className="p-3 bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-950/30 dark:to-blue-900/20 border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-blue-500 rounded-lg">
-                <CalendarIcon className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{stats.totalPosts}</p>
-                <p className="text-xs text-blue-600 dark:text-blue-400">Posts</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-3 bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-950/30 dark:to-purple-900/20 border-purple-200 dark:border-purple-800">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-purple-500 rounded-lg">
-                <Sparkles className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-purple-700 dark:text-purple-300">{stats.totalEvents}</p>
-                <p className="text-xs text-purple-600 dark:text-purple-400">Eventos</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-3 bg-gradient-to-br from-green-50 to-green-100 dark:from-green-950/30 dark:to-green-900/20 border-green-200 dark:border-green-800">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-green-500 rounded-lg">
-                <CheckCircle2 className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{stats.byStatus.completed || 0}</p>
-                <p className="text-xs text-green-600 dark:text-green-400">Concluídos</p>
-              </div>
-            </div>
-          </Card>
-          <Card className="p-3 bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-950/30 dark:to-orange-900/20 border-orange-200 dark:border-orange-800">
-            <div className="flex items-center gap-2">
-              <div className="p-2 bg-orange-500 rounded-lg">
-                <TrendingUp className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold text-orange-700 dark:text-orange-300">{stats.byStatus.scheduled || 0}</p>
-                <p className="text-xs text-orange-600 dark:text-orange-400">Pendentes</p>
-              </div>
-            </div>
-          </Card>
+    <div className="space-y-4 sm:space-y-6">
+      {/* Header com Stats */}
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-4"
+      >
+        {/* Título */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h2 className="text-2xl sm:text-3xl font-black bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text text-transparent">
+              Calendário de Conteúdo
+            </h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              Gerencie suas publicações e eventos
+            </p>
+          </div>
         </div>
-      )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        {/* Stats Grid */}
+        {stats && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <StatCard
+              icon={CalendarDays}
+              value={stats.totalPosts}
+              label="Posts Agendados"
+              gradient="from-blue-500 to-cyan-500"
+              delay={0}
+            />
+            <StatCard
+              icon={Sparkles}
+              value={stats.totalEvents}
+              label="Eventos"
+              gradient="from-purple-500 to-pink-500"
+              delay={0.1}
+            />
+            <StatCard
+              icon={CheckCircle2}
+              value={stats.byStatus.completed || 0}
+              label="Concluídos"
+              gradient="from-green-500 to-emerald-500"
+              delay={0.2}
+            />
+            <StatCard
+              icon={Target}
+              value={stats.byStatus.scheduled || 0}
+              label="Pendentes"
+              gradient="from-orange-500 to-amber-500"
+              delay={0.3}
+            />
+          </div>
+        )}
+      </motion.div>
+
+      {/* Layout Principal */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
         {/* CALENDÁRIO */}
-        <Card className="lg:col-span-2 shadow-xl border-2 overflow-hidden">
-          <CardHeader className="pb-3 px-3 sm:px-6 bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/20 dark:to-pink-950/20">
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div className="space-y-1">
-                <CardTitle className="flex items-center gap-2 text-lg sm:text-xl capitalize">
-                  <CalendarIcon className="w-5 h-5 text-purple-600" />
-                  {monthName}
-                </CardTitle>
-              </div>
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Button variant="outline" size="sm" onClick={handleToday} className="flex-1 sm:flex-none h-9">
-                  Hoje
-                </Button>
-                <Button variant="outline" size="icon" onClick={handlePrevMonth} className="h-9 w-9">
-                  <ChevronLeft className="w-4 h-4" />
-                </Button>
-                <Button variant="outline" size="icon" onClick={handleNextMonth} className="h-9 w-9">
-                  <ChevronRight className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-
-          <CardContent className="px-2 sm:px-4 pb-4 pt-4">
-            {/* Cabeçalho dos dias */}
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {WEEKDAYS.map((day, i) => (
-                <div key={i} className="text-center text-xs font-semibold text-muted-foreground py-2">
-                  <span className="hidden sm:inline">{day}</span>
-                  <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span>
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.2 }}
+          className="lg:col-span-2"
+        >
+          <Card className="shadow-2xl border-0 bg-white dark:bg-gray-900 overflow-hidden">
+            {/* Header do Calendário */}
+            <CardHeader className="pb-4 px-4 sm:px-6 bg-gradient-to-r from-purple-50 via-pink-50 to-orange-50 dark:from-purple-950/30 dark:via-pink-950/30 dark:to-orange-950/30 border-b">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <CardTitle className="flex items-center gap-2 text-xl sm:text-2xl font-black capitalize">
+                    <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl">
+                      <CalendarIcon className="w-5 h-5 text-white" />
+                    </div>
+                    {monthName}
+                  </CardTitle>
                 </div>
-              ))}
-            </div>
 
-            {/* Grid do calendário */}
-            <div className="grid grid-cols-7 gap-1">
-              {calendarDays.map((day, idx) => {
-                const isSelected = selectedDate === day.date;
-                const hasContent = day.posts.length > 0 || day.events.length > 0;
-
-                return (
-                  <motion.button
-                    key={idx}
-                    type="button"
-                    whileHover={day.isCurrentMonth ? { scale: 1.02 } : {}}
-                    whileTap={day.isCurrentMonth ? { scale: 0.98 } : {}}
-                    disabled={!day.isCurrentMonth}
-                    className={cn(
-                      "min-h-[70px] sm:min-h-[90px] p-1 sm:p-2 border rounded-lg relative transition-all",
-                      "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
-                      day.isCurrentMonth
-                        ? "bg-white dark:bg-gray-900 hover:shadow-md cursor-pointer"
-                        : "bg-gray-50 dark:bg-gray-950 opacity-30 cursor-not-allowed",
-                      day.isToday && "ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-950/30",
-                      day.isPast && day.isCurrentMonth && "opacity-60",
-                      isSelected && "ring-2 ring-blue-600 bg-blue-50 dark:bg-blue-950/30 shadow-lg",
-                      hasContent && !isSelected && "border-purple-200 dark:border-purple-800"
-                    )}
-                    onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
+                <div className="flex items-center gap-2 w-full sm:w-auto">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleToday}
+                    className="flex-1 sm:flex-none h-10 font-semibold hover:bg-purple-50 dark:hover:bg-purple-950/50"
                   >
-                    {day.isCurrentMonth && (
-                      <>
-                        <div className={cn(
-                          "text-xs sm:text-sm font-semibold mb-1",
-                          day.isToday && "text-purple-600",
-                          isSelected && "text-blue-600"
-                        )}>
-                          {day.day}
-                        </div>
-
-                        <div className="space-y-0.5">
-                          {day.posts.slice(0, 2).map((post) => {
-                            const config = CONTENT_TYPE_CONFIG[post.contentType];
-                            return (
-                              <div
-                                key={post._id}
-                                className={cn(
-                                  "text-[8px] sm:text-[10px] px-1 py-0.5 rounded truncate",
-                                  config.bgLight, config.textColor
-                                )}
-                              >
-                                <span className="hidden sm:inline">{post.scheduledTime}</span>
-                                <span className="sm:hidden">•</span>
-                              </div>
-                            );
-                          })}
-                          {day.events.slice(0, 1).map((event) => (
-                            <div
-                              key={event._id}
-                              className="text-[8px] sm:text-[10px] px-1 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 truncate"
-                            >
-                              {event.icon}
-                            </div>
-                          ))}
-                          {(day.posts.length + day.events.length) > 3 && (
-                            <div className="text-[8px] text-center text-muted-foreground">
-                              +{day.posts.length + day.events.length - 3}
-                            </div>
-                          )}
-                        </div>
-
-                        {isSelected && (
-                          <motion.div
-                            initial={{ scale: 0 }}
-                            animate={{ scale: 1 }}
-                            className="absolute -top-1 -right-1 w-4 h-4 bg-blue-600 rounded-full flex items-center justify-center"
-                          >
-                            <Check className="w-2.5 h-2.5 text-white" />
-                          </motion.div>
-                        )}
-                      </>
-                    )}
-                  </motion.button>
-                );
-              })}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* SIDEBAR */}
-        <Card className="shadow-xl border-2">
-          <CardHeader className="pb-3 px-3 sm:px-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                {selectedDate ? (
-                  <>
-                    📅 {new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", {
-                      day: "2-digit",
-                      month: "short",
-                    })}
-                  </>
-                ) : (
-                  "Selecione um dia"
-                )}
-              </CardTitle>
-              {selectedDate && (
-                <Button size="sm" onClick={() => setIsNewEventModalOpen(true)} className="h-8 bg-purple-600 hover:bg-purple-700">
-                  <Plus className="w-3 h-3 mr-1" />
-                  Novo
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-
-          <CardContent className="px-2 sm:px-4 pt-4">
-            <ScrollArea className="h-[350px] sm:h-[450px]">
-              {!selectedDayData || (selectedDayData.posts.length === 0 && selectedDayData.events.length === 0) ? (
-                <div className="text-center py-12 text-muted-foreground">
-                  <CalendarIcon className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm font-medium">
-                    {selectedDate ? "Nada agendado" : "👆 Clique em um dia"}
-                  </p>
-                  {selectedDate && (
+                    <Zap className="w-4 h-4 mr-1.5 text-purple-600" />
+                    Hoje
+                  </Button>
+                  <div className="flex items-center bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
                     <Button
-                      variant="outline"
-                      size="sm"
-                      className="mt-3"
-                      onClick={() => setIsNewEventModalOpen(true)}
+                      variant="ghost"
+                      size="icon"
+                      onClick={handlePrevMonth}
+                      className="h-9 w-9 hover:bg-white dark:hover:bg-gray-700 rounded-lg"
                     >
-                      <Plus className="w-3 h-3 mr-1" />
-                      Adicionar evento
+                      <ChevronLeft className="w-5 h-5" />
                     </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleNextMonth}
+                      className="h-9 w-9 hover:bg-white dark:hover:bg-gray-700 rounded-lg"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-2 sm:p-4">
+              {/* Cabeçalho dos dias da semana */}
+              <div className="grid grid-cols-7 gap-1 mb-2">
+                {WEEKDAYS.map((day, i) => (
+                  <div
+                    key={i}
+                    className={cn(
+                      "text-center text-xs sm:text-sm font-bold py-2 sm:py-3 rounded-lg",
+                      i === 0 || i === 6
+                        ? "text-pink-500 bg-pink-50 dark:bg-pink-950/30"
+                        : "text-gray-600 dark:text-gray-400"
+                    )}
+                  >
+                    <span className="hidden sm:inline">{day}</span>
+                    <span className="sm:hidden">{WEEKDAYS_SHORT[i]}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Grid do calendário */}
+              <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+                {calendarDays.map((day, idx) => {
+                  const isSelected = selectedDate === day.date;
+                  const hasContent = day.posts.length > 0 || day.events.length > 0;
+                  const totalItems = day.posts.length + day.events.length;
+
+                  return (
+                    <motion.button
+                      key={idx}
+                      type="button"
+                      whileHover={day.isCurrentMonth ? { scale: 1.02 } : {}}
+                      whileTap={day.isCurrentMonth ? { scale: 0.98 } : {}}
+                      disabled={!day.isCurrentMonth}
+                      className={cn(
+                        "relative min-h-[60px] sm:min-h-[80px] md:min-h-[100px] p-1 sm:p-2 rounded-xl transition-all",
+                        "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
+                        day.isCurrentMonth
+                          ? "bg-white dark:bg-gray-800/50 hover:shadow-lg cursor-pointer border border-gray-100 dark:border-gray-800"
+                          : "bg-gray-50 dark:bg-gray-950 opacity-30 cursor-not-allowed",
+                        day.isToday && "ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-950/50 border-purple-200",
+                        day.isPast && day.isCurrentMonth && "opacity-60",
+                        day.isWeekend && day.isCurrentMonth && "bg-pink-50/50 dark:bg-pink-950/20",
+                        isSelected && "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/50 shadow-xl border-blue-200",
+                        hasContent && !isSelected && "border-purple-200 dark:border-purple-800"
+                      )}
+                      onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
+                    >
+                      {day.isCurrentMonth && (
+                        <>
+                          {/* Número do dia */}
+                          <div className={cn(
+                            "text-xs sm:text-sm font-bold mb-1",
+                            day.isToday && "text-purple-600 dark:text-purple-400",
+                            day.isWeekend && !day.isToday && "text-pink-500",
+                            isSelected && "text-blue-600"
+                          )}>
+                            {day.day}
+                          </div>
+
+                          {/* Indicadores de conteúdo */}
+                          <div className="space-y-0.5">
+                            {/* Posts */}
+                            {day.posts.slice(0, 2).map((post) => {
+                              const config = CONTENT_TYPE_CONFIG[post.contentType];
+                              return (
+                                <div
+                                  key={post._id}
+                                  className={cn(
+                                    "hidden sm:flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md",
+                                    config.bgLight, config.textColor
+                                  )}
+                                >
+                                  <config.icon className="w-2.5 h-2.5" />
+                                  <span className="truncate">{post.scheduledTime}</span>
+                                </div>
+                              );
+                            })}
+
+                            {/* Mobile: Dots indicadores */}
+                            <div className="sm:hidden flex gap-0.5 flex-wrap">
+                              {day.posts.slice(0, 3).map((post) => {
+                                const config = CONTENT_TYPE_CONFIG[post.contentType];
+                                return (
+                                  <div
+                                    key={post._id}
+                                    className={cn("w-1.5 h-1.5 rounded-full", config.color)}
+                                  />
+                                );
+                              })}
+                              {day.events.slice(0, 2).map((event) => (
+                                <div
+                                  key={event._id}
+                                  className="w-1.5 h-1.5 rounded-full bg-purple-500"
+                                />
+                              ))}
+                            </div>
+
+                            {/* Eventos */}
+                            {day.events.slice(0, 1).map((event) => (
+                              <div
+                                key={event._id}
+                                className="hidden sm:flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-600"
+                              >
+                                <span>{event.icon}</span>
+                                <span className="truncate">{event.title}</span>
+                              </div>
+                            ))}
+
+                            {/* Contador de itens adicionais */}
+                            {totalItems > 3 && (
+                              <div className="text-[9px] text-center text-muted-foreground font-medium">
+                                +{totalItems - 3}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Indicador de seleção */}
+                          {isSelected && (
+                            <motion.div
+                              initial={{ scale: 0 }}
+                              animate={{ scale: 1 }}
+                              className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center shadow-lg"
+                            >
+                              <Check className="w-3 h-3 text-white" />
+                            </motion.div>
+                          )}
+
+                          {/* Indicador Today */}
+                          {day.isToday && (
+                            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-600 rounded-full" />
+                          )}
+                        </>
+                      )}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* SIDEBAR - DETALHES DO DIA */}
+        <motion.div
+          initial={{ opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delay: 0.3 }}
+        >
+          <Card className="shadow-2xl border-0 bg-white dark:bg-gray-900 sticky top-20">
+            <CardHeader className="pb-3 px-4 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/30 dark:to-purple-950/30 border-b">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base sm:text-lg font-bold flex items-center gap-2">
+                  {selectedDate ? (
+                    <>
+                      <div className="p-1.5 bg-blue-600 rounded-lg">
+                        <CalendarDays className="w-4 h-4 text-white" />
+                      </div>
+                      <div>
+                        <span className="block">
+                          {new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", {
+                            day: "2-digit",
+                            month: "long",
+                          })}
+                        </span>
+                        <span className="text-xs font-normal text-muted-foreground">
+                          {WEEKDAYS_FULL[new Date(selectedDate + "T00:00:00").getDay()]}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="p-1.5 bg-gray-400 rounded-lg">
+                        <CalendarDays className="w-4 h-4 text-white" />
+                      </div>
+                      Selecione um dia
+                    </>
+                  )}
+                </CardTitle>
+                {selectedDate && (
+                  <Button
+                    size="sm"
+                    onClick={() => setIsNewEventModalOpen(true)}
+                    className="h-9 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg"
+                  >
+                    <Plus className="w-4 h-4 sm:mr-1.5" />
+                    <span className="hidden sm:inline">Novo</span>
+                  </Button>
+                )}
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-0">
+              <ScrollArea className="h-[400px] sm:h-[500px]">
+                <div className="p-4">
+                  {!selectedDayData || (selectedDayData.posts.length === 0 && selectedDayData.events.length === 0) ? (
+                    <motion.div
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="text-center py-12"
+                    >
+                      <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                        <CalendarIcon className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+                      </div>
+                      <p className="font-semibold text-gray-600 dark:text-gray-400">
+                        {selectedDate ? "Nada agendado" : "Selecione um dia"}
+                      </p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        {selectedDate ? "Este dia está livre" : "Clique em um dia do calendário"}
+                      </p>
+                      {selectedDate && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="mt-4"
+                          onClick={() => setIsNewEventModalOpen(true)}
+                        >
+                          <Plus className="w-4 h-4 mr-1.5" />
+                          Adicionar evento
+                        </Button>
+                      )}
+                    </motion.div>
+                  ) : (
+                    <div className="space-y-3">
+                      {/* POSTS */}
+                      {selectedDayData.posts.map((post, idx) => {
+                        const config = CONTENT_TYPE_CONFIG[post.contentType];
+                        const Icon = config.icon;
+                        const StatusIcon = STATUS_CONFIG[post.status]?.icon || AlertCircle;
+
+                        return (
+                          <motion.div
+                            key={post._id}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: idx * 0.05 }}
+                            className={cn(
+                              "p-4 rounded-2xl border-2 transition-all hover:shadow-lg group",
+                              config.bgLight, config.borderColor
+                            )}
+                          >
+                            <div className="flex items-start justify-between gap-2 mb-3">
+                              <div className="flex items-center gap-2.5">
+                                <div className={cn("p-2 rounded-xl bg-gradient-to-br", config.gradient)}>
+                                  <Icon className="w-4 h-4 text-white" />
+                                </div>
+                                <div>
+                                  <Badge className={cn("text-[10px] text-white", config.color)}>
+                                    {config.label}
+                                  </Badge>
+                                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                                    <Clock className="w-3 h-3" />
+                                    {post.scheduledTime}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  >
+                                    <MoreVertical className="w-4 h-4" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-40">
+                                  <DropdownMenuItem onClick={() => handleEditPost(post)}>
+                                    <Edit className="w-4 h-4 mr-2" />
+                                    Editar
+                                  </DropdownMenuItem>
+                                  <DropdownMenuSeparator />
+                                  <DropdownMenuItem
+                                    onClick={() => handleDeletePost(post._id)}
+                                    className="text-red-600 focus:text-red-600"
+                                  >
+                                    <Trash2 className="w-4 h-4 mr-2" />
+                                    Excluir
+                                  </DropdownMenuItem>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </div>
+
+                            <p className="text-sm line-clamp-2 text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
+                              {post.caption}
+                            </p>
+
+                            <div className="flex items-center justify-between">
+                              <Badge variant="secondary" className="text-[10px] capitalize">
+                                {post.platform}
+                              </Badge>
+                              <div className={cn(
+                                "flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full font-medium",
+                                STATUS_CONFIG[post.status]?.bg,
+                                STATUS_CONFIG[post.status]?.color
+                              )}>
+                                <StatusIcon className="w-3 h-3" />
+                                <span>{STATUS_CONFIG[post.status]?.label}</span>
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+
+                      {/* EVENTOS */}
+                      {selectedDayData.events.map((event, idx) => (
+                        <motion.div
+                          key={event._id}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: (selectedDayData.posts.length + idx) * 0.05 }}
+                          className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-2xl border-2 border-purple-200 dark:border-purple-800 group"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex items-start gap-3 flex-1 min-w-0">
+                              <div className="text-2xl">{event.icon}</div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className={cn(
+                                  "font-bold text-sm truncate",
+                                  event.status === "completed" && "line-through text-muted-foreground"
+                                )}>
+                                  {event.title}
+                                </h4>
+                                {event.time && (
+                                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                                    <Clock className="w-3 h-3" />
+                                    {event.time}
+                                  </p>
+                                )}
+                                {event.description && (
+                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
+                                    {event.description}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() => handleToggleEvent(event._id)}
+                              >
+                                {event.status === "completed" ? (
+                                  <CheckCircle2 className="w-5 h-5 text-green-600" />
+                                ) : (
+                                  <div className="w-5 h-5 rounded-full border-2 border-gray-300 hover:border-purple-500 transition-colors" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => handleDeleteEvent(event._id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
                   )}
                 </div>
-              ) : (
-                <div className="space-y-3 px-1">
-                  {/* Posts */}
-                  {selectedDayData.posts.map((post) => {
-                    const config = CONTENT_TYPE_CONFIG[post.contentType];
-                    const Icon = config.icon;
-                    const StatusIcon = STATUS_CONFIG[post.status]?.icon || AlertCircle;
-
-                    return (
-                      <motion.div
-                        key={post._id}
-                        initial={{ opacity: 0, y: 10 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        className={cn(
-                          "p-3 rounded-xl border-2 transition-all hover:shadow-md",
-                          config.bgLight
-                        )}
-                      >
-                        <div className="flex items-start justify-between gap-2 mb-2">
-                          <div className="flex items-center gap-2">
-                            <div className={cn("p-1.5 rounded-lg", config.color)}>
-                              <Icon className="w-3.5 h-3.5 text-white" />
-                            </div>
-                            <div>
-                              <Badge variant="outline" className="text-[10px] h-5">
-                                {config.label}
-                              </Badge>
-                              <p className="text-xs text-muted-foreground mt-0.5">
-                                {post.scheduledTime}
-                              </p>
-                            </div>
-                          </div>
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="icon" className="h-7 w-7">
-                                <MoreVertical className="w-4 h-4" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end">
-                              <DropdownMenuItem onClick={() => handleEditPost(post)}>
-                                <Edit className="w-4 h-4 mr-2" />
-                                Editar
-                              </DropdownMenuItem>
-                              <DropdownMenuItem
-                                onClick={() => handleDeletePost(post._id)}
-                                className="text-red-600"
-                              >
-                                <Trash2 className="w-4 h-4 mr-2" />
-                                Excluir
-                              </DropdownMenuItem>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
-                        </div>
-
-                        <p className="text-xs line-clamp-2 text-gray-700 dark:text-gray-300 mb-2">
-                          {post.caption}
-                        </p>
-
-                        <div className="flex items-center justify-between">
-                          <Badge variant="secondary" className="text-[10px] capitalize">
-                            {post.platform}
-                          </Badge>
-                          <div className={cn(
-                            "flex items-center gap-1 text-[10px]",
-                            STATUS_CONFIG[post.status]?.color
-                          )}>
-                            <StatusIcon className="w-3 h-3" />
-                            <span>{STATUS_CONFIG[post.status]?.label}</span>
-                          </div>
-                        </div>
-                      </motion.div>
-                    );
-                  })}
-
-                  {/* Eventos */}
-                  {selectedDayData.events.map((event) => (
-                    <motion.div
-                      key={event._id}
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="p-3 bg-purple-50 dark:bg-purple-950/20 rounded-xl border-2 border-purple-200 dark:border-purple-800"
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex items-center gap-2 flex-1 min-w-0">
-                          <span className="text-xl">{event.icon}</span>
-                          <div className="flex-1 min-w-0">
-                            <h4 className={cn(
-                              "text-sm font-semibold truncate",
-                              event.status === "completed" && "line-through text-muted-foreground"
-                            )}>
-                              {event.title}
-                            </h4>
-                            {event.time && (
-                              <p className="text-xs text-muted-foreground">{event.time}</p>
-                            )}
-                          </div>
-                        </div>
-                        <div className="flex gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7"
-                            onClick={() => handleToggleEvent(event._id)}
-                          >
-                            {event.status === "completed" ? (
-                              <CheckCircle2 className="w-4 h-4 text-green-600" />
-                            ) : (
-                              <Clock className="w-4 h-4" />
-                            )}
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 text-red-600 hover:text-red-700 hover:bg-red-50"
-                            onClick={() => handleDeleteEvent(event._id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-              )}
-            </ScrollArea>
-          </CardContent>
-        </Card>
+              </ScrollArea>
+            </CardContent>
+          </Card>
+        </motion.div>
       </div>
 
+      {/* ================================================================= */}
       {/* MODAL: EDITAR POST */}
+      {/* ================================================================= */}
       <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Edit className="w-5 h-5 text-purple-600" />
-              Editar Post
+            <DialogTitle className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl">
+                <Edit className="w-5 h-5 text-white" />
+              </div>
+              Editar Post Agendado
             </DialogTitle>
           </DialogHeader>
 
           {editingPost && (
-            <div className="space-y-4 pt-2">
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="space-y-5 pt-2"
+            >
               <div className="space-y-2">
-                <Label>Legenda</Label>
+                <Label className="font-semibold">Legenda</Label>
                 <Textarea
                   value={editingPost.caption}
                   onChange={(e) => setEditingPost({ ...editingPost, caption: e.target.value })}
-                  rows={5}
-                  className="resize-none"
+                  rows={6}
+                  className="resize-none text-sm"
+                  placeholder="Escreva sua legenda..."
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label>Data</Label>
+                  <Label className="font-semibold">Data</Label>
                   <Input
                     type="date"
                     value={editingPost.scheduledDate}
                     onChange={(e) => setEditingPost({ ...editingPost, scheduledDate: e.target.value })}
+                    className="h-11"
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Horário</Label>
+                  <Label className="font-semibold">Horário</Label>
                   <Input
                     type="time"
                     value={editingPost.scheduledTime}
                     onChange={(e) => setEditingPost({ ...editingPost, scheduledTime: e.target.value })}
+                    className="h-11"
                   />
                 </div>
               </div>
 
-              <div className="flex gap-3 pt-2">
-                <Button variant="outline" className="flex-1" onClick={() => setIsEditModalOpen(false)}>
+              <div className="flex gap-3 pt-4">
+                <Button
+                  variant="outline"
+                  className="flex-1 h-11"
+                  onClick={() => setIsEditModalOpen(false)}
+                >
                   Cancelar
                 </Button>
-                <Button onClick={handleSavePost} className="flex-1 bg-purple-600 hover:bg-purple-700">
+                <Button
+                  onClick={handleSavePost}
+                  className="flex-1 h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                >
                   <Save className="w-4 h-4 mr-2" />
-                  Salvar
+                  Salvar Alterações
                 </Button>
               </div>
-            </div>
+            </motion.div>
           )}
         </DialogContent>
       </Dialog>
 
+      {/* ================================================================= */}
       {/* MODAL: NOVO EVENTO */}
+      {/* ================================================================= */}
       <Dialog open={isNewEventModalOpen} onOpenChange={setIsNewEventModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md mx-4">
           <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Plus className="w-5 h-5 text-purple-600" />
+            <DialogTitle className="flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl">
+                <Plus className="w-5 h-5 text-white" />
+              </div>
               Novo Evento
             </DialogTitle>
           </DialogHeader>
 
-          <div className="space-y-4 pt-2">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="space-y-5 pt-2"
+          >
             <div className="space-y-2">
-              <Label>Título *</Label>
+              <Label className="font-semibold">
+                Título <span className="text-red-500">*</span>
+              </Label>
               <Input
                 value={newEventTitle}
                 onChange={(e) => setNewEventTitle(e.target.value)}
                 placeholder="Ex: Reunião com cliente"
+                className="h-11"
               />
             </div>
 
             <div className="space-y-2">
-              <Label>Descrição</Label>
+              <Label className="font-semibold">Descrição</Label>
               <Textarea
                 value={newEventDesc}
                 onChange={(e) => setNewEventDesc(e.target.value)}
-                placeholder="Detalhes do evento..."
+                placeholder="Detalhes adicionais do evento..."
                 rows={3}
                 className="resize-none"
               />
@@ -722,42 +1012,71 @@ export default function CalendarView() {
 
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Tipo</Label>
+                <Label className="font-semibold">Tipo</Label>
                 <Select
                   value={newEventType}
                   onValueChange={(v: typeof newEventType) => setNewEventType(v)}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-11">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="task">✅ Tarefa</SelectItem>
-                    <SelectItem value="meeting">📅 Reunião</SelectItem>
-                    <SelectItem value="reminder">⏰ Lembrete</SelectItem>
-                    <SelectItem value="deadline">🎯 Deadline</SelectItem>
+                    {EVENT_TYPES.map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Horário</Label>
+                <Label className="font-semibold">Horário</Label>
                 <Input
                   type="time"
                   value={newEventTime}
                   onChange={(e) => setNewEventTime(e.target.value)}
+                  className="h-11"
                 />
               </div>
             </div>
 
+            {selectedDate && (
+              <div className="p-3 bg-purple-50 dark:bg-purple-950/30 rounded-xl border border-purple-200 dark:border-purple-800">
+                <p className="text-sm text-purple-700 dark:text-purple-300 flex items-center gap-2">
+                  <CalendarIcon className="w-4 h-4" />
+                  Data selecionada:{" "}
+                  <strong>
+                    {new Date(selectedDate + "T00:00:00").toLocaleDateString("pt-BR", {
+                      day: "2-digit",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </strong>
+                </p>
+              </div>
+            )}
+
             <div className="flex gap-3 pt-2">
-              <Button variant="outline" className="flex-1" onClick={() => setIsNewEventModalOpen(false)}>
+              <Button
+                variant="outline"
+                className="flex-1 h-11"
+                onClick={() => {
+                  setIsNewEventModalOpen(false);
+                  resetNewEventForm();
+                }}
+              >
                 Cancelar
               </Button>
-              <Button onClick={handleCreateEvent} className="flex-1 bg-purple-600 hover:bg-purple-700">
+              <Button
+                onClick={handleCreateEvent}
+                disabled={!newEventTitle.trim()}
+                className="flex-1 h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Criar Evento
               </Button>
             </div>
-          </div>
+          </motion.div>
         </DialogContent>
       </Dialog>
     </div>

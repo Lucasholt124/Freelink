@@ -1,4 +1,3 @@
-// components/brain/ContentCards.tsx - CARDS PRO vs ULTRA DIFERENCIADOS
 "use client";
 
 import { useState } from "react";
