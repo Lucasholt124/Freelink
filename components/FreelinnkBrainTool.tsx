@@ -1608,8 +1608,8 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                   </motion.div>
 
                   {/* Tabs Desktop */}
-                  <div className="hidden sm:block">
-                    <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 overflow-x-auto">
+                <div className="w-full overflow-x-auto pb-2 sm:pb-0">
+                    <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 min-w-max">
                       {tabsConfig.map((tab) => (
                         <DesktopTabButton
                           key={tab.id}
@@ -1623,52 +1623,53 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                       ))}
                     </div>
 
-                    <div className="space-y-4">
-                      {activeTab === "reels" && results.content_pack?.reels?.map((reel, i) => (
-                        <motion.div
-                          key={`reel-${i}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                        >
-                          {userPlan === 'ultra' ? (
-                            <ReelCardUltra reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
-                          ) : (
-                            <ReelCardPro reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
-                          )}
-                        </motion.div>
-                      ))}
-                      {activeTab === "carousels" && results.content_pack?.carousels?.map((carousel, i) => (
-                        <motion.div
-                          key={`carousel-${i}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                        >
-                          <CarouselCard carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
-                        </motion.div>
-                      ))}
-                      {activeTab === "image_posts" && results.content_pack?.image_posts?.map((post, i) => (
-                        <motion.div
-                          key={`post-${i}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                        >
-                          <ImagePostCard post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
-                        </motion.div>
-                      ))}
-                      {activeTab === "story_sequences" && results.content_pack?.story_sequences?.map((story, i) => (
-                        <motion.div
-                          key={`story-${i}`}
-                          initial={{ opacity: 0, y: 20 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: i * 0.1 }}
-                        >
-                          <StoryCard story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
-                        </motion.div>
-                      ))}
-                    </div>
+
+                   <div className="hidden sm:block space-y-4">
+                    {activeTab === "reels" && results.content_pack?.reels?.map((reel, i) => (
+                      <motion.div
+                        key={`reel-${i}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                      >
+                        {userPlan === 'ultra' ? (
+                          <ReelCardUltra reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
+                        ) : (
+                          <ReelCardPro reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
+                        )}
+                      </motion.div>
+                    ))}
+                    {activeTab === "carousels" && results.content_pack?.carousels?.map((carousel, i) => (
+                      <motion.div
+                        key={`carousel-${i}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                      >
+                        <CarouselCard carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
+                      </motion.div>
+                    ))}
+                    {activeTab === "image_posts" && results.content_pack?.image_posts?.map((post, i) => (
+                      <motion.div
+                        key={`post-${i}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                      >
+                        <ImagePostCard post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
+                      </motion.div>
+                    ))}
+                    {activeTab === "story_sequences" && results.content_pack?.story_sequences?.map((story, i) => (
+                      <motion.div
+                        key={`story-${i}`}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.1 }}
+                      >
+                        <StoryCard story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
+                      </motion.div>
+                    ))}
+                  </div>
                   </div>
 
                   {/* Conteúdo Mobile */}
