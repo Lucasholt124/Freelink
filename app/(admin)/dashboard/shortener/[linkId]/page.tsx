@@ -407,7 +407,7 @@ function ClicksTable({ clicks }: { clicks: ClickData[] }) {
 
 // 📊 Gráfico de Analytics
 function AnalyticsChart({ data, labels, title }: { data: number[], labels: string[], title: string }) {
-  const maxValue = Math.max(...data, 5);
+  const maxValue = Math.max(...data, 1); // Mudado de 5 para 1 para evitar divisão por valores muito altos
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   return (
@@ -419,6 +419,7 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
         <div className="h-52 flex items-end gap-2 min-w-[500px] sm:min-w-0">
           {data.map((value, index) => {
             const isHovered = hoveredIndex === index;
+            const heightPercentage = maxValue > 0 ? (value / maxValue) * 100 : 0;
 
             return (
               <div
@@ -451,8 +452,8 @@ function AnalyticsChart({ data, labels, title }: { data: number[], labels: strin
                 {/* Barra */}
                 <motion.div
                   initial={{ height: 0 }}
-                  animate={{ height: `${Math.max((value / maxValue) * 100, 6)}%` }}
-                  transition={{ delay: index * 0.08, duration: 0.5, type: "spring" }}
+                  animate={{ height: `${Math.max(heightPercentage, value > 0 ? 8 : 4)}%` }}
+                  transition={{ delay: index * 0.08, duration: 0.6, ease: "easeOut" }}
                   className={clsx(
                     "w-full rounded-xl transition-all duration-300",
                     isHovered
