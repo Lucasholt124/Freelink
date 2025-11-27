@@ -23,7 +23,14 @@ import {
   TrendingUp,
   TrendingDown,
   Sparkles,
-  Zap
+  Zap,
+  Twitter,
+  Facebook,
+  Linkedin,
+  MessageCircle,
+  Send,
+  Check,
+  X
 } from "lucide-react";
 import { toast } from "sonner";
 import clsx from "clsx";
@@ -54,6 +61,411 @@ type ClickData = {
   referrer?: string;
 };
 type PageData = { link: LinkData; clicks: ClickData[] };
+
+// 🎨 Logo F Component - Marca Freelinnk
+function FreelinnkLogo({ size = "md", className = "" }: { size?: "sm" | "md" | "lg"; className?: string }) {
+  const sizes = {
+    sm: "w-5 h-5 text-xs",
+    md: "w-7 h-7 text-sm",
+    lg: "w-10 h-10 text-base"
+  };
+
+  return (
+    <div className={clsx(
+      "bg-gradient-to-br from-purple-600 via-violet-600 to-indigo-600 rounded-lg flex items-center justify-center font-black text-white shadow-lg shadow-purple-500/30",
+      sizes[size],
+      className
+    )}>
+      F
+    </div>
+  );
+}
+
+// 🚀 Share Modal Component - Modal de Compartilhamento Empolgante
+function ShareModal({
+  isOpen,
+  onClose,
+  shortUrl,
+  totalClicks
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  shortUrl: string;
+  totalClicks: number;
+}) {
+  const [copiedPlatform, setCopiedPlatform] = useState<string | null>(null);
+
+  const shareMessage = `🚀 Meu link já tem ${totalClicks} cliques! Acompanhe suas métricas com Freelinnk ✨`;
+  const shareMessageEncoded = encodeURIComponent(shareMessage);
+  const urlEncoded = encodeURIComponent(shortUrl);
+
+  const shareOptions = [
+    {
+      name: "Twitter / X",
+      icon: Twitter,
+      color: "from-gray-800 to-black",
+      hoverColor: "hover:shadow-gray-500/30",
+      url: `https://twitter.com/intent/tweet?text=${shareMessageEncoded}&url=${urlEncoded}`,
+      emoji: "𝕏"
+    },
+    {
+      name: "Facebook",
+      icon: Facebook,
+      color: "from-blue-600 to-blue-700",
+      hoverColor: "hover:shadow-blue-500/30",
+      url: `https://www.facebook.com/sharer/sharer.php?u=${urlEncoded}&quote=${shareMessageEncoded}`,
+      emoji: "📘"
+    },
+    {
+      name: "LinkedIn",
+      icon: Linkedin,
+      color: "from-blue-700 to-blue-800",
+      hoverColor: "hover:shadow-blue-600/30",
+      url: `https://www.linkedin.com/sharing/share-offsite/?url=${urlEncoded}`,
+      emoji: "💼"
+    },
+    {
+      name: "WhatsApp",
+      icon: MessageCircle,
+      color: "from-green-500 to-green-600",
+      hoverColor: "hover:shadow-green-500/30",
+      url: `https://wa.me/?text=${shareMessageEncoded}%20${urlEncoded}`,
+      emoji: "💬"
+    },
+    {
+      name: "Telegram",
+      icon: Send,
+      color: "from-sky-500 to-sky-600",
+      hoverColor: "hover:shadow-sky-500/30",
+      url: `https://t.me/share/url?url=${urlEncoded}&text=${shareMessageEncoded}`,
+      emoji: "✈️"
+    }
+  ];
+
+  const handleCopyWithMessage = () => {
+    const fullMessage = `${shareMessage}\n\n🔗 ${shortUrl}\n\n— Powered by Freelinnk`;
+    navigator.clipboard.writeText(fullMessage);
+    setCopiedPlatform("copy");
+    toast.success("Mensagem copiada com sucesso! 🎉");
+    setTimeout(() => setCopiedPlatform(null), 2000);
+  };
+
+  const handleShare = (platform: string, url: string) => {
+    window.open(url, '_blank', 'noopener,noreferrer,width=600,height=400');
+    toast.success(`Compartilhando no ${platform}! 🚀`);
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+          />
+
+          {/* Modal */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.9, y: 20 }}
+            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+            className="fixed inset-x-4 top-[50%] -translate-y-1/2 sm:inset-auto sm:left-1/2 sm:top-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2 sm:max-w-md sm:w-full z-50"
+          >
+            <div className="bg-white dark:bg-gray-900 rounded-3xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700">
+              {/* Header com Gradiente */}
+              <div className="relative bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 p-6 pb-12">
+                {/* Botão Fechar */}
+                <button
+                  onClick={onClose}
+                  className="absolute top-4 right-4 p-2 rounded-full bg-white/20 hover:bg-white/30 transition-colors text-white"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+
+                {/* Decoração de fundo */}
+                <div className="absolute inset-0 overflow-hidden">
+                  <div className="absolute -top-10 -right-10 w-40 h-40 bg-white/10 rounded-full blur-2xl" />
+                  <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-white/10 rounded-full blur-2xl" />
+                </div>
+
+                <div className="relative flex items-center gap-4">
+                  <motion.div
+                    initial={{ rotate: -10, scale: 0 }}
+                    animate={{ rotate: 0, scale: 1 }}
+                    transition={{ type: "spring", delay: 0.1 }}
+                  >
+                    <FreelinnkLogo size="lg" className="shadow-xl" />
+                  </motion.div>
+                  <div>
+                    <h2 className="text-xl sm:text-2xl font-bold text-white">
+                      Compartilhe seu sucesso! 🎉
+                    </h2>
+                    <p className="text-white/80 text-sm mt-1">
+                      Mostre ao mundo seus resultados
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Card de Stats flutuante */}
+              <div className="relative px-6 -mt-8">
+                <motion.div
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  transition={{ delay: 0.2 }}
+                  className="bg-white dark:bg-gray-800 rounded-2xl p-4 shadow-xl border border-gray-100 dark:border-gray-700"
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-purple-100 dark:bg-purple-900/30 rounded-xl">
+                        <Zap className="w-5 h-5 text-purple-600 dark:text-purple-400" />
+                      </div>
+                      <div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">Total de cliques</p>
+                        <p className="text-2xl font-bold text-gray-900 dark:text-white">
+                          {totalClicks.toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-1 bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 px-3 py-1.5 rounded-full text-xs font-bold">
+                      <TrendingUp className="w-3 h-3" />
+                      Sucesso!
+                    </div>
+                  </div>
+                </motion.div>
+              </div>
+
+              {/* Opções de Compartilhamento */}
+              <div className="p-6 pt-4">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 text-center">
+                  Escolha onde compartilhar:
+                </p>
+
+                {/* Grid de Redes Sociais */}
+                <div className="grid grid-cols-5 gap-3 mb-6">
+                  {shareOptions.map((option, index) => {
+                    const Icon = option.icon;
+                    return (
+                      <motion.button
+                        key={option.name}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.1 + index * 0.05 }}
+                        onClick={() => handleShare(option.name, option.url)}
+                        className={clsx(
+                          "group relative flex flex-col items-center gap-2 p-3 rounded-2xl transition-all duration-300",
+                          "bg-gradient-to-br",
+                          option.color,
+                          "hover:scale-105 hover:shadow-xl",
+                          option.hoverColor
+                        )}
+                      >
+                        <Icon className="w-6 h-6 text-white" />
+                        <span className="text-[10px] text-white/90 font-medium hidden sm:block">
+                          {option.name.split(' ')[0]}
+                        </span>
+                      </motion.button>
+                    );
+                  })}
+                </div>
+
+                {/* Copiar Mensagem Completa */}
+                <motion.button
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  onClick={handleCopyWithMessage}
+                  className={clsx(
+                    "w-full flex items-center justify-center gap-3 p-4 rounded-2xl font-semibold transition-all duration-300",
+                    copiedPlatform === "copy"
+                      ? "bg-emerald-500 text-white"
+                      : "bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white hover:bg-gray-200 dark:hover:bg-gray-700"
+                  )}
+                >
+                  {copiedPlatform === "copy" ? (
+                    <>
+                      <Check className="w-5 h-5" />
+                      Copiado!
+                    </>
+                  ) : (
+                    <>
+                      <Copy className="w-5 h-5" />
+                      Copiar mensagem completa
+                    </>
+                  )}
+                </motion.button>
+
+                {/* Preview da Mensagem */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 0.5 }}
+                  className="mt-4 p-4 bg-gray-50 dark:bg-gray-800/50 rounded-2xl border border-gray-200 dark:border-gray-700"
+                >
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium">
+                    Preview da mensagem:
+                  </p>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                    🚀 Meu link já tem <span className="font-bold text-purple-600">{totalClicks}</span> cliques!
+                    Acompanhe suas métricas com <span className="font-bold">Freelinnk</span> ✨
+                  </p>
+                  <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
+                    <FreelinnkLogo size="sm" />
+                    <span className="text-xs text-gray-500 dark:text-gray-400">
+                      Powered by <span className="font-semibold text-purple-600">Freelinnk</span>
+                    </span>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// 🎯 Share Button Floating - Botão Flutuante de Compartilhamento
+function ShareFloatingButton({ onClick, totalClicks }: { onClick: () => void; totalClicks: number }) {
+  return (
+    <motion.button
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ delay: 1, type: "spring" }}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      onClick={onClick}
+      className="fixed bottom-6 right-6 z-40 flex items-center gap-3 bg-gradient-to-r from-purple-600 via-violet-600 to-indigo-600 text-white px-5 py-3.5 rounded-2xl shadow-2xl shadow-purple-500/40 hover:shadow-purple-500/60 transition-all duration-300 group"
+    >
+      <div className="relative">
+        <Share2 className="w-5 h-5" />
+        <motion.div
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ repeat: Infinity, duration: 2 }}
+          className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-400 rounded-full"
+        />
+      </div>
+      <span className="font-semibold hidden sm:inline">Compartilhar</span>
+      <div className="hidden sm:flex items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full text-xs font-bold">
+        <Zap className="w-3 h-3" />
+        {totalClicks}
+      </div>
+    </motion.button>
+  );
+}
+
+// 🎯 Share Stats Card - Card de Compartilhamento Inline
+function ShareStatsCard({ shortUrl, totalClicks, onOpenModal }: { shortUrl: string; totalClicks: number; onOpenModal: () => void }) {
+  const quickShare = (platform: string) => {
+    const shareMessage = `🚀 Meu link já tem ${totalClicks} cliques! Acompanhe suas métricas com Freelinnk ✨`;
+    const shareMessageEncoded = encodeURIComponent(shareMessage);
+    const urlEncoded = encodeURIComponent(shortUrl);
+
+    const urls: Record<string, string> = {
+      twitter: `https://twitter.com/intent/tweet?text=${shareMessageEncoded}&url=${urlEncoded}`,
+      whatsapp: `https://wa.me/?text=${shareMessageEncoded}%20${urlEncoded}`,
+      linkedin: `https://www.linkedin.com/sharing/share-offsite/?url=${urlEncoded}`,
+    };
+
+    if (urls[platform]) {
+      window.open(urls[platform], '_blank', 'noopener,noreferrer,width=600,height=400');
+      toast.success(`Compartilhando! 🚀`);
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.3 }}
+      className="bg-gradient-to-br from-purple-50 via-violet-50 to-indigo-50 dark:from-purple-900/20 dark:via-violet-900/20 dark:to-indigo-900/20 rounded-2xl border border-purple-200 dark:border-purple-800 p-5 sm:p-6"
+    >
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        {/* Left Side - Info */}
+        <div className="flex items-center gap-4">
+          <div className="relative">
+            <FreelinnkLogo size="lg" />
+            <motion.div
+              animate={{ scale: [1, 1.3, 1] }}
+              transition={{ repeat: Infinity, duration: 2, delay: 0.5 }}
+              className="absolute -top-1 -right-1 w-3 h-3 bg-emerald-400 rounded-full border-2 border-white dark:border-gray-900"
+            />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
+              Compartilhe seu sucesso!
+              <Sparkles className="w-5 h-5 text-yellow-500" />
+            </h3>
+            <p className="text-sm text-gray-600 dark:text-gray-400">
+              Seu link já alcançou <span className="font-bold text-purple-600">{totalClicks}</span> cliques!
+            </p>
+          </div>
+        </div>
+
+        {/* Right Side - Quick Share Buttons */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => quickShare('twitter')}
+            className="flex-1 sm:flex-none p-3 bg-gray-900 hover:bg-black text-white rounded-xl transition-colors"
+            title="Compartilhar no Twitter"
+          >
+            <Twitter className="w-5 h-5 mx-auto" />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => quickShare('whatsapp')}
+            className="flex-1 sm:flex-none p-3 bg-green-500 hover:bg-green-600 text-white rounded-xl transition-colors"
+            title="Compartilhar no WhatsApp"
+          >
+            <MessageCircle className="w-5 h-5 mx-auto" />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => quickShare('linkedin')}
+            className="flex-1 sm:flex-none p-3 bg-blue-700 hover:bg-blue-800 text-white rounded-xl transition-colors"
+            title="Compartilhar no LinkedIn"
+          >
+            <Linkedin className="w-5 h-5 mx-auto" />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={onOpenModal}
+            className="flex-1 sm:flex-none p-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 text-white rounded-xl transition-all shadow-lg shadow-purple-500/25 flex items-center justify-center gap-2"
+            title="Mais opções"
+          >
+            <Share2 className="w-5 h-5" />
+            <span className="hidden sm:inline text-sm font-medium">Mais</span>
+          </motion.button>
+        </div>
+      </div>
+
+      {/* Branding Footer */}
+      <div className="mt-4 pt-4 border-t border-purple-200 dark:border-purple-800 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <FreelinnkLogo size="sm" />
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Powered by <span className="font-bold text-purple-600">Freelinnk</span>
+          </span>
+        </div>
+        <span className="text-xs text-gray-400 dark:text-gray-500">
+          Encurtador de links inteligente
+        </span>
+      </div>
+    </motion.div>
+  );
+}
 
 // 🎯 Componente de Click Individual com Animação
 function ClickRow({ click, index }: { click: ClickData; index: number }) {
@@ -908,6 +1320,7 @@ export default function ShortLinkDetailsPage() {
   const [currentTab, setCurrentTab] = useState("overview");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [shareModalOpen, setShareModalOpen] = useState(false);
 
   useEffect(() => {
     if (linkId) {
@@ -983,7 +1396,21 @@ export default function ShortLinkDetailsPage() {
   };
 
   return (
-    <main className="max-w-6xl mx-auto w-full px-4 space-y-6 overflow-x-hidden pb-12">
+    <main className="max-w-6xl mx-auto w-full px-4 space-y-6 overflow-x-hidden pb-24">
+      {/* Share Modal */}
+      <ShareModal
+        isOpen={shareModalOpen}
+        onClose={() => setShareModalOpen(false)}
+        shortUrl={shortUrl}
+        totalClicks={clicks.length}
+      />
+
+      {/* Floating Share Button */}
+      <ShareFloatingButton
+        onClick={() => setShareModalOpen(true)}
+        totalClicks={clicks.length}
+      />
+
       {/* Back Button */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
@@ -1009,9 +1436,8 @@ export default function ShortLinkDetailsPage() {
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", delay: 0.2 }}
-              className="p-3 sm:p-4 bg-gradient-to-br from-purple-500 via-violet-500 to-indigo-600 rounded-2xl flex-shrink-0 text-white shadow-lg shadow-purple-500/30"
             >
-              <LinkIcon className="w-6 h-6 sm:w-7 sm:h-7" />
+              <FreelinnkLogo size="lg" className="shadow-lg shadow-purple-500/30" />
             </motion.div>
 
             <div className="min-w-0 max-w-full">
@@ -1051,6 +1477,7 @@ export default function ShortLinkDetailsPage() {
           </div>
 
           {/* Action Buttons */}
+                  {/* Action Buttons */}
           <div className="flex gap-2 w-full lg:w-auto">
             <Button
               onClick={handleCopy}
@@ -1079,15 +1506,7 @@ export default function ShortLinkDetailsPage() {
             <Button
               variant="outline"
               className="h-11 gap-2 rounded-xl border-gray-300 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-              onClick={() => {
-                const shareUrl = `${shortUrl}?utm_source=freelink&utm_medium=share&utm_campaign=analytics`;
-                if (navigator.share) {
-                  navigator.share({ url: shareUrl, title: 'Meu Link Encurtado' });
-                } else {
-                  navigator.clipboard.writeText(shareUrl);
-                  toast.success("Link de compartilhamento copiado!");
-                }
-              }}
+              onClick={() => setShareModalOpen(true)}
             >
               <Share2 className="w-4 h-4" />
               <span className="hidden sm:inline">Compartilhar</span>
@@ -1104,6 +1523,13 @@ export default function ShortLinkDetailsPage() {
           </div>
         </div>
       </motion.header>
+
+      {/* 🎉 Share Stats Card - NOVO! */}
+      <ShareStatsCard
+        shortUrl={shortUrl}
+        totalClicks={clicks.length}
+        onOpenModal={() => setShareModalOpen(true)}
+      />
 
       {/* Metrics Section */}
       <motion.section
@@ -1292,6 +1718,17 @@ export default function ShortLinkDetailsPage() {
           </div>
         </Tabs>
       </motion.section>
+
+      {/* Footer Branding */}
+      <motion.footer
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.5 }}
+        className="flex items-center justify-center gap-3 py-6 text-sm text-gray-400"
+      >
+        <FreelinnkLogo size="sm" />
+        <span>Powered by <span className="font-semibold text-purple-600">Freelinnk</span></span>
+      </motion.footer>
     </main>
   );
 }
