@@ -2,6 +2,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -47,6 +48,7 @@ import {
   Code,
   MessageSquare,
   Share2,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Id } from "@/convex/_generated/dataModel";
@@ -586,27 +588,47 @@ export default function PostScheduleModal({
                         <Calendar className="w-4 h-4" />
                         Data
                       </Label>
-                      <Input
-                        id="date-input"
-                        type="date"
-                        value={scheduledDate}
-                        onChange={(e) => setScheduledDate(e.target.value)}
-                        min={new Date().toISOString().split("T")[0]}
-                        className="text-sm"
-                      />
+                    <div className="relative">
+  <Input
+    id="date-input"
+    type="date"
+    value={scheduledDate}
+    onChange={(e) => setScheduledDate(e.target.value)}
+    min={new Date().toISOString().split("T")[0]}
+    className="text-sm h-11 pl-10"
+  />
+  <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+  {scheduledDate && (
+    <motion.div
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"
+    />
+  )}
+</div>
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="time-input" className="text-sm font-semibold flex items-center gap-2">
                         <Clock className="w-4 h-4" />
                         Horário
                       </Label>
-                      <Input
-                        id="time-input"
-                        type="time"
-                        value={scheduledTime}
-                        onChange={(e) => setScheduledTime(e.target.value)}
-                        className="text-sm"
-                      />
+                      <div className="relative">
+  <Input
+    id="time-input"
+    type="time"
+    value={scheduledTime}
+    onChange={(e) => setScheduledTime(e.target.value)}
+    className="text-sm h-11 pl-10"
+  />
+  <Clock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+  {scheduledTime && (
+    <motion.div
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-white"
+    />
+  )}
+</div>
                     </div>
                   </div>
 
@@ -709,38 +731,87 @@ export default function PostScheduleModal({
                       </div>
                     </div>
 
-                    <div className="aspect-square bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center relative">
-                      <UploadFeedback
-                        isUploading={isUploading}
-                        uploadProgress={uploadProgress}
-                        uploadSuccess={uploadSuccess}
-                      />
+                  <div className="aspect-square bg-gradient-to-br from-gray-200 via-gray-300 to-gray-400 dark:from-gray-800 dark:via-gray-900 dark:to-black flex items-center justify-center relative overflow-hidden rounded-lg">
+  {/* Background Pattern */}
+  <div className="absolute inset-0 opacity-10">
+    <div className="absolute inset-0" style={{
+      backgroundImage: `radial-gradient(circle at 2px 2px, white 1px, transparent 0)`,
+      backgroundSize: "24px 24px",
+    }} />
+  </div>
 
-                      {mediaPreview ? (
-                        contentType === "reel" ? (
-                          <video src={mediaPreview} className="w-full h-full object-cover" controls playsInline />
-                        ) : (
-                          <img src={mediaPreview} alt="Preview" className="w-full h-full object-cover" />
-                        )
-                      ) : (
-                        <div className="text-center p-8">
-                          {contentType === "reel" ? (
-                            <Video className="w-20 h-20 mx-auto mb-4 text-gray-400" />
-                          ) : (
-                            <ImageIcon className="w-20 h-20 mx-auto mb-4 text-gray-400" />
-                          )}
-                          <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            onClick={() => fileInputRef.current?.click()}
-                          >
-                            <Upload className="w-4 h-4 mr-2" />
-                            Fazer Upload
-                          </Button>
-                        </div>
-                      )}
-                    </div>
+  <UploadFeedback
+    isUploading={isUploading}
+    uploadProgress={uploadProgress}
+    uploadSuccess={uploadSuccess}
+  />
+
+  <AnimatePresence mode="wait">
+    {mediaPreview ? (
+      <motion.div
+        key="media"
+        initial={{ opacity: 0, scale: 0.9 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.9 }}
+        className="w-full h-full"
+      >
+        {contentType === "reel" ? (
+          <video
+            src={mediaPreview}
+            className="w-full h-full object-cover"
+            controls
+            playsInline
+          />
+        ) : (
+          <img
+            src={mediaPreview}
+            alt="Preview"
+            className="w-full h-full object-cover"
+          />
+        )}
+      </motion.div>
+    ) : (
+      <motion.div
+        key="placeholder"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -20 }}
+        className="text-center p-8 relative z-10"
+      >
+        <motion.div
+          animate={{
+            y: [0, -10, 0],
+            rotate: [0, 5, -5, 0]
+          }}
+          transition={{
+            duration: 3,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        >
+          {contentType === "reel" ? (
+            <Video className="w-20 h-20 mx-auto mb-4 text-gray-500" />
+          ) : (
+            <ImageIcon className="w-20 h-20 mx-auto mb-4 text-gray-500" />
+          )}
+        </motion.div>
+        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 font-medium">
+          {contentType === "reel" ? "Adicione seu vídeo" : "Adicione sua imagem"}
+        </p>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => fileInputRef.current?.click()}
+          className="group hover:bg-purple-50 dark:hover:bg-purple-950/30 hover:border-purple-400 transition-all"
+        >
+          <Upload className="w-4 h-4 mr-2 group-hover:scale-110 transition-transform" />
+          Fazer Upload
+        </Button>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
 
                     <div className="p-4">
                       <p className="text-sm whitespace-pre-wrap">
@@ -1126,20 +1197,25 @@ export default function PostScheduleModal({
               )}
 
               {scheduledDate && scheduledTime && (
-                <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-blue-600" />
-                    <div>
-                      <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
-                        Agendado para
-                      </p>
-                      <p className="text-xs text-blue-600 dark:text-blue-400">
-                        {new Date(scheduledDate).toLocaleDateString('pt-BR')} às {scheduledTime}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              )}
+  <div className="p-3 bg-blue-50 dark:bg-blue-950/20 rounded-lg border border-blue-200 dark:border-blue-800">
+    <div className="flex items-center gap-2">
+      <Calendar className="w-4 h-4 text-blue-600" />
+      <div>
+        <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+          Agendado para
+        </p>
+        <p className="text-xs text-blue-600 dark:text-blue-400">
+          {/* 🔥 CORREÇÃO: Forçar interpretação como data local */}
+          {new Date(scheduledDate + 'T00:00:00').toLocaleDateString('pt-BR', {
+            day: '2-digit',
+            month: 'long',
+            year: 'numeric'
+          })} às {scheduledTime}
+        </p>
+      </div>
+    </div>
+  </div>
+)}
             </div>
           </div>
         </div>
@@ -1148,15 +1224,38 @@ export default function PostScheduleModal({
           <Button type="button" variant="outline" onClick={onClose} className="flex-1 sm:flex-none">
             Cancelar
           </Button>
-          <Button
-            type="button"
-            onClick={handleSchedule}
-            disabled={!caption.trim() || !scheduledDate || !scheduledTime}
-            className="flex-1 sm:flex-none bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Agendar Post
-          </Button>
+         <Button
+  type="button"
+  onClick={handleSchedule}
+  disabled={!caption.trim() || !scheduledDate || !scheduledTime}
+  className={cn(
+    "flex-1 sm:flex-none h-12 font-bold text-base transition-all duration-300",
+    "bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500",
+    "hover:from-purple-500 hover:via-pink-500 hover:to-orange-400",
+    "disabled:opacity-50 disabled:cursor-not-allowed",
+    "shadow-lg hover:shadow-xl hover:shadow-purple-500/30",
+    "disabled:shadow-none",
+    (!caption.trim() || !scheduledDate || !scheduledTime) && "grayscale"
+  )}
+>
+  {caption.trim() && scheduledDate && scheduledTime ? (
+    <>
+      <motion.div
+        animate={{ rotate: [0, 360] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+      >
+        <Sparkles className="w-5 h-5 mr-2" />
+      </motion.div>
+      Agendar Post
+      <ArrowRight className="w-5 h-5 ml-2" />
+    </>
+  ) : (
+    <>
+      <AlertCircle className="w-5 h-5 mr-2" />
+      Preencha todos os campos
+    </>
+  )}
+</Button>
         </DialogFooter>
 
         <input

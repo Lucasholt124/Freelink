@@ -9,12 +9,24 @@ export const getPostsToNotify = internalQuery({
   args: {},
   handler: async (ctx) => {
     const now = Date.now();
-    // Busca posts 'scheduled' onde o horário JÁ PASSOU
+
+    // 🔥 CORREÇÃO: Busca posts com margem de 2 minutos ANTES do horário
+    // Isso garante que a notificação chegue NO HORÁRIO EXATO
+    const notificationWindow = now + (2 * 60 * 1000); // 2 minutos de antecedência
+
     const posts = await ctx.db
       .query("scheduledPosts")
       .withIndex("by_status", (q) => q.eq("status", "scheduled"))
-      .filter((q) => q.lte(q.field("scheduledTimestamp"), now))
+      .filter((q) =>
+        q.and(
+          q.lte(q.field("scheduledTimestamp"), notificationWindow),
+          q.gte(q.field("scheduledTimestamp"), now - (10 * 60 * 1000)) // Não pegar posts muito atrasados
+        )
+      )
       .take(20);
+
+    console.log(`🔔 Encontrados ${posts.length} posts para notificar (janela: ${new Date(notificationWindow).toISOString()})`);
+
     return posts;
   },
 });

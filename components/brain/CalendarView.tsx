@@ -545,123 +545,134 @@ export default function CalendarView() {
               </div>
 
               {/* Grid do calendário */}
-              <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
-                {calendarDays.map((day, idx) => {
-                  const isSelected = selectedDate === day.date;
-                  const hasContent = day.posts.length > 0 || day.events.length > 0;
-                  const totalItems = day.posts.length + day.events.length;
+             <div className="grid grid-cols-7 gap-1 sm:gap-1.5">
+  {calendarDays.map((day, idx) => {
+    const isSelected = selectedDate === day.date;
+    const hasContent = day.posts.length > 0 || day.events.length > 0;
+    const totalItems = day.posts.length + day.events.length;
 
+    return (
+      <motion.button
+        key={idx}
+        type="button"
+        whileHover={day.isCurrentMonth ? { scale: 1.02 } : {}}
+        whileTap={day.isCurrentMonth ? { scale: 0.98 } : {}}
+        disabled={!day.isCurrentMonth}
+        className={cn(
+          "relative min-h-[60px] sm:min-h-[80px] md:min-h-[100px] p-1 sm:p-2 rounded-xl transition-all",
+          "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
+          day.isCurrentMonth
+            ? "bg-white dark:bg-gray-800/50 hover:shadow-lg cursor-pointer border border-gray-100 dark:border-gray-800"
+            : "bg-gray-50 dark:bg-gray-950 opacity-30 cursor-not-allowed",
+          day.isToday && "ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-950/50 border-purple-200 shadow-lg shadow-purple-500/20",
+          day.isPast && day.isCurrentMonth && "opacity-60",
+          day.isWeekend && day.isCurrentMonth && "bg-pink-50/50 dark:bg-pink-950/20",
+          isSelected && "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/50 shadow-xl border-blue-200 transform scale-105",
+          hasContent && !isSelected && "border-purple-200 dark:border-purple-800 shadow-md"
+        )}
+        onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
+      >
+        {day.isCurrentMonth && (
+          <>
+            {/* Número do dia com animação */}
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: idx * 0.01 }}
+              className={cn(
+                "text-xs sm:text-sm font-bold mb-1 transition-all",
+                day.isToday && "text-purple-600 dark:text-purple-400 text-base sm:text-lg",
+                day.isWeekend && !day.isToday && "text-pink-500",
+                isSelected && "text-blue-600 text-base sm:text-lg"
+              )}
+            >
+              {day.day}
+            </motion.div>
+
+            {/* Indicadores de conteúdo com animação */}
+            <div className="space-y-0.5">
+              {day.posts.slice(0, 2).map((post, pIdx) => {
+                const config = CONTENT_TYPE_CONFIG[post.contentType];
+                return (
+                  <motion.div
+                    key={post._id}
+                    initial={{ opacity: 0, x: -10 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: pIdx * 0.05 }}
+                    className={cn(
+                      "hidden sm:flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md",
+                      config.bgLight, config.textColor
+                    )}
+                  >
+                    <config.icon className="w-2.5 h-2.5" />
+                    <span className="truncate">{post.scheduledTime}</span>
+                  </motion.div>
+                );
+              })}
+
+              {/* Mobile: Dots indicadores animados */}
+              <div className="sm:hidden flex gap-0.5 flex-wrap">
+                {day.posts.slice(0, 3).map((post, pIdx) => {
+                  const config = CONTENT_TYPE_CONFIG[post.contentType];
                   return (
-                    <motion.button
-                      key={idx}
-                      type="button"
-                      whileHover={day.isCurrentMonth ? { scale: 1.02 } : {}}
-                      whileTap={day.isCurrentMonth ? { scale: 0.98 } : {}}
-                      disabled={!day.isCurrentMonth}
-                      className={cn(
-                        "relative min-h-[60px] sm:min-h-[80px] md:min-h-[100px] p-1 sm:p-2 rounded-xl transition-all",
-                        "focus:outline-none focus:ring-2 focus:ring-purple-500/50",
-                        day.isCurrentMonth
-                          ? "bg-white dark:bg-gray-800/50 hover:shadow-lg cursor-pointer border border-gray-100 dark:border-gray-800"
-                          : "bg-gray-50 dark:bg-gray-950 opacity-30 cursor-not-allowed",
-                        day.isToday && "ring-2 ring-purple-500 bg-purple-50 dark:bg-purple-950/50 border-purple-200",
-                        day.isPast && day.isCurrentMonth && "opacity-60",
-                        day.isWeekend && day.isCurrentMonth && "bg-pink-50/50 dark:bg-pink-950/20",
-                        isSelected && "ring-2 ring-blue-500 bg-blue-50 dark:bg-blue-950/50 shadow-xl border-blue-200",
-                        hasContent && !isSelected && "border-purple-200 dark:border-purple-800"
-                      )}
-                      onClick={() => day.isCurrentMonth && setSelectedDate(day.date)}
-                    >
-                      {day.isCurrentMonth && (
-                        <>
-                          {/* Número do dia */}
-                          <div className={cn(
-                            "text-xs sm:text-sm font-bold mb-1",
-                            day.isToday && "text-purple-600 dark:text-purple-400",
-                            day.isWeekend && !day.isToday && "text-pink-500",
-                            isSelected && "text-blue-600"
-                          )}>
-                            {day.day}
-                          </div>
-
-                          {/* Indicadores de conteúdo */}
-                          <div className="space-y-0.5">
-                            {/* Posts */}
-                            {day.posts.slice(0, 2).map((post) => {
-                              const config = CONTENT_TYPE_CONFIG[post.contentType];
-                              return (
-                                <div
-                                  key={post._id}
-                                  className={cn(
-                                    "hidden sm:flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md",
-                                    config.bgLight, config.textColor
-                                  )}
-                                >
-                                  <config.icon className="w-2.5 h-2.5" />
-                                  <span className="truncate">{post.scheduledTime}</span>
-                                </div>
-                              );
-                            })}
-
-                            {/* Mobile: Dots indicadores */}
-                            <div className="sm:hidden flex gap-0.5 flex-wrap">
-                              {day.posts.slice(0, 3).map((post) => {
-                                const config = CONTENT_TYPE_CONFIG[post.contentType];
-                                return (
-                                  <div
-                                    key={post._id}
-                                    className={cn("w-1.5 h-1.5 rounded-full", config.color)}
-                                  />
-                                );
-                              })}
-                              {day.events.slice(0, 2).map((event) => (
-                                <div
-                                  key={event._id}
-                                  className="w-1.5 h-1.5 rounded-full bg-purple-500"
-                                />
-                              ))}
-                            </div>
-
-                            {/* Eventos */}
-                            {day.events.slice(0, 1).map((event) => (
-                              <div
-                                key={event._id}
-                                className="hidden sm:flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-md bg-purple-100 dark:bg-purple-900/40 text-purple-600"
-                              >
-                                <span>{event.icon}</span>
-                                <span className="truncate">{event.title}</span>
-                              </div>
-                            ))}
-
-                            {/* Contador de itens adicionais */}
-                            {totalItems > 3 && (
-                              <div className="text-[9px] text-center text-muted-foreground font-medium">
-                                +{totalItems - 3}
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Indicador de seleção */}
-                          {isSelected && (
-                            <motion.div
-                              initial={{ scale: 0 }}
-                              animate={{ scale: 1 }}
-                              className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center shadow-lg"
-                            >
-                              <Check className="w-3 h-3 text-white" />
-                            </motion.div>
-                          )}
-
-                          {/* Indicador Today */}
-                          {day.isToday && (
-                            <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-purple-600 rounded-full" />
-                          )}
-                        </>
-                      )}
-                    </motion.button>
+                    <motion.div
+                      key={post._id}
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: pIdx * 0.05, type: "spring" }}
+                      className={cn("w-1.5 h-1.5 rounded-full", config.color)}
+                    />
                   );
                 })}
+                {day.events.slice(0, 2).map((event, eIdx) => (
+                  <motion.div
+                    key={event._id}
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: (day.posts.length + eIdx) * 0.05, type: "spring" }}
+                    className="w-1.5 h-1.5 rounded-full bg-purple-500"
+                  />
+                ))}
               </div>
+
+              {/* Contador de itens adicionais */}
+              {totalItems > 3 && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="text-[9px] text-center text-muted-foreground font-medium bg-gray-100 dark:bg-gray-800 rounded-full px-1"
+                >
+                  +{totalItems - 3}
+                </motion.div>
+              )}
+            </div>
+
+            {/* Indicador de seleção com animação */}
+            {isSelected && (
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", stiffness: 500, damping: 25 }}
+                className="absolute -top-1 -right-1 w-6 h-6 bg-gradient-to-br from-blue-600 to-blue-500 rounded-full flex items-center justify-center shadow-lg shadow-blue-500/50"
+              >
+                <Check className="w-3 h-3 text-white" />
+              </motion.div>
+            )}
+
+            {/* Indicador Today com pulso */}
+            {day.isToday && (
+              <motion.div
+                animate={{ scale: [1, 1.2, 1], opacity: [1, 0.5, 1] }}
+                transition={{ duration: 2, repeat: Infinity }}
+                className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 bg-purple-600 rounded-full"
+              />
+            )}
+          </>
+        )}
+      </motion.button>
+    );
+  })}
+</div>
             </CardContent>
           </Card>
         </motion.div>
