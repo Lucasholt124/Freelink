@@ -10,22 +10,24 @@ export const getPostsToNotify = internalQuery({
   handler: async (ctx) => {
     const now = Date.now();
 
-    // 🔥 CORREÇÃO: Busca posts com margem de 2 minutos ANTES do horário
-    // Isso garante que a notificação chegue NO HORÁRIO EXATO
-    const notificationWindow = now + (2 * 60 * 1000); // 2 minutos de antecedência
-
+    // 🔥 CORREÇÃO: Notificar apenas quando o horário CHEGAR (margem de 1 minuto APÓS)
     const posts = await ctx.db
       .query("scheduledPosts")
       .withIndex("by_status", (q) => q.eq("status", "scheduled"))
       .filter((q) =>
         q.and(
-          q.lte(q.field("scheduledTimestamp"), notificationWindow),
-          q.gte(q.field("scheduledTimestamp"), now - (10 * 60 * 1000)) // Não pegar posts muito atrasados
+          q.lte(q.field("scheduledTimestamp"), now + (1 * 60 * 1000)), // até 1min no futuro
+          q.gte(q.field("scheduledTimestamp"), now - (10 * 60 * 1000)), // não pegar muito atrasados
+          q.eq(q.field("notificationSent"), false)
         )
       )
       .take(20);
 
-    console.log(`🔔 Encontrados ${posts.length} posts para notificar (janela: ${new Date(notificationWindow).toISOString()})`);
+    console.log(`🔔 [${new Date().toLocaleString('pt-BR', { timeZone: 'America/Fortaleza' })}] Encontrados ${posts.length} posts para notificar`);
+
+    posts.forEach(p => {
+      console.log(`  - Post ${p._id}: agendado para ${p.scheduledDate} ${p.scheduledTime} (${new Date(p.scheduledTimestamp).toLocaleString('pt-BR', { timeZone: 'America/Fortaleza' })})`);
+    });
 
     return posts;
   },

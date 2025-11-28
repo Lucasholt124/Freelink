@@ -19,8 +19,8 @@ export const schedulePost = mutation({
     contentData: v.string(),
     caption: v.string(),
     hashtags: v.array(v.string()),
-    scheduledDate: v.string(), // YYYY-MM-DD
-    scheduledTime: v.string(), // HH:MM
+    scheduledDate: v.string(),
+    scheduledTime: v.string(),
     platform: v.union(
       v.literal("instagram"),
       v.literal("facebook"),
@@ -29,6 +29,7 @@ export const schedulePost = mutation({
       v.literal("tiktok")
     ),
     mediaStorageId: v.optional(v.id("_storage")),
+    userTimezone: v.optional(v.string()), // NOVO: timezone do usuário
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -36,16 +37,27 @@ export const schedulePost = mutation({
 
     const userId = identity.subject;
 
-    // 🔥 CORREÇÃO: Parsing correto da data e hora
-    // const [hours, minutes] = args.scheduledTime.split(':').map(Number);
+    // Criar data no formato ISO local do usuário
+    const localDateTime = `${args.scheduledDate}T${args.scheduledTime}:00`;
 
-    // Criar data usando Date.parse para evitar problemas de timezone
-    const dateTimeString = `${args.scheduledDate}T${args.scheduledTime}:00`;
-    const scheduledTimestamp = new Date(dateTimeString).getTime();
+    // Converter para timestamp UTC corretamente
+    // O frontend já envia a data no timezone local, então só precisamos parsear
+    const scheduledTimestamp = new Date(localDateTime).getTime();
 
-    // Validação: garantir que a data não está no passado
-    if (scheduledTimestamp < Date.now()) {
-      throw new Error("Não é possível agendar para uma data/hora no passado");
+    // Log para debug
+    console.log(`📅 Agendamento criado:`, {
+      dateInput: args.scheduledDate,
+      timeInput: args.scheduledTime,
+      localDateTime,
+      timestamp: scheduledTimestamp,
+      timestampISO: new Date(scheduledTimestamp).toISOString(),
+      timezone: args.userTimezone || 'America/Fortaleza'
+    });
+
+    // Validação
+    const now = Date.now();
+    if (scheduledTimestamp < now - (5 * 60 * 1000)) { // 5min de tolerância
+      throw new Error("Não é possível agendar para o passado");
     }
 
     const postId = await ctx.db.insert("scheduledPosts", {
@@ -64,8 +76,6 @@ export const schedulePost = mutation({
       mediaStorageId: args.mediaStorageId,
       createdAt: Date.now(),
     });
-
-    console.log(`✅ Post agendado para: ${dateTimeString} (timestamp: ${scheduledTimestamp})`);
 
     return postId;
   },
@@ -142,6 +152,7 @@ export const updatePost = mutation({
     hashtags: v.optional(v.array(v.string())),
     scheduledDate: v.optional(v.string()),
     scheduledTime: v.optional(v.string()),
+    mediaStorageId: v.optional(v.union(v.id("_storage"), v.null())),
     status: v.optional(
       v.union(
         v.literal("draft"),
@@ -156,11 +167,10 @@ export const updatePost = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autenticado");
 
-    const userId = identity.subject;
-
     const post = await ctx.db.get(args.postId);
-    if (!post) throw new Error("Post não encontrado");
-    if (post.userId !== userId) throw new Error("Sem permissão");
+    if (!post || post.userId !== identity.subject) {
+      throw new Error("Post não encontrado");
+    }
 
     const updates: Partial<Doc<"scheduledPosts">> = {
       updatedAt: Date.now(),
@@ -170,25 +180,30 @@ export const updatePost = mutation({
     if (args.hashtags !== undefined) updates.hashtags = args.hashtags;
     if (args.status !== undefined) updates.status = args.status;
 
-    // 🔥 CORREÇÃO: Parsing correto da data/hora
+    // 🔥 NOVO: Permitir atualizar mídia
+    if (args.mediaStorageId !== undefined) {
+      updates.mediaStorageId = args.mediaStorageId || undefined;
+    }
+
     if (args.scheduledDate || args.scheduledTime) {
       const date = args.scheduledDate || post.scheduledDate;
       const time = args.scheduledTime || post.scheduledTime;
 
-      const dateTimeString = `${date}T${time}:00`;
-      const scheduledTimestamp = new Date(dateTimeString).getTime();
+      const localDateTime = `${date}T${time}:00`;
+      const scheduledTimestamp = new Date(localDateTime).getTime();
 
-      // Validação
-      if (scheduledTimestamp < Date.now()) {
-        throw new Error("Não é possível agendar para uma data/hora no passado");
-      }
+      console.log(`📅 Post atualizado:`, {
+        date,
+        time,
+        localDateTime,
+        timestamp: scheduledTimestamp,
+        timestampISO: new Date(scheduledTimestamp).toISOString()
+      });
 
       updates.scheduledDate = date;
       updates.scheduledTime = time;
       updates.scheduledTimestamp = scheduledTimestamp;
       updates.notificationSent = false;
-
-      console.log(`✅ Post atualizado para: ${dateTimeString} (timestamp: ${scheduledTimestamp})`);
     }
 
     await ctx.db.patch(args.postId, updates);

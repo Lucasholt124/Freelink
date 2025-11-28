@@ -1,7 +1,6 @@
-// components/brain/CalendarView.tsx - VERSÃO ULTRA APRIMORADA
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef } from "react";
 import { motion } from "framer-motion";
 import {
   Calendar as CalendarIcon,
@@ -28,6 +27,11 @@ import {
   Bell,
   Target,
   Zap,
+  Link,
+  Upload,
+  ImageIcon,
+  Eye,
+  Hash,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -188,6 +192,12 @@ export default function CalendarView() {
   const [newEventTime, setNewEventTime] = useState("");
   const [newEventType, setNewEventType] = useState<"task" | "meeting" | "reminder" | "deadline" | "custom">("task");
 
+  const [, setEditMediaFile] = useState<File | null>(null);
+const [editMediaPreview, setEditMediaPreview] = useState<string | null>(null);
+const [isUploadingEdit, setIsUploadingEdit] = useState(false);
+const editFileInputRef = useRef<HTMLInputElement>(null);
+
+const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const { startDate, endDate } = useMemo(() => {
     const start = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const end = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
@@ -206,7 +216,58 @@ export default function CalendarView() {
   const createEvent = useMutation(api.calendar.createCustomEvent);
   const deleteEvent = useMutation(api.calendar.deleteCustomEvent);
   const toggleEventStatus = useMutation(api.calendar.toggleEventStatus);
+const handleEditMediaChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const file = e.target.files?.[0];
+  if (!file || !editingPost) return;
 
+  const isVideo = editingPost.contentType === "reel";
+  const validTypes = isVideo
+    ? ["video/mp4", "video/quicktime", "video/x-msvideo"]
+    : ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+  if (!validTypes.includes(file.type)) {
+    toast.error(`Formato inválido. Use ${isVideo ? "vídeo" : "imagem"}.`);
+    return;
+  }
+
+  const maxSize = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
+  if (file.size > maxSize) {
+    toast.error(`Arquivo muito grande. Máximo: ${isVideo ? "50MB" : "10MB"}`);
+    return;
+  }
+
+  setIsUploadingEdit(true);
+
+  try {
+    const reader = new FileReader();
+    reader.onload = () => setEditMediaPreview(reader.result as string);
+    reader.readAsDataURL(file);
+
+    const uploadUrl = await generateUploadUrl();
+    const result = await fetch(uploadUrl, {
+      method: "POST",
+      headers: { "Content-Type": file.type },
+      body: file,
+    });
+
+    if (!result.ok) throw new Error("Erro ao fazer upload");
+
+    const { storageId } = (await result.json()) as { storageId: Id<"_storage"> };
+
+    setEditingPost({
+      ...editingPost,
+      mediaStorageId: storageId
+    });
+    setEditMediaFile(file);
+
+    toast.success(isVideo ? "✅ Vídeo carregado!" : "✅ Imagem carregada!");
+  } catch (error) {
+    console.error("Erro no upload:", error);
+    toast.error("Erro ao fazer upload. Tente novamente.");
+  } finally {
+    setIsUploadingEdit(false);
+  }
+};
   // =================================================================
   // DADOS DO CALENDÁRIO
   // =================================================================
@@ -704,280 +765,418 @@ export default function CalendarView() {
                         </span>
                       </div>
                     </>
-                  ) : (
-                    <>
-                      <div className="p-1.5 bg-gray-400 rounded-lg">
-                        <CalendarDays className="w-4 h-4 text-white" />
-                      </div>
-                      Selecione um dia
-                    </>
-                  )}
-                </CardTitle>
+            ) : (
+              <>
+                <div className="p-1.5 bg-gray-400 rounded-lg">
+                  <CalendarDays className="w-4 h-4 text-white" />
+                </div>
+                Selecione um dia
+              </>
+            )}
+          </CardTitle>
+          {selectedDate && (
+            <Button
+              size="sm"
+              onClick={() => setIsNewEventModalOpen(true)}
+              className="h-9 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg"
+            >
+              <Plus className="w-4 h-4 sm:mr-1.5" />
+              <span className="hidden sm:inline">Novo</span>
+            </Button>
+          )}
+        </div>
+      </CardHeader>
+
+      <CardContent className="p-0">
+        <ScrollArea className="h-[400px] sm:h-[500px]">
+          <div className="p-4">
+            {!selectedDayData || (selectedDayData.posts.length === 0 && selectedDayData.events.length === 0) ? (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="text-center py-12"
+              >
+                <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
+                  <CalendarIcon className="w-10 h-10 text-gray-300 dark:text-gray-600" />
+                </div>
+                <p className="font-semibold text-gray-600 dark:text-gray-400">
+                  {selectedDate ? "Nada agendado" : "Selecione um dia"}
+                </p>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {selectedDate ? "Este dia está livre" : "Clique em um dia do calendário"}
+                </p>
                 {selectedDate && (
                   <Button
+                    variant="outline"
                     size="sm"
+                    className="mt-4"
                     onClick={() => setIsNewEventModalOpen(true)}
-                    className="h-9 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg"
                   >
-                    <Plus className="w-4 h-4 sm:mr-1.5" />
-                    <span className="hidden sm:inline">Novo</span>
+                    <Plus className="w-4 h-4 mr-1.5" />
+                    Adicionar evento
                   </Button>
                 )}
-              </div>
-            </CardHeader>
-
-            <CardContent className="p-0">
-              <ScrollArea className="h-[400px] sm:h-[500px]">
-                <div className="p-4">
-                  {!selectedDayData || (selectedDayData.posts.length === 0 && selectedDayData.events.length === 0) ? (
-                    <motion.div
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="text-center py-12"
-                    >
-                      <div className="w-20 h-20 mx-auto mb-4 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center">
-                        <CalendarIcon className="w-10 h-10 text-gray-300 dark:text-gray-600" />
-                      </div>
-                      <p className="font-semibold text-gray-600 dark:text-gray-400">
-                        {selectedDate ? "Nada agendado" : "Selecione um dia"}
-                      </p>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {selectedDate ? "Este dia está livre" : "Clique em um dia do calendário"}
-                      </p>
-                      {selectedDate && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="mt-4"
-                          onClick={() => setIsNewEventModalOpen(true)}
-                        >
-                          <Plus className="w-4 h-4 mr-1.5" />
-                          Adicionar evento
-                        </Button>
-                      )}
-                    </motion.div>
-                  ) : (
-                    <div className="space-y-3">
-                      {/* POSTS */}
-                      {selectedDayData.posts.map((post, idx) => {
-                        const config = CONTENT_TYPE_CONFIG[post.contentType];
-                        const Icon = config.icon;
-                        const StatusIcon = STATUS_CONFIG[post.status]?.icon || AlertCircle;
-
-                        return (
-                          <motion.div
-                            key={post._id}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: idx * 0.05 }}
-                            className={cn(
-                              "p-4 rounded-2xl border-2 transition-all hover:shadow-lg group",
-                              config.bgLight, config.borderColor
-                            )}
-                          >
-                            <div className="flex items-start justify-between gap-2 mb-3">
-                              <div className="flex items-center gap-2.5">
-                                <div className={cn("p-2 rounded-xl bg-gradient-to-br", config.gradient)}>
-                                  <Icon className="w-4 h-4 text-white" />
-                                </div>
-                                <div>
-                                  <Badge className={cn("text-[10px] text-white", config.color)}>
-                                    {config.label}
-                                  </Badge>
-                                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
-                                    <Clock className="w-3 h-3" />
-                                    {post.scheduledTime}
-                                  </p>
-                                </div>
-                              </div>
-
-                              <DropdownMenu>
-                                <DropdownMenuTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-                                  >
-                                    <MoreVertical className="w-4 h-4" />
-                                  </Button>
-                                </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-40">
-                                  <DropdownMenuItem onClick={() => handleEditPost(post)}>
-                                    <Edit className="w-4 h-4 mr-2" />
-                                    Editar
-                                  </DropdownMenuItem>
-                                  <DropdownMenuSeparator />
-                                  <DropdownMenuItem
-                                    onClick={() => handleDeletePost(post._id)}
-                                    className="text-red-600 focus:text-red-600"
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Excluir
-                                  </DropdownMenuItem>
-                                </DropdownMenuContent>
-                              </DropdownMenu>
-                            </div>
-
-                            <p className="text-sm line-clamp-2 text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
-                              {post.caption}
+              </motion.div>
+            ) : (
+              <div className="space-y-3">
+                {/* CUSTOM EVENTS */}
+                {selectedDayData && selectedDayData.events.map((event, idx) => (
+                  <motion.div
+                    key={event._id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: idx * 0.05 }}
+                    className="p-4 rounded-2xl border-2 border-purple-200 dark:border-purple-800 bg-purple-50 dark:bg-purple-950/40 transition-all hover:shadow-lg group relative"
+                  >
+                    <div className="flex items-start justify-between gap-2 mb-2">
+                      <div className="flex items-center gap-2.5 flex-1">
+                        <div className="p-2 rounded-xl bg-purple-600">
+                          <Sparkles className="w-4 h-4 text-white" />
+                        </div>
+                        <div className="flex-1">
+                          <Badge className="bg-purple-600 text-white text-[10px]">
+                            {EVENT_TYPES.find(t => t.value === event.type)?.label || event.type}
+                          </Badge>
+                          {event.time && (
+                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {event.time}
                             </p>
-
-                            <div className="flex items-center justify-between">
-                              <Badge variant="secondary" className="text-[10px] capitalize">
-                                {post.platform}
-                              </Badge>
-                              <div className={cn(
-                                "flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full font-medium",
-                                STATUS_CONFIG[post.status]?.bg,
-                                STATUS_CONFIG[post.status]?.color
-                              )}>
-                                <StatusIcon className="w-3 h-3" />
-                                <span>{STATUS_CONFIG[post.status]?.label}</span>
-                              </div>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-
-                      {/* EVENTOS */}
-                      {selectedDayData.events.map((event, idx) => (
-                        <motion.div
-                          key={event._id}
-                          initial={{ opacity: 0, y: 10 }}
-                          animate={{ opacity: 1, y: 0 }}
-                          transition={{ delay: (selectedDayData.posts.length + idx) * 0.05 }}
-                          className="p-4 bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30 rounded-2xl border-2 border-purple-200 dark:border-purple-800 group"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <div className="flex items-start gap-3 flex-1 min-w-0">
-                              <div className="text-2xl">{event.icon}</div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className={cn(
-                                  "font-bold text-sm truncate",
-                                  event.status === "completed" && "line-through text-muted-foreground"
-                                )}>
-                                  {event.title}
-                                </h4>
-                                {event.time && (
-                                  <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                                    <Clock className="w-3 h-3" />
-                                    {event.time}
-                                  </p>
-                                )}
-                                {event.description && (
-                                  <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 line-clamp-2">
-                                    {event.description}
-                                  </p>
-                                )}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8"
-                                onClick={() => handleToggleEvent(event._id)}
-                              >
-                                {event.status === "completed" ? (
-                                  <CheckCircle2 className="w-5 h-5 text-green-600" />
-                                ) : (
-                                  <div className="w-5 h-5 rounded-full border-2 border-gray-300 hover:border-purple-500 transition-colors" />
-                                )}
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-8 w-8 text-red-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={() => handleDeleteEvent(event._id)}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </div>
-                        </motion.div>
-                      ))}
+                          )}
+                        </div>
+                      </div>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 shrink-0 hover:bg-white/80 dark:hover:bg-gray-800"
+                          >
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-40">
+                          <DropdownMenuItem onClick={() => handleToggleEvent(event._id)}>
+                            <CheckCircle2 className="w-4 h-4 mr-2" />
+                            Marcar como concluído
+                          </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          <DropdownMenuItem
+                            onClick={() => handleDeleteEvent(event._id)}
+                            className="text-red-600 focus:text-red-600"
+                          >
+                            <Trash2 className="w-4 h-4 mr-2" />
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
-                  )}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-        </motion.div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300 mb-2 leading-relaxed">
+                      {event.title}
+                    </p>
+                    {event.description && (
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {event.description}
+                      </p>
+                    )}
+                  </motion.div>
+                ))}
+
+                {/* POSTS */}
+                {selectedDayData && selectedDayData.posts.map((post, idx) => {
+                  const config = CONTENT_TYPE_CONFIG[post.contentType];
+                  const Icon = config.icon;
+                  const StatusIcon = STATUS_CONFIG[post.status]?.icon || AlertCircle;
+
+                  return (
+                    <motion.div
+                      key={post._id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className={cn(
+                        "p-4 rounded-2xl border-2 transition-all hover:shadow-lg group relative",
+                        config.bgLight, config.borderColor
+                      )}
+                    >
+                      <div className="flex items-start justify-between gap-2 mb-3">
+                        <div className="flex items-center gap-2.5 flex-1 min-w-0">
+                          <div className={cn("p-2 rounded-xl bg-gradient-to-br", config.gradient)}>
+                            <Icon className="w-4 h-4 text-white" />
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <Badge className={cn("text-[10px] text-white", config.color)}>
+                              {config.label}
+                            </Badge>
+                            <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+                              <Clock className="w-3 h-3" />
+                              {post.scheduledTime}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* 🔥 NOVO: Botão sempre visível no mobile */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 shrink-0 hover:bg-white/80 dark:hover:bg-gray-800"
+                            >
+                              <MoreVertical className="w-4 h-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-40">
+                            <DropdownMenuItem onClick={() => handleEditPost(post)}>
+                              <Edit className="w-4 h-4 mr-2" />
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem asChild>
+                              <Link href={`/dashboard/brain/post/${post._id}`}>
+                                <Eye className="w-4 h-4 mr-2" />
+                                Ver Detalhes
+                              </Link>
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => handleDeletePost(post._id)}
+                              className="text-red-600 focus:text-red-600"
+                            >
+                              <Trash2 className="w-4 h-4 mr-2" />
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+
+                      <p className="text-sm line-clamp-2 text-gray-700 dark:text-gray-300 mb-3 leading-relaxed">
+                        {post.caption}
+                      </p>
+
+                      <div className="flex items-center justify-between">
+                        <Badge variant="secondary" className="text-[10px] capitalize">
+                          {post.platform}
+                        </Badge>
+                        <div className={cn(
+                          "flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-full font-medium",
+                          STATUS_CONFIG[post.status]?.bg,
+                          STATUS_CONFIG[post.status]?.color
+                        )}>
+                          <StatusIcon className="w-3 h-3" />
+                          <span>{STATUS_CONFIG[post.status]?.label}</span>
+                        </div>
+                      </div>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </ScrollArea>
+      </CardContent>
+    </Card>
+  </motion.div>
+</div >
+
+{/* ================================================================= */}
+{/* MODAL: EDITAR POST */}
+{/* ================================================================= */}
+<Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+  <DialogContent className="max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
+    <DialogHeader>
+      <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl">
+        <Edit className="w-5 h-5 text-white" />
       </div>
+      <DialogTitle className="flex items-center gap-3">
+        <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl">
+          <Edit className="w-5 h-5 text-white" />
+        </div>
+        <div>
+          <span className="block">Editar Post Agendado</span>
+          <span className="text-sm font-normal text-muted-foreground">
+            Altere qualquer informação do post
+          </span>
+        </div>
+      </DialogTitle>
+    </DialogHeader>
 
-      {/* ================================================================= */}
-      {/* MODAL: EDITAR POST */}
-      {/* ================================================================= */}
-      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
-        <DialogContent className="max-w-lg mx-4 max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-3">
-              <div className="p-2 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl">
-                <Edit className="w-5 h-5 text-white" />
-              </div>
-              Editar Post Agendado
-            </DialogTitle>
-          </DialogHeader>
-
-          {editingPost && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-5 pt-2"
-            >
-              <div className="space-y-2">
-                <Label className="font-semibold">Legenda</Label>
-                <Textarea
-                  value={editingPost.caption}
-                  onChange={(e) => setEditingPost({ ...editingPost, caption: e.target.value })}
-                  rows={6}
-                  className="resize-none text-sm"
-                  placeholder="Escreva sua legenda..."
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label className="font-semibold">Data</Label>
-                  <Input
-                    type="date"
-                    value={editingPost.scheduledDate}
-                    onChange={(e) => setEditingPost({ ...editingPost, scheduledDate: e.target.value })}
-                    className="h-11"
-                  />
+    {editingPost && (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="space-y-5 pt-2"
+      >
+        {/* 🔥 NOVO: Preview e Upload de Mídia */}
+        {editingPost.mediaStorageId && (
+          <div className="space-y-3">
+            <Label className="font-semibold flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" />
+              Mídia do Post
+            </Label>
+            <div className="relative aspect-video bg-gray-100 dark:bg-gray-900 rounded-xl overflow-hidden">
+              {editMediaPreview ? (
+                editingPost.contentType === "reel" ? (
+                  <video src={editMediaPreview} className="w-full h-full object-cover" controls />
+                ) : (
+                  <img src={editMediaPreview} alt="Preview" className="w-full h-full object-cover" />
+                )
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
                 </div>
-                <div className="space-y-2">
-                  <Label className="font-semibold">Horário</Label>
-                  <Input
-                    type="time"
-                    value={editingPost.scheduledTime}
-                    onChange={(e) => setEditingPost({ ...editingPost, scheduledTime: e.target.value })}
-                    className="h-11"
-                  />
-                </div>
-              </div>
+              )}
 
-              <div className="flex gap-3 pt-4">
+              <div className="absolute bottom-3 right-3 flex gap-2">
                 <Button
-                  variant="outline"
-                  className="flex-1 h-11"
-                  onClick={() => setIsEditModalOpen(false)}
+                  type="button"
+                  size="sm"
+                  onClick={() => editFileInputRef.current?.click()}
+                  disabled={isUploadingEdit}
+                  className="bg-white/90 hover:bg-white text-gray-900"
                 >
-                  Cancelar
+                  {isUploadingEdit ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Enviando...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 mr-2" />
+                      Trocar {editingPost.contentType === "reel" ? "Vídeo" : "Imagem"}
+                    </>
+                  )}
                 </Button>
                 <Button
-                  onClick={handleSavePost}
-                  className="flex-1 h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+                  type="button"
+                  size="sm"
+                  variant="destructive"
+                  onClick={() => {
+                    setEditingPost({ ...editingPost, mediaStorageId: undefined });
+                    setEditMediaPreview(null);
+                    setEditMediaFile(null);
+                  }}
                 >
-                  <Save className="w-4 h-4 mr-2" />
-                  Salvar Alterações
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
-            </motion.div>
-          )}
-        </DialogContent>
-      </Dialog>
+            </div>
+            <input
+              ref={editFileInputRef}
+              type="file"
+              accept={editingPost.contentType === "reel" ? "video/mp4,video/quicktime" : "image/*"}
+              className="hidden"
+              onChange={handleEditMediaChange}
+            />
+          </div>
+        )}
+
+        {/* Legenda */}
+        <div className="space-y-2">
+          <Label className="font-semibold">Legenda</Label>
+          <Textarea
+            value={editingPost.caption}
+            onChange={(e) => setEditingPost({ ...editingPost, caption: e.target.value })}
+            rows={6}
+            className="resize-none text-sm"
+            placeholder="Escreva sua legenda..."
+            maxLength={2200}
+          />
+          <p className="text-xs text-muted-foreground text-right">
+            {editingPost.caption.length}/2200
+          </p>
+        </div>
+
+        {/* 🔥 NOVO: Edição de Hashtags */}
+        <div className="space-y-3">
+          <Label className="font-semibold flex items-center gap-2">
+            <Hash className="w-4 h-4" />
+            Hashtags ({editingPost.hashtags.length})
+          </Label>
+          <div className="flex flex-wrap gap-2 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border min-h-[60px]">
+            {editingPost.hashtags.map((tag, idx) => (
+              <Badge
+                key={idx}
+                variant="secondary"
+                className="cursor-pointer hover:bg-destructive hover:text-white transition-colors"
+                onClick={() => {
+                  const newHashtags = editingPost.hashtags.filter((_, i) => i !== idx);
+                  setEditingPost({ ...editingPost, hashtags: newHashtags });
+                }}
+              >
+                {tag} <X className="w-3 h-3 ml-1" />
+              </Badge>
+            ))}
+          </div>
+          <div className="flex gap-2">
+            <Input
+              placeholder="Adicionar hashtag"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  const input = e.currentTarget;
+                  const tag = input.value.trim();
+                  if (tag && !editingPost.hashtags.includes(tag)) {
+                    const formattedTag = tag.startsWith('#') ? tag : `#${tag}`;
+                    setEditingPost({
+                      ...editingPost,
+                      hashtags: [...editingPost.hashtags, formattedTag]
+                    });
+                    input.value = '';
+                  }
+                }
+              }}
+            />
+          </div>
+        </div>
+
+        {/* Data e Hora */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <Label className="font-semibold">Data</Label>
+            <Input
+              type="date"
+              value={editingPost.scheduledDate}
+              onChange={(e) => setEditingPost({ ...editingPost, scheduledDate: e.target.value })}
+              min={new Date().toISOString().split('T')[0]}
+              className="h-11"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label className="font-semibold">Horário</Label>
+            <Input
+              type="time"
+              value={editingPost.scheduledTime}
+              onChange={(e) => setEditingPost({ ...editingPost, scheduledTime: e.target.value })}
+              className="h-11"
+            />
+          </div>
+        </div>
+
+        {/* Botões */}
+        <div className="flex gap-3 pt-4">
+          <Button
+            variant="outline"
+            className="flex-1 h-11"
+            onClick={() => {
+              setIsEditModalOpen(false);
+              setEditMediaPreview(null);
+              setEditMediaFile(null);
+            }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            onClick={handleSavePost}
+            className="flex-1 h-11 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+          >
+            <Save className="w-4 h-4 mr-2" />
+            Salvar Alterações
+          </Button>
+        </div>
+      </motion.div>
+    )}
+  </DialogContent>
+</Dialog>
 
       {/* ================================================================= */}
       {/* MODAL: NOVO EVENTO */}
