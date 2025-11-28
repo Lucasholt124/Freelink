@@ -1,5 +1,4 @@
 "use client";
-
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import { toast } from "sonner";
@@ -11,18 +10,16 @@ import {
   Crown, Clock, Loader2, Bell,
   CheckCircle2, Search, Zap, ArrowRight, TrendingUp,
   Film, Music, Scissors, X, Plus,
-  ChevronRight, Target, Flame, Hash
+  ChevronRight, Target, Flame, Hash, Share2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
 import { cn } from "@/lib/utils";
 import { useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -93,8 +90,6 @@ const FloatingParticles = ({ count = 20, color = "purple" }: { count?: number; c
   );
 };
 
-
-
 // =================================================================
 // COMPONENTES DE LOADING DIFERENCIADOS
 // =================================================================
@@ -125,7 +120,6 @@ const LoadingSpinnerPro = () => (
           />
         </div>
       </motion.div>
-
       {/* Ícone central */}
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
@@ -137,7 +131,6 @@ const LoadingSpinnerPro = () => (
           <Brain className="w-8 h-8 text-white" />
         </div>
       </motion.div>
-
       {/* Órbitas */}
       {[0, 1, 2].map((i) => (
         <motion.div
@@ -160,7 +153,6 @@ const LoadingSpinnerPro = () => (
         />
       ))}
     </div>
-
     {/* Texto */}
     <div className="space-y-3">
       <motion.p
@@ -174,7 +166,6 @@ const LoadingSpinnerPro = () => (
         Analisando tendências e criando conteúdo viral para você
       </p>
     </div>
-
     {/* Barra de progresso animada */}
     <div className="w-64 sm:w-80 space-y-2">
       <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -260,7 +251,6 @@ const LoadingSpinnerUltra = () => {
             </div>
           </div>
         </motion.div>
-
         {/* Partículas orbitais */}
         {[...Array(12)].map((_, i) => (
           <motion.div
@@ -286,7 +276,6 @@ const LoadingSpinnerUltra = () => {
           />
         ))}
       </div>
-
       {/* Badge Ultra */}
       <motion.div
         initial={{ y: 20, opacity: 0 }}
@@ -299,7 +288,6 @@ const LoadingSpinnerUltra = () => {
           <Zap className="w-4 h-4 ml-2 fill-yellow-200" />
         </Badge>
       </motion.div>
-
       {/* Texto animado */}
       <div className="text-center space-y-3 relative z-10">
         <AnimatePresence mode="wait">
@@ -318,7 +306,6 @@ const LoadingSpinnerUltra = () => {
           Criando roteiro frame-a-frame com direção profissional de Hollywood
         </p>
       </div>
-
       {/* Progress steps */}
       <div className="flex items-center gap-2">
         {steps.map((_, idx) => (
@@ -333,7 +320,6 @@ const LoadingSpinnerUltra = () => {
           />
         ))}
       </div>
-
       {/* Contador */}
       <p className="text-xs text-muted-foreground">
         Etapa {currentStep + 1} de {steps.length}
@@ -470,7 +456,6 @@ const ViralStatsCard = ({ results, userPlan }: { results: BrainResults; userPlan
                 </motion.p>
               </div>
             </div>
-
             {userPlan === 'ultra' && (
               <motion.div
                 initial={{ scale: 0 }}
@@ -576,15 +561,15 @@ const HeroSection = ({
 
   const features = userPlan === 'ultra'
     ? [
-        { icon: Film, text: "Roteiros Frame-a-Frame" },
-        { icon: Camera, text: "Direção de Câmera" },
-        { icon: Brain, text: "Neuro-Marketing" },
-      ]
+      { icon: Film, text: "Roteiros Frame-a-Frame" },
+      { icon: Camera, text: "Direção de Câmera" },
+      { icon: Brain, text: "Neuro-Marketing" },
+    ]
     : [
-        { icon: Sparkles, text: "Ideias Virais" },
-        { icon: Layers, text: "Multi-Formato" },
-        { icon: TrendingUp, text: "Estratégia Viral" },
-      ];
+      { icon: Sparkles, text: "Ideias Virais" },
+      { icon: Layers, text: "Multi-Formato" },
+      { icon: TrendingUp, text: "Estratégia Viral" },
+    ];
 
   return (
     <div className="max-w-5xl mx-auto px-3 sm:px-4 py-6 sm:py-12">
@@ -747,7 +732,6 @@ const HeroSection = ({
                   <Wand2 className="w-5 h-5 text-purple-500" />
                   Qual tema você quer dominar?
                 </Label>
-
                 <div className="relative group">
                   {/* Glow effect */}
                   <div className={cn(
@@ -756,7 +740,6 @@ const HeroSection = ({
                       ? "bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600"
                       : "bg-gradient-to-r from-purple-400 to-pink-400"
                   )} />
-
                   <div className="relative">
                     <Input
                       ref={inputRef}
@@ -957,7 +940,6 @@ const MobileBottomNav = ({
                   transition={{ type: "spring", stiffness: 500, damping: 30 }}
                 />
               )}
-
               <div className="relative">
                 <tab.icon className={cn(
                   "w-6 h-6 transition-all",
@@ -1060,6 +1042,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
   );
   const createCampaign = useMutation(api.brainCampaigns.createCampaign);
   const deleteCampaign = useMutation(api.brainCampaigns.deleteCampaign);
+
   useScheduledPosts();
   const { isConnected: hasAnyNotification } = useNotificationIntegration();
 
@@ -1127,6 +1110,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
           ? "⚡ Roteiro ULTRA VIRAL Gerado!"
           : "🎉 Campanha gerada com sucesso!"
       );
+
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Erro ao gerar conteúdo");
     } finally {
@@ -1159,7 +1143,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
 
     if (contentType === "reel" && 'hook' in content) {
       caption = `${content.title}\n\n${content.hook}\n\n${content.main_points.join('\n')}\n\n${content.cta}`;
-    } else if (contentType === "carousel" && 'slides' in content && 'cta_slide' in content) {
+    } else if (contentType === "carousel" && 'slides' in content && 'cta_slide' in content && 'title' in content) {
       caption = `${content.title}\n\n${content.slides.map(s => s.content).join('\n\n')}\n\n${content.cta_slide}`;
     } else if (contentType === "image_post" && 'caption' in content && 'hashtags' in content) {
       caption = content.caption;
@@ -1177,6 +1161,56 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
       initialHashtags: hashtags,
     });
   };
+
+  // NOVA FUNÇÃO DE COMPARTILHAMENTO
+  const handleSmartShare = async (contentType: ContentType, index: number) => {
+    if (!results) return;
+
+    const key = contentType === "image_post"
+      ? "image_posts"
+      : contentType === "story_sequence"
+        ? "story_sequences"
+        : `${contentType}s` as "reels" | "carousels";
+
+    const content = results.content_pack[key][index];
+    if (!content) return;
+
+    let shareText = "";
+    const branding = "\n\n🚀 Criado com Freelinnk Brain\nwww.freelinnk.com";
+
+    if (contentType === "reel" && 'hook' in content) {
+      shareText = `🎬 *${content.title}*\n\n🎣 Hook: ${content.hook}\n\n📝 Pontos:\n${content.main_points.map(p => `• ${p}`).join('\n')}\n\n📢 CTA: ${content.cta}${branding}`;
+    } else if (contentType === "carousel" && 'slides' in content && 'title' in content && 'cta_slide' in content) {
+      shareText = `📑 *${content.title}*\n\n${content.slides.map((s, i) => `Slide ${i + 1}: ${s.content}`).join('\n\n')}\n\n📢 CTA: ${content.cta_slide}${branding}`;
+    } else if (contentType === "image_post" && 'caption' in content) {
+      shareText = `📸 *Post*\n\n${content.caption}\n\n#️⃣ ${content.hashtags.join(' ')}${branding}`;
+    } else if (contentType === "story_sequence" && 'slides' in content && 'theme' in content) {
+      shareText = `📱 *Sequência de Stories: ${content.theme}*\n\n${content.slides.map((s, i) => `Story ${i + 1} (${s.type}):\n${s.content}`).join('\n\n')}${branding}`;
+    }
+
+    // Tentar usar API nativa de compartilhamento (Mobile)
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: "Conteúdo Freelinnk",
+          text: shareText,
+        });
+        toast.success("Menu de compartilhamento aberto!");
+      } catch (err) {
+        // Se usuário cancelar ou der erro, fallback para clipboard
+        console.log("Compartilhamento cancelado ou erro:", err);
+      }
+    } else {
+      // Fallback para Desktop (Clipboard)
+      try {
+        await navigator.clipboard.writeText(shareText);
+        toast.success("Copiado para a área de transferência!");
+      } catch  {
+        toast.error("Erro ao copiar");
+      }
+    }
+  };
+
 
   const handleCampaignSelect = (campaign: BrainCampaign) => {
     try {
@@ -1212,9 +1246,9 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
     image_posts: results.content_pack?.image_posts?.length ?? 0,
     story_sequences: results.content_pack?.story_sequences?.length ?? 0,
     total: (results.content_pack?.reels?.length ?? 0) +
-           (results.content_pack?.carousels?.length ?? 0) +
-           (results.content_pack?.image_posts?.length ?? 0) +
-           (results.content_pack?.story_sequences?.length ?? 0)
+      (results.content_pack?.carousels?.length ?? 0) +
+      (results.content_pack?.image_posts?.length ?? 0) +
+      (results.content_pack?.story_sequences?.length ?? 0)
   } : null;
 
   const tabsConfig = [
@@ -1270,7 +1304,6 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                       FreelinnkBrain
                     </span>
                   </h1>
-
                   {userPlan === 'ultra' ? (
                     <Badge className="bg-gradient-to-r from-yellow-500 via-orange-500 to-red-500 text-white text-[10px] px-2 py-0.5 border-0 shadow-lg shadow-orange-500/20">
                       <Crown className="w-3 h-3 mr-1 fill-white" />
@@ -1437,7 +1470,6 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
               </div>
             </SheetTitle>
           </SheetHeader>
-
           <div className="px-4 py-3 border-b">
             <div className="relative">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
@@ -1457,7 +1489,6 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
               )}
             </div>
           </div>
-
           <ScrollArea className="flex-1">
             <div className="p-4 space-y-3">
               {campaignsStatus === "LoadingFirstPage" ? (
@@ -1521,7 +1552,6 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                         </div>
                       </motion.div>
                     ))}
-
                   {campaignsStatus === "CanLoadMore" && !searchTerm && (
                     <motion.div
                       initial={{ opacity: 0 }}
@@ -1610,7 +1640,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                   </motion.div>
 
                   {/* Tabs Desktop */}
-                <div className="w-full overflow-x-auto pb-2 sm:pb-0">
+                  <div className="w-full overflow-x-auto pb-2 sm:pb-0">
                     <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-gray-800/50 rounded-2xl mb-6 min-w-max">
                       {tabsConfig.map((tab) => (
                         <DesktopTabButton
@@ -1625,53 +1655,111 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                       ))}
                     </div>
 
+                    <div className="hidden sm:block space-y-4">
+                      {/* REELS */}
+                      {activeTab === "reels" && results.content_pack?.reels?.map((reel, i) => (
+                        <motion.div
+                          key={`reel-${i}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                        >
+                          {userPlan === 'ultra' ? (
+                            <ReelCardUltra reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
+                          ) : (
+                            <ReelCardPro reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
+                          )}
+                          <div className="flex justify-end mt-2">
+                            <Button
+                              variant="ghost"
+                              onClick={() => handleSmartShare("reel", i)}
+                              className={cn(
+                                "gap-2",
+                                userPlan === 'ultra' ? "text-gray-300 hover:text-white hover:bg-white/10" : "text-gray-500"
+                              )}
+                            >
+                              <Share2 className="w-4 h-4" />
+                              Compartilhar Freelinnk
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
 
-                   <div className="hidden sm:block space-y-4">
-                    {activeTab === "reels" && results.content_pack?.reels?.map((reel, i) => (
-                      <motion.div
-                        key={`reel-${i}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                      >
-                        {userPlan === 'ultra' ? (
-                          <ReelCardUltra reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
-                        ) : (
-                          <ReelCardPro reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
-                        )}
-                      </motion.div>
-                    ))}
-                    {activeTab === "carousels" && results.content_pack?.carousels?.map((carousel, i) => (
-                      <motion.div
-                        key={`carousel-${i}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                      >
-                        <CarouselCard carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
-                      </motion.div>
-                    ))}
-                    {activeTab === "image_posts" && results.content_pack?.image_posts?.map((post, i) => (
-                      <motion.div
-                        key={`post-${i}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                      >
-                        <ImagePostCard post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
-                      </motion.div>
-                    ))}
-                    {activeTab === "story_sequences" && results.content_pack?.story_sequences?.map((story, i) => (
-                      <motion.div
-                        key={`story-${i}`}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: i * 0.1 }}
-                      >
-                        <StoryCard story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
-                      </motion.div>
-                    ))}
-                  </div>
+                      {/* CAROUSELS */}
+                      {activeTab === "carousels" && results.content_pack?.carousels?.map((carousel, i) => (
+                        <motion.div
+                          key={`carousel-${i}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                        >
+                          <CarouselCard carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
+                          <div className="flex justify-end mt-2">
+                            <Button
+                              variant="ghost"
+                              onClick={() => handleSmartShare("carousel", i)}
+                              className={cn(
+                                "gap-2",
+                                userPlan === 'ultra' ? "text-gray-300 hover:text-white hover:bg-white/10" : "text-gray-500"
+                              )}
+                            >
+                              <Share2 className="w-4 h-4" />
+                              Compartilhar Freelinnk
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
+
+                      {/* POSTS */}
+                      {activeTab === "image_posts" && results.content_pack?.image_posts?.map((post, i) => (
+                        <motion.div
+                          key={`post-${i}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                        >
+                          <ImagePostCard post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
+                          <div className="flex justify-end mt-2">
+                            <Button
+                              variant="ghost"
+                              onClick={() => handleSmartShare("image_post", i)}
+                              className={cn(
+                                "gap-2",
+                                userPlan === 'ultra' ? "text-gray-300 hover:text-white hover:bg-white/10" : "text-gray-500"
+                              )}
+                            >
+                              <Share2 className="w-4 h-4" />
+                              Compartilhar Freelinnk
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
+
+                      {/* STORIES */}
+                      {activeTab === "story_sequences" && results.content_pack?.story_sequences?.map((story, i) => (
+                        <motion.div
+                          key={`story-${i}`}
+                          initial={{ opacity: 0, y: 20 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          transition={{ delay: i * 0.1 }}
+                        >
+                          <StoryCard story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
+                          <div className="flex justify-end mt-2">
+                            <Button
+                              variant="ghost"
+                              onClick={() => handleSmartShare("story_sequence", i)}
+                              className={cn(
+                                "gap-2",
+                                userPlan === 'ultra' ? "text-gray-300 hover:text-white hover:bg-white/10" : "text-gray-500"
+                              )}
+                            >
+                              <Share2 className="w-4 h-4" />
+                              Compartilhar Freelinnk
+                            </Button>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </div>
                   </div>
 
                   {/* Conteúdo Mobile */}
@@ -1690,8 +1778,18 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                           ) : (
                             <ReelCardPro reel={reel} index={i} onSchedule={() => handleScheduleContent("reel", i)} />
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSmartShare("reel", i)}
+                            className="w-full mt-2 gap-2"
+                          >
+                            <Share2 className="w-4 h-4" />
+                            Compartilhar Freelinnk
+                          </Button>
                         </motion.div>
                       ))}
+
                       {activeTab === "carousels" && results.content_pack?.carousels?.map((carousel, i) => (
                         <motion.div
                           key={`carousel-mobile-${i}`}
@@ -1701,8 +1799,18 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                           transition={{ delay: i * 0.05 }}
                         >
                           <CarouselCard carousel={carousel} index={i} onSchedule={() => handleScheduleContent("carousel", i)} />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSmartShare("carousel", i)}
+                            className="w-full mt-2 gap-2"
+                          >
+                            <Share2 className="w-4 h-4" />
+                            Compartilhar Freelinnk
+                          </Button>
                         </motion.div>
                       ))}
+
                       {activeTab === "image_posts" && results.content_pack?.image_posts?.map((post, i) => (
                         <motion.div
                           key={`post-mobile-${i}`}
@@ -1712,8 +1820,18 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                           transition={{ delay: i * 0.05 }}
                         >
                           <ImagePostCard post={post} index={i} onSchedule={() => handleScheduleContent("image_post", i)} />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSmartShare("image_post", i)}
+                            className="w-full mt-2 gap-2"
+                          >
+                            <Share2 className="w-4 h-4" />
+                            Compartilhar Freelinnk
+                          </Button>
                         </motion.div>
                       ))}
+
                       {activeTab === "story_sequences" && results.content_pack?.story_sequences?.map((story, i) => (
                         <motion.div
                           key={`story-mobile-${i}`}
@@ -1723,6 +1841,15 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                           transition={{ delay: i * 0.05 }}
                         >
                           <StoryCard story={story} index={i} onSchedule={() => handleScheduleContent("story_sequence", i)} />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleSmartShare("story_sequence", i)}
+                            className="w-full mt-2 gap-2"
+                          >
+                            <Share2 className="w-4 h-4" />
+                            Compartilhar Freelinnk
+                          </Button>
                         </motion.div>
                       ))}
                     </AnimatePresence>
@@ -1740,7 +1867,6 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
               )}
             </motion.div>
           )}
-
           {mainView === "planner" && (
             <motion.div
               key="planner"

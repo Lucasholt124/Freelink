@@ -24,6 +24,9 @@ import { LockedFeatureCard } from "./LockedFeatureCard";
 import { UpgradeCallToAction } from "./UpgradeCallToAction";
 import { NoDataState } from "./NoDataState";
 
+// IMPORTANDO O NOVO COMPONENTE DE COMPARTILHAMENTO
+import ViralLinkShareBanner from "@/components/ViralLinkShareBanner";
+
 interface CustomMetricCardProps {
   title: string;
   value: number | string;
@@ -508,6 +511,16 @@ export default function LinkAnalytics({ analytics }: { analytics: LinkAnalyticsD
           <NoDataState />
         ) : (
           <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+
+            {/* NOVO BANNER DE COMPARTILHAMENTO VIRAL - ESPECÍFICO DO LINK */}
+            <ViralLinkShareBanner
+              data={{
+                linkTitle: analytics.linkTitle,
+                totalClicks: analytics.totalClicks,
+                uniqueUsers: analytics.uniqueUsers
+              }}
+            />
+
             {/* Métricas Principais - Grid Responsivo */}
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <CustomMetricCard

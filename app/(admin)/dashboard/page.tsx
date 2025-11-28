@@ -26,6 +26,9 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
+// IMPORTANDO O NOVO BANNER VIRAL
+import ViralLevelUpBanner from "@/components/ViralLevelUpBanner";
+
 // === SISTEMA INTELIGENTE DE MENSAGENS DINÂMICAS ===
 function getDynamicGreeting() {
   const sergipeTime = new Date(new Date().toLocaleString("en-US", { timeZone: "America/Maceio" }));
@@ -619,6 +622,11 @@ export default async function DashboardOverviewPage() {
         <Suspense fallback={<SkeletonDashboard />}>
           <DashboardMetrics analytics={analytics} plan={userPlan} />
         </Suspense>
+
+        {/* ========================================================= */}
+        {/* BANNER VIRAL GAMIFICADO GRANDE AQUI - EM DESTAQUE MÁXIMO */}
+        {/* ========================================================= */}
+        <ViralLevelUpBanner clicksUsed={clicksUsed} plan={userPlan} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 items-start">
           <div className="lg:col-span-2 space-y-6 sm:space-y-8">
