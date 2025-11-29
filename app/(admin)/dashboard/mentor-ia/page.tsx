@@ -155,7 +155,7 @@ function LockedPremiumFeature() {
                   {/* Mini comparação */}
                   <div className="w-full space-y-2 pt-4 border-t">
                     <div className="flex items-center justify-between text-xs xl:text-sm">
-                      <span className="text-gray-500">Plano Básico</span>
+                      <span className="text-gray-500">Plano Free</span>
                       <span className="text-gray-400 line-through">0 imagens IA</span>
                     </div>
                     <div className="flex items-center justify-between text-xs xl:text-sm">
