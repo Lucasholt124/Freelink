@@ -1,134 +1,93 @@
 "use client";
 
-import { Card, CardContent } from "@/components/ui/card";
+import { motion } from "framer-motion";
+import { Trophy, Zap, Crown, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Instagram, Smartphone, Zap, Trophy, Copy } from "lucide-react";
-import { useState } from "react";
+import Link from "next/link";
 
-export default function ViralLevelUpBanner({ clicksUsed, plan }: { clicksUsed: number; plan: string }) {
-    const [copied, setCopied] = useState(false);
+interface ViralBannerProps {
+  clicksUsed: number;
+  plan: string;
+}
 
-    // Lógica de Gamificação
-    const nextLevel = Math.ceil((clicksUsed + 1) / 1000) * 1000;
-    // Agora o progress é usado na barra visualmente
-    const progress = Math.min(100, (clicksUsed / nextLevel) * 100);
+export default function ViralLevelUpBanner({ clicksUsed, plan }: ViralBannerProps) {
+  // Gamificação: Define níveis baseados em cliques
+  const getLevel = (clicks: number) => {
+    if (clicks < 100) return { current: "Novato Digital", next: "Creator Iniciante", max: 100, icon: Star };
+    if (clicks < 1000) return { current: "Creator Iniciante", next: "Influencer em Ascensão", max: 1000, icon: Zap };
+    if (clicks < 5000) return { current: "Influencer", next: "Autoridade Digital", max: 5000, icon: Trophy };
+    return { current: "Lenda Digital", next: "Ícone Global", max: 10000, icon: Crown };
+  };
 
-    const shareUrl = "https://freelinnk.com";
-    const shareText = `🚀 Estou voando alto com meu Freelinnk! Já são ${clicksUsed.toLocaleString()} cliques. Crie seu império digital também! #Freelinnk`;
+  const level = getLevel(clicksUsed);
+  const progress = Math.min(100, (clicksUsed / level.max) * 100);
+  const clicksLeft = level.max - clicksUsed;
 
-    // Define o rótulo baseado no plano (Usando a variável 'plan' para corrigir o erro)
-    const planLabel = plan === 'ultra' ? 'ULTRA MEMBER' : plan === 'pro' ? 'PRO MEMBER' : 'MEMBER';
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="relative overflow-hidden rounded-3xl bg-slate-900 text-white shadow-2xl mb-8 group"
+    >
+      {/* Background Animado Premium */}
+      <div className="absolute inset-0 bg-gradient-to-r from-violet-900 via-slate-900 to-indigo-900"></div>
+      <div className="absolute top-0 right-0 w-64 h-64 bg-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 animate-pulse"></div>
+      <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl translate-y-1/2 -translate-x-1/2"></div>
 
-    const handleCopy = () => {
-        navigator.clipboard.writeText(`${shareText} ${shareUrl}`);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
+      {/* Padrão de Grid Sutil (Estilo Linear) */}
+      <div className="absolute inset-0 bg-[url('/grid-pattern.svg')] opacity-10"></div>
 
-    const handleShare = async () => {
-        if (navigator.share) {
-            try {
-                await navigator.share({ title: 'Minha Conquista Freelinnk', text: shareText, url: shareUrl });
-            } catch (err) { console.log(err); }
-        }
-    };
+      <div className="relative z-10 p-6 sm:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
 
-    return (
-        <div className="relative group w-full mb-8">
-            {/* Efeito de brilho de fundo pulsante */}
-            <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-3xl blur opacity-75 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
+        {/* Lado Esquerdo: Status e Progresso */}
+        <div className="flex-1 w-full">
+          <div className="flex items-center gap-3 mb-2">
+            <div className="p-2 bg-yellow-500/20 rounded-lg border border-yellow-500/30 backdrop-blur-md">
+              <level.icon className="w-6 h-6 text-yellow-400" />
+            </div>
+            <div>
+              <h3 className="text-sm font-medium text-slate-400 uppercase tracking-wider">Nível Atual</h3>
+              <p className="text-xl sm:text-2xl font-black text-white">{level.current}</p>
+            </div>
+          </div>
 
-            <Card className="relative w-full border-0 bg-slate-950 overflow-hidden rounded-2xl shadow-2xl">
-                {/* Background Artístico */}
-                <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
-                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2"></div>
-                <div className="absolute bottom-0 left-0 w-[300px] h-[300px] bg-pink-600/20 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/2"></div>
-
-                <CardContent className="relative z-10 p-6 sm:p-8 md:p-10 flex flex-col md:flex-row items-center gap-8 md:gap-12">
-
-                    {/* LADO ESQUERDO: A Conquista (Texto e Emoção) */}
-                    <div className="flex-grow space-y-4 text-center md:text-left w-full">
-                        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-500/20 border border-yellow-400/50 backdrop-blur-md animate-bounce">
-                            <Trophy className="w-4 h-4 text-yellow-400" />
-                            <span className="text-yellow-400 font-black text-xs uppercase tracking-wider">Nova Conquista Desbloqueada</span>
-                        </div>
-
-                        <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white leading-tight">
-                            Você é uma Lenda <br/>
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400">
-                                do Digital!
-                            </span>
-                        </h2>
-
-                        <p className="text-slate-300 text-sm sm:text-base max-w-lg mx-auto md:mx-0 font-medium">
-                            Você superou <span className="text-white font-bold">{clicksUsed.toLocaleString()} pessoas</span> hoje. Sua marca está explodindo. Não guarde isso só para você!
-                        </p>
-
-                        {/* Barra de Progresso Gamificada */}
-                        <div className="bg-slate-900/50 p-4 rounded-xl border border-white/10 backdrop-blur-sm max-w-md mx-auto md:mx-0">
-                            <div className="flex justify-between text-xs font-bold text-slate-400 mb-2">
-                                <span>Nível Atual</span>
-                                <span className="text-purple-400">Próximo: {nextLevel.toLocaleString()} cliques</span>
-                            </div>
-                            <div className="h-3 bg-slate-800 rounded-full overflow-hidden">
-                                {/* CORREÇÃO AQUI: Usando style width com a variável progress */}
-                                <div
-                                    className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 animate-[shimmer_2s_infinite]"
-                                    style={{ width: `${progress}%` }}
-                                ></div>
-                            </div>
-                            <div className="mt-2 text-[10px] text-center text-slate-500 font-mono">
-                                +500 XP AO COMPARTILHAR AGORA
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* LADO DIREITO: Ação Visual (O "Card" do Instagram) */}
-                    <div className="flex-shrink-0 relative w-full md:w-auto flex flex-col items-center gap-4">
-
-                        {/* Preview do Story (Visualmente Bonito) */}
-                        <div className="relative w-64 h-40 bg-gradient-to-br from-indigo-600 to-purple-700 rounded-xl shadow-2xl transform rotate-3 hover:rotate-0 transition-all duration-500 border-2 border-white/20 flex flex-col items-center justify-center overflow-hidden group/preview">
-                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(255,255,255,0.2),transparent)] opacity-0 group-hover/preview:opacity-100 transition-opacity"></div>
-
-                            {/* Logo F */}
-                            <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center mb-2 shadow-lg">
-                                <span className="font-black text-transparent bg-clip-text bg-gradient-to-br from-indigo-600 to-purple-600 text-xl">F</span>
-                            </div>
-
-                            <p className="text-white font-black text-xl drop-shadow-md">{clicksUsed.toLocaleString()}</p>
-
-                            {/* CORREÇÃO AQUI: Mostrando o plano dinamicamente */}
-                            <p className="text-white/80 text-[10px] font-bold tracking-widest uppercase mt-1">
-                                {planLabel}
-                            </p>
-
-                            <div className="absolute bottom-2 left-0 w-full flex justify-center">
-                                <Badge className="bg-white/20 hover:bg-white/30 text-[8px] backdrop-blur-sm border-0">Freelinnk.com</Badge>
-                            </div>
-                        </div>
-
-                        {/* Botões de Ação */}
-                        <div className="flex flex-col w-64 gap-2">
-                            <Button onClick={handleShare} className="w-full bg-gradient-to-r from-pink-500 to-orange-500 hover:from-pink-600 hover:to-orange-600 text-white font-black h-12 rounded-xl shadow-lg shadow-pink-500/20 transform hover:scale-105 transition-all">
-                                <Instagram className="w-5 h-5 mr-2" />
-                                Postar no Story
-                            </Button>
-
-                            <div className="grid grid-cols-2 gap-2">
-                                <Button onClick={() => window.open(`https://wa.me/?text=${encodeURIComponent(shareText + " " + shareUrl)}`, '_blank')} className="bg-[#25D366] hover:bg-[#128C7E] text-white font-bold rounded-xl h-10">
-                                    <Smartphone className="w-4 h-4 mr-2" /> Zap
-                                </Button>
-                                <Button onClick={handleCopy} variant="outline" className="border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white font-bold rounded-xl h-10 bg-slate-900/50">
-                                    {copied ? <Zap className="w-4 h-4 mr-2 text-yellow-400" /> : <Copy className="w-4 h-4 mr-2" />}
-                                    {copied ? "Copiado!" : "Copiar"}
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-
-                </CardContent>
-            </Card>
+          <div className="mt-4 space-y-2">
+            <div className="flex justify-between text-xs font-bold text-slate-300">
+              <span>{clicksUsed.toLocaleString()} XP (Cliques)</span>
+              <span className="text-purple-300">Próximo: {level.next}</span>
+            </div>
+            <div className="relative h-4 w-full bg-slate-800 rounded-full overflow-hidden border border-slate-700/50">
+              <motion.div
+                className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"
+                initial={{ width: 0 }}
+                animate={{ width: `${progress}%` }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+              />
+              {/* Brilho na ponta da barra */}
+              <motion.div
+                className="absolute top-0 h-full w-1 bg-white blur-[2px]"
+                initial={{ left: 0 }}
+                animate={{ left: `${progress}%` }}
+                transition={{ duration: 1.5, ease: "easeOut" }}
+              />
+            </div>
+            <p className="text-xs text-slate-400 mt-1">
+              Faltam apenas <span className="text-white font-bold">{clicksLeft.toLocaleString()} cliques</span> para evoluir.
+              {plan === 'free' && <span className="text-pink-400 ml-1 font-bold">O plano Pro acelera 3x mais.</span>}
+            </p>
+          </div>
         </div>
-    );
+
+        {/* Lado Direito: CTA de Ação (Activation) */}
+        <div className="flex-shrink-0 w-full md:w-auto">
+          <Link href="/dashboard/new-link">
+            <Button className="w-full md:w-auto bg-white text-slate-950 hover:bg-slate-100 hover:scale-105 transition-all font-black text-base py-6 px-8 rounded-xl shadow-xl shadow-purple-500/10 group-hover:shadow-purple-500/20">
+              <Zap className="w-5 h-5 mr-2 text-purple-600 fill-purple-600" />
+              Criar Link Viral
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </motion.div>
+  );
 }

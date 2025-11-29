@@ -4,7 +4,7 @@ import { api } from "@/convex/_generated/api";
 import { ptBR } from 'date-fns/locale';
 import { formatInTimeZone } from 'date-fns-tz';
 
-// --- INTERFACE DE DADOS ATUALIZADA ---
+
 export interface AnalyticsData {
   totalClicks: number;
   uniqueVisitors: number;
@@ -13,22 +13,40 @@ export interface AnalyticsData {
   peakHour: { hour: number; clicks: number } | null;
   topCountry: { name: string; clicks: number } | null;
   lastActivity: string | null;
+  growth?: string;
+  // NOVO: Array para o gráfico real
+  dailyClicks: { date: string; count: number }[];
 }
 
 export async function fetchAnalytics(userId: string): Promise<AnalyticsData> {
-  // 1. Buscamos todos os dados do Postgres E a lista de links do Convex em paralelo
   const [
     postgresResults,
     convexLinks,
   ] = await Promise.all([
     Promise.all([
+      // 0. Total Cliques
       sql`SELECT COUNT(*) FROM clicks WHERE "profileUserId" = ${userId};`,
+      // 1. Visitantes Únicos
       sql`SELECT COUNT(DISTINCT "visitorId") FROM clicks WHERE "profileUserId" = ${userId};`,
+      // 2. Top Referrer
       sql`SELECT COALESCE(NULLIF(referrer, ''), 'Direto') as source, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} GROUP BY source ORDER BY clicks DESC LIMIT 1;`,
+      // 3. Top Link
       sql`SELECT "linkId", COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND "linkId" IS NOT NULL GROUP BY "linkId" ORDER BY clicks DESC LIMIT 1;`,
+      // 4. Hora de Pico
       sql`SELECT EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/Sao_Paulo') as hour, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} GROUP BY hour ORDER BY clicks DESC LIMIT 1;`,
+      // 5. Top País
       sql`SELECT country, COUNT(*) as clicks FROM clicks WHERE "profileUserId" = ${userId} AND country IS NOT NULL AND country != '' AND country != 'Unknown' GROUP BY country ORDER BY clicks DESC LIMIT 1;`,
+      // 6. Última Atividade
       sql`SELECT MAX(timestamp) as last_click FROM clicks WHERE "profileUserId" = ${userId};`,
+      // 7. NOVO: Histórico dos últimos 7 dias para o gráfico
+      sql`
+        SELECT to_char(timestamp AT TIME ZONE 'America/Sao_Paulo', 'DD/MM') as day, COUNT(*) as count
+        FROM clicks
+        WHERE "profileUserId" = ${userId}
+        AND timestamp >= NOW() - INTERVAL '7 days'
+        GROUP BY day
+        ORDER BY MAX(timestamp) ASC;
+      `,
     ]),
     fetchQuery(api.lib.links.getLinksByUserId, { userId }),
   ]);
@@ -41,25 +59,24 @@ export async function fetchAnalytics(userId: string): Promise<AnalyticsData> {
     peakHourResult,
     topCountryResult,
     lastActivityResult,
+    historyResult, // Novo resultado
   ] = postgresResults;
 
-  // 2. Criamos o mapa de links (como antes)
   const convexLinksMap = new Map(convexLinks.map(link => [link._id, link.title]));
-
-  // 3. Processamos o link mais popular (como antes)
   const topLinkFromDb = topLinkResult.rows[0];
   const topLinkTitle = topLinkFromDb ? convexLinksMap.get(topLinkFromDb.linkId) : null;
 
-  // 4. --- PROCESSAMENTO CORRIGIDO E FINAL PARA 'lastActivity' ---
   const lastClickTimestamp = lastActivityResult.rows[0]?.last_click;
   const lastActivityFormatted = lastClickTimestamp
-    ? formatInTimeZone(
-        new Date(lastClickTimestamp),
-        'America/Sao_Paulo', // Define o fuso horário de saída
-        "dd 'de' MMM. yyyy, 'às' HH:mm",
-        { locale: ptBR }
-      )
+    ? formatInTimeZone(new Date(lastClickTimestamp), 'America/Sao_Paulo', "dd 'de' MMM. yyyy, 'às' HH:mm", { locale: ptBR })
     : null;
+
+  // Processa o histórico para o gráfico
+  const dailyClicks = historyResult.rows.map(row => ({
+    date: row.day,
+    count: parseInt(row.count, 10)
+  }));
+
   return {
     totalClicks: parseInt(clicksResult.rows[0]?.count || '0', 10),
     uniqueVisitors: parseInt(uniqueUsersResult.rows[0]?.count || '0', 10),
@@ -79,6 +96,7 @@ export async function fetchAnalytics(userId: string): Promise<AnalyticsData> {
       name: topCountryResult.rows[0].country,
       clicks: parseInt(topCountryResult.rows[0].clicks, 10),
     } : null,
-    lastActivity: lastActivityFormatted, // <-- Adicionamos o novo dado formatado
+    lastActivity: lastActivityFormatted,
+    dailyClicks: dailyClicks, // Envia o histórico real
   };
 }
