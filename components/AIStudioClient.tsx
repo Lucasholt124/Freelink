@@ -15,7 +15,7 @@ import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
 
 // =================================================================
-// 🎯 CONFIGURAÇÃO DE DESIGN SYSTEM & TABS
+// 🎯 CONFIGURAÇÃO
 // =================================================================
 const tabs = [
   { id: 'chat', label: 'Chat', icon: MessageSquare },
@@ -54,7 +54,7 @@ export function AIStudioClient() {
   const [isTyping, setIsTyping] = useState(false)
   const chatEndRef = useRef<HTMLDivElement>(null)
 
-  // Estados de Imagem e Audio
+  // Estados de Mídia
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState('')
   const [enhancedImage, setEnhancedImage] = useState('')
@@ -63,13 +63,13 @@ export function AIStudioClient() {
   const [removeBgImage, setRemoveBgImage] = useState('')
   const [removeBgResult, setRemoveBgResult] = useState('')
 
-  // Refs de Input
+  // Refs
   const imageInputRef = useRef<HTMLInputElement>(null)
   const audioInputRef = useRef<HTMLInputElement>(null)
   const removeBgInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Actions Convex
+  // Actions
   const enhanceImageAction = useAction(api.aiStudio.enhanceImage)
   const chatWithAIAction = useAction(api.aiStudio.chatWithAI)
   const speechToTextAction = useAction(api.aiStudio.speechToText)
@@ -78,7 +78,7 @@ export function AIStudioClient() {
   // =================================================================
   // 💾 LOCALSTORAGE
   // =================================================================
-  const STORAGE_KEY = 'ai-studio-chat-messages-v2'
+  const STORAGE_KEY = 'ai-studio-chat-messages-v5'
 
   useEffect(() => {
     try {
@@ -111,7 +111,6 @@ export function AIStudioClient() {
   const scrollToBottom = () => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   useEffect(() => scrollToBottom(), [chatMessages, isTyping])
 
-  // Auto-resize textarea
   useEffect(() => {
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
@@ -126,7 +125,6 @@ export function AIStudioClient() {
     setChatInput('')
     setIsTyping(true)
 
-    // Reset height
     if (textareaRef.current) textareaRef.current.style.height = 'auto';
 
     try {
@@ -189,7 +187,6 @@ export function AIStudioClient() {
       const processedImg = await resizeImageBeforeUpload(file);
       let result;
 
-      // Usando if/else explícito para garantir a tipagem correta de cada Action
       if (type === 'enhance') {
         result = await enhanceImageAction({
           userId: user.id,
@@ -254,13 +251,15 @@ export function AIStudioClient() {
   }
 
   // =================================================================
-  // 🎨 RENDER - UI CLEAN & PREMIUM
+  // 🎨 RENDER - UI FINAL
   // =================================================================
   return (
-    <div className="min-h-screen bg-[#F7F7F7] text-gray-900 font-sans selection:bg-emerald-100 selection:text-emerald-900">
+    <div className="min-h-screen bg-[#F7F7F7] text-gray-900 font-sans selection:bg-emerald-100 selection:text-emerald-900 relative">
 
-      {/* 1) TOPBAR FIXA - ESTILO WHATSAPP/LINEAR */}
-      <div className="fixed top-0 inset-x-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 z-50 flex items-center justify-between px-4 lg:px-8 transition-all">
+      {/* 1) TOPBAR (HEADER)
+         - Mantém apenas o logo e os botões de ação para não atrapalhar seu modal.
+      */}
+      <div className="fixed top-0 inset-x-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 z-50 flex items-center justify-between px-4 lg:px-8">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-sm">
@@ -270,52 +269,36 @@ export function AIStudioClient() {
           </div>
           <div className="leading-tight">
             <h1 className="font-bold text-gray-900 text-sm md:text-base">AI Studio Pro</h1>
-            <p className="text-xs text-green-600 font-medium">Online • Rápido</p>
+            <p className="text-xs text-green-600 font-medium">Online</p>
           </div>
         </div>
 
-        {/* Desktop Tabs */}
-        <div className="hidden md:flex bg-gray-100 p-1 rounded-lg">
-          {tabs.map(tab => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={cn(
-                "px-4 py-1.5 text-sm font-medium rounded-md transition-all",
-                activeTab === tab.id
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-
-        {/* Mobile Menu / Actions */}
-        <button className="p-2 hover:bg-gray-100 rounded-full transition-colors md:hidden">
-            <MoreVertical className="w-5 h-5 text-gray-600" />
-        </button>
-        <div className="hidden md:flex gap-2">
-            <button onClick={clearChat} className="p-2 hover:bg-gray-100 rounded-full text-gray-500" title="Limpar Chat">
+        {/* Botões do Header (Preservados para sua sidebar) */}
+        <div className="flex items-center gap-2">
+            <button onClick={clearChat} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors" title="Limpar Chat">
                 <Trash2 className="w-5 h-5" />
+            </button>
+            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600" title="Menu">
+                <MoreVertical className="w-5 h-5" />
             </button>
         </div>
       </div>
 
-      {/* 2) CONTEÚDO PRINCIPAL */}
-      <main className="pt-20 pb-24 md:pb-8 container mx-auto max-w-4xl px-0 md:px-4">
+      {/* 2) CONTEÚDO PRINCIPAL
+         - Padding bottom generoso (140px) para garantir que o conteúdo role acima do Nav e do Input.
+      */}
+      <main className="pt-20 pb-[150px] container mx-auto max-w-4xl px-0 md:px-4">
         <AnimatePresence mode="wait">
 
-          {/* --- CHAT VIEW --- */}
+          {/* --- VIEW: CHAT --- */}
           {activeTab === 'chat' && (
             <motion.div
               key="chat"
               initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="flex flex-col h-full min-h-[calc(100vh-140px)]"
+              className="flex flex-col h-full"
             >
-              {/* Área de Mensagens */}
-              <div className="flex-1 px-4 space-y-6 pb-4">
+              {/* Lista de Mensagens */}
+              <div className="flex-1 px-4 space-y-6">
                 {chatMessages.map((msg) => {
                   const isUser = msg.role === 'user';
                   return (
@@ -332,14 +315,12 @@ export function AIStudioClient() {
                         "flex max-w-[85%] md:max-w-[70%] gap-2",
                         isUser ? "flex-row-reverse" : "flex-row"
                       )}>
-                        {/* Avatar (Opcional para user, mas bom para AI) */}
                         {!isUser && (
                            <div className="w-8 h-8 rounded-full bg-gray-200 flex-shrink-0 flex items-center justify-center mt-1">
                              <Sparkles className="w-4 h-4 text-gray-600" />
                            </div>
                         )}
 
-                        {/* Bubble */}
                         <div className={cn(
                           "relative px-4 py-3 shadow-sm text-[15px] leading-relaxed",
                           isUser
@@ -379,9 +360,9 @@ export function AIStudioClient() {
                 <div ref={chatEndRef} />
               </div>
 
-              {/* Input Fixo Rodapé */}
-              <div className="fixed bottom-0 inset-x-0 bg-white border-t border-gray-100 p-3 md:p-4 z-50">
-                <div className="max-w-4xl mx-auto relative flex items-end gap-2">
+              {/* Input Fixo (Flutuando acima da Nav Bar) */}
+              <div className="fixed bottom-[80px] md:bottom-[90px] inset-x-0 z-40 transition-all px-2 md:px-0">
+                <div className="max-w-4xl mx-auto flex items-end gap-2 bg-white/90 backdrop-blur-md p-2 rounded-3xl shadow-lg border border-gray-100">
                   <div className="flex-1 bg-[#F0F2F5] rounded-3xl flex items-center px-4 py-2 border border-transparent focus-within:border-emerald-500/30 focus-within:bg-white transition-all">
                      <textarea
                         ref={textareaRef}
@@ -398,7 +379,7 @@ export function AIStudioClient() {
                   <button
                     onClick={handleSendMessage}
                     disabled={!chatInput.trim() || isTyping}
-                    className="w-12 h-12 rounded-full bg-[#10b981] text-white flex items-center justify-center hover:bg-emerald-600 active:scale-95 transition-all shadow-lg shadow-emerald-200 disabled:opacity-50 disabled:shadow-none"
+                    className="w-11 h-11 rounded-full bg-[#10b981] text-white flex items-center justify-center hover:bg-emerald-600 active:scale-95 transition-all shadow-md shadow-emerald-200 disabled:opacity-50 disabled:shadow-none flex-shrink-0"
                   >
                     {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Send className="w-5 h-5 ml-1" />}
                   </button>
@@ -407,7 +388,7 @@ export function AIStudioClient() {
             </motion.div>
           )}
 
-          {/* --- OUTRAS ABAS (Design Clean Unificado) --- */}
+          {/* --- VIEW: FERRAMENTAS --- */}
           {activeTab !== 'chat' && (
             <motion.div
               key="tools"
@@ -462,7 +443,6 @@ export function AIStudioClient() {
                              }}
                              className="border-2 border-dashed border-gray-200 rounded-2xl aspect-square flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-emerald-400 transition-all group relative overflow-hidden"
                           >
-                              {/* Preview Logic */}
                               {(activeTab === 'enhance' && imagePreview) || (activeTab === 'remove-bg' && removeBgImage) ? (
                                   <Image src={activeTab === 'enhance' ? imagePreview : removeBgImage} alt="Preview" fill className="object-cover" />
                               ) : activeTab === 'stt' && audioFile ? (
@@ -535,21 +515,35 @@ export function AIStudioClient() {
         </AnimatePresence>
       </main>
 
-      {/* Mobile Bottom Navigation (Simulada para Tabs quando não estiver no chat) */}
-      <div className="md:hidden fixed bottom-0 inset-x-0 bg-white border-t border-gray-200 p-2 z-40 flex justify-around pb-safe">
-        {tabs.map(tab => (
-           <button
-             key={tab.id}
-             onClick={() => setActiveTab(tab.id)}
-             className={cn(
-                 "p-2 rounded-lg flex flex-col items-center gap-1",
-                 activeTab === tab.id ? "text-emerald-600" : "text-gray-400"
-             )}
-           >
-               <tab.icon className="w-6 h-6" />
-               <span className="text-[10px] font-medium">{tab.label}</span>
-           </button>
-        ))}
+      {/* 3) NAVIGATION DOCK (RODAPÉ)
+         - Funciona em qualquer tela.
+         - Não ocupa 100% no desktop (estilo Dock flutuante).
+         - Ocupa 100% no mobile para facilidade de toque.
+      */}
+      <div className="fixed bottom-4 md:bottom-6 inset-x-0 z-50 flex justify-center pointer-events-none">
+          <div className="pointer-events-auto bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-full px-2 py-2 flex items-center gap-1 md:gap-2 mx-4 max-w-md w-full md:w-auto">
+            {tabs.map(tab => (
+               <button
+                 key={tab.id}
+                 onClick={() => setActiveTab(tab.id)}
+                 className={cn(
+                     "flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-3 rounded-full transition-all duration-300",
+                     activeTab === tab.id
+                        ? "bg-gray-900 text-white shadow-lg"
+                        : "text-gray-500 hover:bg-gray-100 hover:text-gray-900"
+                 )}
+               >
+                   <tab.icon className={cn("w-5 h-5", activeTab === tab.id && "text-emerald-400")} />
+                   {/* Texto visível apenas se ativo ou no desktop */}
+                   <span className={cn(
+                       "text-xs font-semibold whitespace-nowrap transition-all duration-300",
+                       activeTab === tab.id ? "max-w-[100px] opacity-100" : "max-w-0 opacity-0 overflow-hidden md:max-w-[100px] md:opacity-100"
+                   )}>
+                       {tab.label}
+                   </span>
+               </button>
+            ))}
+          </div>
       </div>
 
       {/* Hidden Inputs */}
@@ -560,7 +554,7 @@ export function AIStudioClient() {
               const reader = new FileReader();
               reader.onload = (ev) => {
                   setImagePreview(ev.target?.result as string);
-                  setRemoveBgImage(ev.target?.result as string); // Simplificação: usa preview para ambos
+                  setRemoveBgImage(ev.target?.result as string);
               };
               reader.readAsDataURL(file);
           }
@@ -568,16 +562,17 @@ export function AIStudioClient() {
       <input type="file" ref={removeBgInputRef} className="hidden" accept="image/*" onChange={(e) => {
           const file = e.target.files?.[0];
           if(file) {
-              setImageFile(file); // Garante que imageFile esteja setado para a lógica funcionar
+              setImageFile(file);
               setRemoveBgImage(URL.createObjectURL(file));
           }
       }}/>
       <input type="file" ref={audioInputRef} className="hidden" accept="audio/*" onChange={handleAudioUpload} />
 
       <style jsx global>{`
-        /* Ajuste para mobile notch */
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
         body { background-color: #F7F7F7; }
+        /* Garante scroll suave em toda a página */
+        html { scroll-behavior: smooth; }
       `}</style>
     </div>
   )

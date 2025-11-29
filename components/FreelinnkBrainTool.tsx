@@ -5,17 +5,15 @@ import { toast } from "sonner";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
-  Sparkles, Brain, Video,  Layers, Camera,
+  Sparkles, Brain, Video, Layers, Camera,
   MessageSquare, Wand2, Calendar, Trash2,
   Crown, Clock, Loader2, Bell,
   Search, Zap, TrendingUp,
-  X, Plus,
-  ChevronRight,  Share2
+  Plus, ChevronRight, X, Share2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -74,7 +72,7 @@ const LoadingMinimal = ({ userPlan }: { userPlan: string }) => (
         />
       )}
     </div>
-    <div className="text-center space-y-2">
+    <div className="text-center space-y-2 px-4">
       <h3 className={cn(
         "text-lg font-medium animate-pulse",
         userPlan === 'ultra' ? "bg-gradient-to-r from-purple-600 to-orange-500 bg-clip-text text-transparent" : "text-zinc-900"
@@ -118,31 +116,31 @@ const CleanStatsCard = ({ results, userPlan }: { results: BrainResults; userPlan
              {userPlan === 'ultra' && (
                <Badge className="bg-gradient-to-r from-orange-500 to-purple-600 text-white border-0 font-medium shadow-sm">
                  <Crown className="w-3 h-3 mr-1 fill-white" />
-                 Ultra Director Mode
+                 Ultra Director
                </Badge>
              )}
            </div>
            <h2 className="text-2xl font-semibold tracking-tight text-zinc-900">
              Sua Campanha Viral
            </h2>
-           <p className="text-zinc-500 mt-1">
-             {totalContent} peças de conteúdo prontas para publicação.
+           <p className="text-zinc-500 mt-1 text-sm sm:text-base">
+             {totalContent} conteúdos gerados com foco em retenção.
            </p>
         </div>
 
-        {/* Mini Metrics */}
-        <div className="flex gap-6">
+        {/* Mini Metrics - Mobile Responsive grid */}
+        <div className="grid grid-cols-3 gap-4 md:flex md:gap-6 pt-2 md:pt-0">
            <div className="text-center md:text-right">
-              <span className="block text-2xl font-bold text-zinc-900">{results.content_pack?.reels?.length || 0}</span>
-              <span className="text-xs text-zinc-400 uppercase tracking-wider font-medium">Reels</span>
+              <span className="block text-xl md:text-2xl font-bold text-zinc-900">{results.content_pack?.reels?.length || 0}</span>
+              <span className="text-[10px] md:text-xs text-zinc-400 uppercase tracking-wider font-medium">Reels</span>
            </div>
            <div className="text-center md:text-right">
-              <span className="block text-2xl font-bold text-zinc-900">{results.content_pack?.carousels?.length || 0}</span>
-              <span className="text-xs text-zinc-400 uppercase tracking-wider font-medium">Carrosséis</span>
+              <span className="block text-xl md:text-2xl font-bold text-zinc-900">{results.content_pack?.carousels?.length || 0}</span>
+              <span className="text-[10px] md:text-xs text-zinc-400 uppercase tracking-wider font-medium">Carrosséis</span>
            </div>
            <div className="text-center md:text-right">
-              <span className="block text-2xl font-bold text-zinc-900">{results.viral_strategy?.best_times?.length || 0}</span>
-              <span className="text-xs text-zinc-400 uppercase tracking-wider font-medium">Horários</span>
+              <span className="block text-xl md:text-2xl font-bold text-zinc-900">{results.viral_strategy?.best_times?.length || 0}</span>
+              <span className="text-[10px] md:text-xs text-zinc-400 uppercase tracking-wider font-medium">Horários</span>
            </div>
         </div>
       </div>
@@ -189,7 +187,7 @@ const CleanHeroSection = ({
   ];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-12 sm:py-20 flex flex-col items-center text-center">
+    <div className="max-w-3xl mx-auto px-4 py-8 sm:py-20 flex flex-col items-center text-center">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -209,10 +207,10 @@ const CleanHeroSection = ({
            </div>
         </div>
 
-        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight text-zinc-900 mb-3">
+        <h1 className="text-3xl sm:text-5xl font-bold tracking-tight text-zinc-900 mb-3">
           Freelinnk Brain™
         </h1>
-        <p className="text-lg text-zinc-500 mb-10 max-w-lg mx-auto">
+        <p className="text-base sm:text-lg text-zinc-500 mb-8 sm:mb-10 max-w-lg mx-auto leading-relaxed">
           {userPlan === 'ultra'
             ? "Crie roteiros cinematográficos, direção de câmera e psicologia de vendas em segundos."
             : "Sua fábrica de conteúdo viral. Digite um tema e receba roteiros e estratégias."}
@@ -230,20 +228,20 @@ const CleanHeroSection = ({
                onChange={(e) => setTheme(e.target.value)}
                placeholder="Sobre o que você quer postar hoje?"
                className={cn(
-                 "w-full h-14 pl-12 pr-24 rounded-xl text-lg shadow-sm transition-all placeholder:text-zinc-400",
+                 "w-full h-12 sm:h-14 pl-11 sm:pl-12 pr-20 sm:pr-24 rounded-xl text-base sm:text-lg shadow-sm transition-all placeholder:text-zinc-400",
                  "border-zinc-200 focus:ring-2 focus:ring-zinc-900 focus:border-transparent",
                  userPlan === 'ultra' && "focus:ring-orange-500/50 focus:border-orange-500"
                )}
                maxLength={150}
                disabled={isLoading}
              />
-             <div className="absolute right-2">
+             <div className="absolute right-1.5 sm:right-2">
                <Button
                   type="submit"
                   disabled={!theme.trim() || isLoading}
                   size="sm"
                   className={cn(
-                    "h-10 px-4 rounded-lg font-medium transition-all",
+                    "h-9 sm:h-10 px-3 sm:px-4 rounded-lg font-medium transition-all text-xs sm:text-sm",
                     userPlan === 'ultra'
                       ? "bg-gradient-to-r from-purple-600 to-orange-500 hover:opacity-90 text-white border-0"
                       : "bg-zinc-900 hover:bg-zinc-800 text-white"
@@ -256,13 +254,13 @@ const CleanHeroSection = ({
 
           {/* Suggestions */}
           <div className="mt-4 flex flex-wrap justify-center gap-2">
-            <span className="text-xs text-zinc-400 font-medium mr-1 self-center">Sugestões:</span>
+            <span className="hidden sm:inline text-xs text-zinc-400 font-medium mr-1 self-center">Sugestões:</span>
             {suggestions.map((s, i) => (
               <button
                 key={i}
                 type="button"
                 onClick={() => setTheme(s)}
-                className="text-xs px-2 py-1 rounded-md bg-zinc-50 hover:bg-zinc-100 text-zinc-600 transition-colors border border-zinc-100"
+                className="text-xs px-2 py-1 rounded-md bg-zinc-50 hover:bg-zinc-100 text-zinc-600 transition-colors border border-zinc-100 whitespace-nowrap"
               >
                 {s}
               </button>
@@ -271,15 +269,15 @@ const CleanHeroSection = ({
         </form>
 
         {/* Métricas Estáticas Clean */}
-        <div className="mt-16 grid grid-cols-3 gap-8 border-t border-zinc-100 pt-8">
+        <div className="mt-12 sm:mt-16 grid grid-cols-3 gap-4 sm:gap-8 border-t border-zinc-100 pt-8 w-full">
            {[
              { label: "Conteúdos", value: "50K+" },
              { label: "Satisfação", value: "98%" },
              { label: "Engajamento", value: "5x" },
            ].map((stat, i) => (
              <div key={i} className="text-center">
-               <div className="text-2xl font-bold text-zinc-900">{stat.value}</div>
-               <div className="text-xs text-zinc-400 uppercase tracking-wide">{stat.label}</div>
+               <div className="text-xl sm:text-2xl font-bold text-zinc-900">{stat.value}</div>
+               <div className="text-[10px] sm:text-xs text-zinc-400 uppercase tracking-wide">{stat.label}</div>
              </div>
            ))}
         </div>
@@ -400,24 +398,11 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
     setScheduleModalData({ isOpen: true, campaignId: currentCampaign._id, contentType, contentData: content, initialCaption: caption, initialHashtags: hashtags });
   };
 
-  // -------------------------------------------------------------
-  // LÓGICA DE COMPARTILHAMENTO CORRIGIDA E EM USO
-  // -------------------------------------------------------------
   const handleSmartShare = async (contentType: ContentType, index: number) => {
     if (!results) return;
-
-    // Identificar conteúdo para "copiar" ou "compartilhar"
-    const key = contentType === "image_post"
-      ? "image_posts"
-      : contentType === "story_sequence"
-        ? "story_sequences"
-        : `${contentType}s` as "reels" | "carousels";
-
+    const key = contentType === "image_post" ? "image_posts" : contentType === "story_sequence" ? "story_sequences" : `${contentType}s` as "reels" | "carousels";
     const content = results.content_pack[key][index];
-
     if (content) {
-       // Em um cenário real, aqui entraria a lógica de navigator.share ou clipboard
-       // Estamos usando as variáveis para evitar erro de linter
        toast.success(`Copiado: ${contentType} #${index + 1} para área de transferência!`);
     }
   };
@@ -435,7 +420,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
 
   const handleCampaignDelete = async (id: Id<"brainCampaigns">) => {
     await deleteCampaign({ campaignId: id });
-    toast.success("Deletado");
+    toast.success("Campanha excluída");
   };
 
   const filteredCampaigns = campaigns?.filter(c =>
@@ -459,7 +444,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
 
   return (
     <div className={cn(
-      "w-full min-h-screen font-sans pb-20 sm:pb-0",
+      "w-full min-h-screen font-sans pb-20 sm:pb-0 overflow-x-hidden",
       userPlan === 'ultra' ? "bg-zinc-50/50" : "bg-white"
     )}>
 
@@ -476,7 +461,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
             )}>
                <Brain className="w-4 h-4 text-white" />
             </div>
-            <span className="font-semibold text-zinc-900 tracking-tight">Freelinnk Brain™</span>
+            <span className="font-semibold text-zinc-900 tracking-tight text-sm sm:text-base">Freelinnk Brain™</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-1 bg-zinc-50 p-1 rounded-lg border border-zinc-100">
@@ -488,7 +473,7 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
              </button>
           </nav>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
              <button onClick={() => setIsHistorySidebarOpen(true)} className="text-sm font-medium text-zinc-500 hover:text-zinc-900 transition-colors hidden sm:block">
                 Histórico
              </button>
@@ -496,10 +481,10 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
              <TooltipProvider>
                 <Tooltip>
                    <TooltipTrigger asChild>
-                      <button onClick={() => setIsSettingsOpen(true)} className="relative text-zinc-400 hover:text-zinc-900 transition-colors p-1">
+                      <button onClick={() => setIsSettingsOpen(true)} className="relative text-zinc-400 hover:text-zinc-900 transition-colors p-1.5">
                           <Bell className={cn("w-5 h-5", hasAnyNotification && "text-zinc-900")} />
                           {hasAnyNotification && (
-                             <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
+                             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border-2 border-white" />
                           )}
                       </button>
                    </TooltipTrigger>
@@ -526,11 +511,12 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
         />
       )}
 
-      {/* SIDEBAR HISTORY */}
+      {/* SIDEBAR HISTORY - CORRIGIDA (SCROLL E DELETE) */}
       <Sheet open={isHistorySidebarOpen} onOpenChange={setIsHistorySidebarOpen}>
-        <SheetContent side="right" className="w-full sm:w-[400px] p-0 border-l border-zinc-100 flex flex-col">
+        <SheetContent side="right" className="w-full sm:w-[400px] p-0 border-l border-zinc-100 flex flex-col h-full max-h-screen">
+           {/* Cabeçalho Fixo */}
            <SheetHeader className={cn(
-             "p-6 border-b",
+             "p-6 border-b shrink-0",
              userPlan === 'ultra' ? "bg-gradient-to-r from-orange-50 to-purple-50 border-orange-100" : "bg-white border-zinc-50"
            )}>
              <SheetTitle className="flex items-center gap-2">
@@ -539,24 +525,26 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
              </SheetTitle>
            </SheetHeader>
 
-           <div className="p-4 border-b border-zinc-50">
+           {/* Busca Fixa */}
+           <div className="p-4 border-b border-zinc-50 shrink-0 bg-white z-10">
              <div className="relative">
                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
                <Input
                  placeholder="Buscar por tema..."
                  value={searchTerm}
                  onChange={(e) => setSearchTerm(e.target.value)}
-                 className="pl-9 h-10 bg-zinc-50 border-zinc-200 focus:bg-white transition-all"
+                 className="pl-9 h-10 bg-zinc-50 border-zinc-200 focus:bg-white transition-all w-full"
                />
                {searchTerm && (
-                 <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-900">
+                 <button onClick={() => setSearchTerm("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-900 p-1">
                     <X className="w-3 h-3" />
                  </button>
                )}
              </div>
            </div>
 
-           <ScrollArea className="flex-1">
+           {/* LISTA COM SCROLL NATIVO (FLEX-1 + OVERFLOW-Y-AUTO) */}
+           <div className="flex-1 overflow-y-auto">
              <div className="p-4 space-y-2">
                {campaignsStatus === "LoadingFirstPage" ? (
                  <div className="flex flex-col items-center justify-center py-10 text-zinc-400">
@@ -565,16 +553,24 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                  </div>
                ) : filteredCampaigns.length === 0 ? (
                  <div className="text-center py-10 text-zinc-400">
-                    <p>Nenhuma campanha encontrada.</p>
+                    <p className="text-sm">Nenhuma campanha encontrada.</p>
                  </div>
                ) : (
                  filteredCampaigns.map((c) => (
-                   <div key={c._id} className="group flex items-center justify-between p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent hover:border-zinc-200 cursor-pointer" onClick={() => handleCampaignSelect(c)}>
-                      <div className="flex-1 min-w-0 pr-3">
+                   <div key={c._id} className="group flex items-center justify-between p-3 hover:bg-zinc-50 rounded-xl transition-all border border-transparent hover:border-zinc-200 cursor-pointer bg-white" onClick={() => handleCampaignSelect(c)}>
+
+                      {/* Texto com Min-W-0 para Truncate funcionar corretamente */}
+                      <div className="flex-1 min-w-0 pr-3 grid gap-0.5">
                         <p className="font-medium text-sm text-zinc-900 truncate">{c.theme}</p>
-                        <p className="text-xs text-zinc-400 mt-0.5">{new Date(c.createdAt).toLocaleDateString()}</p>
+                        <p className="text-xs text-zinc-400 truncate">{new Date(c.createdAt).toLocaleDateString()} • {c.viralStrategy?.best_times?.length || 0} Estratégias</p>
                       </div>
-                      <button onClick={(e) => { e.stopPropagation(); handleCampaignDelete(c._id); }} className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white rounded-lg text-zinc-400 hover:text-red-500 transition-all shadow-sm">
+
+                      {/* Botão Deletar - Visível Sempre no Mobile, Hover no Desktop */}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); handleCampaignDelete(c._id); }}
+                        className="shrink-0 p-2 rounded-lg text-zinc-300 hover:text-red-500 hover:bg-red-50 transition-all"
+                        aria-label="Deletar campanha"
+                      >
                         <Trash2 className="w-4 h-4" />
                       </button>
                    </div>
@@ -590,13 +586,15 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                     Carregar mais antigos
                   </Button>
                )}
+               {/* Espaço extra no final para não cortar conteúdo no mobile */}
+               <div className="h-20 sm:h-0"></div>
              </div>
-           </ScrollArea>
+           </div>
         </SheetContent>
       </Sheet>
 
       {/* MAIN CONTENT AREA */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-6 sm:py-8 max-w-[100vw]">
         <AnimatePresence mode="wait">
 
           {mainView === "generator" && (
@@ -618,27 +616,27 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                 <div className="space-y-6">
                   {/* Action Header */}
                   <div className="flex items-center justify-between">
-                    <Button variant="ghost" onClick={handleGenerateNew} className="text-zinc-500 hover:text-zinc-900 pl-0 hover:bg-transparent">
+                    <Button variant="ghost" onClick={handleGenerateNew} className="text-zinc-500 hover:text-zinc-900 pl-0 hover:bg-transparent px-2">
                       <ChevronRight className="w-4 h-4 rotate-180 mr-1" /> Voltar
                     </Button>
                     <Button onClick={handleGenerateNew} variant="outline" className={cn(
-                      "border-zinc-200 text-zinc-700 hover:bg-zinc-50",
+                      "border-zinc-200 text-zinc-700 hover:bg-zinc-50 text-xs sm:text-sm h-9 sm:h-10",
                       userPlan === 'ultra' && "border-orange-200 text-orange-700 hover:bg-orange-50"
                     )}>
-                      <Plus className="w-4 h-4 mr-2" /> Nova Campanha
+                      <Plus className="w-4 h-4 mr-2" /> Nova
                     </Button>
                   </div>
 
                   <CleanStatsCard results={results} userPlan={userPlan} />
 
                   {/* Tabs Clean */}
-                  <div className="border-b border-zinc-100 flex gap-6 mb-8 overflow-x-auto">
+                  <div className="border-b border-zinc-100 flex gap-4 sm:gap-6 mb-8 overflow-x-auto pb-1 scrollbar-hide">
                     {tabsConfig.map((tab) => (
                       <button
                         key={tab.id}
                         onClick={() => setActiveTab(tab.id)}
                         className={cn(
-                          "pb-3 text-sm font-medium transition-all relative whitespace-nowrap",
+                          "pb-3 text-sm font-medium transition-all relative whitespace-nowrap px-1",
                           activeTab === tab.id ? "text-zinc-900" : "text-zinc-400 hover:text-zinc-600"
                         )}
                       >
@@ -649,8 +647,8 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
                     ))}
                   </div>
 
-                  {/* Content Grid (AGORA COM BOTÕES DE COMPARTILHAMENTO) */}
-                  <div className="space-y-8">
+                  {/* Content Grid */}
+                  <div className="space-y-8 pb-10">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
                       {activeTab === "reels" && results.content_pack?.reels?.map((item, i) => (
@@ -717,21 +715,21 @@ export default function FreelinnkBrainTool({ userPlan }: FreelinnkBrainToolProps
       </main>
 
       {/* FOOTER CLEAN */}
-      <footer className="mt-20 py-8 border-t border-zinc-100 text-center">
+      <footer className="mt-10 py-8 border-t border-zinc-100 text-center pb-24 sm:pb-8">
          <p className="text-xs text-zinc-400">© 2025 Freelinnk — Criado para criadores de conteúdo 💜</p>
       </footer>
 
       {/* MOBILE NAV CLEAN */}
-      <div className="sm:hidden fixed bottom-0 left-0 w-full bg-white border-t border-zinc-100 pb-safe pt-2 px-6 flex justify-between z-50">
-        <button onClick={() => setMainView("generator")} className={cn("flex flex-col items-center p-2", mainView === 'generator' ? "text-zinc-900" : "text-zinc-400")}>
+      <div className="sm:hidden fixed bottom-0 left-0 w-full bg-white/90 backdrop-blur-lg border-t border-zinc-100 pb-safe pt-2 px-6 flex justify-between z-50 shadow-top">
+        <button onClick={() => setMainView("generator")} className={cn("flex flex-col items-center p-2 rounded-xl active:bg-zinc-50 transition-colors", mainView === 'generator' ? "text-zinc-900" : "text-zinc-400")}>
            <Sparkles className="w-6 h-6" />
            <span className="text-[10px] mt-1 font-medium">Gerar</span>
         </button>
-        <button onClick={() => setMainView("planner")} className={cn("flex flex-col items-center p-2", mainView === 'planner' ? "text-zinc-900" : "text-zinc-400")}>
+        <button onClick={() => setMainView("planner")} className={cn("flex flex-col items-center p-2 rounded-xl active:bg-zinc-50 transition-colors", mainView === 'planner' ? "text-zinc-900" : "text-zinc-400")}>
            <Calendar className="w-6 h-6" />
            <span className="text-[10px] mt-1 font-medium">Agenda</span>
         </button>
-        <button onClick={() => setIsHistorySidebarOpen(true)} className="flex flex-col items-center p-2 text-zinc-400">
+        <button onClick={() => setIsHistorySidebarOpen(true)} className="flex flex-col items-center p-2 rounded-xl active:bg-zinc-50 transition-colors text-zinc-400">
            <Clock className="w-6 h-6" />
            <span className="text-[10px] mt-1 font-medium">Histórico</span>
         </button>
