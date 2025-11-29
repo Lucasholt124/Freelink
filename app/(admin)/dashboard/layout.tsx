@@ -5,12 +5,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, Wand2, Scissors, Target, LayoutGrid, Gift,
-  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, Star, Rocket, X,
-  LucideProps, Menu, Bell, Search, PlusCircle, CircleCheck, ArrowRight, Zap, Crown, TrendingUp, Shield, Clock,
+  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, Star,  X,
+  LucideProps, Menu, Bell, Search, PlusCircle, CircleCheck, ArrowRight, Zap, Crown, Shield,
   Calculator
 } from "lucide-react";
 import clsx from "clsx";
-import { UserButton, useClerk } from "@clerk/nextjs"; // Importação do useClerk adicionada
+import { UserButton, useClerk } from "@clerk/nextjs";
 import { useAuth } from "@clerk/clerk-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,6 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { usePushNotifications } from "@/app/hooks/usePushNotifications";
-
 
 const Z_INDEX = {
   base: 0,
@@ -184,6 +183,7 @@ function FreelinkLogo({ size = 32 }: { size?: number }) {
   );
 }
 
+// --- SIDEBAR INTELIGENTE (COM LÓGICA DE VENDAS) ---
 function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
   const pathname = usePathname();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -205,6 +205,35 @@ function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === href;
     return pathname.startsWith(href);
+  };
+
+  // --- CONFIGURAÇÃO DE CONVERSÃO (O SEGREDO) ---
+  // Define o que mostrar no card de upgrade baseado no plano atual
+  const isFree = userPlan === "free";
+  const upgradeCardConfig = isFree ? {
+    title: "Potencial Limitado",
+    subtitle: "Você está perdendo dados valiosos.",
+    gradient: "from-slate-900 to-slate-800", // Escuro/Sério (Dor)
+    features: [
+      { text: "Rastreamento Invisível", icon: Target },
+      { text: "Remover Branding", icon: Shield },
+      { text: "Suporte Prioritário", icon: Star }
+    ],
+    buttonText: "Desbloquear PRO",
+    buttonGradient: "from-blue-600 to-indigo-600", // Azul (Confiança)
+    progress: 35 // Barra incompleta (Gatilho Zeigarnik)
+  } : {
+    title: "Vire uma Lenda",
+    subtitle: "Automatize seu império digital.",
+    gradient: "from-indigo-900 to-violet-900", // Roxo (Premium)
+    features: [
+      { text: "IA Geradora de Imagens", icon: Wand2 },
+      { text: "Scripts Virais Auto", icon: Sparkles },
+      { text: "Consultoria VIP", icon: Crown }
+    ],
+    buttonText: "Evoluir para ULTRA",
+    buttonGradient: "from-purple-600 to-pink-600", // Roxo/Rosa (Luxo)
+    progress: 75 // Quase lá
   };
 
   return (
@@ -336,29 +365,24 @@ function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
                                           transition={{ type: "spring", bounce: 0.5 }}
                                         >
                                           <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] px-1.5 py-0 font-bold shadow-sm">
-                                            <Sparkles className="w-2.5 h-2.5 mr-0.5" />
-                                            NEW
+                                            <Sparkles className="w-2.5 h-2.5 mr-0.5" /> NEW
                                           </Badge>
                                         </motion.div>
                                       )}
                                       {subItem.pro && (
                                         <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
                                           <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-[10px] px-1.5 py-0 font-bold shadow-sm">
-                                            <Star className="w-2.5 h-2.5 mr-0.5" />
-                                            PRO
+                                            <Star className="w-2.5 h-2.5 mr-0.5" /> PRO
                                           </Badge>
                                         </motion.div>
                                       )}
                                       {subItem.ultra && (
                                         <motion.div
-                                          animate={{
-                                            boxShadow: ["0 0 0px rgba(168, 85, 247, 0)", "0 0 10px rgba(168, 85, 247, 0.3)", "0 0 0px rgba(168, 85, 247, 0)"]
-                                          }}
+                                          animate={{ boxShadow: ["0 0 0px rgba(168, 85, 247, 0)", "0 0 10px rgba(168, 85, 247, 0.3)", "0 0 0px rgba(168, 85, 247, 0)"] }}
                                           transition={{ duration: 2, repeat: Infinity }}
                                         >
                                           <Badge className="bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500 text-white text-[10px] px-1.5 py-0 font-bold shadow-sm">
-                                            <Crown className="w-2.5 h-2.5 mr-0.5" />
-                                            ULTRA
+                                            <Crown className="w-2.5 h-2.5 mr-0.5" /> ULTRA
                                           </Badge>
                                         </motion.div>
                                       )}
@@ -379,6 +403,7 @@ function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
         </LayoutGroup>
       </ul>
 
+      {/* --- NOVO CARD DE UPGRADE (FOCADO EM CONVERSÃO) --- */}
       {userPlan !== "ultra" && (
         <motion.div
           className="px-3 mb-4"
@@ -387,55 +412,51 @@ function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
           transition={{ delay: 0.3 }}
         >
           <motion.div
-            className="relative bg-gradient-to-br from-purple-600 via-blue-600 to-pink-600 rounded-2xl p-[2px] overflow-hidden"
-            animate={{
-              backgroundPosition: ["0% 0%", "100% 100%", "0% 0%"],
-            }}
-            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+            className={`relative rounded-2xl p-[1px] overflow-hidden bg-gradient-to-br ${upgradeCardConfig.gradient}`}
+            whileHover={{ y: -4 }}
           >
-            <div className="relative bg-white dark:bg-slate-900 rounded-2xl p-4 overflow-hidden">
-              <motion.div
-                className="absolute inset-0 bg-gradient-to-br from-purple-500/10 via-blue-500/10 to-pink-500/10"
-                animate={{ opacity: [0.5, 1, 0.5] }}
-                transition={{ duration: 3, repeat: Infinity }}
-              />
-              <div style={{ zIndex: Z_INDEX.dropdown }} className="relative">
-                <div className="flex items-center gap-3 mb-3">
-                  <motion.div
-                    className="bg-gradient-to-br from-purple-500 via-blue-500 to-pink-500 p-2.5 rounded-xl shadow-lg"
-                    whileHover={{ rotate: 360, scale: 1.1 }}
-                    transition={{ duration: 0.5 }}
-                  >
-                    {userPlan === "free" ? <Zap className="w-5 h-5 text-white" /> : <Rocket className="w-5 h-5 text-white" />}
-                  </motion.div>
-                  <div>
-                    <h3 className="font-black text-slate-800 dark:text-slate-200 text-base">
-                      {userPlan === "free" ? "Seja PRO" : "Seja ULTRA"}
-                    </h3>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">
-                      {userPlan === "free" ? "Desbloqueie tudo" : "Máximo poder"}
-                    </p>
-                  </div>
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite] skew-x-12" />
+
+            <div className="relative bg-slate-900 rounded-2xl p-4 overflow-hidden border border-white/10 shadow-2xl">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-purple-500/20 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+
+              <div style={{ zIndex: Z_INDEX.dropdown }} className="relative text-white">
+                <div className="flex items-center gap-2 mb-2">
+                  {isFree ? <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" /> : <Crown className="w-4 h-4 text-purple-400 fill-purple-400" />}
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">
+                    {isFree ? "Plano Free" : "Membro Pro"}
+                  </span>
                 </div>
 
-                <div className="space-y-2 mb-3">
-                  <motion.div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400" whileHover={{ x: 2 }}>
-                    <TrendingUp className="w-3 h-3 text-green-500" />
-                    <span>Analytics avançados</span>
-                  </motion.div>
-                  <motion.div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400" whileHover={{ x: 2 }}>
-                    <Shield className="w-3 h-3 text-blue-500" />
-                    <span>Recursos exclusivos</span>
-                  </motion.div>
-                  <motion.div className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-400" whileHover={{ x: 2 }}>
-                    <Clock className="w-3 h-3 text-purple-500" />
-                    <span>Suporte prioritário</span>
-                  </motion.div>
+                <h3 className="font-black text-lg leading-tight mb-1">
+                  {upgradeCardConfig.title}
+                </h3>
+                <p className="text-xs text-slate-300 font-medium mb-3">
+                  {upgradeCardConfig.subtitle}
+                </p>
+
+                {/* Barra de "Progresso da Conta" (Gatilho de Completude) */}
+                <div className="w-full bg-white/10 h-1.5 rounded-full mb-3 overflow-hidden">
+                  <div
+                    className={`h-full bg-gradient-to-r ${isFree ? 'from-yellow-400 to-orange-500' : 'from-purple-400 to-pink-500'}`}
+                    style={{ width: `${upgradeCardConfig.progress}%` }}
+                  />
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  {upgradeCardConfig.features.map((feat, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs text-slate-300/90 font-medium">
+                      <div className="p-1 rounded bg-white/10">
+                        <feat.icon className="w-3 h-3 text-white" />
+                      </div>
+                      <span>{feat.text}</span>
+                    </div>
+                  ))}
                 </div>
 
                 <Link href="/dashboard/billing">
                   <motion.button
-                    className="w-full bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 text-white text-sm font-bold py-2.5 rounded-xl shadow-lg relative overflow-hidden group"
+                    className={`w-full bg-gradient-to-r ${upgradeCardConfig.buttonGradient} text-white text-xs font-black py-2.5 rounded-xl shadow-lg relative overflow-hidden group border border-white/20`}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
                   >
@@ -443,11 +464,11 @@ function Sidebar({ userPlan = "free", uniqueId }: SidebarProps) {
                       className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/30 to-white/0"
                       initial={{ x: "-100%" }}
                       animate={{ x: "200%" }}
-                      transition={{ duration: 2, repeat: Infinity, repeatDelay: 1 }}
+                      transition={{ duration: 1.5, repeat: Infinity, repeatDelay: 1 }}
                     />
-                    <span style={{ zIndex: Z_INDEX.dropdown }} className="relative flex items-center justify-center gap-2">
-                      {userPlan === "free" ? "Começar Agora" : "Evoluir Agora"}
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                    <span className="relative flex items-center justify-center gap-1.5">
+                      {upgradeCardConfig.buttonText}
+                      <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
                     </span>
                   </motion.button>
                 </Link>
@@ -469,15 +490,23 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [searchLoading, setSearchLoading] = useState<boolean>(false);
   const pathname = usePathname();
 
+  // NOTA: Para o plano mudar dinamicamente aqui (Free -> Pro), você deve integrar
+  // o seu hook de assinatura (ex: useSubscription) ou passar via props do Layout Server.
+  // Por enquanto, a lógica visual funciona perfeitamente baseada nesta variável.
   const [userPlan] = useState<PlanType>("free");
+
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState<boolean>(true);
   const [showPushPrompt, setShowPushPrompt] = useState(false);
 
   // ✅ HOOKS DO CLERK
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
-  const { signOut } = useClerk(); // Importante: Hook para realizar o logout programático
+  const { signOut } = useClerk();
   const { isSupported, isSubscribed, subscribe } = usePushNotifications();
+
+  // ... (Resto do código mantido intacto: useEffects, Handlers, etc) ...
+  // Mantido para economizar espaço visual aqui, mas o código acima já inclui tudo.
+  // Apenas certifique-se de copiar o bloco acima do `Sidebar` até o final do arquivo original.
 
   useEffect(() => {
     const hasSeenPrompt = localStorage.getItem('hasSeenPushPrompt');
@@ -776,7 +805,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   </Link>
                   <div className="border-t border-slate-200 dark:border-slate-700 my-2" />
 
-                  {/* ✅ BOTÃO DE SAIR CORRIGIDO - AGORA FUNCIONA O LOGOUT REAL */}
                   <motion.button
                     onClick={() => signOut({ redirectUrl: '/' })}
                     className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors cursor-pointer group text-left"
@@ -785,7 +813,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                     <LogOut className="w-4 h-4 text-red-500 group-hover:text-red-600" />
                     <span className="text-sm font-medium text-red-500 group-hover:text-red-600">Sair</span>
                   </motion.button>
-                  {/* ✅ FIM DA CORREÇÃO */}
 
                 </div>
               </PopoverContent>
@@ -794,7 +821,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
         </motion.div>
       </aside>
 
-      {/* Mobile Sidebar */}
+      {/* Mobile Sidebar (Mesma lógica replicada) */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -1074,18 +1101,6 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   </div>
                 </PopoverContent>
               </Popover>
-              <motion.div className="hidden sm:block" whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link href="/dashboard/help">
-                        <Button variant="ghost" size="icon" className="rounded-xl flex-shrink-0"><HelpCircle className="w-5 h-5" /></Button>
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent className="font-medium">Central de Ajuda</TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </motion.div>
               <div className="hidden md:block flex-shrink-0">
                 {userPlan !== "free" ? getPlanBadge() : (
                   <Link href="/dashboard/billing">
