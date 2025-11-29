@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, Wand2, Scissors, Target, LayoutGrid, Gift,
-  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, X,
+  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles,  X,
   LucideProps, Menu, Bell, Search, PlusCircle, ArrowRight, Zap, Crown, Shield,
   Calculator
 } from "lucide-react";
@@ -199,8 +199,7 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
   };
 
   return (
-    <nav className="flex flex-col gap-2 pb-4">
-      {/* LISTA DE NAVEGAÇÃO */}
+    <nav className="flex flex-col gap-2 pb-24 md:pb-4"> {/* pb-24 garante que o card apareça no final do scroll mobile */}
       <ul className="space-y-0.5">
         <LayoutGroup id={uniqueId}>
           {navItems.map((item, idx) => (
@@ -234,6 +233,14 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
                                   <div className="flex-1 ml-3 min-w-0">
                                     <span className="block truncate">{subItem.label}</span>
                                   </div>
+
+                                  {/* --- BADGES REINSERIDAS AQUI --- */}
+                                  <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
+                                    {subItem.new && <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-[10px] px-1.5 py-0 h-4 shadow-sm border-0 text-white">NEW</Badge>}
+                                    {subItem.pro && <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-[10px] px-1.5 py-0 h-4 shadow-sm border-0 text-white">PRO</Badge>}
+                                    {subItem.ultra && <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-[10px] px-1.5 py-0 h-4 shadow-sm border-0 text-white">ULTRA</Badge>}
+                                  </div>
+
                                 </motion.div>
                               </Link>
                             </motion.li>
@@ -258,7 +265,7 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
               <div className="relative z-10 text-white">
                 <div className="flex items-center gap-2 mb-1">
                   {isFree ? <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" /> : <Crown className="w-3 h-3 text-purple-400 fill-purple-400" />}
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isFree ? "Plano Básico" : "Membro Pro"}</span>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isFree ? "Plano Free" : "Membro Pro"}</span>
                 </div>
                 <h3 className="font-black text-sm leading-tight mb-0.5">{upgradeCardConfig.title}</h3>
                 <p className="text-[10px] text-slate-300 font-medium mb-2">{upgradeCardConfig.subtitle}</p>
@@ -299,18 +306,14 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const pathname = usePathname();
-
   const userPlan = initialPlan || "free";
-
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { signOut } = useClerk();
   const { isSupported, isSubscribed, subscribe } = usePushNotifications();
   const [showPushPrompt, setShowPushPrompt] = useState(false);
-
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
 
-  // Handlers
   const handleEnableNotifications = async () => {
     try {
       if (!('Notification' in window)) return;
@@ -364,19 +367,13 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
     return Object.entries(titles).find(([path]) => pathname.startsWith(path))?.[1] || "Dashboard";
   };
 
-  // Trava/Destrava Scroll
   useEffect(() => {
-    if (isSidebarOpen) {
-      document.body.style.overflow = 'hidden';
-    } else {
-      document.body.style.overflow = 'unset';
-    }
+    if (isSidebarOpen) { document.body.style.overflow = 'hidden'; } else { document.body.style.overflow = 'unset'; }
     return () => { document.body.style.overflow = 'unset'; };
   }, [isSidebarOpen]);
 
   return (
     <div className="flex h-screen h-[100dvh] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 overflow-hidden">
-
       {/* DESKTOP SIDEBAR */}
       <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden">
         <div className="mb-4 px-2 flex-shrink-0">
@@ -388,11 +385,9 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
             </div>
           </Link>
         </div>
-
         <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200">
           <SidebarContent userPlan={userPlan} uniqueId="desktop-sidebar" />
         </div>
-
         <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between px-2 flex-shrink-0">
            <div className="flex items-center gap-3">
              <UserButton afterSignOutUrl="/" />
@@ -411,18 +406,8 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
       <AnimatePresence>
         {isSidebarOpen && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSidebarOpen(false)}
-              className="fixed inset-0 bg-black/60 backdrop-blur-sm lg:hidden z-[100]"
-              style={{ touchAction: "none" }}
-            />
-
-            <motion.aside
-              initial={{ x: "-100%" }}
-              animate={{ x: 0 }}
-              exit={{ x: "-100%" }}
-              transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed left-0 top-0 bottom-0 w-[85%] max-w-xs bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col h-[100dvh] z-[101] shadow-2xl"
-            >
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm lg:hidden z-[100]" style={{ touchAction: "none" }} />
+            <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="fixed left-0 top-0 bottom-0 w-[85%] max-w-xs bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col h-[100dvh] z-[101] shadow-2xl">
               <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <Link href="/dashboard" className="flex items-center min-w-0">
                   <FreelinkLogo size={32} />
@@ -432,12 +417,9 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
                   <X className="w-5 h-5 text-slate-500" />
                 </motion.button>
               </div>
-
-              {/* CORPO SCROLLÁVEL - Conteúdo + Card de Upgrade */}
-              <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
+              <div className="flex-1 overflow-y-auto overscroll-contain p-4">
                 <SidebarContent userPlan={userPlan} uniqueId="mobile-sidebar" />
               </div>
-
               <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 bg-slate-50 dark:bg-slate-900">
                 <div className="flex items-center gap-3">
                   <UserButton afterSignOutUrl="/" />
