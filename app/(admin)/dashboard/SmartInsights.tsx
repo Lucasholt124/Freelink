@@ -34,7 +34,7 @@ export default function SmartInsights({ analytics, plan }: Props) {
         text: "Seu tráfego estagnou. Trocar a foto de perfil e a cor de fundo renova o interesse.",
         stat: "Perfis atualizados recuperam +18% de atenção.",
         action: "Renovar Design",
-        href: "/dashboard/links"
+        href: "/dashboard/settings"
       };
     }
 
@@ -106,7 +106,7 @@ export default function SmartInsights({ analytics, plan }: Props) {
         text: "Personalize seu botão principal com uma cor de destaque (ex: vermelho ou verde).",
         stat: "Contraste aumenta cliques em +12%.",
         action: "Editar Cores",
-        href: "/dashboard/links"
+        href: "/dashboard/settings"
       };
     }
 
@@ -130,7 +130,7 @@ export default function SmartInsights({ analytics, plan }: Props) {
         text: "Você já passou de 200 cliques! Se ativar o Pixel agora, pode fazer remarketing para essas pessoas.",
         stat: "Não deixe esse público escapar.",
         action: "Ativar Pixel Pro",
-        href: "/dashboard/billing"
+        href: "/dashboard/tracking"
       };
     }
 
