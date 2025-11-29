@@ -155,7 +155,7 @@ function FreelinkLogo({ size = 32 }: { size?: number }) {
   );
 }
 
-// --- CONTEÚDO DA SIDEBAR (LINKS + CARD UPGRADE) ---
+// --- CONTEÚDO DA SIDEBAR ---
 function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: string }) {
   const pathname = usePathname();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -199,7 +199,8 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
   };
 
   return (
-    <nav className="flex flex-col gap-4 pb-4">
+    <nav className="flex flex-col gap-2 pb-4">
+      {/* LISTA DE NAVEGAÇÃO */}
       <ul className="space-y-0.5">
         <LayoutGroup id={uniqueId}>
           {navItems.map((item, idx) => (
@@ -208,39 +209,31 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
                 <Link href={item.href}>
                   <motion.div className={clsx("flex items-center gap-3 p-3 rounded-xl font-medium transition-all mx-2 relative overflow-hidden group", isActive(item.href) ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/25" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/80 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-slate-200")} whileHover={{ x: isActive(item.href) ? 0 : 4 }} whileTap={{ scale: 0.98 }}>
                     {isActive(item.href) && <motion.div layoutId={`${uniqueId}-activeTab`} className="absolute inset-0 bg-gradient-to-r from-blue-600 to-purple-600 -z-10" transition={{ type: "spring", bounce: 0.2, duration: 0.6 }} />}
-                    <item.icon className="w-5 h-5" />
-                    <span className="font-medium">{item.label}</span>
+                    <item.icon className="w-5 h-5 flex-shrink-0" />
+                    <span className="font-medium truncate">{item.label}</span>
                   </motion.div>
                 </Link>
               ) : (
-                <div className="pt-6 pb-2">
+                <div className="pt-4 pb-1">
                   <motion.button onClick={() => setActiveGroup(activeGroup === item.label ? null : item.label)} className="px-4 text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider flex items-center justify-between w-full hover:text-slate-700 dark:hover:text-slate-300 transition-colors group" whileHover={{ x: 2 }}>
                     <span>{item.label}</span>
                     {item.subItems && <ChevronDown className={clsx("w-3.5 h-3.5 opacity-60 group-hover:opacity-100 transition-transform", activeGroup === item.label && "rotate-180")} />}
                   </motion.button>
                   <AnimatePresence initial={false}>
                     {(!item.subItems || activeGroup === item.label) && (
-                      <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }} className="mt-2 space-y-0.5 overflow-hidden">
+                      <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }} className="mt-1 space-y-0.5 overflow-hidden">
                         {item.subItems?.map((subItem) => {
                           const isItemActive = isActive(subItem.href);
                           return (
                             <motion.li key={subItem.href} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} onMouseEnter={() => setHoveredItem(subItem.href)} onMouseLeave={() => setHoveredItem(null)}>
                               <Link href={subItem.href}>
                                 <motion.div className={clsx("flex items-center gap-3 py-2.5 px-4 rounded-xl font-medium text-sm transition-all mx-2 group relative overflow-hidden", isItemActive ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 dark:from-blue-900/20 dark:to-purple-900/20 dark:text-blue-300 shadow-sm" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/60")} whileHover={{ x: 4, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                                  <div className={clsx("w-8 h-8 flex items-center justify-center rounded-lg transition-all", isItemActive ? "bg-gradient-to-br from-blue-500 to-purple-500 shadow-md" : hoveredItem === subItem.href ? "bg-slate-200 dark:bg-slate-700" : "bg-slate-100 dark:bg-slate-800")}>
+                                  <div className={clsx("w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg transition-all", isItemActive ? "bg-gradient-to-br from-blue-500 to-purple-500 shadow-md" : hoveredItem === subItem.href ? "bg-slate-200 dark:bg-slate-700" : "bg-slate-100 dark:bg-slate-800")}>
                                     <subItem.icon className={clsx("w-4 h-4", isItemActive ? "text-white" : "text-slate-500")} />
                                   </div>
                                   <div className="flex-1 ml-3 min-w-0">
                                     <span className="block truncate">{subItem.label}</span>
-                                    {subItem.description && hoveredItem === subItem.href && (
-                                        <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="text-xs text-slate-500 block truncate">
-                                            {subItem.description}
-                                        </motion.span>
-                                    )}
                                   </div>
-                                  {subItem.new && <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-[10px] px-1.5 py-0 h-4">NEW</Badge>}
-                                  {subItem.pro && <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-[10px] px-1.5 py-0 h-4">PRO</Badge>}
-                                  {subItem.ultra && <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-[10px] px-1.5 py-0 h-4">ULTRA</Badge>}
                                 </motion.div>
                               </Link>
                             </motion.li>
@@ -256,7 +249,7 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
         </LayoutGroup>
       </ul>
 
-      {/* CARD DE UPGRADE (COMPACTO E DENTRO DO FLUXO) */}
+      {/* CARD DE UPGRADE (RESPONSIVO E COMPACTO) */}
       {userPlan !== "ultra" && (
         <div className="px-3 mt-4">
           <motion.div whileHover={{ y: -2 }} className={`relative rounded-xl p-[1px] overflow-hidden bg-gradient-to-br ${upgradeCardConfig.gradient}`}>
@@ -267,15 +260,13 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
                   {isFree ? <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" /> : <Crown className="w-3 h-3 text-purple-400 fill-purple-400" />}
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isFree ? "Plano Básico" : "Membro Pro"}</span>
                 </div>
-
                 <h3 className="font-black text-sm leading-tight mb-0.5">{upgradeCardConfig.title}</h3>
                 <p className="text-[10px] text-slate-300 font-medium mb-2">{upgradeCardConfig.subtitle}</p>
-
                 <div className="w-full bg-white/10 h-1 rounded-full mb-3 overflow-hidden">
                   <div className={`h-full bg-gradient-to-r ${isFree ? 'from-yellow-400 to-orange-500' : 'from-purple-400 to-pink-500'}`} style={{ width: `${upgradeCardConfig.progress}%` }} />
                 </div>
 
-                {/* Lista só aparece em telas grandes para economizar espaço no mobile */}
+                {/* Lista de recursos só no desktop para poupar espaço no mobile */}
                 <div className="space-y-2 mb-3 hidden lg:block">
                   {upgradeCardConfig.features.map((feat, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs text-slate-300/90 font-medium">
@@ -287,7 +278,7 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
 
                 <Link href="/dashboard/billing">
                   <motion.button className={`w-full bg-gradient-to-r ${upgradeCardConfig.buttonGradient} text-white text-[10px] font-black py-2 rounded-lg shadow-lg relative overflow-hidden group border border-white/20`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <span className="relative flex items-center justify-center gap-1.5">{upgradeCardConfig.buttonText} <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" /></span>
+                    <span className="relative flex items-center justify-center gap-1.5">{upgradeCardConfig.buttonText} <ArrowRight className="w-3 h-3" /></span>
                   </motion.button>
                 </Link>
               </div>
@@ -308,11 +299,14 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const pathname = usePathname();
+
   const userPlan = initialPlan || "free";
+
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { signOut } = useClerk();
   const { isSupported, isSubscribed, subscribe } = usePushNotifications();
   const [showPushPrompt, setShowPushPrompt] = useState(false);
+
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
 
@@ -370,7 +364,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
     return Object.entries(titles).find(([path]) => pathname.startsWith(path))?.[1] || "Dashboard";
   };
 
-  // Trava a rolagem da página quando a sidebar mobile está aberta
+  // Trava/Destrava Scroll
   useEffect(() => {
     if (isSidebarOpen) {
       document.body.style.overflow = 'hidden';
@@ -413,19 +407,21 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         </div>
       </aside>
 
-      {/* MOBILE SIDEBAR (DRAWER) */}
+      {/* MOBILE SIDEBAR (Drawer) */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm lg:hidden" style={{ zIndex: Z_INDEX.modal }} />
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSidebarOpen(false)}
+              className="fixed inset-0 bg-black/60 backdrop-blur-sm lg:hidden z-[100]"
+              style={{ touchAction: "none" }}
+            />
 
             <motion.aside
               initial={{ x: "-100%" }}
               animate={{ x: 0 }}
               exit={{ x: "-100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="fixed left-0 top-0 bottom-0 w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col h-[100dvh]"
-              style={{ zIndex: Z_INDEX.popover }}
+              className="fixed left-0 top-0 bottom-0 w-[85%] max-w-xs bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col h-[100dvh] z-[101] shadow-2xl"
             >
               <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <Link href="/dashboard" className="flex items-center min-w-0">
@@ -437,8 +433,8 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
                 </motion.button>
               </div>
 
-              {/* CORPO DO MENU SCROLLÁVEL */}
-              <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+              {/* CORPO SCROLLÁVEL - Conteúdo + Card de Upgrade */}
+              <div className="flex-1 overflow-y-auto p-4 overscroll-contain">
                 <SidebarContent userPlan={userPlan} uniqueId="mobile-sidebar" />
               </div>
 
@@ -468,14 +464,12 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
            </div>
 
            <div className="flex items-center gap-2">
-             {/* BUSCA */}
              <div className="relative">
                 <AnimatePresence>
                   {isSearchOpen ? (
                     <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: "260px", opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="absolute right-0 top-1/2 -translate-y-1/2 z-50">
                         <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar..." className="pl-10 h-9 rounded-xl bg-white shadow-xl border border-slate-200 w-full" autoFocus />
                         <motion.button onClick={() => { setIsSearchOpen(false); setSearchTerm("") }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1"><X className="w-4 h-4" /></motion.button>
-
                         {(searchResults.length > 0 || searchLoading) && (
                            <div className="absolute top-full right-0 w-full bg-white shadow-2xl p-2 rounded-lg mt-2 border border-slate-100">
                               {searchLoading ? ( <div className="p-4 text-center text-xs text-slate-500">Buscando...</div> ) : ( searchResults.map((res, i) => ( <Link href={res.href} key={i} onClick={handleSearchLinkClick}> <div className="p-2 hover:bg-slate-100 rounded flex items-center gap-2 text-sm cursor-pointer"> {res.icon && <res.icon className="w-4 h-4 text-slate-500" />} <span className="truncate">{res.label}</span> </div> </Link> )) )}
@@ -490,7 +484,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
                 </AnimatePresence>
              </div>
 
-             {/* NOTIFICAÇÕES */}
              <Popover>
                 <PopoverTrigger asChild>
                    <Button variant="ghost" size="icon" className="relative">

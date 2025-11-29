@@ -5,7 +5,6 @@
 
 /* === CONFIGURAÇÃO DO TEMA E ANIMAÇÕES === */
 @theme inline {
-  /* --- Suas Cores Originais (Mantidas) --- */
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
@@ -44,9 +43,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* --- NOVAS ANIMAÇÕES PARA O DESIGN VIRAL --- */
-
-  /* 1. Efeito Aurora (Blobs se movendo no fundo) */
+  /* --- ANIMAÇÕES PARA O DESIGN VIRAL --- */
   --animate-blob: blob 7s infinite;
   @keyframes blob {
     0% { transform: translate(0px, 0px) scale(1); }
@@ -55,36 +52,16 @@
     100% { transform: translate(0px, 0px) scale(1); }
   }
 
-  /* 2. Efeito de Gradiente Brilhante nas Bordas */
   --animate-gradient-x: gradient-x 15s ease infinite;
   @keyframes gradient-x {
     0%, 100% { background-size: 200% 200%; background-position: left center; }
     50% { background-size: 200% 200%; background-position: right center; }
   }
 
-  /* 3. Micro-interações (Bounce e Pulse) */
-  --animate-bounce-short: bounce-short 1s infinite;
-  @keyframes bounce-short {
-    0%, 100% { transform: translateY(-5%); animation-timing-function: cubic-bezier(0.8, 0, 1, 1); }
-    50% { transform: translateY(0); animation-timing-function: cubic-bezier(0, 0, 0.2, 1); }
-  }
-
-  --animate-pulse-slow: pulse-slow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
-  @keyframes pulse-slow {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-
-  /* 4. Acordeão (ShadCN Padrão) */
-  --animate-accordion-down: accordion-down 0.2s ease-out;
-  @keyframes accordion-down {
-    from { height: 0; }
-    to { height: var(--radix-accordion-content-height); }
-  }
-  --animate-accordion-up: accordion-up 0.2s ease-out;
-  @keyframes accordion-up {
-    from { height: var(--radix-accordion-content-height); }
-    to { height: 0; }
+  --animate-shimmer: shimmer 2s linear infinite;
+  @keyframes shimmer {
+    from { background-position: 0 0; }
+    to { background-position: -200% 0; }
   }
 }
 
@@ -164,21 +141,17 @@
   }
   html, body {
     @apply bg-background text-foreground flex flex-col min-h-screen overflow-x-hidden;
+    /* --- CORREÇÃO DO SCROLL MOBILE --- */
     overscroll-behavior-y: contain;
     -webkit-overflow-scrolling: touch;
     margin: 0;
     padding: 0;
   }
-
-  /* Scroll suave global */
   html {
     scroll-behavior: smooth;
   }
 }
 
-/* === UTILITÁRIOS CRUCIAIS === */
-
-/* 1. Esconde a barra de rolagem no Mockup do iPhone (Estilo Apple) */
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;
@@ -187,18 +160,21 @@
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
-
-  /* 2. Delays de Animação (para o fundo Aurora não se mover em uníssono) */
-  .animation-delay-2000 {
-    animation-delay: 2s;
-  }
-  .animation-delay-4000 {
-    animation-delay: 4s;
-  }
 }
 
-/* --- Seus utilitários existentes (Mantidos) --- */
+/* === CORREÇÃO CRÍTICA PARA LAYOUT MOBILE === */
+/* Isso impede que botões e links fiquem gigantes e quebrem o menu */
+@media (max-width: 640px) {
+  input,
+  select,
+  textarea {
+    min-height: 44px;
+    font-size: 16px !important;
+  }
+  /* Removemos a regra forçada de altura para <a> e <button> */
+}
 
+/* Scrollbar estilizada */
 .scrollbar-thin {
   scrollbar-width: thin;
 }
@@ -212,229 +188,4 @@
 }
 .dark .scrollbar-thin::-webkit-scrollbar-thumb {
   background-color: #374151;
-}
-
-@keyframes confetti-rain {
-  0% { background-position: 0 0; opacity: 1; }
-  100% { background-position: 0 600px; opacity: 0; }
-}
-#confetti-container.active {
-  background-image: url('/confetti.png');
-  animation: confetti-rain 5s linear forwards;
-}
-
-.screenshot-highlight {
-  outline: 4px solid rgba(59, 130, 246, 0.5);
-  box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.2);
-  transition: all 0.2s ease-in-out;
-}
-
-.drop-shadow-glow {
-  filter: drop-shadow(0 0 8px rgba(251, 191, 36, 0.5));
-}
-
-.mobile-readable {
-  font-size: clamp(0.75rem, 4vw, 1rem);
-  line-height: 1.5;
-}
-
-/* Breakpoint customizado inline */
-@media (min-width: 480px) {
-  .xs\:inline { display: inline; }
-  .xs\:hidden { display: none; }
-}
-
-@media (max-width: 360px) {
-  .xs-stack > * { width: 100%; margin-bottom: 0.5rem; }
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-/* Scrollbar estilizada para elementos que precisam */
-.custom-scrollbar::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
-}
-
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
-}
-
-/* Input color sem borda padrão do browser */
-input[type="color"] {
-  -webkit-appearance: none;
-  border: none;
-  padding: 0;
-}
-
-input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-
-input[type="color"]::-webkit-color-swatch {
-  border: none;
-  border-radius: 8px;
-}
-
-/* Range slider customizado */
-input[type="range"] {
-  -webkit-appearance: none;
-  background: transparent;
-}
-
-input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  height: 18px;
-  width: 18px;
-  border-radius: 50%;
-  background: #9333ea;
-  cursor: pointer;
-  margin-top: -6px;
-  box-shadow: 0 2px 6px rgba(147, 51, 234, 0.3);
-  transition: all 0.15s ease;
-}
-
-input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.1);
-  box-shadow: 0 3px 10px rgba(147, 51, 234, 0.4);
-}
-
-input[type="range"]::-webkit-slider-runnable-track {
-  width: 100%;
-  height: 6px;
-  cursor: pointer;
-  background: #e5e7eb;
-  border-radius: 3px;
-}
-
-input[type="range"]:focus::-webkit-slider-runnable-track {
-  background: #d1d5db;
-}
-
-/* Firefox */
-input[type="range"]::-moz-range-thumb {
-  height: 18px;
-  width: 18px;
-  border-radius: 50%;
-  background: #9333ea;
-  cursor: pointer;
-  border: none;
-  box-shadow: 0 2px 6px rgba(147, 51, 234, 0.3);
-}
-
-input[type="range"]::-moz-range-track {
-  width: 100%;
-  height: 6px;
-  cursor: pointer;
-  background: #e5e7eb;
-  border-radius: 3px;
-}
-
-/* Selection customizada */
-::selection {
-  background-color: rgba(147, 51, 234, 0.15);
-  color: #581c87;
-}
-
-/* Focus visible para acessibilidade */
-*:focus-visible {
-  outline: 2px solid #9333ea;
-  outline-offset: 2px;
-}
-
-/* Smooth scroll */
-html {
-  scroll-behavior: smooth;
-}
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-    scroll-behavior: auto !important;
-  }
-}
-
-/* Mobile optimizations */
-@media (max-width: 640px) {
-  /* Desabilita animações pesadas em mobile */
-  .animate-float,
-  .animate-float-delayed,
-  .animate-float-slow {
-    animation: none !important;
-  }
-
-  /* Touch targets maiores */
-  button,
-  a,
-  input,
-  select,
-  textarea {
-    min-height: 44px;
-  }
-
-  /* Previne zoom em inputs no iOS */
-  input[type="text"],
-  input[type="email"],
-  input[type="password"],
-  textarea,
-  select {
-    font-size: 16px !important;
-  }
-}
-
-/* Gradient text helper */
-.text-gradient {
-  background: linear-gradient(135deg, #9333ea 0%, #ec4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Glass effect */
-.glass {
-  background: rgba(255, 255, 255, 0.7);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.5);
-}
-
-/* Shimmer loading effect */
-.shimmer {
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.5) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s infinite;
-}
-
-@keyframes shimmer {
-  0% {
-    background-position: -200% 0;
-  }
-  100% {
-    background-position: 200% 0;
-  }
 }
