@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -16,24 +16,29 @@ import {
   MessageCircle,
   Clock,
   Sparkles,
-
   Star,
-  Users,
-
   Search,
   BookOpen,
   HeadphonesIcon,
   Shield,
-
+  Key,
+  CreditCard,
+  UserCog,
+  FileText,
+  Lock,
+  ArrowRight,
+  ChevronDown
 } from "lucide-react";
 
-// Tipos
+// =================================================================
+// TIPOS E DADOS
+// =================================================================
+
 interface FAQItem {
   id: string;
   question: string;
   answer: string;
   helpful?: number;
-  icon?: React.ReactNode;
   category?: string;
 }
 
@@ -46,10 +51,22 @@ interface ContactOption {
   available: boolean;
   responseTime?: string;
   badge?: string;
-  color?: string;
+  color?: string; // Classe de cor para gradientes
 }
 
-// Dados das FAQs
+interface QuickAccessItem {
+  icon: React.ReactNode;
+  label: string;
+  action: string;
+}
+
+const quickAccessData: QuickAccessItem[] = [
+  { icon: <Key className="w-5 h-5" />, label: "Alterar Senha", action: "password" },
+  { icon: <CreditCard className="w-5 h-5" />, label: "Minhas Faturas", action: "billing" },
+  { icon: <UserCog className="w-5 h-5" />, label: "Dados da Conta", action: "account" },
+  { icon: <FileText className="w-5 h-5" />, label: "Mudar Plano", action: "plan" },
+];
+
 const faqData: FAQItem[] = [
   {
     id: "1",
@@ -88,13 +105,12 @@ const faqData: FAQItem[] = [
   }
 ];
 
-// Opções de Contato
 const contactOptions: ContactOption[] = [
   {
     id: "email",
     title: "Email de Suporte",
     description: "Lucasholt2021@gmail.com",
-    icon: <Mail className="w-5 h-5" />,
+    icon: <Mail className="w-5 h-5 text-white" />,
     action: "email",
     available: true,
     responseTime: "Resposta em até 24h",
@@ -104,63 +120,69 @@ const contactOptions: ContactOption[] = [
     id: "whatsapp",
     title: "WhatsApp VIP",
     description: "Suporte prioritário via WhatsApp",
-    icon: <Phone className="w-5 h-5" />,
+    icon: <Phone className="w-5 h-5 text-white" />,
     action: "whatsapp",
     available: true,
     responseTime: "Resposta em minutos",
-    badge: "Exclusivo Ultra",
+    badge: "Recomendado",
     color: "from-green-500 to-emerald-500"
   }
 ];
 
-// Componente de FAQ Item
+// =================================================================
+// SUB-COMPONENTES
+// =================================================================
+
 function FAQItemComponent({ item, isOpen, onToggle }: { item: FAQItem; isOpen: boolean; onToggle: () => void }) {
   const [helpful, setHelpful] = useState<boolean | null>(null);
-  const [helpfulCount, setHelpfulCount] = useState(item.helpful || 0);
 
   const handleHelpful = (isHelpful: boolean) => {
     if (helpful === null) {
       setHelpful(isHelpful);
-      if (isHelpful) {
-        setHelpfulCount(prev => prev + 1);
-        toast.success("Obrigado pelo feedback!");
-      } else {
-        toast.info("Vamos melhorar esta resposta!");
-      }
+      if (isHelpful) toast.success("Obrigado pelo feedback!");
+      else toast.info("Vamos melhorar esta resposta!");
     }
   };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="group border border-gray-200 hover:border-purple-200 dark:border-slate-700 dark:hover:border-purple-700 rounded-xl overflow-hidden transition-all duration-300 hover:shadow-lg bg-white dark:bg-slate-900"
+      initial={false}
+      className={cn(
+        "group border rounded-xl overflow-hidden transition-all duration-300 bg-white dark:bg-slate-900",
+        isOpen ? "border-purple-200 dark:border-purple-800 shadow-md" : "border-gray-200 dark:border-slate-800 hover:border-purple-100 dark:hover:border-slate-700"
+      )}
     >
       <button
         onClick={onToggle}
-        className="w-full px-4 sm:px-6 py-3 sm:py-4 flex items-center justify-between hover:bg-gradient-to-r hover:from-purple-50/50 hover:to-blue-50/50 dark:hover:from-purple-900/20 dark:hover:to-blue-900/20 transition-all duration-300"
+        className="w-full px-5 py-4 flex items-center justify-between text-left focus:outline-none"
       >
-        <div className="flex items-center gap-2 sm:gap-3 text-left flex-1 min-w-0">
-          <div className="flex-shrink-0 w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-lg group-hover:scale-110 transition-transform">
-            <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5 text-purple-600 dark:text-purple-400" />
+        <div className="flex items-center gap-4">
+          <div className={cn(
+            "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center transition-colors",
+            isOpen ? "bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" : "bg-gray-100 text-gray-500 dark:bg-slate-800 dark:text-slate-400 group-hover:bg-purple-50 dark:group-hover:bg-slate-700"
+          )}>
+            <HelpCircle className="w-4 h-4" />
           </div>
-          <div className="flex-1 min-w-0">
-            <span className="font-semibold text-sm sm:text-base text-gray-900 dark:text-white line-clamp-2">{item.question}</span>
+          <div>
+            <span className={cn(
+              "font-semibold text-sm sm:text-base block transition-colors",
+              isOpen ? "text-purple-900 dark:text-purple-100" : "text-gray-900 dark:text-gray-100"
+            )}>
+              {item.question}
+            </span>
             {item.category && (
-              <Badge variant="secondary" className="mt-1 text-xs hidden sm:inline-flex">
+              <span className="text-xs text-gray-500 dark:text-slate-500 font-medium mt-0.5 block">
                 {item.category}
-              </Badge>
+              </span>
             )}
           </div>
         </div>
         <motion.div
           animate={{ rotate: isOpen ? 180 : 0 }}
-          transition={{ duration: 0.3 }}
-          className="flex-shrink-0 ml-2"
+          transition={{ duration: 0.2 }}
+          className="text-gray-400 ml-4 flex-shrink-0"
         >
-          <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-          </svg>
+          <ChevronDown className="w-5 h-5" />
         </motion.div>
       </button>
 
@@ -170,49 +192,37 @@ function FAQItemComponent({ item, isOpen, onToggle }: { item: FAQItem; isOpen: b
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="border-t border-gray-100 dark:border-slate-700"
+            transition={{ duration: 0.2 }}
           >
-            <div className="p-4 sm:p-6 space-y-4 bg-gradient-to-br from-gray-50/50 to-purple-50/30 dark:from-slate-800/50 dark:to-purple-900/10">
-              <p className="text-sm sm:text-base text-gray-700 dark:text-slate-300 leading-relaxed">{item.answer}</p>
+            <div className="border-t border-gray-100 dark:border-slate-800 px-5 py-5 sm:pl-[4.5rem]">
+              <p className="text-sm sm:text-base text-gray-600 dark:text-slate-300 leading-relaxed">
+                {item.answer}
+              </p>
 
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 pt-3 border-t border-gray-200 dark:border-slate-700">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Esta resposta foi útil?</span>
-                  <div className="flex gap-1.5">
-                    <Button
-                      size="sm"
-                      variant={helpful === true ? "default" : "outline"}
-                      className={cn(
-                        "h-8 px-3",
-                        helpful === true && "bg-green-500 hover:bg-green-600"
-                      )}
-                      onClick={() => handleHelpful(true)}
-                      disabled={helpful !== null}
-                    >
-                      <ThumbsUp className="w-3.5 h-3.5" />
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={helpful === false ? "default" : "outline"}
-                      className={cn(
-                        "h-8 px-3",
-                        helpful === false && "bg-red-500 hover:bg-red-600"
-                      )}
-                      onClick={() => handleHelpful(false)}
-                      disabled={helpful !== null}
-                    >
-                      <ThumbsDown className="w-3.5 h-3.5" />
-                    </Button>
-                  </div>
+              <div className="mt-4 pt-4 border-t border-dashed border-gray-100 dark:border-slate-800 flex items-center justify-between">
+                <span className="text-xs text-gray-400 font-medium">Isso foi útil?</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleHelpful(true)}
+                    disabled={helpful !== null}
+                    className={cn(
+                      "p-1.5 rounded-md transition-colors",
+                      helpful === true ? "bg-green-100 text-green-700" : "hover:bg-gray-100 text-gray-400 hover:text-green-600"
+                    )}
+                  >
+                    <ThumbsUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleHelpful(false)}
+                    disabled={helpful !== null}
+                    className={cn(
+                      "p-1.5 rounded-md transition-colors",
+                      helpful === false ? "bg-red-100 text-red-700" : "hover:bg-gray-100 text-gray-400 hover:text-red-600"
+                    )}
+                  >
+                    <ThumbsDown className="w-4 h-4" />
+                  </button>
                 </div>
-
-                {helpfulCount > 0 && (
-                  <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-400">
-                    <Users className="w-3.5 h-3.5" />
-                    <span>{helpfulCount} pessoas acharam útil</span>
-                  </div>
-                )}
               </div>
             </div>
           </motion.div>
@@ -222,18 +232,27 @@ function FAQItemComponent({ item, isOpen, onToggle }: { item: FAQItem; isOpen: b
   );
 }
 
-// Função para abrir Email ou WhatsApp
-const handleContactAction = (option: typeof contactOptions[0]) => {
-  if (option.action === "email") {
-    window.location.href = `mailto:${option.description}`;
+// Função para abrir Email ou WhatsApp (Simulação de ação)
+const handleAction = (type: string, payload?: string) => {
+  if (type === "email" && payload) {
+    window.location.href = `mailto:${payload}`;
     toast.success("Abrindo seu cliente de email...");
-  } else if (option.action === "whatsapp") {
+  } else if (type === "whatsapp") {
     const phoneNumber = "+5579999383543";
     const message = encodeURIComponent("Olá, preciso de suporte no Freelinnk!");
     window.open(`https://wa.me/${phoneNumber}?text=${message}`, "_blank");
     toast.success("Abrindo WhatsApp...");
+  } else {
+    // Ações de "Acesso Rápido"
+    toast.success("Redirecionando para o painel...", {
+      description: "Funcionalidade demonstrativa ativa."
+    });
   }
 };
+
+// =================================================================
+// COMPONENTE PRINCIPAL
+// =================================================================
 
 export default function HelpCenter() {
   const [openFAQ, setOpenFAQ] = useState<string | null>(null);
@@ -245,248 +264,260 @@ export default function HelpCenter() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-purple-50/30 to-blue-50/30 dark:from-slate-900 dark:via-purple-900/10 dark:to-blue-900/10">
-      <div className="container mx-auto px-4 py-6 sm:py-10 space-y-8 sm:space-y-12 max-w-7xl">
+    <div className="min-h-screen bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 selection:bg-purple-100 selection:text-purple-900">
 
-        {/* Hero Section */}
-        <div className="relative text-center space-y-4 sm:space-y-6 py-6 sm:py-10">
-          <div className="absolute inset-0 bg-gradient-to-r from-purple-400/10 to-blue-400/10 rounded-3xl blur-3xl" />
+      {/* Background Decorative Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[400px] bg-gradient-to-b from-purple-50/80 to-transparent dark:from-purple-900/10 dark:to-transparent opacity-70 blur-3xl" />
+      </div>
+
+      <div className="container mx-auto px-4 py-8 sm:py-16 relative z-10 max-w-5xl">
+
+        {/* --- HERO SECTION --- */}
+        <section className="text-center space-y-6 mb-12 sm:mb-16">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative"
+            transition={{ duration: 0.5 }}
           >
-            <div className="inline-flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 border border-purple-200 dark:border-purple-700 rounded-full mb-4 sm:mb-6">
-              <HeadphonesIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-purple-600 dark:text-purple-400 animate-pulse" />
-              <span className="text-xs sm:text-sm font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-                SUPORTE PREMIUM
+            <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-50 dark:bg-purple-900/20 border border-purple-100 dark:border-purple-800 rounded-full mb-6">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+              </span>
+              <span className="text-xs font-semibold text-purple-700 dark:text-purple-300 uppercase tracking-wide">
+                Suporte Online Agora
               </span>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-black mb-3 sm:mb-4">
-              <span className="block text-gray-900 dark:text-white mb-2">Como podemos</span>
-              <span className="relative inline-block">
-                <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  ajudar você?
-                </span>
-                <Sparkles className="absolute -top-2 sm:-top-3 -right-2 sm:-right-3 w-5 h-5 sm:w-6 sm:h-6 text-yellow-400 animate-sparkle" />
-              </span>
+            <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight mb-4 text-slate-900 dark:text-white">
+              Central de Ajuda
             </h1>
-
-            <p className="text-sm sm:text-base lg:text-lg text-gray-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed px-4">
-              <span className="font-semibold text-gray-900 dark:text-white">+5.000 criadores</span> já encontraram respostas rápidas aqui
+            <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-400 max-w-2xl mx-auto leading-relaxed">
+              Tire suas dúvidas, gerencie sua conta e resolva problemas em segundos.
             </p>
           </motion.div>
 
-          {/* Search Bar */}
+          {/* Search Bar - "Command Center Style" */}
           <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.1 }}
-            className="max-w-2xl mx-auto relative"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.1, duration: 0.4 }}
+            className="max-w-xl mx-auto relative group"
           >
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar por perguntas, respostas..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-3 sm:py-4 rounded-xl sm:rounded-2xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-sm sm:text-base focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all shadow-lg"
-            />
+            <div className="absolute -inset-1 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl opacity-20 group-focus-within:opacity-40 blur transition-opacity duration-300" />
+            <div className="relative bg-white dark:bg-slate-900 rounded-xl shadow-xl flex items-center p-2 border border-slate-200 dark:border-slate-800 group-focus-within:border-purple-500 transition-colors">
+              <div className="pl-3 pr-2 text-slate-400">
+                <Search className="w-5 h-5" />
+              </div>
+              <input
+                type="text"
+                placeholder="Busque por 'faturas', 'senha', 'planos'..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent border-none focus:ring-0 text-base py-2 placeholder:text-slate-400 text-slate-900 dark:text-white"
+              />
+              <div className="hidden sm:flex pr-2">
+                <kbd className="hidden sm:inline-block px-2 py-0.5 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded text-xs text-slate-500 font-sans">
+                  ESC
+                </kbd>
+              </div>
+            </div>
           </motion.div>
 
-          {/* Stats */}
-          <div className="grid grid-cols-3 gap-3 sm:gap-6 max-w-3xl mx-auto pt-4 sm:pt-6">
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <Star className="w-4 h-4 sm:w-5 sm:h-5 fill-yellow-400 text-yellow-400" />
-                <p className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">4.9</p>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Avaliação</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <Clock className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />
-                <p className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">2h</p>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Resposta Média</p>
-            </div>
-            <div className="text-center">
-              <div className="flex items-center justify-center gap-1 mb-1">
-                <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />
-                <p className="text-xl sm:text-3xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">99%</p>
-              </div>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">Satisfação</p>
-            </div>
-          </div>
-        </div>
-
-        {/* FAQ Section */}
-        <section className="space-y-4 sm:space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 rounded-xl">
-              <BookOpen className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600 dark:text-purple-400" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                Perguntas Frequentes
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">
-                {filteredFAQs.length} {filteredFAQs.length === 1 ? 'pergunta encontrada' : 'perguntas encontradas'}
-              </p>
-            </div>
-          </div>
-
-          <div className="space-y-3">
-            {filteredFAQs.length > 0 ? (
-              filteredFAQs.map((item) => (
-                <FAQItemComponent
-                  key={item.id}
-                  item={item}
-                  isOpen={openFAQ === item.id}
-                  onToggle={() => setOpenFAQ(openFAQ === item.id ? null : item.id)}
-                />
-              ))
-            ) : (
-              <div className="text-center py-12 bg-white dark:bg-slate-900 rounded-xl border border-gray-200 dark:border-slate-700">
-                <Search className="w-12 h-12 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
-                <p className="text-gray-500 dark:text-slate-400">Nenhuma pergunta encontrada</p>
-              </div>
-            )}
+          {/* Stats Grid */}
+          <div className="grid grid-cols-3 gap-2 sm:gap-8 max-w-2xl mx-auto pt-6 border-t border-slate-100 dark:border-slate-800 mt-8">
+             <div className="flex flex-col items-center">
+                <div className="flex items-center gap-1 text-yellow-500 mb-1">
+                   <Star className="w-4 h-4 fill-current" />
+                   <span className="font-bold text-lg">4.9/5</span>
+                </div>
+                <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Avaliação</span>
+             </div>
+             <div className="flex flex-col items-center border-l border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-1 text-green-500 mb-1">
+                   <Clock className="w-4 h-4" />
+                   <span className="font-bold text-lg">&lt; 2h</span>
+                </div>
+                <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Tempo Médio</span>
+             </div>
+             <div className="flex flex-col items-center border-l border-slate-100 dark:border-slate-800">
+                <div className="flex items-center gap-1 text-purple-500 mb-1">
+                   <Shield className="w-4 h-4" />
+                   <span className="font-bold text-lg">100%</span>
+                </div>
+                <span className="text-xs text-slate-500 font-medium uppercase tracking-wide">Seguro</span>
+             </div>
           </div>
         </section>
 
-        {/* Contact Section */}
-        <section className="space-y-4 sm:space-y-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-br from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 rounded-xl">
-              <MessageCircle className="w-5 h-5 sm:w-6 sm:h-6 text-green-600 dark:text-green-400" />
-            </div>
-            <div>
-              <h2 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                Fale Conosco
-              </h2>
-              <p className="text-xs sm:text-sm text-gray-500 dark:text-slate-400">
-                Escolha o melhor canal para você
-              </p>
-            </div>
-          </div>
-
-          <div className="grid sm:grid-cols-2 gap-4 sm:gap-6">
-            {contactOptions.map((option) => (
-              <motion.div
-                key={option.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                whileHover={{ y: -4 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Card className={cn(
-                  "group relative overflow-hidden border-2 transition-all duration-300",
-                  !option.available && "opacity-50",
-                  "hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-2xl"
-                )}>
-                  <div className={cn(
-                    "absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity",
-                    option.color
-                  )} />
-
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-3">
-                        <div className={cn(
-                          "p-2.5 sm:p-3 rounded-xl bg-gradient-to-br text-white",
-                          option.color
-                        )}>
-                          {option.icon}
-                        </div>
-                        <div>
-                          <CardTitle className="text-base sm:text-lg">{option.title}</CardTitle>
-                          {option.badge && (
-                            <Badge className="mt-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white border-0">
-                              {option.badge}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
+        {/* --- ACESSO RÁPIDO (Quick Access) --- */}
+        <section className="mb-12 sm:mb-16">
+           <div className="flex items-center gap-2 mb-4 px-1">
+              <Sparkles className="w-4 h-4 text-purple-500" />
+              <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider">Acesso Rápido</h3>
+           </div>
+           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+              {quickAccessData.map((item, idx) => (
+                 <motion.button
+                   key={idx}
+                   whileHover={{ y: -2 }}
+                   whileTap={{ scale: 0.98 }}
+                   onClick={() => handleAction(item.action)}
+                   className="flex flex-col items-center justify-center p-4 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl hover:border-purple-300 dark:hover:border-purple-700 hover:shadow-lg transition-all group"
+                 >
+                    <div className="p-3 bg-slate-50 dark:bg-slate-800 rounded-lg text-slate-600 dark:text-slate-300 group-hover:bg-purple-50 dark:group-hover:bg-purple-900/20 group-hover:text-purple-600 transition-colors mb-2">
+                       {item.icon}
                     </div>
-                  </CardHeader>
+                    <span className="text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-300 group-hover:text-purple-700 dark:group-hover:text-purple-300">
+                       {item.label}
+                    </span>
+                 </motion.button>
+              ))}
+           </div>
+        </section>
 
-                  <CardContent className="pb-3">
-                    <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">{option.description}</p>
-                    {option.responseTime && (
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-slate-500">
-                        <Clock className="w-3.5 h-3.5" />
-                        <span>{option.responseTime}</span>
-                      </div>
-                    )}
-                  </CardContent>
+        {/* --- FAQ SECTION --- */}
+        <section className="grid lg:grid-cols-3 gap-8 lg:gap-12 mb-16">
+          <div className="lg:col-span-1 space-y-4">
+             <div className="sticky top-24">
+               <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Perguntas Frequentes</h2>
+               <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
+                 Encontre respostas rápidas para as dúvidas mais comuns da nossa comunidade.
+               </p>
+               <div className="p-4 bg-purple-50 dark:bg-slate-900 rounded-xl border border-purple-100 dark:border-slate-800">
+                  <div className="flex items-start gap-3">
+                     <BookOpen className="w-5 h-5 text-purple-600 mt-0.5" />
+                     <div>
+                        <p className="font-semibold text-sm text-purple-900 dark:text-purple-100">Documentação</p>
+                        <p className="text-xs text-purple-700 dark:text-slate-400 mt-1 mb-3">
+                           Prefere ler tutoriais detalhados? Acesse nossa base de conhecimento completa.
+                        </p>
+                        <Button size="sm" variant="outline" className="w-full bg-white dark:bg-slate-800 border-purple-200 dark:border-slate-700 text-purple-700 dark:text-slate-200 hover:bg-purple-50">
+                           Ver Tutoriais
+                        </Button>
+                     </div>
+                  </div>
+               </div>
+             </div>
+          </div>
 
-                  <CardFooter>
-                    <Button
-                      disabled={!option.available}
-                      className={cn(
-                        "w-full group-hover:scale-105 transition-transform bg-gradient-to-r",
-                        option.color,
-                        "hover:shadow-lg"
-                      )}
-                      onClick={() => handleContactAction(option)}
-                    >
-                      {option.action === "email" && (
-                        <>
-                          <Mail className="w-4 h-4 mr-2" />
-                          Enviar Email
-                        </>
-                      )}
-                      {option.action === "whatsapp" && (
-                        <>
-                          <Phone className="w-4 h-4 mr-2" />
-                          Abrir WhatsApp
-                        </>
-                      )}
-                    </Button>
-                  </CardFooter>
-                </Card>
-              </motion.div>
-            ))}
+          <div className="lg:col-span-2 space-y-3">
+             {filteredFAQs.length > 0 ? (
+               filteredFAQs.map((item) => (
+                 <FAQItemComponent
+                   key={item.id}
+                   item={item}
+                   isOpen={openFAQ === item.id}
+                   onToggle={() => setOpenFAQ(openFAQ === item.id ? null : item.id)}
+                 />
+               ))
+             ) : (
+               <div className="text-center py-12 px-4 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl">
+                 <Search className="w-10 h-10 text-slate-300 mx-auto mb-3" />
+                 <p className="font-medium text-slate-900 dark:text-white">Nenhum resultado encontrado</p>
+                 <p className="text-sm text-slate-500">Tente buscar por termos mais genéricos.</p>
+               </div>
+             )}
           </div>
         </section>
 
-        {/* Bottom CTA */}
+        {/* --- CONTACT & TRUST --- */}
+        <section className="mb-16">
+           <div className="text-center mb-8">
+              <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Precisa de mais ajuda?</h2>
+              <p className="text-slate-500 mt-2">Nossa equipe de especialistas está pronta para atender você.</p>
+           </div>
+
+           <div className="grid md:grid-cols-2 gap-4">
+              {contactOptions.map((option) => (
+                 <motion.div
+                   key={option.id}
+                   whileHover={{ y: -4 }}
+                   className="relative group"
+                 >
+                    <Card className="h-full border-2 border-slate-100 dark:border-slate-800 hover:border-purple-200 dark:hover:border-purple-900/50 hover:shadow-xl transition-all duration-300 bg-white dark:bg-slate-900 overflow-hidden">
+                       <div className={cn("absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity bg-gradient-to-r", option.color)} />
+                       <CardHeader>
+                          <div className="flex items-center justify-between mb-2">
+                             <div className={cn("w-10 h-10 rounded-lg flex items-center justify-center bg-gradient-to-br shadow-sm", option.color)}>
+                                {option.icon}
+                             </div>
+                             {option.badge && (
+                                <Badge variant="secondary" className="bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300 border-0">
+                                   {option.badge}
+                                </Badge>
+                             )}
+                          </div>
+                          <CardTitle className="text-lg">{option.title}</CardTitle>
+                       </CardHeader>
+                       <CardContent className="space-y-4">
+                          <div>
+                             <p className="text-slate-500 text-sm mb-1">{option.description}</p>
+                             <div className="flex items-center gap-1.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                <Clock className="w-3.5 h-3.5" />
+                                {option.responseTime}
+                             </div>
+                          </div>
+                          <Button
+                             onClick={() => handleAction(option.action, option.description)}
+                             className={cn("w-full bg-slate-900 text-white hover:bg-slate-800 dark:bg-white dark:text-slate-900 dark:hover:bg-slate-200")}
+                          >
+                             {option.action === 'email' ? 'Enviar Email' : 'Iniciar Conversa'}
+                             <ArrowRight className="w-4 h-4 ml-2" />
+                          </Button>
+                       </CardContent>
+                    </Card>
+                 </motion.div>
+              ))}
+           </div>
+
+           {/* Security Badge */}
+           <div className="mt-8 flex items-center justify-center gap-2 text-xs sm:text-sm text-slate-400">
+              <Lock className="w-3.5 h-3.5" />
+              <span>Seus dados estão protegidos por criptografia de ponta a ponta.</span>
+           </div>
+        </section>
+
+        {/* --- ULTIMATE CTA --- */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-gradient-to-r from-purple-600 to-blue-600 rounded-2xl p-6 sm:p-8 text-center text-white relative overflow-hidden"
+          initial={{ opacity: 0, scale: 0.98 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+          className="relative rounded-2xl sm:rounded-3xl overflow-hidden p-8 sm:p-12 text-center"
         >
-          <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-          <div className="relative">
-            <Sparkles className="w-8 h-8 sm:w-10 sm:h-10 mx-auto mb-3 sm:mb-4" />
-            <h3 className="text-xl sm:text-2xl font-bold mb-2">Ainda tem dúvidas?</h3>
-            <p className="text-sm sm:text-base text-white/90 mb-4 sm:mb-6 max-w-2xl mx-auto">
-              Nossa equipe está pronta para ajudar você a aproveitar ao máximo o Freelinnk
-            </p>
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
-              <Button
-                size="lg"
-                variant="secondary"
-                className="bg-white text-purple-600 hover:bg-gray-100"
-                onClick={() => handleContactAction(contactOptions[0])}
-              >
-                <Mail className="w-4 h-4 mr-2" />
-                Enviar Email
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-white text-white hover:bg-white/10"
-                onClick={() => handleContactAction(contactOptions[1])}
-              >
-                <Phone className="w-4 h-4 mr-2" />
-                WhatsApp VIP
-              </Button>
-            </div>
-          </div>
+           <div className="absolute inset-0 bg-gradient-to-br from-purple-600 via-blue-600 to-indigo-600" />
+           <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay" />
+           <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-white/30 to-transparent" />
+
+           <div className="relative z-10 space-y-6">
+              <div className="inline-flex items-center justify-center p-3 bg-white/10 backdrop-blur-md rounded-2xl mb-2">
+                 <HeadphonesIcon className="w-8 h-8 text-white" />
+              </div>
+
+              <h2 className="text-2xl sm:text-4xl font-bold text-white max-w-2xl mx-auto">
+                 Não encontrou o que precisava?
+              </h2>
+              <p className="text-purple-100 text-lg max-w-xl mx-auto">
+                 Nossa equipe de suporte premium está disponível agora para resolver seu problema em tempo real.
+              </p>
+
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+                 <Button
+                    size="lg"
+                    className="w-full sm:w-auto bg-white text-purple-600 hover:bg-purple-50 hover:scale-105 transition-all shadow-xl font-bold h-14 px-8 text-base"
+                    onClick={() => handleAction("whatsapp")}
+                 >
+                    <MessageCircle className="w-5 h-5 mr-2" />
+                    Falar com Especialista Agora
+                 </Button>
+              </div>
+              <p className="text-white/60 text-xs mt-4">
+                 Tempo médio de espera: <strong>Menos de 2 minutos</strong>
+              </p>
+           </div>
         </motion.div>
+
       </div>
     </div>
   );

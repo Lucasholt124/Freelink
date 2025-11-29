@@ -1,4 +1,3 @@
-// components/brain/SettingsModal.tsx - VERSÃO MELHORADA
 "use client";
 
 import { motion } from "framer-motion";
@@ -12,6 +11,8 @@ import {
   Smartphone,
   CheckCircle2,
   Zap,
+  Clock,
+  CalendarClock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -52,211 +53,217 @@ export default function SettingsModal({ isOpen, onClose }: SettingsModalProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-lg max-h-[90vh] p-0 gap-0 overflow-hidden">
-        <DialogHeader className="p-5 sm:p-6 border-b bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-950/30 dark:to-pink-950/30">
-          <DialogTitle className="flex items-center gap-3 text-xl">
-            <div className="p-2 bg-purple-600 rounded-xl">
+      <DialogContent className="w-[95vw] max-w-lg p-0 gap-0 overflow-hidden rounded-2xl sm:rounded-2xl h-[85dvh] sm:h-auto sm:max-h-[85vh] flex flex-col bg-white dark:bg-zinc-950 border-zinc-200 dark:border-zinc-800">
+
+        {/* HEADER FIXO */}
+        <DialogHeader className="p-5 border-b border-zinc-100 dark:border-zinc-800 bg-gradient-to-r from-purple-50/50 to-pink-50/50 dark:from-purple-950/20 dark:to-pink-950/20 shrink-0">
+          <DialogTitle className="flex items-center gap-3 text-lg sm:text-xl font-bold text-zinc-900 dark:text-zinc-100">
+            <div className="p-2 bg-purple-600 rounded-xl shadow-sm shadow-purple-500/20 shrink-0">
               <Bell className="w-5 h-5 text-white" />
             </div>
             Central de Notificações
           </DialogTitle>
-          <DialogDescription>
+          <DialogDescription className="text-zinc-500 text-sm sm:text-base hidden sm:block">
             Configure alertas para nunca perder o horário de postar
           </DialogDescription>
         </DialogHeader>
 
-        <Tabs defaultValue="push" className="flex-1">
-          <TabsList className="w-full justify-start rounded-none border-b h-auto p-0 bg-transparent">
+        {/* TABS E CONTEÚDO COM SCROLL INTELIGENTE */}
+        <Tabs defaultValue="push" className="flex flex-col flex-1 min-h-0">
+          <TabsList className="w-full justify-start rounded-none border-b border-zinc-100 dark:border-zinc-800 h-auto p-0 bg-transparent shrink-0">
             <TabsTrigger
               value="push"
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent py-3"
+              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-400 data-[state=active]:bg-transparent py-3 sm:py-4 transition-all"
             >
               <Smartphone className="w-4 h-4 mr-2" />
-              Push
+              Configurar Push
             </TabsTrigger>
             <TabsTrigger
               value="history"
-              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:bg-transparent py-3"
+              className="flex-1 rounded-none border-b-2 border-transparent data-[state=active]:border-purple-600 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-400 data-[state=active]:bg-transparent py-3 sm:py-4 transition-all"
             >
-              <Info className="w-4 h-4 mr-2" />
+              <Clock className="w-4 h-4 mr-2" />
               Histórico
             </TabsTrigger>
           </TabsList>
 
-          <ScrollArea className="max-h-[calc(90vh-200px)]">
-            {/* PUSH NOTIFICATIONS */}
-            <TabsContent value="push" className="p-5 sm:p-6 space-y-4 m-0">
-              {/* Aviso iOS */}
+          <ScrollArea className="flex-1 overflow-y-auto bg-white dark:bg-zinc-950">
+
+            {/* CONTEÚDO PUSH */}
+            <TabsContent value="push" className="p-4 sm:p-6 space-y-5 m-0 outline-none">
+
+              {/* Aviso iOS Mobile */}
               {isIOS && !isPWA && (
-                <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
-                  <AlertTriangle className="h-5 w-5 text-amber-600" />
-                  <AlertDescription className="text-sm">
-                    <p className="font-semibold mb-1">⚠️ Push no iPhone</p>
-                    <p className="text-xs">
-                      Adicione este app à tela de início para receber notificações no iOS.
-                      <br />
-                      <span className="text-amber-700">Safari → Compartilhar → Adicionar à Tela de Início</span>
+                <Alert className="border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 shrink-0" />
+                  <AlertDescription className="text-sm ml-2">
+                    <p className="font-semibold mb-1 text-amber-800 dark:text-amber-200">⚠️ Ativar no iPhone</p>
+                    <p className="text-xs text-amber-700 dark:text-amber-300 leading-relaxed">
+                      Para receber notificações, toque em <strong>Compartilhar</strong> no Safari e selecione <strong>Adicionar à Tela de Início</strong>.
                     </p>
                   </AlertDescription>
                 </Alert>
               )}
 
+              {/* Card Principal de Status */}
               <Card className={cn(
-                "p-5 border-2 transition-all",
+                "p-4 sm:p-5 border transition-all shadow-sm",
                 isPushActive
-                  ? "border-green-500/50 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30"
-                  : "border-gray-200 dark:border-gray-800"
+                  ? "border-green-200 bg-gradient-to-br from-green-50/50 to-white dark:from-green-950/20 dark:to-zinc-950 dark:border-green-900"
+                  : "border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900"
               )}>
                 <div className="space-y-4">
                   <div className="flex items-start gap-4">
                     <motion.div
-                      animate={isPushActive ? { scale: [1, 1.1, 1] } : {}}
+                      animate={isPushActive ? { scale: [1, 1.05, 1] } : {}}
                       transition={{ duration: 2, repeat: Infinity }}
                       className={cn(
-                        "p-3 rounded-xl shadow-md transition-colors",
+                        "p-3 rounded-xl shrink-0 transition-colors",
                         isPushActive
-                          ? "bg-green-500 text-white"
-                          : "bg-gray-100 dark:bg-gray-800 text-gray-500"
+                          ? "bg-green-500 text-white shadow-lg shadow-green-500/20"
+                          : "bg-zinc-100 dark:bg-zinc-800 text-zinc-400"
                       )}
                     >
-                      <Bell className="w-6 h-6" />
+                      {isPushActive ? <CheckCircle2 className="w-6 h-6" /> : <BellOff className="w-6 h-6" />}
                     </motion.div>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <h3 className="font-bold text-lg">Notificações Push</h3>
-                        {isPushActive && (
-                          <Badge className="bg-green-500 text-white border-0">
-                            <Check className="w-3 h-3 mr-1" />
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2">
+                        <h3 className="font-bold text-base sm:text-lg text-zinc-900 dark:text-white">Notificações Push</h3>
+                        {isPushActive ? (
+                          <Badge className="w-fit bg-green-100 text-green-700 hover:bg-green-100 border-green-200 dark:bg-green-900/50 dark:text-green-300 dark:border-green-800 shadow-none px-2 py-0.5 h-6">
                             Ativo
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="w-fit text-zinc-500 border-zinc-200 dark:border-zinc-700 px-2 py-0.5 h-6">
+                            Inativo
                           </Badge>
                         )}
                       </div>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        Receba alertas gratuitos neste dispositivo quando for hora de postar.
+                      <p className="text-sm text-zinc-500 mt-1 leading-snug">
+                        {isPushActive
+                          ? "Seu dispositivo está pronto para receber alertas."
+                          : "Ative para receber lembretes de postagem."}
                       </p>
                     </div>
                   </div>
 
-                  {isPushActive ? (
-                    <div className="space-y-3">
-                      <Alert className="border-green-200 bg-green-50/50 dark:bg-green-950/30 dark:border-green-900">
-                        <CheckCircle2 className="h-4 w-4 text-green-600" />
-                        <AlertDescription className="text-sm text-green-800 dark:text-green-200">
-                          Tudo pronto! Você receberá notificações neste dispositivo.
-                        </AlertDescription>
-                      </Alert>
-
+                  {/* Botões de Ação */}
+                  <div className="pt-2">
+                    {isPushActive ? (
                       <Button
                         variant="outline"
                         onClick={unsubscribePush}
                         disabled={isPushLoading}
-                        className="w-full border-red-200 hover:bg-red-50 hover:text-red-600 dark:border-red-900"
+                        className="w-full h-11 border-red-200 text-red-600 hover:bg-red-50 hover:text-red-700 dark:border-red-900 dark:text-red-400 dark:hover:bg-red-950/50"
+                      >
+                        {isPushLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <BellOff className="w-4 h-4 mr-2" />}
+                        Desativar Notificações
+                      </Button>
+                    ) : (
+                      <Button
+                        onClick={subscribePush}
+                        disabled={!isPushSupported || isPushLoading || (isIOS && !isPWA)}
+                        className="w-full h-11 font-semibold bg-zinc-900 hover:bg-zinc-800 text-white dark:bg-white dark:text-zinc-900 dark:hover:bg-zinc-200 shadow-lg"
                       >
                         {isPushLoading ? (
                           <>
                             <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Desativando...
+                            Ativando...
                           </>
                         ) : (
                           <>
-                            <BellOff className="w-4 h-4 mr-2" />
-                            Desativar Notificações
+                            <Zap className="w-4 h-4 mr-2 fill-current" />
+                            {isIOS && !isPWA ? "Instale o App para Ativar" : "Ativar Notificações"}
                           </>
                         )}
                       </Button>
-                    </div>
-                  ) : (
-                    <Button
-                      onClick={subscribePush}
-                      disabled={!isPushSupported || isPushLoading || (isIOS && !isPWA)}
-                      size="lg"
-                      className="w-full h-12 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 shadow-lg"
-                    >
-                      {isPushLoading ? (
-                        <>
-                          <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                          Ativando...
-                        </>
-                      ) : (
-                        <>
-                          <Zap className="w-5 h-5 mr-2" />
-                          {isIOS && !isPWA ? "Instale o App Primeiro" : "Ativar Notificações"}
-                        </>
-                      )}
-                    </Button>
-                  )}
+                    )}
+                  </div>
                 </div>
               </Card>
 
-              {/* Dica */}
-              <div className="p-4 bg-blue-50 dark:bg-blue-950/30 rounded-xl border border-blue-200 dark:border-blue-800">
+              {/* Card Dica */}
+              <div className="p-4 bg-blue-50/50 dark:bg-blue-950/20 rounded-xl border border-blue-100 dark:border-blue-900/50">
                 <div className="flex gap-3">
                   <Info className="w-5 h-5 text-blue-600 shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                    <p className="text-sm font-semibold text-blue-900 dark:text-blue-200">
                       Como funciona?
                     </p>
-                    <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                      Quando você agenda um post, recebe uma notificação no horário exato para lembrar de publicar. Funciona mesmo com o navegador fechado!
+                    <p className="text-xs text-blue-700 dark:text-blue-400 mt-1 leading-relaxed">
+                      O sistema agendará automaticamente os alertas para os horários definidos na sua estratégia viral. Funciona mesmo com o site fechado.
                     </p>
                   </div>
                 </div>
               </div>
             </TabsContent>
 
-            {/* HISTÓRICO */}
-            <TabsContent value="history" className="p-5 sm:p-6 space-y-4 m-0">
+            {/* CONTEÚDO HISTÓRICO */}
+            <TabsContent value="history" className="p-4 sm:p-6 m-0 space-y-4 outline-none">
               {stats?.logs && stats.logs.length > 0 ? (
                 <div className="space-y-3">
-                  <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
-                    Últimos Envios
-                  </h4>
-                  {stats.logs.slice(0, 15).map((log: Doc<"notificationLogs">) => (
+                  <div className="flex items-center justify-between mb-2">
+                     <h4 className="font-semibold text-xs text-zinc-400 uppercase tracking-wider">
+                       Registro de Envios
+                     </h4>
+                     <Badge variant="secondary" className="text-[10px] h-5">
+                       {stats.logs.length} Total
+                     </Badge>
+                  </div>
+
+                  {stats.logs.slice(0, 20).map((log: Doc<"notificationLogs">) => (
                     <motion.div
                       key={log._id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      className="flex items-start gap-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg border"
+                      initial={{ opacity: 0, y: 5 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="group flex items-start gap-3 p-3 bg-white dark:bg-zinc-900 rounded-xl border border-zinc-100 dark:border-zinc-800 hover:border-zinc-300 dark:hover:border-zinc-700 transition-all shadow-sm"
                     >
-                      <div className="mt-0.5">
+                      <div className="mt-1 shrink-0">
                         {log.status === "sent" || log.status === "delivered" ? (
-                          <CheckCircle2 className="w-4 h-4 text-green-500" />
+                          <div className="p-1 rounded-full bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400">
+                             <Check className="w-3 h-3" />
+                          </div>
                         ) : (
-                          <AlertTriangle className="w-4 h-4 text-red-500" />
+                          <div className="p-1 rounded-full bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400">
+                             <AlertTriangle className="w-3 h-3" />
+                          </div>
                         )}
                       </div>
+
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
-                          <Badge variant="outline" className="text-[10px] uppercase h-5">
-                            {log.method}
-                          </Badge>
-                          <span className="text-[10px] text-muted-foreground">
-                            {new Date(log.sentAt).toLocaleString("pt-BR", {
-                              day: "2-digit",
-                              month: "2-digit",
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
+                          <span className="text-xs font-medium text-zinc-900 dark:text-zinc-100 truncate">
+                             {log.status === 'sent' ? 'Enviado com sucesso' : 'Falha no envio'}
+                          </span>
+                          <span className="text-[10px] text-zinc-400 whitespace-nowrap">
+                            {new Date(log.sentAt).toLocaleDateString(undefined, { day: '2-digit', month: '2-digit' })} • {new Date(log.sentAt).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })}
                           </span>
                         </div>
-                        <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 truncate">
+
+                        <p className="text-xs text-zinc-500 mt-1 line-clamp-2">
                           {log.message}
                         </p>
+
                         {log.error && (
-                          <p className="text-xs text-red-500 mt-0.5 truncate">
-                            Erro: {log.error}
-                          </p>
+                          <div className="mt-1.5 p-1.5 bg-red-50 dark:bg-red-950/30 rounded text-[10px] text-red-600 dark:text-red-400 font-mono break-all">
+                            {log.error}
+                          </div>
                         )}
                       </div>
                     </motion.div>
                   ))}
+
+                  <div className="h-4"></div> {/* Spacer for scroll */}
                 </div>
               ) : (
-                <div className="text-center py-12">
-                  <BellOff className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                  <p className="font-medium text-gray-500">Nenhuma notificação enviada ainda</p>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Agende posts para ver o histórico aqui
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  <div className="w-16 h-16 bg-zinc-50 dark:bg-zinc-900 rounded-full flex items-center justify-center mb-4">
+                    <CalendarClock className="w-8 h-8 text-zinc-300" />
+                  </div>
+                  <p className="font-semibold text-zinc-900 dark:text-zinc-100">Sem histórico recente</p>
+                  <p className="text-sm text-zinc-500 mt-1 max-w-[200px]">
+                    Assim que as notificações forem enviadas, elas aparecerão aqui.
                   </p>
                 </div>
               )}
