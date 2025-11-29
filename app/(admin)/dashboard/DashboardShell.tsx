@@ -258,22 +258,28 @@ function Sidebar({ userPlan, uniqueId }: { userPlan: string; uniqueId: string })
         </LayoutGroup>
       </ul>
 
+      {/* CARD DE UPGRADE OTIMIZADO PARA MOBILE */}
       {userPlan !== "ultra" && (
         <div className="px-3 mb-4">
           <motion.div whileHover={{ y: -4 }} className={`relative rounded-2xl p-[1px] overflow-hidden bg-gradient-to-br ${upgradeCardConfig.gradient}`}>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite] skew-x-12" />
-            <div className="relative bg-slate-900 rounded-2xl p-4 overflow-hidden border border-white/10 shadow-2xl">
+            <div className="relative bg-slate-900 rounded-2xl p-3 lg:p-4 overflow-hidden border border-white/10 shadow-2xl">
               <div className="relative z-10 text-white">
-                <div className="flex items-center gap-2 mb-2">
-                  {isFree ? <Zap className="w-4 h-4 text-yellow-400 fill-yellow-400" /> : <Crown className="w-4 h-4 text-purple-400 fill-purple-400" />}
-                  <span className="text-xs font-bold uppercase tracking-wider text-slate-400">{isFree ? "Plano Free" : "Membro Pro"}</span>
+                <div className="flex items-center gap-2 mb-1 lg:mb-2">
+                  {isFree ? <Zap className="w-3 h-3 lg:w-4 lg:h-4 text-yellow-400 fill-yellow-400" /> : <Crown className="w-3 h-3 lg:w-4 lg:h-4 text-purple-400 fill-purple-400" />}
+                  <span className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-slate-400">{isFree ? "Plano Básico" : "Membro Pro"}</span>
                 </div>
-                <h3 className="font-black text-lg leading-tight mb-1">{upgradeCardConfig.title}</h3>
-                <p className="text-xs text-slate-300 font-medium mb-3">{upgradeCardConfig.subtitle}</p>
-                <div className="w-full bg-white/10 h-1.5 rounded-full mb-3 overflow-hidden">
+
+                {/* Títulos menores no mobile */}
+                <h3 className="font-black text-sm lg:text-lg leading-tight mb-0.5 lg:mb-1">{upgradeCardConfig.title}</h3>
+                <p className="text-[10px] lg:text-xs text-slate-300 font-medium mb-2 lg:mb-3">{upgradeCardConfig.subtitle}</p>
+
+                <div className="w-full bg-white/10 h-1 lg:h-1.5 rounded-full mb-2 lg:mb-3 overflow-hidden">
                   <div className={`h-full bg-gradient-to-r ${isFree ? 'from-yellow-400 to-orange-500' : 'from-purple-400 to-pink-500'}`} style={{ width: `${upgradeCardConfig.progress}%` }} />
                 </div>
-                <div className="space-y-2 mb-4">
+
+                {/* LISTA DE RECURSOS ESCONDIDA NO MOBILE (hidden lg:block) */}
+                <div className="space-y-2 mb-4 hidden lg:block">
                   {upgradeCardConfig.features.map((feat, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs text-slate-300/90 font-medium">
                       <div className="p-1 rounded bg-white/10"><feat.icon className="w-3 h-3 text-white" /></div>
@@ -281,8 +287,9 @@ function Sidebar({ userPlan, uniqueId }: { userPlan: string; uniqueId: string })
                     </div>
                   ))}
                 </div>
+
                 <Link href="/dashboard/billing">
-                  <motion.button className={`w-full bg-gradient-to-r ${upgradeCardConfig.buttonGradient} text-white text-xs font-black py-2.5 rounded-xl shadow-lg relative overflow-hidden group border border-white/20`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <motion.button className={`w-full bg-gradient-to-r ${upgradeCardConfig.buttonGradient} text-white text-[10px] lg:text-xs font-black py-2 lg:py-2.5 rounded-xl shadow-lg relative overflow-hidden group border border-white/20`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <span className="relative flex items-center justify-center gap-1.5">{upgradeCardConfig.buttonText} <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" /></span>
                   </motion.button>
                 </Link>
@@ -295,8 +302,9 @@ function Sidebar({ userPlan, uniqueId }: { userPlan: string; uniqueId: string })
   );
 }
 
-// --- SHELL PRINCIPAL DO DASHBOARD ---
+// --- SHELL PRINCIPAL ---
 export default function DashboardShell({ children, initialPlan }: { children: ReactNode, initialPlan: string }) {
+  // Variáveis de Estado
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -304,103 +312,56 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const pathname = usePathname();
-
   const userPlan = initialPlan || "free";
-
   const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { signOut } = useClerk();
   const { isSupported, isSubscribed, subscribe } = usePushNotifications();
   const [showPushPrompt, setShowPushPrompt] = useState(false);
-
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
 
-  // Handlers
+  // Handlers (Mantidos iguais)
   const handleEnableNotifications = async () => {
     try {
       if (!('Notification' in window)) return;
       const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        setShowPushPrompt(false);
-        localStorage.setItem('hasSeenPushPrompt', 'true');
-        return;
-      }
+      if (permission !== 'granted') { setShowPushPrompt(false); localStorage.setItem('hasSeenPushPrompt', 'true'); return; }
       try { await navigator.serviceWorker.register('/sw.js'); } catch {}
       const success = await subscribe();
-      if (success) {
-        localStorage.setItem('hasSeenPushPrompt', 'true');
-        setShowPushPrompt(false);
-        new Notification('Freelinnk', { body: '✅ Notificações ativadas!', icon: '/icon-192x192.png' });
-      }
-    } catch {
-      setShowPushPrompt(false);
-      localStorage.setItem('hasSeenPushPrompt', 'true');
-    }
+      if (success) { localStorage.setItem('hasSeenPushPrompt', 'true'); setShowPushPrompt(false); new Notification('Freelinnk', { body: '✅ Notificações ativadas!', icon: '/icon-192x192.png' }); }
+    } catch { setShowPushPrompt(false); localStorage.setItem('hasSeenPushPrompt', 'true'); }
   };
 
-  const markAllAsRead = async () => {
-    setUserNotifications(current => current.map(n => ({ ...n, isRead: true })));
-    try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ markAll: true }) }); } catch {}
-  };
+  const markAllAsRead = async () => { setUserNotifications(current => current.map(n => ({ ...n, isRead: true }))); try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ markAll: true }) }); } catch {} };
+  const markNotificationAsRead = async (id: string) => { setUserNotifications(current => current.map(n => n.id === id ? { ...n, isRead: true } : n)); try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ id }) }); } catch {} };
+  const handleSearchLinkClick = () => { setIsSearchOpen(false); setSearchTerm(""); };
 
-  const markNotificationAsRead = async (id: string) => {
-    setUserNotifications(current => current.map(n => n.id === id ? { ...n, isRead: true } : n));
-    try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ id }) }); } catch {}
-  };
-
-  const handleSearchLinkClick = () => {
-    setIsSearchOpen(false);
-    setSearchTerm("");
-  };
-
+  // UseEffects
   useEffect(() => {
     const fetchNotifications = async () => {
-        try {
-            const res = await fetch("/api/notifications");
-            if(res.ok) {
-                const data = await res.json();
-                setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS));
-            }
-        } catch { } finally {
-            setNotificationsLoading(false);
-        }
+        try { const res = await fetch("/api/notifications"); if(res.ok) { const data = await res.json(); setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS)); } } catch { } finally { setNotificationsLoading(false); }
     };
     fetchNotifications();
   }, []);
 
   useEffect(() => {
     const fetchSearchResults = async () => {
-      if (!debouncedSearchTerm) {
-        setSearchResults([]);
-        setSearchLoading(false);
-        return;
-      }
+      if (!debouncedSearchTerm) { setSearchResults([]); setSearchLoading(false); return; }
       setSearchLoading(true);
       try {
         const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchTerm)}`);
         if (!res.ok) throw new Error("Erro");
         const data: SearchResponse[] = await res.json();
-        const resultsWithIcons: SearchResult[] = data.map(item => ({
-          label: item.label,
-          href: item.href,
-          icon: searchableItemsMap[item.href],
-          description: item.description
-        }));
+        const resultsWithIcons: SearchResult[] = data.map(item => ({ label: item.label, href: item.href, icon: searchableItemsMap[item.href], description: item.description }));
         setSearchResults(resultsWithIcons.slice(0, DASHBOARD_CONFIG.MAX_SEARCH_RESULTS));
-      } catch {
-        setSearchResults([]);
-      } finally {
-        setSearchLoading(false);
-      }
+      } catch { setSearchResults([]); } finally { setSearchLoading(false); }
     };
     fetchSearchResults();
   }, [debouncedSearchTerm]);
 
   useEffect(() => {
     const hasSeenPrompt = localStorage.getItem('hasSeenPushPrompt');
-    if (authLoaded && isSignedIn && isSupported && !isSubscribed && !hasSeenPrompt) {
-      setTimeout(() => setShowPushPrompt(true), 5000);
-    }
+    if (authLoaded && isSignedIn && isSupported && !isSubscribed && !hasSeenPrompt) { setTimeout(() => setShowPushPrompt(true), 5000); }
   }, [authLoaded, isSignedIn, isSupported, isSubscribed]);
 
   const getPlanBadge = () => {
@@ -410,14 +371,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   };
 
   const getPageTitle = () => {
-    const titles: { [key: string]: string } = {
-      "/dashboard": "Visão Geral",
-      "/dashboard/links": "Meus Links",
-      "/dashboard/mentor-ia": "Mentor.IA",
-      "/dashboard/brain": "FreelinkBrain",
-      "/dashboard/settings": "Configurações",
-      "/dashboard/billing": "Plano e Cobrança"
-    };
+    const titles: { [key: string]: string } = { "/dashboard": "Visão Geral", "/dashboard/links": "Meus Links", "/dashboard/mentor-ia": "Mentor.IA", "/dashboard/brain": "FreelinkBrain", "/dashboard/settings": "Configurações", "/dashboard/billing": "Plano e Cobrança" };
     return Object.entries(titles).find(([path]) => pathname.startsWith(path))?.[1] || "Dashboard";
   };
 
@@ -451,7 +405,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         </div>
       </aside>
 
-      {/* MOBILE SIDEBAR (Drawer) */}
+      {/* MOBILE SIDEBAR */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -485,7 +439,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-30">
            <div className="flex items-center gap-4">
@@ -498,7 +451,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
            </div>
 
            <div className="flex items-center gap-2">
-             {/* BUSCA: A CORREÇÃO ESTÁ AQUI (Removido hidden no wrapper, visível no mobile) */}
+             {/* BUSCA VISÍVEL NO MOBILE (Removido 'hidden md:block') */}
              <div className="relative">
                 <AnimatePresence>
                   {isSearchOpen ? (
@@ -531,6 +484,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
                 </AnimatePresence>
              </div>
 
+             {/* NOTIFICAÇÕES */}
              <Popover>
                 <PopoverTrigger asChild>
                    <Button variant="ghost" size="icon" className="relative">
