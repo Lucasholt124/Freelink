@@ -5,9 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, Wand2, Scissors, Target, LayoutGrid, Gift,
-  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, Star,  X,
-  LucideProps, Menu, Bell, Search, PlusCircle, ArrowRight, Zap, Crown,  Shield,
-  Calculator,
+  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, Star, X,
+  LucideProps, Menu, Bell, Search, PlusCircle, ArrowRight, Zap, Crown, Shield,
+  Calculator
 } from "lucide-react";
 import clsx from "clsx";
 import { UserButton, useClerk } from "@clerk/nextjs";
@@ -80,7 +80,6 @@ interface Notification {
   link?: string;
 }
 
-// Hook de Debounce
 const useDebounce = <T,>(value: T, delay: number): T => {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -126,7 +125,6 @@ export const navItems: NavItem[] = [
   },
 ];
 
-// Mapa para Busca
 const searchableItemsMap: { [key: string]: LucideIcon } = {
   "/dashboard": Home,
   "/dashboard/links": LayoutGrid,
@@ -299,7 +297,6 @@ function Sidebar({ userPlan, uniqueId }: { userPlan: string; uniqueId: string })
 
 // --- SHELL PRINCIPAL DO DASHBOARD ---
 export default function DashboardShell({ children, initialPlan }: { children: ReactNode, initialPlan: string }) {
-  // Variáveis de Estado (AGORA USADAS!)
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -318,7 +315,44 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
 
-  // --- BUSCA NOTIFICAÇÕES (Usa DASHBOARD_CONFIG e notificationsLoading) ---
+  // Handlers
+  const handleEnableNotifications = async () => {
+    try {
+      if (!('Notification' in window)) return;
+      const permission = await Notification.requestPermission();
+      if (permission !== 'granted') {
+        setShowPushPrompt(false);
+        localStorage.setItem('hasSeenPushPrompt', 'true');
+        return;
+      }
+      try { await navigator.serviceWorker.register('/sw.js'); } catch {}
+      const success = await subscribe();
+      if (success) {
+        localStorage.setItem('hasSeenPushPrompt', 'true');
+        setShowPushPrompt(false);
+        new Notification('Freelinnk', { body: '✅ Notificações ativadas!', icon: '/icon-192x192.png' });
+      }
+    } catch {
+      setShowPushPrompt(false);
+      localStorage.setItem('hasSeenPushPrompt', 'true');
+    }
+  };
+
+  const markAllAsRead = async () => {
+    setUserNotifications(current => current.map(n => ({ ...n, isRead: true })));
+    try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ markAll: true }) }); } catch {}
+  };
+
+  const markNotificationAsRead = async (id: string) => {
+    setUserNotifications(current => current.map(n => n.id === id ? { ...n, isRead: true } : n));
+    try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ id }) }); } catch {}
+  };
+
+  const handleSearchLinkClick = () => {
+    setIsSearchOpen(false);
+    setSearchTerm("");
+  };
+
   useEffect(() => {
     const fetchNotifications = async () => {
         try {
@@ -327,16 +361,13 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
                 const data = await res.json();
                 setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS));
             }
-        } catch (error) {
-            console.error("Erro", error);
-        } finally {
+        } catch { } finally {
             setNotificationsLoading(false);
         }
     };
     fetchNotifications();
   }, []);
 
-  // --- BUSCA SEARCH (Usa searchableItemsMap, SearchResponse, searchResults e searchLoading) ---
   useEffect(() => {
     const fetchSearchResults = async () => {
       if (!debouncedSearchTerm) {
@@ -349,14 +380,12 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         const res = await fetch(`/api/search?q=${encodeURIComponent(debouncedSearchTerm)}`);
         if (!res.ok) throw new Error("Erro");
         const data: SearchResponse[] = await res.json();
-
         const resultsWithIcons: SearchResult[] = data.map(item => ({
           label: item.label,
           href: item.href,
           icon: searchableItemsMap[item.href],
           description: item.description
         }));
-
         setSearchResults(resultsWithIcons.slice(0, DASHBOARD_CONFIG.MAX_SEARCH_RESULTS));
       } catch {
         setSearchResults([]);
@@ -373,45 +402,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
       setTimeout(() => setShowPushPrompt(true), 5000);
     }
   }, [authLoaded, isSignedIn, isSupported, isSubscribed]);
-
-  // Função usada no botão "Sim" do prompt
-  const handleEnableNotifications = async () => {
-    try {
-      if (!('Notification' in window)) return;
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') {
-        setShowPushPrompt(false);
-        localStorage.setItem('hasSeenPushPrompt', 'true');
-        return;
-      }
-      try {
-        await navigator.serviceWorker.register('/sw.js');
-      } catch (swError) {
-        console.error(swError);
-      }
-      const success = await subscribe();
-      if (success) {
-        localStorage.setItem('hasSeenPushPrompt', 'true');
-        setShowPushPrompt(false);
-        new Notification('Freelinnk', { body: '✅ Notificações ativadas!', icon: '/icon-192x192.png' });
-      }
-    } catch {
-      setShowPushPrompt(false);
-      localStorage.setItem('hasSeenPushPrompt', 'true');
-    }
-  };
-
-  // Função usada no botão "Ler Todas"
-  const markAllAsRead = async () => {
-    setUserNotifications(current => current.map(n => ({ ...n, isRead: true })));
-    try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ markAll: true }) }); } catch {}
-  };
-
-  // Função usada no clique da notificação individual
-  const markNotificationAsRead = async (id: string) => {
-    setUserNotifications(current => current.map(n => n.id === id ? { ...n, isRead: true } : n));
-    try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ id }) }); } catch {}
-  };
 
   const getPlanBadge = () => {
     if (userPlan === "pro") return <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500">PRO</Badge>;
@@ -432,7 +422,8 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   };
 
   return (
-    <div className="flex h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 overflow-hidden">
+    <div className="flex h-screen h-[100dvh] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 overflow-hidden">
+      {/* DESKTOP SIDEBAR */}
       <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden">
         <div className="mb-8 px-2 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center group">
@@ -460,12 +451,12 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         </div>
       </aside>
 
-      {/* MOBILE SIDEBAR (Usa isSidebarOpen e setIsSidebarOpen) */}
+      {/* MOBILE SIDEBAR (Drawer) */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm lg:hidden" style={{ zIndex: Z_INDEX.modal }} />
-            <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="fixed left-0 top-0 bottom-0 w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 lg:hidden flex flex-col shadow-2xl overflow-hidden" style={{ zIndex: Z_INDEX.popover }}>
+            <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="fixed left-0 top-0 bottom-0 w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 lg:hidden flex flex-col shadow-2xl overflow-hidden h-[100dvh]" style={{ zIndex: Z_INDEX.popover }}>
               <div className="flex items-center justify-between mb-8 flex-shrink-0">
                 <Link href="/dashboard" className="flex items-center min-w-0">
                   <FreelinkLogo size={36} />
@@ -478,11 +469,23 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
               <div className="flex-1 overflow-hidden">
                 <Sidebar userPlan={userPlan} uniqueId="mobile-sidebar" />
               </div>
+              <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
+                <div className="flex items-center gap-3 px-2">
+                  <UserButton afterSignOutUrl="/" />
+                  <div className="text-sm min-w-0">
+                    <p className="font-bold text-slate-800 dark:text-slate-200 truncate">Minha Conta</p>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
+                      Freelinnk {userPlan === "ultra" ? "ULTRA" : userPlan === "pro" ? "PRO" : "Free"}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </motion.aside>
           </>
         )}
       </AnimatePresence>
 
+      {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden min-w-0">
         <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-30">
            <div className="flex items-center gap-4">
@@ -494,23 +497,22 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
              <h1 className="text-lg font-bold hidden md:block">{getPageTitle()}</h1>
            </div>
 
-           {/* BUSCA (Usa searchResults, searchTerm, searchLoading, setIsSearchOpen) */}
            <div className="flex items-center gap-2">
-             <div className="w-full max-w-sm hidden md:block relative">
+             {/* BUSCA: A CORREÇÃO ESTÁ AQUI (Removido hidden no wrapper, visível no mobile) */}
+             <div className="relative">
                 <AnimatePresence>
                   {isSearchOpen ? (
-                    <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: "100%", opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="absolute right-0 top-1/2 -translate-y-1/2 w-64 z-50">
-                        <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar..." className="pl-10 h-9 rounded-xl bg-white shadow-xl border border-slate-200" autoFocus />
+                    <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: "260px", opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="absolute right-0 top-1/2 -translate-y-1/2 z-50">
+                        <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar..." className="pl-10 h-9 rounded-xl bg-white shadow-xl border border-slate-200 w-full" autoFocus />
                         <motion.button onClick={() => { setIsSearchOpen(false); setSearchTerm("") }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1"><X className="w-4 h-4" /></motion.button>
 
-                        {/* RESULTADOS DA BUSCA */}
                         {(searchResults.length > 0 || searchLoading) && (
-                           <div className="absolute top-full right-0 w-64 bg-white shadow-2xl p-2 rounded-lg mt-2 border border-slate-100">
+                           <div className="absolute top-full right-0 w-full bg-white shadow-2xl p-2 rounded-lg mt-2 border border-slate-100">
                               {searchLoading ? (
                                 <div className="p-4 text-center text-xs text-slate-500">Buscando...</div>
                               ) : (
                                 searchResults.map((res, i) => (
-                                   <Link href={res.href} key={i}>
+                                   <Link href={res.href} key={i} onClick={handleSearchLinkClick}>
                                      <div className="p-2 hover:bg-slate-100 rounded flex items-center gap-2 text-sm cursor-pointer">
                                         {res.icon && <res.icon className="w-4 h-4 text-slate-500" />}
                                         <span className="truncate">{res.label}</span>
@@ -529,7 +531,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
                 </AnimatePresence>
              </div>
 
-             {/* NOTIFICAÇÕES (Usa userNotifications, notificationsLoading, markAllAsRead, markNotificationAsRead) */}
              <Popover>
                 <PopoverTrigger asChild>
                    <Button variant="ghost" size="icon" className="relative">
@@ -571,7 +572,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
           {children}
         </main>
 
-        {/* PUSH PROMPT (Usa showPushPrompt e handleEnableNotifications) */}
         <AnimatePresence>
           {showPushPrompt && (
             <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="fixed bottom-4 right-4 bg-white dark:bg-slate-800 p-4 shadow-2xl rounded-xl z-50 border border-slate-200 dark:border-slate-700 w-80">
