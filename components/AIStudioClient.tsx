@@ -78,7 +78,7 @@ export function AIStudioClient() {
   // =================================================================
   // 💾 LOCALSTORAGE
   // =================================================================
-  const STORAGE_KEY = 'ai-studio-chat-messages-v5'
+  const STORAGE_KEY = 'ai-studio-chat-messages-v6'
 
   useEffect(() => {
     try {
@@ -251,43 +251,44 @@ export function AIStudioClient() {
   }
 
   // =================================================================
-  // 🎨 RENDER - UI FINAL
+  // 🎨 RENDER - UI FINAL (SEM TOPBAR FIXA)
   // =================================================================
   return (
     <div className="min-h-screen bg-[#F7F7F7] text-gray-900 font-sans selection:bg-emerald-100 selection:text-emerald-900 relative">
 
-      {/* 1) TOPBAR (HEADER)
-         - Mantém apenas o logo e os botões de ação para não atrapalhar seu modal.
+      {/* NOTA: Removi o "Header Fixo" que ficava aqui em cima.
+         Agora o topo é livre para o header da sua aplicação.
       */}
-      <div className="fixed top-0 inset-x-0 h-16 bg-white/80 backdrop-blur-md border-b border-gray-200 z-50 flex items-center justify-between px-4 lg:px-8">
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-sm">
-              <Bot className="w-6 h-6" />
+
+      {/* CONTEÚDO PRINCIPAL */}
+      <main className="pt-6 pb-[150px] container mx-auto max-w-4xl px-4">
+
+        {/* HEADER INLINE (Não fixo, rola com a página) */}
+        <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center gap-3">
+                <div className="relative">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center text-white shadow-sm">
+                    <Bot className="w-6 h-6" />
+                    </div>
+                    <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
+                </div>
+                <div className="leading-tight">
+                    <h1 className="font-bold text-gray-900 text-lg">AI Studio Pro</h1>
+                    <p className="text-xs text-green-600 font-medium">Online</p>
+                </div>
             </div>
-            <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></span>
-          </div>
-          <div className="leading-tight">
-            <h1 className="font-bold text-gray-900 text-sm md:text-base">AI Studio Pro</h1>
-            <p className="text-xs text-green-600 font-medium">Online</p>
-          </div>
+
+            {/* Ações (Menu e Limpar) */}
+            <div className="flex items-center gap-2">
+                <button onClick={clearChat} className="p-2 hover:bg-gray-200 rounded-full text-gray-500 transition-colors" title="Limpar Chat">
+                    <Trash2 className="w-5 h-5" />
+                </button>
+                <button className="p-2 hover:bg-gray-200 rounded-full transition-colors text-gray-600" title="Menu">
+                    <MoreVertical className="w-5 h-5" />
+                </button>
+            </div>
         </div>
 
-        {/* Botões do Header (Preservados para sua sidebar) */}
-        <div className="flex items-center gap-2">
-            <button onClick={clearChat} className="p-2 hover:bg-gray-100 rounded-full text-gray-500 transition-colors" title="Limpar Chat">
-                <Trash2 className="w-5 h-5" />
-            </button>
-            <button className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600" title="Menu">
-                <MoreVertical className="w-5 h-5" />
-            </button>
-        </div>
-      </div>
-
-      {/* 2) CONTEÚDO PRINCIPAL
-         - Padding bottom generoso (140px) para garantir que o conteúdo role acima do Nav e do Input.
-      */}
-      <main className="pt-20 pb-[150px] container mx-auto max-w-4xl px-0 md:px-4">
         <AnimatePresence mode="wait">
 
           {/* --- VIEW: CHAT --- */}
@@ -298,7 +299,7 @@ export function AIStudioClient() {
               className="flex flex-col h-full"
             >
               {/* Lista de Mensagens */}
-              <div className="flex-1 px-4 space-y-6">
+              <div className="flex-1 space-y-6">
                 {chatMessages.map((msg) => {
                   const isUser = msg.role === 'user';
                   return (
@@ -361,8 +362,8 @@ export function AIStudioClient() {
               </div>
 
               {/* Input Fixo (Flutuando acima da Nav Bar) */}
-              <div className="fixed bottom-[80px] md:bottom-[90px] inset-x-0 z-40 transition-all px-2 md:px-0">
-                <div className="max-w-4xl mx-auto flex items-end gap-2 bg-white/90 backdrop-blur-md p-2 rounded-3xl shadow-lg border border-gray-100">
+              <div className="fixed bottom-[80px] md:bottom-[90px] inset-x-0 z-40 transition-all px-2 md:px-0 pointer-events-none">
+                <div className="max-w-4xl mx-auto flex items-end gap-2 bg-white/90 backdrop-blur-md p-2 rounded-3xl shadow-lg border border-gray-100 pointer-events-auto">
                   <div className="flex-1 bg-[#F0F2F5] rounded-3xl flex items-center px-4 py-2 border border-transparent focus-within:border-emerald-500/30 focus-within:bg-white transition-all">
                      <textarea
                         ref={textareaRef}
@@ -393,7 +394,6 @@ export function AIStudioClient() {
             <motion.div
               key="tools"
               initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-              className="px-4"
             >
                <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden max-w-2xl mx-auto">
 
@@ -515,11 +515,7 @@ export function AIStudioClient() {
         </AnimatePresence>
       </main>
 
-      {/* 3) NAVIGATION DOCK (RODAPÉ)
-         - Funciona em qualquer tela.
-         - Não ocupa 100% no desktop (estilo Dock flutuante).
-         - Ocupa 100% no mobile para facilidade de toque.
-      */}
+      {/* 3) NAVIGATION DOCK (RODAPÉ) */}
       <div className="fixed bottom-4 md:bottom-6 inset-x-0 z-50 flex justify-center pointer-events-none">
           <div className="pointer-events-auto bg-white/90 backdrop-blur-xl border border-gray-200 shadow-2xl rounded-full px-2 py-2 flex items-center gap-1 md:gap-2 mx-4 max-w-md w-full md:w-auto">
             {tabs.map(tab => (
@@ -534,7 +530,6 @@ export function AIStudioClient() {
                  )}
                >
                    <tab.icon className={cn("w-5 h-5", activeTab === tab.id && "text-emerald-400")} />
-                   {/* Texto visível apenas se ativo ou no desktop */}
                    <span className={cn(
                        "text-xs font-semibold whitespace-nowrap transition-all duration-300",
                        activeTab === tab.id ? "max-w-[100px] opacity-100" : "max-w-0 opacity-0 overflow-hidden md:max-w-[100px] md:opacity-100"
@@ -571,7 +566,6 @@ export function AIStudioClient() {
       <style jsx global>{`
         .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
         body { background-color: #F7F7F7; }
-        /* Garante scroll suave em toda a página */
         html { scroll-behavior: smooth; }
       `}</style>
     </div>
