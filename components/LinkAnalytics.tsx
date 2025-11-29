@@ -206,7 +206,7 @@ function SocialOriginCard({ trafficSources }: { trafficSources: TrafficSource[] 
       animate={{ opacity: 1, y: 0 }}
       className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm"
     >
-      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Fontes de Tráfego</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">De onde seus visitantes realmente vêm</h3>
 
       <div className="space-y-2 sm:space-y-3">
         {displayedSources.map((source) => (
@@ -274,7 +274,7 @@ function DevicesCard({ devices }: { devices: DeviceStats }) {
       animate={{ opacity: 1, y: 0 }}
       className="bg-white p-4 sm:p-6 rounded-xl sm:rounded-2xl border border-gray-200 shadow-sm"
     >
-      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Dispositivos</h3>
+      <h3 className="text-base sm:text-lg font-semibold text-gray-800 mb-3 sm:mb-4">Distribuição por Dispositivo</h3>
       <div className="space-y-2.5 sm:space-y-3">
         {deviceData.map((device) => {
           const Icon = device.icon;

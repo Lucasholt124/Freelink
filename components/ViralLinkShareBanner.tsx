@@ -55,7 +55,7 @@ export default function ViralLinkShareBanner({ data }: { data: LinkData }) {
                     <div className="flex-grow space-y-3 text-center md:text-left w-full">
                         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 backdrop-blur-md">
                             <TrendingUp className="w-3.5 h-3.5 text-emerald-400" />
-                            <span className="text-emerald-400 font-bold text-[10px] sm:text-xs uppercase tracking-wider">Link em Alta Performance</span>
+                            <span className="text-emerald-400 font-bold text-[10px] sm:text-xs uppercase tracking-wider">Performance Geral do Link</span>
                         </div>
 
                         <h2 className="text-2xl sm:text-3xl md:text-4xl font-black text-white leading-tight">

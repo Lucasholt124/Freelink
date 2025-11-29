@@ -132,7 +132,7 @@ export function UpgradeCallToAction() {
 
              {/* Dispositivos */}
              <div className="pt-3 border-t border-gray-100">
-                <h3 className="text-gray-400 text-[10px] font-bold uppercase mb-2">Dispositivos</h3>
+                <h3 className="text-gray-400 text-[10px] font-bold uppercase mb-2">Distribuição por Dispositivo</h3>
                 <div className="flex justify-between text-xs">
                    <div className="flex items-center gap-1.5 text-gray-700">
                       <Smartphone className="w-3.5 h-3.5" />
