@@ -4,11 +4,11 @@ import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
   Loader2, CheckCircle,
-  Zap, Shield, CreditCard,
+  Zap, Shield,
   Crown, ArrowRight, Lock,
   Infinity as InfinityIcon, Check,
   BarChart3, LayoutDashboard, PlayCircle,
-  Image as ImageIcon, Gift, Calculator, MessageSquare, Sparkles, AlertTriangle
+  Image as ImageIcon, Gift, Calculator, MessageSquare, Sparkles, AlertTriangle, Settings
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -59,7 +59,7 @@ function useScrollTracking() {
 }
 
 // ============================================
-// TIPAGEM & DADOS OTIMIZADOS
+// TIPAGEM & DADOS
 // ============================================
 
 type PlanIdentifier = "free" | "pro" | "ultra";
@@ -120,11 +120,43 @@ function BrainIcon() { return <svg xmlns="http://www.w3.org/2000/svg" width="16"
 function TargetIcon() { return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>}
 
 // ============================================
-// COMPONENTES VISUAIS OTIMIZADOS
+// 1. HERO INTELIGENTE (DINÂMICO)
 // ============================================
+function PersonalHeader({ name, currentPlan }: { name: string, currentPlan: PlanIdentifier }) {
 
-// 1. HERO COM GATILHO EMOCIONAL (AJUSTADO)
-function PersonalHeader({ name }: { name: string }) {
+  // Lógica de texto baseada no plano
+  const content = {
+    free: {
+      badge: "⚠️ Análise de Perfil: Recursos Bloqueados",
+      badgeColor: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-200 dark:border-red-800",
+      title: <>Seu perfil está operando abaixo do potencial. <br className="hidden md:block"/><span className="text-blue-600">Vamos destravar agora?</span></>,
+      description: "Você já começou, mas para viralizar de verdade e transformar seu perfil em um negócio, você precisa das ferramentas certas.",
+      statusColor: "bg-slate-100 dark:bg-slate-800 text-slate-600",
+      statusText: "Free",
+      viralStat: <span className="font-bold text-red-500 flex items-center gap-1 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded"><Lock className="w-3 h-3" /> 0</span>
+    },
+    pro: {
+      badge: "🚀 Você é Pro! Próximo passo: Escala",
+      badgeColor: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800",
+      title: <>Você já cresce rápido. <br className="hidden md:block"/><span className="text-purple-600">Hora de virar uma agência.</span></>,
+      description: "O plano Pro é ótimo, mas o Ultra coloca automação total e ferramentas de agência na sua mão.",
+      statusColor: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
+      statusText: "Pro Creator",
+      viralStat: <span className="font-bold text-blue-600">6/dia</span>
+    },
+    ultra: {
+      badge: "👑 Membro Ultra Business",
+      badgeColor: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-200 dark:border-purple-800",
+      title: <>Você está no topo. <br className="hidden md:block"/><span className="text-green-500">Aproveite seu poder total.</span></>,
+      description: "Você tem acesso ilimitado a todas as ferramentas. Use o painel para gerenciar sua assinatura.",
+      statusColor: "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300",
+      statusText: "Ultra Business",
+      viralStat: <span className="font-bold text-purple-600 flex items-center gap-1"><InfinityIcon className="w-3 h-3" /> Ilimitado</span>
+    }
+  };
+
+  const activeContent = content[currentPlan] || content.free;
+
   return (
     <div className="w-full max-w-4xl mx-auto mb-16 pt-10">
        <motion.div
@@ -133,27 +165,23 @@ function PersonalHeader({ name }: { name: string }) {
          className="flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left"
        >
           <div className="flex-1">
-             {/* Badge: Foca na análise técnica */}
-             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-200 text-xs font-bold uppercase tracking-wider mb-4 border border-red-200 dark:border-red-800 animate-pulse">
-                <AlertTriangle className="w-3.5 h-3.5" />
-                ⚠️ Análise de Perfil: Recursos Bloqueados
+             <div className={clsx("inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4 border animate-pulse", activeContent.badgeColor)}>
+                {currentPlan === 'free' ? <AlertTriangle className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
+                {activeContent.badge}
              </div>
 
-             {/* Título: Ajustado para "limitado" para evitar repetição com "bloqueado" */}
              <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-4 leading-tight">
-                Seu perfil está operando abaixo do potencial. <br className="hidden md:block"/>
-                <span className="text-blue-600">Vamos destravar agora?</span>
+                {activeContent.title}
              </h1>
              <p className="text-slate-600 dark:text-slate-300 text-lg max-w-xl leading-relaxed">
-                Olá, <strong>{name || "Criador"}</strong>. Você já começou, mas para viralizar de verdade e transformar seu perfil em um negócio, você precisa das ferramentas certas.
+                Olá, <strong>{name || "Criador"}</strong>. {activeContent.description}
              </p>
           </div>
 
-          {/* Status Card (NEUTRO E ELEGANTE) */}
           <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 min-w-[280px] transform rotate-1 hover:rotate-0 transition-transform duration-500">
              <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
                 <span className="text-sm font-bold text-slate-500 uppercase tracking-wide">Plano Atual</span>
-                <Badge variant="secondary" className="bg-slate-100 dark:bg-slate-800 text-slate-600 border-0 font-bold px-3">Free</Badge>
+                <Badge variant="secondary" className={clsx("border-0 font-bold px-3", activeContent.statusColor)}>{activeContent.statusText}</Badge>
              </div>
              <div className="space-y-4">
                 <div className="flex justify-between items-center">
@@ -166,9 +194,7 @@ function PersonalHeader({ name }: { name: string }) {
                     <span className="text-sm text-slate-500 dark:text-slate-500 flex items-center gap-2">
                         <BrainIcon /> Ideias Virais
                     </span>
-                    <span className="font-bold text-red-500 flex items-center gap-1 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded">
-                        <Lock className="w-3 h-3" /> 0
-                    </span>
+                    {activeContent.viralStat}
                 </div>
              </div>
           </div>
@@ -177,8 +203,10 @@ function PersonalHeader({ name }: { name: string }) {
   );
 }
 
-// 2. SEÇÃO DE BLOQUEIOS (DOR DA PERDA)
-function LossAversionSection() {
+// 2. SEÇÃO DE BLOQUEIOS (SÓ APARECE SE FOR FREE)
+function LossAversionSection({ currentPlan }: { currentPlan: PlanIdentifier }) {
+    if (currentPlan !== 'free') return null;
+
     return (
         <div className="max-w-4xl mx-auto mb-24">
             <div className="text-center mb-8">
@@ -206,8 +234,38 @@ function LossAversionSection() {
     )
 }
 
-// 3. PRICING CARDS (DESIGN FINAL COM BADGES FORTES)
-function PricingSection({  billingCycle, handleBillingCycleChange, loading, handleCheckout }: PricingSectionProps) {
+// 3. PRICING CARDS (BOTÕES INTELIGENTES E RESPONSIVOS)
+function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, loading, handleCheckout }: PricingSectionProps) {
+
+    // Função auxiliar para renderizar o botão correto
+    const renderButton = (planId: "pro" | "ultra", ctaText: string, variant: "blue" | "white") => {
+        const isCurrent = currentPlan === planId;
+        const isDisabled = loading !== null;
+
+        if (isCurrent) {
+            return (
+                <Button disabled className="w-full bg-slate-100 text-slate-400 dark:bg-slate-800 dark:text-slate-500 font-bold h-14 rounded-xl cursor-not-allowed">
+                    Seu Plano Atual
+                </Button>
+            );
+        }
+
+        const baseClasses = "relative z-10 w-full font-bold h-auto py-4 min-h-[3.5rem] rounded-xl text-lg shadow-lg mb-8 transition-all hover:scale-[1.02] whitespace-normal leading-tight";
+        const variantClasses = variant === "blue"
+            ? "bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20"
+            : "bg-white text-purple-900 hover:bg-slate-100";
+
+        return (
+            <Button
+                onClick={() => handleCheckout(planId)}
+                disabled={isDisabled}
+                className={clsx(baseClasses, variantClasses)}
+            >
+                {loading === `${planId}-${billingCycle}` ? <Loader2 className="animate-spin" /> : ctaText}
+            </Button>
+        );
+    };
+
     return (
         <div className="max-w-6xl mx-auto mb-24">
             {/* Toggle */}
@@ -218,7 +276,6 @@ function PricingSection({  billingCycle, handleBillingCycleChange, loading, hand
                     <Switch checked={billingCycle === 'yearly'} onCheckedChange={handleBillingCycleChange} />
                     <span className={clsx("px-6 py-2.5 rounded-full text-sm font-bold cursor-pointer transition-all", billingCycle === 'yearly' ? "bg-green-100 text-green-700" : "text-slate-500")}>Anual</span>
 
-                    {/* Badge flutuante */}
                     {billingCycle === 'monthly' && (
                         <div className="absolute -right-28 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-1 rounded-lg animate-bounce">
                             <ArrowRight className="w-3 h-3" /> -2 Meses Grátis
@@ -233,13 +290,17 @@ function PricingSection({  billingCycle, handleBillingCycleChange, loading, hand
                 {/* PRO CARD */}
                 <motion.div
                     whileHover={{ y: -5 }}
-                    className="relative bg-white dark:bg-slate-900 rounded-[2rem] border-2 border-amber-400/50 dark:border-amber-500/30 shadow-xl p-8 flex flex-col h-full overflow-hidden"
+                    className={clsx(
+                        "relative bg-white dark:bg-slate-900 rounded-[2rem] border-2 shadow-xl p-8 flex flex-col h-full overflow-hidden transition-all",
+                        currentPlan === 'pro' ? "border-slate-200 opacity-80 scale-95" : "border-amber-400/50 dark:border-amber-500/30 shadow-amber-500/10"
+                    )}
                 >
                     <div className="mb-6 relative z-10">
-                        {/* BADGE AMARELO EXPLOSIVO */}
-                        <div className="inline-block bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-amber-500/20 mb-4 transform -rotate-1">
-                            {plans[0].badge}
-                        </div>
+                        {currentPlan !== 'pro' && (
+                            <div className="inline-block bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-amber-500/20 mb-4 transform -rotate-1">
+                                {plans[0].badge}
+                            </div>
+                        )}
                         <h3 className="text-2xl font-bold text-slate-900 dark:text-white flex items-center gap-2">
                             {plans[0].name}
                         </h3>
@@ -251,18 +312,14 @@ function PricingSection({  billingCycle, handleBillingCycleChange, loading, hand
                             <span className="text-4xl font-black text-slate-900 dark:text-white">{billingCycle === 'yearly' ? plans[0].yearlyPrice : plans[0].monthlyPrice}</span>
                             <span className="text-slate-500 font-medium">/{billingCycle === 'yearly' ? 'ano' : 'mês'}</span>
                         </div>
-                        <div className="text-green-600 text-xs font-bold mt-2 flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3" /> {plans[0].discount} aplicado
-                        </div>
+                        {currentPlan !== 'pro' && (
+                            <div className="text-green-600 text-xs font-bold mt-2 flex items-center gap-1">
+                                <CheckCircle className="w-3 h-3" /> {plans[0].discount} aplicado
+                            </div>
+                        )}
                     </div>
 
-                    <Button
-                        onClick={() => handleCheckout('pro')}
-                        disabled={loading !== null}
-                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold h-14 rounded-xl text-lg shadow-xl shadow-blue-500/20 mb-8 transition-all hover:scale-[1.02]"
-                    >
-                        {loading === `pro-${billingCycle}` ? <Loader2 className="animate-spin" /> : plans[0].cta}
-                    </Button>
+                    {renderButton("pro", plans[0].cta, "blue")}
 
                     <div className="space-y-4">
                         <p className="text-xs font-bold uppercase text-slate-400 tracking-wider">Tudo incluso:</p>
@@ -283,16 +340,20 @@ function PricingSection({  billingCycle, handleBillingCycleChange, loading, hand
                 {/* ULTRA CARD */}
                 <motion.div
                     whileHover={{ y: -5 }}
-                    className="relative bg-slate-950 text-white rounded-[2rem] border-2 border-purple-500 shadow-2xl shadow-purple-500/30 p-8 flex flex-col h-full overflow-hidden"
+                    className={clsx(
+                        "relative bg-slate-950 text-white rounded-[2rem] border-2 border-purple-500 shadow-2xl shadow-purple-500/30 p-8 flex flex-col h-full overflow-hidden",
+                        currentPlan === 'ultra' ? "opacity-90" : ""
+                    )}
                 >
                     <div className="absolute top-0 left-0 right-0 bg-gradient-to-r from-purple-600 to-pink-600 h-2"></div>
 
                     <div className="mb-6 relative z-10">
-                        {/* BADGE ROXO GRADIENTE */}
-                        <div className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-purple-500/40 mb-4">
-                            <Crown className="w-3 h-3 mr-1 inline-block mb-0.5 fill-current" />
-                            {plans[1].badge}
-                        </div>
+                        {currentPlan !== 'ultra' && (
+                            <div className="inline-block bg-gradient-to-r from-purple-600 to-pink-600 text-white text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-purple-500/40 mb-4">
+                                <Crown className="w-3 h-3 mr-1 inline-block mb-0.5 fill-current" />
+                                {plans[1].badge}
+                            </div>
+                        )}
                         <h3 className="text-2xl font-bold text-white flex items-center gap-2">
                             {plans[1].name}
                         </h3>
@@ -304,18 +365,14 @@ function PricingSection({  billingCycle, handleBillingCycleChange, loading, hand
                             <span className="text-4xl font-black text-white">{billingCycle === 'yearly' ? plans[1].yearlyPrice : plans[1].monthlyPrice}</span>
                             <span className="text-slate-400 font-medium">/{billingCycle === 'yearly' ? 'ano' : 'mês'}</span>
                         </div>
-                        <p className="text-purple-300 text-xs font-bold mt-2">
-                             Melhor Custo-Benefício do Mercado
-                        </p>
+                        {currentPlan !== 'ultra' && (
+                            <p className="text-purple-300 text-xs font-bold mt-2">
+                                 Melhor Custo-Benefício do Mercado
+                            </p>
+                        )}
                     </div>
 
-                    <Button
-                        onClick={() => handleCheckout('ultra')}
-                        disabled={loading !== null}
-                        className="relative z-10 w-full bg-white text-purple-900 hover:bg-slate-100 font-bold h-14 rounded-xl text-lg shadow-lg mb-8 transition-all hover:scale-[1.02]"
-                    >
-                        {loading === `ultra-${billingCycle}` ? <Loader2 className="animate-spin" /> : plans[1].cta}
-                    </Button>
+                    {renderButton("ultra", plans[1].cta, "white")}
 
                     <div className="relative z-10 space-y-4">
                         <p className="text-xs font-bold uppercase text-slate-500 tracking-wider">Tudo do Pro, mais:</p>
@@ -337,7 +394,7 @@ function PricingSection({  billingCycle, handleBillingCycleChange, loading, hand
     )
 }
 
-// 4. ROI DEVASTADOR (LISTA DETALHADA)
+// 4. ROI DEVASTADOR
 function DevastatingROI() {
     return (
         <div className="max-w-3xl mx-auto bg-slate-50 dark:bg-slate-900/50 rounded-3xl p-8 sm:p-10 border border-slate-200 dark:border-slate-800 mb-24">
@@ -406,7 +463,9 @@ function GuaranteeSection() {
 }
 
 // 6. FINAL CTA (EMOCIONAL & FORTE)
-function FinalCTA({ handleCheckout }: { handleCheckout: (p: "pro" | "ultra") => void }) {
+function FinalCTA({ handleCheckout, currentPlan }: { handleCheckout: (p: "pro" | "ultra") => void, currentPlan: PlanIdentifier }) {
+    if (currentPlan !== 'free') return null;
+
     return (
         <div className="text-center pb-12">
             <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-6">
@@ -467,7 +526,6 @@ export default function BillingContent() {
     }
   }, [user?.publicMetadata]);
 
-  // Handler de Resultados de Pagamento
   useEffect(() => {
     const success = searchParams.get("success");
     const canceled = searchParams.get("canceled");
@@ -497,7 +555,7 @@ export default function BillingContent() {
       const data = await res.json();
       if (data.url) window.location.href = data.url;
       else throw new Error(data.error || "Erro ao iniciar checkout");
-    } catch {
+    } catch  {
       toast.error("Erro no processamento. Tente novamente.");
     } finally {
       setLoading(null);
@@ -555,7 +613,6 @@ export default function BillingContent() {
   return (
     <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 font-sans selection:bg-blue-100 selection:text-blue-900">
 
-      {/* Modal de Cancelamento (Mantido do original) */}
       <AnimatePresence>
         {showCancelModal && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
@@ -590,13 +647,10 @@ export default function BillingContent() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-32">
 
-        {/* 1. HERO PERSONALIZADO */}
-        <PersonalHeader name={user?.firstName || "Criador"} />
+        <PersonalHeader name={user?.firstName || "Criador"} currentPlan={currentPlan} />
 
-        {/* 2. O QUE VOCÊ ESTÁ PERDENDO (AVERSÃO À PERDA) */}
-        <LossAversionSection />
+        <LossAversionSection currentPlan={currentPlan} />
 
-        {/* 3. PLANOS (OFERTA VISUAL) */}
         <PricingSection
             currentPlan={currentPlan}
             billingCycle={billingCycle}
@@ -605,31 +659,26 @@ export default function BillingContent() {
             handleCheckout={handleCheckout}
         />
 
-        {/* 4. ROI DEVASTADOR */}
         <DevastatingROI />
 
-        {/* 5. GARANTIA PREMIUM */}
         <GuaranteeSection />
 
-        {/* 6. CTA FINAL */}
-        {currentPlan === "free" && <FinalCTA handleCheckout={handleCheckout} />}
+        <FinalCTA handleCheckout={handleCheckout} currentPlan={currentPlan} />
 
-        {/* 7. GERENCIAMENTO (APENAS PARA ASSINANTES) */}
         {currentPlan !== "free" && (
-            <div className="text-center border-t border-slate-200 pt-12 max-w-xl mx-auto">
-                <Button variant="outline" onClick={handleManageSubscription} disabled={loading === "portal"} className="border-slate-300 w-full mb-4">
-                     {loading === "portal" ? <Loader2 className="animate-spin mr-2" /> : <CreditCard className="mr-2 w-4 h-4" />}
+            <div className="text-center border-t border-slate-200 pt-12 max-w-xl mx-auto pb-12">
+                <Button variant="outline" onClick={handleManageSubscription} disabled={loading === "portal"} className="border-slate-300 w-full mb-6 h-12">
+                     {loading === "portal" ? <Loader2 className="animate-spin mr-2" /> : <Settings className="mr-2 w-4 h-4" />}
                      Gerenciar Cartão e Faturas
                 </Button>
-                <button onClick={() => setShowCancelModal(true)} className="text-xs text-red-400 hover:text-red-500 underline">
+                <Button variant="ghost" onClick={() => setShowCancelModal(true)} className="text-red-500 hover:text-red-600 hover:bg-red-50 w-full h-12 font-medium">
                     Cancelar assinatura
-                </button>
+                </Button>
             </div>
         )}
 
       </div>
 
-      {/* MOBILE STICKY CTA */}
       {currentPlan === 'free' && (
         <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-0 left-0 right-0 z-50 p-4 lg:hidden bg-white/80 backdrop-blur-lg border-t border-slate-200">
             <Button onClick={() => handleCheckout('pro')} disabled={loading !== null} className="w-full bg-blue-600 text-white font-bold h-12 rounded-xl shadow-lg">

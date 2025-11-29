@@ -31,7 +31,7 @@ export default function GrowthChecklist({ plan, clicks, username }: { plan: stri
     { label: "Atingir 10 cliques únicos", done: clicks >= 10 },
     // A mágica: se shared for true (clicou no botão) OU se o plano não for free (já é pro), marca feito
     { label: "Compartilhar link no Instagram", done: shared, action: "Copiar Link", isShare: true },
-    { label: "Conectar Pixel de Rastreamento", done: plan !== 'free', isPro: true },
+    { label: "Conectar Pixel de Rastreamento", done: plan !== 'free', isUltra: true },
   ];
 
   const completed = tasks.filter(t => t.done).length;
@@ -74,10 +74,10 @@ export default function GrowthChecklist({ plan, clicks, username }: { plan: stri
             </div>
 
             {/* Lógica do Botão PRO */}
-            {task.isPro && !task.done && (
+            {task.isUltra && !task.done && (
               <Link href="/dashboard/billing">
                 <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold uppercase cursor-pointer hover:bg-purple-200 whitespace-nowrap">
-                  Pro
+                  Ultra
                 </span>
               </Link>
             )}
