@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, Wand2, Scissors, Target, LayoutGrid, Gift,
-  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, Star, X,
+  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, X,
   LucideProps, Menu, Bell, Search, PlusCircle, ArrowRight, Zap, Crown, Shield,
   Calculator
 } from "lucide-react";
@@ -155,8 +155,8 @@ function FreelinkLogo({ size = 32 }: { size?: number }) {
   );
 }
 
-// --- SIDEBAR ---
-function Sidebar({ userPlan, uniqueId }: { userPlan: string; uniqueId: string }) {
+// --- CONTEÚDO DA SIDEBAR (LINKS + CARD UPGRADE) ---
+function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: string }) {
   const pathname = usePathname();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -176,12 +176,11 @@ function Sidebar({ userPlan, uniqueId }: { userPlan: string; uniqueId: string })
   const isFree = userPlan === "free";
   const upgradeCardConfig = isFree ? {
     title: "Potencial Limitado",
-    subtitle: "Você está perdendo dados.",
+    subtitle: "Você perde dados.",
     gradient: "from-slate-900 to-slate-800",
     features: [
-      { text: "Rastreamento Invisível", icon: Target },
-      { text: "Remover Branding", icon: Shield },
-      { text: "Prioridade no Suporte", icon: Star }
+      { text: "Rastreamento", icon: Target },
+      { text: "Sem Branding", icon: Shield },
     ],
     buttonText: "Desbloquear PRO",
     buttonGradient: "from-blue-600 to-indigo-600",
@@ -191,18 +190,17 @@ function Sidebar({ userPlan, uniqueId }: { userPlan: string; uniqueId: string })
     subtitle: "Automatize seu império.",
     gradient: "from-indigo-900 to-violet-900",
     features: [
-      { text: "IA Geradora de Imagens", icon: Wand2 },
-      { text: "Scripts Virais Auto", icon: Sparkles },
-      { text: "Consultoria VIP", icon: Crown }
+      { text: "IA de Imagens", icon: Wand2 },
+      { text: "Scripts Virais", icon: Sparkles },
     ],
-    buttonText: "Evoluir para ULTRA",
+    buttonText: "Virar ULTRA",
     buttonGradient: "from-purple-600 to-pink-600",
     progress: 75
   };
 
   return (
-    <nav className="flex flex-col h-full">
-      <ul className="flex-grow space-y-0.5 py-2 overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200/50 dark:scrollbar-thumb-slate-700/50 hover:scrollbar-thumb-slate-300 dark:hover:scrollbar-thumb-slate-600 transition-colors">
+    <nav className="flex flex-col gap-4 pb-4">
+      <ul className="space-y-0.5">
         <LayoutGroup id={uniqueId}>
           {navItems.map((item, idx) => (
             <li key={idx}>
@@ -258,28 +256,27 @@ function Sidebar({ userPlan, uniqueId }: { userPlan: string; uniqueId: string })
         </LayoutGroup>
       </ul>
 
-      {/* CARD DE UPGRADE OTIMIZADO PARA MOBILE */}
+      {/* CARD DE UPGRADE (COMPACTO E DENTRO DO FLUXO) */}
       {userPlan !== "ultra" && (
-        <div className="px-3 mb-4">
-          <motion.div whileHover={{ y: -4 }} className={`relative rounded-2xl p-[1px] overflow-hidden bg-gradient-to-br ${upgradeCardConfig.gradient}`}>
+        <div className="px-3 mt-4">
+          <motion.div whileHover={{ y: -2 }} className={`relative rounded-xl p-[1px] overflow-hidden bg-gradient-to-br ${upgradeCardConfig.gradient}`}>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-[shimmer_2s_infinite] skew-x-12" />
-            <div className="relative bg-slate-900 rounded-2xl p-3 lg:p-4 overflow-hidden border border-white/10 shadow-2xl">
+            <div className="relative bg-slate-900 rounded-xl p-3 overflow-hidden border border-white/10 shadow-lg">
               <div className="relative z-10 text-white">
-                <div className="flex items-center gap-2 mb-1 lg:mb-2">
-                  {isFree ? <Zap className="w-3 h-3 lg:w-4 lg:h-4 text-yellow-400 fill-yellow-400" /> : <Crown className="w-3 h-3 lg:w-4 lg:h-4 text-purple-400 fill-purple-400" />}
-                  <span className="text-[10px] lg:text-xs font-bold uppercase tracking-wider text-slate-400">{isFree ? "Plano Básico" : "Membro Pro"}</span>
+                <div className="flex items-center gap-2 mb-1">
+                  {isFree ? <Zap className="w-3 h-3 text-yellow-400 fill-yellow-400" /> : <Crown className="w-3 h-3 text-purple-400 fill-purple-400" />}
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isFree ? "Plano Básico" : "Membro Pro"}</span>
                 </div>
 
-                {/* Títulos menores no mobile */}
-                <h3 className="font-black text-sm lg:text-lg leading-tight mb-0.5 lg:mb-1">{upgradeCardConfig.title}</h3>
-                <p className="text-[10px] lg:text-xs text-slate-300 font-medium mb-2 lg:mb-3">{upgradeCardConfig.subtitle}</p>
+                <h3 className="font-black text-sm leading-tight mb-0.5">{upgradeCardConfig.title}</h3>
+                <p className="text-[10px] text-slate-300 font-medium mb-2">{upgradeCardConfig.subtitle}</p>
 
-                <div className="w-full bg-white/10 h-1 lg:h-1.5 rounded-full mb-2 lg:mb-3 overflow-hidden">
+                <div className="w-full bg-white/10 h-1 rounded-full mb-3 overflow-hidden">
                   <div className={`h-full bg-gradient-to-r ${isFree ? 'from-yellow-400 to-orange-500' : 'from-purple-400 to-pink-500'}`} style={{ width: `${upgradeCardConfig.progress}%` }} />
                 </div>
 
-                {/* LISTA DE RECURSOS ESCONDIDA NO MOBILE (hidden lg:block) */}
-                <div className="space-y-2 mb-4 hidden lg:block">
+                {/* Lista só aparece em telas grandes para economizar espaço no mobile */}
+                <div className="space-y-2 mb-3 hidden lg:block">
                   {upgradeCardConfig.features.map((feat, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs text-slate-300/90 font-medium">
                       <div className="p-1 rounded bg-white/10"><feat.icon className="w-3 h-3 text-white" /></div>
@@ -289,7 +286,7 @@ function Sidebar({ userPlan, uniqueId }: { userPlan: string; uniqueId: string })
                 </div>
 
                 <Link href="/dashboard/billing">
-                  <motion.button className={`w-full bg-gradient-to-r ${upgradeCardConfig.buttonGradient} text-white text-[10px] lg:text-xs font-black py-2 lg:py-2.5 rounded-xl shadow-lg relative overflow-hidden group border border-white/20`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                  <motion.button className={`w-full bg-gradient-to-r ${upgradeCardConfig.buttonGradient} text-white text-[10px] font-black py-2 rounded-lg shadow-lg relative overflow-hidden group border border-white/20`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <span className="relative flex items-center justify-center gap-1.5">{upgradeCardConfig.buttonText} <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" /></span>
                   </motion.button>
                 </Link>
@@ -304,7 +301,6 @@ function Sidebar({ userPlan, uniqueId }: { userPlan: string; uniqueId: string })
 
 // --- SHELL PRINCIPAL ---
 export default function DashboardShell({ children, initialPlan }: { children: ReactNode, initialPlan: string }) {
-  // Variáveis de Estado
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -320,7 +316,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
 
-  // Handlers (Mantidos iguais)
+  // Handlers
   const handleEnableNotifications = async () => {
     try {
       if (!('Notification' in window)) return;
@@ -336,7 +332,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   const markNotificationAsRead = async (id: string) => { setUserNotifications(current => current.map(n => n.id === id ? { ...n, isRead: true } : n)); try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ id }) }); } catch {} };
   const handleSearchLinkClick = () => { setIsSearchOpen(false); setSearchTerm(""); };
 
-  // UseEffects
   useEffect(() => {
     const fetchNotifications = async () => {
         try { const res = await fetch("/api/notifications"); if(res.ok) { const data = await res.json(); setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS)); } } catch { } finally { setNotificationsLoading(false); }
@@ -375,11 +370,22 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
     return Object.entries(titles).find(([path]) => pathname.startsWith(path))?.[1] || "Dashboard";
   };
 
+  // Trava a rolagem da página quando a sidebar mobile está aberta
+  useEffect(() => {
+    if (isSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => { document.body.style.overflow = 'unset'; };
+  }, [isSidebarOpen]);
+
   return (
     <div className="flex h-screen h-[100dvh] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 overflow-hidden">
+
       {/* DESKTOP SIDEBAR */}
       <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden">
-        <div className="mb-8 px-2 flex-shrink-0">
+        <div className="mb-4 px-2 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center group">
             <FreelinkLogo size={40} />
             <div className="ml-3">
@@ -388,10 +394,12 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
             </div>
           </Link>
         </div>
-        <div className="flex-1 overflow-hidden">
-          <Sidebar userPlan={userPlan} uniqueId="desktop-sidebar" />
+
+        <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200">
+          <SidebarContent userPlan={userPlan} uniqueId="desktop-sidebar" />
         </div>
-        <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between px-2">
+
+        <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between px-2 flex-shrink-0">
            <div className="flex items-center gap-3">
              <UserButton afterSignOutUrl="/" />
              <div className="text-sm">
@@ -405,32 +413,41 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         </div>
       </aside>
 
-      {/* MOBILE SIDEBAR */}
+      {/* MOBILE SIDEBAR (DRAWER) */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setIsSidebarOpen(false)} className="fixed inset-0 bg-black/60 backdrop-blur-sm lg:hidden" style={{ zIndex: Z_INDEX.modal }} />
-            <motion.aside initial={{ x: "-100%" }} animate={{ x: 0 }} exit={{ x: "-100%" }} transition={{ type: "spring", damping: 30, stiffness: 300 }} className="fixed left-0 top-0 bottom-0 w-80 bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 lg:hidden flex flex-col shadow-2xl overflow-hidden h-[100dvh]" style={{ zIndex: Z_INDEX.popover }}>
-              <div className="flex items-center justify-between mb-8 flex-shrink-0">
+
+            <motion.aside
+              initial={{ x: "-100%" }}
+              animate={{ x: 0 }}
+              exit={{ x: "-100%" }}
+              transition={{ type: "spring", damping: 30, stiffness: 300 }}
+              className="fixed left-0 top-0 bottom-0 w-80 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 flex flex-col h-[100dvh]"
+              style={{ zIndex: Z_INDEX.popover }}
+            >
+              <div className="flex items-center justify-between p-4 border-b border-slate-100 dark:border-slate-800 flex-shrink-0">
                 <Link href="/dashboard" className="flex items-center min-w-0">
-                  <FreelinkLogo size={36} />
-                  <span className="ml-3 text-xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent truncate">Freelinnk</span>
+                  <FreelinkLogo size={32} />
+                  <span className="ml-3 text-xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">Freelinnk</span>
                 </Link>
-                <motion.button onClick={() => setIsSidebarOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex-shrink-0">
-                  <X className="w-5 h-5" />
+                <motion.button onClick={() => setIsSidebarOpen(false)} className="p-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">
+                  <X className="w-5 h-5 text-slate-500" />
                 </motion.button>
               </div>
-              <div className="flex-1 overflow-hidden">
-                <Sidebar userPlan={userPlan} uniqueId="mobile-sidebar" />
+
+              {/* CORPO DO MENU SCROLLÁVEL */}
+              <div className="flex-1 overflow-y-auto overscroll-contain p-4">
+                <SidebarContent userPlan={userPlan} uniqueId="mobile-sidebar" />
               </div>
-              <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex-shrink-0">
-                <div className="flex items-center gap-3 px-2">
+
+              <div className="p-4 border-t border-slate-100 dark:border-slate-800 flex-shrink-0 bg-slate-50 dark:bg-slate-900">
+                <div className="flex items-center gap-3">
                   <UserButton afterSignOutUrl="/" />
-                  <div className="text-sm min-w-0">
-                    <p className="font-bold text-slate-800 dark:text-slate-200 truncate">Minha Conta</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 truncate">
-                      Freelinnk {userPlan === "ultra" ? "ULTRA" : userPlan === "pro" ? "PRO" : "Free"}
-                    </p>
+                  <div className="text-sm">
+                    <p className="font-bold text-slate-800 dark:text-white">Minha Conta</p>
+                    <p className="text-xs text-slate-500">Plano {userPlan.toUpperCase()}</p>
                   </div>
                 </div>
               </div>
@@ -443,15 +460,15 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-30">
            <div className="flex items-center gap-4">
              <div className="lg:hidden">
-               <motion.button onClick={() => setIsSidebarOpen(true)} className="p-2">
-                 <Menu className="w-5 h-5" />
+               <motion.button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                 <Menu className="w-6 h-6 text-slate-700 dark:text-slate-200" />
                </motion.button>
              </div>
              <h1 className="text-lg font-bold hidden md:block">{getPageTitle()}</h1>
            </div>
 
            <div className="flex items-center gap-2">
-             {/* BUSCA VISÍVEL NO MOBILE (Removido 'hidden md:block') */}
+             {/* BUSCA */}
              <div className="relative">
                 <AnimatePresence>
                   {isSearchOpen ? (
@@ -461,18 +478,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
 
                         {(searchResults.length > 0 || searchLoading) && (
                            <div className="absolute top-full right-0 w-full bg-white shadow-2xl p-2 rounded-lg mt-2 border border-slate-100">
-                              {searchLoading ? (
-                                <div className="p-4 text-center text-xs text-slate-500">Buscando...</div>
-                              ) : (
-                                searchResults.map((res, i) => (
-                                   <Link href={res.href} key={i} onClick={handleSearchLinkClick}>
-                                     <div className="p-2 hover:bg-slate-100 rounded flex items-center gap-2 text-sm cursor-pointer">
-                                        {res.icon && <res.icon className="w-4 h-4 text-slate-500" />}
-                                        <span className="truncate">{res.label}</span>
-                                     </div>
-                                   </Link>
-                                ))
-                              )}
+                              {searchLoading ? ( <div className="p-4 text-center text-xs text-slate-500">Buscando...</div> ) : ( searchResults.map((res, i) => ( <Link href={res.href} key={i} onClick={handleSearchLinkClick}> <div className="p-2 hover:bg-slate-100 rounded flex items-center gap-2 text-sm cursor-pointer"> {res.icon && <res.icon className="w-4 h-4 text-slate-500" />} <span className="truncate">{res.label}</span> </div> </Link> )) )}
                            </div>
                         )}
                     </motion.div>
@@ -498,17 +504,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
                       <button onClick={markAllAsRead} className="text-xs hover:underline opacity-90">Ler todas</button>
                    </div>
                    <div className="max-h-60 overflow-y-auto p-2">
-                      {notificationsLoading ? (
-                         <div className="text-center p-4 text-xs text-slate-500">Carregando...</div>
-                      ) : userNotifications.length > 0 ? (
-                         userNotifications.map(n => (
-                            <div key={n.id} onClick={() => markNotificationAsRead(n.id)} className={clsx("p-2 rounded text-sm mb-1 cursor-pointer", n.isRead ? "bg-white" : "bg-slate-50 border-l-2 border-purple-500")}>
-                               <p className="text-xs text-slate-800">{n.message}</p>
-                            </div>
-                         ))
-                      ) : (
-                         <div className="text-center p-4 text-xs text-slate-500">Nenhuma notificação</div>
-                      )}
+                      {notificationsLoading ? ( <div className="text-center p-4 text-xs text-slate-500">Carregando...</div> ) : userNotifications.length > 0 ? ( userNotifications.map(n => ( <div key={n.id} onClick={() => markNotificationAsRead(n.id)} className={clsx("p-2 rounded text-sm mb-1 cursor-pointer", n.isRead ? "bg-white" : "bg-slate-50 border-l-2 border-purple-500")}> <p className="text-xs text-slate-800">{n.message}</p> </div> )) ) : ( <div className="text-center p-4 text-xs text-slate-500">Nenhuma notificação</div> )}
                    </div>
                 </PopoverContent>
              </Popover>
