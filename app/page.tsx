@@ -1,54 +1,200 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence, useScroll, useInView, useMotionValue, useSpring } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { SignInButton, useAuth } from "@clerk/nextjs";
 import {
   ArrowRight, CheckCircle, Star, Shield,
-  Zap, ImagePlus, TrendingUp, DollarSign, Wand2,
-  Check, Instagram, Linkedin,
+  Zap, TrendingUp, DollarSign, Wand2,
+  Check, Instagram, Linkedin, Youtube,
   Target, Sparkles, MessageCircle,
-  Scissors, Palette, Calculator,
-  Film, Flame, Bell, Link2, BarChart3,
-  Globe, MousePointerClick, Clock, MapPin,
-  Smartphone, Monitor, Copy, ExternalLink
+  Palette, Calculator,
+  Film, Flame, Link2, BarChart3,
+  Globe, MapPin,
+  Play, Users, Lock, ChevronDown,
+  Menu, X, Eye, Heart,
+  ShoppingBag, Briefcase, Music,
+  Camera, BookOpen, Dumbbell, UtensilsCrossed,
+  Building2, Megaphone, Store,
+  QrCode, Bot, Fingerprint,
+  Crown, Rocket, Gift,
+  Settings, Share2, Cpu,
+  Sun, Moon, BadgeCheck, Server
 } from "lucide-react";
 import clsx from "clsx";
 
 // --- CONFIGURAÇÕES VISUAIS ---
 const BRAND = {
-  primary: "#4745d9",
-  secondary: "#7c3aed",
-  gradient: "bg-gradient-to-r from-[#4745d9] to-[#7c3aed]",
-  textGradient: "bg-clip-text text-transparent bg-gradient-to-r from-[#4745d9] to-[#7c3aed]",
+  primary: "#6366f1",
+  secondary: "#8b5cf6",
+  gradient: "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6]",
+  gradientHover: "hover:from-[#5558e3] hover:to-[#7c4fee]",
+  textGradient: "bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] to-[#8b5cf6]",
 };
 
-// --- DADOS DO COMPARATIVO ---
-interface CompetitorRow {
-  f: string;
-  fl: string;
-  lt: string;
-  bc: string;
-}
-
-const competitors: CompetitorRow[] = [
-  { f: "Página de Links", fl: "✅ Grátis", lt: "✅ Grátis", bc: "✅ Grátis" },
-  { f: "Encurtador de Links", fl: "✅ Grátis", lt: "❌", bc: "Limitado" },
-  { f: "Analytics Básico", fl: "✅ Grátis", lt: "✅ Grátis", bc: "✅ Grátis" },
-  { f: "IA para Criar Bio", fl: "⭐⭐ Ultra", lt: "❌", bc: "❌" },
-  { f: "Brain Roteirista", fl: "⭐ Pro", lt: "❌", bc: "❌" },
-  { f: "Analytics Avançado", fl: "⭐ Pro", lt: "💰 Pago", bc: "💰 Pago" },
-  { f: "Geolocalização", fl: "⭐⭐ Ultra", lt: "💰 Pago", bc: "❌" },
-  { f: "Gestão Financeira", fl: "⭐⭐ Ultra", lt: "❌", bc: "❌" },
-  { f: "Remoção de Fundo IA", fl: "⭐⭐ Ultra", lt: "❌", bc: "❌" },
-  { f: "Preço Plano Ultra", fl: "R$ 77,90/mês", lt: "R$ 45/mês", bc: "R$ 50/mês" },
+// --- DADOS ---
+const nichos = [
+  { icon: <Instagram size={18} />, name: "Criadores" },
+  { icon: <ShoppingBag size={18} />, name: "Afiliados" },
+  { icon: <Heart size={18} />, name: "Nutricionistas" },
+  { icon: <Dumbbell size={18} />, name: "Personal Trainers" },
+  { icon: <UtensilsCrossed size={18} />, name: "Restaurantes" },
+  { icon: <BookOpen size={18} />, name: "Infoprodutores" },
+  { icon: <Store size={18} />, name: "E-commerce" },
+  { icon: <Building2 size={18} />, name: "Agências" },
+  { icon: <Music size={18} />, name: "Artistas" },
+  { icon: <Camera size={18} />, name: "Fotógrafos" },
+  { icon: <Megaphone size={18} />, name: "Marketing" },
+  { icon: <Briefcase size={18} />, name: "Freelancers" },
 ];
 
-// --- COMPONENTE BUTTON CUSTOMIZADO ---
+const features = [
+  {
+    icon: <Link2 size={24} />,
+    title: "Página de Links",
+    desc: "Totalmente customizável. Você escolhe cada detalhe.",
+    tag: "GRÁTIS",
+    color: "from-blue-500 to-cyan-500"
+  },
+  {
+    icon: <Zap size={24} />,
+    title: "Encurtador de Links",
+    desc: "Links curtos e memoráveis com analytics Básico.",
+    tag: "GRÁTIS",
+    color: "from-yellow-500 to-orange-500"
+  },
+  {
+    icon: <BarChart3 size={24} />,
+    title: "Analytics Completo",
+    desc: "Saiba de onde vem cada clique. Cidade, dispositivo, horário.",
+    tag: "ULTRA",
+    color: "from-purple-500 to-pink-500"
+  },
+  {
+    icon: <QrCode size={24} />,
+    title: "QR Code Dinâmico",
+    desc: "QR Code em sua pagina de links",
+    tag: "GRÁTIS",
+    color: "from-green-500 to-emerald-500"
+  },
+  {
+    icon: <Film size={24} />,
+    title: "Brain Roteirista IA",
+    desc: "Roteiros virais com 95% de chance de engajamento.",
+    tag: "PRO",
+    color: "from-red-500 to-rose-500"
+  },
+  {
+    icon: <Calculator size={24} />,
+    title: "Gestão Financeira",
+    desc: "Controle vendas, custos e veja seu lucro real.",
+    tag: "ULTRA",
+    color: "from-indigo-500 to-violet-500"
+  },
+  {
+    icon: <Bot size={24} />,
+    title: "AI Studio",
+    desc: "Chat IA, remoção de fundo, upscale de imagens.",
+    tag: "ULTRA",
+    color: "from-fuchsia-500 to-purple-500"
+  },
+  {
+    icon: <Target size={24} />,
+    title: "Pixel & UTM",
+    desc: "Rastreie conversões com precisão cirúrgica.",
+    tag: "ULTRA",
+    color: "from-teal-500 to-cyan-500"
+  },
+];
+
+const stats = [
+  { value: "10.800", suffix: "+", label: "Criadores Ativos" },
+  { value: "2.4", suffix: "M+", label: "Cliques Rastreados" },
+  { value: "847", prefix: "R$", suffix: "k+", label: "Gerado para Usuários" },
+  { value: "4.9", suffix: "/5", label: "Avaliação Média" },
+];
+
+const testimonials = [
+  {
+    text: "Saí do Linktree e nunca mais voltei. O Freelinnk me dá dados que eu pagava caro pra ter.",
+    author: "Mariana Costa",
+    role: "Criadora • 89k seguidores",
+    avatar: "https://i.pravatar.cc/100?img=5",
+    increase: "+312% vendas"
+  },
+  {
+    text: "O Brain sugeriu um roteiro e meu vídeo fez 500k views. Nunca tinha acontecido antes.",
+    author: "Lucas Mendes",
+    role: "TikToker • 234k seguidores",
+    avatar: "https://i.pravatar.cc/100?img=12",
+    increase: "500k views"
+  },
+  {
+    text: "Finalmente sei quanto realmente lucro por mês. A gestão financeira mudou meu negócio.",
+    author: "Fernanda Lima",
+    role: "Personal Trainer",
+    avatar: "https://i.pravatar.cc/100?img=9",
+    increase: "+487% consultas"
+  },
+  {
+    text: "O encurtador com analytics me mostrou qual produto vender. Triplicou minha comissão.",
+    author: "Pedro Henrique",
+    role: "Afiliado Hotmart",
+    avatar: "https://i.pravatar.cc/100?img=11",
+    increase: "3x comissões"
+  },
+  {
+    text: "Interface linda, customização total. Minha página ficou a cara da minha marca.",
+    author: "Ana Paula",
+    role: "Nutricionista Online",
+    avatar: "https://i.pravatar.cc/100?img=23",
+    increase: "+89 pacientes/mês"
+  },
+  {
+    text: "Sai do zero e hoje faturo 5 dígitos. O Freelinnk foi parte essencial dessa jornada.",
+    author: "Rafael Torres",
+    role: "Infoprodutor",
+    avatar: "https://i.pravatar.cc/100?img=15",
+    increase: "5 dígitos/mês"
+  },
+];
+
+const realPages = [
+  {
+    id: 1,
+    image: "/ImpulsioneWeb.png",
+    name: "@ImpulsioneWeb",
+    type: "Agência Digital",
+    color: "from-blue-600 to-indigo-600"
+  },
+  {
+    id: 2,
+    image: "/Glam-Fit.png",
+    name: "@Glam-Fit",
+    type: "Moda Fitness",
+    color: "from-pink-500 to-rose-500"
+  },
+  {
+    id: 3,
+    image: "/Studio-Oliveira.png",
+    name: "@Studio-Oliveira",
+    type: "Nails Designer",
+    color: "from-purple-500 to-violet-500"
+  },
+  {
+    id: 4,
+    image: "/Penelope-Variedades.png",
+    name: "@Penelope-Variedades",
+    type: "Loja Virtual",
+    color: "from-orange-500 to-amber-500"
+  },
+];
+
+// --- BUTTON COMPONENT ---
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "outline" | "white" | "ghost" | "destructive" | "secondary" | "link";
-  size?: "sm" | "md" | "lg";
+  variant?: "default" | "outline" | "white" | "ghost";
+  size?: "sm" | "md" | "lg" | "xl";
   children: React.ReactNode;
 }
 
@@ -59,930 +205,2173 @@ const Button: React.FC<ButtonProps> = ({
   children,
   ...props
 }) => {
-  const baseStyles = "inline-flex items-center justify-center font-bold rounded-xl transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2";
+  const base = "inline-flex items-center justify-center font-bold rounded-2xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer active:scale-[0.98]";
 
   const variants = {
-    default: `${BRAND.gradient} text-white hover:opacity-90 focus:ring-[#4745d9] shadow-lg shadow-purple-500/25`,
-    outline: "bg-transparent border-2 border-gray-200 text-gray-700 hover:border-[#4745d9] hover:text-[#4745d9]",
-    white: "bg-white text-gray-900 hover:bg-gray-100 shadow-xl",
-    ghost: "bg-transparent text-gray-600 hover:bg-gray-100",
-    destructive: "bg-red-500 text-white hover:bg-red-600",
-    secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
-    link: "bg-transparent text-[#4745d9] underline-offset-4 hover:underline",
+    default: `${BRAND.gradient} ${BRAND.gradientHover} text-white focus:ring-[#6366f1] shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:-translate-y-0.5`,
+    outline: "bg-white border-2 border-gray-200 text-gray-700 hover:border-[#6366f1] hover:text-[#6366f1] hover:bg-indigo-50/50",
+    white: "bg-white text-gray-900 hover:bg-gray-50 shadow-xl hover:shadow-2xl hover:-translate-y-0.5",
+    ghost: "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900",
   };
 
   const sizes = {
-    sm: "px-4 py-2 text-sm",
-    md: "px-6 py-3 text-sm",
-    lg: "px-8 py-4 text-base",
+    sm: "px-4 py-2.5 text-sm gap-2",
+    md: "px-6 py-3 text-sm gap-2",
+    lg: "px-8 py-4 text-base gap-2",
+    xl: "px-10 py-5 text-lg gap-3",
   };
 
   return (
-    <button
-      className={clsx(baseStyles, variants[variant], sizes[size], className)}
-      {...props}
-    >
+    <button className={clsx(base, variants[variant], sizes[size], className)} {...props}>
       {children}
     </button>
   );
 };
 
-// --- COMPONENTES DE ANIMAÇÃO ---
-const ScrollReveal = ({ children, delay = 0 }: { children: React.ReactNode, delay?: number }) => {
+// --- SCROLL REVEAL ---
+const ScrollReveal = ({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 30 }}
+    whileInView={{ opacity: 1, y: 0 }}
+    viewport={{ once: true, margin: "-50px" }}
+    transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+    className={className}
+  >
+    {children}
+  </motion.div>
+);
+
+// --- ANIMATED COUNTER ---
+const AnimatedCounter = ({ value, prefix = "", suffix = "" }: { value: string; prefix?: string; suffix?: string }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+  const [count, setCount] = useState(0);
+  const numericValue = parseFloat(value.replace(/[^0-9.]/g, ""));
+
+  useEffect(() => {
+    if (isInView) {
+      const duration = 2000;
+      const steps = 60;
+      const increment = numericValue / steps;
+      let current = 0;
+
+      const timer = setInterval(() => {
+        current += increment;
+        if (current >= numericValue) {
+          setCount(numericValue);
+          clearInterval(timer);
+        } else {
+          setCount(current);
+        }
+      }, duration / steps);
+
+      return () => clearInterval(timer);
+    }
+  }, [isInView, numericValue]);
+
+  return (
+    <span ref={ref} className="tabular-nums">
+      {prefix}{isInView ? (Number.isInteger(numericValue) ? Math.floor(count) : count.toFixed(1)) : "0"}{suffix}
+    </span>
+  );
+};
+
+// --- FLOATING ELEMENTS ---
+const FloatingElement = ({ children, delay = 0, duration = 4, y = 15 }: { children: React.ReactNode; delay?: number; duration?: number; y?: number }) => (
+  <motion.div
+    animate={{ y: [-y, y, -y] }}
+    transition={{ repeat: Infinity, duration, delay, ease: "easeInOut" }}
+  >
+    {children}
+  </motion.div>
+);
+
+// --- MAGNETIC BUTTON EFFECT ---
+const MagneticWrapper = ({ children }: { children: React.ReactNode }) => {
+  const ref = useRef<HTMLDivElement>(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const springConfig = { damping: 15, stiffness: 150 };
+  const xSpring = useSpring(x, springConfig);
+  const ySpring = useSpring(y, springConfig);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!ref.current) return;
+    const rect = ref.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    x.set((e.clientX - centerX) * 0.1);
+    y.set((e.clientY - centerY) * 0.1);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 50, scale: 0.95 }}
-      whileInView={{ opacity: 1, y: 0, scale: 1 }}
-      viewport={{ once: true, margin: "-100px" }}
-      transition={{ duration: 0.8, delay, type: "spring", bounce: 0.3 }}
+      ref={ref}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ x: xSpring, y: ySpring }}
     >
       {children}
     </motion.div>
   );
 };
 
-// --- SIMULADORES ---
-
-// 1. HERO IPHONE
-const HeroSimulator = () => {
+// --- HERO PHONE SIMULATOR ---
+const HeroPhoneSimulator = () => {
   const [step, setStep] = useState(0);
+  const [isDark, setIsDark] = useState(true);
+  const [likes, setLikes] = useState<{[key: string]: number}>({
+    instagram: 12,
+    whatsapp: 8,
+    mentoria: 47,
+    ebook: 23,
+  });
 
   useEffect(() => {
-    const interval = setInterval(() => setStep((s) => (s + 1) % 4), 4000);
-    return () => clearInterval(interval);
+    const timer = setInterval(() => setStep(s => (s + 1) % 5), 3500);
+    return () => clearInterval(timer);
   }, []);
 
+  useEffect(() => {
+    if (step === 2) {
+      const likeTimer = setInterval(() => {
+        setLikes(prev => ({
+          ...prev,
+          mentoria: prev.mentoria + 1,
+        }));
+      }, 800);
+      return () => clearInterval(likeTimer);
+    }
+  }, [step]);
+
   return (
-    <div className="relative mx-auto w-[300px] h-[620px] bg-white rounded-[3.5rem] p-3 shadow-[0_30px_60px_-15px_rgba(71,69,217,0.3)] border-[8px] border-gray-900 ring-1 ring-gray-200 z-10 overflow-hidden transform hover:scale-[1.02] transition-transform duration-500">
-      <div className="absolute top-0 inset-x-0 h-7 bg-white z-20 flex justify-center"><div className="w-24 h-5 bg-black rounded-b-xl"></div></div>
+    <div className="relative">
+      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-[60px] scale-110" />
 
-      <div className="w-full h-full pt-8 relative font-sans bg-gray-50 flex flex-col overflow-hidden">
-        <AnimatePresence mode="wait">
-          {step === 0 && (
-            <motion.div key="step0" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex flex-col items-center justify-center h-full p-6 space-y-6">
-              <div className="w-20 h-20 bg-blue-50 rounded-3xl flex items-center justify-center animate-bounce">
-                <Sparkles className="w-10 h-10 text-[#4745d9]" />
-              </div>
-              <div className="text-center space-y-2">
-                <h3 className="font-black text-2xl text-gray-900">Freelinnk AI</h3>
-                <p className="text-sm text-gray-500">Qual seu objetivo hoje?</p>
-              </div>
-              <div className="w-full bg-white p-4 rounded-2xl border-2 border-[#4745d9]/20 shadow-lg flex items-center gap-3">
-                <div className="w-1 h-5 bg-[#4745d9] animate-pulse"></div>
-                <span className="text-sm text-gray-600 font-medium">Link para Vender Curso...</span>
-              </div>
-              <motion.div initial={{ width: 0 }} animate={{ width: "100%" }} className="h-1.5 bg-[#4745d9] rounded-full w-full mt-4"></motion.div>
-            </motion.div>
-          )}
+      <motion.div
+        className="relative w-[280px] sm:w-[320px] h-[560px] sm:h-[640px] bg-gray-900 rounded-[3rem] p-2 shadow-2xl border border-gray-800"
+        whileHover={{ scale: 1.02 }}
+        transition={{ type: "spring", stiffness: 300 }}
+      >
+        <div className="absolute top-0 inset-x-0 h-6 flex justify-center z-20">
+          <div className="w-28 h-6 bg-gray-900 rounded-b-2xl" />
+        </div>
 
-          {step === 1 && (
-            <motion.div key="step1" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-[#4745d9] flex flex-col items-center justify-center text-white p-6">
-              <Wand2 className="w-16 h-16 animate-spin mb-6 opacity-80" />
-              <h3 className="font-bold text-2xl mb-8">Criando Página...</h3>
-              <div className="space-y-4 w-full">
-                <motion.div initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.2 }} className="flex items-center gap-3 bg-white/10 p-3 rounded-xl backdrop-blur-sm">
-                    <div className="bg-green-400 p-1 rounded-full"><Check size={12} className="text-black"/></div>
-                    <span className="font-bold text-sm">Gerando Copywriting</span>
+        <div className="w-full h-full bg-white rounded-[2.5rem] overflow-hidden relative">
+          <AnimatePresence mode="wait">
+            {step === 0 && (
+              <motion.div
+                key="typing"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-white flex flex-col items-center justify-center p-8"
+              >
+                <motion.div
+                  animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                  transition={{ repeat: Infinity, duration: 2 }}
+                  className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-3xl flex items-center justify-center mb-6 shadow-lg"
+                >
+                  <Sparkles className="w-10 h-10 text-white" />
                 </motion.div>
-                <motion.div initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.5 }} className="flex items-center gap-3 bg-white/10 p-3 rounded-xl backdrop-blur-sm">
-                    <div className="bg-green-400 p-1 rounded-full"><Check size={12} className="text-black"/></div>
-                    <span className="font-bold text-sm">Design Mobile-First</span>
-                </motion.div>
-                <motion.div initial={{ x: -50, opacity: 0 }} animate={{ x: 0, opacity: 1 }} transition={{ delay: 0.8 }} className="flex items-center gap-3 bg-white/10 p-3 rounded-xl backdrop-blur-sm">
-                    <div className="bg-green-400 p-1 rounded-full"><Check size={12} className="text-black"/></div>
-                    <span className="font-bold text-sm">Configurando Pixel</span>
-                </motion.div>
-              </div>
-            </motion.div>
-          )}
 
-          {step === 2 && (
-            <motion.div key="step2" initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ scale: 0.9, opacity: 0 }} className="absolute inset-0 bg-slate-50 flex flex-col overflow-hidden">
-              <div className="h-40 bg-[url('https://images.unsplash.com/photo-1579546929518-9e396f3cc809')] bg-cover relative">
-                <div className="absolute -bottom-10 left-1/2 -translate-x-1/2">
-                  <div className="p-1 bg-white rounded-full">
-                    <img src="https://i.pravatar.cc/150?img=32" className="w-24 h-24 rounded-full object-cover border-4 border-white" alt="User"/>
+                <h3 className="text-xl font-black text-gray-900 mb-2">Freelinnk AI</h3>
+                <p className="text-sm text-gray-500 mb-6">Descreva seu negócio...</p>
+
+                <div className="w-full bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                  <div className="flex items-center gap-2">
+                    <motion.div
+                      animate={{ opacity: [1, 0, 1] }}
+                      transition={{ repeat: Infinity, duration: 1 }}
+                      className="w-0.5 h-5 bg-indigo-500 rounded-full"
+                    />
+                    <motion.span
+                      className="text-sm text-gray-600"
+                      initial={{ width: 0 }}
+                      animate={{ width: "auto" }}
+                    >
+                      Sou criador de conteúdo digital...
+                    </motion.span>
                   </div>
                 </div>
-              </div>
-              <div className="mt-12 text-center px-6">
-                <h3 className="font-black text-xl text-gray-900">Ana Creator 🇧🇷</h3>
-                <p className="text-xs text-gray-500 mt-1">Ensino você a monetizar sua audiência.</p>
-                <div className="mt-6 space-y-3">
-                    <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.2 }} className="w-full p-4 bg-gradient-to-r from-[#4745d9] to-[#7c3aed] text-white rounded-2xl shadow-lg shadow-purple-500/20 text-sm font-bold flex justify-between items-center transform hover:scale-105 transition-transform cursor-pointer">
-                        <span>🔥 Mentoria VIP</span>
-                        <ArrowRight size={16}/>
-                    </motion.div>
-                    <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.4 }} className="w-full p-4 bg-white border border-gray-200 text-gray-700 rounded-2xl text-sm font-bold flex justify-between items-center shadow-sm">
-                        <span>📚 E-book Gratuito</span>
-                        <span className="bg-green-100 text-green-700 text-[10px] px-2 py-0.5 rounded-full">Free</span>
-                    </motion.div>
-                    <motion.div initial={{ scale: 0.5, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ delay: 0.6 }} className="flex justify-center gap-4 mt-2">
-                        <div className="p-2 bg-white rounded-full shadow-sm border border-gray-100"><Instagram size={20} className="text-pink-600"/></div>
-                        <div className="p-2 bg-white rounded-full shadow-sm border border-gray-100"><MessageCircle size={20} className="text-green-600"/></div>
-                    </motion.div>
-                </div>
-              </div>
-            </motion.div>
-          )}
 
-          {step === 3 && (
-            <motion.div key="step3" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="absolute inset-0 bg-white/80 backdrop-blur-md z-20 flex flex-col items-center justify-center p-6">
-              <motion.div initial={{ scale: 0.5, y: 50 }} animate={{ scale: 1, y: 0 }} className="bg-white p-6 rounded-3xl shadow-2xl border border-gray-100 w-full text-center relative overflow-hidden">
-                <div className="absolute top-0 left-0 w-full h-1 bg-green-500"></div>
-                <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <DollarSign className="w-8 h-8 text-green-600" />
-                </div>
-                <h2 className="text-2xl font-black text-gray-900 mb-1">Venda Aprovada!</h2>
-                <p className="text-gray-500 text-xs mb-6">Há 2 minutos via Link na Bio</p>
-                <div className="bg-gray-50 rounded-2xl p-4 border border-gray-100">
-                    <p className="text-[10px] text-gray-400 uppercase tracking-wide font-bold">Valor Líquido</p>
-                    <p className="text-4xl font-black text-[#4745d9]">R$ 97,00</p>
+                <motion.div
+                  initial={{ width: 0 }}
+                  animate={{ width: "100%" }}
+                  transition={{ duration: 3 }}
+                  className="h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mt-6"
+                />
+              </motion.div>
+            )}
+
+            {step === 1 && (
+              <motion.div
+                key="creating"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-600 flex flex-col items-center justify-center p-8 text-white"
+              >
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                  className="mb-6"
+                >
+                  <Wand2 className="w-16 h-16" />
+                </motion.div>
+
+                <h3 className="text-xl font-bold mb-8">Criando sua página...</h3>
+
+                <div className="w-full space-y-3">
+                  {[
+                    { text: "Configurando perfil", delay: 0 },
+                    { text: "Gerando layout", delay: 0.3 },
+                    { text: "Adicionando links", delay: 0.6 },
+                    { text: "Finalizando...", delay: 0.9 },
+                  ].map((item, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ x: -30, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: item.delay }}
+                      className="flex items-center gap-3 bg-white/10 backdrop-blur rounded-xl p-3"
+                    >
+                      <motion.div
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: item.delay + 0.3, type: "spring" }}
+                        className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center"
+                      >
+                        <Check size={12} className="text-gray-900" />
+                      </motion.div>
+                      <span className="text-sm font-medium">{item.text}</span>
+                    </motion.div>
+                  ))}
                 </div>
               </motion.div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </div>
-  );
-};
+            )}
 
-// 2. BRAIN DIRECTOR SIMULATOR
-const BrainDirectorSimulator = () => {
-  return (
-    <div className="bg-[#0f0f12] text-white rounded-3xl overflow-hidden shadow-2xl border border-gray-800 font-sans relative aspect-[16/10]">
-      <div className="flex items-center justify-between p-4 bg-[#18181b] border-b border-gray-800">
-        <div className="flex items-center gap-2">
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
-            <span className="text-xs font-bold uppercase tracking-wider text-gray-400">Modo Diretor: ATIVO ⚡</span>
-        </div>
-        <div className="bg-[#7c3aed] text-[10px] font-bold px-2 py-1 rounded text-white">95% VIRAL 🔥</div>
-      </div>
+            {step === 2 && (
+              <motion.div
+                key="preview"
+                initial={{ y: 50, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className={`absolute inset-0 overflow-hidden transition-colors duration-300 ${
+                  isDark
+                    ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+                    : "bg-gradient-to-br from-gray-50 to-white"
+                }`}
+              >
+                <div className="flex items-center justify-between px-4 pt-8 pb-2">
+                  <motion.button
+                    whileTap={{ scale: 0.9 }}
+                    whileHover={{ rotate: 180 }}
+                    transition={{ duration: 0.3 }}
+                    onClick={() => setIsDark(!isDark)}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      isDark ? "bg-white/10 text-yellow-400" : "bg-gray-100 text-gray-600"
+                    }`}
+                  >
+                    {isDark ? <Sun size={14} /> : <Moon size={14} />}
+                  </motion.button>
 
-      <div className="flex h-full">
-        <div className="w-1/2 p-4 border-r border-gray-800 space-y-4">
-            <div className="bg-[#1f1f23] p-3 rounded-xl border border-gray-700">
-                <div className="flex justify-between mb-2">
-                    <span className="text-[10px] text-gray-400">00:00 - 00:03</span>
-                    <span className="text-[10px] text-red-400 font-bold">Gancho Viral</span>
-                </div>
-                <p className="text-xs font-bold text-white leading-relaxed">Pare de perder tempo com código ruim e aprenda como criar aplicações escaláveis!</p>
-                <div className="mt-2 flex gap-2">
-                    <span className="text-[9px] bg-black/50 px-2 py-1 rounded text-gray-300">📹 Lente Wide</span>
-                    <span className="text-[9px] bg-black/50 px-2 py-1 rounded text-gray-300">🔊 SFX: Relógio</span>
-                </div>
-            </div>
-            <div className="bg-[#1f1f23] p-3 rounded-xl border border-gray-700 opacity-50">
-                <div className="flex justify-between mb-2">
-                    <span className="text-[10px] text-gray-400">00:03 - 00:10</span>
-                    <span className="text-[10px] text-yellow-400 font-bold">Conteúdo</span>
-                </div>
-                <p className="text-xs text-white">Mostre a tela do computador...</p>
-            </div>
-        </div>
-
-        <div className="w-1/2 p-4 bg-[#18181b]">
-            <div className="flex justify-between items-center mb-4">
-                <span className="text-xs font-bold text-gray-300">Novembro 2025</span>
-                <span className="text-[10px] bg-green-900/30 text-green-400 px-2 py-1 rounded border border-green-500/20">9 Agendados</span>
-            </div>
-            <div className="grid grid-cols-4 gap-2">
-                {[...Array(8)].map((_, i) => (
-                    <motion.div
-                        key={i}
-                        initial={{ scale: 0 }}
-                        whileInView={{ scale: 1 }}
-                        transition={{ delay: i * 0.1 }}
-                        className={`aspect-square rounded-lg flex flex-col items-center justify-center border ${i === 3 ? 'bg-[#4745d9] border-[#4745d9]' : 'bg-[#27272a] border-gray-700'}`}
+                  <div className="flex items-center gap-2">
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.1 }}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-600"
+                      }`}
                     >
-                        <span className="text-[10px] font-bold">{i + 10}</span>
-                        {i === 3 ? <Instagram size={10} className="mt-1"/> : <div className="w-1 h-1 bg-gray-500 rounded-full mt-1"></div>}
-                    </motion.div>
-                ))}
-            </div>
-            <div className="mt-4 p-2 bg-[#27272a] rounded-lg border border-gray-700">
-                <p className="text-[9px] text-gray-400 uppercase font-bold mb-1">Timing de Ouro</p>
-                <div className="flex justify-between items-center">
-                    <span className="text-xs font-bold text-white">Hoje às 14:00</span>
-                    <Bell size={10} className="text-yellow-400"/>
-                </div>
-            </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// 3. FINANCE PRO SIMULATOR
-const FinanceProSimulator = () => {
-  return (
-    <div className="bg-white rounded-3xl shadow-xl border border-gray-100 font-sans p-6 relative overflow-hidden group hover:shadow-2xl transition-shadow duration-300">
-      <div className="flex justify-between items-start mb-6">
-        <div>
-          <h4 className="font-black text-xl text-gray-900">Gestão PRO</h4>
-          <p className="text-xs text-gray-500">Acabou papel e caneta! 🚀</p>
-        </div>
-        <div className="text-right">
-          <div className="bg-[#4745d9] text-white text-[10px] font-bold px-3 py-1 rounded-full inline-block shadow-lg shadow-blue-500/30">Nível 2 • 15/100 XP</div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 mb-6">
-        <div className="bg-blue-50 p-3 rounded-2xl border border-blue-100 text-center">
-            <span className="text-[10px] text-gray-500 uppercase font-bold">Vendas</span>
-            <p className="text-lg font-black text-blue-600">R$ 14k</p>
-        </div>
-        <div className="bg-red-50 p-3 rounded-2xl border border-red-100 text-center">
-            <span className="text-[10px] text-gray-500 uppercase font-bold">Gastos</span>
-            <p className="text-lg font-black text-red-500">R$ 2k</p>
-        </div>
-        <div className="bg-green-50 p-3 rounded-2xl border border-green-100 text-center">
-            <span className="text-[10px] text-gray-500 uppercase font-bold">Lucro</span>
-            <p className="text-lg font-black text-green-600">R$ 12k</p>
-        </div>
-      </div>
-
-      <div className="relative h-32 bg-gray-50 rounded-2xl border border-gray-100 p-4 flex items-end gap-2 overflow-hidden">
-         {[20, 35, 60, 40, 75, 50, 90].map((h, i) => (
-            <motion.div
-                key={i}
-                initial={{ height: 0 }}
-                whileInView={{ height: `${h}%` }}
-                viewport={{ once: true }}
-                transition={{ duration: 1, delay: i * 0.1 }}
-                className="flex-1 bg-gradient-to-t from-[#4745d9] to-[#7c3aed] rounded-t-md opacity-80 hover:opacity-100 transition-opacity relative group"
-            >
-                <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-[9px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">R${h}0</div>
-            </motion.div>
-         ))}
-      </div>
-    </div>
-  );
-};
-
-// 4. MENTOR IA
-const MentorSimulator = () => {
-  return (
-    <div className="bg-gray-900 rounded-3xl p-5 border border-gray-800 text-white relative overflow-hidden">
-        <div className="mb-4">
-            <h4 className="font-bold">Gerador de Arte IA</h4>
-            <p className="text-xs text-gray-400">Digite em português e crie.</p>
-        </div>
-        <div className="bg-gray-800 p-3 rounded-xl border border-gray-700 mb-3 flex justify-between items-center">
-            <span className="text-xs text-gray-300">Gato astronauta cyberpunk...</span>
-            <div className="w-2 h-2 bg-[#7c3aed] rounded-full animate-pulse"></div>
-        </div>
-        <div className="flex gap-2 mb-4 overflow-hidden">
-            {["Realista", "3D", "Anime", "Vintage"].map((tag, i) => (
-                <span key={i} className={`text-[9px] px-2 py-1 rounded border ${i === 0 ? 'bg-[#4745d9] border-[#4745d9]' : 'border-gray-600 text-gray-400'}`}>{tag}</span>
-            ))}
-        </div>
-        <div className="aspect-video bg-black rounded-xl relative overflow-hidden group">
-            <img src="https://images.unsplash.com/photo-1620641788421-7a1c342ea42e?q=80&w=600&auto=format&fit=crop" className="w-full h-full object-cover opacity-60 group-hover:opacity-100 transition-opacity duration-700" alt="AI Art"/>
-            <div className="absolute inset-0 flex items-center justify-center">
-                <div className="bg-black/50 backdrop-blur px-3 py-1 rounded-full text-xs font-bold border border-white/20 group-hover:opacity-0 transition-opacity">Gerando...</div>
-            </div>
-        </div>
-    </div>
-  )
-}
-
-// 5. AI STUDIO PRO SIMULATOR
-const AiStudioSimulator = () => {
-    const [tab, setTab] = useState(0);
-    const tabs = [
-        { id: 0, icon: <MessageCircle size={14}/>, label: "Chat" },
-        { id: 1, icon: <ImagePlus size={14}/>, label: "Upscale" },
-        { id: 2, icon: <Scissors size={14}/>, label: "Remove BG" },
-    ];
-
-    useEffect(() => {
-        const i = setInterval(() => setTab(t => (t + 1) % 3), 3000);
-        return () => clearInterval(i);
-    }, []);
-
-    return (
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-4 aspect-[4/3] flex flex-col">
-            <div className="flex justify-around mb-4 bg-gray-50 p-1 rounded-xl">
-                {tabs.map((t) => (
-                    <div key={t.id} className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${tab === t.id ? 'bg-white text-[#4745d9] shadow-sm' : 'text-gray-400'}`}>
-                        {t.icon} {t.label}
-                    </div>
-                ))}
-            </div>
-            <div className="flex-1 bg-gray-50 rounded-2xl relative overflow-hidden border border-gray-200">
-                <AnimatePresence mode="wait">
-                    {tab === 0 && (
-                        <motion.div key="chat" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="p-4 space-y-2">
-                            <div className="bg-white p-2 rounded-lg rounded-tl-none text-xs text-gray-600 w-3/4 shadow-sm">Crie uma legenda para vender...</div>
-                            <div className="bg-[#4745d9] p-2 rounded-lg rounded-tr-none text-xs text-white w-3/4 ml-auto shadow-sm">Aqui está: Desbloqueie seu potencial...</div>
-                        </motion.div>
-                    )}
-                    {tab === 1 && (
-                        <motion.div key="upscale" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0">
-                            <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?q=80&w=400')] bg-cover blur-[2px]"></div>
-                            <motion.div initial={{width:0}} animate={{width:"100%"}} transition={{duration:2}} className="absolute left-0 h-full bg-[url('https://images.unsplash.com/photo-1500917293891-ef795e70e1f6?q=80&w=400')] bg-cover border-r-2 border-white"></motion.div>
-                            <div className="absolute bottom-2 right-2 bg-black/60 text-white text-[10px] px-2 py-1 rounded">4K Ready</div>
-                        </motion.div>
-                    )}
-                    {tab === 2 && (
-                        <motion.div key="bg" initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}} className="absolute inset-0 flex items-center justify-center bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]">
-                            <img src="https://pngimg.com/d/sneakers_PNG98664.png" className="w-2/3 drop-shadow-xl" alt="Remove BG"/>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
-        </div>
-    )
-}
-
-// 6. URL SHORTENER SIMULATOR (NOVO!)
-const UrlShortenerSimulator = () => {
-    const [copied, setCopied] = useState(false);
-    const [showStats, setShowStats] = useState(false);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setShowStats(s => !s);
-        }, 3500);
-        return () => clearInterval(interval);
-    }, []);
-
-    const handleCopy = () => {
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
-
-    return (
-        <div className="bg-white rounded-3xl shadow-xl border border-gray-100 p-6 relative overflow-hidden">
-            <div className="flex items-center gap-3 mb-6">
-                <div className="bg-blue-100 p-2 rounded-xl">
-                    <Link2 className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                    <h4 className="font-bold text-gray-900">Encurtador de Links</h4>
-                    <p className="text-xs text-gray-500">Links curtos + Analytics completo</p>
-                </div>
-            </div>
-
-            <AnimatePresence mode="wait">
-                {!showStats ? (
-                    <motion.div
-                        key="shortener"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="space-y-4"
+                      <QrCode size={14} />
+                    </motion.button>
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ scale: 1.1 }}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                        isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-600"
+                      }`}
                     >
-                        {/* Input URL */}
-                        <div className="bg-gray-50 rounded-xl p-3 border border-gray-200">
-                            <p className="text-[10px] text-gray-400 uppercase font-bold mb-1">URL Original</p>
-                            <p className="text-xs text-gray-600 truncate">https://meusite.com/produto/curso-marketing-digital-completo-2025</p>
-                        </div>
-
-                        {/* Output URL */}
-                        <div className="bg-[#4745d9]/5 rounded-xl p-3 border-2 border-[#4745d9]/20">
-                            <p className="text-[10px] text-[#4745d9] uppercase font-bold mb-1">Link Encurtado</p>
-                            <div className="flex items-center justify-between">
-                                <p className="text-sm font-black text-[#4745d9]">frlnk.io/curso25</p>
-                                <button
-                                    onClick={handleCopy}
-                                    className={`p-2 rounded-lg transition-all ${copied ? 'bg-green-100 text-green-600' : 'bg-white text-gray-600 hover:bg-gray-100'}`}
-                                >
-                                    {copied ? <Check size={14}/> : <Copy size={14}/>}
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Quick Stats Preview */}
-                        <div className="grid grid-cols-3 gap-2">
-                            <div className="bg-gray-50 p-2 rounded-lg text-center">
-                                <p className="text-lg font-black text-gray-900">1.2k</p>
-                                <p className="text-[9px] text-gray-500">Cliques</p>
-                            </div>
-                            <div className="bg-gray-50 p-2 rounded-lg text-center">
-                                <p className="text-lg font-black text-gray-900">4.2%</p>
-                                <p className="text-[9px] text-gray-500">CTR</p>
-                            </div>
-                            <div className="bg-gray-50 p-2 rounded-lg text-center">
-                                <p className="text-lg font-black text-green-600">+23%</p>
-                                <p className="text-[9px] text-gray-500">vs ontem</p>
-                            </div>
-                        </div>
-                    </motion.div>
-                ) : (
-                    <motion.div
-                        key="stats"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        className="space-y-3"
-                    >
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-bold text-gray-700">Últimos cliques em tempo real</span>
-                            <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
-                        </div>
-
-                        {[
-                            { city: "São Paulo, BR", device: "iPhone", time: "agora" },
-                            { city: "Lisboa, PT", device: "Android", time: "2min" },
-                            { city: "Miami, US", device: "Desktop", time: "5min" },
-                        ].map((click, i) => (
-                            <motion.div
-                                key={i}
-                                initial={{ x: -20, opacity: 0 }}
-                                animate={{ x: 0, opacity: 1 }}
-                                transition={{ delay: i * 0.15 }}
-                                className="flex items-center justify-between bg-gray-50 p-2 rounded-lg"
-                            >
-                                <div className="flex items-center gap-2">
-                                    <MapPin size={12} className="text-gray-400"/>
-                                    <span className="text-xs font-medium text-gray-700">{click.city}</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    {click.device === "iPhone" || click.device === "Android" ?
-                                        <Smartphone size={10} className="text-gray-400"/> :
-                                        <Monitor size={10} className="text-gray-400"/>
-                                    }
-                                    <span className="text-[10px] text-gray-500">{click.time}</span>
-                                </div>
-                            </motion.div>
-                        ))}
-                    </motion.div>
-                )}
-            </AnimatePresence>
-        </div>
-    );
-};
-
-// 7. ANALYTICS SIMULATOR (NOVO!)
-const AnalyticsSimulator = () => {
-    const [activeMetric, setActiveMetric] = useState(0);
-
-    useEffect(() => {
-        const interval = setInterval(() => {
-            setActiveMetric(m => (m + 1) % 3);
-        }, 2500);
-        return () => clearInterval(interval);
-    }, []);
-
-    return (
-        <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-6 text-white relative overflow-hidden">
-            {/* Background Glow */}
-            <div className="absolute top-0 right-0 w-40 h-40 bg-[#4745d9]/30 rounded-full blur-[60px]"></div>
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-[#7c3aed]/20 rounded-full blur-[40px]"></div>
-
-            <div className="relative z-10">
-                <div className="flex items-center justify-between mb-6">
-                    <div className="flex items-center gap-3">
-                        <div className="bg-white/10 p-2 rounded-xl backdrop-blur">
-                            <BarChart3 className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                            <h4 className="font-bold">Analytics em Tempo Real</h4>
-                            <p className="text-xs text-gray-400">Dados precisos de cada clique</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-1 bg-green-500/20 px-2 py-1 rounded-full">
-                        <span className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse"></span>
-                        <span className="text-[10px] text-green-400 font-bold">LIVE</span>
-                    </div>
+                      <Share2 size={14} />
+                    </motion.button>
+                  </div>
                 </div>
 
-                {/* Main Stats */}
-                <div className="grid grid-cols-3 gap-3 mb-6">
-                    {[
-                        { label: "Visualizações", value: "12.4k", change: "+18%", icon: <Globe size={14}/> },
-                        { label: "Cliques", value: "3.2k", change: "+24%", icon: <MousePointerClick size={14}/> },
-                        { label: "Conversões", value: "847", change: "+31%", icon: <Target size={14}/> },
-                    ].map((stat, i) => (
+                <div className="px-6 pt-2 pb-4 text-center">
+                  <motion.div
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
+                    className="relative w-20 h-20 mx-auto mb-3"
+                  >
+                    <img
+                      src="https://i.pravatar.cc/200?img=32"
+                      className="w-full h-full rounded-full object-cover border-4 border-white/20 shadow-xl"
+                      alt="Profile"
+                    />
+                    <motion.div
+                      animate={{ scale: [1, 1.2, 1] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                      className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center"
+                    >
+                      <Check size={10} className="text-white" />
+                    </motion.div>
+                  </motion.div>
+
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.3 }}
+                    className="flex items-center justify-center gap-1.5 mb-1"
+                  >
+                    <h3 className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-900"}`}>
+                      @ana.creator
+                    </h3>
+                    <BadgeCheck size={16} className="text-gray-400" />
+                  </motion.div>
+
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.4 }}
+                    className={`text-xs mb-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                  >
+                    Transformo seguidores em clientes! ✨
+                  </motion.p>
+
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                    className={`text-[10px] ${isDark ? "text-gray-500" : "text-gray-400"}`}
+                  >
+                    Desde 2025
+                  </motion.p>
+                </div>
+
+                <div className="px-4 space-y-2.5 overflow-y-auto max-h-[280px] pb-4">
+                  <motion.p
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.6 }}
+                    className={`text-[10px] font-bold uppercase tracking-wider px-2 ${
+                      isDark ? "text-gray-500" : "text-gray-400"
+                    }`}
+                  >
+                    Links
+                  </motion.p>
+
+                  {[
+                    { icon: <Instagram size={16} />, text: "Instagram", likes: likes.instagram, color: "from-pink-500 to-purple-500" },
+                    { icon: <MessageCircle size={16} />, text: "WhatsApp", likes: likes.whatsapp, color: "from-green-500 to-emerald-500" },
+                    { icon: <Flame size={16} />, text: "🔥 Mentoria VIP", likes: likes.mentoria, color: "from-orange-500 to-red-500", highlight: true },
+                    { icon: <BookOpen size={16} />, text: "📚 E-book Gratuito", likes: likes.ebook, color: "from-blue-500 to-cyan-500" },
+                  ].map((link, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ x: -30, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.7 + i * 0.1 }}
+                      whileHover={{ scale: 1.02, x: 4 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={`relative rounded-2xl p-3.5 flex items-center justify-between cursor-pointer group overflow-hidden ${
+                        link.highlight
+                          ? `bg-gradient-to-r ${link.color} shadow-lg`
+                          : isDark
+                            ? "bg-white/5 hover:bg-white/10 border border-white/10"
+                            : "bg-gray-100 hover:bg-gray-200 border border-gray-200"
+                      }`}
+                    >
+                      {link.highlight && (
                         <motion.div
-                            key={i}
-                            animate={{
-                                scale: activeMetric === i ? 1.05 : 1,
-                                borderColor: activeMetric === i ? '#4745d9' : 'transparent'
-                            }}
-                            className="bg-white/5 backdrop-blur p-3 rounded-xl border-2 border-transparent transition-all"
+                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                          animate={{ x: ["-100%", "100%"] }}
+                          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                        />
+                      )}
+
+                      <div className="flex items-center gap-3 relative z-10">
+                        <span className={link.highlight ? "text-white" : isDark ? "text-white" : "text-gray-700"}>
+                          {link.icon}
+                        </span>
+                        <span className={`text-sm font-semibold ${
+                          link.highlight ? "text-white" : isDark ? "text-white" : "text-gray-800"
+                        }`}>
+                          {link.text}
+                        </span>
+                      </div>
+
+                      <motion.div
+                        whileTap={{ scale: 1.3 }}
+                        className={`flex items-center gap-1 relative z-10 ${
+                          link.highlight ? "text-white/80" : isDark ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      >
+                        <Heart size={12} className={link.highlight ? "fill-white/50" : ""} />
+                        <motion.span
+                          key={link.likes}
+                          initial={{ y: -10, opacity: 0 }}
+                          animate={{ y: 0, opacity: 1 }}
+                          className="text-xs font-medium"
                         >
-                            <div className="flex items-center gap-1 text-gray-400 mb-1">
-                                {stat.icon}
-                                <span className="text-[10px]">{stat.label}</span>
-                            </div>
-                            <p className="text-xl font-black">{stat.value}</p>
-                            <span className="text-[10px] text-green-400 font-bold">{stat.change}</span>
+                          {link.likes}
+                        </motion.span>
+                      </motion.div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ delay: 1.2 }}
+                  className="absolute bottom-4 left-0 right-0 text-center"
+                >
+                  <p className={`text-[10px] ${isDark ? "text-gray-600" : "text-gray-400"}`}>
+                    Feito com 💜 no <span className="font-bold">Freelinnk</span>
+                  </p>
+                </motion.div>
+              </motion.div>
+            )}
+
+            {step === 3 && (
+              <motion.div
+                key="analytics"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-gray-50 p-6"
+              >
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="font-bold text-gray-900">Analytics</h3>
+                  <motion.span
+                    animate={{ opacity: [1, 0.5, 1] }}
+                    transition={{ repeat: Infinity, duration: 1.5 }}
+                    className="flex items-center gap-1 text-xs text-green-600 font-bold"
+                  >
+                    <span className="w-2 h-2 bg-green-500 rounded-full" />
+                    LIVE
+                  </motion.span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 mb-4">
+                  {[
+                    { label: "Cliques Hoje", value: "847", change: "+23%" },
+                    { label: "Conversões", value: "12.4%", change: "+8%" },
+                  ].map((stat, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ y: 20, opacity: 0 }}
+                      animate={{ y: 0, opacity: 1 }}
+                      transition={{ delay: i * 0.1 }}
+                      whileHover={{ scale: 1.05 }}
+                      className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+                    >
+                      <p className="text-[10px] text-gray-500 uppercase font-bold">{stat.label}</p>
+                      <p className="text-2xl font-black text-gray-900">{stat.value}</p>
+                      <span className="text-xs text-green-600 font-bold">{stat.change}</span>
+                    </motion.div>
+                  ))}
+                </div>
+
+                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
+                  <p className="text-xs font-bold text-gray-700 mb-3">Últimos cliques</p>
+                  {[
+                    { city: "São Paulo", time: "agora" },
+                    { city: "Lisboa", time: "2min" },
+                    { city: "Miami", time: "5min" },
+                  ].map((click, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ x: -20, opacity: 0 }}
+                      animate={{ x: 0, opacity: 1 }}
+                      transition={{ delay: 0.3 + i * 0.1 }}
+                      className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
+                    >
+                      <div className="flex items-center gap-2">
+                        <motion.div
+                          animate={{ scale: [1, 1.2, 1] }}
+                          transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}
+                        >
+                          <MapPin size={12} className="text-indigo-500" />
                         </motion.div>
-                    ))}
+                        <span className="text-xs text-gray-700">{click.city}</span>
+                      </div>
+                      <span className="text-[10px] text-gray-400">{click.time}</span>
+                    </motion.div>
+                  ))}
                 </div>
 
-                {/* Geographic Distribution */}
-                <div className="bg-white/5 backdrop-blur rounded-xl p-4 mb-4">
-                    <p className="text-xs font-bold text-gray-400 mb-3">📍 Top Localizações</p>
-                    <div className="space-y-2">
-                        {[
-                            { country: "🇧🇷 Brasil", percent: 68 },
-                            { country: "🇵🇹 Portugal", percent: 15 },
-                            { country: "🇺🇸 EUA", percent: 10 },
-                        ].map((loc, i) => (
-                            <div key={i} className="flex items-center gap-3">
-                                <span className="text-xs w-20">{loc.country}</span>
-                                <div className="flex-1 h-2 bg-white/10 rounded-full overflow-hidden">
-                                    <motion.div
-                                        initial={{ width: 0 }}
-                                        whileInView={{ width: `${loc.percent}%` }}
-                                        transition={{ duration: 1, delay: i * 0.2 }}
-                                        className="h-full bg-gradient-to-r from-[#4745d9] to-[#7c3aed] rounded-full"
-                                    />
-                                </div>
-                                <span className="text-xs font-bold w-10 text-right">{loc.percent}%</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <motion.div
+                  className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl p-4 text-white"
+                  whileHover={{ scale: 1.02 }}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <motion.div
+                      animate={{ rotate: [0, 10, -10, 0] }}
+                      transition={{ repeat: Infinity, duration: 2 }}
+                    >
+                      <TrendingUp size={16} />
+                    </motion.div>
+                    <span className="text-xs font-bold uppercase">Insight IA</span>
+                  </div>
+                  <p className="text-sm">72% do seu público acessa pelo celular às 14h!</p>
+                </motion.div>
+              </motion.div>
+            )}
 
-                {/* Device & Time */}
-                <div className="grid grid-cols-2 gap-3">
-                    <div className="bg-white/5 backdrop-blur rounded-xl p-3">
-                        <p className="text-[10px] text-gray-400 mb-2">📱 Dispositivos</p>
-                        <div className="flex items-center gap-2">
-                            <div className="flex-1">
-                                <div className="flex justify-between text-[10px] mb-1">
-                                    <span>Mobile</span>
-                                    <span className="font-bold">72%</span>
-                                </div>
-                                <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
-                                    <div className="h-full w-[72%] bg-blue-500 rounded-full"></div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="bg-white/5 backdrop-blur rounded-xl p-3">
-                        <p className="text-[10px] text-gray-400 mb-2">⏰ Melhor Horário</p>
-                        <div className="flex items-center gap-2">
-                            <Clock size={16} className="text-yellow-400"/>
-                            <span className="font-bold">14h - 16h</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            {step === 4 && (
+              <motion.div
+                key="sale"
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-6"
+              >
+                <motion.div
+                  initial={{ y: 30 }}
+                  animate={{ y: 0 }}
+                  className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100 w-full text-center"
+                >
+                  <motion.div
+                    initial={{ scale: 0, rotate: -180 }}
+                    animate={{ scale: 1, rotate: 0 }}
+                    transition={{ type: "spring", bounce: 0.5 }}
+                    className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"
+                  >
+                    <DollarSign className="w-10 h-10 text-white" />
+                  </motion.div>
+
+                  <motion.h2
+                    className="text-2xl font-black text-gray-900 mb-1"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    Venda Aprovada!
+                  </motion.h2>
+                  <p className="text-sm text-gray-500 mb-6">Via Link na Bio • Agora</p>
+
+                  <motion.div
+                    className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-100"
+                    initial={{ scale: 0.8 }}
+                    animate={{ scale: 1 }}
+                    transition={{ delay: 0.3, type: "spring" }}
+                  >
+                    <p className="text-xs text-gray-500 uppercase font-bold mb-1">Valor</p>
+                    <motion.p
+                      initial={{ scale: 0.5 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.4, type: "spring" }}
+                      className="text-4xl font-black text-green-600"
+                    >
+                      R$ 497,00
+                    </motion.p>
+                  </motion.div>
+
+                  <motion.div
+                    className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    <motion.span
+                      animate={{ scale: [1, 1.3, 1] }}
+                      transition={{ repeat: Infinity, duration: 1 }}
+                      className="w-2 h-2 bg-green-500 rounded-full"
+                    />
+                    <span>+127 vendas este mês</span>
+                  </motion.div>
+                </motion.div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+            {[0, 1, 2, 3, 4].map(i => (
+              <motion.div
+                key={i}
+                animate={{
+                  width: step === i ? 16 : 6,
+                  backgroundColor: step === i ? "#6366f1" : "#d1d5db"
+                }}
+                className="h-1.5 rounded-full"
+              />
+            ))}
+          </div>
         </div>
-    );
+      </motion.div>
+
+      <FloatingElement delay={0} duration={4} y={10}>
+        <motion.div
+          className="absolute -top-4 -left-4 sm:top-8 sm:-left-16 bg-white rounded-2xl p-3 shadow-xl border border-gray-100 hidden sm:flex items-center gap-3 z-10"
+          whileHover={{ scale: 1.05 }}
+        >
+          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+            <TrendingUp className="w-5 h-5 text-green-600" />
+          </div>
+          <div>
+            <p className="text-[10px] text-gray-500 font-bold uppercase">Conversão</p>
+            <p className="text-lg font-black text-gray-900">+312%</p>
+          </div>
+        </motion.div>
+      </FloatingElement>
+
+      <FloatingElement delay={1} duration={5} y={12}>
+        <motion.div
+          className="absolute -bottom-4 -right-4 sm:bottom-20 sm:-right-16 bg-white rounded-2xl p-3 shadow-xl border border-gray-100 hidden sm:flex items-center gap-3 z-10"
+          whileHover={{ scale: 1.05 }}
+        >
+          <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+            <Eye className="w-5 h-5 text-purple-600" />
+          </div>
+          <div>
+            <p className="text-[10px] text-gray-500 font-bold uppercase">Visualizações</p>
+            <p className="text-lg font-black text-gray-900">12.4k</p>
+          </div>
+        </motion.div>
+      </FloatingElement>
+    </div>
+  );
 };
 
-// --- PÁGINA PRINCIPAL ---
+// --- SOCIAL PROOF AVATARS ---
+const SocialProofAvatars = () => {
+  const avatars = [
+    "https://i.pravatar.cc/80?img=1",
+    "https://i.pravatar.cc/80?img=2",
+    "https://i.pravatar.cc/80?img=3",
+    "https://i.pravatar.cc/80?img=4",
+    "https://i.pravatar.cc/80?img=5",
+    "https://i.pravatar.cc/80?img=6",
+  ];
+
+  return (
+    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+      <div className="flex -space-x-3">
+        {avatars.map((src, i) => (
+          <motion.img
+            key={i}
+            initial={{ scale: 0, x: -10 }}
+            animate={{ scale: 1, x: 0 }}
+            transition={{ delay: i * 0.08, type: "spring" }}
+            whileHover={{ scale: 1.1, zIndex: 10 }}
+            src={src}
+            alt=""
+            className="w-10 h-10 rounded-full border-[3px] border-white shadow-md object-cover relative"
+          />
+        ))}
+      </div>
+      <div className="text-center sm:text-left">
+        <div className="flex items-center justify-center sm:justify-start gap-0.5 mb-0.5">
+          {[1, 2, 3, 4, 5].map(i => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, scale: 0 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.5 + i * 0.1 }}
+            >
+              <Star size={14} className="text-yellow-400 fill-yellow-400" />
+            </motion.div>
+          ))}
+        </div>
+        <p className="text-sm text-gray-600">
+          <span className="font-bold text-gray-900">+10.800</span> criadores ativos
+        </p>
+      </div>
+    </div>
+  );
+};
+
+// --- PÁGINAS REAIS COM CARROSSEL ANIMADO ---
+// --- SUBSTITUA O COMPONENTE RealPagesShowcase INTEIRO POR ESTE ---
+
+const RealPagesShowcase = () => {
+  const [isPaused, setIsPaused] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Duplicar páginas para efeito infinito
+  const duplicatedPages = [...realPages, ...realPages, ...realPages];
+
+  return (
+    <div
+      className="relative overflow-hidden py-8"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      {/* Gradientes laterais */}
+      <div className="absolute left-0 top-0 bottom-0 w-10 md:w-40 bg-gradient-to-r from-gray-50 via-gray-50 to-transparent z-10 pointer-events-none" />
+      <div className="absolute right-0 top-0 bottom-0 w-10 md:w-40 bg-gradient-to-l from-gray-50 via-gray-50 to-transparent z-10 pointer-events-none" />
+
+      {/* Carrossel */}
+      <motion.div
+        ref={containerRef}
+        className="flex gap-6 md:gap-8"
+        animate={{
+          x: isPaused ? undefined : [0, -1200],
+        }}
+        transition={{
+          x: {
+            repeat: Infinity,
+            repeatType: "loop",
+            duration: 40, // Mais lento para facilitar a leitura
+            ease: "linear",
+          },
+        }}
+        style={{ width: "fit-content" }}
+      >
+        {duplicatedPages.map((page, index) => (
+          <motion.div
+            key={`${page.id}-${index}`}
+            className="relative flex-shrink-0 w-[240px] sm:w-[280px] md:w-[300px] group"
+            whileHover={{
+              y: -20,
+              scale: 1.05,
+              zIndex: 20,
+            }}
+            transition={{ type: "spring", stiffness: 300, damping: 20 }}
+          >
+            {/* Glow effect no hover */}
+            <motion.div
+              className={`absolute -inset-4 bg-gradient-to-r ${page.color} rounded-[3rem] opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500`}
+            />
+
+            {/* Phone Frame */}
+            <div className="relative bg-gray-900 rounded-[2.5rem] p-2 shadow-xl group-hover:shadow-2xl transition-all duration-500">
+              {/* Notch */}
+              <div className="absolute top-0 inset-x-0 h-5 flex justify-center z-10">
+                <div className="w-20 h-5 bg-gray-900 rounded-b-xl" />
+              </div>
+
+              {/* Screen */}
+              <div className="bg-gray-800 rounded-[2rem] overflow-hidden aspect-[9/18] relative">
+                {/* Imagem da página */}
+                <motion.img
+                  src={page.image}
+                  alt={page.name}
+                  className="w-full h-full object-cover"
+                  whileHover={{ scale: 1.1 }}
+                  transition={{ duration: 0.6 }}
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = `https://placehold.co/280x500/1a1a2e/6366f1?text=${encodeURIComponent(
+                      page.name
+                    )}`;
+                  }}
+                />
+
+                {/* Overlay gradiente - Mais forte para leitura */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-4" />
+
+                {/* Info no hover - Corrigido tamanho e quebra */}
+                <motion.div
+                  className="absolute bottom-0 left-0 right-0 p-5 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end items-center text-center z-20"
+                  initial={{ y: 20 }}
+                  whileHover={{ y: 0 }}
+                >
+                  <p className="text-white font-bold text-lg leading-tight mb-1 w-full break-words">
+                    {page.name}
+                  </p>
+                  <p className="text-white/80 text-sm font-medium">
+                    {page.type}
+                  </p>
+                  <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur rounded-full">
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                    <span className="text-[10px] text-white font-bold uppercase">
+                      Ver página
+                    </span>
+                  </div>
+                </motion.div>
+              </div>
+            </div>
+
+            {/* Info abaixo do card (fora do celular) */}
+            <motion.div
+              className="mt-4 text-center"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2 }}
+            >
+              <motion.p
+                className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors"
+                whileHover={{ scale: 1.05 }}
+              >
+                {page.name}
+              </motion.p>
+              <p className="text-xs text-gray-500 mt-0.5">{page.type}</p>
+            </motion.div>
+          </motion.div>
+        ))}
+      </motion.div>
+
+      {/* Aviso LGPD obrigatório */}
+      <div className="text-center mt-12">
+        <p className="text-[10px] text-gray-400">
+          * As páginas exibidas foram autorizadas pelos criadores para aparecer em nossa galeria pública.
+        </p>
+        <motion.p
+          className="text-center text-sm text-gray-400 mt-2"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1 }}
+        >
+          <motion.span
+            animate={{ opacity: [0.5, 1, 0.5] }}
+            transition={{ repeat: Infinity, duration: 2 }}
+          >
+            Passe o mouse para pausar ✨
+          </motion.span>
+        </motion.p>
+      </div>
+    </div>
+  );
+};
+
+// --- FEATURE CARD COM MAIS ANIMAÇÕES ---
+const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: number }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 50, rotateX: -15 }}
+      animate={isInView ? { opacity: 1, y: 0, rotateX: 0 } : {}}
+      transition={{ delay: index * 0.1, duration: 0.6, type: "spring" }}
+      whileHover={{
+        y: -12,
+        scale: 1.03,
+        rotateY: 5,
+        transition: { duration: 0.3 }
+      }}
+      className="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-2xl hover:border-indigo-200 transition-all duration-500 cursor-pointer group overflow-hidden"
+      style={{ transformStyle: "preserve-3d" }}
+    >
+      {/* Background gradient animado */}
+      <motion.div
+        className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}
+      />
+
+      {/* Partículas decorativas */}
+      <motion.div
+        className="absolute top-4 right-4 w-20 h-20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+        animate={{
+          scale: [1, 1.2, 1],
+          rotate: [0, 180, 360],
+        }}
+        transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
+      >
+        <div className={`w-full h-full bg-gradient-to-br ${feature.color} opacity-10 rounded-full blur-xl`} />
+      </motion.div>
+
+      {/* Content */}
+      <div className="relative z-10">
+        <div className="flex items-start justify-between mb-4">
+          <motion.div
+            whileHover={{ rotate: [0, -10, 10, 0], scale: 1.15 }}
+            transition={{ duration: 0.5 }}
+            className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:shadow-xl transition-all duration-300`}
+          >
+            {feature.icon}
+          </motion.div>
+          <motion.span
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${
+              feature.tag === "GRÁTIS"
+                ? "bg-green-100 text-green-700"
+                : feature.tag === "PRO"
+                  ? "bg-blue-100 text-blue-700"
+                  : "bg-purple-100 text-purple-700"
+            }`}
+          >
+            {feature.tag}
+          </motion.span>
+        </div>
+
+        <motion.h3
+          className="font-bold text-lg text-gray-900 mb-2 group-hover:text-indigo-700 transition-colors"
+        >
+          {feature.title}
+        </motion.h3>
+        <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
+      </div>
+
+      {/* Linha de progresso animada */}
+      <motion.div
+        className={`absolute bottom-0 left-0 h-1 bg-gradient-to-r ${feature.color}`}
+        initial={{ width: 0 }}
+        whileHover={{ width: "100%" }}
+        transition={{ duration: 0.5 }}
+      />
+
+      {/* Arrow indicator */}
+      <motion.div
+        className="absolute bottom-4 right-4 text-indigo-500 opacity-0 group-hover:opacity-100"
+        initial={{ x: -10 }}
+        whileHover={{ x: 0 }}
+      >
+        <ArrowRight size={18} />
+      </motion.div>
+    </motion.div>
+  );
+};
+
+// --- TESTIMONIAL CARD COM MAIS ANIMAÇÕES ---
+const TestimonialCard = ({ testimonial, index }: { testimonial: typeof testimonials[0]; index: number }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 50, scale: 0.9 }}
+      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
+      transition={{ delay: index * 0.15, duration: 0.6, type: "spring" }}
+      whileHover={{
+        y: -10,
+        scale: 1.02,
+        boxShadow: "0 25px 50px -12px rgba(99, 102, 241, 0.25)"
+      }}
+      className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 group relative overflow-hidden"
+    >
+      {/* Background decoration */}
+      <motion.div
+        className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-500 blur-2xl"
+      />
+
+      {/* Stars */}
+      <div className="flex gap-1 mb-4 relative z-10">
+        {[1, 2, 3, 4, 5].map(i => (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, scale: 0, rotate: -180 }}
+            animate={isInView ? { opacity: 1, scale: 1, rotate: 0 } : {}}
+            transition={{ delay: index * 0.1 + i * 0.1, type: "spring" }}
+            whileHover={{ scale: 1.2, rotate: 15 }}
+          >
+            <Star size={16} className="text-yellow-400 fill-yellow-400" />
+          </motion.div>
+        ))}
+      </div>
+
+      <motion.p
+        className="text-gray-700 text-sm leading-relaxed mb-6 italic relative z-10"
+        initial={{ opacity: 0 }}
+        animate={isInView ? { opacity: 1 } : {}}
+        transition={{ delay: index * 0.15 + 0.2 }}
+      >
+        &quot;{testimonial.text}&quot;
+      </motion.p>
+
+      <div className="flex items-center justify-between relative z-10">
+        <div className="flex items-center gap-3">
+          <motion.div
+            className="relative"
+            whileHover={{ scale: 1.1 }}
+          >
+            <img
+              src={testimonial.avatar}
+              alt={testimonial.author}
+              className="w-12 h-12 rounded-full border-2 border-gray-100 group-hover:border-indigo-200 transition-colors object-cover"
+            />
+            <motion.div
+              className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"
+              animate={{ scale: [1, 1.2, 1] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+            />
+          </motion.div>
+          <div>
+            <p className="font-bold text-sm text-gray-900">{testimonial.author}</p>
+            <p className="text-xs text-gray-500">{testimonial.role}</p>
+          </div>
+        </div>
+        <motion.div
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          whileTap={{ scale: 0.95 }}
+          className="bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 text-xs font-bold px-3 py-2 rounded-full border border-green-100"
+        >
+          {testimonial.increase}
+        </motion.div>
+      </div>
+    </motion.div>
+  );
+};
+
+// --- HOW IT WORKS STEP ---
+const HowItWorksStep = ({ step, index, total }: { step: { icon: React.ReactNode; title: string; desc: string }; index: number; total: number }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 50 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ delay: index * 0.2, duration: 0.6 }}
+      className="relative"
+    >
+      {/* Connector Line */}
+      {index < total - 1 && (
+        <motion.div
+          className="hidden lg:block absolute top-14 left-1/2 w-full h-1 overflow-hidden"
+          initial={{ opacity: 0 }}
+          animate={isInView ? { opacity: 1 } : {}}
+        >
+          <motion.div
+            className="h-full bg-gradient-to-r from-indigo-400 to-purple-400"
+            initial={{ width: 0 }}
+            animate={isInView ? { width: "100%" } : {}}
+            transition={{ delay: index * 0.2 + 0.5, duration: 0.8 }}
+          />
+        </motion.div>
+      )}
+
+      <div className="relative z-10 flex flex-col items-center text-center">
+        <MagneticWrapper>
+          <motion.div
+            whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
+            whileTap={{ scale: 0.95 }}
+            className="w-28 h-28 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-[2rem] flex items-center justify-center text-white shadow-xl shadow-indigo-500/30 mb-4 cursor-pointer relative overflow-hidden"
+          >
+            {/* Animated background */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+            />
+            <span className="relative z-10">{step.icon}</span>
+          </motion.div>
+        </MagneticWrapper>
+
+        <motion.div
+          whileHover={{ scale: 1.1 }}
+          className="bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 text-sm font-bold px-4 py-1.5 rounded-full mb-3"
+        >
+          Passo {index + 1}
+        </motion.div>
+
+        <h3 className="font-bold text-lg text-gray-900 mb-2">{step.title}</h3>
+        <p className="text-sm text-gray-500 max-w-[200px]">{step.desc}</p>
+      </div>
+    </motion.div>
+  );
+};
+
+// --- NICHO CARD ---
+const NichoCard = ({ nicho, index }: { nicho: typeof nichos[0]; index: number }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, scale: 0.8, y: 20 }}
+      animate={isInView ? { opacity: 1, scale: 1, y: 0 } : {}}
+      transition={{ delay: index * 0.05, duration: 0.4, type: "spring" }}
+      whileHover={{
+        y: -8,
+        scale: 1.05,
+        boxShadow: "0 20px 40px -15px rgba(99, 102, 241, 0.2)"
+      }}
+      whileTap={{ scale: 0.98 }}
+      className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-indigo-200 hover:bg-gradient-to-br hover:from-indigo-50/50 hover:to-purple-50/50 transition-all duration-300 cursor-pointer group text-center relative overflow-hidden"
+    >
+      {/* Animated background circle */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full scale-0 group-hover:scale-150 transition-transform duration-700"
+      />
+
+      <motion.div
+        whileHover={{ rotate: [0, -15, 15, 0], scale: 1.2 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3 text-gray-600 group-hover:text-indigo-600 group-hover:from-indigo-100 group-hover:to-purple-100 transition-all shadow-sm group-hover:shadow-md"
+      >
+        {nicho.icon}
+      </motion.div>
+      <p className="relative z-10 text-sm font-bold text-gray-700 group-hover:text-indigo-700 transition-colors">
+        {nicho.name}
+      </p>
+    </motion.div>
+  );
+};
+
+// --- DIFFERENTIAL CARD ---
+const DifferentialCard = ({ item, index }: { item: { icon: React.ReactNode; title: string; desc: string }; index: number }) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true });
+
+  return (
+    <motion.div
+      ref={ref}
+      initial={{ opacity: 0, y: 30 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ delay: index * 0.1, duration: 0.5 }}
+      whileHover={{
+        y: -10,
+        scale: 1.03,
+        backgroundColor: "rgba(255,255,255,0.15)"
+      }}
+      className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10 hover:border-white/30 transition-all duration-500 group relative overflow-hidden"
+    >
+      {/* Glow effect */}
+      <motion.div
+        className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"
+      />
+
+      <motion.div
+        whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
+        transition={{ duration: 0.5 }}
+        className="relative z-10 w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl group-hover:shadow-indigo-500/30 transition-all"
+      >
+        {item.icon}
+      </motion.div>
+      <h3 className="relative z-10 font-bold text-xl mb-2 text-white">{item.title}</h3>
+      <p className="relative z-10 text-gray-400 group-hover:text-gray-300 transition-colors">{item.desc}</p>
+    </motion.div>
+  );
+};
+
+// --- MAIN PAGE ---
+// --- SUBSTITUA A FUNÇÃO export default function LandingPage INTEIRA POR ESTA ---
+
+// --- SUBSTITUA APENAS A FUNÇÃO LandingPage POR ESTA ---
 
 export default function LandingPage() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const { scrollYProgress } = useScroll();
 
   useEffect(() => {
     if (isLoaded && isSignedIn) router.push("/dashboard");
   }, [isLoaded, isSignedIn, router]);
 
-  return (
-    <div className="bg-white text-gray-900 font-sans selection:bg-[#4745d9] selection:text-white overflow-x-hidden">
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 20);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
-      {/* NAV */}
-      <nav className="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-md border-b border-gray-100 h-20 flex items-center">
-        <div className="max-w-7xl mx-auto w-full px-4 sm:px-6 flex justify-between items-center">
-          <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.scrollTo(0,0)}>
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white text-2xl font-black shadow-lg ${BRAND.gradient} group-hover:scale-105 transition-transform`}>F</div>
-            <span className="text-xl font-bold tracking-tight text-gray-900">Freelinnk</span>
+  const howItWorks = [
+    {
+      icon: <Settings size={36} />,
+      title: "Configure sua página",
+      desc: "Personalize cada detalhe do seu jeito",
+    },
+    {
+      icon: <Wand2 size={36} />,
+      title: "Crie seus links",
+      desc: "Organize seus links importantes",
+    },
+    {
+      icon: <Share2 size={36} />,
+      title: "Compartilhe",
+      desc: "Coloque na bio e comece a rastrear",
+    },
+    {
+      icon: <Rocket size={36} />,
+      title: "Lucre mais",
+      desc: "Veja seus resultados explodirem",
+    },
+  ];
+
+  const differentials = [
+    {
+      icon: <Gift size={28} />,
+      title: "Grátis de verdade",
+      desc: "Página, encurtador e analytics básico. Sem pegadinhas.",
+    },
+    {
+      icon: <Palette size={28} />,
+      title: "100% customizável",
+      desc: "Você escolhe cada cor, fonte e layout.",
+    },
+    {
+      icon: <Bot size={28} />,
+      title: "IA que trabalha por você",
+      desc: "Brain Roteirista, Chat IA e muito mais.",
+    },
+    {
+      icon: <BarChart3 size={28} />,
+      title: "Analytics de verdade",
+      desc: "Saiba cidade, dispositivo e horário de cada clique.",
+    },
+    {
+      icon: <Calculator size={28} />,
+      title: "Gestão Financeira",
+      desc: "Nenhum concorrente tem. Veja seu lucro real.",
+    },
+    {
+      icon: <Shield size={28} />,
+      title: "Seguro e rápido",
+      desc: "Criptografia, CDN global e 99.99% de uptime.",
+    },
+  ];
+
+  return (
+    <div className="bg-white text-gray-900 font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
+      {/* Progress Bar */}
+      <motion.div
+        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 z-[100] origin-left"
+        style={{ scaleX: scrollYProgress }}
+      />
+
+      {/* Mobile CTA (Barra fixa inferior) - CORRIGIDO O CLIQUE */}
+      <motion.div
+        className="fixed bottom-0 left-0 right-0 z-[90] p-3 bg-white/95 backdrop-blur-lg border-t border-gray-200 md:hidden"
+        initial={{ y: 100 }}
+        animate={{ y: 0 }}
+        transition={{ delay: 1 }}
+      >
+        <SignInButton mode="modal">
+          <Button className="w-full relative z-50 pointer-events-auto" size="lg">
+            Começar Grátis <ArrowRight size={18} />
+          </Button>
+        </SignInButton>
+      </motion.div>
+
+      {/* Navigation */}
+      <motion.nav
+        className={`fixed top-0 w-full z-[80] transition-all duration-500 ${
+          scrolled
+            ? "bg-white/95 backdrop-blur-lg shadow-lg"
+            : "bg-transparent"
+        }`}
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 md:h-20 flex items-center justify-between">
+          <motion.div
+            className="flex items-center gap-2.5 cursor-pointer relative z-50"
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+          >
+            <div
+              className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl ${BRAND.gradient} shadow-lg shadow-indigo-500/30`}
+            >
+              F
+            </div>
+            <span className="text-xl font-bold tracking-tight">Freelinnk</span>
+          </motion.div>
+
+          <div className="hidden lg:flex items-center gap-8">
+            {["Funcionalidades", "Como Funciona", "Preços", "Depoimentos"].map(
+              (item, i) => (
+                <motion.a
+                  key={item}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.1 }}
+                  href={
+                    item === "Preços"
+                      ? "#diferenciais"
+                      : `#${item.toLowerCase().replace(" ", "-")}`
+                  }
+                  className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors relative group"
+                >
+                  {item}
+                  <motion.span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-500 group-hover:w-full transition-all duration-300" />
+                </motion.a>
+              )
+            )}
           </div>
-          <div className="hidden md:flex items-center gap-8 font-medium text-gray-600 text-sm">
-            <a href="#features" className="hover:text-[#4745d9] transition-colors">Funcionalidades</a>
-            <a href="#analytics" className="hover:text-[#4745d9] transition-colors">Analytics</a>
-            <a href="#comparison" className="hover:text-[#4745d9] transition-colors">Comparativo</a>
-          </div>
-          <div className="flex items-center gap-3">
-            <SignInButton mode="modal">
-              <button className="font-bold text-gray-600 hover:text-[#4745d9] px-4 py-2 text-sm transition-colors">Entrar</button>
-            </SignInButton>
-            <SignInButton mode="modal">
-              <Button size="sm" variant="default" className="hidden sm:inline-flex">Começar Grátis</Button>
-            </SignInButton>
+
+          <div className="flex items-center gap-3 relative z-50">
+            {/* Desktop: Entrar */}
+            <div className="hidden lg:block">
+              <SignInButton mode="modal">
+                <motion.button
+                  className="text-sm font-bold text-gray-600 hover:text-indigo-600 transition-colors px-4 py-2 cursor-pointer"
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                >
+                  Entrar
+                </motion.button>
+              </SignInButton>
+            </div>
+
+            {/* Desktop: Começar Grátis - CORRIGIDO ORDEM DE ANINHAMENTO */}
+            <div className="hidden md:block">
+              <MagneticWrapper>
+                <SignInButton mode="modal">
+                  <Button size="sm" className="cursor-pointer relative z-50">Começar Grátis</Button>
+                </SignInButton>
+              </MagneticWrapper>
+            </div>
+
+            {/* Mobile: Menu Toggle */}
+            <motion.button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="lg:hidden p-2 text-gray-600 relative z-50"
+              whileTap={{ scale: 0.9 }}
+            >
+              <AnimatePresence mode="wait">
+                {mobileMenuOpen ? (
+                  <motion.div
+                    key="close"
+                    initial={{ rotate: -90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: 90, opacity: 0 }}
+                  >
+                    <X size={24} />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="menu"
+                    initial={{ rotate: 90, opacity: 0 }}
+                    animate={{ rotate: 0, opacity: 1 }}
+                    exit={{ rotate: -90, opacity: 0 }}
+                  >
+                    <Menu size={24} />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.button>
           </div>
         </div>
-      </nav>
+
+        {/* Mobile Menu Dropdown */}
+        <AnimatePresence>
+          {mobileMenuOpen && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: "auto" }}
+              exit={{ opacity: 0, height: 0 }}
+              className="lg:hidden bg-white border-b border-gray-100 overflow-hidden relative z-40"
+            >
+              <div className="px-4 py-4 space-y-1">
+                {[
+                  "Funcionalidades",
+                  "Como Funciona",
+                  "Preços",
+                  "Depoimentos",
+                ].map((item, i) => (
+                  <motion.a
+                    key={item}
+                    href={
+                      item === "Preços"
+                        ? "#diferenciais"
+                        : `#${item.toLowerCase().replace(" ", "-")}`
+                    }
+                    onClick={() => setMobileMenuOpen(false)}
+                    className="block py-3 px-4 text-gray-700 hover:bg-gray-50 rounded-xl font-medium"
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                  >
+                    {item}
+                  </motion.a>
+                ))}
+                <div className="pt-2">
+                  <SignInButton mode="modal">
+                    <motion.button
+                      className="block w-full py-3 px-4 text-center bg-gray-50 text-indigo-600 font-bold rounded-xl cursor-pointer"
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: 0.3 }}
+                    >
+                      Entrar na Plataforma
+                    </motion.button>
+                  </SignInButton>
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.nav>
 
       {/* HERO SECTION */}
-      <section className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden bg-white">
-        <div className="absolute inset-0 pointer-events-none">
-            <div className="absolute top-[-10%] right-[-5%] w-[60%] h-[60%] bg-blue-50/80 rounded-full blur-[100px]" />
-            <div className="absolute bottom-[10%] left-[-5%] w-[40%] h-[40%] bg-purple-50/80 rounded-full blur-[100px]" />
+      <section className="relative pt-24 pb-12 md:pt-32 lg:pt-40 lg:pb-24 overflow-hidden">
+        {/* Background Blobs com pointer-events-none para não bloquear cliques */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <motion.div
+            className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-br from-indigo-100/50 to-purple-100/50 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3"
+            animate={{ scale: [1, 1.1, 1], rotate: [0, 10, 0] }}
+            transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+          />
+          <motion.div
+            className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-blue-100/50 to-indigo-100/50 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3"
+            animate={{ scale: [1, 1.2, 1], rotate: [0, -10, 0] }}
+            transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
+          />
         </div>
 
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-                <div className="text-center lg:text-left">
-                    <ScrollReveal>
-                        <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-green-50 border border-green-200 rounded-full text-xs font-bold text-green-700 mb-6 shadow-sm">
-                            <CheckCircle className="w-3 h-3" />
-                            100% Grátis • Sem cartão de crédito
-                        </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+            <div className="text-center lg:text-left">
+              <ScrollReveal>
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  transition={{ delay: 0.2 }}
+                  whileHover={{ scale: 1.05 }}
+                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-full text-sm font-bold text-green-700 mb-6 cursor-pointer relative z-20"
+                >
+                  <motion.div
+                    animate={{ rotate: [0, 15, -15, 0] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                  >
+                    <Gift size={16} />
+                  </motion.div>
+                  100% Grátis para começar
+                </motion.div>
 
-                        <h1 className="text-5xl sm:text-6xl lg:text-7xl font-black tracking-tight leading-[1.1] mb-6 text-slate-900">
-                            O Link na Bio que <br />
-                            <span className={BRAND.textGradient}>
-                                Trabalha por você.
-                            </span>
-                        </h1>
+                <motion.h1
+                  className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.1] mb-6 relative z-20"
+                  initial={{ opacity: 0, y: 30 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.3 }}
+                >
+                  A página de links que{" "}
+                  <motion.span
+                    className={BRAND.textGradient}
+                    animate={{ backgroundPosition: ["0%", "100%", "0%"] }}
+                    transition={{ repeat: Infinity, duration: 5 }}
+                  >
+                    bota dinheiro
+                  </motion.span>{" "}
+                  no seu bolso.
+                </motion.h1>
 
-                        <p className="text-lg sm:text-xl text-gray-600 max-w-lg mx-auto lg:mx-0 mb-8 leading-relaxed">
-                            Pare de perder dinheiro com páginas estáticas. O Freelinnk usa <strong>IA</strong> para criar sua bio em 30s, gerar conteúdo viral e multiplicar seus lucros.
-                        </p>
+                <motion.p
+                  className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed relative z-20"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                >
+                  Página totalmente customizável, encurtador com analytics e
+                  ferramentas de{" "}
+                  <strong className="text-indigo-600">
+                    IA exclusivas
+                  </strong>{" "}
+                  para você vender muito mais.
+                </motion.p>
 
-                        <div className="max-w-md mx-auto lg:mx-0 bg-white p-2 rounded-2xl shadow-xl border border-gray-100 flex flex-col sm:flex-row gap-2 transform hover:scale-[1.01] transition-transform">
-                            <div className="flex-1 bg-gray-50 rounded-xl px-4 flex items-center h-12 sm:h-auto border border-transparent focus-within:border-[#4745d9] transition-colors">
-                                <span className="text-gray-400 font-bold text-sm mr-1">freelinnk.com/</span>
-                                <input type="text" placeholder="seu-nome" className="bg-transparent border-none outline-none font-bold text-gray-900 w-full placeholder:text-gray-300" />
-                            </div>
-                            <SignInButton mode="modal">
-                                <Button className="w-full sm:w-auto whitespace-nowrap shadow-md">Criar Grátis</Button>
-                            </SignInButton>
-                        </div>
-                        <div className="mt-4 flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-4 text-xs text-gray-500 font-medium">
-                            <span className="flex items-center gap-1"><CheckCircle size={14} className="text-green-500"/> Página Grátis para sempre</span>
-                            <span className="flex items-center gap-1"><CheckCircle size={14} className="text-green-500"/> Analytics completo</span>
-                            <span className="flex items-center gap-1"><CheckCircle size={14} className="text-green-500"/> Encurtador incluso</span>
-                        </div>
-                    </ScrollReveal>
-                </div>
-
-                <div className="relative flex justify-center">
-                    <ScrollReveal delay={0.2}>
-                       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[450px] h-[450px] bg-gradient-to-tr from-[#4745d9]/20 to-[#7c3aed]/20 rounded-full blur-[80px] -z-10 animate-pulse"></div>
-                       <HeroSimulator />
-
-                       <motion.div animate={{ y: [0, -15, 0] }} transition={{ repeat: Infinity, duration: 4, ease: "easeInOut" }} className="absolute top-24 -left-10 bg-white p-3 rounded-2xl shadow-xl border border-gray-100 hidden md:flex items-center gap-3 z-20">
-                          <div className="bg-green-100 p-2 rounded-xl"><TrendingUp className="text-green-600 w-5 h-5"/></div>
-                          <div><p className="text-[10px] text-gray-500 font-bold uppercase">Conversão</p><p className="text-sm font-black text-gray-900">+127%</p></div>
-                       </motion.div>
-
-                       <motion.div animate={{ y: [0, 15, 0] }} transition={{ repeat: Infinity, duration: 5, ease: "easeInOut" }} className="absolute bottom-32 -right-10 bg-white p-3 rounded-2xl shadow-xl border border-gray-100 hidden md:flex items-center gap-3 z-20">
-                          <div className="bg-purple-100 p-2 rounded-xl"><Sparkles className="text-purple-600 w-5 h-5"/></div>
-                          <div><p className="text-[10px] text-gray-500 font-bold uppercase">IA Ativa</p><p className="text-sm font-black text-gray-900">Otimizando</p></div>
-                       </motion.div>
-                    </ScrollReveal>
-                </div>
-            </div>
-        </div>
-      </section>
-
-      {/* PROVA SOCIAL */}
-      <section className="py-12 bg-gray-50 border-y border-gray-200">
-        <div className="max-w-7xl mx-auto px-4">
-            <div className="text-center mb-10">
-               <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Usado por +10.000 criadores</p>
-            </div>
-            <div className="flex flex-wrap justify-center gap-8 md:gap-16 opacity-50 grayscale hover:grayscale-0 transition-all duration-500 mb-12">
-               <div className="flex items-center gap-2 font-bold text-xl"><Instagram size={24}/> Instagram</div>
-               <div className="flex items-center gap-2 font-bold text-xl"><span className="font-serif">TikTok</span></div>
-               <div className="flex items-center gap-2 font-bold text-xl text-[#0A66C2]"><Linkedin size={24}/> LinkedIn</div>
-               <div className="flex items-center gap-2 font-bold text-xl text-green-600">WhatsApp</div>
-            </div>
-
-            <div className="grid md:grid-cols-3 gap-6">
-                {[
-                    { text: "Eu pagava Designer e Copywriter. Agora o Freelinnk faz tudo de graça.", author: "Júlia Mendes", role: "Influencer", img: "https://i.pravatar.cc/150?img=5" },
-                    { text: "O Analytics me mostrou que 70% dos cliques vinham do celular. Otimizei e vendi mais.", author: "Carlos E.", role: "Afiliado", img: "https://i.pravatar.cc/150?img=11" },
-                    { text: "O encurtador de links me dá dados que antes eu pagava caro pra ter.", author: "Ana P.", role: "Nutricionista", img: "https://i.pravatar.cc/150?img=9" }
-                ].map((t, i) => (
-                    <motion.div key={i} whileHover={{ y: -5 }} className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 hover:shadow-md transition-all">
-                        <div className="flex gap-1 mb-4">{[1,2,3,4,5].map(s => <Star key={s} size={14} className="text-yellow-400 fill-yellow-400"/>)}</div>
-                        <p className="text-gray-700 text-sm italic mb-4 leading-relaxed">&quot;{t.text}&quot;</p>
-                        <div className="flex items-center gap-3">
-                            <img src={t.img} alt={t.author} className="w-10 h-10 rounded-full border border-gray-100"/>
-                            <div><p className="font-bold text-sm">{t.author}</p><p className="text-xs text-gray-500">{t.role}</p></div>
-                        </div>
-                    </motion.div>
-                ))}
-            </div>
-        </div>
-      </section>
-
-      {/* FUNCIONALIDADES */}
-      <section id="features" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-4 space-y-32">
-
-            {/* ENCURTADOR DE LINKS (NOVO!) */}
-            <ScrollReveal>
-              <div className="grid lg:grid-cols-2 gap-16 items-center">
-                  <div>
-                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-bold mb-4"><Link2 size={14}/> Encurtador Profissional</div>
-                      <h2 className="text-3xl md:text-4xl font-black mb-4 text-gray-900">Links curtos. <br/>Dados completos.</h2>
-                      <p className="text-gray-600 text-lg mb-6">Transforme URLs gigantes em links memoráveis. Cada clique é rastreado com precisão cirúrgica: localização, dispositivo, horário e muito mais.</p>
-                      <ul className="space-y-3 mb-6">
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Links ilimitados grátis</li>
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Domínio personalizado (frlnk.io/seu-link)</li>
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> QR Code automático</li>
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Rastreamento em tempo real</li>
-                      </ul>
-                      <SignInButton mode="modal">
-                        <Button variant="outline">Criar Link Agora <ExternalLink size={14} className="ml-2"/></Button>
-                      </SignInButton>
+                {/* Input estilo Linktree - CORRIGIDO BOTÃO DE CRIAR */}
+                <div className="max-w-md mx-auto lg:mx-0 bg-white p-2 rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-gray-200 flex flex-col sm:flex-row gap-2 transform hover:scale-[1.01] transition-transform mb-6 relative z-30">
+                  <div className="flex-1 bg-gray-50 rounded-xl px-4 flex items-center h-12 sm:h-auto border border-transparent focus-within:border-[#6366f1] focus-within:bg-white transition-all">
+                    <span className="text-gray-400 font-bold text-sm mr-1">
+                      freelinnk.com/
+                    </span>
+                    <input
+                      type="text"
+                      placeholder="seunome"
+                      className="bg-transparent border-none outline-none font-bold text-gray-900 w-full placeholder:text-gray-300"
+                    />
                   </div>
-                  <div className="flex justify-center w-full">
-                      <UrlShortenerSimulator />
-                  </div>
-              </div>
-            </ScrollReveal>
-
-            {/* ANALYTICS (NOVO!) */}
-            <ScrollReveal>
-              <div id="analytics" className="grid lg:grid-cols-2 gap-16 items-center">
-                  <div className="order-2 lg:order-1">
-                      <AnalyticsSimulator />
-                  </div>
-                  <div className="order-1 lg:order-2">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-purple-100 text-purple-700 rounded-full text-xs font-bold mb-4"><BarChart3 size={14}/> Analytics Avançado</div>
-                      <h2 className="text-3xl md:text-4xl font-black mb-4 text-gray-900">Saiba exatamente <br/>de onde vem cada clique.</h2>
-                      <p className="text-gray-600 text-lg mb-6">Chega de achismo. Veja em tempo real quem acessa sua página, de qual cidade, dispositivo e horário. Dados que outras plataformas cobram caro.</p>
-                      <ul className="space-y-3 mb-6">
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Geolocalização precisa (cidade/país)</li>
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Dispositivo e navegador</li>
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Horários de pico de acesso</li>
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Taxa de conversão por link</li>
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Exportar relatórios em PDF</li>
-                      </ul>
-                      <SignInButton mode="modal">
-                        <Button variant="outline">Ver Meus Dados <BarChart3 size={14} className="ml-2"/></Button>
-                      </SignInButton>
-                  </div>
-              </div>
-            </ScrollReveal>
-
-            {/* BRAIN DIRECTOR */}
-            <ScrollReveal>
-              <div className="grid lg:grid-cols-2 gap-16 items-center">
-                  <div className="order-2 lg:order-1 relative group">
-                      <div className="absolute inset-0 bg-red-500/10 blur-3xl rounded-full opacity-50 group-hover:opacity-80 transition-opacity"></div>
-                      <BrainDirectorSimulator />
-                  </div>
-                  <div className="order-1 lg:order-2">
-                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 text-red-700 rounded-full text-xs font-bold mb-4"><Film size={14}/> Modo Diretor de Cinema</div>
-                      <h2 className="text-3xl md:text-4xl font-black mb-4 text-gray-900">Brain Freelinnk: <br/>Sua IA Roteirista.</h2>
-                      <p className="text-gray-600 text-lg mb-6">O Brain não apenas dá ideias. Ele cria roteiros técnicos (ângulo, luz, copy) e organiza seu calendário. Receba notificações push para nunca perder o timing.</p>
-                      <ul className="space-y-3 mb-6">
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Sugestões de Roteiro Viral</li>
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Calendário Visual com Drag & Drop</li>
-                          <li className="flex gap-3 text-sm text-gray-700 items-center"><CheckCircle className="text-green-500 w-5 h-5"/> Notificações Push no Navegador</li>
-                      </ul>
-                      <SignInButton mode="modal">
-                        <Button variant="outline">Experimentar Grátis</Button>
-                      </SignInButton>
-                  </div>
-              </div>
-            </ScrollReveal>
-
-            {/* FINANCEIRO */}
-            <ScrollReveal>
-              <div className="grid lg:grid-cols-2 gap-16 items-center">
-                  <div>
-                      <div className="inline-flex items-center gap-2 px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-bold mb-4"><Calculator size={14}/> Gestão Financeira Completa</div>
-                      <h2 className="text-3xl md:text-4xl font-black mb-4 text-gray-900">Jogue fora o Excel.</h2>
-                      <p className="text-gray-600 text-lg mb-6">Substitua o caderninho. Cadastre produtos, custos e veja seu lucro líquido real. Gamificação com Níveis e XP para te motivar a vender mais todo dia.</p>
-                      <SignInButton mode="modal">
-                        <Button variant="outline">Começar Grátis</Button>
-                      </SignInButton>
-                  </div>
-                  <div className="flex justify-center w-full"><FinanceProSimulator /></div>
-              </div>
-            </ScrollReveal>
-
-            {/* AI STUDIO & MENTOR */}
-            <div className="grid lg:grid-cols-2 gap-8">
-                <ScrollReveal delay={0.2}>
-                    <div className="bg-gray-50 rounded-3xl p-8 border border-gray-100 h-full hover:border-[#4745d9] transition-colors group">
-                        <div className="flex items-center gap-2 mb-4">
-                            <div className="bg-purple-100 p-2 rounded-lg"><Zap className="text-purple-600 w-5 h-5"/></div>
-                            <h3 className="font-bold text-xl">AI Studio Pro</h3>
-                        </div>
-                        <p className="text-gray-600 mb-6 text-sm">4 ferramentas em 1. Chat Inteligente, Aprimorador de Imagens 4K, Transcrição de Áudio e Removedor de Fundo.</p>
-                        <div className="flex justify-center"><AiStudioSimulator/></div>
-                    </div>
-                </ScrollReveal>
-
-                <ScrollReveal delay={0.4}>
-                    <div className="bg-gray-900 rounded-3xl p-8 border border-gray-800 h-full text-white hover:shadow-2xl transition-shadow relative overflow-hidden">
-                        <div className="flex items-center gap-2 mb-4 relative z-10">
-                            <div className="bg-pink-500/20 p-2 rounded-lg"><Palette className="text-pink-500 w-5 h-5"/></div>
-                            <h3 className="font-bold text-xl">Mentor.ia</h3>
-                        </div>
-                        <p className="text-gray-400 mb-6 text-sm relative z-10">Gere imagens profissionais para seus posts. Escolha o estilo (Anime, 3D, Realista) e crie.</p>
-                        <div className="flex justify-center relative z-10"><MentorSimulator/></div>
-                        <div className="absolute top-0 right-0 w-64 h-64 bg-purple-600/20 rounded-full blur-[80px]"></div>
-                    </div>
-                </ScrollReveal>
-            </div>
-        </div>
-      </section>
-
-      {/* COMPARATIVO */}
-      <section id="comparison" className="py-20 bg-slate-50 border-t border-gray-200">
-        <div className="max-w-5xl mx-auto px-4">
-            <div className="text-center mb-12">
-                <h2 className="text-3xl font-black text-gray-900">Por que somos a escolha óbvia?</h2>
-                <p className="text-gray-600">Tudo grátis. Compare e veja.</p>
-            </div>
-            <div className="bg-white rounded-[2rem] shadow-xl overflow-hidden border border-gray-100">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
-                                <th className="p-5 pl-8 font-bold">Recurso</th>
-                                <th className="p-5 text-center text-[#4745d9] bg-blue-50/50 font-black text-sm border-x border-gray-100">Freelinnk ⚡</th>
-                                <th className="p-5 text-center font-bold">Linktree</th>
-                                <th className="p-5 text-center font-bold">Beacons</th>
-                            </tr>
-                        </thead>
-                        <tbody className="text-sm text-gray-700">
-                            {competitors.map((row, i) => (
-                                <tr key={i} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                                    <td className="p-5 pl-8 font-bold">{row.f}</td>
-                                    <td className="p-5 text-center font-bold bg-blue-50/30 text-gray-900 border-x border-gray-100">{row.fl}</td>
-                                    <td className="p-5 text-center text-gray-500">{row.lt}</td>
-                                    <td className="p-5 text-center text-gray-500">{row.bc}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-      </section>
-
-      {/* CTA FINAL */}
-      <section className="py-24 bg-white">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-            <ScrollReveal>
-                <div className="inline-flex items-center gap-2 bg-green-100 text-green-700 border border-green-200 rounded-full px-4 py-2 text-sm font-bold mb-6">
-                    <Flame className="w-4 h-4" /> Já são +10.000 criadores usando
-                </div>
-                <h2 className="text-4xl md:text-5xl font-black mb-6 text-gray-900">
-                    Pronto para multiplicar seus resultados?
-                </h2>
-                <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-                    Crie sua página grátis em menos de 30 segundos. Sem cartão, sem compromisso.
-                </p>
-
-                <SignInButton mode="modal">
-                    <Button size="lg" className="px-12 text-lg">
-                        Criar Minha Página Grátis <ArrowRight className="ml-2"/>
+                  <SignInButton mode="modal">
+                    <Button className="w-full sm:w-auto whitespace-nowrap shadow-md cursor-pointer pointer-events-auto">
+                      Criar Grátis
                     </Button>
-                </SignInButton>
+                  </SignInButton>
+                </div>
 
-                <p className="mt-6 text-sm text-gray-500 flex justify-center gap-6">
-                    <span className="flex items-center gap-2"><Shield size={14}/> Seus dados seguros</span>
-                    <span className="flex items-center gap-2"><Target size={14}/> Cancele quando quiser</span>
+                {/* BOTÃO HERO PRINCIPAL - CORRIGIDO ORDEM ANINHAMENTO */}
+                <motion.div
+                  className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 relative z-30"
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                >
+                  <MagneticWrapper>
+                    <SignInButton mode="modal">
+                      <Button size="xl" className="w-full sm:w-auto group cursor-pointer pointer-events-auto">
+                        Começar Agora — É Grátis
+                        <span className="text-[10px] font-normal opacity-80 block sm:inline ml-1">
+                          (leva só 30 segundos)
+                        </span>
+                        <motion.div
+                          animate={{ x: [0, 5, 0] }}
+                          transition={{ repeat: Infinity, duration: 1.5 }}
+                        >
+                          <ArrowRight size={20} />
+                        </motion.div>
+                      </Button>
+                    </SignInButton>
+                  </MagneticWrapper>
+                </motion.div>
+
+                {/* Trust Badges */}
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-[10px] sm:text-xs text-gray-500 font-medium mb-8 relative z-20">
+                  <span className="flex items-center gap-1">
+                    <Lock size={12} className="text-green-500" /> Conexão Segura
+                  </span>
+                  <span className="hidden sm:inline">·</span>
+                  <span className="flex items-center gap-1">
+                    <Shield size={12} className="text-blue-500" /> Dados Criptografados
+                  </span>
+                  <span className="hidden sm:inline">·</span>
+                  <span className="flex items-center gap-1">
+                    <Server size={12} className="text-purple-500" /> CDN Global
+                  </span>
+                </div>
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6 }}
+                  className="relative z-20"
+                >
+                  <SocialProofAvatars />
+                </motion.div>
+              </ScrollReveal>
+            </div>
+
+            <div className="flex justify-center lg:justify-end relative z-10">
+              <ScrollReveal delay={0.3}>
+                <HeroPhoneSimulator />
+              </ScrollReveal>
+            </div>
+          </div>
+        </div>
+
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 2 }}
+          className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden lg:flex flex-col items-center gap-2 z-20"
+        >
+          <span className="text-xs text-gray-400 font-medium">
+            Role para explorar
+          </span>
+          <motion.div
+            animate={{ y: [0, 10, 0] }}
+            transition={{ repeat: Infinity, duration: 1.5 }}
+          >
+            <ChevronDown size={20} className="text-gray-400" />
+          </motion.div>
+        </motion.div>
+      </section>
+
+      {/* STATS BAR */}
+      <section className="py-10 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden">
+        <motion.div
+          className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"
+          animate={{ x: [0, 60], y: [0, 60] }}
+          transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+        />
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            {stats.map((stat, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                whileHover={{ scale: 1.05 }}
+                className="text-center"
+              >
+                <motion.p
+                  className="text-3xl md:text-5xl font-black mb-1"
+                  whileHover={{ scale: 1.1 }}
+                >
+                  <AnimatedCounter
+                    value={stat.value}
+                    prefix={stat.prefix}
+                    suffix={stat.suffix}
+                  />
+                </motion.p>
+                <p className="text-sm text-white/70">{stat.label}</p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* PÁGINAS REAIS */}
+      <section className="py-20 bg-gray-50 overflow-hidden">
+        <div className="max-w-7xl mx-auto px-4">
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: 5 }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded-full text-sm font-bold mb-4 cursor-pointer"
+              >
+                <Crown size={16} />
+                Páginas Reais
+              </motion.div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+                Veja o que nossos usuários{" "}
+                <span className={BRAND.textGradient}>criaram</span>
+              </h2>
+              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                100% customizável. Você escolhe cores, fontes, layout e muito
+                mais.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <RealPagesShowcase />
+
+          <motion.div
+            className="text-center mt-12 relative z-30"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            {/* BOTÃO PÁGINAS REAIS - CORRIGIDO ORDEM */}
+            <MagneticWrapper>
+              <SignInButton mode="modal">
+                <Button size="lg" className="group cursor-pointer pointer-events-auto">
+                  Criar Minha Página
+                  <motion.div
+                    animate={{ x: [0, 5, 0] }}
+                    transition={{ repeat: Infinity, duration: 1 }}
+                  >
+                    <ArrowRight size={18} />
+                  </motion.div>
+                </Button>
+              </SignInButton>
+            </MagneticWrapper>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* FEATURES */}
+      <section id="funcionalidades" className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <ScrollReveal>
+            <div className="text-center mb-16">
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-bold mb-4"
+              >
+                <Cpu size={16} />
+                Funcionalidades
+              </motion.div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+                Tudo que você precisa para{" "}
+                <span className={BRAND.textGradient}>vender mais</span>
+              </h2>
+              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                Não somos só um link na bio. Somos seu sistema de vendas
+                completo.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {features.map((feature, i) => (
+              <FeatureCard key={i} feature={feature} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* HOW IT WORKS */}
+      <section
+        id="como-funciona"
+        className="py-20 bg-gradient-to-b from-gray-50 to-white"
+      >
+        <div className="max-w-7xl mx-auto px-4">
+          <ScrollReveal>
+            <div className="text-center mb-16">
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-4"
+              >
+                <Play size={16} />
+                Como Funciona
+              </motion.div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+                Simples assim
+              </h2>
+              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                Em menos de 5 minutos você está pronto para vender.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-4">
+            {howItWorks.map((step, i) => (
+              <HowItWorksStep
+                key={i}
+                step={step}
+                index={i}
+                total={howItWorks.length}
+              />
+            ))}
+          </div>
+
+          <motion.div
+            className="text-center mt-16 flex flex-col items-center justify-center gap-4 relative z-30"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+          >
+            {/* BOTÃO COMO FUNCIONA - CORRIGIDO ORDEM */}
+            <MagneticWrapper>
+              <SignInButton mode="modal">
+                <Button
+                  size="lg"
+                  variant="default"
+                  className="shadow-lg hover:shadow-xl cursor-pointer pointer-events-auto"
+                >
+                  Criar Minha Página Agora
+                  <ArrowRight size={18} />
+                </Button>
+              </SignInButton>
+            </MagneticWrapper>
+          </motion.div>
+        </div>
+      </section>
+
+      {/* PARA QUEM (Mantido igual) */}
+      <section className="py-20 bg-white">
+        <div className="max-w-7xl mx-auto px-4">
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-bold mb-4"
+              >
+                <Users size={16} />
+                Para Todos
+              </motion.div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+                Serve pra você?{" "}
+                <span className={BRAND.textGradient}>Com certeza.</span>
+              </h2>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+            {nichos.map((nicho, i) => (
+              <NichoCard key={i} nicho={nicho} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* TESTIMONIALS (Mantido igual) */}
+      <section
+        id="depoimentos"
+        className="py-20 bg-gradient-to-b from-gray-50 to-white"
+      >
+        <div className="max-w-7xl mx-auto px-4">
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-sm font-bold mb-4"
+              >
+                <Star size={16} />
+                Depoimentos
+              </motion.div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+                Quem usa, recomenda
+              </h2>
+              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                Mais de 10.800 criadores já transformaram seus resultados.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {testimonials.map((testimonial, i) => (
+              <TestimonialCard key={i} testimonial={testimonial} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* DIFFERENTIALS (Mantido igual) */}
+      <section
+        id="diferenciais"
+        className="py-24 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative overflow-hidden"
+      >
+        <div className="absolute inset-0 z-0">
+          <motion.div
+            className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-500/30 rounded-full blur-[150px]"
+            animate={{ scale: [1, 1.2, 1], x: [0, 50, 0] }}
+            transition={{ repeat: Infinity, duration: 10 }}
+          />
+          <motion.div
+            className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/30 rounded-full blur-[150px]"
+            animate={{ scale: [1, 1.3, 1], x: [0, -50, 0] }}
+            transition={{ repeat: Infinity, duration: 12 }}
+          />
+        </div>
+
+        <div className="max-w-7xl mx-auto px-4 relative z-10">
+          <ScrollReveal>
+            <div className="text-center mb-16">
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black mb-4">
+                Por que{" "}
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
+                  Freelinnk
+                </span>
+                ?
+              </h2>
+              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
+                Não tiramos seu dinheiro. Botamos mais.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {differentials.map((item, i) => (
+              <DifferentialCard key={i} item={item} index={i} />
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* SECURITY (Mantido igual) */}
+      <section className="py-16 bg-white border-y border-gray-100">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
+            {[
+              { icon: <Lock size={22} />, text: "Criptografia AES-256" },
+              { icon: <Shield size={22} />, text: "LGPD Compliant" },
+              { icon: <Globe size={22} />, text: "CDN Global" },
+              { icon: <Fingerprint size={22} />, text: "HTTPS Sempre" },
+            ].map((item, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                whileHover={{ scale: 1.1, y: -5 }}
+                className="flex items-center gap-3 text-gray-600 cursor-pointer group"
+              >
+                <motion.div
+                  className="text-green-500 group-hover:text-indigo-500 transition-colors"
+                  whileHover={{ rotate: 360 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  {item.icon}
+                </motion.div>
+                <span className="text-sm font-semibold group-hover:text-gray-900 transition-colors">
+                  {item.text}
+                </span>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ (Mantido igual) */}
+      <section className="py-20 bg-gray-50">
+        <div className="max-w-3xl mx-auto px-4">
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">
+                Perguntas Frequentes
+              </h2>
+            </div>
+          </ScrollReveal>
+
+          <div className="space-y-4">
+            {[
+              {
+                q: "O Freelinnk é realmente grátis?",
+                a: "Sim! Página de links, encurtador e analytics básico são 100% grátis para sempre. As ferramentas de IA avançadas são para assinantes Pro ou Ultra.",
+              },
+              {
+                q: "Preciso saber programar ou design?",
+                a: "Não! Nossa interface é super intuitiva. Você customiza tudo com cliques, sem código.",
+              },
+              {
+                q: "Posso usar em qualquer rede social?",
+                a: "Sim! Instagram, TikTok, YouTube, LinkedIn, Twitter, WhatsApp... Em qualquer lugar.",
+              },
+              {
+                q: "Meus dados estão seguros?",
+                a: "100%. Usamos criptografia AES-256, servidores globais e somos totalmente compatíveis com a LGPD.",
+              },
+              {
+                q: "O que é o Brain Roteirista?",
+                a: "É nossa IA que cria roteiros virais para seus vídeos, com sugestões de ângulos, cortes e timing perfeito para engajar.",
+              },
+            ].map((faq, i) => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                whileHover={{ scale: 1.02, y: -3 }}
+                className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg hover:border-indigo-100 transition-all cursor-pointer group"
+              >
+                <h4 className="font-bold text-gray-900 mb-3 flex items-start gap-3">
+                  <motion.span
+                    whileHover={{ scale: 1.2, rotate: 15 }}
+                    className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 rounded-full flex items-center justify-center text-sm flex-shrink-0 group-hover:from-indigo-500 group-hover:to-purple-500 group-hover:text-white transition-all"
+                  >
+                    ?
+                  </motion.span>
+                  <span className="group-hover:text-indigo-600 transition-colors">
+                    {faq.q}
+                  </span>
+                </h4>
+                <p className="text-gray-600 text-sm pl-11 leading-relaxed">
+                  {faq.a}
                 </p>
-            </ScrollReveal>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FINAL CTA */}
+      <section className="py-28 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+        </div>
+
+        {/* Floating shapes */}
+        <motion.div
+          className="absolute top-10 left-10 w-32 h-32 border border-white/10 rounded-3xl z-0"
+          animate={{ rotate: [0, 90, 180, 270, 360], scale: [1, 1.1, 1] }}
+          transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+        />
+        <motion.div
+          className="absolute bottom-10 right-10 w-24 h-24 bg-white/5 rounded-full z-0"
+          animate={{ y: [0, -30, 0], scale: [1, 1.2, 1] }}
+          transition={{ repeat: Infinity, duration: 5 }}
+        />
+        <motion.div
+          className="absolute top-1/2 right-20 w-16 h-16 bg-white/10 rounded-2xl hidden lg:block z-0"
+          animate={{ rotate: [0, 45, 0], x: [0, 20, 0] }}
+          transition={{ repeat: Infinity, duration: 8 }}
+        />
+
+        <div className="max-w-4xl mx-auto px-4 text-center relative z-20">
+          <ScrollReveal>
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur text-white border border-white/30 rounded-full px-6 py-3 text-sm font-bold mb-8 cursor-pointer"
+            >
+              <motion.div
+                animate={{ scale: [1, 1.3, 1] }}
+                transition={{ repeat: Infinity, duration: 1.5 }}
+              >
+                <Flame className="w-5 h-5 text-orange-300" />
+              </motion.div>
+              +10.800 criadores já estão lucrando mais
+            </motion.div>
+            <motion.h2
+              className="text-4xl sm:text-5xl md:text-6xl font-black mb-6 leading-tight"
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+            >
+              Pronto para colocar mais{" "}
+              <br className="hidden sm:block" />
+              <motion.span
+                animate={{
+                  textShadow: [
+                    "0 0 20px rgba(255,255,255,0.3)",
+                    "0 0 40px rgba(255,255,255,0.5)",
+                    "0 0 20px rgba(255,255,255,0.3)",
+                  ],
+                }}
+                transition={{ repeat: Infinity, duration: 2 }}
+              >
+                dinheiro no seu bolso?
+              </motion.span>
+            </motion.h2>
+            <motion.p
+              className="text-xl text-white/80 mb-10 max-w-2xl mx-auto"
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1 }}
+            >
+              Crie sua página grátis agora.
+              <br />
+              Sem cartão, sem compromisso, sem enrolação.
+            </motion.p>
+
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2 }}
+            >
+              {/* BOTÃO FINAL - CORRIGIDO ORDEM */}
+              <MagneticWrapper>
+                <SignInButton mode="modal">
+                  <Button
+                    size="xl"
+                    variant="white"
+                    className="shadow-2xl text-lg px-14 py-6 group cursor-pointer pointer-events-auto"
+                  >
+                    Começar Agora — É Grátis
+                    <motion.div
+                      animate={{ x: [0, 8, 0] }}
+                      transition={{ repeat: Infinity, duration: 1 }}
+                    >
+                      <ArrowRight size={24} />
+                    </motion.div>
+                  </Button>
+                </SignInButton>
+              </MagneticWrapper>
+            </motion.div>
+
+            <motion.div
+              className="mt-10 flex flex-col sm:flex-row justify-center gap-8 text-sm text-white/70"
+              initial={{ opacity: 0 }}
+              whileInView={{ opacity: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3 }}
+            >
+              {[
+                { icon: <CheckCircle size={18} />, text: "Grátis para sempre" },
+                {
+                  icon: <CheckCircle size={18} />,
+                  text: "Sem cartão de crédito",
+                },
+                { icon: <CheckCircle size={18} />, text: "Pronto em 2 minutos" },
+              ].map((item, i) => (
+                <motion.span
+                  key={i}
+                  whileHover={{ scale: 1.1, y: -3 }}
+                  className="flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <span className="text-green-400">{item.icon}</span>
+                  {item.text}
+                </motion.span>
+              ))}
+            </motion.div>
+          </ScrollReveal>
         </div>
       </section>
 
       {/* FOOTER */}
-      <footer className="bg-gray-900 text-white pt-16 pb-10">
-        <div className="max-w-7xl mx-auto px-4 grid md:grid-cols-4 gap-12 text-sm">
-            <div className="col-span-1">
-                <div className="flex items-center gap-2 mb-4">
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white font-bold ${BRAND.gradient}`}>F</div>
-                    <span className="font-bold text-xl">Freelinnk</span>
+      <footer className="bg-gray-900 text-white pt-20 pb-28 md:pb-10">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid md:grid-cols-4 gap-12 mb-12">
+            <div className="md:col-span-2">
+              <motion.div
+                className="flex items-center gap-2.5 mb-6"
+                whileHover={{ scale: 1.05 }}
+              >
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-2xl ${BRAND.gradient} shadow-lg`}
+                >
+                  F
                 </div>
-                <p className="text-gray-500 mb-4">O sistema operacional do criador moderno. Feito com 💜 no Brasil.</p>
-                <div className="flex gap-4 opacity-60">
-                    <Instagram className="cursor-pointer hover:text-[#4745d9]"/>
-                    <Linkedin className="cursor-pointer hover:text-[#0A66C2]"/>
-                    <MessageCircle className="cursor-pointer hover:text-green-500"/>
-                </div>
+                <span className="text-2xl font-bold">Freelinnk</span>
+              </motion.div>
+              <p className="text-gray-400 mb-6 max-w-md leading-relaxed">
+                A página de links que bota dinheiro no seu bolso. Feito com 💜 no
+                Brasil para criadores do mundo todo.
+              </p>
+              <div className="flex gap-4">
+                {[
+                  {
+                    icon: <Instagram size={20} />,
+                    color:
+                      "hover:bg-gradient-to-br hover:from-purple-500 hover:to-pink-500",
+                  },
+                  { icon: <Youtube size={20} />, color: "hover:bg-red-500" },
+                  { icon: <Linkedin size={20} />, color: "hover:bg-blue-600" },
+                  {
+                    icon: <MessageCircle size={20} />,
+                    color: "hover:bg-green-500",
+                  },
+                ].map((social, i) => (
+                  <motion.a
+                    key={i}
+                    href="#"
+                    whileHover={{ scale: 1.15, y: -5, rotate: 5 }}
+                    whileTap={{ scale: 0.95 }}
+                    className={`w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-gray-400 hover:text-white ${social.color} transition-all duration-300`}
+                  >
+                    {social.icon}
+                  </motion.a>
+                ))}
+              </div>
             </div>
 
             <div>
-                <h4 className="font-bold text-white mb-4">Legal</h4>
-                <ul className="space-y-2 text-gray-500">
-                    <li><a href="terms-of-service" className="hover:text-white">Termos de Uso</a></li>
-                    <li><a href="privacy-policy" className="hover:text-white">Política de Privacidade</a></li>
-                    <li><a href="privacy-policy" className="hover:text-white">LGPD</a></li>
-                </ul>
+              <h4 className="font-bold text-lg mb-6">Produto</h4>
+              <ul className="space-y-4 text-gray-400">
+                {[
+                  { href: "#funcionalidades", text: "Funcionalidades" },
+                  { href: "#como-funciona", text: "Como Funciona" },
+                  { href: "#depoimentos", text: "Depoimentos" },
+                ].map((link, i) => (
+                  <li key={i}>
+                    <motion.a
+                      href={link.href}
+                      className="hover:text-white transition-colors inline-flex items-center gap-2 group"
+                      whileHover={{ x: 5 }}
+                    >
+                      <motion.span
+                        initial={{ width: 0 }}
+                        whileHover={{ width: 10 }}
+                        className="h-0.5 bg-indigo-500"
+                      />
+                      {link.text}
+                    </motion.a>
+                  </li>
+                ))}
+              </ul>
             </div>
 
             <div>
-                <h4 className="font-bold text-white mb-4">Produto</h4>
-                <ul className="space-y-2 text-gray-500">
-                    <li><a href="#" className="hover:text-white">Brain AI</a></li>
-                    <li><a href="#" className="hover:text-white">Analytics</a></li>
-                    <li><a href="#" className="hover:text-white">Encurtador</a></li>
-                </ul>
+              <h4 className="font-bold text-lg mb-6">Legal</h4>
+              <ul className="space-y-4 text-gray-400">
+                {[
+                  { href: "/terms-of-service", text: "Termos de Uso" },
+                  { href: "/privacy-policy", text: "Privacidade" },
+                  { href: "/privacy-policy", text: "LGPD" },
+                ].map((link, i) => (
+                  <li key={i}>
+                    <motion.a
+                      href={link.href}
+                      className="hover:text-white transition-colors inline-flex items-center gap-2 group"
+                      whileHover={{ x: 5 }}
+                    >
+                      <motion.span
+                        initial={{ width: 0 }}
+                        whileHover={{ width: 10 }}
+                        className="h-0.5 bg-indigo-500"
+                      />
+                      {link.text}
+                    </motion.a>
+                  </li>
+                ))}
+              </ul>
             </div>
+          </div>
 
-            <div className="col-span-1">
-                <h4 className="font-bold text-white mb-4">Segurança</h4>
-                <div className="flex items-center gap-2 text-gray-500 mb-2"><Shield size={16} className="text-green-500"/> Dados Criptografados</div>
-                <div className="flex items-center gap-2 text-gray-500 mb-4"><Globe size={16} className="text-blue-500"/> CDN Global</div>
+          <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
+            <p className="text-sm text-gray-500">
+              © 2025 Freelinnk. Todos os direitos reservados.
+            </p>
+            <div className="flex items-center gap-6">
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="flex items-center gap-2 text-gray-500 text-sm"
+              >
+                <Lock size={16} className="text-green-500" />
+                Conexão Segura
+              </motion.div>
+              <motion.div
+                whileHover={{ scale: 1.1 }}
+                className="flex items-center gap-2 text-gray-500 text-sm"
+              >
+                <Shield size={16} className="text-green-500" />
+                LGPD
+              </motion.div>
             </div>
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 mt-12 pt-8 border-t border-gray-800 text-center text-xs text-gray-600">
-            © 2025 Freelinnk Tecnologia Ltda. Todos os direitos reservados.
+          </div>
         </div>
       </footer>
     </div>
