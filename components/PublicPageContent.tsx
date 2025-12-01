@@ -1,10 +1,11 @@
 "use client";
 
 import { api } from "@/convex/_generated/api";
-import { Preloaded, usePreloadedQuery } from "convex/react";
-import { User, Share2, Link as LinkIcon, Check, Heart, Sparkles, QrCode, Moon, Sun, Calendar, Download, ExternalLink, ChevronDown, Shield, Gem, Crown, Star, Zap } from "lucide-react";
+import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
+import { User, Share2, Link as LinkIcon, Check, Heart, Sparkles, QrCode, Moon, Sun, Calendar, Download, ExternalLink, ChevronDown, Shield, Gem, Crown, Star, Zap, Cookie } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
+import Script from "next/script"; // ✅ Importado para os Scripts
 import { getBaseUrl } from "@/convex/lib/getBaseUrl";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { trackLinkClick } from "@/lib/analytics";
@@ -319,6 +320,10 @@ export default function PublicPageContent({
   plan,
 }: PublicPageContentProps) {
   const customizations = usePreloadedQuery(preloadedCustomizations);
+
+  // ✅ 1. Buscar configurações de rastreamento do perfil (Google/Facebook)
+  const trackingSettings = useQuery(api.tracking.getIdsBySlug, { slug: username });
+
   const profileUrl = `${getBaseUrl()}/u/${username}`;
   const userAccentColor = customizations?.accentColor || '#6366f1';
 
@@ -341,6 +346,9 @@ export default function PublicPageContent({
   });
   const [isDarkMode, setIsDarkMode] = useState(false);
 
+  // ✅ 2. Estado para o consentimento de Cookies
+  const [cookieConsent, setCookieConsent] = useState<"granted" | "denied" | null>(null);
+
   const links = usePreloadedQuery(preloadedLinks) as LinkType[];
 
   const { scrollYProgress } = useScroll();
@@ -355,6 +363,14 @@ export default function PublicPageContent({
     return result
       ? `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${alpha})`
       : `rgba(99, 102, 241, ${alpha})`;
+  }, []);
+
+  // ✅ 3. Verificar se o usuário já deu consentimento anteriormente
+  useEffect(() => {
+    const savedConsent = localStorage.getItem('freelinnk_cookie_consent');
+    if (savedConsent === 'granted' || savedConsent === 'denied') {
+      setCookieConsent(savedConsent);
+    }
   }, []);
 
   useEffect(() => {
@@ -507,6 +523,16 @@ export default function PublicPageContent({
     localStorage.setItem(`stats_${username}`, JSON.stringify(stats));
   };
 
+  const handleAcceptCookies = () => {
+    setCookieConsent('granted');
+    localStorage.setItem('freelinnk_cookie_consent', 'granted');
+  };
+
+  const handleDeclineCookies = () => {
+    setCookieConsent('denied');
+    localStorage.setItem('freelinnk_cookie_consent', 'denied');
+  };
+
   // 🎨 LOADING SCREEN ÉPICO
   if (isLoading) {
     return (
@@ -612,6 +638,48 @@ export default function PublicPageContent({
 
   return (
     <div className={`min-h-screen transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
+
+      {/* ✅ 4. Scripts de Rastreamento (Google & Facebook) - Só ativam se consentimento for 'granted' */}
+      {cookieConsent === 'granted' && trackingSettings && (
+        <>
+          {/* Google Analytics 4 */}
+          {trackingSettings.googleAnalyticsId && (
+            <>
+              <Script
+                src={`https://www.googletagmanager.com/gtag/js?id=${trackingSettings.googleAnalyticsId}`}
+                strategy="afterInteractive"
+              />
+              <Script id="google-analytics" strategy="afterInteractive">
+                {`
+                  window.dataLayer = window.dataLayer || [];
+                  function gtag(){dataLayer.push(arguments);}
+                  gtag('js', new Date());
+                  gtag('config', '${trackingSettings.googleAnalyticsId}');
+                `}
+              </Script>
+            </>
+          )}
+
+          {/* Facebook Pixel */}
+          {trackingSettings.facebookPixelId && (
+            <Script id="facebook-pixel" strategy="afterInteractive">
+              {`
+                !function(f,b,e,v,n,t,s)
+                {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+                n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+                if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+                n.queue=[];t=b.createElement(e);t.async=!0;
+                t.src=v;s=b.getElementsByTagName(e)[0];
+                s.parentNode.insertBefore(t,s)}(window, document,'script',
+                'https://connect.facebook.net/en_US/fbevents.js');
+                fbq('init', '${trackingSettings.facebookPixelId}');
+                fbq('track', 'PageView');
+              `}
+            </Script>
+          )}
+        </>
+      )}
+
       {backgroundConfig.type !== "image" && (
         <ParticleField color={hexToRgba(userAccentColor, 0.4)} />
       )}
@@ -1414,6 +1482,57 @@ export default function PublicPageContent({
           </motion.footer>
         )}
       </div>
+
+      {/* ✅ 5. BANNER DE COOKIES (Fixo na parte inferior) */}
+      <AnimatePresence>
+        {cookieConsent === null && trackingSettings && (trackingSettings.facebookPixelId || trackingSettings.googleAnalyticsId) && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-4 left-4 right-4 z-50 flex justify-center"
+          >
+            <div
+              className="max-w-2xl w-full p-4 rounded-2xl shadow-2xl border border-white/10 flex flex-col sm:flex-row items-center gap-4"
+              style={{
+                background: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+                backdropFilter: 'blur(20px)',
+              }}
+            >
+              <div className="p-2.5 rounded-xl bg-purple-100 dark:bg-purple-900/30 shrink-0">
+                <Cookie className="w-6 h-6 text-purple-600 dark:text-purple-400" />
+              </div>
+
+              <div className="flex-1 text-center sm:text-left">
+                <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-1">
+                  🍪 Cookies e Privacidade
+                </h3>
+                <p className="text-xs text-gray-600 dark:text-gray-300">
+                  Usamos cookies e rastreadores para analisar o tráfego e melhorar sua experiência no perfil de @{username}. Você aceita?
+                </p>
+              </div>
+
+              <div className="flex gap-2 w-full sm:w-auto">
+                <button
+                  onClick={handleDeclineCookies}
+                  className="flex-1 sm:flex-none px-4 py-2.5 rounded-xl text-xs font-bold text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                >
+                  Recusar
+                </button>
+                <button
+                  onClick={handleAcceptCookies}
+                  className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition-transform hover:scale-105"
+                  style={{
+                    background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`,
+                  }}
+                >
+                  Aceitar
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Scroll to top button */}
       <AnimatePresence>
