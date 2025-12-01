@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useScroll, useInView, useMotionValue, useSpring } from "framer-motion";
+import { motion, AnimatePresence, useScroll, useInView} from "framer-motion";
 import { useRouter } from "next/navigation";
 import { SignInButton, useAuth } from "@clerk/nextjs";
 import {
@@ -12,7 +12,7 @@ import {
   Palette, Calculator,
   Film, Flame, Link2, BarChart3,
   Globe, MapPin,
-  Play, Users, Lock, ChevronDown,
+  Play, Users, Lock,
   Menu, X, Eye, Heart,
   ShoppingBag, Briefcase, Music,
   Camera, BookOpen, Dumbbell, UtensilsCrossed,
@@ -229,12 +229,12 @@ const Button: React.FC<ButtonProps> = ({
 };
 
 // --- SCROLL REVEAL ---
-const ScrollReveal = ({ children, delay = 0, className = "" }: { children: React.ReactNode; delay?: number; className?: string }) => (
+const ScrollReveal = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
   <motion.div
-    initial={{ opacity: 0, y: 30 }}
+    initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, amount: 0.2 }} // amount 0.2 evita que anime antes de aparecer um pouco
-    transition={{ duration: 0.5, delay, ease: "easeOut" }} // Duração reduzida para 0.5s para parecer mais leve
+    viewport={{ once: true, margin: "0px 0px -50px 0px" }} // Margem segura para mobile
+    transition={{ duration: 0.4, ease: "easeOut" }}
     className={className}
   >
     {children}
@@ -242,42 +242,14 @@ const ScrollReveal = ({ children, delay = 0, className = "" }: { children: React
 );
 
 // --- ANIMATED COUNTER ---
-const AnimatedCounter = ({ value, prefix = "", suffix = "" }: { value: string; prefix?: string; suffix?: string }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-  const [count, setCount] = useState(0);
-  const numericValue = parseFloat(value.replace(/[^0-9.]/g, ""));
-
-  useEffect(() => {
-    if (isInView) {
-      const duration = 2000;
-      const steps = 60;
-      const increment = numericValue / steps;
-      let current = 0;
-
-      const timer = setInterval(() => {
-        current += increment;
-        if (current >= numericValue) {
-          setCount(numericValue);
-          clearInterval(timer);
-        } else {
-          setCount(current);
-        }
-      }, duration / steps);
-
-      return () => clearInterval(timer);
-    }
-  }, [isInView, numericValue]);
-
-  return (
-    <span ref={ref} className="tabular-nums">
-      {prefix}{isInView ? (Number.isInteger(numericValue) ? Math.floor(count) : count.toFixed(1)) : "0"}{suffix}
-    </span>
-  );
-};
+const AnimatedCounter = ({ value, prefix = "", suffix = "" }: { value: string; prefix?: string; suffix?: string }) => (
+  <span className="tabular-nums">
+    {prefix}{value}{suffix}
+  </span>
+);
 
 // --- FLOATING ELEMENTS ---
-const FloatingElement = ({ children, delay = 0, duration = 4, y = 15 }: { children: React.ReactNode; delay?: number; duration?: number; y?: number }) => (
+const FloatingElement = ({ children, delay = 0, y = 10, duration = 6 }: { children: React.ReactNode; delay?: number; y?: number; duration?: number }) => (
   <motion.div
     animate={{ y: [-y, y, -y] }}
     transition={{ repeat: Infinity, duration, delay, ease: "easeInOut" }}
@@ -287,40 +259,9 @@ const FloatingElement = ({ children, delay = 0, duration = 4, y = 15 }: { childr
 );
 
 // --- MAGNETIC BUTTON EFFECT ---
-const MagneticWrapper = ({ children }: { children: React.ReactNode }) => {
-  const ref = useRef<HTMLDivElement>(null);
-  const x = useMotionValue(0);
-  const y = useMotionValue(0);
-
-  const springConfig = { damping: 15, stiffness: 150 };
-  const xSpring = useSpring(x, springConfig);
-  const ySpring = useSpring(y, springConfig);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!ref.current) return;
-    const rect = ref.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    x.set((e.clientX - centerX) * 0.1);
-    y.set((e.clientY - centerY) * 0.1);
-  };
-
-  const handleMouseLeave = () => {
-    x.set(0);
-    y.set(0);
-  };
-
-  return (
-    <motion.div
-      ref={ref}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={handleMouseLeave}
-      style={{ x: xSpring, y: ySpring }}
-    >
-      {children}
-    </motion.div>
-  );
-};
+const MagneticWrapper = ({ children }: { children: React.ReactNode }) => (
+  <div className="relative inline-block">{children}</div>
+);
 
 // --- HERO PHONE SIMULATOR ---
 const HeroPhoneSimulator = () => {
@@ -1034,87 +975,58 @@ const RealPagesShowcase = () => {
 };
 
 // --- FEATURE CARD COM MAIS ANIMAÇÕES ---
-const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: number }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.1 }); // Garante que só anima uma vez
-
+const FeatureCard = ({ feature }: { feature: typeof features[0]; index: number }) => {
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 30 }} // Removi rotateX que pesa no mobile
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
-      whileHover={{ y: -5, transition: { duration: 0.2 } }} // Hover mais sutil
-      className="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300 cursor-pointer group overflow-hidden"
-    >
-      {/* Background simplificado para performance */}
-      <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+    <ScrollReveal className="h-full">
+      <div className="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:border-indigo-200 transition-colors duration-300 h-full overflow-hidden group">
+        {/* Background estático leve */}
+        <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
 
-      {/* Content */}
-      <div className="relative z-10">
-        <div className="flex items-start justify-between mb-4">
-          <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center text-white shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-105`}>
-            {feature.icon}
+        <div className="relative z-10">
+          <div className="flex items-start justify-between mb-4">
+            <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center text-white shadow-sm`}>
+              {feature.icon}
+            </div>
+            <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${
+              feature.tag === "GRÁTIS" ? "bg-green-100 text-green-700" :
+              feature.tag === "PRO" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+            }`}>
+              {feature.tag}
+            </span>
           </div>
-          <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${
-            feature.tag === "GRÁTIS" ? "bg-green-100 text-green-700" :
-            feature.tag === "PRO" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
-          }`}>
-            {feature.tag}
-          </span>
+          <h3 className="font-bold text-lg text-gray-900 mb-2">{feature.title}</h3>
+          <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
         </div>
-
-        <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-indigo-700 transition-colors">
-          {feature.title}
-        </h3>
-        <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
       </div>
-    </motion.div>
+    </ScrollReveal>
   );
 };
 
 // --- TESTIMONIAL CARD COM MAIS ANIMAÇÕES ---
-const TestimonialCard = ({ testimonial, index }: { testimonial: typeof testimonials[0]; index: number }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, amount: 0.2 });
-
+const TestimonialCard = ({ testimonial }: { testimonial: typeof testimonials[0]; index: number }) => {
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 30 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
-      whileHover={{ y: -5 }} // Removemos o scale no hover para evitar glitch no scroll mobile
-      className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 group relative overflow-hidden h-full flex flex-col justify-between"
-    >
-      <div>
-        <div className="flex gap-1 mb-4">
-          {[1, 2, 3, 4, 5].map(i => (
-            <Star key={i} size={16} className="text-yellow-400 fill-yellow-400" />
-          ))}
+    <ScrollReveal className="h-full">
+      <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm h-full flex flex-col justify-between hover:border-indigo-100 transition-colors">
+        <div>
+          <div className="flex gap-1 mb-4">
+            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={16} className="text-yellow-400 fill-yellow-400" />)}
+          </div>
+          <p className="text-gray-700 text-sm leading-relaxed mb-6 italic">&quot;{testimonial.text}&quot;</p>
         </div>
-        <p className="text-gray-700 text-sm leading-relaxed mb-6 italic">
-          &quot;{testimonial.text}&quot;
-        </p>
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <img
-            src={testimonial.avatar}
-            alt={testimonial.author}
-            className="w-10 h-10 rounded-full border border-gray-100 object-cover"
-          />
-          <div>
-            <p className="font-bold text-sm text-gray-900">{testimonial.author}</p>
-            <p className="text-xs text-gray-500">{testimonial.role}</p>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <img src={testimonial.avatar} alt={testimonial.author} className="w-10 h-10 rounded-full border border-gray-100 object-cover" />
+            <div>
+              <p className="font-bold text-sm text-gray-900">{testimonial.author}</p>
+              <p className="text-xs text-gray-500">{testimonial.role}</p>
+            </div>
+          </div>
+          <div className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full border border-green-100">
+            {testimonial.increase}
           </div>
         </div>
-        <div className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full border border-green-100">
-          {testimonial.increase}
-        </div>
       </div>
-    </motion.div>
+    </ScrollReveal>
   );
 };
 
@@ -1179,50 +1091,33 @@ const HowItWorksStep = ({ step, index, total }: { step: { icon: React.ReactNode;
 };
 
 // --- NICHO CARD ---
-const NichoCard = ({ nicho, index }: { nicho: typeof nichos[0]; index: number }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
+const NichoCard = ({ nicho }: { nicho: typeof nichos[0]; index: number }) => {
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, scale: 0.9 }}
-      animate={isInView ? { opacity: 1, scale: 1 } : {}}
-      transition={{ delay: index * 0.05, duration: 0.3 }}
-      whileHover={{ y: -4, scale: 1.02 }}
-      whileTap={{ scale: 0.98 }}
-      className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all duration-300 cursor-pointer group text-center"
-    >
-      <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3 text-gray-600 group-hover:text-indigo-600 group-hover:bg-white group-hover:shadow-sm transition-all">
-        {nicho.icon}
+    <ScrollReveal>
+      <div className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-indigo-200 transition-colors duration-300 cursor-pointer text-center group h-full">
+        <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3 text-gray-600 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">
+          {nicho.icon}
+        </div>
+        <p className="text-xs sm:text-sm font-bold text-gray-700 group-hover:text-indigo-700 transition-colors">
+          {nicho.name}
+        </p>
       </div>
-      <p className="text-xs sm:text-sm font-bold text-gray-700 group-hover:text-indigo-700 transition-colors">
-        {nicho.name}
-      </p>
-    </motion.div>
+    </ScrollReveal>
   );
 };
 
 // --- DIFFERENTIAL CARD ---
-const DifferentialCard = ({ item, index }: { item: { icon: React.ReactNode; title: string; desc: string }; index: number }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
+const DifferentialCard = ({ item }: { item: { icon: React.ReactNode; title: string; desc: string }; index: number }) => {
   return (
-    <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 20 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.1, duration: 0.5 }}
-      whileHover={{ y: -5, backgroundColor: "rgba(255,255,255,0.1)" }}
-      className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10 hover:border-white/20 transition-all duration-300"
-    >
-      <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-        {item.icon}
+    <ScrollReveal>
+      <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10 hover:bg-white/10 transition-colors duration-300 h-full">
+        <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+          {item.icon}
+        </div>
+        <h3 className="font-bold text-xl mb-2 text-white">{item.title}</h3>
+        <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
       </div>
-      <h3 className="font-bold text-xl mb-2 text-white">{item.title}</h3>
-      <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
-    </motion.div>
+    </ScrollReveal>
   );
 };
 
@@ -1245,8 +1140,7 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ... (Dados howItWorks e differentials mantidos iguais para economizar espaço na resposta, mas você deve mantê-los no seu código) ...
-   const howItWorks = [
+  const howItWorks = [
     { icon: <Settings size={36} />, title: "Configure sua página", desc: "Personalize cada detalhe do seu jeito" },
     { icon: <Wand2 size={36} />, title: "Crie seus links", desc: "Organize seus links importantes" },
     { icon: <Share2 size={36} />, title: "Compartilhe", desc: "Coloque na bio e comece a rastrear" },
@@ -1264,57 +1158,46 @@ export default function LandingPage() {
 
   return (
     <div className="bg-white text-gray-900 font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
-      {/* Progress Bar */}
+      {/* Progress Bar Simplificada */}
       <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 z-[100] origin-left"
+        className="fixed top-0 left-0 right-0 h-1 bg-indigo-500 z-[100] origin-left"
         style={{ scaleX: scrollYProgress }}
       />
 
       {/* Mobile CTA */}
-      <motion.div
-        className="fixed bottom-0 left-0 right-0 z-[90] p-3 bg-white/95 backdrop-blur-md border-t border-gray-200 md:hidden"
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
-        transition={{ delay: 1 }}
-      >
+      <div className="fixed bottom-0 left-0 right-0 z-[90] p-3 bg-white border-t border-gray-200 md:hidden">
         <SignInButton mode="modal">
-          <Button className="w-full relative z-50 pointer-events-auto" size="lg">
+          <Button className="w-full relative z-50 pointer-events-auto shadow-none" size="lg">
             Começar Grátis <ArrowRight size={18} />
           </Button>
         </SignInButton>
-      </motion.div>
+      </div>
 
       {/* Navigation */}
-      <motion.nav
+      <nav
         className={`fixed top-0 w-full z-[80] transition-all duration-300 ${
-          scrolled ? "bg-white/90 backdrop-blur-md shadow-sm" : "bg-transparent"
+          scrolled ? "bg-white/95 shadow-sm" : "bg-transparent"
         }`}
-        initial={{ y: -100 }}
-        animate={{ y: 0 }}
-        transition={{ duration: 0.5 }}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 md:h-20 flex items-center justify-between">
-          <motion.div
+          <div
             className="flex items-center gap-2.5 cursor-pointer relative z-50"
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl ${BRAND.gradient} shadow-lg shadow-indigo-500/30`}>
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl ${BRAND.gradient} shadow-md`}>
               F
             </div>
             <span className="text-xl font-bold tracking-tight">Freelinnk</span>
-          </motion.div>
+          </div>
 
           <div className="hidden lg:flex items-center gap-8">
-            {["Funcionalidades", "Como Funciona", "Preços", "Depoimentos"].map((item) => (
+            {["Funcionalidades", "Como Funciona", "Depoimentos"].map((item) => (
               <a
                 key={item}
                 href={item === "Preços" ? "#diferenciais" : `#${item.toLowerCase().replace(" ", "-")}`}
-                className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors relative group"
+                className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
               >
                 {item}
-                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-500 group-hover:w-full transition-all duration-300" />
               </a>
             ))}
           </div>
@@ -1328,100 +1211,74 @@ export default function LandingPage() {
               </SignInButton>
             </div>
             <div className="hidden md:block">
-              <MagneticWrapper>
-                <SignInButton mode="modal">
-                  <Button size="sm" className="cursor-pointer relative z-50">Começar Grátis</Button>
-                </SignInButton>
-              </MagneticWrapper>
+              <SignInButton mode="modal">
+                <Button size="sm" className="cursor-pointer relative z-50">Começar Grátis</Button>
+              </SignInButton>
             </div>
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 text-gray-600 relative z-50"
             >
-              <AnimatePresence mode="wait">
-                {mobileMenuOpen ? (
-                  <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
-                    <X size={24} />
-                  </motion.div>
-                ) : (
-                  <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
-                    <Menu size={24} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
+              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
 
-        <AnimatePresence>
-          {mobileMenuOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              className="lg:hidden bg-white border-b border-gray-100 overflow-hidden relative z-40"
-            >
-              <div className="px-4 py-4 space-y-1">
-                {["Funcionalidades", "Como Funciona", "Preços", "Depoimentos"].map((item) => (
-                  <a
-                    key={item}
-                    href={item === "Preços" ? "#diferenciais" : `#${item.toLowerCase().replace(" ", "-")}`}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="block py-3 px-4 text-gray-700 hover:bg-gray-50 rounded-xl font-medium"
-                  >
-                    {item}
-                  </a>
-                ))}
-                <div className="pt-2">
-                  <SignInButton mode="modal">
-                    <button className="block w-full py-3 px-4 text-center bg-gray-50 text-indigo-600 font-bold rounded-xl cursor-pointer">
-                      Entrar na Plataforma
-                    </button>
-                  </SignInButton>
-                </div>
+        {/* Mobile Menu Simples */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden bg-white border-b border-gray-100 overflow-hidden relative z-40">
+            <div className="px-4 py-4 space-y-1">
+              {["Funcionalidades", "Como Funciona", "Preços", "Depoimentos"].map((item) => (
+                <a
+                  key={item}
+                  href={item === "Preços" ? "#diferenciais" : `#${item.toLowerCase().replace(" ", "-")}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="block py-3 px-4 text-gray-700 hover:bg-gray-50 rounded-xl font-medium"
+                >
+                  {item}
+                </a>
+              ))}
+              <div className="pt-2">
+                <SignInButton mode="modal">
+                  <button className="block w-full py-3 px-4 text-center bg-gray-50 text-indigo-600 font-bold rounded-xl cursor-pointer">
+                    Entrar na Plataforma
+                  </button>
+                </SignInButton>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.nav>
+            </div>
+          </div>
+        )}
+      </nav>
 
       {/* HERO SECTION */}
       <section className="relative pt-24 pb-12 md:pt-32 lg:pt-40 lg:pb-24 overflow-hidden">
-        {/* Background Blobs OTIMIZADOS - Menos blur e animação mais suave */}
+        {/* Background Estático (Sem animação pesada) */}
         <div className="absolute inset-0 pointer-events-none z-0">
-          <motion.div
-            className="absolute top-0 right-0 w-[500px] h-[500px] md:w-[800px] md:h-[800px] bg-gradient-to-br from-indigo-100/40 to-purple-100/40 rounded-full blur-[60px] md:blur-[100px] -translate-y-1/2 translate-x-1/3"
-            animate={{ rotate: 360 }}
-            transition={{ repeat: Infinity, duration: 50, ease: "linear" }}
-          />
-          <motion.div
-            className="absolute bottom-0 left-0 w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-gradient-to-tr from-blue-100/40 to-indigo-100/40 rounded-full blur-[60px] md:blur-[80px] translate-y-1/2 -translate-x-1/3"
-            animate={{ rotate: -360 }}
-            transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
-          />
+          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 opacity-50" />
+          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-100 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/3 opacity-50" />
         </div>
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             <div className="text-center lg:text-left">
               <ScrollReveal>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-full text-sm font-bold text-green-700 mb-6 relative z-20">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full text-sm font-bold text-green-700 mb-6">
                   <Gift size={16} />
                   100% Grátis para começar
                 </div>
 
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.1] mb-6 relative z-20">
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.1] mb-6">
                   A página de links que{" "}
                   <span className={BRAND.textGradient}>bota dinheiro</span>{" "}
                   no seu bolso.
                 </h1>
 
-                <p className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed relative z-20">
+                <p className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
                   Página totalmente customizável, encurtador com analytics e ferramentas de{" "}
                   <strong className="text-indigo-600">IA exclusivas</strong> para você vender muito mais.
                 </p>
 
-                <div className="max-w-md mx-auto lg:mx-0 bg-white p-2 rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-gray-200 flex flex-col sm:flex-row gap-2 transform hover:scale-[1.01] transition-transform mb-6 relative z-30">
+                <div className="max-w-md mx-auto lg:mx-0 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-2 mb-6 relative z-30">
                   <div className="flex-1 bg-gray-50 rounded-xl px-4 flex items-center h-12 sm:h-auto border border-transparent focus-within:border-[#6366f1] focus-within:bg-white transition-all">
                     <span className="text-gray-400 font-bold text-sm mr-1">freelinnk.com/</span>
                     <input type="text" placeholder="seunome" className="bg-transparent border-none outline-none font-bold text-gray-900 w-full placeholder:text-gray-300" />
@@ -1432,15 +1289,13 @@ export default function LandingPage() {
                 </div>
 
                 <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 relative z-30">
-                  <MagneticWrapper>
-                    <SignInButton mode="modal">
-                      <Button size="xl" className="w-full sm:w-auto group cursor-pointer pointer-events-auto">
-                        Começar Agora — É Grátis
-                        <span className="text-[10px] font-normal opacity-80 block sm:inline ml-1">(leva só 30 segundos)</span>
-                        <ArrowRight size={20} className="ml-1" />
-                      </Button>
-                    </SignInButton>
-                  </MagneticWrapper>
+                  <SignInButton mode="modal">
+                    <Button size="xl" className="w-full sm:w-auto group cursor-pointer pointer-events-auto">
+                      Começar Agora — É Grátis
+                      <span className="text-[10px] font-normal opacity-80 block sm:inline ml-1">(leva só 30 segundos)</span>
+                      <ArrowRight size={20} className="ml-1" />
+                    </Button>
+                  </SignInButton>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-[10px] sm:text-xs text-gray-500 font-medium mb-8 relative z-20">
@@ -1458,42 +1313,23 @@ export default function LandingPage() {
             </div>
 
             <div className="flex justify-center lg:justify-end relative z-10">
-              <ScrollReveal delay={0.3}>
+              <ScrollReveal>
                 <HeroPhoneSimulator />
               </ScrollReveal>
             </div>
           </div>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 2 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden lg:flex flex-col items-center gap-2 z-20"
-        >
-          <span className="text-xs text-gray-400 font-medium">Role para explorar</span>
-          <ChevronDown size={20} className="text-gray-400 animate-bounce" />
-        </motion.div>
       </section>
 
-      {/* STATS BAR */}
+      {/* STATS BAR (Sem animação de contador) */}
       <section className="py-10 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="text-center"
-              >
-                <p className="text-3xl md:text-5xl font-black mb-1">
-                  <AnimatedCounter value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
-                </p>
+              <div key={i} className="text-center">
+                <p className="text-3xl md:text-5xl font-black mb-1"><AnimatedCounter {...stat} /></p>
                 <p className="text-sm text-white/70">{stat.label}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -1504,7 +1340,7 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded-full text-sm font-bold mb-4">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold mb-4">
                 <Crown size={16} /> Páginas Reais
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
@@ -1518,20 +1354,13 @@ export default function LandingPage() {
 
           <RealPagesShowcase />
 
-          <motion.div
-            className="text-center mt-12 relative z-30"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <MagneticWrapper>
-              <SignInButton mode="modal">
-                <Button size="lg" className="group cursor-pointer pointer-events-auto">
-                  Criar Minha Página <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </SignInButton>
-            </MagneticWrapper>
-          </motion.div>
+          <div className="text-center mt-12 relative z-30">
+            <SignInButton mode="modal">
+              <Button size="lg" className="group cursor-pointer pointer-events-auto">
+                Criar Minha Página <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </SignInButton>
+          </div>
         </div>
       </section>
 
@@ -1561,7 +1390,7 @@ export default function LandingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section id="como-funciona" className="py-20 bg-gradient-to-b from-gray-50 to-white">
+      <section id="como-funciona" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-16">
@@ -1579,20 +1408,13 @@ export default function LandingPage() {
             ))}
           </div>
 
-          <motion.div
-            className="text-center mt-16 flex flex-col items-center justify-center gap-4 relative z-30"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-          >
-            <MagneticWrapper>
-              <SignInButton mode="modal">
-                <Button size="lg" variant="default" className="shadow-lg hover:shadow-xl cursor-pointer pointer-events-auto">
-                  Criar Minha Página Agora <ArrowRight size={18} />
-                </Button>
-              </SignInButton>
-            </MagneticWrapper>
-          </motion.div>
+          <div className="text-center mt-16 flex flex-col items-center justify-center gap-4 relative z-30">
+            <SignInButton mode="modal">
+              <Button size="lg" variant="default" className="shadow-lg hover:shadow-xl cursor-pointer pointer-events-auto">
+                Criar Minha Página Agora <ArrowRight size={18} />
+              </Button>
+            </SignInButton>
+          </div>
         </div>
       </section>
 
@@ -1618,7 +1440,7 @@ export default function LandingPage() {
       </section>
 
       {/* TESTIMONIALS */}
-      <section id="depoimentos" className="py-20 bg-gradient-to-b from-gray-50 to-white">
+      <section id="depoimentos" className="py-20 bg-gray-50">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-12">
@@ -1638,14 +1460,10 @@ export default function LandingPage() {
       </section>
 
       {/* DIFFERENTIALS */}
-      <section id="diferenciais" className="py-24 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative overflow-hidden">
-        <div className="absolute inset-0 z-0">
-          <motion.div
-            className="absolute top-0 left-1/4 w-[300px] h-[300px] bg-indigo-500/20 rounded-full blur-[100px]"
-            animate={{ scale: [1, 1.2, 1] }}
-            transition={{ repeat: Infinity, duration: 10 }}
-          />
-        </div>
+      <section id="diferenciais" className="py-24 bg-gray-900 text-white relative overflow-hidden">
+        {/* Background estático leve */}
+        <div className="absolute inset-0 z-0 opacity-20 bg-gradient-to-br from-indigo-900 to-gray-900" />
+
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <ScrollReveal>
             <div className="text-center mb-16">
@@ -1673,19 +1491,14 @@ export default function LandingPage() {
               { icon: <Globe size={22} />, text: "CDN Global" },
               { icon: <Fingerprint size={22} />, text: "HTTPS Sempre" },
             ].map((item, i) => (
-              <motion.div
-                key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                className="flex items-center gap-3 text-gray-600 cursor-pointer group"
-              >
-                <div className="text-green-500 group-hover:text-indigo-500 transition-colors">
-                  {item.icon}
+              <ScrollReveal key={i}>
+                <div className="flex items-center gap-3 text-gray-600 cursor-pointer group">
+                  <div className="text-green-500 group-hover:text-indigo-500 transition-colors">
+                    {item.icon}
+                  </div>
+                  <span className="text-sm font-semibold group-hover:text-gray-900 transition-colors">{item.text}</span>
                 </div>
-                <span className="text-sm font-semibold group-hover:text-gray-900 transition-colors">{item.text}</span>
-              </motion.div>
+              </ScrollReveal>
             ))}
           </div>
         </div>
@@ -1707,21 +1520,16 @@ export default function LandingPage() {
               { q: "Meus dados estão seguros?", a: "100%. Usamos criptografia AES-256, servidores globais e somos totalmente compatíveis com a LGPD." },
               { q: "O que é o Brain Roteirista?", a: "É nossa IA que cria roteiros virais para seus vídeos, com sugestões de ângulos, cortes e timing perfeito para engajar." },
             ].map((faq, i) => (
-              <motion.div
+              <div
                 key={i}
-                initial={{ opacity: 0, y: 20 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ delay: i * 0.1 }}
-                whileHover={{ scale: 1.01 }}
-                className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg hover:border-indigo-100 transition-all cursor-pointer group"
+                className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-indigo-100 transition-colors cursor-pointer"
               >
                 <h4 className="font-bold text-gray-900 mb-3 flex items-start gap-3">
-                  <span className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 rounded-full flex items-center justify-center text-sm flex-shrink-0">?</span>
+                  <span className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-sm flex-shrink-0">?</span>
                   <span className="group-hover:text-indigo-600 transition-colors">{faq.q}</span>
                 </h4>
                 <p className="text-gray-600 text-sm pl-11 leading-relaxed">{faq.a}</p>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -1729,12 +1537,12 @@ export default function LandingPage() {
 
       {/* FINAL CTA */}
       <section className="py-28 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none z-0">
+        <div className="absolute inset-0 pointer-events-none z-0 opacity-50">
           <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
         </div>
         <div className="max-w-4xl mx-auto px-4 text-center relative z-20">
           <ScrollReveal>
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur text-white border border-white/30 rounded-full px-6 py-3 text-sm font-bold mb-8 cursor-pointer">
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur text-white border border-white/30 rounded-full px-6 py-3 text-sm font-bold mb-8">
               <Flame className="w-5 h-5 text-orange-300" /> +10.800 criadores já estão lucrando mais
             </div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-6 leading-tight">
@@ -1744,13 +1552,11 @@ export default function LandingPage() {
             <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
               Crie sua página grátis agora. <br /> Sem cartão, sem compromisso, sem enrolação.
             </p>
-            <MagneticWrapper>
-              <SignInButton mode="modal">
-                <Button size="xl" variant="white" className="shadow-2xl text-lg px-14 py-6 group cursor-pointer pointer-events-auto">
-                  Começar Agora — É Grátis <ArrowRight size={24} className="ml-2 group-hover:translate-x-1 transition-transform" />
-                </Button>
-              </SignInButton>
-            </MagneticWrapper>
+            <SignInButton mode="modal">
+              <Button size="xl" variant="white" className="shadow-2xl text-lg px-14 py-6 group cursor-pointer pointer-events-auto">
+                Começar Agora — É Grátis <ArrowRight size={24} className="ml-2 group-hover:translate-x-1 transition-transform" />
+              </Button>
+            </SignInButton>
             <div className="mt-10 flex flex-col sm:flex-row justify-center gap-8 text-sm text-white/70">
               {[
                 { icon: <CheckCircle size={18} />, text: "Grátis para sempre" },
