@@ -233,8 +233,8 @@ const ScrollReveal = ({ children, delay = 0, className = "" }: { children: React
   <motion.div
     initial={{ opacity: 0, y: 30 }}
     whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "-50px" }}
-    transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+    viewport={{ once: true, amount: 0.2 }} // amount 0.2 evita que anime antes de aparecer um pouco
+    transition={{ duration: 0.5, delay, ease: "easeOut" }} // Duração reduzida para 0.5s para parecer mais leve
     className={className}
   >
     {children}
@@ -1036,89 +1036,39 @@ const RealPagesShowcase = () => {
 // --- FEATURE CARD COM MAIS ANIMAÇÕES ---
 const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: number }) => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
+  const isInView = useInView(ref, { once: true, amount: 0.1 }); // Garante que só anima uma vez
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 50, rotateX: -15 }}
-      animate={isInView ? { opacity: 1, y: 0, rotateX: 0 } : {}}
-      transition={{ delay: index * 0.1, duration: 0.6, type: "spring" }}
-      whileHover={{
-        y: -12,
-        scale: 1.03,
-        rotateY: 5,
-        transition: { duration: 0.3 }
-      }}
-      className="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-2xl hover:border-indigo-200 transition-all duration-500 cursor-pointer group overflow-hidden"
-      style={{ transformStyle: "preserve-3d" }}
+      initial={{ opacity: 0, y: 30 }} // Removi rotateX que pesa no mobile
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ delay: index * 0.1, duration: 0.5 }}
+      whileHover={{ y: -5, transition: { duration: 0.2 } }} // Hover mais sutil
+      className="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl hover:border-indigo-200 transition-all duration-300 cursor-pointer group overflow-hidden"
     >
-      {/* Background gradient animado */}
-      <motion.div
-        className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-500`}
-      />
-
-      {/* Partículas decorativas */}
-      <motion.div
-        className="absolute top-4 right-4 w-20 h-20 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-        animate={{
-          scale: [1, 1.2, 1],
-          rotate: [0, 180, 360],
-        }}
-        transition={{ repeat: Infinity, duration: 10, ease: "linear" }}
-      >
-        <div className={`w-full h-full bg-gradient-to-br ${feature.color} opacity-10 rounded-full blur-xl`} />
-      </motion.div>
+      {/* Background simplificado para performance */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
 
       {/* Content */}
       <div className="relative z-10">
         <div className="flex items-start justify-between mb-4">
-          <motion.div
-            whileHover={{ rotate: [0, -10, 10, 0], scale: 1.15 }}
-            transition={{ duration: 0.5 }}
-            className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center text-white shadow-lg group-hover:shadow-xl transition-all duration-300`}
-          >
+          <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center text-white shadow-md group-hover:shadow-lg transition-all duration-300 group-hover:scale-105`}>
             {feature.icon}
-          </motion.div>
-          <motion.span
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.95 }}
-            className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${
-              feature.tag === "GRÁTIS"
-                ? "bg-green-100 text-green-700"
-                : feature.tag === "PRO"
-                  ? "bg-blue-100 text-blue-700"
-                  : "bg-purple-100 text-purple-700"
-            }`}
-          >
+          </div>
+          <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${
+            feature.tag === "GRÁTIS" ? "bg-green-100 text-green-700" :
+            feature.tag === "PRO" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+          }`}>
             {feature.tag}
-          </motion.span>
+          </span>
         </div>
 
-        <motion.h3
-          className="font-bold text-lg text-gray-900 mb-2 group-hover:text-indigo-700 transition-colors"
-        >
+        <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-indigo-700 transition-colors">
           {feature.title}
-        </motion.h3>
+        </h3>
         <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
       </div>
-
-      {/* Linha de progresso animada */}
-      <motion.div
-        className={`absolute bottom-0 left-0 h-1 bg-gradient-to-r ${feature.color}`}
-        initial={{ width: 0 }}
-        whileHover={{ width: "100%" }}
-        transition={{ duration: 0.5 }}
-      />
-
-      {/* Arrow indicator */}
-      <motion.div
-        className="absolute bottom-4 right-4 text-indigo-500 opacity-0 group-hover:opacity-100"
-        initial={{ x: -10 }}
-        whileHover={{ x: 0 }}
-      >
-        <ArrowRight size={18} />
-      </motion.div>
     </motion.div>
   );
 };
@@ -1126,79 +1076,43 @@ const FeatureCard = ({ feature, index }: { feature: typeof features[0]; index: n
 // --- TESTIMONIAL CARD COM MAIS ANIMAÇÕES ---
 const TestimonialCard = ({ testimonial, index }: { testimonial: typeof testimonials[0]; index: number }) => {
   const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
+  const isInView = useInView(ref, { once: true, amount: 0.2 });
 
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 50, scale: 0.9 }}
-      animate={isInView ? { opacity: 1, y: 0, scale: 1 } : {}}
-      transition={{ delay: index * 0.15, duration: 0.6, type: "spring" }}
-      whileHover={{
-        y: -10,
-        scale: 1.02,
-        boxShadow: "0 25px 50px -12px rgba(99, 102, 241, 0.25)"
-      }}
-      className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-2xl transition-all duration-500 group relative overflow-hidden"
+      initial={{ opacity: 0, y: 30 }}
+      animate={isInView ? { opacity: 1, y: 0 } : {}}
+      transition={{ delay: index * 0.1, duration: 0.5 }}
+      whileHover={{ y: -5 }} // Removemos o scale no hover para evitar glitch no scroll mobile
+      className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300 group relative overflow-hidden h-full flex flex-col justify-between"
     >
-      {/* Background decoration */}
-      <motion.div
-        className="absolute -top-10 -right-10 w-40 h-40 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-full opacity-0 group-hover:opacity-50 transition-opacity duration-500 blur-2xl"
-      />
-
-      {/* Stars */}
-      <div className="flex gap-1 mb-4 relative z-10">
-        {[1, 2, 3, 4, 5].map(i => (
-          <motion.div
-            key={i}
-            initial={{ opacity: 0, scale: 0, rotate: -180 }}
-            animate={isInView ? { opacity: 1, scale: 1, rotate: 0 } : {}}
-            transition={{ delay: index * 0.1 + i * 0.1, type: "spring" }}
-            whileHover={{ scale: 1.2, rotate: 15 }}
-          >
-            <Star size={16} className="text-yellow-400 fill-yellow-400" />
-          </motion.div>
-        ))}
+      <div>
+        <div className="flex gap-1 mb-4">
+          {[1, 2, 3, 4, 5].map(i => (
+            <Star key={i} size={16} className="text-yellow-400 fill-yellow-400" />
+          ))}
+        </div>
+        <p className="text-gray-700 text-sm leading-relaxed mb-6 italic">
+          &quot;{testimonial.text}&quot;
+        </p>
       </div>
 
-      <motion.p
-        className="text-gray-700 text-sm leading-relaxed mb-6 italic relative z-10"
-        initial={{ opacity: 0 }}
-        animate={isInView ? { opacity: 1 } : {}}
-        transition={{ delay: index * 0.15 + 0.2 }}
-      >
-        &quot;{testimonial.text}&quot;
-      </motion.p>
-
-      <div className="flex items-center justify-between relative z-10">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <motion.div
-            className="relative"
-            whileHover={{ scale: 1.1 }}
-          >
-            <img
-              src={testimonial.avatar}
-              alt={testimonial.author}
-              className="w-12 h-12 rounded-full border-2 border-gray-100 group-hover:border-indigo-200 transition-colors object-cover"
-            />
-            <motion.div
-              className="absolute -bottom-1 -right-1 w-4 h-4 bg-green-500 rounded-full border-2 border-white"
-              animate={{ scale: [1, 1.2, 1] }}
-              transition={{ repeat: Infinity, duration: 2 }}
-            />
-          </motion.div>
+          <img
+            src={testimonial.avatar}
+            alt={testimonial.author}
+            className="w-10 h-10 rounded-full border border-gray-100 object-cover"
+          />
           <div>
             <p className="font-bold text-sm text-gray-900">{testimonial.author}</p>
             <p className="text-xs text-gray-500">{testimonial.role}</p>
           </div>
         </div>
-        <motion.div
-          whileHover={{ scale: 1.1, rotate: 5 }}
-          whileTap={{ scale: 0.95 }}
-          className="bg-gradient-to-r from-green-50 to-emerald-50 text-green-700 text-xs font-bold px-3 py-2 rounded-full border border-green-100"
-        >
+        <div className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full border border-green-100">
           {testimonial.increase}
-        </motion.div>
+        </div>
       </div>
     </motion.div>
   );
@@ -1272,30 +1186,17 @@ const NichoCard = ({ nicho, index }: { nicho: typeof nichos[0]; index: number })
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, scale: 0.8, y: 20 }}
-      animate={isInView ? { opacity: 1, scale: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.05, duration: 0.4, type: "spring" }}
-      whileHover={{
-        y: -8,
-        scale: 1.05,
-        boxShadow: "0 20px 40px -15px rgba(99, 102, 241, 0.2)"
-      }}
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={isInView ? { opacity: 1, scale: 1 } : {}}
+      transition={{ delay: index * 0.05, duration: 0.3 }}
+      whileHover={{ y: -4, scale: 1.02 }}
       whileTap={{ scale: 0.98 }}
-      className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-indigo-200 hover:bg-gradient-to-br hover:from-indigo-50/50 hover:to-purple-50/50 transition-all duration-300 cursor-pointer group text-center relative overflow-hidden"
+      className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-indigo-200 hover:bg-indigo-50/30 transition-all duration-300 cursor-pointer group text-center"
     >
-      {/* Animated background circle */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 rounded-full scale-0 group-hover:scale-150 transition-transform duration-700"
-      />
-
-      <motion.div
-        whileHover={{ rotate: [0, -15, 15, 0], scale: 1.2 }}
-        transition={{ duration: 0.5 }}
-        className="relative z-10 w-12 h-12 bg-gradient-to-br from-gray-100 to-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3 text-gray-600 group-hover:text-indigo-600 group-hover:from-indigo-100 group-hover:to-purple-100 transition-all shadow-sm group-hover:shadow-md"
-      >
+      <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3 text-gray-600 group-hover:text-indigo-600 group-hover:bg-white group-hover:shadow-sm transition-all">
         {nicho.icon}
-      </motion.div>
-      <p className="relative z-10 text-sm font-bold text-gray-700 group-hover:text-indigo-700 transition-colors">
+      </div>
+      <p className="text-xs sm:text-sm font-bold text-gray-700 group-hover:text-indigo-700 transition-colors">
         {nicho.name}
       </p>
     </motion.div>
@@ -1310,38 +1211,22 @@ const DifferentialCard = ({ item, index }: { item: { icon: React.ReactNode; titl
   return (
     <motion.div
       ref={ref}
-      initial={{ opacity: 0, y: 30 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={isInView ? { opacity: 1, y: 0 } : {}}
       transition={{ delay: index * 0.1, duration: 0.5 }}
-      whileHover={{
-        y: -10,
-        scale: 1.03,
-        backgroundColor: "rgba(255,255,255,0.15)"
-      }}
-      className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10 hover:border-white/30 transition-all duration-500 group relative overflow-hidden"
+      whileHover={{ y: -5, backgroundColor: "rgba(255,255,255,0.1)" }}
+      className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10 hover:border-white/20 transition-all duration-300"
     >
-      {/* Glow effect */}
-      <motion.div
-        className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-xl"
-      />
-
-      <motion.div
-        whileHover={{ rotate: [0, -10, 10, 0], scale: 1.1 }}
-        transition={{ duration: 0.5 }}
-        className="relative z-10 w-16 h-16 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg group-hover:shadow-xl group-hover:shadow-indigo-500/30 transition-all"
-      >
+      <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
         {item.icon}
-      </motion.div>
-      <h3 className="relative z-10 font-bold text-xl mb-2 text-white">{item.title}</h3>
-      <p className="relative z-10 text-gray-400 group-hover:text-gray-300 transition-colors">{item.desc}</p>
+      </div>
+      <h3 className="font-bold text-xl mb-2 text-white">{item.title}</h3>
+      <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
     </motion.div>
   );
 };
 
-// --- MAIN PAGE ---
-// --- SUBSTITUA A FUNÇÃO export default function LandingPage INTEIRA POR ESTA ---
 
-// --- SUBSTITUA APENAS A FUNÇÃO LandingPage POR ESTA ---
 
 export default function LandingPage() {
   const router = useRouter();
@@ -1360,60 +1245,21 @@ export default function LandingPage() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const howItWorks = [
-    {
-      icon: <Settings size={36} />,
-      title: "Configure sua página",
-      desc: "Personalize cada detalhe do seu jeito",
-    },
-    {
-      icon: <Wand2 size={36} />,
-      title: "Crie seus links",
-      desc: "Organize seus links importantes",
-    },
-    {
-      icon: <Share2 size={36} />,
-      title: "Compartilhe",
-      desc: "Coloque na bio e comece a rastrear",
-    },
-    {
-      icon: <Rocket size={36} />,
-      title: "Lucre mais",
-      desc: "Veja seus resultados explodirem",
-    },
+  // ... (Dados howItWorks e differentials mantidos iguais para economizar espaço na resposta, mas você deve mantê-los no seu código) ...
+   const howItWorks = [
+    { icon: <Settings size={36} />, title: "Configure sua página", desc: "Personalize cada detalhe do seu jeito" },
+    { icon: <Wand2 size={36} />, title: "Crie seus links", desc: "Organize seus links importantes" },
+    { icon: <Share2 size={36} />, title: "Compartilhe", desc: "Coloque na bio e comece a rastrear" },
+    { icon: <Rocket size={36} />, title: "Lucre mais", desc: "Veja seus resultados explodirem" },
   ];
 
   const differentials = [
-    {
-      icon: <Gift size={28} />,
-      title: "Grátis de verdade",
-      desc: "Página, encurtador e analytics básico. Sem pegadinhas.",
-    },
-    {
-      icon: <Palette size={28} />,
-      title: "100% customizável",
-      desc: "Você escolhe cada cor, fonte e layout.",
-    },
-    {
-      icon: <Bot size={28} />,
-      title: "IA que trabalha por você",
-      desc: "Brain Roteirista, Chat IA e muito mais.",
-    },
-    {
-      icon: <BarChart3 size={28} />,
-      title: "Analytics de verdade",
-      desc: "Saiba cidade, dispositivo e horário de cada clique.",
-    },
-    {
-      icon: <Calculator size={28} />,
-      title: "Gestão Financeira",
-      desc: "Nenhum concorrente tem. Veja seu lucro real.",
-    },
-    {
-      icon: <Shield size={28} />,
-      title: "Seguro e rápido",
-      desc: "Criptografia, CDN global e 99.99% de uptime.",
-    },
+    { icon: <Gift size={28} />, title: "Grátis de verdade", desc: "Página, encurtador e analytics básico. Sem pegadinhas." },
+    { icon: <Palette size={28} />, title: "100% customizável", desc: "Você escolhe cada cor, fonte e layout." },
+    { icon: <Bot size={28} />, title: "IA que trabalha por você", desc: "Brain Roteirista, Chat IA e muito mais." },
+    { icon: <BarChart3 size={28} />, title: "Analytics de verdade", desc: "Saiba cidade, dispositivo e horário de cada clique." },
+    { icon: <Calculator size={28} />, title: "Gestão Financeira", desc: "Nenhum concorrente tem. Veja seu lucro real." },
+    { icon: <Shield size={28} />, title: "Seguro e rápido", desc: "Criptografia, CDN global e 99.99% de uptime." },
   ];
 
   return (
@@ -1424,9 +1270,9 @@ export default function LandingPage() {
         style={{ scaleX: scrollYProgress }}
       />
 
-      {/* Mobile CTA (Barra fixa inferior) - CORRIGIDO O CLIQUE */}
+      {/* Mobile CTA */}
       <motion.div
-        className="fixed bottom-0 left-0 right-0 z-[90] p-3 bg-white/95 backdrop-blur-lg border-t border-gray-200 md:hidden"
+        className="fixed bottom-0 left-0 right-0 z-[90] p-3 bg-white/95 backdrop-blur-md border-t border-gray-200 md:hidden"
         initial={{ y: 100 }}
         animate={{ y: 0 }}
         transition={{ delay: 1 }}
@@ -1440,10 +1286,8 @@ export default function LandingPage() {
 
       {/* Navigation */}
       <motion.nav
-        className={`fixed top-0 w-full z-[80] transition-all duration-500 ${
-          scrolled
-            ? "bg-white/95 backdrop-blur-lg shadow-lg"
-            : "bg-transparent"
+        className={`fixed top-0 w-full z-[80] transition-all duration-300 ${
+          scrolled ? "bg-white/90 backdrop-blur-md shadow-sm" : "bg-transparent"
         }`}
         initial={{ y: -100 }}
         animate={{ y: 0 }}
@@ -1456,51 +1300,33 @@ export default function LandingPage() {
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
           >
-            <div
-              className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl ${BRAND.gradient} shadow-lg shadow-indigo-500/30`}
-            >
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl ${BRAND.gradient} shadow-lg shadow-indigo-500/30`}>
               F
             </div>
             <span className="text-xl font-bold tracking-tight">Freelinnk</span>
           </motion.div>
 
           <div className="hidden lg:flex items-center gap-8">
-            {["Funcionalidades", "Como Funciona", "Preços", "Depoimentos"].map(
-              (item, i) => (
-                <motion.a
-                  key={item}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: i * 0.1 }}
-                  href={
-                    item === "Preços"
-                      ? "#diferenciais"
-                      : `#${item.toLowerCase().replace(" ", "-")}`
-                  }
-                  className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors relative group"
-                >
-                  {item}
-                  <motion.span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-500 group-hover:w-full transition-all duration-300" />
-                </motion.a>
-              )
-            )}
+            {["Funcionalidades", "Como Funciona", "Preços", "Depoimentos"].map((item) => (
+              <a
+                key={item}
+                href={item === "Preços" ? "#diferenciais" : `#${item.toLowerCase().replace(" ", "-")}`}
+                className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors relative group"
+              >
+                {item}
+                <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-indigo-500 group-hover:w-full transition-all duration-300" />
+              </a>
+            ))}
           </div>
 
           <div className="flex items-center gap-3 relative z-50">
-            {/* Desktop: Entrar */}
             <div className="hidden lg:block">
               <SignInButton mode="modal">
-                <motion.button
-                  className="text-sm font-bold text-gray-600 hover:text-indigo-600 transition-colors px-4 py-2 cursor-pointer"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
-                >
+                <button className="text-sm font-bold text-gray-600 hover:text-indigo-600 transition-colors px-4 py-2 cursor-pointer">
                   Entrar
-                </motion.button>
+                </button>
               </SignInButton>
             </div>
-
-            {/* Desktop: Começar Grátis - CORRIGIDO ORDEM DE ANINHAMENTO */}
             <div className="hidden md:block">
               <MagneticWrapper>
                 <SignInButton mode="modal">
@@ -1508,39 +1334,25 @@ export default function LandingPage() {
                 </SignInButton>
               </MagneticWrapper>
             </div>
-
-            {/* Mobile: Menu Toggle */}
-            <motion.button
+            <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 text-gray-600 relative z-50"
-              whileTap={{ scale: 0.9 }}
             >
               <AnimatePresence mode="wait">
                 {mobileMenuOpen ? (
-                  <motion.div
-                    key="close"
-                    initial={{ rotate: -90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: 90, opacity: 0 }}
-                  >
+                  <motion.div key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }}>
                     <X size={24} />
                   </motion.div>
                 ) : (
-                  <motion.div
-                    key="menu"
-                    initial={{ rotate: 90, opacity: 0 }}
-                    animate={{ rotate: 0, opacity: 1 }}
-                    exit={{ rotate: -90, opacity: 0 }}
-                  >
+                  <motion.div key="menu" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }}>
                     <Menu size={24} />
                   </motion.div>
                 )}
               </AnimatePresence>
-            </motion.button>
+            </button>
           </div>
         </div>
 
-        {/* Mobile Menu Dropdown */}
         <AnimatePresence>
           {mobileMenuOpen && (
             <motion.div
@@ -1550,38 +1362,21 @@ export default function LandingPage() {
               className="lg:hidden bg-white border-b border-gray-100 overflow-hidden relative z-40"
             >
               <div className="px-4 py-4 space-y-1">
-                {[
-                  "Funcionalidades",
-                  "Como Funciona",
-                  "Preços",
-                  "Depoimentos",
-                ].map((item, i) => (
-                  <motion.a
+                {["Funcionalidades", "Como Funciona", "Preços", "Depoimentos"].map((item) => (
+                  <a
                     key={item}
-                    href={
-                      item === "Preços"
-                        ? "#diferenciais"
-                        : `#${item.toLowerCase().replace(" ", "-")}`
-                    }
+                    href={item === "Preços" ? "#diferenciais" : `#${item.toLowerCase().replace(" ", "-")}`}
                     onClick={() => setMobileMenuOpen(false)}
                     className="block py-3 px-4 text-gray-700 hover:bg-gray-50 rounded-xl font-medium"
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.1 }}
                   >
                     {item}
-                  </motion.a>
+                  </a>
                 ))}
                 <div className="pt-2">
                   <SignInButton mode="modal">
-                    <motion.button
-                      className="block w-full py-3 px-4 text-center bg-gray-50 text-indigo-600 font-bold rounded-xl cursor-pointer"
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 }}
-                    >
+                    <button className="block w-full py-3 px-4 text-center bg-gray-50 text-indigo-600 font-bold rounded-xl cursor-pointer">
                       Entrar na Plataforma
-                    </motion.button>
+                    </button>
                   </SignInButton>
                 </div>
               </div>
@@ -1592,17 +1387,17 @@ export default function LandingPage() {
 
       {/* HERO SECTION */}
       <section className="relative pt-24 pb-12 md:pt-32 lg:pt-40 lg:pb-24 overflow-hidden">
-        {/* Background Blobs com pointer-events-none para não bloquear cliques */}
+        {/* Background Blobs OTIMIZADOS - Menos blur e animação mais suave */}
         <div className="absolute inset-0 pointer-events-none z-0">
           <motion.div
-            className="absolute top-0 right-0 w-[800px] h-[800px] bg-gradient-to-br from-indigo-100/50 to-purple-100/50 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3"
-            animate={{ scale: [1, 1.1, 1], rotate: [0, 10, 0] }}
-            transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
+            className="absolute top-0 right-0 w-[500px] h-[500px] md:w-[800px] md:h-[800px] bg-gradient-to-br from-indigo-100/40 to-purple-100/40 rounded-full blur-[60px] md:blur-[100px] -translate-y-1/2 translate-x-1/3"
+            animate={{ rotate: 360 }}
+            transition={{ repeat: Infinity, duration: 50, ease: "linear" }}
           />
           <motion.div
-            className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-gradient-to-tr from-blue-100/50 to-indigo-100/50 rounded-full blur-[100px] translate-y-1/2 -translate-x-1/3"
-            animate={{ scale: [1, 1.2, 1], rotate: [0, -10, 0] }}
-            transition={{ repeat: Infinity, duration: 15, ease: "linear" }}
+            className="absolute bottom-0 left-0 w-[400px] h-[400px] md:w-[600px] md:h-[600px] bg-gradient-to-tr from-blue-100/40 to-indigo-100/40 rounded-full blur-[60px] md:blur-[80px] translate-y-1/2 -translate-x-1/3"
+            animate={{ rotate: -360 }}
+            transition={{ repeat: Infinity, duration: 60, ease: "linear" }}
           />
         </div>
 
@@ -1610,120 +1405,55 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             <div className="text-center lg:text-left">
               <ScrollReveal>
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                  animate={{ opacity: 1, scale: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  whileHover={{ scale: 1.05 }}
-                  className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-full text-sm font-bold text-green-700 mb-6 cursor-pointer relative z-20"
-                >
-                  <motion.div
-                    animate={{ rotate: [0, 15, -15, 0] }}
-                    transition={{ repeat: Infinity, duration: 2 }}
-                  >
-                    <Gift size={16} />
-                  </motion.div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-full text-sm font-bold text-green-700 mb-6 relative z-20">
+                  <Gift size={16} />
                   100% Grátis para começar
-                </motion.div>
+                </div>
 
-                <motion.h1
-                  className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.1] mb-6 relative z-20"
-                  initial={{ opacity: 0, y: 30 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                >
+                <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.1] mb-6 relative z-20">
                   A página de links que{" "}
-                  <motion.span
-                    className={BRAND.textGradient}
-                    animate={{ backgroundPosition: ["0%", "100%", "0%"] }}
-                    transition={{ repeat: Infinity, duration: 5 }}
-                  >
-                    bota dinheiro
-                  </motion.span>{" "}
+                  <span className={BRAND.textGradient}>bota dinheiro</span>{" "}
                   no seu bolso.
-                </motion.h1>
+                </h1>
 
-                <motion.p
-                  className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed relative z-20"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  Página totalmente customizável, encurtador com analytics e
-                  ferramentas de{" "}
-                  <strong className="text-indigo-600">
-                    IA exclusivas
-                  </strong>{" "}
-                  para você vender muito mais.
-                </motion.p>
+                <p className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed relative z-20">
+                  Página totalmente customizável, encurtador com analytics e ferramentas de{" "}
+                  <strong className="text-indigo-600">IA exclusivas</strong> para você vender muito mais.
+                </p>
 
-                {/* Input estilo Linktree - CORRIGIDO BOTÃO DE CRIAR */}
                 <div className="max-w-md mx-auto lg:mx-0 bg-white p-2 rounded-2xl shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] border border-gray-200 flex flex-col sm:flex-row gap-2 transform hover:scale-[1.01] transition-transform mb-6 relative z-30">
                   <div className="flex-1 bg-gray-50 rounded-xl px-4 flex items-center h-12 sm:h-auto border border-transparent focus-within:border-[#6366f1] focus-within:bg-white transition-all">
-                    <span className="text-gray-400 font-bold text-sm mr-1">
-                      freelinnk.com/
-                    </span>
-                    <input
-                      type="text"
-                      placeholder="seunome"
-                      className="bg-transparent border-none outline-none font-bold text-gray-900 w-full placeholder:text-gray-300"
-                    />
+                    <span className="text-gray-400 font-bold text-sm mr-1">freelinnk.com/</span>
+                    <input type="text" placeholder="seunome" className="bg-transparent border-none outline-none font-bold text-gray-900 w-full placeholder:text-gray-300" />
                   </div>
                   <SignInButton mode="modal">
-                    <Button className="w-full sm:w-auto whitespace-nowrap shadow-md cursor-pointer pointer-events-auto">
-                      Criar Grátis
-                    </Button>
+                    <Button className="w-full sm:w-auto whitespace-nowrap shadow-md cursor-pointer pointer-events-auto">Criar Grátis</Button>
                   </SignInButton>
                 </div>
 
-                {/* BOTÃO HERO PRINCIPAL - CORRIGIDO ORDEM ANINHAMENTO */}
-                <motion.div
-                  className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 relative z-30"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                >
+                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 relative z-30">
                   <MagneticWrapper>
                     <SignInButton mode="modal">
                       <Button size="xl" className="w-full sm:w-auto group cursor-pointer pointer-events-auto">
                         Começar Agora — É Grátis
-                        <span className="text-[10px] font-normal opacity-80 block sm:inline ml-1">
-                          (leva só 30 segundos)
-                        </span>
-                        <motion.div
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ repeat: Infinity, duration: 1.5 }}
-                        >
-                          <ArrowRight size={20} />
-                        </motion.div>
+                        <span className="text-[10px] font-normal opacity-80 block sm:inline ml-1">(leva só 30 segundos)</span>
+                        <ArrowRight size={20} className="ml-1" />
                       </Button>
                     </SignInButton>
                   </MagneticWrapper>
-                </motion.div>
-
-                {/* Trust Badges */}
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-[10px] sm:text-xs text-gray-500 font-medium mb-8 relative z-20">
-                  <span className="flex items-center gap-1">
-                    <Lock size={12} className="text-green-500" /> Conexão Segura
-                  </span>
-                  <span className="hidden sm:inline">·</span>
-                  <span className="flex items-center gap-1">
-                    <Shield size={12} className="text-blue-500" /> Dados Criptografados
-                  </span>
-                  <span className="hidden sm:inline">·</span>
-                  <span className="flex items-center gap-1">
-                    <Server size={12} className="text-purple-500" /> CDN Global
-                  </span>
                 </div>
 
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.6 }}
-                  className="relative z-20"
-                >
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-[10px] sm:text-xs text-gray-500 font-medium mb-8 relative z-20">
+                  <span className="flex items-center gap-1"><Lock size={12} className="text-green-500" /> Conexão Segura</span>
+                  <span className="hidden sm:inline">·</span>
+                  <span className="flex items-center gap-1"><Shield size={12} className="text-blue-500" /> Dados Criptografados</span>
+                  <span className="hidden sm:inline">·</span>
+                  <span className="flex items-center gap-1"><Server size={12} className="text-purple-500" /> CDN Global</span>
+                </div>
+
+                <div className="relative z-20">
                   <SocialProofAvatars />
-                </motion.div>
+                </div>
               </ScrollReveal>
             </div>
 
@@ -1741,25 +1471,13 @@ export default function LandingPage() {
           transition={{ delay: 2 }}
           className="absolute bottom-8 left-1/2 -translate-x-1/2 hidden lg:flex flex-col items-center gap-2 z-20"
         >
-          <span className="text-xs text-gray-400 font-medium">
-            Role para explorar
-          </span>
-          <motion.div
-            animate={{ y: [0, 10, 0] }}
-            transition={{ repeat: Infinity, duration: 1.5 }}
-          >
-            <ChevronDown size={20} className="text-gray-400" />
-          </motion.div>
+          <span className="text-xs text-gray-400 font-medium">Role para explorar</span>
+          <ChevronDown size={20} className="text-gray-400 animate-bounce" />
         </motion.div>
       </section>
 
       {/* STATS BAR */}
       <section className="py-10 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden">
-        <motion.div
-          className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4xIj48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')] opacity-30"
-          animate={{ x: [0, 60], y: [0, 60] }}
-          transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-        />
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
             {stats.map((stat, i) => (
@@ -1769,19 +1487,11 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                whileHover={{ scale: 1.05 }}
                 className="text-center"
               >
-                <motion.p
-                  className="text-3xl md:text-5xl font-black mb-1"
-                  whileHover={{ scale: 1.1 }}
-                >
-                  <AnimatedCounter
-                    value={stat.value}
-                    prefix={stat.prefix}
-                    suffix={stat.suffix}
-                  />
-                </motion.p>
+                <p className="text-3xl md:text-5xl font-black mb-1">
+                  <AnimatedCounter value={stat.value} prefix={stat.prefix} suffix={stat.suffix} />
+                </p>
                 <p className="text-sm text-white/70">{stat.label}</p>
               </motion.div>
             ))}
@@ -1794,20 +1504,14 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-12">
-              <motion.div
-                whileHover={{ scale: 1.1, rotate: 5 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded-full text-sm font-bold mb-4 cursor-pointer"
-              >
-                <Crown size={16} />
-                Páginas Reais
-              </motion.div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded-full text-sm font-bold mb-4">
+                <Crown size={16} /> Páginas Reais
+              </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Veja o que nossos usuários{" "}
-                <span className={BRAND.textGradient}>criaram</span>
+                Veja o que nossos usuários <span className={BRAND.textGradient}>criaram</span>
               </h2>
               <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                100% customizável. Você escolhe cores, fontes, layout e muito
-                mais.
+                100% customizável. Você escolhe cores, fontes, layout e muito mais.
               </p>
             </div>
           </ScrollReveal>
@@ -1820,17 +1524,10 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            {/* BOTÃO PÁGINAS REAIS - CORRIGIDO ORDEM */}
             <MagneticWrapper>
               <SignInButton mode="modal">
                 <Button size="lg" className="group cursor-pointer pointer-events-auto">
-                  Criar Minha Página
-                  <motion.div
-                    animate={{ x: [0, 5, 0] }}
-                    transition={{ repeat: Infinity, duration: 1 }}
-                  >
-                    <ArrowRight size={18} />
-                  </motion.div>
+                  Criar Minha Página <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
                 </Button>
               </SignInButton>
             </MagneticWrapper>
@@ -1843,20 +1540,14 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-16">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-bold mb-4"
-              >
-                <Cpu size={16} />
-                Funcionalidades
-              </motion.div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-bold mb-4">
+                <Cpu size={16} /> Funcionalidades
+              </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Tudo que você precisa para{" "}
-                <span className={BRAND.textGradient}>vender mais</span>
+                Tudo que você precisa para <span className={BRAND.textGradient}>vender mais</span>
               </h2>
               <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Não somos só um link na bio. Somos seu sistema de vendas
-                completo.
+                Não somos só um link na bio. Somos seu sistema de vendas completo.
               </p>
             </div>
           </ScrollReveal>
@@ -1870,37 +1561,21 @@ export default function LandingPage() {
       </section>
 
       {/* HOW IT WORKS */}
-      <section
-        id="como-funciona"
-        className="py-20 bg-gradient-to-b from-gray-50 to-white"
-      >
+      <section id="como-funciona" className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-16">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-4"
-              >
-                <Play size={16} />
-                Como Funciona
-              </motion.div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Simples assim
-              </h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Em menos de 5 minutos você está pronto para vender.
-              </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-4">
+                <Play size={16} /> Como Funciona
+              </div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">Simples assim</h2>
+              <p className="text-gray-600 text-lg max-w-2xl mx-auto">Em menos de 5 minutos você está pronto para vender.</p>
             </div>
           </ScrollReveal>
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-4">
             {howItWorks.map((step, i) => (
-              <HowItWorksStep
-                key={i}
-                step={step}
-                index={i}
-                total={howItWorks.length}
-              />
+              <HowItWorksStep key={i} step={step} index={i} total={howItWorks.length} />
             ))}
           </div>
 
@@ -1910,16 +1585,10 @@ export default function LandingPage() {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
           >
-            {/* BOTÃO COMO FUNCIONA - CORRIGIDO ORDEM */}
             <MagneticWrapper>
               <SignInButton mode="modal">
-                <Button
-                  size="lg"
-                  variant="default"
-                  className="shadow-lg hover:shadow-xl cursor-pointer pointer-events-auto"
-                >
-                  Criar Minha Página Agora
-                  <ArrowRight size={18} />
+                <Button size="lg" variant="default" className="shadow-lg hover:shadow-xl cursor-pointer pointer-events-auto">
+                  Criar Minha Página Agora <ArrowRight size={18} />
                 </Button>
               </SignInButton>
             </MagneticWrapper>
@@ -1927,25 +1596,19 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* PARA QUEM (Mantido igual) */}
+      {/* PARA QUEM */}
       <section className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-12">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-bold mb-4"
-              >
-                <Users size={16} />
-                Para Todos
-              </motion.div>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-bold mb-4">
+                <Users size={16} /> Para Todos
+              </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Serve pra você?{" "}
-                <span className={BRAND.textGradient}>Com certeza.</span>
+                Serve pra você? <span className={BRAND.textGradient}>Com certeza.</span>
               </h2>
             </div>
           </ScrollReveal>
-
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
             {nichos.map((nicho, i) => (
               <NichoCard key={i} nicho={nicho} index={i} />
@@ -1954,30 +1617,18 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* TESTIMONIALS (Mantido igual) */}
-      <section
-        id="depoimentos"
-        className="py-20 bg-gradient-to-b from-gray-50 to-white"
-      >
+      {/* TESTIMONIALS */}
+      <section id="depoimentos" className="py-20 bg-gradient-to-b from-gray-50 to-white">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-12">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-sm font-bold mb-4"
-              >
-                <Star size={16} />
-                Depoimentos
-              </motion.div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Quem usa, recomenda
-              </h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Mais de 10.800 criadores já transformaram seus resultados.
-              </p>
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-sm font-bold mb-4">
+                <Star size={16} /> Depoimentos
+              </div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">Quem usa, recomenda</h2>
+              <p className="text-gray-600 text-lg max-w-2xl mx-auto">Mais de 10.800 criadores já transformaram seus resultados.</p>
             </div>
           </ScrollReveal>
-
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {testimonials.map((testimonial, i) => (
               <TestimonialCard key={i} testimonial={testimonial} index={i} />
@@ -1986,40 +1637,24 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* DIFFERENTIALS (Mantido igual) */}
-      <section
-        id="diferenciais"
-        className="py-24 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative overflow-hidden"
-      >
+      {/* DIFFERENTIALS */}
+      <section id="diferenciais" className="py-24 bg-gradient-to-br from-gray-900 via-gray-800 to-gray-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 z-0">
           <motion.div
-            className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-indigo-500/30 rounded-full blur-[150px]"
-            animate={{ scale: [1, 1.2, 1], x: [0, 50, 0] }}
+            className="absolute top-0 left-1/4 w-[300px] h-[300px] bg-indigo-500/20 rounded-full blur-[100px]"
+            animate={{ scale: [1, 1.2, 1] }}
             transition={{ repeat: Infinity, duration: 10 }}
           />
-          <motion.div
-            className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/30 rounded-full blur-[150px]"
-            animate={{ scale: [1, 1.3, 1], x: [0, -50, 0] }}
-            transition={{ repeat: Infinity, duration: 12 }}
-          />
         </div>
-
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <ScrollReveal>
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black mb-4">
-                Por que{" "}
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">
-                  Freelinnk
-                </span>
-                ?
+                Por que <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Freelinnk</span>?
               </h2>
-              <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                Não tiramos seu dinheiro. Botamos mais.
-              </p>
+              <p className="text-gray-400 text-lg max-w-2xl mx-auto">Não tiramos seu dinheiro. Botamos mais.</p>
             </div>
           </ScrollReveal>
-
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {differentials.map((item, i) => (
               <DifferentialCard key={i} item={item} index={i} />
@@ -2028,7 +1663,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* SECURITY (Mantido igual) */}
+      {/* SECURITY */}
       <section className="py-16 bg-white border-y border-gray-100">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
@@ -2044,58 +1679,33 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                whileHover={{ scale: 1.1, y: -5 }}
                 className="flex items-center gap-3 text-gray-600 cursor-pointer group"
               >
-                <motion.div
-                  className="text-green-500 group-hover:text-indigo-500 transition-colors"
-                  whileHover={{ rotate: 360 }}
-                  transition={{ duration: 0.5 }}
-                >
+                <div className="text-green-500 group-hover:text-indigo-500 transition-colors">
                   {item.icon}
-                </motion.div>
-                <span className="text-sm font-semibold group-hover:text-gray-900 transition-colors">
-                  {item.text}
-                </span>
+                </div>
+                <span className="text-sm font-semibold group-hover:text-gray-900 transition-colors">{item.text}</span>
               </motion.div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* FAQ (Mantido igual) */}
+      {/* FAQ */}
       <section className="py-20 bg-gray-50">
         <div className="max-w-3xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">
-                Perguntas Frequentes
-              </h2>
+              <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Perguntas Frequentes</h2>
             </div>
           </ScrollReveal>
-
           <div className="space-y-4">
             {[
-              {
-                q: "O Freelinnk é realmente grátis?",
-                a: "Sim! Página de links, encurtador e analytics básico são 100% grátis para sempre. As ferramentas de IA avançadas são para assinantes Pro ou Ultra.",
-              },
-              {
-                q: "Preciso saber programar ou design?",
-                a: "Não! Nossa interface é super intuitiva. Você customiza tudo com cliques, sem código.",
-              },
-              {
-                q: "Posso usar em qualquer rede social?",
-                a: "Sim! Instagram, TikTok, YouTube, LinkedIn, Twitter, WhatsApp... Em qualquer lugar.",
-              },
-              {
-                q: "Meus dados estão seguros?",
-                a: "100%. Usamos criptografia AES-256, servidores globais e somos totalmente compatíveis com a LGPD.",
-              },
-              {
-                q: "O que é o Brain Roteirista?",
-                a: "É nossa IA que cria roteiros virais para seus vídeos, com sugestões de ângulos, cortes e timing perfeito para engajar.",
-              },
+              { q: "O Freelinnk é realmente grátis?", a: "Sim! Página de links, encurtador e analytics básico são 100% grátis para sempre. As ferramentas de IA avançadas são para assinantes Pro ou Ultra." },
+              { q: "Preciso saber programar ou design?", a: "Não! Nossa interface é super intuitiva. Você customiza tudo com cliques, sem código." },
+              { q: "Posso usar em qualquer rede social?", a: "Sim! Instagram, TikTok, YouTube, LinkedIn, Twitter, WhatsApp... Em qualquer lugar." },
+              { q: "Meus dados estão seguros?", a: "100%. Usamos criptografia AES-256, servidores globais e somos totalmente compatíveis com a LGPD." },
+              { q: "O que é o Brain Roteirista?", a: "É nossa IA que cria roteiros virais para seus vídeos, com sugestões de ângulos, cortes e timing perfeito para engajar." },
             ].map((faq, i) => (
               <motion.div
                 key={i}
@@ -2103,23 +1713,14 @@ export default function LandingPage() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
                 transition={{ delay: i * 0.1 }}
-                whileHover={{ scale: 1.02, y: -3 }}
+                whileHover={{ scale: 1.01 }}
                 className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:shadow-lg hover:border-indigo-100 transition-all cursor-pointer group"
               >
                 <h4 className="font-bold text-gray-900 mb-3 flex items-start gap-3">
-                  <motion.span
-                    whileHover={{ scale: 1.2, rotate: 15 }}
-                    className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 rounded-full flex items-center justify-center text-sm flex-shrink-0 group-hover:from-indigo-500 group-hover:to-purple-500 group-hover:text-white transition-all"
-                  >
-                    ?
-                  </motion.span>
-                  <span className="group-hover:text-indigo-600 transition-colors">
-                    {faq.q}
-                  </span>
+                  <span className="w-8 h-8 bg-gradient-to-br from-indigo-100 to-purple-100 text-indigo-600 rounded-full flex items-center justify-center text-sm flex-shrink-0">?</span>
+                  <span className="group-hover:text-indigo-600 transition-colors">{faq.q}</span>
                 </h4>
-                <p className="text-gray-600 text-sm pl-11 leading-relaxed">
-                  {faq.a}
-                </p>
+                <p className="text-gray-600 text-sm pl-11 leading-relaxed">{faq.a}</p>
               </motion.div>
             ))}
           </div>
@@ -2131,122 +1732,36 @@ export default function LandingPage() {
         <div className="absolute inset-0 pointer-events-none z-0">
           <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
         </div>
-
-        {/* Floating shapes */}
-        <motion.div
-          className="absolute top-10 left-10 w-32 h-32 border border-white/10 rounded-3xl z-0"
-          animate={{ rotate: [0, 90, 180, 270, 360], scale: [1, 1.1, 1] }}
-          transition={{ repeat: Infinity, duration: 20, ease: "linear" }}
-        />
-        <motion.div
-          className="absolute bottom-10 right-10 w-24 h-24 bg-white/5 rounded-full z-0"
-          animate={{ y: [0, -30, 0], scale: [1, 1.2, 1] }}
-          transition={{ repeat: Infinity, duration: 5 }}
-        />
-        <motion.div
-          className="absolute top-1/2 right-20 w-16 h-16 bg-white/10 rounded-2xl hidden lg:block z-0"
-          animate={{ rotate: [0, 45, 0], x: [0, 20, 0] }}
-          transition={{ repeat: Infinity, duration: 8 }}
-        />
-
         <div className="max-w-4xl mx-auto px-4 text-center relative z-20">
           <ScrollReveal>
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              className="inline-flex items-center gap-2 bg-white/20 backdrop-blur text-white border border-white/30 rounded-full px-6 py-3 text-sm font-bold mb-8 cursor-pointer"
-            >
-              <motion.div
-                animate={{ scale: [1, 1.3, 1] }}
-                transition={{ repeat: Infinity, duration: 1.5 }}
-              >
-                <Flame className="w-5 h-5 text-orange-300" />
-              </motion.div>
-              +10.800 criadores já estão lucrando mais
-            </motion.div>
-            <motion.h2
-              className="text-4xl sm:text-5xl md:text-6xl font-black mb-6 leading-tight"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-            >
-              Pronto para colocar mais{" "}
-              <br className="hidden sm:block" />
-              <motion.span
-                animate={{
-                  textShadow: [
-                    "0 0 20px rgba(255,255,255,0.3)",
-                    "0 0 40px rgba(255,255,255,0.5)",
-                    "0 0 20px rgba(255,255,255,0.3)",
-                  ],
-                }}
-                transition={{ repeat: Infinity, duration: 2 }}
-              >
-                dinheiro no seu bolso?
-              </motion.span>
-            </motion.h2>
-            <motion.p
-              className="text-xl text-white/80 mb-10 max-w-2xl mx-auto"
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.1 }}
-            >
-              Crie sua página grátis agora.
-              <br />
-              Sem cartão, sem compromisso, sem enrolação.
-            </motion.p>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.2 }}
-            >
-              {/* BOTÃO FINAL - CORRIGIDO ORDEM */}
-              <MagneticWrapper>
-                <SignInButton mode="modal">
-                  <Button
-                    size="xl"
-                    variant="white"
-                    className="shadow-2xl text-lg px-14 py-6 group cursor-pointer pointer-events-auto"
-                  >
-                    Começar Agora — É Grátis
-                    <motion.div
-                      animate={{ x: [0, 8, 0] }}
-                      transition={{ repeat: Infinity, duration: 1 }}
-                    >
-                      <ArrowRight size={24} />
-                    </motion.div>
-                  </Button>
-                </SignInButton>
-              </MagneticWrapper>
-            </motion.div>
-
-            <motion.div
-              className="mt-10 flex flex-col sm:flex-row justify-center gap-8 text-sm text-white/70"
-              initial={{ opacity: 0 }}
-              whileInView={{ opacity: 1 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.3 }}
-            >
+            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur text-white border border-white/30 rounded-full px-6 py-3 text-sm font-bold mb-8 cursor-pointer">
+              <Flame className="w-5 h-5 text-orange-300" /> +10.800 criadores já estão lucrando mais
+            </div>
+            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-6 leading-tight">
+              Pronto para colocar mais <br className="hidden sm:block" />
+              <span className="text-white drop-shadow-lg">dinheiro no seu bolso?</span>
+            </h2>
+            <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
+              Crie sua página grátis agora. <br /> Sem cartão, sem compromisso, sem enrolação.
+            </p>
+            <MagneticWrapper>
+              <SignInButton mode="modal">
+                <Button size="xl" variant="white" className="shadow-2xl text-lg px-14 py-6 group cursor-pointer pointer-events-auto">
+                  Começar Agora — É Grátis <ArrowRight size={24} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </SignInButton>
+            </MagneticWrapper>
+            <div className="mt-10 flex flex-col sm:flex-row justify-center gap-8 text-sm text-white/70">
               {[
                 { icon: <CheckCircle size={18} />, text: "Grátis para sempre" },
-                {
-                  icon: <CheckCircle size={18} />,
-                  text: "Sem cartão de crédito",
-                },
+                { icon: <CheckCircle size={18} />, text: "Sem cartão de crédito" },
                 { icon: <CheckCircle size={18} />, text: "Pronto em 2 minutos" },
               ].map((item, i) => (
-                <motion.span
-                  key={i}
-                  whileHover={{ scale: 1.1, y: -3 }}
-                  className="flex items-center justify-center gap-2 cursor-pointer"
-                >
-                  <span className="text-green-400">{item.icon}</span>
-                  {item.text}
-                </motion.span>
+                <span key={i} className="flex items-center justify-center gap-2">
+                  <span className="text-green-400">{item.icon}</span> {item.text}
+                </span>
               ))}
-            </motion.div>
+            </div>
           </ScrollReveal>
         </div>
       </section>
@@ -2256,120 +1771,60 @@ export default function LandingPage() {
         <div className="max-w-7xl mx-auto px-4">
           <div className="grid md:grid-cols-4 gap-12 mb-12">
             <div className="md:col-span-2">
-              <motion.div
-                className="flex items-center gap-2.5 mb-6"
-                whileHover={{ scale: 1.05 }}
-              >
-                <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-2xl ${BRAND.gradient} shadow-lg`}
-                >
-                  F
-                </div>
+              <div className="flex items-center gap-2.5 mb-6">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-2xl ${BRAND.gradient} shadow-lg`}>F</div>
                 <span className="text-2xl font-bold">Freelinnk</span>
-              </motion.div>
+              </div>
               <p className="text-gray-400 mb-6 max-w-md leading-relaxed">
-                A página de links que bota dinheiro no seu bolso. Feito com 💜 no
-                Brasil para criadores do mundo todo.
+                A página de links que bota dinheiro no seu bolso. Feito com 💜 no Brasil para criadores do mundo todo.
               </p>
               <div className="flex gap-4">
                 {[
-                  {
-                    icon: <Instagram size={20} />,
-                    color:
-                      "hover:bg-gradient-to-br hover:from-purple-500 hover:to-pink-500",
-                  },
+                  { icon: <Instagram size={20} />, color: "hover:bg-gradient-to-br hover:from-purple-500 hover:to-pink-500" },
                   { icon: <Youtube size={20} />, color: "hover:bg-red-500" },
                   { icon: <Linkedin size={20} />, color: "hover:bg-blue-600" },
-                  {
-                    icon: <MessageCircle size={20} />,
-                    color: "hover:bg-green-500",
-                  },
+                  { icon: <MessageCircle size={20} />, color: "hover:bg-green-500" },
                 ].map((social, i) => (
-                  <motion.a
+                  <a
                     key={i}
                     href="#"
-                    whileHover={{ scale: 1.15, y: -5, rotate: 5 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-gray-400 hover:text-white ${social.color} transition-all duration-300`}
+                    className={`w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-gray-400 hover:text-white ${social.color} transition-all duration-300 hover:-translate-y-1`}
                   >
                     {social.icon}
-                  </motion.a>
+                  </a>
                 ))}
               </div>
             </div>
-
             <div>
               <h4 className="font-bold text-lg mb-6">Produto</h4>
               <ul className="space-y-4 text-gray-400">
-                {[
-                  { href: "#funcionalidades", text: "Funcionalidades" },
-                  { href: "#como-funciona", text: "Como Funciona" },
-                  { href: "#depoimentos", text: "Depoimentos" },
-                ].map((link, i) => (
+                {[{ href: "#funcionalidades", text: "Funcionalidades" }, { href: "#como-funciona", text: "Como Funciona" }, { href: "#depoimentos", text: "Depoimentos" }].map((link, i) => (
                   <li key={i}>
-                    <motion.a
-                      href={link.href}
-                      className="hover:text-white transition-colors inline-flex items-center gap-2 group"
-                      whileHover={{ x: 5 }}
-                    >
-                      <motion.span
-                        initial={{ width: 0 }}
-                        whileHover={{ width: 10 }}
-                        className="h-0.5 bg-indigo-500"
-                      />
-                      {link.text}
-                    </motion.a>
+                    <a href={link.href} className="hover:text-white transition-colors inline-flex items-center gap-2 group">
+                      <span className="h-0.5 bg-indigo-500 w-0 group-hover:w-2 transition-all" /> {link.text}
+                    </a>
                   </li>
                 ))}
               </ul>
             </div>
-
             <div>
               <h4 className="font-bold text-lg mb-6">Legal</h4>
               <ul className="space-y-4 text-gray-400">
-                {[
-                  { href: "/terms-of-service", text: "Termos de Uso" },
-                  { href: "/privacy-policy", text: "Privacidade" },
-                  { href: "/privacy-policy", text: "LGPD" },
-                ].map((link, i) => (
+                {[{ href: "/terms-of-service", text: "Termos de Uso" }, { href: "/privacy-policy", text: "Privacidade" }, { href: "/privacy-policy", text: "LGPD" }].map((link, i) => (
                   <li key={i}>
-                    <motion.a
-                      href={link.href}
-                      className="hover:text-white transition-colors inline-flex items-center gap-2 group"
-                      whileHover={{ x: 5 }}
-                    >
-                      <motion.span
-                        initial={{ width: 0 }}
-                        whileHover={{ width: 10 }}
-                        className="h-0.5 bg-indigo-500"
-                      />
-                      {link.text}
-                    </motion.a>
+                    <a href={link.href} className="hover:text-white transition-colors inline-flex items-center gap-2 group">
+                      <span className="h-0.5 bg-indigo-500 w-0 group-hover:w-2 transition-all" /> {link.text}
+                    </a>
                   </li>
                 ))}
               </ul>
             </div>
           </div>
-
           <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-500">
-              © 2025 Freelinnk. Todos os direitos reservados.
-            </p>
+            <p className="text-sm text-gray-500">© 2025 Freelinnk. Todos os direitos reservados.</p>
             <div className="flex items-center gap-6">
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                className="flex items-center gap-2 text-gray-500 text-sm"
-              >
-                <Lock size={16} className="text-green-500" />
-                Conexão Segura
-              </motion.div>
-              <motion.div
-                whileHover={{ scale: 1.1 }}
-                className="flex items-center gap-2 text-gray-500 text-sm"
-              >
-                <Shield size={16} className="text-green-500" />
-                LGPD
-              </motion.div>
+              <div className="flex items-center gap-2 text-gray-500 text-sm"><Lock size={16} className="text-green-500" /> Conexão Segura</div>
+              <div className="flex items-center gap-2 text-gray-500 text-sm"><Shield size={16} className="text-green-500" /> LGPD</div>
             </div>
           </div>
         </div>
