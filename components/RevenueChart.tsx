@@ -1,5 +1,3 @@
-"use client";
-
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -31,23 +29,23 @@ interface RevenueChartProps {
   height?: number;
 }
 
-// Interface específica para o Tooltip evitar conflitos de tipo e 'any'
 interface CustomTooltipProps {
   active?: boolean;
   payload?: {
-    payload: ChartDataPoint; // Aqui definimos que o dado interno segue nossa interface
+    payload: ChartDataPoint;
     value?: number;
   }[];
   label?: string;
 }
 
 export function RevenueChart({ data, type = 'area', height = 300 }: RevenueChartProps) {
+  // ✅ CORREÇÃO 1: Exibir centavos exatos (2 casas decimais)
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",
       currency: "BRL",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2, // Era 0
+      maximumFractionDigits: 2, // Era 0
     }).format(value);
   };
 
@@ -56,26 +54,42 @@ export function RevenueChart({ data, type = 'area', height = 300 }: RevenueChart
     return `${day}/${month}`;
   };
 
-  // Calcular tendência
-  const firstProfit = data[0]?.profit || 0;
-  const lastProfit = data[data.length - 1]?.profit || 0;
-  const trend = lastProfit - firstProfit;
-  let trendPercent = '0';
+  // ✅ CORREÇÃO 2: Porcentagem Real
+  // Procura o primeiro dia que teve alguma movimentação (lucro diferente de 0) para usar como base
+  // Isso evita o erro de comparar com o dia 1 se o dia 1 foi zero, mas o dia 2 teve valor.
+  const calculateTrend = () => {
+    if (data.length < 2) return { value: 0, percent: '0' };
 
-  if (firstProfit === 0) {
-    // Se começou do zero e agora tem lucro, consideramos 100% de crescimento simbólico
-    if (lastProfit > 0) trendPercent = '100';
-    else if (lastProfit < 0) trendPercent = '-100';
-    else trendPercent = '0';
-  } else {
-    // Usa Math.abs no divisor para manter o sinal correto da tendência
-    trendPercent = ((trend / Math.abs(firstProfit)) * 100).toFixed(1);
-  }
-  // CORREÇÃO AQUI: Usamos a interface CustomTooltipProps definida acima.
-  // Isso satisfaz o TypeScript (temos tipos fortes) e o ESLint (sem 'any').
+    const lastProfit = data[data.length - 1]?.profit || 0;
+
+    // Encontra o primeiro dia com lucro não-zero para comparar
+    const firstNonZeroIndex = data.findIndex(d => d.profit !== 0);
+    const baselineProfit = firstNonZeroIndex !== -1 && firstNonZeroIndex < data.length - 1
+      ? data[firstNonZeroIndex].profit
+      : data[0].profit; // Se tudo for zero, usa o primeiro mesmo
+
+    const trend = lastProfit - baselineProfit;
+
+    let trendPercent = '0';
+
+    if (baselineProfit === 0) {
+      // Se a base ainda é zero (ex: começou hoje), define simbolicamente
+      if (lastProfit > 0) trendPercent = '100';
+      else if (lastProfit < 0) trendPercent = '-100';
+      else trendPercent = '0';
+    } else {
+      // Cálculo real de porcentagem: (Diferença / Base) * 100
+      // Math.abs na base garante que o sinal (+/-) venha da diferença (trend)
+      trendPercent = ((trend / Math.abs(baselineProfit)) * 100).toFixed(1);
+    }
+
+    return { value: trend, percent: trendPercent };
+  };
+
+  const { percent: trendPercent } = calculateTrend();
+
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
     if (active && payload && payload.length > 0) {
-      // O TypeScript agora sabe que 'payload[0].payload' é do tipo ChartDataPoint
       const currentData = payload[0].payload;
 
       return (
@@ -126,10 +140,10 @@ export function RevenueChart({ data, type = 'area', height = 300 }: RevenueChart
         </div>
 
         <div className="flex items-center gap-2">
-          {trend >= 0 ? (
+          {parseFloat(trendPercent) >= 0 ? (
             <Badge className="bg-emerald-100 text-emerald-700 border-0">
               <TrendingUp className="w-3 h-3 mr-1" />
-              +{trendPercent}%
+              {trendPercent === '0' ? '0%' : `+${trendPercent}%`}
             </Badge>
           ) : (
             <Badge className="bg-red-100 text-red-700 border-0">

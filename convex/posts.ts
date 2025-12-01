@@ -38,7 +38,7 @@ export const schedulePost = mutation({
     const userId = identity.subject;
 
     // Criar data no formato ISO local do usuário
-    const localDateTime = `${args.scheduledDate}T${args.scheduledTime}:00`;
+    const localDateTime = `${args.scheduledDate}T${args.scheduledTime}:00-03:00`;
 
     // Converter para timestamp UTC corretamente
     // O frontend já envia a data no timezone local, então só precisamos parsear
