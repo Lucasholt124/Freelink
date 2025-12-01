@@ -351,8 +351,9 @@ export class PDFExporter {
     });
   }
 
-  public exportMonthlyReport(report: MonthlyReport, sales: Sale[], expenses: Expense[]) {
-    const monthName = new Date(report.month + '-01').toLocaleDateString('pt-BR', {
+ public exportMonthlyReport(report: MonthlyReport, sales: Sale[], expenses: Expense[]) {
+    // ✅ CORREÇÃO 3: Adicionado 'T12:00:00' para forçar meio-dia e evitar fuso horário voltando o dia
+    const monthName = new Date(report.month + '-01T12:00:00').toLocaleDateString('pt-BR', {
       month: 'long',
       year: 'numeric',
     });
@@ -864,8 +865,9 @@ export class PDFExporter {
     this.doc.save('freelinnk_produtos.pdf');
   }
 
-  public exportSalesReport(sales: Sale[], month: string) {
-    const monthName = new Date(month + '-01').toLocaleDateString('pt-BR', {
+ public exportSalesReport(sales: Sale[], month: string) {
+    // ✅ MESMA CORREÇÃO AQUI
+    const monthName = new Date(month + '-01T12:00:00').toLocaleDateString('pt-BR', {
       month: 'long',
       year: 'numeric',
     });
@@ -874,7 +876,6 @@ export class PDFExporter {
       'Relatorio de Vendas',
       `${sales.length} vendas em ${monthName}`
     );
-
     this.addWatermark();
     yPos += 5;
 

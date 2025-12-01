@@ -1355,6 +1355,7 @@ const paginatedProducts = useMemo(() => {
 
 const totalProductsPages = Math.ceil(filteredProducts.length / PRODUCTS_PER_PAGE);
 
+// ✅ CORREÇÃO 1: CÁLCULO DE LUCRO REAL (Considerando Custo do Produto)
 const chartData = useMemo(() => {
   if (!dailySummary || !sales || !expenses) return [];
 
@@ -1371,8 +1372,15 @@ const chartData = useMemo(() => {
     const dayExpenses = expenses.filter(e => e.date === date);
 
     const revenue = daySales.reduce((sum, s) => sum + (s.totalRevenue || 0), 0);
+
+    // ANTES: const profit = revenue - expensesTotal; (ERRADO - Ignorava custo do produto)
+    // AGORA: Somamos o lucro individual de cada venda (que já desconta o custo)
+    const grossProfit = daySales.reduce((sum, s) => sum + (s.profit || 0), 0);
+
     const expensesTotal = dayExpenses.reduce((sum, e) => sum + (e.amount || 0), 0);
-    const profit = revenue - expensesTotal;
+
+    // Lucro Líquido = Lucro Bruto das Vendas - Gastos Operacionais (Luz, Aluguel, etc)
+    const profit = grossProfit - expensesTotal;
 
     return { date, revenue, expenses: expensesTotal, profit };
   });

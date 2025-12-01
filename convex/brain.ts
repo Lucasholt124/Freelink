@@ -70,12 +70,12 @@ interface BrainResults {
 // CONFIGURAÇÃO
 // =================================================================
 const GROQ_MODELS = {
-  primary: 'llama-3.3-70b-versatile',
-  default: 'llama-3.3-70b-versatile',
-  fallback: 'mixtral-8x7b-32768',
-  fast: 'llama-3.1-8b-instant',
+  ultra_primary: 'llama-3.3-70b-versatile',
+  ultra_secondary: 'mixtral-8x22b-instruct',
+  pro_primary: 'llama-3.1-8b-instant',
+  pro_fallback: 'mixtral-8x7b-32768',
+  shared_fallback: 'gemma2-9b-it',
 };
-
 const groq = new OpenAI({
   apiKey: process.env.GROQ_API_KEY,
   baseURL: 'https://api.groq.com/openai/v1',
@@ -283,8 +283,9 @@ async function generateWithGroq(theme: string, plan: "pro" | "ultra"): Promise<B
 
   // 2. Seleção de Modelos (Ultra usa modelos mais potentes primeiro)
   const modelsToTry = plan === 'ultra'
-    ? [GROQ_MODELS.primary, GROQ_MODELS.default]
-    : [GROQ_MODELS.default, GROQ_MODELS.fast];
+    ? [GROQ_MODELS.ultra_primary, GROQ_MODELS.ultra_secondary, GROQ_MODELS.shared_fallback] // Modelos mais potentes para Ultra
+    : [GROQ_MODELS.pro_primary, GROQ_MODELS.shared_fallback, GROQ_MODELS.pro_fallback]; // Modelos mais rápidos para Pro
+
 
   let lastError: unknown = null;
 
@@ -293,20 +294,21 @@ async function generateWithGroq(theme: string, plan: "pro" | "ultra"): Promise<B
       console.log(`🔄 [${plan.toUpperCase()}] Gerando com modelo: ${model}...`);
 
       const response = await groq.chat.completions.create({
-        model,
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'system',
-            content: plan === 'ultra'
-              ? 'Você é um DIRETOR DE CONTEÚDO VIRAL de elite mundial. Entregue roteiros tecnicamente perfeitos.'
-              : 'Você é um assistente criativo de marketing digital competente.'
-          },
-          { role: 'user', content: prompt },
-        ],
-        temperature: plan === 'ultra' ? 0.7 : 0.85, // Ultra é mais preciso/técnico
-        max_tokens: 8000,
-      });
+  model,
+  ...(plan === "pro" ? { response_format: { type: "json_object" } } : {}),
+  messages: [
+    {
+      role: 'system',
+      content: plan === 'ultra'
+        ? 'Você é um DIRETOR DE CONTEÚDO VIRAL de elite mundial. Entregue roteiros tecnicamente perfeitos.'
+        : 'Você é um assistente criativo de marketing digital competente.'
+    },
+    { role: 'user', content: prompt },
+  ],
+  temperature: plan === 'ultra' ? 0.7 : 0.85,
+  max_tokens: 8000,
+});
+
 
       const resultText = response.choices[0]?.message?.content;
       if (!resultText) throw new Error(`Modelo ${model} retornou vazio`);

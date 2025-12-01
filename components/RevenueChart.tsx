@@ -60,8 +60,17 @@ export function RevenueChart({ data, type = 'area', height = 300 }: RevenueChart
   const firstProfit = data[0]?.profit || 0;
   const lastProfit = data[data.length - 1]?.profit || 0;
   const trend = lastProfit - firstProfit;
-  const trendPercent = firstProfit !== 0 ? ((trend / firstProfit) * 100).toFixed(1) : '0';
+  let trendPercent = '0';
 
+  if (firstProfit === 0) {
+    // Se começou do zero e agora tem lucro, consideramos 100% de crescimento simbólico
+    if (lastProfit > 0) trendPercent = '100';
+    else if (lastProfit < 0) trendPercent = '-100';
+    else trendPercent = '0';
+  } else {
+    // Usa Math.abs no divisor para manter o sinal correto da tendência
+    trendPercent = ((trend / Math.abs(firstProfit)) * 100).toFixed(1);
+  }
   // CORREÇÃO AQUI: Usamos a interface CustomTooltipProps definida acima.
   // Isso satisfaz o TypeScript (temos tipos fortes) e o ESLint (sem 'any').
   const CustomTooltip = ({ active, payload }: CustomTooltipProps) => {
