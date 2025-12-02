@@ -3,6 +3,13 @@
 
 @custom-variant dark (&:is(.dark *));
 
+
+@layer base {
+  html, body {
+    /* Impede o efeito elástico em todo o site no mobile */
+    overscroll-behavior-y: none;
+  }
+}
 /* === CONFIGURAÇÃO DO TEMA E ANIMAÇÕES === */
 @theme inline {
   --color-background: var(--background);

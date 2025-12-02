@@ -371,7 +371,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   return (
     // FIX 1: Removemos h-screen no mobile e usamos min-h-[100dvh].
     // No Desktop (lg), mantemos h-screen para ter o layout fixo de app.
-    <div className="flex flex-col lg:flex-row min-h-[100dvh] lg:h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 lg:overflow-hidden">
+    <div className="flex flex-col lg:flex-row min-h-screen overscroll-none bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 lg:overflow-hidden">
 
       {/* DESKTOP SIDEBAR - Visível apenas em LG */}
       <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden h-full">
