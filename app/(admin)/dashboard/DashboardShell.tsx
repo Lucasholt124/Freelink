@@ -369,15 +369,14 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   }, [isSidebarOpen]);
 
 return (
-    // FIX FINAL: Removemos o gradiente daqui para ele não ficar recalculando
-    <div className="flex flex-col lg:flex-row min-h-[100dvh] relative">
+    <div className="flex flex-col lg:flex-row min-h-screen relative">
 
-      {/* --- BACKGROUND FIXO (A MÁGICA ESTÁ AQUI) --- */}
-      {/* Isso cria um fundo que nunca se move e nunca muda de tamanho, evitando pulos */}
+      {/* BACKGROUND FIXO (Mantido para performance no mobile) */}
       <div className="fixed inset-0 z-[-1] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800" />
 
       {/* DESKTOP SIDEBAR */}
-      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden h-screen sticky top-0">
+      {/* Note o 'sticky top-0 h-screen': Isso faz a sidebar ficar parada enquanto você rola a página */}
+      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl h-screen sticky top-0">
         <div className="mb-4 px-2 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center group">
             <FreelinkLogo size={40} />
@@ -404,7 +403,7 @@ return (
         </div>
       </aside>
 
-      {/* MOBILE SIDEBAR (Drawer) */}
+      {/* MOBILE SIDEBAR (Drawer) - Sem alterações aqui */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -436,11 +435,12 @@ return (
         )}
       </AnimatePresence>
 
-      {/* CONTEÚDO PRINCIPAL */}
-      <div className="flex-1 flex flex-col lg:overflow-hidden min-w-0 relative z-10">
+      {/* CONTEÚDO PRINCIPAL - Alterado para crescer naturalmente */}
+      <div className="flex-1 flex flex-col min-w-0 relative z-10">
 
-        {/* HEADER */}
-        <header className="sticky top-0 lg:static bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-40 lg:z-30">
+        {/* HEADER - Mantém sticky no mobile, static ou sticky no desktop conforme preferir.
+            Como agora a página rola inteira, 'sticky top-0' funciona bem no desktop também! */}
+        <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-40">
            <div className="flex items-center gap-4">
              <div className="lg:hidden">
                <motion.button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -498,8 +498,8 @@ return (
            </div>
         </header>
 
-        {/* ÁREA DE CONTEÚDO PRINCIPAL */}
-        <main className="flex-1 w-full p-4 lg:p-8 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
+        {/* ÁREA DE CONTEÚDO PRINCIPAL - Sem scroll interno forçado */}
+        <main className="flex-1 w-full p-4 lg:p-8">
           {children}
           {/* Espaçamento extra no final para mobile */}
           <div className="h-24 lg:hidden" />
@@ -525,4 +525,4 @@ return (
       </div>
     </div>
   );
-}
+};

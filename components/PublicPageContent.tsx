@@ -5,7 +5,7 @@ import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
 import { User, Share2, Link as LinkIcon, Check, Heart, Sparkles, QrCode, Moon, Sun, Calendar, Download, ExternalLink, ChevronDown, Shield, Gem, Crown, Star, Zap, Cookie } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
-import Script from "next/script"; // ✅ Importado para os Scripts
+import Script from "next/script";
 import { getBaseUrl } from "@/convex/lib/getBaseUrl";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { trackLinkClick } from "@/lib/analytics";
@@ -868,14 +868,14 @@ export default function PublicPageContent({
           </div>
         </div>
 
-        {/* QR Code Dropdown */}
+        {/* QR Code Dropdown CORRIGIDO */}
         <AnimatePresence>
           {showQRCode && qrCodeDataUrl && (
             <motion.div
               initial={{ opacity: 0, y: -20, scale: 0.9 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -20, scale: 0.9 }}
-              className="absolute top-16 sm:top-20 right-3 sm:right-4 z-30 rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-3 sm:p-4 max-w-[90vw] sm:max-w-none"
+              className="fixed top-20 right-4 sm:right-8 z-50 rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-3 sm:p-4 w-auto max-w-[calc(100vw-2rem)]"
               style={{
                 background: isDarkMode
                   ? 'rgba(17, 24, 39, 0.95)'
