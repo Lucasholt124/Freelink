@@ -368,13 +368,16 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
     return () => { document.body.style.overflow = 'unset'; };
   }, [isSidebarOpen]);
 
-  return (
-    // FIX 1: Removemos h-screen no mobile e usamos min-h-[100dvh].
-    // No Desktop (lg), mantemos h-screen para ter o layout fixo de app.
-    <div className="flex flex-col lg:flex-row min-h-screen overscroll-none bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 lg:overflow-hidden">
+return (
+    // FIX FINAL: Removemos o gradiente daqui para ele não ficar recalculando
+    <div className="flex flex-col lg:flex-row min-h-[100dvh] relative">
 
-      {/* DESKTOP SIDEBAR - Visível apenas em LG */}
-      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden h-full">
+      {/* --- BACKGROUND FIXO (A MÁGICA ESTÁ AQUI) --- */}
+      {/* Isso cria um fundo que nunca se move e nunca muda de tamanho, evitando pulos */}
+      <div className="fixed inset-0 z-[-1] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800" />
+
+      {/* DESKTOP SIDEBAR */}
+      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden h-screen sticky top-0">
         <div className="mb-4 px-2 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center group">
             <FreelinkLogo size={40} />
@@ -384,7 +387,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
             </div>
           </Link>
         </div>
-        {/* Scroll interno da sidebar apenas no desktop */}
         <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200">
           <SidebarContent userPlan={userPlan} uniqueId="desktop-sidebar" />
         </div>
@@ -402,7 +404,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         </div>
       </aside>
 
-      {/* MOBILE SIDEBAR (Drawer) - Z-index alto para ficar acima de tudo */}
+      {/* MOBILE SIDEBAR (Drawer) */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -435,11 +437,9 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
       </AnimatePresence>
 
       {/* CONTEÚDO PRINCIPAL */}
-      {/* FIX 2: No mobile, é flex-col normal. No desktop, é hidden overflow para permitir scroll interno da main */}
-      <div className="flex-1 flex flex-col lg:overflow-hidden min-w-0">
+      <div className="flex-1 flex flex-col lg:overflow-hidden min-w-0 relative z-10">
 
         {/* HEADER */}
-        {/* FIX 3: Sticky nativo para mobile. No desktop é static porque o container pai não rola */}
         <header className="sticky top-0 lg:static bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-40 lg:z-30">
            <div className="flex items-center gap-4">
              <div className="lg:hidden">
@@ -499,12 +499,10 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         </header>
 
         {/* ÁREA DE CONTEÚDO PRINCIPAL */}
-        {/* FIX 4: No mobile, removemos overflow-y-auto e flex-1 para deixar o body controlar o scroll naturalmente.
-            No desktop, mantemos o comportamento de app (scroll interno) */}
         <main className="flex-1 w-full p-4 lg:p-8 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
           {children}
-          {/* Espaçamento extra no final para mobile garantir que nada fique escondido atrás de barras de navegação do OS */}
-          <div className="h-20 lg:hidden" />
+          {/* Espaçamento extra no final para mobile */}
+          <div className="h-24 lg:hidden" />
         </main>
 
         <AnimatePresence>

@@ -4,12 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 
-@layer base {
-  html, body {
-    /* Impede o efeito elástico em todo o site no mobile */
-    overscroll-behavior-y: none;
-  }
-}
+
 /* === CONFIGURAÇÃO DO TEMA E ANIMAÇÕES === */
 @theme inline {
   --color-background: var(--background);
@@ -147,10 +142,11 @@
     @apply border-border outline-ring/50;
   }
   html, body {
-    @apply bg-background text-foreground flex flex-col min-h-screen overflow-x-hidden;
-    /* --- CORREÇÃO DO SCROLL MOBILE --- */
-    overscroll-behavior-y: contain;
-    -webkit-overflow-scrolling: touch;
+@apply bg-background text-foreground flex flex-col min-h-screen overflow-x-hidden;
+
+    /* ADICIONE ESTA LINHA AQUI: */
+    overscroll-behavior-y: none; /* Isso mata o efeito elástico do navegador */
+
     margin: 0;
     padding: 0;
   }
