@@ -199,7 +199,7 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
   };
 
   return (
-    <nav className="flex flex-col gap-2 pb-24 md:pb-4"> {/* pb-24 garante que o card apareça no final do scroll mobile */}
+    <nav className="flex flex-col gap-2 pb-24 md:pb-4">
       <ul className="space-y-0.5">
         <LayoutGroup id={uniqueId}>
           {navItems.map((item, idx) => (
@@ -234,7 +234,6 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
                                     <span className="block truncate">{subItem.label}</span>
                                   </div>
 
-                                  {/* --- BADGES REINSERIDAS AQUI --- */}
                                   <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
                                     {subItem.new && <Badge className="bg-gradient-to-r from-amber-400 to-orange-500 text-[10px] px-1.5 py-0 h-4 shadow-sm border-0 text-white">NEW</Badge>}
                                     {subItem.pro && <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500 text-[10px] px-1.5 py-0 h-4 shadow-sm border-0 text-white">PRO</Badge>}
@@ -256,7 +255,6 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
         </LayoutGroup>
       </ul>
 
-      {/* CARD DE UPGRADE (RESPONSIVO E COMPACTO) */}
       {userPlan !== "ultra" && (
         <div className="px-3 mt-4">
           <motion.div whileHover={{ y: -2 }} className={`relative rounded-xl p-[1px] overflow-hidden bg-gradient-to-br ${upgradeCardConfig.gradient}`}>
@@ -272,8 +270,6 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
                 <div className="w-full bg-white/10 h-1 rounded-full mb-3 overflow-hidden">
                   <div className={`h-full bg-gradient-to-r ${isFree ? 'from-yellow-400 to-orange-500' : 'from-purple-400 to-pink-500'}`} style={{ width: `${upgradeCardConfig.progress}%` }} />
                 </div>
-
-                {/* Lista de recursos só no desktop para poupar espaço no mobile */}
                 <div className="space-y-2 mb-3 hidden lg:block">
                   {upgradeCardConfig.features.map((feat, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs text-slate-300/90 font-medium">
@@ -282,7 +278,6 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
                     </div>
                   ))}
                 </div>
-
                 <Link href="/dashboard/billing">
                   <motion.button className={`w-full bg-gradient-to-r ${upgradeCardConfig.buttonGradient} text-white text-[10px] font-black py-2 rounded-lg shadow-lg relative overflow-hidden group border border-white/20`} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <span className="relative flex items-center justify-center gap-1.5">{upgradeCardConfig.buttonText} <ArrowRight className="w-3 h-3" /></span>
@@ -297,7 +292,7 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
   );
 }
 
-// --- SHELL PRINCIPAL ---
+// --- SHELL PRINCIPAL (CORRIGIDO PARA SCROLL MOBILE) ---
 export default function DashboardShell({ children, initialPlan }: { children: ReactNode, initialPlan: string }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -367,15 +362,19 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
     return Object.entries(titles).find(([path]) => pathname.startsWith(path))?.[1] || "Dashboard";
   };
 
+  // Bloqueio de scroll apenas no Sidebar Open, mas seguro para mobile
   useEffect(() => {
     if (isSidebarOpen) { document.body.style.overflow = 'hidden'; } else { document.body.style.overflow = 'unset'; }
     return () => { document.body.style.overflow = 'unset'; };
   }, [isSidebarOpen]);
 
   return (
-    <div className="flex h-screen h-[100dvh] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 overflow-hidden">
-      {/* DESKTOP SIDEBAR */}
-      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden">
+    // FIX 1: Removemos h-screen no mobile e usamos min-h-[100dvh].
+    // No Desktop (lg), mantemos h-screen para ter o layout fixo de app.
+    <div className="flex flex-col lg:flex-row min-h-[100dvh] lg:h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800 lg:overflow-hidden">
+
+      {/* DESKTOP SIDEBAR - Visível apenas em LG */}
+      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl overflow-hidden h-full">
         <div className="mb-4 px-2 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center group">
             <FreelinkLogo size={40} />
@@ -385,6 +384,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
             </div>
           </Link>
         </div>
+        {/* Scroll interno da sidebar apenas no desktop */}
         <div className="flex-1 overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-200">
           <SidebarContent userPlan={userPlan} uniqueId="desktop-sidebar" />
         </div>
@@ -402,7 +402,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         </div>
       </aside>
 
-      {/* MOBILE SIDEBAR (Drawer) */}
+      {/* MOBILE SIDEBAR (Drawer) - Z-index alto para ficar acima de tudo */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -434,8 +434,13 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col overflow-hidden min-w-0">
-        <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-30">
+      {/* CONTEÚDO PRINCIPAL */}
+      {/* FIX 2: No mobile, é flex-col normal. No desktop, é hidden overflow para permitir scroll interno da main */}
+      <div className="flex-1 flex flex-col lg:overflow-hidden min-w-0">
+
+        {/* HEADER */}
+        {/* FIX 3: Sticky nativo para mobile. No desktop é static porque o container pai não rola */}
+        <header className="sticky top-0 lg:static bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-40 lg:z-30">
            <div className="flex items-center gap-4">
              <div className="lg:hidden">
                <motion.button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
@@ -493,8 +498,13 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
            </div>
         </header>
 
-        <main className="flex-1 overflow-y-auto p-4 lg:p-8">
+        {/* ÁREA DE CONTEÚDO PRINCIPAL */}
+        {/* FIX 4: No mobile, removemos overflow-y-auto e flex-1 para deixar o body controlar o scroll naturalmente.
+            No desktop, mantemos o comportamento de app (scroll interno) */}
+        <main className="flex-1 w-full p-4 lg:p-8 lg:overflow-y-auto scrollbar-thin scrollbar-thumb-slate-200">
           {children}
+          {/* Espaçamento extra no final para mobile garantir que nada fique escondido atrás de barras de navegação do OS */}
+          <div className="h-20 lg:hidden" />
         </main>
 
         <AnimatePresence>
