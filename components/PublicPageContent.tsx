@@ -43,7 +43,7 @@ import QRCode from 'qrcode';
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
 import { SubscriptionPlanDetails } from "@/lib/subscription";
 
-// --- OTIMIZAÇÃO: MAPA DE ÍCONES MOVIDO PARA FORA DO COMPONENTE ---
+// --- MAPA DE ÍCONES INTELIGENTE ---
 const ICON_MAP = [
   // 📍 Localização & Mapas
   { match: ['google.com/maps', 'goo.gl/maps', 'maps.google', 'maps.app.goo.gl'], icon: <FaGoogle className="w-4 h-4 sm:w-5 sm:h-5 text-[#4285F4]" /> },
