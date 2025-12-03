@@ -2,7 +2,7 @@
 
 import { api } from "@/convex/_generated/api";
 import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
-import { User, Share2, Link as LinkIcon, Check, Heart, Sparkles, QrCode, Moon, Sun, Calendar, Download, ExternalLink, ChevronDown, Shield, Gem, Crown, Star, Zap, Cookie } from "lucide-react";
+import { User, Share2, Link as LinkIcon, Check, Heart, Sparkles, QrCode, Moon, Sun, Calendar, Download, ExternalLink, ChevronDown, Shield, Gem, Crown, Star, Zap, Cookie, MapPin, Mail, Phone, Video, Music, ShoppingBag, Briefcase, Cake } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import Script from "next/script";
@@ -13,7 +13,25 @@ import confetti, { Shape } from 'canvas-confetti';
 import {
   FaFacebook, FaGithub, FaGlobe, FaInstagram,
   FaLinkedin, FaTiktok, FaTwitter, FaYoutube,
-  FaWhatsapp
+  FaWhatsapp,
+  FaGoogle,
+  FaWaze,
+  FaTelegram,
+  FaDiscord,
+  FaPinterest,
+  FaSnapchat,
+  FaReddit,
+  FaTwitch,
+  FaSpotify,
+  FaSoundcloud,
+  FaAmazon,
+  FaPaypal,
+  FaPatreon,
+  FaBehance,
+  FaDribbble,
+  FaMedium,
+  FaGooglePlay,
+  FaAppStore
 } from "react-icons/fa6";
 import QRCode from 'qrcode';
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
@@ -21,28 +39,121 @@ import { SubscriptionPlanDetails } from "@/lib/subscription";
 
 // --- OTIMIZAÇÃO: MAPA DE ÍCONES MOVIDO PARA FORA DO COMPONENTE ---
 const ICON_MAP = [
-  { match: ['youtube.com', 'youtu.be'], icon: <FaYoutube className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
+  // 📍 Localização & Mapas (O que você pediu!)
+  { match: ['google.com/maps', 'goo.gl/maps', 'maps.google'], icon: <FaGoogle className="w-4 h-4 sm:w-5 sm:h-5 text-[#4285F4]" /> }, // Google Maps
+  { match: ['waze.com', 'waze.to'], icon: <FaWaze className="w-4 h-4 sm:w-5 sm:h-5 text-[#33CCFF]" /> },
+  { match: ['maps.apple.com'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#8E8E93]" /> },
+
+  // 💬 Mensagens & Contato
+  { match: ['whatsapp', 'wa.me', 'api.whatsapp'], icon: <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5 text-[#25D366]" /> },
+  { match: ['t.me', 'telegram'], icon: <FaTelegram className="w-4 h-4 sm:w-5 sm:h-5 text-[#0088cc]" /> },
+  { match: ['discord.com', 'discord.gg'], icon: <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-[#5865F2]" /> },
+  { match: ['mailto:'], icon: <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" /> },
+  { match: ['tel:'], icon: <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-[#34A853]" /> },
+
+  // 📸 Redes Sociais
   { match: ['instagram.com'], icon: <FaInstagram className="w-4 h-4 sm:w-5 sm:h-5 text-[#E1306C]" /> },
   { match: ['facebook.com', 'fb.com'], icon: <FaFacebook className="w-4 h-4 sm:w-5 sm:h-5 text-[#1877F3]" /> },
   { match: ['twitter.com', 'x.com'], icon: <FaTwitter className="w-4 h-4 sm:w-5 sm:h-5 text-[#1DA1F2]" /> },
   { match: ['linkedin.com'], icon: <FaLinkedin className="w-4 h-4 sm:w-5 sm:h-5 text-[#0077B5]" /> },
   { match: ['tiktok.com'], icon: <FaTiktok className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
+  { match: ['pinterest.com'], icon: <FaPinterest className="w-4 h-4 sm:w-5 sm:h-5 text-[#E60023]" /> },
+  { match: ['snapchat.com'], icon: <FaSnapchat className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFFC00]" /> },
+  { match: ['reddit.com'], icon: <FaReddit className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF4500]" /> },
+
+  // 🎉 Aniversários & Celebrações
+  { match: ['bday', 'birthday'], icon: <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
+
+
+
+
+
+  // 🎥 Vídeo & Streaming
+  { match: ['youtube.com', 'youtu.be'], icon: <FaYoutube className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
+  { match: ['twitch.tv'], icon: <FaTwitch className="w-4 h-4 sm:w-5 sm:h-5 text-[#9146FF]" /> },
+  { match: ['netflix.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#E50914]" /> },
+
+  // 🎵 Música & Podcast
+  { match: ['spotify.com'], icon: <FaSpotify className="w-4 h-4 sm:w-5 sm:h-5 text-[#1DB954]" /> },
+  { match: ['soundcloud.com'], icon: <FaSoundcloud className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF5500]" /> },
+  { match: ['music.apple.com'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#FA243C]" /> },
+
+  // 🛍️ E-commerce & Pagamentos
+  { match: ['amazon.'], icon: <FaAmazon className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF9900]" /> },
+  { match: ['shopee.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EE4D2D]" /> }, // Shopee Laranja
+    { match: ['shein.'], icon: <ShoppingBag  className="w-4 h-4 sm:w-5 sm:h-5 text-[#EE4D2D]" /> }, // Shopee Laranja
+
+  { match: ['amazonaws.com'], icon: <FaAmazon className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF9900]" /> },
+
+
+  { match: ['mercadolivre.', 'mercadopago.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFE600]" /> },
+  { match: ['paypal.com', 'paypal.me'], icon: <FaPaypal className="w-4 h-4 sm:w-5 sm:h-5 text-[#003087]" /> },
+  { match: ['patreon.com'], icon: <FaPatreon className="w-4 h-4 sm:w-5 sm:h-5 text-[#F96854]" /> },
+  { match: ['store', 'shop', 'loja'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
+  { match: ['donate', 'donation', 'apoie'], icon: <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-[#EF4444]" /> },
+  { match: ['cookie'], icon: <Cookie className="w-4 h-4 sm:w-5 sm:h-5 text-[#F59E0B]" /> },
+
+
+  // 💻 Dev & Design
   { match: ['github.com'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#181717]" /> },
-  { match: ['whatsapp', 'wa.me'], icon: <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5 text-[#25D366]" /> },
+  { match: ['behance.net'], icon: <FaBehance className="w-4 h-4 sm:w-5 sm:h-5 text-[#1769FF]" /> },
+  { match: ['dribbble.com'], icon: <FaDribbble className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4C89]" /> },
+  { match: ['medium.com'], icon: <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
+  { match: ['portfolio'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#8B5CF6]" /> },
+
+
+  // 🌐 Outros Sites & Blogs
+
+  { match: ['blog'], icon: <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
+  { match: ['website', 'site', 'webpage'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" /> },
+  { match: ['linktr.ee'], icon: <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#2CB34A]" /> },
+  { match: ['linktree'], icon: <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#2CB34A]" /> },
+  { match: ['about.me'], icon: <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#0077B5]" /> },
+  { match: ['cv', 'resume', 'curriculo', 'currículo'], icon: <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
+  { match: ['video'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
+  { match: ['download'], icon: <Download className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" /> },
+  { match: ['external'], icon: <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 text-[#6B7280]" /> },
+  { match: ['calendar', 'agenda'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#3b82f6]" /> },
+  { match: ['chat'], icon: <FaTelegram className="w-4 h-4 sm:w-5 sm:h-5 text-[#0088cc]" /> },
+  { match: ['forum'], icon: <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-[#5865F2]" /> },
+  { match: ['news', 'noticias', 'notícias'], icon: <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
+  { match: ['help', 'suporte', 'support'], icon: <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
+  { match: ['faq'], icon: <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
+  { match: ['shopify.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#96BF48]" /> },
+  { match: ['etsy.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#F56400]" /> },
+  { match: ['ebay.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#F56400]" /> },
+  { match: ['aliexpress.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF6A00]" /> },
+
+  // 📱 Apps
+  { match: ['play.google.com'], icon: <FaGooglePlay className="w-4 h-4 sm:w-5 sm:h-5 text-[#3BCCFF]" /> },
+  { match: ['apps.apple.com'], icon: <FaAppStore className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D96F6]" /> },
+  { match: ['uber.com'], icon: <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-black" /> },
+  { match: ['ifood.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA1D2C]" /> },
 ];
 
 function getLinkIcon(url: string) {
   if (!url) return <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
   const u = url.toLowerCase();
 
+  // 1. Verifica no Mapa de Ícones Específicos
   for (const item of ICON_MAP) {
     if (item.match.some(match => u.includes(match))) {
       return item.icon;
     }
   }
 
-  if (u.includes('http')) return <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" />;
-  return <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
+  // 2. Ícones Genéricos Inteligentes (baseados em palavras-chave se não achar domínio)
+  if (u.includes('map') || u.includes('rua') || u.includes('avenida'))
+    return <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" />;
+
+  if (u.includes('contato') || u.includes('fale'))
+    return <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" />;
+
+  if (u.includes('agenda') || u.includes('cal'))
+    return <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#3b82f6]" />;
+
+  // 3. Fallback Padrão
+  return <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" />;
 }
 
 interface BackgroundConfig {
