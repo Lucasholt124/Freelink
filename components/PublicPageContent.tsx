@@ -711,7 +711,8 @@ export default function PublicPageContent({
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
+    // FIX 1: overflow-x-hidden PREVENTS ANY HORIZONTAL SCROLLING
+    <div className={`min-h-screen w-full overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
 
       {cookieConsent === 'granted' && trackingSettings && (
         <>
@@ -991,7 +992,7 @@ export default function PublicPageContent({
         </AnimatePresence>
       </motion.div>
 
-      <div className="relative -mt-24 sm:-mt-32 md:-mt-40 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-8 sm:pb-12 md:pb-16">
+      <div className="relative -mt-24 sm:-mt-32 md:-mt-40 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-8 sm:pb-12 md:pb-16 w-full">
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
           <motion.aside
             initial={{ opacity: 0, x: -50 }}
@@ -1159,7 +1160,7 @@ export default function PublicPageContent({
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.3 }}
-            className="lg:col-span-2"
+            className="lg:col-span-2 w-full max-w-full"
           >
             <div className="space-y-3 sm:space-y-4">
               <motion.div
@@ -1215,6 +1216,7 @@ export default function PublicPageContent({
                           whileHover={{ scale: 1.02, x: 5 }}
                           onHoverStart={() => setHoveredLink(link._id)}
                           onHoverEnd={() => setHoveredLink(null)}
+                          className="w-full max-w-full"
                         >
                           <a
                             href={link.url}
@@ -1265,7 +1267,7 @@ export default function PublicPageContent({
                               />
                             )}
 
-                            {/* Icon */}
+                            {/* Icon - Flex shrink 0 prevents squishing */}
                             <motion.span
                               whileHover={{ rotate: 360, scale: 1.1 }}
                               transition={{ duration: 0.5 }}
@@ -1284,9 +1286,9 @@ export default function PublicPageContent({
                               {getLinkIcon(link.url)}
                             </motion.span>
 
-                            {/* Title - CORREÇÃO DE RESPONSIVIDADE AQUI (min-w-0) */}
+                            {/* Title - FIX: REMOVED TRUNCATE, ADDED WRAPPING */}
                             <span
-                              className="flex-1 min-w-0 transition-all duration-300 truncate text-sm sm:text-base font-bold"
+                              className="flex-1 min-w-0 break-words whitespace-normal text-sm sm:text-base font-bold leading-tight"
                               style={{
                                 color: hoveredLink === link._id
                                   ? userAccentColor
@@ -1301,8 +1303,8 @@ export default function PublicPageContent({
                               {link.title}
                             </span>
 
-                            {/* Actions */}
-                            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 relative z-10">
+                            {/* Actions - Flex shrink prevents pushing */}
+                            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 relative z-10 ml-1">
                               {/* Like Button */}
                               <motion.button
                                 whileHover={{ scale: 1.15 }}
