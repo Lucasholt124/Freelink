@@ -9,7 +9,7 @@ import Script from "next/script";
 import { getBaseUrl } from "@/convex/lib/getBaseUrl";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { trackLinkClick } from "@/lib/analytics";
-import confetti from 'canvas-confetti';
+import confetti, { Shape } from 'canvas-confetti';
 import {
   FaFacebook, FaGithub, FaGlobe, FaInstagram,
   FaLinkedin, FaTiktok, FaTwitter, FaYoutube,
@@ -74,7 +74,7 @@ interface ConfettiOptions {
   particleCount?: number;
   origin?: { y: number; x?: number };
   colors?: string[];
-  shapes?: string[];
+  shapes?: Shape[];
   gravity?: number;
 }
 
