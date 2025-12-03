@@ -2,7 +2,12 @@
 
 import { api } from "@/convex/_generated/api";
 import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
-import { User, Share2, Link as LinkIcon, Check, Heart, Sparkles, QrCode, Moon, Sun, Calendar, Download, ExternalLink, ChevronDown, Shield, Gem, Crown, Star, Zap, Cookie, MapPin, Mail, Phone, Video, Music, ShoppingBag, Briefcase, Cake } from "lucide-react";
+import {
+  User, Share2, Link as LinkIcon, Check, Heart, Sparkles, QrCode,
+  Moon, Sun, Calendar, Download, ExternalLink, ChevronDown, Shield,
+  Gem, Crown, Star, Zap, Cookie, MapPin, Mail, Phone, Video, Music,
+  ShoppingBag, Cake
+} from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import Script from "next/script";
@@ -31,7 +36,8 @@ import {
   FaDribbble,
   FaMedium,
   FaGooglePlay,
-  FaAppStore
+  FaAppStore,
+  FaUber
 } from "react-icons/fa6";
 import QRCode from 'qrcode';
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
@@ -39,8 +45,8 @@ import { SubscriptionPlanDetails } from "@/lib/subscription";
 
 // --- OTIMIZAÇÃO: MAPA DE ÍCONES MOVIDO PARA FORA DO COMPONENTE ---
 const ICON_MAP = [
-  // 📍 Localização & Mapas (O que você pediu!)
-  { match: ['google.com/maps', 'goo.gl/maps', 'maps.google'], icon: <FaGoogle className="w-4 h-4 sm:w-5 sm:h-5 text-[#4285F4]" /> }, // Google Maps
+  // 📍 Localização & Mapas
+  { match: ['google.com/maps', 'goo.gl/maps', 'maps.google', 'maps.app.goo.gl'], icon: <FaGoogle className="w-4 h-4 sm:w-5 sm:h-5 text-[#4285F4]" /> },
   { match: ['waze.com', 'waze.to'], icon: <FaWaze className="w-4 h-4 sm:w-5 sm:h-5 text-[#33CCFF]" /> },
   { match: ['maps.apple.com'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#8E8E93]" /> },
 
@@ -62,11 +68,7 @@ const ICON_MAP = [
   { match: ['reddit.com'], icon: <FaReddit className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF4500]" /> },
 
   // 🎉 Aniversários & Celebrações
-  { match: ['bday', 'birthday'], icon: <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
-
-
-
-
+  { match: ['bday', 'birthday', 'aniversario', 'festa'], icon: <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0080]" /> },
 
   // 🎥 Vídeo & Streaming
   { match: ['youtube.com', 'youtu.be'], icon: <FaYoutube className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
@@ -80,19 +82,14 @@ const ICON_MAP = [
 
   // 🛍️ E-commerce & Pagamentos
   { match: ['amazon.'], icon: <FaAmazon className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF9900]" /> },
-  { match: ['shopee.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EE4D2D]" /> }, // Shopee Laranja
-    { match: ['shein.'], icon: <ShoppingBag  className="w-4 h-4 sm:w-5 sm:h-5 text-[#EE4D2D]" /> }, // Shopee Laranja
-
-  { match: ['amazonaws.com'], icon: <FaAmazon className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF9900]" /> },
-
-
+  { match: ['shopee.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EE4D2D]" /> },
+  { match: ['shein.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
   { match: ['mercadolivre.', 'mercadopago.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFE600]" /> },
   { match: ['paypal.com', 'paypal.me'], icon: <FaPaypal className="w-4 h-4 sm:w-5 sm:h-5 text-[#003087]" /> },
   { match: ['patreon.com'], icon: <FaPatreon className="w-4 h-4 sm:w-5 sm:h-5 text-[#F96854]" /> },
   { match: ['store', 'shop', 'loja'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
   { match: ['donate', 'donation', 'apoie'], icon: <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-[#EF4444]" /> },
-  { match: ['cookie'], icon: <Cookie className="w-4 h-4 sm:w-5 sm:h-5 text-[#F59E0B]" /> },
-
+  { match: ['ifood'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA1D2C]" /> },
 
   // 💻 Dev & Design
   { match: ['github.com'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#181717]" /> },
@@ -101,34 +98,17 @@ const ICON_MAP = [
   { match: ['medium.com'], icon: <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
   { match: ['portfolio'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#8B5CF6]" /> },
 
-
-  // 🌐 Outros Sites & Blogs
-
+  // 🌐 Outros
   { match: ['blog'], icon: <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
   { match: ['website', 'site', 'webpage'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" /> },
-  { match: ['linktr.ee'], icon: <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#2CB34A]" /> },
-  { match: ['linktree'], icon: <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#2CB34A]" /> },
-  { match: ['about.me'], icon: <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#0077B5]" /> },
-  { match: ['cv', 'resume', 'curriculo', 'currículo'], icon: <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
-  { match: ['video'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
-  { match: ['download'], icon: <Download className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" /> },
-  { match: ['external'], icon: <ExternalLink className="w-4 h-4 sm:w-5 sm:h-5 text-[#6B7280]" /> },
+  { match: ['cv', 'resume', 'curriculo'], icon: <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
   { match: ['calendar', 'agenda'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#3b82f6]" /> },
-  { match: ['chat'], icon: <FaTelegram className="w-4 h-4 sm:w-5 sm:h-5 text-[#0088cc]" /> },
-  { match: ['forum'], icon: <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-[#5865F2]" /> },
-  { match: ['news', 'noticias', 'notícias'], icon: <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
-  { match: ['help', 'suporte', 'support'], icon: <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
-  { match: ['faq'], icon: <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
-  { match: ['shopify.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#96BF48]" /> },
-  { match: ['etsy.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#F56400]" /> },
-  { match: ['ebay.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#F56400]" /> },
-  { match: ['aliexpress.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF6A00]" /> },
+  { match: ['help', 'suporte'], icon: <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
 
   // 📱 Apps
   { match: ['play.google.com'], icon: <FaGooglePlay className="w-4 h-4 sm:w-5 sm:h-5 text-[#3BCCFF]" /> },
   { match: ['apps.apple.com'], icon: <FaAppStore className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D96F6]" /> },
-  { match: ['uber.com'], icon: <Briefcase className="w-4 h-4 sm:w-5 sm:h-5 text-black" /> },
-  { match: ['ifood.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA1D2C]" /> },
+  { match: ['uber.com'], icon: <FaUber className="w-4 h-4 sm:w-5 sm:h-5 text-black" /> },
 ];
 
 function getLinkIcon(url: string) {
@@ -142,8 +122,8 @@ function getLinkIcon(url: string) {
     }
   }
 
-  // 2. Ícones Genéricos Inteligentes (baseados em palavras-chave se não achar domínio)
-  if (u.includes('map') || u.includes('rua') || u.includes('avenida'))
+  // 2. Ícones Genéricos Inteligentes
+  if (u.includes('map') || u.includes('rua') || u.includes('avenida') || u.includes('local'))
     return <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" />;
 
   if (u.includes('contato') || u.includes('fale'))
@@ -176,7 +156,6 @@ interface Particle {
   color: string;
 }
 
-// 🌟 Definição de Tipos para o Confetti
 interface ConfettiOptions {
   spread?: number;
   startVelocity?: number;
@@ -189,7 +168,6 @@ interface ConfettiOptions {
   gravity?: number;
 }
 
-// 🌟 COMPONENTE DE PARTÍCULAS OTIMIZADO
 function ParticleField({ color = "rgba(147, 51, 234, 0.4)" }: { color?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const frameRef = useRef<number>(0);
@@ -351,9 +329,8 @@ function ParticleField({ color = "rgba(147, 51, 234, 0.4)" }: { color?: string }
   );
 }
 
-// 💎 BADGE COM EFEITOS PREMIUM
 function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" | "large"; plan?: string }) {
-  const sizeClasses = size === "large" ? "w-6 h-6 sm:w-8 sm:h-8" : "w-5 h-5 sm:w-6 sm:h-6"; // Aumentado ligeiramente
+  const sizeClasses = size === "large" ? "w-6 h-6 sm:w-8 sm:h-8" : "w-5 h-5 sm:w-6 sm:h-6";
 
   const getBadgeConfig = () => {
     switch(plan) {
@@ -402,7 +379,6 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
       }}
       transition={{ duration: 0.5 }}
     >
-      {/* Shimmer effect */}
       <motion.span
         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
         animate={{
@@ -414,9 +390,7 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
           ease: "linear"
         }}
       />
-
       <span className={`absolute inset-0 rounded-full bg-gradient-to-r ${config.gradient} blur-md opacity-50 animate-pulse`} />
-
       <span className="relative z-10">
         {config.icon}
       </span>
@@ -444,8 +418,6 @@ export default function PublicPageContent({
   plan,
 }: PublicPageContentProps) {
   const customizations = usePreloadedQuery(preloadedCustomizations);
-
-  // ✅ 1. Buscar configurações de rastreamento do perfil
   const trackingSettings = useQuery(api.tracking.getIdsBySlug, { slug: username });
 
   const profileUrl = `${getBaseUrl()}/u/${username}`;
@@ -470,13 +442,10 @@ export default function PublicPageContent({
   });
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
-
-  // ✅ 2. Estado para o consentimento de Cookies
   const [cookieConsent, setCookieConsent] = useState<"granted" | "denied" | null>(null);
 
   const links = usePreloadedQuery(preloadedLinks) as LinkType[];
 
-  // 🛠️ CORREÇÃO: Removemos 'scrollY' que não era usado, mantendo apenas scrollYProgress
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
@@ -491,7 +460,6 @@ export default function PublicPageContent({
       : `rgba(99, 102, 241, ${alpha})`;
   }, []);
 
-  // Detectar scroll para mostrar o CTA flutuante
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 100) {
@@ -504,7 +472,6 @@ export default function PublicPageContent({
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ✅ 3. Verificar consentimento
   useEffect(() => {
     const savedConsent = localStorage.getItem('freelinnk_cookie_consent');
     if (savedConsent === 'granted' || savedConsent === 'denied') {
@@ -561,7 +528,6 @@ export default function PublicPageContent({
       colors: [userAccentColor, '#ff00ff', '#00ffff', '#ffff00', '#ff0080']
     };
 
-    // 🛠️ CORREÇÃO: Tipo 'any' substituído por ConfettiOptions
     function fire(particleRatio: number, opts: ConfettiOptions) {
       confetti({
         ...defaults,
@@ -1087,7 +1053,6 @@ export default function PublicPageContent({
                         transition={{ duration: 1.5, repeat: Infinity }}
                       />
 
-                      {/* 🖼️ CORREÇÃO DE DESIGN: FOTO MAIOR NO MOBILE (w-32) */}
                       {customizations?.profilePictureUrl ? (
                         <div className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full overflow-hidden shadow-2xl bg-white p-1 border-4 relative z-10"
                           style={{
@@ -1129,7 +1094,6 @@ export default function PublicPageContent({
 
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
-                      {/* 🖋️ CORREÇÃO DE DESIGN: USERNAME MAIOR (text-2xl) */}
                       <motion.h1
                         className="text-2xl sm:text-3xl font-black break-all"
                         style={{
@@ -1165,7 +1129,6 @@ export default function PublicPageContent({
                     )}
 
                     {customizations?.description && (
-                      /* 📝 CORREÇÃO DE DESIGN: DESCRIÇÃO MAIOR (text-base) */
                       <motion.p
                         className="text-base sm:text-lg text-gray-600 dark:text-gray-400 leading-relaxed px-4"
                         initial={{ opacity: 0, y: 10 }}
@@ -1321,9 +1284,9 @@ export default function PublicPageContent({
                               {getLinkIcon(link.url)}
                             </motion.span>
 
-                            {/* Title */}
+                            {/* Title - CORREÇÃO DE RESPONSIVIDADE AQUI (min-w-0) */}
                             <span
-                              className="flex-1 transition-all duration-300 truncate text-sm sm:text-base font-bold"
+                              className="flex-1 min-w-0 transition-all duration-300 truncate text-sm sm:text-base font-bold"
                               style={{
                                 color: hoveredLink === link._id
                                   ? userAccentColor
