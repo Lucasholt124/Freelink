@@ -19,6 +19,32 @@ import QRCode from 'qrcode';
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
 import { SubscriptionPlanDetails } from "@/lib/subscription";
 
+// --- OTIMIZAÇÃO: MAPA DE ÍCONES MOVIDO PARA FORA DO COMPONENTE ---
+const ICON_MAP = [
+  { match: ['youtube.com', 'youtu.be'], icon: <FaYoutube className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
+  { match: ['instagram.com'], icon: <FaInstagram className="w-4 h-4 sm:w-5 sm:h-5 text-[#E1306C]" /> },
+  { match: ['facebook.com', 'fb.com'], icon: <FaFacebook className="w-4 h-4 sm:w-5 sm:h-5 text-[#1877F3]" /> },
+  { match: ['twitter.com', 'x.com'], icon: <FaTwitter className="w-4 h-4 sm:w-5 sm:h-5 text-[#1DA1F2]" /> },
+  { match: ['linkedin.com'], icon: <FaLinkedin className="w-4 h-4 sm:w-5 sm:h-5 text-[#0077B5]" /> },
+  { match: ['tiktok.com'], icon: <FaTiktok className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
+  { match: ['github.com'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#181717]" /> },
+  { match: ['whatsapp', 'wa.me'], icon: <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5 text-[#25D366]" /> },
+];
+
+function getLinkIcon(url: string) {
+  if (!url) return <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
+  const u = url.toLowerCase();
+
+  for (const item of ICON_MAP) {
+    if (item.match.some(match => u.includes(match))) {
+      return item.icon;
+    }
+  }
+
+  if (u.includes('http')) return <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" />;
+  return <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
+}
+
 interface BackgroundConfig {
   type: "color" | "gradient" | "image";
   style: "full" | "header";
@@ -37,6 +63,19 @@ interface Particle {
   size: number;
   opacity: number;
   color: string;
+}
+
+// 🌟 Definição de Tipos para o Confetti
+interface ConfettiOptions {
+  spread?: number;
+  startVelocity?: number;
+  decay?: number;
+  scalar?: number;
+  particleCount?: number;
+  origin?: { y: number; x?: number };
+  colors?: string[];
+  shapes?: string[];
+  gravity?: number;
 }
 
 // 🌟 COMPONENTE DE PARTÍCULAS OTIMIZADO
@@ -203,38 +242,38 @@ function ParticleField({ color = "rgba(147, 51, 234, 0.4)" }: { color?: string }
 
 // 💎 BADGE COM EFEITOS PREMIUM
 function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" | "large"; plan?: string }) {
-  const sizeClasses = size === "large" ? "w-6 h-6 sm:w-7 sm:h-7" : "w-5 h-5 sm:w-6 sm:h-6";
+  const sizeClasses = size === "large" ? "w-6 h-6 sm:w-8 sm:h-8" : "w-5 h-5 sm:w-6 sm:h-6"; // Aumentado ligeiramente
 
   const getBadgeConfig = () => {
     switch(plan) {
       case 'premium':
         return {
           gradient: 'from-purple-500 via-pink-500 to-purple-600',
-          icon: <Star className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />,
+          icon: <Star className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
           glow: 'shadow-[0_0_20px_rgba(168,85,247,0.6)]'
         };
       case 'pro':
         return {
           gradient: 'from-blue-500 via-cyan-500 to-blue-600',
-          icon: <Gem className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />,
+          icon: <Gem className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
           glow: 'shadow-[0_0_20px_rgba(59,130,246,0.6)]'
         };
       case 'business':
         return {
           gradient: 'from-yellow-500 via-orange-500 to-yellow-600',
-          icon: <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />,
+          icon: <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
           glow: 'shadow-[0_0_20px_rgba(234,179,8,0.6)]'
         };
       case 'enterprise':
         return {
           gradient: 'from-red-500 via-pink-500 to-red-600',
-          icon: <Shield className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />,
+          icon: <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
           glow: 'shadow-[0_0_20px_rgba(239,68,68,0.6)]'
         };
       default:
         return {
           gradient: 'from-gray-400 to-gray-600',
-          icon: <Check className="w-2.5 h-2.5 sm:w-3 sm:h-3 text-white" />,
+          icon: <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
           glow: ''
         };
     }
@@ -274,32 +313,6 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
   );
 }
 
-// 🎨 ÍCONES DOS LINKS COM ANIMAÇÃO
-function getLinkIcon(url: string) {
-  if (!url) return <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
-  const u = url.toLowerCase();
-
-  const iconMap = [
-    { match: ['youtube.com', 'youtu.be'], icon: <FaYoutube className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
-    { match: ['instagram.com'], icon: <FaInstagram className="w-4 h-4 sm:w-5 sm:h-5 text-[#E1306C]" /> },
-    { match: ['facebook.com', 'fb.com'], icon: <FaFacebook className="w-4 h-4 sm:w-5 sm:h-5 text-[#1877F3]" /> },
-    { match: ['twitter.com', 'x.com'], icon: <FaTwitter className="w-4 h-4 sm:w-5 sm:h-5 text-[#1DA1F2]" /> },
-    { match: ['linkedin.com'], icon: <FaLinkedin className="w-4 h-4 sm:w-5 sm:h-5 text-[#0077B5]" /> },
-    { match: ['tiktok.com'], icon: <FaTiktok className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
-    { match: ['github.com'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#181717]" /> },
-    { match: ['whatsapp', 'wa.me'], icon: <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5 text-[#25D366]" /> },
-  ];
-
-  for (const item of iconMap) {
-    if (item.match.some(match => u.includes(match))) {
-      return item.icon;
-    }
-  }
-
-  if (u.includes('http')) return <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" />;
-  return <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
-}
-
 interface PublicPageContentProps {
   username: string;
   preloadedLinks: Preloaded<typeof api.lib.links.getLinksBySlug>;
@@ -321,7 +334,7 @@ export default function PublicPageContent({
 }: PublicPageContentProps) {
   const customizations = usePreloadedQuery(preloadedCustomizations);
 
-  // ✅ 1. Buscar configurações de rastreamento do perfil (Google/Facebook)
+  // ✅ 1. Buscar configurações de rastreamento do perfil
   const trackingSettings = useQuery(api.tracking.getIdsBySlug, { slug: username });
 
   const profileUrl = `${getBaseUrl()}/u/${username}`;
@@ -345,12 +358,14 @@ export default function PublicPageContent({
     imageOpacity: 100,
   });
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [showStickyCTA, setShowStickyCTA] = useState(false);
 
   // ✅ 2. Estado para o consentimento de Cookies
   const [cookieConsent, setCookieConsent] = useState<"granted" | "denied" | null>(null);
 
   const links = usePreloadedQuery(preloadedLinks) as LinkType[];
 
+  // 🛠️ CORREÇÃO: Removemos 'scrollY' que não era usado, mantendo apenas scrollYProgress
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
     stiffness: 100,
@@ -365,7 +380,20 @@ export default function PublicPageContent({
       : `rgba(99, 102, 241, ${alpha})`;
   }, []);
 
-  // ✅ 3. Verificar se o usuário já deu consentimento anteriormente
+  // Detectar scroll para mostrar o CTA flutuante
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 100) {
+        setShowStickyCTA(true);
+      } else {
+        setShowStickyCTA(false);
+      }
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // ✅ 3. Verificar consentimento
   useEffect(() => {
     const savedConsent = localStorage.getItem('freelinnk_cookie_consent');
     if (savedConsent === 'granted' || savedConsent === 'denied') {
@@ -416,20 +444,13 @@ export default function PublicPageContent({
   }, [profileUrl, username, userAccentColor, customizations]);
 
   const handleShare = async () => {
-    // 🎊 CONFETTI ÉPICO
     const count = 200;
     const defaults = {
       origin: { y: 0.7 },
       colors: [userAccentColor, '#ff00ff', '#00ffff', '#ffff00', '#ff0080']
     };
 
-    interface ConfettiOptions {
-      spread?: number;
-      startVelocity?: number;
-      decay?: number;
-      scalar?: number;
-    }
-
+    // 🛠️ CORREÇÃO: Tipo 'any' substituído por ConfettiOptions
     function fire(particleRatio: number, opts: ConfettiOptions) {
       confetti({
         ...defaults,
@@ -484,7 +505,6 @@ export default function PublicPageContent({
     stats.likes = (stats.likes || 0) + 1;
     localStorage.setItem(`stats_${username}`, JSON.stringify(stats));
 
-    // 💝 CONFETTI DE CORAÇÃO
     confetti({
       particleCount: 50,
       spread: 70,
@@ -533,7 +553,6 @@ export default function PublicPageContent({
     localStorage.setItem('freelinnk_cookie_consent', 'denied');
   };
 
-  // 🎨 LOADING SCREEN ÉPICO
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -543,8 +562,6 @@ export default function PublicPageContent({
             background: `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`
           }}
         />
-
-        {/* Animated background */}
         <motion.div
           className="absolute inset-0 opacity-30"
           animate={{
@@ -571,21 +588,16 @@ export default function PublicPageContent({
         >
           <div className="flex flex-col items-center gap-6">
             <div className="relative">
-              {/* Outer ring */}
               <motion.div
                 className="w-20 h-20 sm:w-28 sm:h-28 border-4 border-transparent border-t-white border-r-white rounded-full"
                 animate={{ rotate: 360 }}
                 transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
               />
-
-              {/* Inner ring */}
               <motion.div
                 className="absolute inset-2 sm:inset-3 border-4 border-transparent border-b-white/50 border-l-white/50 rounded-full"
                 animate={{ rotate: -360 }}
                 transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
               />
-
-              {/* Center pulse */}
               <motion.div
                 className="absolute inset-0 m-auto w-8 h-8 sm:w-12 sm:h-12 bg-white rounded-full"
                 animate={{
@@ -595,7 +607,6 @@ export default function PublicPageContent({
                 transition={{ duration: 1.5, repeat: Infinity }}
               />
             </div>
-
             <motion.div
               className="flex flex-col items-center gap-2"
               animate={{ opacity: [0.5, 1, 0.5] }}
@@ -604,20 +615,6 @@ export default function PublicPageContent({
               <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white px-4 text-center">
                 Carregando Experiência
               </h2>
-              <div className="flex gap-1">
-                {[0, 1, 2].map((i) => (
-                  <motion.div
-                    key={i}
-                    className="w-2 h-2 bg-white rounded-full"
-                    animate={{ y: [0, -10, 0] }}
-                    transition={{
-                      duration: 0.6,
-                      repeat: Infinity,
-                      delay: i * 0.2
-                    }}
-                  />
-                ))}
-              </div>
             </motion.div>
           </div>
         </motion.div>
@@ -639,10 +636,8 @@ export default function PublicPageContent({
   return (
     <div className={`min-h-screen transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
 
-      {/* ✅ 4. Scripts de Rastreamento (Google & Facebook) - Só ativam se consentimento for 'granted' */}
       {cookieConsent === 'granted' && trackingSettings && (
         <>
-          {/* Google Analytics 4 */}
           {trackingSettings.googleAnalyticsId && (
             <>
               <Script
@@ -660,7 +655,6 @@ export default function PublicPageContent({
             </>
           )}
 
-          {/* Facebook Pixel */}
           {trackingSettings.facebookPixelId && (
             <Script id="facebook-pixel" strategy="afterInteractive">
               {`
@@ -684,7 +678,6 @@ export default function PublicPageContent({
         <ParticleField color={hexToRgba(userAccentColor, 0.4)} />
       )}
 
-      {/* Progress bar */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 transform-origin-0 z-50"
         style={{
@@ -706,11 +699,9 @@ export default function PublicPageContent({
             }}
           />
         )}
-
         {backgroundConfig.type === "image" && (
           <div className="absolute inset-0 bg-black/20 dark:bg-black/40" />
         )}
-
         <motion.div
           className="absolute inset-0 opacity-20"
           animate={{
@@ -724,7 +715,6 @@ export default function PublicPageContent({
         />
       </div>
 
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -761,8 +751,6 @@ export default function PublicPageContent({
             transition={{ duration: 5, repeat: Infinity }}
           >
             <div className="absolute inset-0 bg-black/10" />
-
-            {/* Animated shimmer */}
             <motion.div
               className="absolute inset-0 opacity-30"
               style={{
@@ -780,7 +768,6 @@ export default function PublicPageContent({
           </motion.div>
         )}
 
-        {/* Top buttons */}
         <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 flex justify-between items-center z-20">
           <motion.button
             whileHover={{ scale: 1.1, rotate: 180 }}
@@ -868,7 +855,6 @@ export default function PublicPageContent({
           </div>
         </div>
 
-        {/* QR Code Dropdown CORRIGIDO */}
         <AnimatePresence>
           {showQRCode && qrCodeDataUrl && (
             <motion.div
@@ -908,7 +894,6 @@ export default function PublicPageContent({
                     link.download = `${username}-qrcode.png`;
                     link.href = qrCodeDataUrl;
                     link.click();
-
                     confetti({
                       particleCount: 100,
                       spread: 70,
@@ -929,10 +914,8 @@ export default function PublicPageContent({
         </AnimatePresence>
       </motion.div>
 
-      {/* Main Content */}
       <div className="relative -mt-24 sm:-mt-32 md:-mt-40 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-8 sm:pb-12 md:pb-16">
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
-          {/* Sidebar */}
           <motion.aside
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -940,9 +923,8 @@ export default function PublicPageContent({
             className="lg:col-span-1"
           >
             <div className="lg:sticky lg:top-8 space-y-3 sm:space-y-4">
-              {/* Profile Card */}
               <motion.div
-                className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 md:p-6 shadow-2xl border border-white/10"
+                className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-6 sm:p-5 md:p-6 shadow-2xl border border-white/10"
                 style={{
                   background: backgroundConfig.type === "image"
                     ? isDarkMode
@@ -957,10 +939,7 @@ export default function PublicPageContent({
                 whileHover={{ y: -5, boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.3)}` }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
-                {/* Glassmorphism overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-
-                {/* Animated border */}
                 <motion.div
                   className="absolute inset-0 rounded-2xl sm:rounded-3xl"
                   style={{
@@ -973,14 +952,12 @@ export default function PublicPageContent({
                 />
 
                 <div className="relative z-10">
-                  {/* Profile Picture */}
-                  <div className="flex justify-center mb-3 sm:mb-4 md:mb-5">
+                  <div className="flex justify-center mb-4 sm:mb-5 md:mb-6">
                     <motion.div
                       whileHover={{ scale: 1.1, rotate: 5 }}
                       whileTap={{ scale: 0.95 }}
                       className="relative group cursor-pointer"
                     >
-                      {/* Glow effect */}
                       <motion.div
                         className="absolute inset-0 rounded-full blur-2xl opacity-0 group-hover:opacity-75 transition-opacity duration-500"
                         style={{ background: userAccentColor }}
@@ -989,8 +966,6 @@ export default function PublicPageContent({
                         }}
                         transition={{ duration: 2, repeat: Infinity }}
                       />
-
-                      {/* Ring animation */}
                       <motion.div
                         className="absolute inset-0 rounded-full border-4 opacity-0 group-hover:opacity-100"
                         style={{ borderColor: userAccentColor }}
@@ -1001,8 +976,9 @@ export default function PublicPageContent({
                         transition={{ duration: 1.5, repeat: Infinity }}
                       />
 
+                      {/* 🖼️ CORREÇÃO DE DESIGN: FOTO MAIOR NO MOBILE (w-32) */}
                       {customizations?.profilePictureUrl ? (
-                        <div className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full overflow-hidden shadow-2xl bg-white p-1 border-4 relative z-10"
+                        <div className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full overflow-hidden shadow-2xl bg-white p-1 border-4 relative z-10"
                           style={{
                             borderColor: userAccentColor,
                             boxShadow: `0 0 30px ${hexToRgba(userAccentColor, 0.5)}`
@@ -1011,8 +987,8 @@ export default function PublicPageContent({
                           <Image
                             src={customizations.profilePictureUrl}
                             alt={`${username}'s profile`}
-                            width={128}
-                            height={128}
+                            width={160}
+                            height={160}
                             className="w-full h-full object-cover rounded-full"
                             priority
                             loading="eager"
@@ -1020,7 +996,7 @@ export default function PublicPageContent({
                         </div>
                       ) : (
                         <motion.div
-                          className="w-24 h-24 sm:w-28 sm:h-28 md:w-32 md:h-32 rounded-full flex items-center justify-center shadow-2xl border-4 border-white dark:border-gray-800 relative z-10"
+                          className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full flex items-center justify-center shadow-2xl border-4 border-white dark:border-gray-800 relative z-10"
                           style={{
                             background: `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
                             boxShadow: `0 0 30px ${hexToRgba(userAccentColor, 0.5)}`
@@ -1034,17 +1010,17 @@ export default function PublicPageContent({
                           }}
                           transition={{ duration: 2, repeat: Infinity }}
                         >
-                          <User className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-white" />
+                          <User className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-white" />
                         </motion.div>
                       )}
                     </motion.div>
                   </div>
 
-                  {/* Username */}
-                  <div className="text-center space-y-2">
+                  <div className="text-center space-y-3">
                     <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
+                      {/* 🖋️ CORREÇÃO DE DESIGN: USERNAME MAIOR (text-2xl) */}
                       <motion.h1
-                        className="text-lg sm:text-xl md:text-2xl font-black break-all"
+                        className="text-2xl sm:text-3xl font-black break-all"
                         style={{
                           color: userAccentColor,
                           textShadow: `0 2px 10px ${hexToRgba(userAccentColor, 0.3)}`
@@ -1065,18 +1041,22 @@ export default function PublicPageContent({
 
                     {plan === 'free' && (
                       <Link href={getBaseUrl() + "/"} className="group inline-block">
-                        <motion.p
-                          className="text-[9px] sm:text-[10px] text-gray-400 dark:text-gray-500 opacity-60 hover:opacity-100 transition-opacity"
+                        <motion.div
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-white/20 dark:border-white/10"
                           whileHover={{ scale: 1.05 }}
                         >
-                          Powered by <span className="font-semibold group-hover:text-purple-500 transition-colors">Freelinnk</span>
-                        </motion.p>
+                          <Sparkles className="w-3 h-3 text-purple-500" />
+                          <p className="text-[11px] font-medium text-gray-600 dark:text-gray-300">
+                            Crie seu perfil grátis no <span className="font-bold text-purple-600 dark:text-purple-400">Freelinnk</span>
+                          </p>
+                        </motion.div>
                       </Link>
                     )}
 
                     {customizations?.description && (
+                      /* 📝 CORREÇÃO DE DESIGN: DESCRIÇÃO MAIOR (text-base) */
                       <motion.p
-                        className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 leading-relaxed px-1 sm:px-2"
+                        className="text-base sm:text-lg text-gray-600 dark:text-gray-400 leading-relaxed px-4"
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
@@ -1085,12 +1065,12 @@ export default function PublicPageContent({
                       </motion.p>
                     )}
 
-                    <div className="flex items-center justify-center gap-2 sm:gap-3 text-[10px] sm:text-xs text-gray-500 dark:text-gray-400 flex-wrap pt-2">
+                    <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex-wrap pt-2">
                       <motion.div
                         className="flex items-center gap-1"
                         whileHover={{ scale: 1.05 }}
                       >
-                        <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
+                        <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span>Desde {joinDate}</span>
                       </motion.div>
                     </div>
@@ -1108,7 +1088,6 @@ export default function PublicPageContent({
             className="lg:col-span-2"
           >
             <div className="space-y-3 sm:space-y-4">
-              {/* Links Container */}
               <motion.div
                 className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/10"
                 style={{
@@ -1128,7 +1107,6 @@ export default function PublicPageContent({
                 <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
                 <div className="relative z-10">
-                  {/* Header */}
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <motion.h2
                       className="text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2"
@@ -1483,7 +1461,35 @@ export default function PublicPageContent({
         )}
       </div>
 
-      {/* ✅ 5. BANNER DE COOKIES (Fixo na parte inferior) */}
+      {/* ✅ 🔥 STICKY CTA (Botão flutuante fixo) */}
+      <AnimatePresence>
+        {plan === 'free' && showStickyCTA && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 w-auto"
+          >
+            <Link href={getBaseUrl() + "/"}>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="flex items-center gap-2 px-6 py-3 rounded-full shadow-2xl font-bold text-white text-sm backdrop-blur-md"
+                style={{
+                  background: `linear-gradient(90deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`,
+                  boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.4)}`,
+                  border: '1px solid rgba(255,255,255,0.2)'
+                }}
+              >
+                <Sparkles className="w-4 h-4 text-yellow-300 animate-pulse" />
+                <span>Crie seu perfil Grátis</span>
+              </motion.button>
+            </Link>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ✅ 5. BANNER DE COOKIES */}
       <AnimatePresence>
         {cookieConsent === null && trackingSettings && (trackingSettings.facebookPixelId || trackingSettings.googleAnalyticsId) && (
           <motion.div
