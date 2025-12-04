@@ -832,28 +832,33 @@ export async function GET(req: Request) {
   // 2. Processamento em Lotes Assíncronos (Evita Timeout)
   console.log(`📨 Encontrados ${contextsToProcess.length} emails qualificados para envio.`);
 
-  for (let i = 0; i < contextsToProcess.length; i += BATCH_SIZE) {
+for (let i = 0; i < contextsToProcess.length; i += BATCH_SIZE) {
     const batch = contextsToProcess.slice(i, i + BATCH_SIZE);
 
     await Promise.allSettled(batch.map(async (item) => {
       try {
-        // Enviar Email via Resend
         const { error } = await resend.emails.send({
-          from: 'Freelinnk <contato@send.freelinnk.com>', // ✅ DOMÍNIO CORRETO
-          replyTo: 'suporte@freelinnk.com',
+          // ✅ CORRIGIDO: Nome humanizado + Domínio verificado
+          from: 'Lucas do Freelinnk <contato@send.freelinnk.com>',
+
+          // ✅ CORRIGIDO: E-mail profissional para resposta
+          replyTo: 'contato@freelinnk.com',
+
           to: item.email,
           subject: item.template.subject,
           html: item.template.html,
+
+          // ✅ CORRIGIDO: Headers Anti-Spam do Gmail
           headers: {
-            'List-Unsubscribe': '<https://www.freelinnk.com/dashboard/settings>'
+            'List-Unsubscribe': '<https://www.freelinnk.com/dashboard/settings>, <mailto:contato@freelinnk.com?subject=unsubscribe>',
+            'X-Entity-ID': 'Freelinnk-System'
           }
         });
 
         if (error) throw error;
 
-        // Atualizar Metadados Clerk
+        // Atualiza Clerk (igual ao seu código)
         const newEmailHistory = [...(item.meta.emailHistory || []), Date.now()].slice(-50);
-
         await clerk.users.updateUser(item.userId, {
           publicMetadata: {
             ...item.meta,
@@ -866,7 +871,6 @@ export async function GET(req: Request) {
         });
 
         emailLog.push({ email: item.email, subject: item.template.subject, status: 'sent' });
-        console.log(`✅ Enviado: ${item.email} | Assunto: ${item.template.subject}`);
 
       } catch (err) {
         console.error(`❌ Falha no envio para ${item.email}:`, err);
@@ -875,12 +879,5 @@ export async function GET(req: Request) {
     }));
   }
 
-  const summary = {
-    processed: users.length,
-    qualified: contextsToProcess.length,
-    sent: emailLog.filter(l => l.status === 'sent').length,
-    failed: emailLog.filter(l => l.status === 'failed').length,
-  };
-
-  return NextResponse.json({ success: true, summary, log: emailLog });
+  return NextResponse.json({ success: true, log: emailLog });
 }

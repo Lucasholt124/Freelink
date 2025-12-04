@@ -56,19 +56,22 @@ export async function POST(req: Request) {
     const email = email_addresses?.[0]?.email_address;
     const name = first_name || "Criador";
 
-    if (email) {
+if (email) {
       try {
         await resend.emails.send({
+          // ✅ CORRIGIDO: Remetente oficial
           from: 'Freelinnk <contato@send.freelinnk.com>',
-          replyTo: 'lucasholt2021@gmail.com',
-          to: email,
+
+          // ✅ CORRIGIDO: Resposta para o email profissional
+          replyTo: 'contato@freelinnk.com',
+
+          to: email, // Envia para o usuário
           subject: `Bem-vindo ao Freelinnk, ${name}! 🎉`,
-          html: getWelcomeEmailHTML(name)
+          html: getWelcomeEmailHTML(name) // (Mantenha sua função de HTML lá embaixo)
         });
         console.log(`📧 Email de boas-vindas enviado: ${email}`);
       } catch (emailError) {
         console.error('❌ Erro ao enviar email:', emailError);
-        // Não retorna erro - o webhook deve continuar
       }
     }
   }

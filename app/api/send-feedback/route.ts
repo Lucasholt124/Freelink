@@ -1,21 +1,16 @@
-// app/api/send-feedback/route.ts
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 
-// ❌ NÃO INICIALIZE AQUI FORA
-// const resend = new Resend(process.env.RESEND_API_KEY);
-
 export async function POST(req: Request) {
   try {
-    // ✅ INICIALIZE AQUI DENTRO
-    // Assim ele só pede a chave quando alguém realmente tentar enviar o email
     const resend = new Resend(process.env.RESEND_API_KEY);
-
     const { email, feedback, reason, userId } = await req.json();
 
     await resend.emails.send({
-      from: 'Freelinnk System <onboarding@resend.dev>', // Ou seu email verificado
-      to: 'lucasholt2021@gmail.com',
+      // ✅ CORRIGIDO: Usa o domínio verificado no Resend
+      from: 'Freelinnk System <contato@send.freelinnk.com>',
+      to: 'lucasholt2021@gmail.com', // Envia para você (Admin)
+      replyTo: email, // Se você clicar em responder, responde para o usuário
       subject: `⚠️ Cancelamento de Assinatura: ${email}`,
       html: `
         <div style="font-family: sans-serif; padding: 20px;">
