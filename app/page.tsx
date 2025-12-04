@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useScroll, useInView} from "framer-motion";
+import { motion, AnimatePresence, useScroll, useInView } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { SignInButton, useAuth } from "@clerk/nextjs";
 import {
@@ -233,7 +233,7 @@ const ScrollReveal = ({ children, className = "" }: { children: React.ReactNode;
   <motion.div
     initial={{ opacity: 0, y: 20 }}
     whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "0px 0px -50px 0px" }} // Margem segura para mobile
+    viewport={{ once: true, margin: "0px 0px -50px 0px" }}
     transition={{ duration: 0.4, ease: "easeOut" }}
     className={className}
   >
@@ -267,7 +267,7 @@ const MagneticWrapper = ({ children }: { children: React.ReactNode }) => (
 const HeroPhoneSimulator = () => {
   const [step, setStep] = useState(0);
   const [isDark, setIsDark] = useState(true);
-  const [likes, setLikes] = useState<{[key: string]: number}>({
+  const [likes, setLikes] = useState<{ [key: string]: number }>({
     instagram: 12,
     whatsapp: 8,
     mentoria: 47,
@@ -404,11 +404,10 @@ const HeroPhoneSimulator = () => {
                 initial={{ y: 50, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
                 exit={{ opacity: 0 }}
-                className={`absolute inset-0 overflow-hidden transition-colors duration-300 ${
-                  isDark
+                className={`absolute inset-0 overflow-hidden transition-colors duration-300 ${isDark
                     ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
                     : "bg-gradient-to-br from-gray-50 to-white"
-                }`}
+                  }`}
               >
                 <div className="flex items-center justify-between px-4 pt-8 pb-2">
                   <motion.button
@@ -416,9 +415,8 @@ const HeroPhoneSimulator = () => {
                     whileHover={{ rotate: 180 }}
                     transition={{ duration: 0.3 }}
                     onClick={() => setIsDark(!isDark)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                      isDark ? "bg-white/10 text-yellow-400" : "bg-gray-100 text-gray-600"
-                    }`}
+                    className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-white/10 text-yellow-400" : "bg-gray-100 text-gray-600"
+                      }`}
                   >
                     {isDark ? <Sun size={14} /> : <Moon size={14} />}
                   </motion.button>
@@ -427,18 +425,16 @@ const HeroPhoneSimulator = () => {
                     <motion.button
                       whileTap={{ scale: 0.9 }}
                       whileHover={{ scale: 1.1 }}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-600"
-                      }`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-600"
+                        }`}
                     >
                       <QrCode size={14} />
                     </motion.button>
                     <motion.button
                       whileTap={{ scale: 0.9 }}
                       whileHover={{ scale: 1.1 }}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                        isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-600"
-                      }`}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-600"
+                        }`}
                     >
                       <Share2 size={14} />
                     </motion.button>
@@ -502,9 +498,8 @@ const HeroPhoneSimulator = () => {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ delay: 0.6 }}
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2 ${
-                      isDark ? "text-gray-500" : "text-gray-400"
-                    }`}
+                    className={`text-[10px] font-bold uppercase tracking-wider px-2 ${isDark ? "text-gray-500" : "text-gray-400"
+                      }`}
                   >
                     Links
                   </motion.p>
@@ -522,13 +517,12 @@ const HeroPhoneSimulator = () => {
                       transition={{ delay: 0.7 + i * 0.1 }}
                       whileHover={{ scale: 1.02, x: 4 }}
                       whileTap={{ scale: 0.98 }}
-                      className={`relative rounded-2xl p-3.5 flex items-center justify-between cursor-pointer group overflow-hidden ${
-                        link.highlight
+                      className={`relative rounded-2xl p-3.5 flex items-center justify-between cursor-pointer group overflow-hidden ${link.highlight
                           ? `bg-gradient-to-r ${link.color} shadow-lg`
                           : isDark
                             ? "bg-white/5 hover:bg-white/10 border border-white/10"
                             : "bg-gray-100 hover:bg-gray-200 border border-gray-200"
-                      }`}
+                        }`}
                     >
                       {link.highlight && (
                         <motion.div
@@ -542,18 +536,16 @@ const HeroPhoneSimulator = () => {
                         <span className={link.highlight ? "text-white" : isDark ? "text-white" : "text-gray-700"}>
                           {link.icon}
                         </span>
-                        <span className={`text-sm font-semibold ${
-                          link.highlight ? "text-white" : isDark ? "text-white" : "text-gray-800"
-                        }`}>
+                        <span className={`text-sm font-semibold ${link.highlight ? "text-white" : isDark ? "text-white" : "text-gray-800"
+                          }`}>
                           {link.text}
                         </span>
                       </div>
 
                       <motion.div
                         whileTap={{ scale: 1.3 }}
-                        className={`flex items-center gap-1 relative z-10 ${
-                          link.highlight ? "text-white/80" : isDark ? "text-gray-400" : "text-gray-500"
-                        }`}
+                        className={`flex items-center gap-1 relative z-10 ${link.highlight ? "text-white/80" : isDark ? "text-gray-400" : "text-gray-500"
+                          }`}
                       >
                         <Heart size={12} className={link.highlight ? "fill-white/50" : ""} />
                         <motion.span
@@ -831,14 +823,10 @@ const SocialProofAvatars = () => {
   );
 };
 
-// --- PÁGINAS REAIS COM CARROSSEL ANIMADO ---
-// --- SUBSTITUA O COMPONENTE RealPagesShowcase INTEIRO POR ESTE ---
-
+// --- PÁGINAS REAIS COM CARROSSEL INFINITO ---
 const RealPagesShowcase = () => {
   const [isPaused, setIsPaused] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-
-  // Duplicar páginas para efeito infinito
   const duplicatedPages = [...realPages, ...realPages, ...realPages];
 
   return (
@@ -847,11 +835,9 @@ const RealPagesShowcase = () => {
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Gradientes laterais */}
       <div className="absolute left-0 top-0 bottom-0 w-10 md:w-40 bg-gradient-to-r from-gray-50 via-gray-50 to-transparent z-10 pointer-events-none" />
       <div className="absolute right-0 top-0 bottom-0 w-10 md:w-40 bg-gradient-to-l from-gray-50 via-gray-50 to-transparent z-10 pointer-events-none" />
 
-      {/* Carrossel */}
       <motion.div
         ref={containerRef}
         className="flex gap-6 md:gap-8"
@@ -862,7 +848,7 @@ const RealPagesShowcase = () => {
           x: {
             repeat: Infinity,
             repeatType: "loop",
-            duration: 40, // Mais lento para facilitar a leitura
+            duration: 40,
             ease: "linear",
           },
         }}
@@ -879,21 +865,16 @@ const RealPagesShowcase = () => {
             }}
             transition={{ type: "spring", stiffness: 300, damping: 20 }}
           >
-            {/* Glow effect no hover */}
             <motion.div
               className={`absolute -inset-4 bg-gradient-to-r ${page.color} rounded-[3rem] opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500`}
             />
 
-            {/* Phone Frame */}
             <div className="relative bg-gray-900 rounded-[2.5rem] p-2 shadow-xl group-hover:shadow-2xl transition-all duration-500">
-              {/* Notch */}
               <div className="absolute top-0 inset-x-0 h-5 flex justify-center z-10">
                 <div className="w-20 h-5 bg-gray-900 rounded-b-xl" />
               </div>
 
-              {/* Screen */}
               <div className="bg-gray-800 rounded-[2rem] overflow-hidden aspect-[9/18] relative">
-                {/* Imagem da página */}
                 <motion.img
                   src={page.image}
                   alt={page.name}
@@ -907,10 +888,8 @@ const RealPagesShowcase = () => {
                   }}
                 />
 
-                {/* Overlay gradiente - Mais forte para leitura */}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-4" />
 
-                {/* Info no hover - Corrigido tamanho e quebra */}
                 <motion.div
                   className="absolute bottom-0 left-0 right-0 p-5 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end items-center text-center z-20"
                   initial={{ y: 20 }}
@@ -932,7 +911,6 @@ const RealPagesShowcase = () => {
               </div>
             </div>
 
-            {/* Info abaixo do card (fora do celular) */}
             <motion.div
               className="mt-4 text-center"
               initial={{ opacity: 0, y: 10 }}
@@ -951,7 +929,6 @@ const RealPagesShowcase = () => {
         ))}
       </motion.div>
 
-      {/* Aviso LGPD obrigatório */}
       <div className="text-center mt-12">
         <p className="text-[10px] text-gray-400">
           * As páginas exibidas foram autorizadas pelos criadores para aparecer em nossa galeria pública.
@@ -974,23 +951,20 @@ const RealPagesShowcase = () => {
   );
 };
 
-// --- FEATURE CARD COM MAIS ANIMAÇÕES ---
+// --- FEATURE CARD ---
 const FeatureCard = ({ feature }: { feature: typeof features[0]; index: number }) => {
   return (
     <ScrollReveal className="h-full">
       <div className="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:border-indigo-200 transition-colors duration-300 h-full overflow-hidden group">
-        {/* Background estático leve */}
         <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
-
         <div className="relative z-10">
           <div className="flex items-start justify-between mb-4">
             <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center text-white shadow-sm`}>
               {feature.icon}
             </div>
-            <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${
-              feature.tag === "GRÁTIS" ? "bg-green-100 text-green-700" :
-              feature.tag === "PRO" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
-            }`}>
+            <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${feature.tag === "GRÁTIS" ? "bg-green-100 text-green-700" :
+                feature.tag === "PRO" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+              }`}>
               {feature.tag}
             </span>
           </div>
@@ -1002,7 +976,7 @@ const FeatureCard = ({ feature }: { feature: typeof features[0]; index: number }
   );
 };
 
-// --- TESTIMONIAL CARD COM MAIS ANIMAÇÕES ---
+// --- TESTIMONIAL CARD ---
 const TestimonialCard = ({ testimonial }: { testimonial: typeof testimonials[0]; index: number }) => {
   return (
     <ScrollReveal className="h-full">
@@ -1043,7 +1017,6 @@ const HowItWorksStep = ({ step, index, total }: { step: { icon: React.ReactNode;
       transition={{ delay: index * 0.2, duration: 0.6 }}
       className="relative"
     >
-      {/* Connector Line */}
       {index < total - 1 && (
         <motion.div
           className="hidden lg:block absolute top-14 left-1/2 w-full h-1 overflow-hidden"
@@ -1066,7 +1039,6 @@ const HowItWorksStep = ({ step, index, total }: { step: { icon: React.ReactNode;
             whileTap={{ scale: 0.95 }}
             className="w-28 h-28 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-[2rem] flex items-center justify-center text-white shadow-xl shadow-indigo-500/30 mb-4 cursor-pointer relative overflow-hidden"
           >
-            {/* Animated background */}
             <motion.div
               className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
               animate={{ x: ["-100%", "100%"] }}
@@ -1121,13 +1093,14 @@ const DifferentialCard = ({ item }: { item: { icon: React.ReactNode; title: stri
   );
 };
 
-
-
+// --- COMPONENTE PRINCIPAL ---
 export default function LandingPage() {
   const router = useRouter();
   const { isSignedIn, isLoaded } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // Estado para controlar a barra fixa inferior (Sticky Footer)
+  const [showStickyFooter, setShowStickyFooter] = useState(false);
   const { scrollYProgress } = useScroll();
 
   useEffect(() => {
@@ -1135,7 +1108,11 @@ export default function LandingPage() {
   }, [isLoaded, isSignedIn, router]);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 20);
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+      // Mostra a barra fixa apenas depois de rolar 600px (passar do Hero)
+      setShowStickyFooter(window.scrollY > 600);
+    };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
@@ -1164,20 +1141,29 @@ export default function LandingPage() {
         style={{ scaleX: scrollYProgress }}
       />
 
-      {/* Mobile CTA */}
-      <div className="fixed bottom-0 left-0 right-0 z-[90] p-3 bg-white border-t border-gray-200 md:hidden">
-        <SignInButton mode="modal">
-          <Button className="w-full relative z-50 pointer-events-auto shadow-none" size="lg">
-            Começar Grátis <ArrowRight size={18} />
-          </Button>
-        </SignInButton>
-      </div>
+      {/* Mobile CTA (Sticky Footer) - CONDICIONAL */}
+      {/* Só aparece depois de rolar a página para não poluir o início */}
+      <AnimatePresence>
+        {showStickyFooter && (
+          <motion.div
+            initial={{ y: 100 }}
+            animate={{ y: 0 }}
+            exit={{ y: 100 }}
+            className="fixed bottom-0 left-0 right-0 z-[90] p-3 bg-white/90 backdrop-blur-md border-t border-gray-200 md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
+          >
+            <SignInButton mode="modal">
+              <Button className="w-full relative z-50 pointer-events-auto shadow-none" size="lg">
+                Começar Grátis <ArrowRight size={18} />
+              </Button>
+            </SignInButton>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Navigation */}
       <nav
-        className={`fixed top-0 w-full z-[80] transition-all duration-300 ${
-          scrolled ? "bg-white/95 shadow-sm" : "bg-transparent"
-        }`}
+        className={`fixed top-0 w-full z-[80] transition-all duration-300 ${scrolled ? "bg-white/95 shadow-sm" : "bg-transparent"
+          }`}
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 md:h-20 flex items-center justify-between">
           <div
@@ -1203,6 +1189,7 @@ export default function LandingPage() {
           </div>
 
           <div className="flex items-center gap-3 relative z-50">
+            {/* Escondido no Mobile para limpeza visual */}
             <div className="hidden lg:block">
               <SignInButton mode="modal">
                 <button className="text-sm font-bold text-gray-600 hover:text-indigo-600 transition-colors px-4 py-2 cursor-pointer">
@@ -1210,11 +1197,14 @@ export default function LandingPage() {
                 </button>
               </SignInButton>
             </div>
+
+            {/* Escondido no Mobile para limpeza visual */}
             <div className="hidden md:block">
               <SignInButton mode="modal">
                 <Button size="sm" className="cursor-pointer relative z-50">Começar Grátis</Button>
               </SignInButton>
             </div>
+
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="lg:hidden p-2 text-gray-600 relative z-50"
@@ -1252,7 +1242,7 @@ export default function LandingPage() {
 
       {/* HERO SECTION */}
       <section className="relative pt-24 pb-12 md:pt-32 lg:pt-40 lg:pb-24 overflow-hidden">
-        {/* Background Estático (Sem animação pesada) */}
+        {/* Background Estático */}
         <div className="absolute inset-0 pointer-events-none z-0">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 opacity-50" />
           <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-100 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/3 opacity-50" />
@@ -1268,17 +1258,17 @@ export default function LandingPage() {
                 </div>
 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.1] mb-6">
-                  A página de links que{" "}
-                  <span className={BRAND.textGradient}>bota dinheiro</span>{" "}
-                  no seu bolso.
+                  Transforme seu Link na Bio em uma{" "}
+                  <span className={BRAND.textGradient}>Máquina de Vendas</span>
                 </h1>
 
                 <p className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
                   Página totalmente customizável, encurtador com analytics e ferramentas de{" "}
-                  <strong className="text-indigo-600">IA exclusivas</strong> para você vender muito mais.
+                  <strong className="text-indigo-600">IA exclusivas</strong>. Pare de perder vendas no Instagram.
                 </p>
 
-                <div className="max-w-md mx-auto lg:mx-0 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 flex flex-col sm:flex-row gap-2 mb-6 relative z-30">
+                {/* DESKTOP INPUT - Escondido no Mobile para menos atrito */}
+                <div className="hidden sm:flex max-w-md mx-auto lg:mx-0 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 flex-col sm:flex-row gap-2 mb-6 relative z-30">
                   <div className="flex-1 bg-gray-50 rounded-xl px-4 flex items-center h-12 sm:h-auto border border-transparent focus-within:border-[#6366f1] focus-within:bg-white transition-all">
                     <span className="text-gray-400 font-bold text-sm mr-1">freelinnk.com/</span>
                     <input type="text" placeholder="seunome" className="bg-transparent border-none outline-none font-bold text-gray-900 w-full placeholder:text-gray-300" />
@@ -1288,7 +1278,18 @@ export default function LandingPage() {
                   </SignInButton>
                 </div>
 
-                <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 relative z-30">
+                {/* MOBILE BUTTON (Botão único e direto) */}
+                <div className="flex sm:hidden flex-col gap-4 justify-center mb-8 relative z-30">
+                  <SignInButton mode="modal">
+                    <Button size="xl" className="w-full group cursor-pointer pointer-events-auto shadow-xl">
+                      Criar Minha Página Grátis
+                      <ArrowRight size={20} className="ml-1" />
+                    </Button>
+                  </SignInButton>
+                  <p className="text-xs text-gray-500 font-medium">Leva menos de 30 segundos</p>
+                </div>
+
+                <div className="hidden sm:flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 relative z-30">
                   <SignInButton mode="modal">
                     <Button size="xl" className="w-full sm:w-auto group cursor-pointer pointer-events-auto">
                       Começar Agora — É Grátis
@@ -1321,7 +1322,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* STATS BAR (Sem animação de contador) */}
+      {/* STATS BAR */}
       <section className="py-10 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 relative z-10">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
@@ -1470,7 +1471,7 @@ export default function LandingPage() {
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black mb-4">
                 Por que <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Freelinnk</span>?
               </h2>
-              <p className="text-gray-400 text-lg max-w-2xl mx-auto">Não tiramos seu dinheiro. Botamos mais.</p>
+              <p className="text-gray-400 text-lg max-w-2xl mx-auto">Pare de perder vendas no Instagram hoje mesmo..</p>
             </div>
           </ScrollReveal>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -1582,7 +1583,7 @@ export default function LandingPage() {
                 <span className="text-2xl font-bold">Freelinnk</span>
               </div>
               <p className="text-gray-400 mb-6 max-w-md leading-relaxed">
-                A página de links que bota dinheiro no seu bolso. Feito com 💜 no Brasil para criadores do mundo todo.
+                Transforme seu Link na Bio em uma Máquina de Vendas. Feito com 💜 no Brasil para criadores do mundo todo.
               </p>
               <div className="flex gap-4">
                 {[
