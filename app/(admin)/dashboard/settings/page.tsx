@@ -10,12 +10,15 @@ import {
   AlertCircle,
   Copy,
   ExternalLink,
-  Share2,
   Layout,
   Palette
 } from "lucide-react";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { useUser } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { toast } from "sonner";
 
 // === ANIMAÇÕES SUAVES ===
 const fadeInUp = {
@@ -33,19 +36,59 @@ const staggerContainer = {
 };
 
 export default function SettingsPage() {
+  const { user } = useUser();
   const [mounted, setMounted] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
+
+  // Busca o slug do usuário (Sem tocar no backend)
+  const userSlug = useQuery(
+    api.lib.usernames.getUserSlug,
+    user ? { userId: user.id } : "skip"
+  );
 
   useEffect(() => {
     setMounted(true);
     const saved = localStorage.getItem('freelink_progress');
     if (saved) setCompletedSteps(parseInt(saved));
+
+    // ✅ LIMPEZA DE URL VISUAL (Se o usuário voltar do login com ?redirect_url=...)
+    if (typeof window !== 'undefined' && window.location.search) {
+      const cleanUrl = window.location.protocol + "//" + window.location.host + window.location.pathname;
+      window.history.replaceState({ path: cleanUrl }, "", cleanUrl);
+    }
   }, []);
 
   const updateProgress = (step: number) => {
     const newProgress = Math.max(completedSteps, step);
     setCompletedSteps(newProgress);
     localStorage.setItem('freelink_progress', newProgress.toString());
+  };
+
+  // ✅ FUNÇÃO SEGURA DE GERAR LINK
+  const getCleanLink = () => {
+    if (!userSlug) return "";
+    if (typeof window === 'undefined') return "";
+
+    // Pega a URL base (ex: https://freelinnk.com ou http://localhost:3000)
+    // E adiciona APENAS o slug (sem /u/). O next.config.ts cuida do resto.
+    return `${window.location.origin}/${userSlug}`;
+  };
+
+  const handleCopyLink = () => {
+    const link = getCleanLink();
+    if (!link) return;
+
+    navigator.clipboard.writeText(link);
+    toast.success("Link copiado!", {
+      description: "Pronto para colar na bio! 🚀",
+      icon: "🔗"
+    });
+  };
+
+  const handleVisitLink = () => {
+    const link = getCleanLink();
+    if (!link) return;
+    window.open(link, '_blank');
   };
 
   if (!mounted) {
@@ -73,11 +116,10 @@ export default function SettingsPage() {
                 Configurações
               </h1>
               <p className="text-gray-500 text-sm sm:text-[15px] leading-relaxed">
-                Transforme sua página em uma experiência única. Personalize cada detalhe para refletir sua identidade e aumentar suas conversões.
+                Transforme sua página em uma experiência única. Personalize cada detalhe para refletir sua identidade.
               </p>
             </div>
 
-            {/* Badge de Salvamento Automático */}
             <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50/80 border border-green-200 rounded-full shrink-0 w-fit">
               <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
               <span className="text-[11px] font-semibold text-green-700 uppercase tracking-wide">
@@ -86,7 +128,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          {/* === PROGRESSO DO PERFIL === */}
           <div className="mt-8 sm:mt-10">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
@@ -112,16 +153,10 @@ export default function SettingsPage() {
           </div>
         </motion.header>
 
-        {/* Divisor */}
         <div className="w-full h-px bg-gray-200 mb-10 lg:mb-16" />
 
         {/* === SEÇÃO 1: URL E IDENTIDADE === */}
-        <motion.section
-          className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 mb-16 lg:mb-24 scroll-mt-24"
-          id="identity"
-          variants={fadeInUp}
-        >
-          {/* Sidebar (Texto + Dicas) */}
+        <motion.section className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 mb-16 lg:mb-24 scroll-mt-24" id="identity" variants={fadeInUp}>
           <aside className="lg:col-span-4 space-y-6">
             <div className="lg:sticky lg:top-24 space-y-6">
               <div>
@@ -130,21 +165,16 @@ export default function SettingsPage() {
                   <h2 className="text-lg font-bold text-gray-900">Sua Identidade</h2>
                 </div>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Escolha um nome curto, único e fácil de lembrar. É assim que seus seguidores vão encontrar — e clicar — no seu link.
+                  Escolha um nome curto e único. É assim que seus seguidores vão te encontrar.
                 </p>
               </div>
 
-              {/* Box: Por que isso importa? */}
               <div className="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
                 <p className="text-[11px] font-bold text-gray-400 uppercase tracking-wider mb-4 flex items-center gap-2">
                   <Layout className="w-3 h-3" /> Por que isso importa?
                 </p>
                 <ul className="space-y-3">
-                  {[
-                    "URL curta e profissional",
-                    "Melhor posicionamento nas buscas",
-                    "Fácil de memorizar e compartilhar"
-                  ].map((item, i) => (
+                  {["URL curta e profissional", "Melhor posicionamento", "Fácil de memorizar"].map((item, i) => (
                     <li key={i} className="flex items-start gap-2.5 text-[13px] text-gray-600 font-medium">
                       <Check className="w-3.5 h-3.5 text-blue-600 mt-0.5 shrink-0" />
                       {item}
@@ -155,35 +185,42 @@ export default function SettingsPage() {
             </div>
           </aside>
 
-          {/* Conteúdo Principal (Formulário) */}
           <div className="lg:col-span-8">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="p-5 sm:p-8">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 gap-4">
-                  <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Seu Link Ativo</h3>
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide mb-1">Seu Link Profissional</h3>
+
+                    {/* ✅ VISUAL LIMPO: freelinnk/nome */}
+                    {userSlug ? (
+                      <p className="text-sm text-purple-600 font-medium truncate flex items-center gap-0.5">
+                        <span className="text-gray-400 select-none">freelinnk/</span>
+                        <span className="font-bold">{userSlug}</span>
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-400 italic">Configure seu nome abaixo...</p>
+                    )}
+                  </div>
+
                   <div className="flex gap-2">
-                     <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors">
-                        <Copy className="w-3.5 h-3.5" /> Copiar
+                     <button onClick={handleCopyLink} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors active:scale-95">
+                       <Copy className="w-3.5 h-3.5" /> Copiar
                      </button>
-                     <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors">
-                        <ExternalLink className="w-3.5 h-3.5" /> Visitar
-                     </button>
-                     <button className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors">
-                        <Share2 className="w-3.5 h-3.5" /> Compartilhar
+                     <button onClick={handleVisitLink} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg transition-colors active:scale-95">
+                       <ExternalLink className="w-3.5 h-3.5" /> Visitar
                      </button>
                   </div>
                 </div>
 
-                {/* Input Wrapper */}
                 <div className="mb-6">
                    <UsernameForm onComplete={() => updateProgress(1)} />
                 </div>
 
-                {/* Aviso */}
                 <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100/60 text-xs text-amber-800 leading-relaxed">
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-600" />
                   <p>
-                    <span className="font-bold">Observação:</span> você pode alterar sua URL quando quiser, mas links antigos <strong className="text-amber-900">não</strong> serão redirecionados.
+                    <span className="font-bold">Dica:</span> Mantenha seu nome curto para facilitar a memorização.
                   </p>
                 </div>
               </div>
@@ -192,12 +229,7 @@ export default function SettingsPage() {
         </motion.section>
 
         {/* === SEÇÃO 2: ESTILO VISUAL === */}
-        <motion.section
-          className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 scroll-mt-24"
-          id="style"
-          variants={fadeInUp}
-        >
-          {/* Sidebar */}
+        <motion.section className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 scroll-mt-24" id="style" variants={fadeInUp}>
           <aside className="lg:col-span-4 space-y-6">
             <div className="lg:sticky lg:top-24 space-y-6">
               <div>
@@ -206,21 +238,18 @@ export default function SettingsPage() {
                   <h2 className="text-lg font-bold text-gray-900">Estilo Visual</h2>
                 </div>
                 <p className="text-sm text-gray-500 leading-relaxed">
-                  Sua página é o seu cartão de visitas. Crie algo marcante para capturar a atenção — e converter muito mais.
+                  Sua página é o seu cartão de visitas. Crie algo marcante para capturar a atenção.
                 </p>
               </div>
 
-              {/* Box: Dica Pro (Dark Theme) */}
               <div className="bg-gray-900 rounded-xl p-5 text-white shadow-lg">
                 <div className="flex items-center gap-2 mb-3">
                   <Zap className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400" />
                   <span className="text-[11px] font-bold uppercase tracking-wider text-gray-300">Dica Pro</span>
                 </div>
-
                 <p className="text-[13px] text-gray-300 mb-5 leading-relaxed">
                   Páginas com fundo personalizado e identidade visual forte registram:
                 </p>
-
                 <div className="grid grid-cols-2 gap-4 border-t border-gray-800 pt-4">
                   <div>
                     <span className="block text-xl font-bold text-white tracking-tight">+40%</span>
@@ -235,7 +264,6 @@ export default function SettingsPage() {
             </div>
           </aside>
 
-          {/* Conteúdo Principal (Editor) */}
           <div className="lg:col-span-8">
             <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
               <div className="p-5 sm:p-8">
@@ -243,11 +271,8 @@ export default function SettingsPage() {
                   <Palette className="w-4 h-4 text-gray-400" />
                   <h3 className="text-sm font-bold text-gray-900 uppercase tracking-wide">Editor Visual</h3>
                 </div>
-
                 <div className="space-y-6">
                    <p className="text-sm text-gray-600">Personalize toda a aparência do seu link.</p>
-
-                   {/* Customization Form */}
                    <CustomizationForm onComplete={() => updateProgress(2)} />
                 </div>
               </div>
@@ -255,13 +280,7 @@ export default function SettingsPage() {
           </div>
         </motion.section>
 
-        {/* === FOOTER === */}
-        <motion.footer
-          className="mt-20 border-t border-gray-200 pt-8 pb-8 text-center"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-        >
+        <motion.footer className="mt-20 border-t border-gray-200 pt-8 pb-8 text-center" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.8 }}>
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-full text-xs font-medium text-gray-600 shadow-sm hover:shadow-md transition-all cursor-default group">
             <MessageCircle className="w-3.5 h-3.5 text-purple-600 group-hover:scale-110 transition-transform" />
             <span>Dica: Compartilhe seu link nas redes sociais para maximizar seu alcance.</span>

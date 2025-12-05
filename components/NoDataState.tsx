@@ -26,7 +26,7 @@ export function NoDataState() {
           onClick={() => {
             // Lógica para copiar a URL do perfil do usuário
             // (Esta lógica pode ser abstraída para um hook ou passada via props)
-            const profileUrl = "https://www.freelinnk.com/u/seu_username"; // Exemplo
+            const profileUrl = "https://www.freelinnk.com/seu_username"; // Exemplo
             navigator.clipboard.writeText(profileUrl);
             alert("Link do seu perfil copiado para a área de transferência!"); // Um toast seria ainda melhor
           }}

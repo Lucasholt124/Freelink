@@ -89,7 +89,7 @@ export default function UsernameForm({ onComplete }: UsernameFormProps) {
   const handleCopy = useCallback(async () => {
     if (!currentSlug) return;
 
-    const url = `${window.location.origin}/u/${currentSlug}`;
+    const url = `${window.location.origin}/${currentSlug}`;
     await navigator.clipboard.writeText(url);
 
     setCopied(true);
@@ -102,7 +102,7 @@ export default function UsernameForm({ onComplete }: UsernameFormProps) {
   const handleShare = useCallback(async () => {
     if (!currentSlug) return;
 
-    const url = `${window.location.origin}/u/${currentSlug}`;
+    const url = `${window.location.origin}/${currentSlug}`;
 
     if (navigator.share) {
       try {
@@ -208,7 +208,7 @@ export default function UsernameForm({ onComplete }: UsernameFormProps) {
                     Seu Link Ativo
                   </p>
                   <div className="flex items-center gap-1 text-gray-900 font-mono text-sm sm:text-base font-medium truncate">
-                    <span className="text-gray-400 hidden sm:inline">freelinnk.com/</span>
+                    <span className="text-gray-400 hidden sm:inline">freelinnk/</span>
                     <span className="text-gray-400 sm:hidden">../</span>
                     <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent font-bold">
                       {currentSlug}
@@ -254,7 +254,7 @@ export default function UsernameForm({ onComplete }: UsernameFormProps) {
                 </motion.div>
 
                 <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="flex-1 sm:flex-initial">
-                  <Link href={`/u/${currentSlug}`} target="_blank">
+                  <Link href={`/${currentSlug}`} target="_blank">
                     <Button
                       size="sm"
                       className="w-full gap-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md hover:shadow-lg transition-all"

@@ -42,6 +42,7 @@ import {
 import QRCode from 'qrcode';
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
 import { SubscriptionPlanDetails } from "@/lib/subscription";
+import { Doc } from "@/convex/_generated/dataModel";
 
 // --- MAPA DE ÍCONES INTELIGENTE ---
 const ICON_MAP = [
@@ -66,6 +67,7 @@ const ICON_MAP = [
   { match: ['pinterest.com'], icon: <FaPinterest className="w-4 h-4 sm:w-5 sm:h-5 text-[#E60023]" /> },
   { match: ['snapchat.com'], icon: <FaSnapchat className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFFC00]" /> },
   { match: ['reddit.com'], icon: <FaReddit className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF4500]" /> },
+
 
   // 🎉 Aniversários & Celebrações
   { match: ['bday', 'birthday', 'aniversario', 'festa'], icon: <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0080]" /> },
@@ -111,9 +113,11 @@ const ICON_MAP = [
   { match: ['uber.com'], icon: <FaUber className="w-4 h-4 sm:w-5 sm:h-5 text-black" /> },
 ];
 
-function getLinkIcon(url: string) {
+function getLinkIcon(url: string, title: string): React.ReactNode {
   if (!url) return <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
   const u = url.toLowerCase();
+  // ✅ CORREÇÃO: Adiciona a variável 't' para o título
+  const t = title?.toLowerCase() || "";
 
   // 1. Verifica no Mapa de Ícones Específicos
   for (const item of ICON_MAP) {
@@ -121,6 +125,12 @@ function getLinkIcon(url: string) {
       return item.icon;
     }
   }
+
+  // ✅ ADICIONADO: Lógica que usa o título, que estava faltando
+if (t.includes('vendedor')) return <User className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />;
+if (t.includes('ceo')) return <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />;
+if (t.includes('suporte')) return <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />;
+
 
   // 2. Ícones Genéricos Inteligentes
   if (u.includes('map') || u.includes('rua') || u.includes('avenida') || u.includes('local'))
@@ -405,11 +415,7 @@ interface PublicPageContentProps {
   plan: SubscriptionPlanDetails['plan'];
 }
 
-type LinkType = {
-  _id: string;
-  title: string;
-  url: string;
-};
+type LinkType = Doc<"links"> & { thumbnailUrl?: string };
 
 export default function PublicPageContent({
   username,
@@ -420,7 +426,7 @@ export default function PublicPageContent({
   const customizations = usePreloadedQuery(preloadedCustomizations);
   const trackingSettings = useQuery(api.tracking.getIdsBySlug, { slug: username });
 
-  const profileUrl = `${getBaseUrl()}/u/${username}`;
+  const profileUrl = `${getBaseUrl()}/${username}`;
   const userAccentColor = customizations?.accentColor || '#6366f1';
 
   const [shared, setShared] = useState(false);
@@ -444,7 +450,9 @@ export default function PublicPageContent({
   const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [cookieConsent, setCookieConsent] = useState<"granted" | "denied" | null>(null);
 
-  const links = usePreloadedQuery(preloadedLinks) as LinkType[];
+  // CORREÇÃO: Removemos a asserção de tipo "as LinkType[]", pois o TypeScript
+  // agora infere o tipo correto diretamente da query.
+  const links = usePreloadedQuery(preloadedLinks);
 
   const { scrollYProgress } = useScroll();
   const scaleX = useSpring(scrollYProgress, {
@@ -1268,23 +1276,35 @@ export default function PublicPageContent({
                             )}
 
                             {/* Icon - Flex shrink 0 prevents squishing */}
-                            <motion.span
-                              whileHover={{ rotate: 360, scale: 1.1 }}
-                              transition={{ duration: 0.5 }}
-                              className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg flex-shrink-0"
-                              style={{
-                                background: hoveredLink === link._id
-                                  ? `linear-gradient(135deg, ${userAccentColor}20, ${userAccentColor}40)`
-                                  : isDarkMode
-                                    ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
-                                    : 'linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(243, 244, 246, 0.8))',
-                                boxShadow: hoveredLink === link._id
-                                  ? `0 4px 15px ${hexToRgba(userAccentColor, 0.4)}`
-                                  : '0 2px 8px rgba(0,0,0,0.1)'
-                              }}
-                            >
-                              {getLinkIcon(link.url)}
-                            </motion.span>
+                           <motion.span
+  whileHover={{ rotate: 360, scale: 1.1 }}
+  transition={{ duration: 0.5 }}
+  className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg flex-shrink-0 overflow-hidden"
+  style={{
+    // Se tiver imagem, fundo transparente. Se não, gradiente.
+    background: link.thumbnailUrl
+      ? 'transparent'
+      : hoveredLink === link._id
+        ? `linear-gradient(135deg, ${userAccentColor}20, ${userAccentColor}40)`
+        : isDarkMode
+          ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
+          : 'linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(243, 244, 246, 0.8))',
+  }}
+>
+  {link.thumbnailUrl ? (
+    // SE EXISTIR FOTO (UPLOAD), MOSTRA ELA
+    <Image
+      src={link.thumbnailUrl}
+      alt={link.title}
+      width={40}
+      height={40}
+      className="w-full h-full object-cover"
+    />
+  ) : (
+    // SE NÃO, USA O ÍCONE INTELIGENTE (GetLinkIcon)
+    getLinkIcon(link.url, link.title)
+  )}
+</motion.span>
 
                             {/* Title - FIX: REMOVED TRUNCATE, ADDED WRAPPING */}
                             <span

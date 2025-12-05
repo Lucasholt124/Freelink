@@ -71,7 +71,7 @@ export default async function LinksPage() {
                     className="w-full group relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-600 to-pink-600 hover:from-purple-700 hover:via-purple-700 hover:to-pink-700 text-white border-0 shadow-lg shadow-purple-500/25 hover:shadow-xl hover:shadow-purple-500/30 active:scale-[0.98] transition-all duration-200 h-11 px-5 rounded-xl font-semibold text-sm"
                   >
                     <Link
-                      href={`/u/${userSlug}`}
+                      href={`/${userSlug}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 justify-center"
@@ -119,7 +119,7 @@ export default async function LinksPage() {
                     className="group relative overflow-hidden bg-gradient-to-r from-purple-600 via-purple-600 to-pink-600 hover:from-purple-700 hover:via-purple-700 hover:to-pink-700 text-white border-0 shadow-lg shadow-purple-500/20 hover:shadow-xl hover:shadow-purple-500/30 transform hover:scale-[1.02] active:scale-[0.98] transition-all duration-200 h-11 lg:h-12 px-5 lg:px-6 rounded-xl font-semibold"
                   >
                     <Link
-                      href={`/u/${userSlug}`}
+                      href={`/${userSlug}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2.5 justify-center"

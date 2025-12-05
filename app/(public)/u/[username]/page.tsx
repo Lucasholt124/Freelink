@@ -4,13 +4,51 @@ import PublicPageContent from "@/components/PublicPageContent";
 import { getUserSubscriptionPlanByUsername } from "@/lib/subscription";
 import Script from "next/script";
 import { notFound } from "next/navigation";
+import { Metadata } from "next";
 
-// ✅ Force dynamic rendering
+// ✅ Force dynamic rendering (Importante para dados sempre frescos)
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 interface PageProps {
   params: Promise<{ username: string }>;
+}
+
+// ✅ GERADOR DE METADATA (O SEGREDO DO SEO NO WHATSAPP)
+// ✅ GERADOR DE METADATA (CORRIGIDO)
+export async function generateMetadata(
+  { params }: PageProps
+  // Removi o 'parent' daqui pois não estava sendo usado
+): Promise<Metadata> {
+  const { username } = await params;
+
+  // Busca dados para SEO
+  const customizations = await fetchQuery(api.lib.customizations.getCustomizationsBySlug, { slug: username });
+
+  // Imagem de fallback
+  const defaultImage = "https://freelinnk.com/og-image-default.png";
+
+  const title = `@${username} | Freelinnk`;
+  const description = customizations?.description || `Confira os links oficiais de @${username} no Freelinnk.`;
+  const image = customizations?.profilePictureUrl || defaultImage;
+
+  return {
+    title: title,
+    description: description,
+    openGraph: {
+      title: title,
+      description: description,
+      images: [image],
+      type: 'profile',
+      username: username,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: title,
+      description: description,
+      images: [image],
+    },
+  };
 }
 
 export default async function PublicLinkInBioPage({ params }: PageProps) {
@@ -22,7 +60,7 @@ export default async function PublicLinkInBioPage({ params }: PageProps) {
       notFound();
     }
 
-    // ✅ Carrega dados em paralelo
+    // ✅ Carrega dados em paralelo (Performance Máxima)
     const [
       preloadedLinks,
       preloadedCustomizations,
@@ -42,7 +80,7 @@ export default async function PublicLinkInBioPage({ params }: PageProps) {
 
     return (
       <>
-        {/* ✅ Google Analytics */}
+        {/* Scripts de Tracking (Google/Facebook) */}
         {trackingIds?.googleAnalyticsId && (
           <>
             <Script
@@ -64,7 +102,7 @@ export default async function PublicLinkInBioPage({ params }: PageProps) {
           </>
         )}
 
-        {/* ✅ Facebook Pixel */}
+        {/* ... Resto dos scripts de pixel ... */}
         {trackingIds?.facebookPixelId && (
           <Script
             id="facebook-pixel"
