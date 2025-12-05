@@ -30,12 +30,11 @@ const nextConfig: NextConfig = {
 
   // 👇 A MÁGICA HÍBRIDA (Suporta Link Limpo E Link Antigo)
   async rewrites() {
-    return [
+return [
       {
-        // REGRA: Se o usuário acessar "freelinnk.com/nome", o Next.js busca o conteúdo em "freelinnk.com/u/nome"
-        // O regex (?!...) garante que não quebre rotas do sistema (api, dashboard, u, login, etc)
-        // Se o usuário acessar "/u/nome" diretamente, essa regra é ignorada e o Next carrega a pasta normal (mantendo compatibilidade).
-        source: '/:username((?!u|api|_next|static|public|dashboard|login|sign-in|sign-up|favicon.ico|.*\\..*).*)',
+        // Adicionei "r" na lista de exceções (?!u|r|api...)
+        // Isso impede que o encurtador (/r/...) seja enviado para a pasta de usuários (/u/)
+        source: '/:username((?!u|r|api|_next|static|public|dashboard|login|sign-in|sign-up|favicon.ico|.*\\..*).*)',
         destination: '/u/:username',
       },
     ];
