@@ -681,7 +681,7 @@ function ClicksTable({ clicks }: { clicks: ClickData[] }) {
               URL.revokeObjectURL(url);
 
               toast.success('Relatório exportado com sucesso! 📊');
-            } catch {
+            } catch  {
               toast.error('Erro ao exportar dados');
             }
           }}
@@ -1406,7 +1406,7 @@ export default function ShortLinkDetailsPage() {
   }
 
   const { link } = data;
-  const shortUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/${link.id}`;
+  const shortUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/r/${link.id}`;
   const clicks = Array.isArray(data.clicks) ? data.clicks : [];
 
   const handleCopy = () => {
@@ -1464,7 +1464,7 @@ export default function ShortLinkDetailsPage() {
             <div className="min-w-0 max-w-full">
               <div className="flex flex-wrap items-center gap-2 mb-2">
                 <h1 className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 dark:text-white break-all">
-                  freelinnk.com/{link.id}
+                  freelinnk.com/r/{link.id}
                 </h1>
                 <motion.span
                   initial={{ opacity: 0, scale: 0.8 }}
