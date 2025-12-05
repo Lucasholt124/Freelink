@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
@@ -8,36 +8,48 @@ import { api } from "@/convex/_generated/api";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import {
-   ArrowRight, Check, Rocket,
-  User, Link as LinkIcon, Image as ImageIcon,
-  Camera, Upload, X
+
+  Check,
+  Link as LinkIcon,
+  User,
+  Palette,
+  Layout,
+
+  Upload,
+  Loader2
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
+import { cn } from "@/lib/utils";
+
+// --- TIPOS DE PASSOS ---
+type Step = "username" | "links" | "identity" | "style";
 
 export default function OnboardingPage() {
   const router = useRouter();
   const { user } = useUser();
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState<Step>("username");
+  const [loading, setLoading] = useState(false);
 
-  // Dados do formulário
-  const [username, setUsername] = useState("");
-  const [description, setDescription] = useState("");
-  const [linkTitle, setLinkTitle] = useState("");
-  const [linkUrl, setLinkUrl] = useState("");
-  const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [profileImagePreview, setProfileImagePreview] = useState<string | null>(null);
+  // --- DADOS DO PREVIEW (O QUE APARECE NO CELULAR) ---
+  const [preview, setPreview] = useState({
+    username: "",
+    title: "", // Título do primeiro link
+    url: "",   // URL do primeiro link
+    bio: "",
+    imagePreview: null as string | null,
+    imageFile: null as File | null,
+    themeColor: "bg-slate-900", // Cor dos botões e detalhes
+    bgColor: "bg-slate-50",     // Cor de fundo da página
+    themeName: "Clean"
+  });
 
-  // Convex
-  const currentSlug = useQuery(
-    api.lib.usernames.getUserSlug,
-    user ? { userId: user.id } : "skip"
-  );
-  const availabilityCheck = useQuery(
+  // --- CONVEX ---
+  const checkAvailability = useQuery(
     api.lib.usernames.checkUsernameAvailability,
-    username.length >= 3 ? { username: username.toLowerCase() } : "skip"
+    preview.username.length >= 3 ? { username: preview.username } : "skip"
   );
 
   const setUsernameMutation = useMutation(api.lib.usernames.setUsername);
@@ -45,420 +57,414 @@ export default function OnboardingPage() {
   const generateUploadUrl = useMutation(api.lib.customizations.generateUploadUrl);
   const createLink = useMutation(api.lib.links.createLink);
 
-  // Validações
-  const isUsernameValid = username.length >= 3 && availabilityCheck?.available;
-  const isDescriptionValid = description.length >= 10 && description.length <= 160;
-  const isLinkValid = linkTitle.length >= 3 && linkUrl.length >= 5;
+  // --- VALIDAÇÕES VISUAIS ---
+  const isUsernameValid = preview.username.length >= 3 && checkAvailability?.available;
+  const isLinkValid = preview.title.length >= 2 && preview.url.length >= 5;
+  const isBioValid = preview.bio.length >= 20;
 
-  // Handlers
+  // --- AÇÕES DO WIZARD (PASSO A PASSO) ---
+
+  // 1. DEFINIR NOME
+  const handleStep1 = async () => {
+    if (!isUsernameValid) return;
+    setLoading(true);
+    try {
+      await setUsernameMutation({ username: preview.username });
+      setStep("links");
+    } catch {
+      toast.error("Erro ao salvar nome.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 2. ADICIONAR PRIMEIRO LINK
+  const handleStep2 = async () => {
+    if (!isLinkValid) return;
+    // Não salvamos no banco ainda, salvamos tudo no final ou mantemos no state?
+    // Vamos salvar agora para garantir persistência gradual como você gosta.
+    setLoading(true);
+    try {
+      await createLink({
+        title: preview.title,
+        url: preview.url.startsWith("http") ? preview.url : `https://${preview.url}`,
+        isFeatured: false,
+        badgeType: "new"
+      });
+      setStep("identity");
+    } catch  {
+      toast.error("Erro ao criar link.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 3. IDENTIDADE (FOTO + BIO)
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error("Imagem muito grande (máx 5MB)");
-        return;
-      }
-      setProfileImage(file);
-      setProfileImagePreview(URL.createObjectURL(file));
+      setPreview(prev => ({
+        ...prev,
+        imageFile: file,
+        imagePreview: URL.createObjectURL(file)
+      }));
     }
   };
 
-  const normalizeUrl = (url: string): string => {
-    const formatted = url.trim();
-    if (formatted && !/^(https?:\/\/|mailto:|tel:)/i.test(formatted)) {
-      return `https://${formatted}`;
-    }
-    return formatted;
-  };
-
-  // Step 1: Username
-  const handleStep1 = async () => {
-    if (!isUsernameValid || !user) return;
-
-    try {
-      const result = await setUsernameMutation({ username: username.toLowerCase() });
-      if (result.success) {
-        confetti({
-          particleCount: 100,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
-        toast.success("Username configurado! ✅");
-        setStep(2);
-      } else {
-        toast.error(result.error || "Erro ao salvar username");
-      }
-    } catch (error) {
-      console.error(error);
-      toast.error("Erro ao salvar. Tente novamente.");
-    }
-  };
-
-  // Step 2: Perfil
-  const handleStep2 = async () => {
-    if (!isDescriptionValid || !user) return;
-
+  const handleStep3 = async () => {
+    if (!isBioValid) return;
+    setLoading(true);
     try {
       let storageId = undefined;
-
-      // Upload da imagem se existir
-      if (profileImage) {
-        const uploadUrl = await generateUploadUrl();
-        const result = await fetch(uploadUrl, {
+      // Upload da imagem
+      if (preview.imageFile) {
+        const uploadUrl = await generateUploadUrl({});
+        const res = await fetch(uploadUrl, {
           method: "POST",
-          headers: { "Content-Type": profileImage.type },
-          body: profileImage,
+          headers: { "Content-Type": preview.imageFile.type },
+          body: preview.imageFile,
         });
-
-        if (result.ok) {
-          const data = await result.json();
-          storageId = data.storageId;
-        }
+        const json = await res.json();
+        storageId = json.storageId;
       }
 
       await updateCustomizations({
-        description: description.trim(),
-        ...(storageId && { profilePictureStorageId: storageId }),
+        description: preview.bio,
+        profilePictureStorageId: storageId,
+        // Padrões
+        accentColor: "#0f172a",
+        backgroundType: "color",
       });
-
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 }
-      });
-      toast.success("Perfil configurado! 📸");
-      setStep(3);
-    } catch (error) {
-      console.error(error);
-      toast.error("Erro ao salvar perfil");
+      setStep("style");
+    } catch  {
+      toast.error(e.message || "Erro ao salvar perfil.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  // Step 3: Primeiro Link
-  const handleStep3 = async () => {
-    if (!isLinkValid || !user) return;
+  // 4. ESTILO E FINALIZAÇÃO
+  const themes = [
+    { name: "Minimal", bg: "bg-slate-50", btn: "bg-slate-900" },
+    { name: "Dark Mode", bg: "bg-slate-950", btn: "bg-white text-black" },
+    { name: "Roxo", bg: "bg-purple-50", btn: "bg-purple-600" },
+    { name: "Rosa", bg: "bg-pink-50", btn: "bg-pink-500" },
+  ];
 
+  const handleFinish = async () => {
+    setLoading(true);
     try {
-      await createLink({
-        title: linkTitle.trim(),
-        url: normalizeUrl(linkUrl),
+      // Atualiza apenas as cores finais
+      await updateCustomizations({
+        backgroundColor1: preview.bgColor === "bg-slate-950" ? "#020617" : "#f8fafc",
+        // Aqui você mapearia as classes tailwind para hexadecimais reais no seu app
       });
 
-      confetti({
-        particleCount: 200,
-        spread: 100,
-        origin: { y: 0.5 }
-      });
+      confetti({ particleCount: 150, spread: 70, origin: { y: 0.6 } });
+      toast.success("Tudo pronto! 🚀");
 
-      toast.success("Pronto! Seu link está no ar! 🎉");
-
-      // Marca como completo
-      localStorage.setItem("onboarding_completed", "true");
-
-      // Redireciona para o dashboard
       setTimeout(() => {
         router.push("/dashboard?welcome=true");
       }, 1500);
-    } catch (error) {
-      console.error(error);
-      toast.error("Erro ao criar link");
+    } catch  {
+      toast.error("Erro ao finalizar.");
+      setLoading(false);
     }
   };
 
-  // Se já tem username configurado, redireciona
-  useEffect(() => {
-    if (currentSlug && step === 1) {
-      setStep(2);
-    }
-  }, [currentSlug, step]);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-pink-600 to-orange-500 flex items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen bg-slate-100 flex flex-col md:flex-row overflow-hidden font-sans text-slate-900">
 
-      {/* Decoração de fundo */}
-      <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-10" />
-      <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
+      {/* ==================================================
+          PAINEL ESQUERDO: O GUIA (WIZARD)
+      ================================================== */}
+      <div className="w-full md:w-[45%] bg-white p-8 md:p-12 flex flex-col justify-center shadow-xl z-10 relative">
+        <div className="max-w-md mx-auto w-full">
 
-      {/* Card Principal */}
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="relative bg-white rounded-3xl shadow-2xl max-w-2xl w-full p-8 sm:p-12"
-      >
-
-        {/* Progress Bar */}
-        <div className="mb-8">
-          <div className="flex justify-between mb-2">
-            <span className="text-sm font-bold text-gray-900">Passo {step} de 3</span>
-            <span className="text-sm font-bold text-purple-600">{Math.round((step / 3) * 100)}%</span>
+          {/* Barra de Progresso */}
+          <div className="flex items-center gap-2 mb-8">
+            <div className={cn("h-2 rounded-full flex-1 transition-all", step === 'username' ? "bg-slate-900" : "bg-green-500")}></div>
+            <div className={cn("h-2 rounded-full flex-1 transition-all", step === 'links' ? "bg-slate-900" : (step === 'username' ? "bg-slate-200" : "bg-green-500"))}></div>
+            <div className={cn("h-2 rounded-full flex-1 transition-all", step === 'identity' ? "bg-slate-900" : (step === 'style' ? "bg-green-500" : "bg-slate-200"))}></div>
+            <div className={cn("h-2 rounded-full flex-1 transition-all", step === 'style' ? "bg-slate-900" : "bg-slate-200")}></div>
           </div>
-          <div className="w-full h-2 bg-gray-200 rounded-full overflow-hidden">
-            <motion.div
-              className="h-full bg-gradient-to-r from-purple-600 to-pink-600"
-              initial={{ width: 0 }}
-              animate={{ width: `${(step / 3) * 100}%` }}
-              transition={{ duration: 0.5 }}
-            />
-          </div>
-        </div>
 
-        <AnimatePresence mode="wait">
+          <AnimatePresence mode="wait">
 
-          {/* STEP 1: USERNAME */}
-          {step === 1 && (
-            <motion.div
-              key="step1"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                  <User className="w-8 h-8 text-purple-600" />
+            {/* --- PASSO 1: USERNAME --- */}
+            {step === "username" && (
+              <motion.div
+                key="step1"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                <div className="inline-flex p-3 bg-slate-100 rounded-xl mb-2">
+                  <Layout className="w-6 h-6 text-slate-700" />
                 </div>
-                <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-2">
-                  Escolha seu nome único
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Será sua identidade no Freelinnk
-                </p>
-              </div>
+                <h1 className="text-3xl font-black tracking-tight">Vamos criar seu endereço</h1>
+                <p className="text-slate-500">Comece escolhendo como as pessoas vão te encontrar.</p>
 
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-gray-700 font-semibold mb-2 block">
-                    Seu Username
-                  </Label>
+                <div className="space-y-4 pt-4">
+                  <Label>Seu Link Único</Label>
                   <div className="relative">
-                    <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-mono text-sm pointer-events-none">
-                      freelinnk.com/
-                    </div>
-                    <Input
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, ''))}
-                      placeholder="seu-nome"
-                      className="pl-[140px] h-14 text-lg font-medium"
-                      autoFocus
-                    />
-                    {username.length >= 3 && (
-                      <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                        {availabilityCheck?.available ? (
-                          <Check className="w-5 h-5 text-green-500" />
-                        ) : (
-                          <X className="w-5 h-5 text-red-500" />
+                     <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium select-none">freelinnk.com/</span>
+                     <Input
+                        className="pl-[135px] h-12 text-lg font-bold border-slate-300 focus:border-slate-900"
+                        placeholder="seu-nome"
+                        value={preview.username}
+                        onChange={(e) => setPreview({...preview, username: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '')})}
+                        autoFocus
+                     />
+                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                        {preview.username.length >= 3 && (
+                          checkAvailability?.available
+                            ? <Check className="text-green-500 w-5 h-5" />
+                            : <Loader2 className={cn("w-5 h-5 text-slate-400", !checkAvailability && "animate-spin")} />
                         )}
-                      </div>
-                    )}
+                     </div>
                   </div>
-
-                  {username.length >= 3 && (
-                    <p className={`text-sm mt-2 ${availabilityCheck?.available ? 'text-green-600' : 'text-red-600'}`}>
-                      {availabilityCheck?.available ? '✓ Disponível!' : '✗ Já está em uso'}
-                    </p>
+                  {preview.username.length >= 3 && checkAvailability && !checkAvailability.available && (
+                    <p className="text-red-500 text-sm font-medium">Este nome já está em uso.</p>
                   )}
                 </div>
 
-                <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                  <p className="text-sm text-blue-800">
-                    <strong>💡 Dica:</strong> Escolha algo curto e fácil de lembrar.
-                    Você pode alterar depois, mas seus links antigos não redirecionarão.
-                  </p>
-                </div>
-              </div>
+                <Button
+                  onClick={handleStep1}
+                  disabled={!isUsernameValid || loading}
+                  className="w-full h-12 text-lg font-bold mt-4"
+                >
+                  {loading ? <Loader2 className="animate-spin" /> : "Reservar e Continuar"}
+                </Button>
+              </motion.div>
+            )}
 
-              <Button
-                onClick={handleStep1}
-                disabled={!isUsernameValid}
-                className="w-full h-14 text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
+            {/* --- PASSO 2: PRIMEIRO LINK --- */}
+            {step === "links" && (
+              <motion.div
+                key="step2"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
               >
-                Continuar <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </motion.div>
-          )}
-
-          {/* STEP 2: PERFIL */}
-          {step === 2 && (
-            <motion.div
-              key="step2"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                  <Camera className="w-8 h-8 text-purple-600" />
+                 <div className="inline-flex p-3 bg-blue-50 rounded-xl mb-2">
+                  <LinkIcon className="w-6 h-6 text-blue-600" />
                 </div>
-                <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-2">
-                  Mostre quem você é
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Adicione uma foto e uma bio
-                </p>
-              </div>
+                <h1 className="text-3xl font-black tracking-tight">Adicione o 1º Link</h1>
+                <p className="text-slate-500">Veja ele aparecer no celular ao lado em tempo real.</p>
 
-              <div className="space-y-6">
-                {/* Upload de foto */}
-                <div className="flex flex-col items-center">
-                  <div className="relative mb-4">
-                    <div className="w-32 h-32 rounded-full overflow-hidden bg-gray-100 border-4 border-white shadow-xl">
-                      {profileImagePreview ? (
-                        <img src={profileImagePreview} className="w-full h-full object-cover" alt="Preview" />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                          <ImageIcon className="w-12 h-12 text-gray-400" />
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => document.getElementById('profile-upload')?.click()}
-                      className="absolute bottom-0 right-0 p-3 bg-purple-600 text-white rounded-full shadow-lg hover:bg-purple-700 transition-colors"
-                    >
-                      <Upload className="w-5 h-5" />
-                    </button>
-                    <input
-                      id="profile-upload"
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleImageSelect}
+                <div className="space-y-4 pt-4 bg-slate-50 p-6 rounded-2xl border border-slate-100">
+                  <div>
+                    <Label className="mb-2 block">Título do Botão</Label>
+                    <Input
+                      placeholder="Ex: Meu WhatsApp"
+                      className="bg-white"
+                      value={preview.title}
+                      onChange={(e) => setPreview({...preview, title: e.target.value})}
                     />
                   </div>
-                  <p className="text-sm text-gray-500">Clique no botão para adicionar uma foto</p>
-                </div>
-
-                {/* Bio */}
-                <div>
-                  <Label className="text-gray-700 font-semibold mb-2 block">
-                    Sua Bio (Apresentação)
-                  </Label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Ex: Criador de conteúdo ajudando marcas a crescerem 🚀"
-                    className="w-full h-28 p-4 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none resize-none"
-                  />
-                  <div className="flex justify-between mt-2">
-                    <p className={`text-sm ${description.length < 10 ? 'text-red-500' : description.length > 160 ? 'text-red-500' : 'text-gray-500'}`}>
-                      {description.length < 10 ? 'Mínimo 10 caracteres' : 'Perfeito!'}
-                    </p>
-                    <span className="text-sm text-gray-400">{description.length}/160</span>
+                  <div>
+                    <Label className="mb-2 block">URL (Link)</Label>
+                    <Input
+                      placeholder="wa.me/..."
+                      className="bg-white"
+                      value={preview.url}
+                      onChange={(e) => setPreview({...preview, url: e.target.value})}
+                    />
                   </div>
                 </div>
-              </div>
 
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => setStep(1)}
-                  variant="outline"
-                  className="flex-1 h-14"
-                >
-                  Voltar
-                </Button>
                 <Button
                   onClick={handleStep2}
-                  disabled={!isDescriptionValid}
-                  className="flex-1 h-14 text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600"
+                  disabled={!isLinkValid || loading}
+                  className="w-full h-12 text-lg font-bold"
                 >
-                  Continuar <ArrowRight className="w-5 h-5 ml-2" />
+                  {loading ? "Adicionando..." : "Adicionar e Continuar"}
                 </Button>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
 
-          {/* STEP 3: PRIMEIRO LINK */}
-          {step === 3 && (
-            <motion.div
-              key="step3"
-              initial={{ opacity: 0, x: 50 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: -50 }}
-              className="space-y-6"
-            >
-              <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
-                  <LinkIcon className="w-8 h-8 text-purple-600" />
+            {/* --- PASSO 3: IDENTIDADE --- */}
+            {step === "identity" && (
+              <motion.div
+                key="step3"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                <div className="inline-flex p-3 bg-purple-50 rounded-xl mb-2">
+                  <User className="w-6 h-6 text-purple-600" />
                 </div>
-                <h1 className="text-3xl sm:text-4xl font-black text-gray-900 mb-2">
-                  Adicione seu primeiro link
-                </h1>
-                <p className="text-gray-600 text-lg">
-                  Pode ser seu Instagram, WhatsApp, loja...
-                </p>
-              </div>
+                <h1 className="text-3xl font-black tracking-tight">Quem é você?</h1>
+                <p className="text-slate-500">Dê uma cara para sua página.</p>
 
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-gray-700 font-semibold mb-2 block">
-                    Título do Link
-                  </Label>
-                  <Input
-                    value={linkTitle}
-                    onChange={(e) => setLinkTitle(e.target.value)}
-                    placeholder="Ex: Meu Instagram, WhatsApp, Loja..."
-                    className="h-14 text-lg"
-                  />
-                </div>
-
-                <div>
-                  <Label className="text-gray-700 font-semibold mb-2 block">
-                    URL de Destino
-                  </Label>
-                  <Input
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    placeholder="https://instagram.com/seu-perfil"
-                    className="h-14 text-lg"
-                  />
-                  <p className="text-xs text-gray-500 mt-2">
-                    Se não colocar https://, adicionamos automaticamente
-                  </p>
-                </div>
-
-                {/* Preview do botão */}
-                {linkTitle && (
-                  <div className="p-4 bg-gray-50 rounded-xl">
-                    <p className="text-xs text-gray-500 mb-2">Prévia:</p>
-                    <div className="w-full bg-purple-600 text-white font-bold py-4 px-6 rounded-xl flex items-center justify-between">
-                      <span>{linkTitle}</span>
-                      <ArrowRight className="w-5 h-5" />
-                    </div>
+                <div className="flex items-center gap-4 pt-2">
+                  <div
+                    className="w-20 h-20 rounded-full bg-slate-100 border-2 border-dashed border-slate-300 flex items-center justify-center cursor-pointer hover:border-purple-500 overflow-hidden relative"
+                    onClick={() => document.getElementById("photo-upload")?.click()}
+                  >
+                    {preview.imagePreview ? (
+                      <img src={preview.imagePreview} className="w-full h-full object-cover" />
+                    ) : (
+                      <Upload className="w-6 h-6 text-slate-400" />
+                    )}
+                    <input id="photo-upload" type="file" className="hidden" accept="image/*" onChange={handleImageSelect} />
                   </div>
-                )}
-              </div>
+                  <div className="text-sm text-slate-500">
+                    <p className="font-bold text-slate-900">Foto de Perfil</p>
+                    <p>Clique para enviar</p>
+                  </div>
+                </div>
 
-              <div className="flex gap-3">
-                <Button
-                  onClick={() => setStep(2)}
-                  variant="outline"
-                  className="flex-1 h-14"
-                >
-                  Voltar
-                </Button>
+                <div>
+                   <Label className="mb-2 block">Sua Bio (Min. 20 caracteres)</Label>
+                   <textarea
+                      className="w-full p-3 rounded-lg border border-slate-300 focus:border-slate-900 outline-none text-sm min-h-[100px]"
+                      placeholder="Ex: Ajudo você a vender mais..."
+                      value={preview.bio}
+                      onChange={(e) => setPreview({...preview, bio: e.target.value})}
+                   />
+                   <p className={cn("text-xs mt-1 text-right", preview.bio.length < 20 ? "text-red-500" : "text-green-600")}>
+                      {preview.bio.length} / 160
+                   </p>
+                </div>
+
                 <Button
                   onClick={handleStep3}
-                  disabled={!isLinkValid}
-                  className="flex-1 h-14 text-lg font-bold bg-gradient-to-r from-purple-600 to-pink-600"
+                  disabled={!isBioValid || loading}
+                  className="w-full h-12 text-lg font-bold"
                 >
-                  Finalizar <Rocket className="w-5 h-5 ml-2" />
+                  {loading ? "Salvando..." : "Continuar"}
                 </Button>
-              </div>
-            </motion.div>
-          )}
+              </motion.div>
+            )}
 
-        </AnimatePresence>
+            {/* --- PASSO 4: ESTILO --- */}
+            {step === "style" && (
+              <motion.div
+                key="step4"
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="space-y-6"
+              >
+                <div className="inline-flex p-3 bg-pink-50 rounded-xl mb-2">
+                  <Palette className="w-6 h-6 text-pink-600" />
+                </div>
+                <h1 className="text-3xl font-black tracking-tight">Escolha o Tema</h1>
+                <p className="text-slate-500">Qual estilo combina mais com você?</p>
 
-        {/* Footer */}
-        <div className="mt-8 text-center">
-          <p className="text-xs text-gray-400">
-            Levará menos de 60 segundos • Você pode editar tudo depois
-          </p>
+                <div className="grid grid-cols-2 gap-4 pt-4">
+                  {themes.map((t) => (
+                    <button
+                      key={t.name}
+                      onClick={() => setPreview({...preview, themeColor: t.btn, bgColor: t.bg, themeName: t.name})}
+                      className={cn(
+                        "p-4 rounded-xl border text-left transition-all hover:scale-105",
+                        preview.themeName === t.name ? "border-slate-900 ring-1 ring-slate-900 bg-slate-50" : "border-slate-200"
+                      )}
+                    >
+                      <div className={cn("w-full h-8 rounded-md mb-2", t.btn)}></div>
+                      <span className="font-bold text-sm">{t.name}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <Button
+                  onClick={handleFinish}
+                  disabled={loading}
+                  className="w-full h-12 text-lg font-bold mt-4 bg-gradient-to-r from-purple-600 to-pink-600 border-0"
+                >
+                  {loading ? "Finalizando..." : "Lançar Página! 🚀"}
+                </Button>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
         </div>
+      </div>
 
-      </motion.div>
+      {/* ==================================================
+          PAINEL DIREITO: O PREVIEW DO CELULAR
+      ================================================== */}
+      <div className="hidden md:flex flex-1 bg-slate-100 items-center justify-center relative">
+        <div className="absolute inset-0 bg-[url('/grid.svg')] opacity-50"></div>
+
+        {/* O CELULAR */}
+        <motion.div
+           initial={{ y: 20, opacity: 0 }}
+           animate={{ y: 0, opacity: 1 }}
+           transition={{ delay: 0.2 }}
+           className="relative w-[340px] h-[680px] bg-black rounded-[3rem] shadow-2xl border-[8px] border-slate-900 overflow-hidden z-10"
+        >
+          {/* Dynamic Background */}
+          <div className={cn("absolute inset-0 transition-colors duration-500", preview.bgColor)}></div>
+
+          {/* Status Bar Fake */}
+          <div className="absolute top-0 w-full h-8 bg-black/10 z-20"></div>
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-6 w-32 bg-black rounded-b-xl z-20"></div>
+
+          {/* CONTEÚDO DA TELA */}
+          <div className="relative h-full overflow-y-auto no-scrollbar pt-14 px-6 flex flex-col items-center">
+
+             {/* Foto de Perfil */}
+             <motion.div
+               layout
+               className="w-24 h-24 rounded-full bg-slate-200 border-4 border-white shadow-sm overflow-hidden mb-4"
+             >
+               {preview.imagePreview ? (
+                 <img src={preview.imagePreview} className="w-full h-full object-cover" />
+               ) : (
+                 <div className="w-full h-full flex items-center justify-center text-slate-400">
+                   <User size={32} />
+                 </div>
+               )}
+             </motion.div>
+
+             {/* Nome e Bio */}
+             <motion.div layout className="text-center w-full mb-8">
+               <h2 className={cn("font-bold text-xl mb-1 transition-colors", preview.bgColor === 'bg-slate-950' ? 'text-white' : 'text-slate-900')}>
+                  {user?.firstName || preview.username || "Seu Nome"}
+               </h2>
+               <p className={cn("text-sm transition-colors px-2", preview.bgColor === 'bg-slate-950' ? 'text-slate-400' : 'text-slate-500')}>
+                  {preview.bio || "Sua biografia aparecerá aqui..."}
+               </p>
+             </motion.div>
+
+             {/* Links */}
+             <div className="w-full space-y-3">
+               {/* Link Exemplo (Fantasma) ou Link Real */}
+               {preview.title ? (
+                 <motion.div
+                    initial={{ scale: 0.8, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className={cn("w-full py-4 px-6 rounded-xl shadow-sm flex items-center justify-between transition-colors", preview.themeColor)}
+                 >
+                    <span className={cn("font-medium", preview.themeName === 'Dark Mode' ? 'text-slate-900' : 'text-white')}>{preview.title}</span>
+                 </motion.div>
+               ) : (
+                 // Placeholder Fantasma
+                 <div className="w-full py-4 px-6 rounded-xl border-2 border-dashed border-slate-300 flex items-center justify-center text-slate-400 opacity-50">
+                    Seu link aparecerá aqui
+                 </div>
+               )}
+
+               {/* Links Fantasmas para dar volume visual */}
+               <div className="w-full h-14 rounded-xl bg-black/5 animate-pulse"></div>
+               <div className="w-full h-14 rounded-xl bg-black/5 animate-pulse delay-75"></div>
+             </div>
+
+             {/* Branding */}
+             <div className="mt-auto pb-8 pt-8">
+                <span className="text-[10px] font-bold uppercase tracking-widest opacity-30">Criado com Freelinnk</span>
+             </div>
+          </div>
+        </motion.div>
+      </div>
+
     </div>
   );
 }

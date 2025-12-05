@@ -13,17 +13,21 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     return redirect("/sign-in");
   }
 
-  // Busca o slug do usuário
+  // Busca o slug do usuário no Convex (Backend)
   const userSlug = await fetchQuery(api.lib.usernames.getUserSlug, {
     userId: user.id,
   });
 
-  // Se não tem slug, redireciona para onboarding
-  if (!userSlug) {
+  // LÓGICA DE PROTEÇÃO:
+  // A função getUserSlug retorna o "username" SE existir.
+  // SE NÃO existir, ela retorna o "userId" como fallback.
+  // Então, se userSlug for igual ao user.id, o usuário NÃO tem username configurado.
+  // Forçamos ele para o Onboarding.
+  if (userSlug === user.id) {
     return redirect("/onboarding");
   }
 
-  // Busca o plano
+  // Busca o plano (Free, Pro, Ultra)
   const planDetails = await getUserSubscriptionPlan(user.id);
   const userPlan = planDetails.plan || "free";
 
