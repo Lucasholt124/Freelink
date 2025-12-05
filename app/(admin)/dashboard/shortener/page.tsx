@@ -208,7 +208,7 @@ function SharePopover({ url }: { url: string }) {
 
 function LinkCard({ link, copiedSlug, handleCopy, plan, onDeleteLink }: { link: LinkFromAPI; copiedSlug: string | null; handleCopy: (slug: string) => void; plan: string; onDeleteLink: (id: string) => void; }) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const linkUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/${link.id}`;
+  const linkUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/r/${link.id}`;
   const formattedDate = new Date(link.createdAt).toLocaleDateString('pt-BR', {
     day: '2-digit',
     month: '2-digit',
@@ -249,7 +249,7 @@ function LinkCard({ link, copiedSlug, handleCopy, plan, onDeleteLink }: { link: 
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="font-bold text-purple-700 dark:text-purple-400 text-lg truncate break-all">
-              freelinnk.com/{link.id}
+              freelinnk.com/r/{link.id}
             </h3>
             <Badge variant="secondary" className="text-xs">
               {link.clicks} {link.clicks === 1 ? 'clique' : 'cliques'}
@@ -399,7 +399,7 @@ function LinkList({
   const [filterTab, setFilterTab] = useState("all");
 
   const handleCopy = (slug: string) => {
-    const shortUrl = `${window.location.origin}/${slug}`;
+    const shortUrl = `${window.location.origin}/r/${slug}`;
     navigator.clipboard.writeText(shortUrl);
     setCopiedSlug(slug);
     toast.success("Link copiado!");
@@ -527,7 +527,7 @@ function LinkPreview({ originalUrl, customSlug }: { originalUrl: string; customS
             <LinkIcon className="w-4 h-4 text-purple-600 dark:text-purple-400" />
           </div>
           <p className="font-medium text-purple-700 dark:text-purple-400">
-            freelinnk.com/{slug}
+            freelinnk.com/r/{slug}
           </p>
         </div>
 
@@ -784,7 +784,7 @@ const handleFormChange = (e: React.ChangeEvent<HTMLFormElement>) => {
             </div>
             <div className="mt-2 flex flex-col sm:flex-row items-stretch max-w-md">
               <span className="flex items-center justify-center text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-4 py-3 rounded-t-md sm:rounded-l-md sm:rounded-tr-none border border-b-0 sm:border-b sm:border-r-0 select-text">
-                freelinnk.com/
+                freelinnk.com/r/
               </span>
               <Input
                 id="customSlug"
@@ -860,14 +860,14 @@ const handleFormChange = (e: React.ChangeEvent<HTMLFormElement>) => {
             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-gray-200 dark:border-gray-700 mb-4">
               <div className="flex items-center justify-between">
                 <p className="font-semibold text-purple-700 dark:text-purple-400 truncate break-all">
-                  freelinnk.com/{newLink.id}
+                  freelinnk.com/r/{newLink.id}
                 </p>
                 <Button
                   variant="outline"
                   size="sm"
                   className="ml-2 flex-shrink-0"
                   onClick={() => {
-                    const shortUrl = `${window.location.origin}/${newLink.id}`;
+                    const shortUrl = `${window.location.origin}/r/${newLink.id}`;
                     navigator.clipboard.writeText(shortUrl);
                     toast.success("Link copiado!");
                   }}
@@ -883,8 +883,8 @@ const handleFormChange = (e: React.ChangeEvent<HTMLFormElement>) => {
               </p>
 
               <div className="flex gap-2">
-                <QRCodePopover url={`${window.location.origin}/${newLink.id}`} />
-                <SharePopover url={`${window.location.origin}/${newLink.id}`} />
+                <QRCodePopover url={`${window.location.origin}/r/${newLink.id}`} />
+                <SharePopover url={`${window.location.origin}/r/${newLink.id}`} />
                 <Button
                   variant="outline"
                   size="icon"
