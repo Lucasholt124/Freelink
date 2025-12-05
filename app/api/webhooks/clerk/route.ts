@@ -12,8 +12,34 @@ export const runtime = 'nodejs'
 const resend = new Resend(process.env.RESEND_API_KEY);
 // 🟢 2. Inicializar Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2024-11-20.acacia', // Ou a versão que você usa
+  apiVersion: '2025-10-29.clover', // Ou a versão que você usa
 });
+
+// Definindo tipos para os metadados do Clerk
+interface UserPublicMetadata {
+  subscriptionPlan: 'free' | 'pro';
+  cartAbandoned: boolean;
+  totalEmailsReceived: number;
+  linksCreated: number;
+  totalClicks: number;
+}
+
+interface UserPrivateMetadata {
+  stripeCustomerId?: string;
+}
+
+// Função para garantir que os metadados públicos tenham todos os campos
+function getNormalizedPublicMetadata(metadata: unknown): UserPublicMetadata {
+  const md = metadata as Record<string, unknown> | null;
+  return {
+    subscriptionPlan: (md?.subscriptionPlan as 'free' | 'pro') || 'free',
+    cartAbandoned: (md?.cartAbandoned as boolean) || false,
+    totalEmailsReceived: (md?.totalEmailsReceived as number) || 0,
+    linksCreated: (md?.linksCreated as number) || 0,
+    totalClicks: (md?.totalClicks as number) || 0,
+  };
+}
+
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -130,15 +156,14 @@ export async function POST(req: Request) {
       try {
           const client = await clerkClient();
           const user = await client.users.getUser(userId);
-          const currentPublic = user.publicMetadata as any;
-          const currentPrivate = user.privateMetadata as any;
+          const currentPublic = getNormalizedPublicMetadata(user.publicMetadata);
+          const currentPrivate = user.privateMetadata as UserPrivateMetadata;
 
           // Se não tiver plano, arruma
           if (!currentPublic?.subscriptionPlan) {
               await client.users.updateUser(userId, {
                   publicMetadata: {
-                      ...currentPublic,
-                      subscriptionPlan: 'free',
+                      ...currentPublic, // Agora currentPublic está sempre completo
                       cartAbandoned: false,
                   }
               });
