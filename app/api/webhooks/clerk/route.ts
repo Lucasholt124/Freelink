@@ -4,21 +4,16 @@ import { WebhookEvent } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { clerkClient } from "@clerk/nextjs/server";
+import Stripe from 'stripe'; // 🟢 1. Importar Stripe
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-
-// Define a type for the public metadata to avoid using 'any'
-interface UserPublicMetadata {
-  subscriptionPlan?: 'free' | string; // Be more specific if you have other plans
-  cartAbandoned?: boolean;
-  totalEmailsReceived?: number;
-  linksCreated?: number;
-  totalClicks?: number;
-  [key: string]: unknown; // Allow other unknown properties
-}
+// 🟢 2. Inicializar Stripe
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
+  apiVersion: '2024-11-20.acacia', // Ou a versão que você usa
+});
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
@@ -59,20 +54,36 @@ export async function POST(req: Request) {
   console.log(`✅ Clerk Webhook: ${eventType}`);
 
   // =====================================================
-  // 1. USUÁRIO NOVO (Criação + Email de Boas-vindas)
+  // 1. USUÁRIO NOVO (Criação + Stripe + Email)
   // =====================================================
   if (eventType === 'user.created') {
     const { id, email_addresses, first_name } = evt.data;
 
-    // Pega o email principal corretamente
     const emailObj = email_addresses?.find(e => e.id === evt.data.primary_email_address_id) || email_addresses?.[0];
     const email = emailObj?.email_address;
     const name = first_name || "Criador";
 
-    // 1.1 Injeta o Metadata Inicial
+    // 🟢 1.1 Criar Cliente no Stripe e Salvar Metadata
     try {
       const client = await clerkClient();
+
+      // Criar no Stripe
+      let stripeCustomerId = '';
+      if (email) {
+          const customer = await stripe.customers.create({
+              email: email,
+              name: name,
+              metadata: { userId: id }
+          });
+          stripeCustomerId = customer.id;
+          console.log(`💳 Stripe Customer criado: ${stripeCustomerId}`);
+      }
+
+      // Salvar tudo no Clerk (Stripe ID + Plano Free)
       await client.users.updateUser(id, {
+        privateMetadata: {
+            stripeCustomerId: stripeCustomerId // Salva no privado
+        },
         publicMetadata: {
           subscriptionPlan: 'free',
           cartAbandoned: false,
@@ -81,12 +92,13 @@ export async function POST(req: Request) {
           totalClicks: 0
         }
       });
-      console.log(`🆕 Metadata inicial configurada para: ${id}`);
+      console.log(`🆕 Metadata inicial + Stripe configurados para: ${id}`);
+
     } catch (metaError) {
-      console.error('❌ Erro ao definir metadata inicial:', metaError);
+      console.error('❌ Erro ao criar Stripe/Metadata:', metaError);
     }
 
-    // 1.2 Envia o Email (Resend)
+    // 1.2 Enviar Email (Resend)
     if (email) {
       try {
         await resend.emails.send({
@@ -104,18 +116,13 @@ export async function POST(req: Request) {
   }
 
   // =====================================================
-  // 2. CORREÇÃO DE USUÁRIOS ANTIGOS (A Mágica para a Gresy)
+  // 2. CORREÇÃO DE USUÁRIOS ANTIGOS
   // =====================================================
   if (eventType === 'session.created' || eventType === 'user.updated') {
-    // ✅ CORREÇÃO DO ERRO DE TYPESCRIPT AQUI:
-    // Extraímos o ID com segurança baseada no tipo do evento
     let userId = "";
-
     if (eventType === 'session.created') {
-      // O evento de sessão tem 'user_id'
       userId = evt.data.user_id;
     } else if (eventType === 'user.updated') {
-      // O evento de usuário tem 'id'
       userId = evt.data.id;
     }
 
@@ -123,20 +130,38 @@ export async function POST(req: Request) {
       try {
           const client = await clerkClient();
           const user = await client.users.getUser(userId);
+          const currentPublic = user.publicMetadata as any;
+          const currentPrivate = user.privateMetadata as any;
 
-          const currentMeta = user.publicMetadata as UserPublicMetadata;
-
-          // SE NÃO TIVER PLANO DEFINIDO, A GENTE CORRIGE AGORA
-          if (!currentMeta.subscriptionPlan) {
+          // Se não tiver plano, arruma
+          if (!currentPublic?.subscriptionPlan) {
               await client.users.updateUser(userId, {
                   publicMetadata: {
-                      ...(currentMeta || {}), // Mantém dados existentes se houver
-                      subscriptionPlan: 'free', // Força o plano Free
+                      ...currentPublic,
+                      subscriptionPlan: 'free',
                       cartAbandoned: false,
                   }
               });
-              console.log(`🔧 Usuário antigo corrigido (Auto-fix): ${userId}`);
+              console.log(`🔧 Plano 'free' injetado em: ${userId}`);
           }
+
+          // 🟢 Se não tiver Stripe ID (como o Carlos), cria agora!
+          if (!currentPrivate?.stripeCustomerId && user.emailAddresses[0]) {
+             const email = user.emailAddresses[0].emailAddress;
+             const name = user.firstName || "Criador";
+
+             const customer = await stripe.customers.create({
+                  email: email,
+                  name: name,
+                  metadata: { userId: userId }
+             });
+
+             await client.users.updateUser(userId, {
+                 privateMetadata: { ...currentPrivate, stripeCustomerId: customer.id }
+             });
+             console.log(`💳 Stripe ID injetado no login para: ${userId}`);
+          }
+
       } catch (err) {
           console.error('❌ Falha na verificação de usuário antigo:', err);
       }
@@ -144,7 +169,6 @@ export async function POST(req: Request) {
   }
 
   if (eventType === 'user.deleted') {
-    // TypeScript precisa saber que 'id' pode ser undefined no deleted
     console.log(`🗑️ Usuário deletado: ${evt.data.id}`);
   }
 
