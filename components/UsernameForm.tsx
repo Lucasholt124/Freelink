@@ -49,9 +49,10 @@ type FormValues = z.infer<typeof formSchema>;
 
 interface UsernameFormProps {
   onComplete?: () => void;
+  hideSkip?: boolean;
 }
 
-export default function UsernameForm({ onComplete }: UsernameFormProps) {
+export default function UsernameForm({ onComplete, hideSkip }: UsernameFormProps) {
   const { user } = useUser();
   const [debouncedUsername, setDebouncedUsername] = useState("");
   const [copied, setCopied] = useState(false);
@@ -187,7 +188,7 @@ export default function UsernameForm({ onComplete }: UsernameFormProps) {
     <div className="space-y-6">
       {/* URL Atual - Card Interativo */}
       <AnimatePresence>
-        {currentSlug && (
+        {currentSlug && !hideSkip && (
           <motion.div
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}

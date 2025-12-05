@@ -23,6 +23,7 @@ type BackgroundStyle = "full" | "header";
 
 interface CustomizationFormProps {
   onComplete?: () => void;
+  simplifiedMode?: boolean;
 }
 
 // --- PRESETS (CORES E GRADIENTES) ---
@@ -43,7 +44,7 @@ const COLOR_PRESETS = [
   "#1a1a2e", "#16213e", "#0f3460", "#533483",
 ];
 
-export default function CustomizationForm({ onComplete }: CustomizationFormProps) {
+export default function CustomizationForm({ onComplete,  }: CustomizationFormProps) {
   const { user } = useUser();
 
   // Refs para inputs de arquivo e preview
