@@ -7,7 +7,7 @@ const nextConfig: NextConfig = {
   // ✅ Pacotes do servidor (Prisma)
   serverExternalPackages: ['@prisma/client', 'prisma'],
 
-  // ✅ Configuração de Imagens (Mantendo suas permissões originais)
+  // ✅ Configuração de Imagens
   images: {
     remotePatterns: [
       {
@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "**", // Permite imagens externas (ex: Google, Facebook)
+        hostname: "**", // Permite imagens externas
       },
     ],
     dangerouslyAllowSVG: true,
@@ -30,10 +30,9 @@ const nextConfig: NextConfig = {
 
   // 👇 A MÁGICA HÍBRIDA (Suporta Link Limpo E Link Antigo)
   async rewrites() {
-return [
+    return [
       {
         // Adicionei "r" na lista de exceções (?!u|r|api...)
-        // Isso impede que o encurtador (/r/...) seja enviado para a pasta de usuários (/u/)
         source: '/:username((?!u|r|api|_next|static|public|dashboard|login|sign-in|sign-up|favicon.ico|.*\\..*).*)',
         destination: '/u/:username',
       },
@@ -48,9 +47,7 @@ return [
     ignoreBuildErrors: false, // Mantendo padrão seguro
   },
 
-  eslint: {
-    ignoreDuringBuilds: false, // Mantendo padrão seguro
-  },
+  // ❌ REMOVIDO O BLOCO ESLINT (Causava o erro no Next 16)
 
   reactStrictMode: true,
 
