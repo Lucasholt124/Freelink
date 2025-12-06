@@ -460,11 +460,11 @@ export default function OnboardingPage() {
     }
   };
 
-  const addLink = () => {
-    if (newLink.title.length < 2) {
-      toast.error("Título precisa ter pelo menos 2 caracteres");
-      return;
-    }
+const addLink = () => {
+  if (newLink.title.length < 3) { // <--- Alinhado com o Backend
+    toast.error("Título precisa ter pelo menos 3 caracteres");
+    return;
+  }
     if (newLink.url.length < 5) {
       toast.error("URL precisa ter pelo menos 5 caracteres");
       return;
