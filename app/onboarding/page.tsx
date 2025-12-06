@@ -71,8 +71,8 @@ export default function OnboardingPage() {
     try {
       await setUsernameMutation({ username: preview.username });
       setStep("links");
-    } catch {
-      toast.error("Erro ao salvar nome.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar nome.");
     } finally {
       setLoading(false);
     }
@@ -92,8 +92,8 @@ export default function OnboardingPage() {
         badgeType: "new"
       });
       setStep("identity");
-    } catch  {
-      toast.error("Erro ao criar link.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao criar link.");
     } finally {
       setLoading(false);
     }
@@ -136,8 +136,8 @@ export default function OnboardingPage() {
         backgroundType: "color",
       });
       setStep("style");
-    } catch  {
-      toast.error(e.message || "Erro ao salvar perfil.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao salvar perfil.");
     } finally {
       setLoading(false);
     }
@@ -166,8 +166,8 @@ export default function OnboardingPage() {
       setTimeout(() => {
         router.push("/dashboard?welcome=true");
       }, 1500);
-    } catch  {
-      toast.error("Erro ao finalizar.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao finalizar.");
       setLoading(false);
     }
   };
