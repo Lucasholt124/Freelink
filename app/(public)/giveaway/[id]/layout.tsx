@@ -1,4 +1,4 @@
-// app/giveaway/[id]/layout.tsx
+
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -6,11 +6,10 @@ export const metadata: Metadata = {
   description: "Participe do sorteio e concorra a prêmios incríveis!",
 };
 
-export default function GiveawayLayout({
+export default function GiveawayPageLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  // Layout limpo - sem header/footer do app principal
   return <>{children}</>;
 }

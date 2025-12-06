@@ -1,22 +1,23 @@
+// app/(public)/giveaway/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { useConvex, useMutation } from "convex/react";
+import {  useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
   Gift,
   CheckCircle2,
   Loader2,
-  X,
   Sparkles,
   Users,
   Star,
   Heart,
   Zap,
   Trophy,
-  PartyPopper
+  PartyPopper,
+  AlertCircle
 } from "lucide-react";
 
 type Participant = {
@@ -38,53 +39,67 @@ type GiveawayData = {
 const toast = {
   success: (message: string) => {
     const toastEl = document.createElement('div');
-    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-3 animate-bounce font-medium';
-    toastEl.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>${message}`;
+    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-3 animate-bounce font-medium max-w-[90vw]';
+    toastEl.innerHTML = `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>${message}</span>`;
     document.body.appendChild(toastEl);
-    setTimeout(() => toastEl.remove(), 3000);
+    setTimeout(() => {
+      if (toastEl.parentNode) toastEl.remove();
+    }, 3000);
   },
   error: (message: string) => {
     const toastEl = document.createElement('div');
-    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-red-500 to-rose-500 text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-3 animate-bounce font-medium';
-    toastEl.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>${message}`;
+    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-red-500 to-rose-500 text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-3 animate-bounce font-medium max-w-[90vw]';
+    toastEl.innerHTML = `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>${message}</span>`;
     document.body.appendChild(toastEl);
-    setTimeout(() => toastEl.remove(), 3000);
+    setTimeout(() => {
+      if (toastEl.parentNode) toastEl.remove();
+    }, 3000);
   },
 };
 
 // Componente de confetes flutuantes
-const FloatingElements = () => (
-  <div className="fixed inset-0 pointer-events-none overflow-hidden">
-    {[...Array(20)].map((_, i) => (
-      <motion.div
-        key={i}
-        className="absolute"
-        initial={{
-          x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 400),
-          y: -20,
-          rotate: 0,
-          opacity: 0.7
-        }}
-        animate={{
-          y: typeof window !== 'undefined' ? window.innerHeight + 20 : 800,
-          rotate: 360,
-          opacity: 0
-        }}
-        transition={{
-          duration: Math.random() * 10 + 10,
-          repeat: Infinity,
-          delay: Math.random() * 10,
-          ease: "linear"
-        }}
-      >
-        {i % 4 === 0 && <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />}
-        {i % 4 === 1 && <Heart className="w-4 h-4 text-pink-400" fill="currentColor" />}
-        {i % 4 === 2 && <Sparkles className="w-4 h-4 text-purple-400" />}
-        {i % 4 === 3 && <Gift className="w-4 h-4 text-blue-400" />}
-      </motion.div>
-    ))}
-  </div>
-);
+const FloatingElements = () => {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  if (!mounted) return null;
+
+  return (
+    <div className="fixed inset-0 pointer-events-none overflow-hidden">
+      {[...Array(15)].map((_, i) => (
+        <motion.div
+          key={i}
+          className="absolute"
+          initial={{
+            x: Math.random() * window.innerWidth,
+            y: -20,
+            rotate: 0,
+            opacity: 0.6
+          }}
+          animate={{
+            y: window.innerHeight + 20,
+            rotate: 360,
+            opacity: 0
+          }}
+          transition={{
+            duration: Math.random() * 10 + 10,
+            repeat: Infinity,
+            delay: Math.random() * 10,
+            ease: "linear"
+          }}
+        >
+          {i % 4 === 0 && <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />}
+          {i % 4 === 1 && <Heart className="w-4 h-4 text-pink-400" fill="currentColor" />}
+          {i % 4 === 2 && <Sparkles className="w-4 h-4 text-purple-400" />}
+          {i % 4 === 3 && <Gift className="w-4 h-4 text-blue-400" />}
+        </motion.div>
+      ))}
+    </div>
+  );
+};
 
 // Logo Freelinnk
 const FreelinnkBadge = () => (
@@ -130,57 +145,43 @@ export default function PublicGiveawayPage() {
   const params = useParams();
   const giveawayId = params?.id as string;
 
-  const convex = useConvex();
   const addParticipantMutation = useMutation(api.publicGiveaways.addParticipant);
-  const [giveaway, setGiveaway] = useState<GiveawayData | null>(null);
+
+  // Usar useQuery para reatividade automática
+  const giveawayData = useQuery(
+    api.publicGiveaways.getGiveaway,
+    giveawayId ? { giveawayId } : "skip"
+  );
+
   const [formData, setFormData] = useState({ name: "", identifier: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasRegistered, setHasRegistered] = useState(false);
-  const [loading, setLoading] = useState(true);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
+  // Verificar se já está registrado
   useEffect(() => {
-    if (!giveawayId) {
-      setLoading(false);
-      return;
-    }
-
-    const loadGiveaway = async () => {
-      try {
-        const data = await convex.query(api.publicGiveaways.getGiveaway, {
-          giveawayId: giveawayId
-        });
-
-        if (data) {
-          setGiveaway(data as GiveawayData);
-        }
-
-        const registered = localStorage.getItem(`registered_${giveawayId}`);
-        if (registered) {
-          setHasRegistered(true);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar sorteio:", error);
-      } finally {
-        setLoading(false);
+    if (giveawayId) {
+      const registered = localStorage.getItem(`registered_${giveawayId}`);
+      if (registered) {
+        setHasRegistered(true);
       }
-    };
-
-    loadGiveaway();
-
-    const interval = setInterval(loadGiveaway, 5000);
-    return () => clearInterval(interval);
-  }, [giveawayId, convex]);
+    }
+  }, [giveawayId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name || !formData.identifier) {
-      toast.error("Preencha todos os campos!");
+    if (!formData.name.trim()) {
+      toast.error("Digite seu nome!");
       return;
     }
 
-    if (!giveaway) {
+    if (!formData.identifier.trim()) {
+      toast.error("Digite seu contato!");
+      return;
+    }
+
+    if (!giveawayId) {
       toast.error("Sorteio não encontrado!");
       return;
     }
@@ -191,13 +192,14 @@ export default function PublicGiveawayPage() {
       await addParticipantMutation({
         giveawayId: giveawayId,
         participant: {
-          id: formData.identifier,
-          name: formData.name,
-          identifier: formData.identifier,
+          id: `p_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
+          name: formData.name.trim(),
+          identifier: formData.identifier.trim(),
           timestamp: new Date().toISOString(),
           verified: false,
-        } as Participant,
+        },
       });
+
       localStorage.setItem(`registered_${giveawayId}`, 'true');
       toast.success("Você está participando! 🎉");
       setHasRegistered(true);
@@ -205,16 +207,17 @@ export default function PublicGiveawayPage() {
       if (error instanceof Error) {
         toast.error(error.message);
       } else {
-        toast.error("Ocorreu um erro desconhecido ao participar.");
+        toast.error("Erro ao participar. Tente novamente!");
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (loading) {
+  // Estado de loading
+  if (giveawayData === undefined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-center p-4">
         <motion.div
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -232,7 +235,8 @@ export default function PublicGiveawayPage() {
     );
   }
 
-  if (!giveaway) {
+  // Sorteio não encontrado
+  if (giveawayData === null) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
         <FloatingElements />
@@ -247,19 +251,63 @@ export default function PublicGiveawayPage() {
             transition={{ type: "spring", delay: 0.2 }}
             className="w-20 h-20 bg-gradient-to-br from-red-100 to-rose-100 rounded-full flex items-center justify-center mx-auto mb-6"
           >
-            <X className="w-10 h-10 text-red-500" />
+            <AlertCircle className="w-10 h-10 text-red-500" />
           </motion.div>
           <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-            Ops! Sorteio não encontrado
+            Sorteio não encontrado
           </h1>
-          <p className="text-gray-500 text-base md:text-lg">
-            Este link pode ter expirado ou o sorteio foi encerrado.
+          <p className="text-gray-500 text-base md:text-lg mb-6">
+            Este link pode estar incorreto ou o sorteio foi encerrado pelo organizador.
           </p>
+          <div className="bg-gray-100 rounded-xl p-4 text-left">
+            <p className="text-sm text-gray-500 mb-2">💡 O que fazer:</p>
+            <ul className="text-sm text-gray-600 space-y-1">
+              <li>• Verifique se o link está correto</li>
+              <li>• Peça um novo link ao organizador</li>
+              <li>• O sorteio pode ter sido finalizado</li>
+            </ul>
+          </div>
         </motion.div>
         <FreelinnkBadge />
       </div>
     );
   }
+
+  // Sorteio encerrado
+  if (!giveawayData.isActive) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center p-4">
+        <FloatingElements />
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 md:p-12 shadow-2xl text-center max-w-md w-full mx-4 border border-white/20"
+        >
+          <motion.div
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: "spring", delay: 0.2 }}
+            className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6"
+          >
+            <Gift className="w-10 h-10 text-gray-400" />
+          </motion.div>
+          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
+            Sorteio Encerrado
+          </h1>
+          <p className="text-gray-500 text-base md:text-lg mb-6">
+            O sorteio <span className="font-semibold">&quot;{giveawayData.title}&quot;</span> já foi finalizado.
+          </p>
+          <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6">
+            <p className="text-sm text-purple-600 font-medium mb-1">Total de participantes</p>
+            <p className="text-4xl font-bold text-purple-700">{giveawayData.participants.length}</p>
+          </div>
+        </motion.div>
+        <FreelinnkBadge />
+      </div>
+    );
+  }
+
+  const giveaway = giveawayData as GiveawayData;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-center p-4 relative overflow-hidden">
@@ -420,6 +468,7 @@ export default function PublicGiveawayPage() {
                       onBlur={() => setFocusedField(null)}
                       className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-violet-500 focus:bg-white focus:outline-none transition-all text-gray-900 placeholder-gray-400 text-base md:text-lg font-medium"
                       required
+                      autoComplete="name"
                     />
                   </div>
                 </motion.div>
@@ -442,6 +491,7 @@ export default function PublicGiveawayPage() {
                       onBlur={() => setFocusedField(null)}
                       className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-violet-500 focus:bg-white focus:outline-none transition-all text-gray-900 placeholder-gray-400 text-base md:text-lg font-medium"
                       required
+                      autoComplete="off"
                     />
                   </div>
                   <p className="text-xs text-gray-400 mt-2 ml-1">
