@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "original-armadillo-999.convex.cloud", // Seu Convex
+        hostname: "original-armadillo-999.convex.cloud",
       },
       {
         protocol: "https",
@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       },
       {
         protocol: "https",
-        hostname: "**", // Permite imagens externas
+        hostname: "**",
       },
     ],
     dangerouslyAllowSVG: true,
@@ -28,12 +28,13 @@ const nextConfig: NextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // 👇 A MÁGICA HÍBRIDA (Suporta Link Limpo E Link Antigo)
+  // 👇 AQUI ESTAVA O ERRO!
   async rewrites() {
     return [
       {
-        // Adicionei "r" na lista de exceções (?!u|r|api...)
-        source: '/:username((?!u|r|api|_next|static|public|dashboard|login|sign-in|sign-up|favicon.ico|.*\\..*).*)',
+        // ADICIONEI "giveaway" NA LISTA ABAIXO (veja o |giveaway|)
+        // Isso diz ao Next: "Não trate a rota /giveaway como um nome de usuário"
+        source: '/:username((?!u|r|api|_next|static|public|dashboard|login|sign-in|sign-up|favicon.ico|giveaway|.*\\..*).*)',
         destination: '/u/:username',
       },
     ];
@@ -44,10 +45,8 @@ const nextConfig: NextConfig = {
   productionBrowserSourceMaps: false,
 
   typescript: {
-    ignoreBuildErrors: false, // Mantendo padrão seguro
+    ignoreBuildErrors: false,
   },
-
-  // ❌ REMOVIDO O BLOCO ESLINT (Causava o erro no Next 16)
 
   reactStrictMode: true,
 
