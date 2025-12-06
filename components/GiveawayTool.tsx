@@ -1,10 +1,9 @@
-// components/GiveawayTool.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
-import { useConvex, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react"; // useConvex removido
 import { api } from "@/convex/_generated/api";
 import { useUser } from "@clerk/nextjs";
 import {
@@ -68,7 +67,7 @@ function AnimatedCounter({ value }: { value: number }) {
 
   useEffect(() => {
     const duration = 800;
-    const increment = value / (duration / 50);
+    const increment = value > 0 ? value / (duration / 50) : 0;
     let current = 0;
 
     const timer = setInterval(() => {
@@ -87,12 +86,13 @@ function AnimatedCounter({ value }: { value: number }) {
   return <span>{count}</span>;
 }
 
-// Toast notifications
+// Toast notifications helper
 const toast = {
   success: (message: string) => {
+    if (typeof document === 'undefined') return;
     const toastEl = document.createElement('div');
-    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] animate-bounce max-w-[90vw]';
-    toastEl.innerHTML = `<div class="flex items-center gap-2 text-sm sm:text-base"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>${message}</div>`;
+    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-green-500 text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] animate-bounce max-w-[90vw] flex items-center gap-2';
+    toastEl.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>${message}</span>`;
     document.body.appendChild(toastEl);
     setTimeout(() => {
       if (document.body.contains(toastEl)) {
@@ -101,6 +101,7 @@ const toast = {
     }, 3000);
   },
   error: (message: string) => {
+    if (typeof document === 'undefined') return;
     const toastEl = document.createElement('div');
     toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-6 py-3 rounded-xl shadow-2xl z-[9999] animate-bounce max-w-[90vw]';
     toastEl.innerHTML = `<div class="text-sm sm:text-base">${message}</div>`;
@@ -115,6 +116,7 @@ const toast = {
 
 // Confetti function
 function launchConfetti() {
+  if (typeof document === 'undefined') return;
   const colors = ['#ff0000', '#ffff00', '#00ff00', '#0000ff', '#ff00ff', '#ffa500'];
   const confettiCount = 50;
 
@@ -535,8 +537,7 @@ export default function GiveawayTool() {
   const [showParticipants, setShowParticipants] = useState(true);
   const [selectedGiveaway, setSelectedGiveaway] = useState<string | null>(null);
 
-  const convex = useConvex();
-
+  // Queries automáticas do Convex (Substituem o Polling/setInterval)
   const userGiveaways = useQuery(api.publicGiveaways.getUserGiveaways);
 
   const giveawayDetails = useQuery(
@@ -553,51 +554,36 @@ export default function GiveawayTool() {
     }
   }, [user]);
 
+  // Carrega sorteio ativo se houver
   useEffect(() => {
     if (userGiveaways && userGiveaways.length > 0) {
-      const activeGiveaway = userGiveaways.find(g => g.isActive);
-      if (activeGiveaway) {
-        setSelectedGiveaway(activeGiveaway.id);
-        setCurrentGiveaway(activeGiveaway as GiveawayData);
-        setParticipants(activeGiveaway.participants as Participant[]);
-        if (activeGiveaway.method) {
-          setSelectedMethod(activeGiveaway.method as GiveawayMethod);
+      // Se não tiver nenhum selecionado, tenta pegar o ativo
+      if (!selectedGiveaway) {
+        const activeGiveaway = userGiveaways.find(g => g.isActive);
+        if (activeGiveaway) {
+          setSelectedGiveaway(activeGiveaway.id);
+          setCurrentGiveaway(activeGiveaway as GiveawayData);
+          setParticipants(activeGiveaway.participants as Participant[]);
+          if (activeGiveaway.method) {
+            setSelectedMethod(activeGiveaway.method as GiveawayMethod);
+          }
         }
       }
     }
-  }, [userGiveaways]);
+  }, [userGiveaways, selectedGiveaway]);
 
+  // Atualização em TEMPO REAL (Mágica do Convex)
+  // Assim que 'giveawayDetails' mudar no banco, isso roda e atualiza a tela
   useEffect(() => {
     if (giveawayDetails) {
       setCurrentGiveaway(giveawayDetails as GiveawayData);
       setParticipants(giveawayDetails.participants as Participant[]);
+      // Notifica se entrou gente nova (comparando tamanho)
+      if (currentGiveaway && giveawayDetails.participants.length > currentGiveaway.participants.length) {
+         toast.success("Novo participante entrou! 🎉");
+      }
     }
   }, [giveawayDetails]);
-
-  // Polling mechanism restore
-  useEffect(() => {
-    if (!selectedGiveaway) return;
-
-    const pollParticipants = async () => {
-      try {
-        const data = await convex.query(api.publicGiveaways.getGiveaway, {
-          giveawayId: selectedGiveaway
-        });
-
-        if (data && data.participants.length !== participants.length) {
-          setParticipants(data.participants as Participant[]);
-          if (data.participants.length > participants.length) {
-            toast.success("Novo participante entrou!");
-          }
-        }
-      } catch (error) {
-        console.error("Erro ao buscar participantes:", error);
-      }
-    };
-
-    const interval = setInterval(pollParticipants, 2000);
-    return () => clearInterval(interval);
-  }, [selectedGiveaway, participants.length, convex]);
 
   const handleGenerateGiveaway = (data: GiveawayData) => {
     setCurrentGiveaway(data);
@@ -895,7 +881,7 @@ export default function GiveawayTool() {
   );
 }
 
-// Winner Display Component (mantém o mesmo)
+// Winner Display Component
 function WinnerDisplay({
   winner,
   onNewDraw
