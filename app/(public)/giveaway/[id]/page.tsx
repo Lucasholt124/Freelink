@@ -1,557 +1,363 @@
-// app/(public)/giveaway/[id]/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import {  useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
   Gift,
   CheckCircle2,
   Loader2,
+  X,
   Sparkles,
   Users,
   Star,
   Heart,
-  Zap,
-  Trophy,
   PartyPopper,
   AlertCircle
 } from "lucide-react";
 
-type Participant = {
-  id: string;
-  name: string;
-  identifier: string;
-  timestamp: string;
-  verified?: boolean;
-};
+// --- Elementos Flutuantes (Otimizado para Mobile - Leve) ---
+const FloatingElements = () => (
+  <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    {[...Array(12)].map((_, i) => (
+      <motion.div
+        key={i}
+        className="absolute"
+        initial={{
+          x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 300),
+          y: -20,
+          rotate: 0,
+          opacity: 0.5
+        }}
+        animate={{
+          y: typeof window !== 'undefined' ? window.innerHeight + 20 : 800,
+          rotate: 360,
+          opacity: 0
+        }}
+        transition={{
+          duration: Math.random() * 5 + 10,
+          repeat: Infinity,
+          delay: Math.random() * 5,
+          ease: "linear"
+        }}
+      >
+        {i % 4 === 0 && <Star className="w-3 h-3 text-yellow-400" fill="currentColor" />}
+        {i % 4 === 1 && <Heart className="w-3 h-3 text-pink-400" fill="currentColor" />}
+        {i % 4 === 2 && <Sparkles className="w-3 h-3 text-purple-400" />}
+        {i % 4 === 3 && <Gift className="w-3 h-3 text-blue-400" />}
+      </motion.div>
+    ))}
+  </div>
+);
 
-type GiveawayData = {
-  id: string;
-  title: string;
-  participants: Participant[];
-  createdAt: string;
-  isActive: boolean;
-};
-
-const toast = {
-  success: (message: string) => {
-    const toastEl = document.createElement('div');
-    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-emerald-500 to-teal-500 text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-3 animate-bounce font-medium max-w-[90vw]';
-    toastEl.innerHTML = `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg><span>${message}</span>`;
-    document.body.appendChild(toastEl);
-    setTimeout(() => {
-      if (toastEl.parentNode) toastEl.remove();
-    }, 3000);
-  },
-  error: (message: string) => {
-    const toastEl = document.createElement('div');
-    toastEl.className = 'fixed bottom-4 left-1/2 transform -translate-x-1/2 bg-gradient-to-r from-red-500 to-rose-500 text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-3 animate-bounce font-medium max-w-[90vw]';
-    toastEl.innerHTML = `<svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg><span>${message}</span>`;
-    document.body.appendChild(toastEl);
-    setTimeout(() => {
-      if (toastEl.parentNode) toastEl.remove();
-    }, 3000);
-  },
-};
-
-// Componente de confetes flutuantes
-const FloatingElements = () => {
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  if (!mounted) return null;
-
-  return (
-    <div className="fixed inset-0 pointer-events-none overflow-hidden">
-      {[...Array(15)].map((_, i) => (
-        <motion.div
-          key={i}
-          className="absolute"
-          initial={{
-            x: Math.random() * window.innerWidth,
-            y: -20,
-            rotate: 0,
-            opacity: 0.6
-          }}
-          animate={{
-            y: window.innerHeight + 20,
-            rotate: 360,
-            opacity: 0
-          }}
-          transition={{
-            duration: Math.random() * 10 + 10,
-            repeat: Infinity,
-            delay: Math.random() * 10,
-            ease: "linear"
-          }}
-        >
-          {i % 4 === 0 && <Star className="w-4 h-4 text-yellow-400" fill="currentColor" />}
-          {i % 4 === 1 && <Heart className="w-4 h-4 text-pink-400" fill="currentColor" />}
-          {i % 4 === 2 && <Sparkles className="w-4 h-4 text-purple-400" />}
-          {i % 4 === 3 && <Gift className="w-4 h-4 text-blue-400" />}
-        </motion.div>
-      ))}
-    </div>
-  );
-};
-
-// Logo Freelinnk
+// --- Badge do Freelinnk (Fixo no rodapé) ---
 const FreelinnkBadge = () => (
-  <motion.a
+  <a
     href="https://freelinnk.com"
     target="_blank"
     rel="noopener noreferrer"
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ delay: 0.5 }}
-    className="fixed bottom-4 right-4 md:bottom-6 md:right-6 flex items-center gap-2 bg-white/90 backdrop-blur-sm px-3 py-2 rounded-full shadow-lg border border-gray-100 hover:shadow-xl hover:scale-105 transition-all duration-300 z-50"
+    className="fixed bottom-4 left-0 right-0 mx-auto w-fit flex items-center gap-2 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full shadow-lg border border-purple-100 z-40 active:scale-95 transition-transform"
   >
-    <div className="w-6 h-6 bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 rounded-lg flex items-center justify-center shadow-md">
-      <span className="text-white font-bold text-xs">F</span>
+    <div className="w-5 h-5 bg-gradient-to-br from-violet-600 to-fuchsia-600 rounded-md flex items-center justify-center">
+      <span className="text-white font-bold text-[10px]">F</span>
     </div>
     <span className="text-xs font-medium text-gray-600">
-      Feito por <span className="font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">Freelinnk</span>
+      Sorteio via <span className="font-bold text-purple-600">Freelinnk</span>
     </span>
-  </motion.a>
+  </a>
 );
 
-// Contador de participantes animado
-const ParticipantCounter = ({ count }: { count: number }) => (
-  <motion.div
-    initial={{ scale: 0.8, opacity: 0 }}
-    animate={{ scale: 1, opacity: 1 }}
-    className="flex items-center justify-center gap-2 bg-gradient-to-r from-violet-100 to-fuchsia-100 px-4 py-2 rounded-full"
-  >
-    <Users className="w-4 h-4 text-violet-600" />
-    <span className="text-sm font-bold text-violet-700">
-      {count.toLocaleString()} {count === 1 ? 'pessoa participando' : 'pessoas participando'}
-    </span>
-    <motion.div
-      animate={{ scale: [1, 1.2, 1] }}
-      transition={{ duration: 2, repeat: Infinity }}
-    >
-      <Zap className="w-4 h-4 text-yellow-500" fill="currentColor" />
-    </motion.div>
-  </motion.div>
-);
+// --- Sistema de Toast Simples e Responsivo ---
+const showToast = (message: string, type: 'success' | 'error') => {
+  const toastEl = document.createElement('div');
+  const bgColor = type === 'success' ? 'bg-emerald-500' : 'bg-red-500';
+  // Responsividade: ajustado para não quebrar em telas pequenas
+  toastEl.className = `fixed top-4 left-4 right-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 ${bgColor} text-white px-4 py-3 rounded-xl shadow-2xl z-[9999] flex items-center justify-center gap-2 animate-bounce font-medium text-sm text-center`;
+  toastEl.innerHTML = `<span>${message}</span>`;
+  document.body.appendChild(toastEl);
+  setTimeout(() => {
+    if(document.body.contains(toastEl)) document.body.removeChild(toastEl);
+  }, 3500);
+};
 
 export default function PublicGiveawayPage() {
   const params = useParams();
-  const giveawayId = params?.id as string;
 
-  const addParticipantMutation = useMutation(api.publicGiveaways.addParticipant);
+  // Tratamento seguro do ID vindo da URL
+  const rawId = params?.id;
+  const giveawayId = Array.isArray(rawId) ? rawId[0] : rawId || "";
 
-  // Usar useQuery para reatividade automática
-  const giveawayData = useQuery(
-    api.publicGiveaways.getGiveaway,
+  // 1. Busca os dados em TEMPO REAL (Convex fará a mágica de atualizar sozinho)
+  const giveaway = useQuery(api.publicGiveaways.getGiveaway,
     giveawayId ? { giveawayId } : "skip"
   );
 
+  const addParticipantMutation = useMutation(api.publicGiveaways.addParticipant);
+
+  // Estados locais
   const [formData, setFormData] = useState({ name: "", identifier: "" });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasRegistered, setHasRegistered] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
-  // Verificar se já está registrado
+  // Verifica localStorage para saber se este navegador já participou
   useEffect(() => {
     if (giveawayId) {
       const registered = localStorage.getItem(`registered_${giveawayId}`);
-      if (registered) {
-        setHasRegistered(true);
-      }
+      if (registered) setHasRegistered(true);
     }
   }, [giveawayId]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name.trim()) {
-      toast.error("Digite seu nome!");
+    if (!formData.name.trim() || !formData.identifier.trim()) {
+      showToast("Preencha todos os campos!", 'error');
       return;
     }
 
-    if (!formData.identifier.trim()) {
-      toast.error("Digite seu contato!");
-      return;
-    }
-
-    if (!giveawayId) {
-      toast.error("Sorteio não encontrado!");
+    if (!giveaway) return;
+    if (!giveaway.isActive) {
+      showToast("Este sorteio já foi encerrado!", 'error');
       return;
     }
 
     setIsSubmitting(true);
 
     try {
+      // Cria um ID único simples e rápido
+      const tempId = `${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+
       await addParticipantMutation({
         giveawayId: giveawayId,
         participant: {
-          id: `p_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
-          name: formData.name.trim(),
-          identifier: formData.identifier.trim(),
+          id: tempId,
+          name: formData.name,
+          identifier: formData.identifier,
           timestamp: new Date().toISOString(),
           verified: false,
         },
       });
 
       localStorage.setItem(`registered_${giveawayId}`, 'true');
-      toast.success("Você está participando! 🎉");
       setHasRegistered(true);
-    } catch (error: unknown) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("Erro ao participar. Tente novamente!");
+      showToast("Você está participando! 🍀", 'success');
+
+      // Feedback tátil (Vibração) em celulares compatíveis
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(100);
+      }
+
+    } catch (error) { // 'error' é do tipo 'unknown' por padrão
+      let msg = "Erro ao participar. Tente novamente.";
+      let alreadyRegistered = false;
+
+      // Verificamos se o erro é um objeto Error antes de acessar 'message'
+      if (error instanceof Error && error.message.includes("já está participando")) {
+        msg = "Você já está na lista deste sorteio!";
+        alreadyRegistered = true;
+      }
+
+      showToast(msg, 'error');
+
+      if (alreadyRegistered) {
+        localStorage.setItem(`registered_${giveawayId}`, 'true');
+        setHasRegistered(true);
       }
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  // Estado de loading
-  if (giveawayData === undefined) {
+  // --- Tela de Carregamento ---
+  if (giveaway === undefined) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-center p-4">
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="flex flex-col items-center gap-4"
-        >
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-          >
-            <Gift className="w-16 h-16 text-white" />
-          </motion.div>
-          <p className="text-white font-medium text-lg">Carregando sorteio...</p>
-        </motion.div>
+      <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-white animate-spin" />
       </div>
     );
   }
 
-  // Sorteio não encontrado
-  if (giveawayData === null) {
+  // --- Tela de 404 (Sorteio não existe no banco) ---
+  if (giveaway === null) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
-        <FloatingElements />
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 md:p-12 shadow-2xl text-center max-w-md w-full mx-4 border border-white/20"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", delay: 0.2 }}
-            className="w-20 h-20 bg-gradient-to-br from-red-100 to-rose-100 rounded-full flex items-center justify-center mx-auto mb-6"
-          >
-            <AlertCircle className="w-10 h-10 text-red-500" />
-          </motion.div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-            Sorteio não encontrado
-          </h1>
-          <p className="text-gray-500 text-base md:text-lg mb-6">
-            Este link pode estar incorreto ou o sorteio foi encerrado pelo organizador.
-          </p>
-          <div className="bg-gray-100 rounded-xl p-4 text-left">
-            <p className="text-sm text-gray-500 mb-2">💡 O que fazer:</p>
-            <ul className="text-sm text-gray-600 space-y-1">
-              <li>• Verifique se o link está correto</li>
-              <li>• Peça um novo link ao organizador</li>
-              <li>• O sorteio pode ter sido finalizado</li>
-            </ul>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+        <div className="bg-white p-6 rounded-3xl shadow-xl text-center max-w-sm w-full">
+          <div className="w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <X className="w-6 h-6 text-red-500" />
           </div>
-        </motion.div>
-        <FreelinnkBadge />
+          <h1 className="text-lg font-bold text-gray-900 mb-2">Sorteio não encontrado</h1>
+          <p className="text-gray-500 text-sm mb-6">O link pode estar expirado ou incorreto.</p>
+          <a href="https://freelinnk.com" className="text-purple-600 font-bold text-sm hover:underline">
+            Ir para Freelinnk
+          </a>
+        </div>
       </div>
     );
   }
 
-  // Sorteio encerrado
-  if (!giveawayData.isActive) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-gray-700 to-gray-900 flex items-center justify-center p-4">
-        <FloatingElements />
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="bg-white/95 backdrop-blur-xl rounded-3xl p-8 md:p-12 shadow-2xl text-center max-w-md w-full mx-4 border border-white/20"
-        >
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", delay: 0.2 }}
-            className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-6"
-          >
-            <Gift className="w-10 h-10 text-gray-400" />
-          </motion.div>
-          <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-3">
-            Sorteio Encerrado
-          </h1>
-          <p className="text-gray-500 text-base md:text-lg mb-6">
-            O sorteio <span className="font-semibold">&quot;{giveawayData.title}&quot;</span> já foi finalizado.
-          </p>
-          <div className="bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl p-6">
-            <p className="text-sm text-purple-600 font-medium mb-1">Total de participantes</p>
-            <p className="text-4xl font-bold text-purple-700">{giveawayData.participants.length}</p>
-          </div>
-        </motion.div>
-        <FreelinnkBadge />
-      </div>
-    );
-  }
-
-  const giveaway = giveawayData as GiveawayData;
-
+  // --- Renderização Principal ---
   return (
-    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Background decorativo */}
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-white/10 rounded-full blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-pink-500/20 rounded-full blur-3xl" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-yellow-500/10 rounded-full blur-3xl" />
+    <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 py-6 px-4 flex flex-col items-center justify-center relative overflow-hidden">
+
+      {/* Background Decorativo Suave */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-purple-400/20 rounded-full blur-[80px]" />
+        <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] bg-blue-400/20 rounded-full blur-[80px]" />
       </div>
 
       <FloatingElements />
 
       <motion.div
-        initial={{ y: 50, opacity: 0 }}
+        initial={{ y: 20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ type: "spring", damping: 20 }}
-        className="relative z-10 w-full max-w-lg mx-auto"
+        className="w-full max-w-md relative z-10"
       >
         <AnimatePresence mode="wait">
-          {hasRegistered ? (
+
+          {/* CASO 1: Sorteio Encerrado */}
+          {!giveaway.isActive ? (
+             <motion.div
+             key="closed"
+             initial={{ scale: 0.95, opacity: 0 }}
+             animate={{ scale: 1, opacity: 1 }}
+             className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 shadow-2xl text-center border-2 border-white/20"
+           >
+             <AlertCircle className="w-12 h-12 text-yellow-500 mx-auto mb-3" />
+             <h2 className="text-xl font-bold text-gray-800 mb-1">Sorteio Encerrado</h2>
+             <p className="text-gray-600 text-sm mb-4">O organizador finalizou este evento.</p>
+             <div className="bg-gray-100 rounded-xl p-3">
+               <p className="text-xs font-bold text-gray-500 uppercase">Participantes</p>
+               <p className="text-2xl font-bold text-purple-600">{giveaway.participants.length}</p>
+             </div>
+           </motion.div>
+          )
+
+          /* CASO 2: Usuário já cadastrado (Tela de Sucesso) */
+          : hasRegistered ? (
             <motion.div
               key="success"
-              initial={{ scale: 0.8, opacity: 0 }}
+              initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 md:p-10 shadow-2xl text-center border border-white/20"
+              className="bg-white/95 backdrop-blur-xl rounded-[2rem] p-8 shadow-2xl text-center border border-white/40"
             >
-              {/* Confete de sucesso */}
-              <motion.div
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", delay: 0.1 }}
-                className="relative"
-              >
-                <motion.div
-                  animate={{ rotate: [0, 10, -10, 0] }}
-                  transition={{ duration: 0.5, repeat: 3 }}
-                  className="w-24 h-24 md:w-28 md:h-28 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-xl shadow-emerald-500/30"
-                >
-                  <CheckCircle2 className="w-12 h-12 md:w-14 md:h-14 text-white" />
-                </motion.div>
-
+              <div className="relative mb-6 inline-block">
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ delay: 0.3 }}
-                  className="absolute -top-2 -right-2 md:right-[calc(50%-70px)]"
+                  transition={{ type: "spring", delay: 0.2 }}
+                  className="w-20 h-20 bg-gradient-to-tr from-green-400 to-emerald-600 rounded-full flex items-center justify-center shadow-lg shadow-green-500/30"
                 >
-                  <PartyPopper className="w-8 h-8 text-yellow-500" />
+                  <CheckCircle2 className="w-10 h-10 text-white" />
                 </motion.div>
-              </motion.div>
-
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.2 }}
-              >
-                <h1 className="text-2xl md:text-4xl font-black text-gray-900 mb-2">
-                  Você está dentro! 🎉
-                </h1>
-                <p className="text-lg md:text-xl font-semibold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent mb-4">
-                  {giveaway.title}
-                </p>
-              </motion.div>
-
-              <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ delay: 0.4 }}
-                className="bg-gradient-to-r from-emerald-50 to-teal-50 border-2 border-emerald-200 rounded-2xl p-6 mb-6"
-              >
-                <div className="flex items-center justify-center gap-3 mb-3">
-                  <Trophy className="w-6 h-6 text-yellow-500" />
-                  <span className="text-lg font-bold text-emerald-800">Boa sorte!</span>
-                  <Trophy className="w-6 h-6 text-yellow-500" />
-                </div>
-                <p className="text-emerald-700 text-sm md:text-base">
-                  Aguarde o resultado! Você será notificado se for sorteado.
-                </p>
-              </motion.div>
-
-              <ParticipantCounter count={giveaway.participants.length} />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="form"
-              initial={{ scale: 0.8, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.8, opacity: 0 }}
-              className="bg-white/95 backdrop-blur-xl rounded-3xl p-6 md:p-10 shadow-2xl border border-white/20"
-            >
-              {/* Header com ícone animado */}
-              <div className="text-center mb-8">
-                <motion.div
-                  animate={{
-                    y: [0, -10, 0],
-                    rotate: [0, 5, -5, 0]
-                  }}
-                  transition={{
-                    duration: 3,
-                    repeat: Infinity,
-                    ease: "easeInOut"
-                  }}
-                  className="relative inline-block"
-                >
-                  <div className="w-20 h-20 md:w-24 md:h-24 bg-gradient-to-br from-violet-500 via-purple-500 to-fuchsia-500 rounded-3xl flex items-center justify-center mx-auto shadow-xl shadow-purple-500/30 transform rotate-3">
-                    <Gift className="w-10 h-10 md:w-12 md:h-12 text-white" />
-                  </div>
-                  <motion.div
-                    animate={{ scale: [1, 1.3, 1], opacity: [1, 0.8, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="absolute -top-1 -right-1"
-                  >
-                    <Sparkles className="w-6 h-6 text-yellow-400" fill="currentColor" />
-                  </motion.div>
-                </motion.div>
-
-                <motion.div
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.1 }}
-                >
-                  <h1 className="text-2xl md:text-4xl font-black text-gray-900 mt-6 mb-2">
-                    🎁 Sorteio Grátis!
-                  </h1>
-                  <p className="text-lg md:text-2xl font-bold bg-gradient-to-r from-violet-600 to-fuchsia-600 bg-clip-text text-transparent">
-                    {giveaway.title}
-                  </p>
-                </motion.div>
-
                 <motion.div
                   initial={{ scale: 0 }}
                   animate={{ scale: 1 }}
-                  transition={{ delay: 0.2, type: "spring" }}
-                  className="mt-4"
+                  transition={{ delay: 0.4 }}
+                  className="absolute -top-2 -right-2"
                 >
-                  <ParticipantCounter count={giveaway.participants.length} />
+                  <PartyPopper className="w-8 h-8 text-yellow-500 drop-shadow-md" />
                 </motion.div>
               </div>
 
-              {/* Formulário */}
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <motion.div
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.3 }}
-                >
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                    👤 Seu nome completo
-                  </label>
-                  <div className={`relative rounded-2xl transition-all duration-300 ${focusedField === 'name' ? 'ring-4 ring-violet-500/20' : ''}`}>
+              <h2 className="text-2xl font-black text-gray-800 mb-1">Você está dentro!</h2>
+              <p className="text-sm text-gray-500 mb-6 font-medium">Fique atento, boa sorte!</p>
+
+              <div className="bg-purple-50 rounded-2xl p-4 border border-purple-100 mb-6">
+                <p className="text-[10px] uppercase tracking-wide text-gray-400 font-bold mb-1">Sorteio</p>
+                <p className="text-base font-bold text-purple-700 leading-tight">{giveaway.title}</p>
+              </div>
+
+              <div className="flex items-center justify-center gap-2 bg-gray-50 px-3 py-1.5 rounded-full mx-auto w-fit">
+                <span className="relative flex h-2.5 w-2.5">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
+                </span>
+                <p className="text-xs font-bold text-gray-600">
+                  {giveaway.participants.length} na torcida
+                </p>
+              </div>
+            </motion.div>
+          )
+
+          /* CASO 3: Formulário de Cadastro (Entrada) */
+          : (
+            <motion.div
+              key="form"
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              className="bg-white/95 backdrop-blur-xl rounded-[2rem] p-6 sm:p-8 shadow-2xl border border-white/40"
+            >
+              <div className="text-center mb-6">
+                <div className="inline-block mb-4">
+                  <div className="w-16 h-16 bg-gradient-to-tr from-violet-500 to-fuchsia-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30 rotate-3 mx-auto">
+                    <Gift className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+
+                <h1 className="text-xl font-bold text-gray-400 uppercase tracking-wider mb-1 text-[10px] sm:text-xs">
+                  Participe Grátis
+                </h1>
+                <p className="text-xl sm:text-2xl font-black text-gray-800 leading-tight break-words">
+                  {giveaway.title}
+                </p>
+
+                <div className="flex items-center justify-center gap-2 mt-3 text-gray-500 text-xs font-medium bg-gray-100/80 py-1 px-3 rounded-full w-fit mx-auto">
+                  <Users className="w-3 h-3" />
+                  <span>{giveaway.participants.length} participando</span>
+                </div>
+              </div>
+
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <div className={`transition-all duration-200 rounded-xl bg-gray-50 border-2 ${focusedField === 'name' ? 'border-purple-500 bg-white shadow-sm' : 'border-gray-100'}`}>
                     <input
                       type="text"
-                      placeholder="Digite seu nome aqui..."
+                      placeholder="Seu Nome Completo"
                       value={formData.name}
                       onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                       onFocus={() => setFocusedField('name')}
                       onBlur={() => setFocusedField(null)}
-                      className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-violet-500 focus:bg-white focus:outline-none transition-all text-gray-900 placeholder-gray-400 text-base md:text-lg font-medium"
+                      className="w-full px-4 py-3.5 bg-transparent outline-none text-gray-800 placeholder-gray-400 font-medium text-sm sm:text-base"
                       required
-                      autoComplete="name"
                     />
                   </div>
-                </motion.div>
+                </div>
 
-                <motion.div
-                  initial={{ x: -20, opacity: 0 }}
-                  animate={{ x: 0, opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                >
-                  <label className="block text-sm font-bold text-gray-700 mb-2 ml-1">
-                    📱 Instagram, Email ou WhatsApp
-                  </label>
-                  <div className={`relative rounded-2xl transition-all duration-300 ${focusedField === 'identifier' ? 'ring-4 ring-violet-500/20' : ''}`}>
+                <div>
+                  <div className={`transition-all duration-200 rounded-xl bg-gray-50 border-2 ${focusedField === 'identifier' ? 'border-purple-500 bg-white shadow-sm' : 'border-gray-100'}`}>
                     <input
                       type="text"
-                      placeholder="@seuinstagram ou email..."
+                      placeholder="Instagram ou WhatsApp"
                       value={formData.identifier}
                       onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
                       onFocus={() => setFocusedField('identifier')}
                       onBlur={() => setFocusedField(null)}
-                      className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-200 rounded-2xl focus:border-violet-500 focus:bg-white focus:outline-none transition-all text-gray-900 placeholder-gray-400 text-base md:text-lg font-medium"
+                      className="w-full px-4 py-3.5 bg-transparent outline-none text-gray-800 placeholder-gray-400 font-medium text-sm sm:text-base"
                       required
-                      autoComplete="off"
                     />
                   </div>
-                  <p className="text-xs text-gray-400 mt-2 ml-1">
-                    Para entrarmos em contato caso você ganhe! 🏆
-                  </p>
-                </motion.div>
+                </div>
 
                 <motion.button
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   type="submit"
                   disabled={isSubmitting}
-                  initial={{ y: 20, opacity: 0 }}
-                  animate={{ y: 0, opacity: 1 }}
-                  transition={{ delay: 0.5 }}
-                  whileHover={{ scale: 1.02, boxShadow: "0 20px 40px rgba(139, 92, 246, 0.4)" }}
-                  whileTap={{ scale: 0.98 }}
-                  className="w-full bg-gradient-to-r from-violet-600 via-purple-600 to-fuchsia-600 text-white py-4 md:py-5 rounded-2xl font-bold text-lg md:text-xl shadow-xl shadow-purple-500/30 hover:shadow-purple-500/50 transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed relative overflow-hidden group"
+                  className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg shadow-purple-500/30 mt-2 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
                 >
-                  <div className="absolute inset-0 bg-gradient-to-r from-fuchsia-600 via-purple-600 to-violet-600 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                  <span className="relative flex items-center gap-3">
-                    {isSubmitting ? (
-                      <>
-                        <Loader2 className="w-6 h-6 animate-spin" />
-                        Confirmando...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="w-6 h-6" />
-                        Quero Participar!
-                        <motion.span
-                          animate={{ x: [0, 5, 0] }}
-                          transition={{ duration: 1, repeat: Infinity }}
-                        >
-                          🎉
-                        </motion.span>
-                      </>
-                    )}
-                  </span>
+                  {isSubmitting ? (
+                    <Loader2 className="w-6 h-6 animate-spin" />
+                  ) : (
+                    <>
+                      <span>Quero Ganhar!</span>
+                      <Sparkles className="w-5 h-5" />
+                    </>
+                  )}
                 </motion.button>
               </form>
-
-              {/* Garantias */}
-              <motion.div
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                transition={{ delay: 0.6 }}
-                className="mt-6 flex flex-wrap items-center justify-center gap-4 text-xs text-gray-500"
-              >
-                <div className="flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>100% Grátis</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>Sem spam</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                  <span>Resultado transparente</span>
-                </div>
-              </motion.div>
             </motion.div>
           )}
         </AnimatePresence>
