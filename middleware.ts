@@ -7,6 +7,7 @@ const isProtectedRoute = createRouteMatcher([
 
 // Rotas que NUNCA devem passar pelo Clerk (webhooks, crons)
 const isWebhookRoute = createRouteMatcher([
+  "/giveaway(.*)",
   "/api/webhooks/(.*)",
   "/api/cron/(.*)",
 ]);
