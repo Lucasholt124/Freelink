@@ -368,7 +368,18 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
           icon: <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
           glow: 'shadow-[0_0_20px_rgba(239,68,68,0.6)]'
         };
+      // ✅ AQUI ESTÁ A MÁGICA DO INSTAGRAM PARA O PLANO ULTRA
+      case 'ultra':
+        return {
+          // Azul oficial do Instagram (#0095F6) indo para um tom levemente mais escuro
+          gradient: 'from-[#0095F6] to-[#006FD6]',
+          // Adicionei stroke-[3px] para o check ficar "gordinho" igual ao do Insta
+          icon: <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white stroke-[3px]" />,
+          // Glow azulado para chamar atenção
+          glow: 'shadow-[0_0_15px_rgba(0,149,246,0.5)]'
+        };
       default:
+        // Se cair aqui (plano desconhecido), fica cinza
         return {
           gradient: 'from-gray-400 to-gray-600',
           icon: <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
@@ -382,7 +393,7 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
   return (
     <motion.span
       className={`inline-flex items-center justify-center ${sizeClasses} rounded-full bg-gradient-to-r ${config.gradient} ${config.glow} transition-all duration-300 flex-shrink-0 relative overflow-hidden`}
-      title={`Plano ${plan.charAt(0).toUpperCase() + plan.slice(1)}`}
+      title={`Plano ${plan ? plan.charAt(0).toUpperCase() + plan.slice(1) : 'Verificado'}`}
       whileHover={{
         rotate: [0, -10, 10, -10, 0],
         scale: 1.2,
