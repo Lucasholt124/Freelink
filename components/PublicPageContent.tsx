@@ -19,7 +19,6 @@ import {
   FaFacebook, FaGithub, FaGlobe, FaInstagram,
   FaLinkedin, FaTiktok, FaTwitter, FaYoutube,
   FaWhatsapp,
-  FaGoogle,
   FaWaze,
   FaTelegram,
   FaDiscord,
@@ -46,8 +45,8 @@ import { Doc } from "@/convex/_generated/dataModel";
 
 // --- MAPA DE ÍCONES INTELIGENTE ---
 const ICON_MAP = [
-  // 📍 Localização & Mapas
-  { match: ['google.com/maps', 'goo.gl/maps', 'maps.google', 'maps.app.goo.gl'], icon: <FaGoogle className="w-4 h-4 sm:w-5 sm:h-5 text-[#4285F4]" /> },
+  // 📍 Localização & Mapas - CORRIGIDO: Usa MapPin ao invés do G do Google
+  { match: ['google.com/maps', 'goo.gl/maps', 'maps.google', 'maps.app.goo.gl'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" /> },
   { match: ['waze.com', 'waze.to'], icon: <FaWaze className="w-4 h-4 sm:w-5 sm:h-5 text-[#33CCFF]" /> },
   { match: ['maps.apple.com'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#8E8E93]" /> },
 
@@ -67,7 +66,6 @@ const ICON_MAP = [
   { match: ['pinterest.com'], icon: <FaPinterest className="w-4 h-4 sm:w-5 sm:h-5 text-[#E60023]" /> },
   { match: ['snapchat.com'], icon: <FaSnapchat className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFFC00]" /> },
   { match: ['reddit.com'], icon: <FaReddit className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF4500]" /> },
-
 
   // 🎉 Aniversários & Celebrações
   { match: ['bday', 'birthday', 'aniversario', 'festa'], icon: <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0080]" /> },
@@ -116,7 +114,6 @@ const ICON_MAP = [
 function getLinkIcon(url: string, title: string): React.ReactNode {
   if (!url) return <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
   const u = url.toLowerCase();
-  // ✅ CORREÇÃO: Adiciona a variável 't' para o título
   const t = title?.toLowerCase() || "";
 
   // 1. Verifica no Mapa de Ícones Específicos
@@ -126,13 +123,12 @@ function getLinkIcon(url: string, title: string): React.ReactNode {
     }
   }
 
-  // ✅ ADICIONADO: Lógica que usa o título, que estava faltando
-if (t.includes('vendedor')) return <User className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />;
-if (t.includes('ceo')) return <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />;
-if (t.includes('suporte')) return <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />;
+  // Lógica que usa o título
+  if (t.includes('vendedor')) return <User className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />;
+  if (t.includes('ceo')) return <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />;
+  if (t.includes('suporte')) return <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />;
 
-
-  // 2. Ícones Genéricos Inteligentes
+  // 2. Ícones Genéricos Inteligentes - CORRIGIDO: Localização usa MapPin
   if (u.includes('map') || u.includes('rua') || u.includes('avenida') || u.includes('local'))
     return <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" />;
 
@@ -246,7 +242,6 @@ function ParticleField({ color = "rgba(147, 51, 234, 0.4)" }: { color?: string }
     const animate = (currentTime: number) => {
       const deltaTime = currentTime - lastTimeRef.current;
 
-      // 60 FPS lock
       if (deltaTime < 16.67) {
         frameRef.current = requestAnimationFrame(animate);
         return;
@@ -278,7 +273,6 @@ function ParticleField({ color = "rgba(147, 51, 234, 0.4)" }: { color?: string }
         particle.vx *= 0.98;
         particle.vy *= 0.98;
 
-        // Glow effect
         ctx.shadowBlur = 15;
         ctx.shadowColor = particle.color;
 
@@ -289,7 +283,6 @@ function ParticleField({ color = "rgba(147, 51, 234, 0.4)" }: { color?: string }
 
         ctx.shadowBlur = 0;
 
-        // Conexões otimizadas
         if (!isMobile) {
           for (let j = i + 1; j < particles.length; j++) {
             const other = particles[j];
@@ -339,46 +332,93 @@ function ParticleField({ color = "rgba(147, 51, 234, 0.4)" }: { color?: string }
   );
 }
 
+// 🔥 NOVO BADGE ULTRA - ESTILO INSTAGRAM VERIFICADO
 function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" | "large"; plan?: string }) {
-  const sizeClasses = size === "large" ? "w-6 h-6 sm:w-8 sm:h-8" : "w-5 h-5 sm:w-6 sm:h-6";
+  const sizeClasses = size === "large" ? "w-7 h-7 sm:w-8 sm:h-8" : "w-5 h-5 sm:w-6 sm:h-6";
 
   const getBadgeConfig = () => {
     switch(plan) {
+      case 'ultra':
+        // 🔥 BADGE ULTRA ESTILO INSTAGRAM - Azul vibrante com check branco
+        return {
+          gradient: 'from-[#0095F6] to-[#0095F6]', // Azul Instagram
+          icon: <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[3]" />,
+          glow: 'shadow-[0_0_20px_rgba(0,149,246,0.8)]',
+          isUltra: true
+        };
       case 'premium':
         return {
           gradient: 'from-purple-500 via-pink-500 to-purple-600',
           icon: <Star className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
-          glow: 'shadow-[0_0_20px_rgba(168,85,247,0.6)]'
+          glow: 'shadow-[0_0_20px_rgba(168,85,247,0.6)]',
+          isUltra: false
         };
       case 'pro':
         return {
           gradient: 'from-blue-500 via-cyan-500 to-blue-600',
           icon: <Gem className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
-          glow: 'shadow-[0_0_20px_rgba(59,130,246,0.6)]'
+          glow: 'shadow-[0_0_20px_rgba(59,130,246,0.6)]',
+          isUltra: false
         };
       case 'business':
         return {
           gradient: 'from-yellow-500 via-orange-500 to-yellow-600',
           icon: <Crown className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
-          glow: 'shadow-[0_0_20px_rgba(234,179,8,0.6)]'
+          glow: 'shadow-[0_0_20px_rgba(234,179,8,0.6)]',
+          isUltra: false
         };
       case 'enterprise':
         return {
           gradient: 'from-red-500 via-pink-500 to-red-600',
           icon: <Shield className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
-          glow: 'shadow-[0_0_20px_rgba(239,68,68,0.6)]'
+          glow: 'shadow-[0_0_20px_rgba(239,68,68,0.6)]',
+          isUltra: false
         };
       default:
         return {
           gradient: 'from-gray-400 to-gray-600',
           icon: <Check className="w-3 h-3 sm:w-4 sm:h-4 text-white" />,
-          glow: ''
+          glow: '',
+          isUltra: false
         };
     }
   };
 
   const config = getBadgeConfig();
 
+  // 🔥 BADGE ULTRA ESPECIAL - Idêntico ao Instagram
+  if (config.isUltra) {
+    return (
+      <motion.span
+        className={`inline-flex items-center justify-center ${sizeClasses} rounded-full bg-[#0095F6] ${config.glow} transition-all duration-300 flex-shrink-0 relative`}
+        title="Conta Verificada Ultra"
+        whileHover={{
+          scale: 1.15,
+        }}
+        transition={{ duration: 0.2 }}
+      >
+        {/* Glow pulsante */}
+        <motion.span
+          className="absolute inset-0 rounded-full bg-[#0095F6]"
+          animate={{
+            scale: [1, 1.3, 1],
+            opacity: [0.5, 0, 0.5],
+          }}
+          transition={{
+            duration: 2,
+            repeat: Infinity,
+            ease: "easeInOut"
+          }}
+        />
+        {/* Check branco centralizado */}
+        <span className="relative z-10 flex items-center justify-center">
+          <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white stroke-[3]" />
+        </span>
+      </motion.span>
+    );
+  }
+
+  // Badges para outros planos
   return (
     <motion.span
       className={`inline-flex items-center justify-center ${sizeClasses} rounded-full bg-gradient-to-r ${config.gradient} ${config.glow} transition-all duration-300 flex-shrink-0 relative overflow-hidden`}
@@ -450,8 +490,6 @@ export default function PublicPageContent({
   const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [cookieConsent, setCookieConsent] = useState<"granted" | "denied" | null>(null);
 
-  // CORREÇÃO: Removemos a asserção de tipo "as LinkType[]", pois o TypeScript
-  // agora infere o tipo correto diretamente da query.
   const links = usePreloadedQuery(preloadedLinks);
 
   const { scrollYProgress } = useScroll();
@@ -718,8 +756,12 @@ export default function PublicPageContent({
     return {};
   };
 
+  // 🔥 FUNÇÃO PARA PROTEGER TEXTOS - Retorna classes CSS para texto visível em qualquer fundo
+ const getProtectedTextClasses = () => {
+  return ""; // Removido completamente - texto limpo
+};
+
   return (
-    // FIX 1: overflow-x-hidden PREVENTS ANY HORIZONTAL SCROLLING
     <div className={`min-h-screen w-full overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
 
       {cookieConsent === 'granted' && trackingSettings && (
@@ -1009,27 +1051,28 @@ export default function PublicPageContent({
             className="lg:col-span-1"
           >
             <div className="lg:sticky lg:top-8 space-y-3 sm:space-y-4">
+              {/* 🔥 CARD DO PERFIL - TRANSPARENTE */}
               <motion.div
-                className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-6 sm:p-5 md:p-6 shadow-2xl border border-white/10"
+                className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-6 sm:p-5 md:p-6 shadow-2xl border border-white/20 dark:border-white/10"
                 style={{
+                  // 🔥 CARDS TRANSPARENTES - Glassmorphism melhorado
                   background: backgroundConfig.type === "image"
-                    ? isDarkMode
-                      ? 'rgba(17, 24, 39, 0.95)'
-                      : 'rgba(255, 255, 255, 0.95)'
+                    ? 'rgba(255, 255, 255, 0.15)'
                     : isDarkMode
-                      ? 'rgba(17, 24, 39, 0.9)'
-                      : 'rgba(255, 255, 255, 0.9)',
+                      ? 'rgba(17, 24, 39, 0.6)'
+                      : 'rgba(255, 255, 255, 0.6)',
                   backdropFilter: 'blur(20px)',
-                  boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.2)}`
+                  WebkitBackdropFilter: 'blur(20px)',
+                  boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.2)}, inset 0 0 0 1px rgba(255,255,255,0.1)`
                 }}
                 whileHover={{ y: -5, boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.3)}` }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
                 <motion.div
                   className="absolute inset-0 rounded-2xl sm:rounded-3xl"
                   style={{
-                    background: `linear-gradient(135deg, ${userAccentColor}40, transparent)`,
+                    background: `linear-gradient(135deg, ${userAccentColor}20, transparent)`,
                   }}
                   animate={{
                     opacity: [0.3, 0.6, 0.3],
@@ -1103,43 +1146,39 @@ export default function PublicPageContent({
 
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
-                      <motion.h1
-                        className="text-2xl sm:text-3xl font-black break-all"
-                        style={{
-                          color: userAccentColor,
-                          textShadow: `0 2px 10px ${hexToRgba(userAccentColor, 0.3)}`
-                        }}
-                        animate={{
-                          textShadow: [
-                            `0 2px 10px ${hexToRgba(userAccentColor, 0.3)}`,
-                            `0 2px 15px ${hexToRgba(userAccentColor, 0.5)}`,
-                            `0 2px 10px ${hexToRgba(userAccentColor, 0.3)}`,
-                          ]
-                        }}
-                        transition={{ duration: 2, repeat: Infinity }}
-                      >
-                        @{username}
-                      </motion.h1>
+                      {/* 🔥 NOME DO USUÁRIO COM PROTEÇÃO DE TEXTO */}
+                     <motion.h1
+  className="text-2xl sm:text-3xl font-black break-all"
+  style={{
+    color: userAccentColor,
+  }}
+>
+  @{username}
+</motion.h1>
                       {plan !== 'free' && <VerifiedBadge size="large" plan={plan} />}
                     </div>
 
                     {plan === 'free' && (
                       <Link href={getBaseUrl() + "/"} className="group inline-block">
                         <motion.div
-                          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 dark:bg-black/10 backdrop-blur-sm border border-white/20 dark:border-white/10"
+                          className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/20 dark:bg-black/20 backdrop-blur-sm border border-white/30 dark:border-white/20"
                           whileHover={{ scale: 1.05 }}
                         >
                           <Sparkles className="w-3 h-3 text-purple-500" />
-                          <p className="text-[11px] font-medium text-gray-600 dark:text-gray-300">
+                          <p className={`text-[11px] font-medium ${getProtectedTextClasses()}`}
+                            style={{ color: isDarkMode ? '#e5e7eb' : '#4b5563' }}
+                          >
                             Crie seu perfil grátis no <span className="font-bold text-purple-600 dark:text-purple-400">Freelinnk</span>
                           </p>
                         </motion.div>
                       </Link>
                     )}
 
+                    {/* 🔥 DESCRIÇÃO COM PROTEÇÃO DE TEXTO */}
                     {customizations?.description && (
                       <motion.p
-                        className="text-base sm:text-lg text-gray-600 dark:text-gray-400 leading-relaxed px-4"
+                        className={`text-base sm:text-lg leading-relaxed px-4 ${getProtectedTextClasses()}`}
+                        style={{ color: isDarkMode ? '#d1d5db' : '#4b5563' }}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
@@ -1148,7 +1187,10 @@ export default function PublicPageContent({
                       </motion.p>
                     )}
 
-                    <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm text-gray-500 dark:text-gray-400 flex-wrap pt-2">
+                    {/* 🔥 DATA COM PROTEÇÃO DE TEXTO */}
+                    <div className={`flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap pt-2 ${getProtectedTextClasses()}`}
+                      style={{ color: isDarkMode ? '#9ca3af' : '#6b7280' }}
+                    >
                       <motion.div
                         className="flex items-center gap-1"
                         whileHover={{ scale: 1.05 }}
@@ -1171,31 +1213,32 @@ export default function PublicPageContent({
             className="lg:col-span-2 w-full max-w-full"
           >
             <div className="space-y-3 sm:space-y-4">
+              {/* 🔥 CARD DOS LINKS - TRANSPARENTE */}
               <motion.div
-                className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/10"
+                className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/20 dark:border-white/10"
                 style={{
+                  // 🔥 CARDS TRANSPARENTES - Glassmorphism melhorado
                   background: backgroundConfig.type === "image"
-                    ? isDarkMode
-                      ? 'rgba(17, 24, 39, 0.95)'
-                      : 'rgba(255, 255, 255, 0.95)'
+                    ? 'rgba(255, 255, 255, 0.15)'
                     : isDarkMode
-                      ? 'rgba(17, 24, 39, 0.9)'
-                      : 'rgba(255, 255, 255, 0.9)',
+                      ? 'rgba(17, 24, 39, 0.6)'
+                      : 'rgba(255, 255, 255, 0.6)',
                   backdropFilter: 'blur(20px)',
-                  boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.2)}`
+                  WebkitBackdropFilter: 'blur(20px)',
+                  boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.2)}, inset 0 0 0 1px rgba(255,255,255,0.1)`
                 }}
                 whileHover={{ y: -2 }}
               >
                 {/* Glassmorphism overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
 
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
+                    {/* 🔥 TÍTULO DOS LINKS COM PROTEÇÃO */}
                     <motion.h2
-                      className="text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2"
+                      className={`text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2 ${getProtectedTextClasses()}`}
                       style={{
                         color: userAccentColor,
-                        textShadow: `0 2px 10px ${hexToRgba(userAccentColor, 0.3)}`
                       }}
                     >
                       <motion.div
@@ -1232,13 +1275,17 @@ export default function PublicPageContent({
                             rel="noopener noreferrer"
                             className="group relative flex items-center gap-2.5 sm:gap-3 w-full rounded-xl sm:rounded-2xl p-3 sm:p-3.5 md:p-4 font-bold text-sm sm:text-base transition-all duration-300 overflow-hidden"
                             style={{
-                              background: isDarkMode
-                                ? 'rgba(31, 41, 55, 0.5)'
-                                : 'rgba(255, 255, 255, 0.5)',
+                              // 🔥 LINKS TRANSPARENTES
+                              background: backgroundConfig.type === "image"
+                                ? 'rgba(255, 255, 255, 0.2)'
+                                : isDarkMode
+                                  ? 'rgba(31, 41, 55, 0.5)'
+                                  : 'rgba(255, 255, 255, 0.5)',
                               backdropFilter: 'blur(10px)',
+                              WebkitBackdropFilter: 'blur(10px)',
                               borderWidth: '2px',
                               borderStyle: 'solid',
-                              borderColor: hoveredLink === link._id ? userAccentColor : 'transparent',
+                              borderColor: hoveredLink === link._id ? userAccentColor : 'rgba(255,255,255,0.2)',
                               boxShadow: hoveredLink === link._id
                                 ? `0 0 30px ${hexToRgba(userAccentColor, 0.4)}, inset 0 0 20px ${hexToRgba(userAccentColor, 0.1)}`
                                 : '0 2px 8px rgba(0,0,0,0.1)',
@@ -1275,55 +1322,58 @@ export default function PublicPageContent({
                               />
                             )}
 
-                            {/* Icon - Flex shrink 0 prevents squishing */}
-                           <motion.span
-  whileHover={{ rotate: 360, scale: 1.1 }}
-  transition={{ duration: 0.5 }}
-  className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg flex-shrink-0 overflow-hidden"
-  style={{
-    // Se tiver imagem, fundo transparente. Se não, gradiente.
-    background: link.thumbnailUrl
-      ? 'transparent'
-      : hoveredLink === link._id
-        ? `linear-gradient(135deg, ${userAccentColor}20, ${userAccentColor}40)`
-        : isDarkMode
-          ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
-          : 'linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(243, 244, 246, 0.8))',
-  }}
->
-  {link.thumbnailUrl ? (
-    // SE EXISTIR FOTO (UPLOAD), MOSTRA ELA
-    <Image
-      src={link.thumbnailUrl}
-      alt={link.title}
-      width={40}
-      height={40}
-      className="w-full h-full object-cover"
-    />
-  ) : (
-    // SE NÃO, USA O ÍCONE INTELIGENTE (GetLinkIcon)
-    getLinkIcon(link.url, link.title)
-  )}
-</motion.span>
+                            {/* Icon */}
+                            <motion.span
+                              whileHover={{ rotate: 360, scale: 1.1 }}
+                              transition={{ duration: 0.5 }}
+                              className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg flex-shrink-0 overflow-hidden"
+                              style={{
+                                background: link.thumbnailUrl
+                                  ? 'transparent'
+                                  : hoveredLink === link._id
+                                    ? `linear-gradient(135deg, ${userAccentColor}20, ${userAccentColor}40)`
+                                    : backgroundConfig.type === "image"
+                                      ? 'rgba(255, 255, 255, 0.3)'
+                                      : isDarkMode
+                                        ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
+                                        : 'linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(243, 244, 246, 0.8))',
+                              }}
+                            >
+                              {link.thumbnailUrl ? (
+                                <Image
+                                  src={link.thumbnailUrl}
+                                  alt={link.title}
+                                  width={40}
+                                  height={40}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                getLinkIcon(link.url, link.title)
+                              )}
+                            </motion.span>
 
-                            {/* Title - FIX: REMOVED TRUNCATE, ADDED WRAPPING */}
+                            {/* 🔥 TÍTULO DO LINK COM PROTEÇÃO DE TEXTO */}
                             <span
-                              className="flex-1 min-w-0 break-words whitespace-normal text-sm sm:text-base font-bold leading-tight"
+                              className={`flex-1 min-w-0 break-words whitespace-normal text-sm sm:text-base font-bold leading-tight ${getProtectedTextClasses()}`}
                               style={{
                                 color: hoveredLink === link._id
                                   ? userAccentColor
-                                  : isDarkMode
-                                    ? 'rgb(229, 231, 235)'
-                                    : 'rgb(31, 41, 55)',
+                                  : backgroundConfig.type === "image"
+                                    ? '#ffffff'
+                                    : isDarkMode
+                                      ? 'rgb(229, 231, 235)'
+                                      : 'rgb(31, 41, 55)',
                                 textShadow: hoveredLink === link._id
                                   ? `0 0 10px ${hexToRgba(userAccentColor, 0.5)}`
-                                  : 'none'
+                                  : backgroundConfig.type === "image"
+                                    ? '0 1px 3px rgba(0,0,0,0.6)'
+                                    : 'none'
                               }}
                             >
                               {link.title}
                             </span>
 
-                            {/* Actions - Flex shrink prevents pushing */}
+                            {/* Actions */}
                             <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 relative z-10 ml-1">
                               {/* Like Button */}
                               <motion.button
@@ -1337,9 +1387,11 @@ export default function PublicPageContent({
                                 style={{
                                   background: linkReactions[link._id]
                                     ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2))'
-                                    : isDarkMode
-                                      ? 'rgba(55, 65, 81, 0.5)'
-                                      : 'rgba(243, 244, 246, 0.8)',
+                                    : backgroundConfig.type === "image"
+                                      ? 'rgba(255, 255, 255, 0.2)'
+                                      : isDarkMode
+                                        ? 'rgba(55, 65, 81, 0.5)'
+                                        : 'rgba(243, 244, 246, 0.8)',
                                   boxShadow: linkReactions[link._id]
                                     ? '0 0 15px rgba(239, 68, 68, 0.3)'
                                     : 'none'
@@ -1359,7 +1411,9 @@ export default function PublicPageContent({
                                     }`}
                                   />
                                 </motion.div>
-                                <span className="text-[10px] sm:text-xs font-bold text-gray-600 dark:text-gray-400">
+                                <span className={`text-[10px] sm:text-xs font-bold ${getProtectedTextClasses()}`}
+                                  style={{ color: backgroundConfig.type === "image" ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
+                                >
                                   {linkReactions[link._id] || 0}
                                 </span>
                               </motion.button>
@@ -1375,7 +1429,11 @@ export default function PublicPageContent({
                                 <ExternalLink
                                   className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 hidden sm:block"
                                   style={{
-                                    color: hoveredLink === link._id ? userAccentColor : 'rgb(156, 163, 175)',
+                                    color: hoveredLink === link._id
+                                      ? userAccentColor
+                                      : backgroundConfig.type === "image"
+                                        ? 'rgba(255,255,255,0.7)'
+                                        : 'rgb(156, 163, 175)',
                                     filter: hoveredLink === link._id
                                       ? `drop-shadow(0 0 8px ${hexToRgba(userAccentColor, 0.8)})`
                                       : 'none'
@@ -1391,7 +1449,7 @@ export default function PublicPageContent({
                         className="text-center py-8 sm:py-10 md:py-12"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.5 }}
+                                                transition={{ duration: 0.5 }}
                       >
                         <motion.div
                           className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full mb-4"
@@ -1409,10 +1467,14 @@ export default function PublicPageContent({
                             style={{ color: userAccentColor }}
                           />
                         </motion.div>
-                        <p className="text-gray-500 dark:text-gray-400 text-base sm:text-lg font-bold mb-2">
+                        <p className={`text-base sm:text-lg font-bold mb-2 ${getProtectedTextClasses()}`}
+                          style={{ color: backgroundConfig.type === "image" ? '#ffffff' : isDarkMode ? '#9ca3af' : '#6b7280' }}
+                        >
                           Nenhum link cadastrado ainda
                         </p>
-                        <p className="text-gray-400 dark:text-gray-500 text-xs sm:text-sm">
+                        <p className={`text-xs sm:text-sm ${getProtectedTextClasses()}`}
+                          style={{ color: backgroundConfig.type === "image" ? 'rgba(255,255,255,0.7)' : isDarkMode ? '#6b7280' : '#9ca3af' }}
+                        >
                           Os links aparecerão aqui quando forem adicionados
                         </p>
                       </motion.div>
@@ -1534,7 +1596,9 @@ export default function PublicPageContent({
             transition={{ delay: 0.8 }}
             className="mt-8 sm:mt-12 md:mt-16 pt-4 sm:pt-6 border-t border-white/10 text-center"
           >
-            <p className="text-gray-500 dark:text-gray-400 text-[10px] sm:text-xs flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap px-4">
+            <p className={`text-[10px] sm:text-xs flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap px-4 ${getProtectedTextClasses()}`}
+              style={{ color: backgroundConfig.type === "image" ? 'rgba(255,255,255,0.8)' : isDarkMode ? '#9ca3af' : '#6b7280' }}
+            >
               Feito com
               <motion.span
                 animate={{
