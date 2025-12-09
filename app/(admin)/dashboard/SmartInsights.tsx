@@ -2,9 +2,10 @@
 
 import { motion } from "framer-motion";
 import {
-  Target, Zap, Share2, Palette,
+  Target, Zap, Share2,
   Instagram, Linkedin, DollarSign,
-  Smartphone, BarChart3, RefreshCw
+   RefreshCw,
+  Calculator, Lock
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,20 +14,34 @@ import type { AnalyticsData } from "@/lib/analytics-server";
 interface Props {
   analytics: AnalyticsData;
   plan: string;
+  hasSales?: boolean;
 }
 
-export default function SmartInsights({ analytics, plan }: Props) {
+export default function SmartInsights({ analytics, plan, hasSales = false }: Props) {
   const isFree = plan === 'free';
   const totalClicks = analytics?.totalClicks || 0;
   const growthRaw = analytics?.growth || "+0%";
   const growthNum = parseFloat(growthRaw.replace('%', '').replace('+', ''));
   const topSource = analytics?.topReferrer?.source?.toLowerCase() || "direto";
 
-  // --- ENGINE DE INTELIGÊNCIA ARTIFICIAL (Lógica de Decisão) ---
-  const getSmartAdvice = () => {
+  // Dados para o Timing de Ouro
+  const peakHourNum = analytics?.peakHour?.hour || 19;
+  const peakHourFmt = String(peakHourNum).padStart(2, '0');
 
-    // 1. CENÁRIO: ESTAGNAÇÃO (Prioridade Alta - Evitar Churn)
-    // Se o usuário já tem cliques, mas parou de crescer (crescimento 0 ou negativo)
+  // --- ENGINE DE INTELIGÊNCIA ARTIFICIAL ---
+  const getSmartAdvice = () => {
+    // 1. PRIORIDADE: ATIVAÇÃO FINANCEIRA
+    if (totalClicks > 5 && !hasSales) {
+        return {
+            icon: Calculator,
+            title: "Você está perdendo dinheiro?",
+            text: "Você teve visitas hoje, mas não registrou vendas. Use o Gestor Financeiro para calcular seu lucro real.",
+            stat: "Gestão aumenta o lucro em 30%.",
+            action: "Registrar Venda",
+            href: "/dashboard/profit-calculator"
+        };
+    }
+    // 2. ESTAGNAÇÃO
     if (totalClicks > 50 && growthNum <= 0) {
       return {
         icon: RefreshCw,
@@ -37,8 +52,7 @@ export default function SmartInsights({ analytics, plan }: Props) {
         href: "/dashboard/settings"
       };
     }
-
-    // 2. CENÁRIO: CRESCIMENTO EXPLOSIVO (Momento de Monetizar)
+    // 3. CRESCIMENTO EXPLOSIVO
     if (growthNum > 20 && totalClicks > 100) {
       return {
         icon: DollarSign,
@@ -49,8 +63,7 @@ export default function SmartInsights({ analytics, plan }: Props) {
         href: "/dashboard/new-link"
       };
     }
-
-    // 3. CENÁRIO: TRÁFEGO DO INSTAGRAM (Contexto Específico)
+    // 4. TRÁFEGO DO INSTAGRAM
     if (topSource.includes("instagram")) {
       return {
         icon: Instagram,
@@ -58,87 +71,47 @@ export default function SmartInsights({ analytics, plan }: Props) {
         text: "O Instagram é sua maior força. Crie um destaque 'Links' no seu perfil apontando pra cá.",
         stat: "Isso aumenta a retenção do link em 3x.",
         action: "Ver Roteiro de Story",
-        href: "/dashboard/brain" // Leva para a IA de roteiro
+        href: "/dashboard/brain"
       };
     }
-
-    // 4. CENÁRIO: TRÁFEGO DO LINKEDIN (Contexto Profissional)
+    // 5. TRÁFEGO DO LINKEDIN
     if (topSource.includes("linkedin")) {
       return {
         icon: Linkedin,
         title: "Autoridade Profissional",
-        text: "Seu público vem do LinkedIn. Certifique-se de que sua bio destaca sua 'Headline' profissional.",
+        text: "Seu público vem do LinkedIn. Destaque sua 'Headline' profissional na bio.",
         stat: "Visitantes do LinkedIn buscam credibilidade.",
         action: "Editar Bio",
         href: "/dashboard/settings"
       };
     }
-
-    // 5. CENÁRIO: INICIANTE ZERO (Ativação)
+    // 6. INICIANTE ZERO
     if (totalClicks === 0) {
       return {
         icon: Share2,
         title: "Primeiro Passo",
-        text: "Seu link está pronto, mas ninguém viu ainda. Copie e cole na bio do Instagram agora.",
+        text: "Seu link está pronto. Copie e cole na bio do Instagram agora.",
         stat: "A bio é responsável por 90% do tráfego inicial.",
-        action: "Copiar Link",
+        action: "Ir para Meus Links",
         href: "/dashboard/links"
       };
     }
-
-    // 6. CENÁRIO: INICIANTE (1-15 Cliques)
-    if (totalClicks < 15) {
-      return {
-        icon: Smartphone,
-        title: "Teste Mobile",
-        text: "Abra seu próprio link no celular para garantir que a foto e o texto estão perfeitos.",
-        stat: "98% dos seus visitantes usam celular.",
-        action: "Pré-visualizar",
-        href: "/dashboard/links"
-      };
-    }
-
-    // 7. CENÁRIO: INTERMEDIÁRIO (15-50 Cliques - Otimização)
-    if (totalClicks < 50) {
-      return {
-        icon: Palette,
-        title: "Psicologia das Cores",
-        text: "Personalize seu botão principal com uma cor de destaque (ex: vermelho ou verde).",
-        stat: "Contraste aumenta cliques em +12%.",
-        action: "Editar Cores",
-        href: "/dashboard/settings"
-      };
-    }
-
-    // 8. CENÁRIO: AVANÇADO (50-200 Cliques - Análise)
-    if (totalClicks < 200) {
-      return {
-        icon: BarChart3,
-        title: "Análise de Retenção",
-        text: "Você já tem volume. Veja qual link está recebendo menos cliques e remova-o para limpar a visão.",
-        stat: "Menos opções = Mais conversão (Paradoxo da Escolha).",
-        action: "Gerenciar Links",
-        href: "/dashboard/links"
-      };
-    }
-
-    // 9. CENÁRIO: POWER USER (200+ Cliques - Captura)
+    // 7. POWER USER (Upsell Pixel)
     if (totalClicks >= 200 && isFree) {
       return {
         icon: Target,
         title: "Perdendo Dados?",
-        text: "Você já passou de 200 cliques! Se ativar o Pixel agora, pode fazer remarketing para essas pessoas.",
+        text: "Você passou de 200 cliques! Ative o Pixel para fazer remarketing.",
         stat: "Não deixe esse público escapar.",
         action: "Ativar Pixel Pro",
         href: "/dashboard/tracking"
       };
     }
-
-    // 10. CENÁRIO: FALLBACK (Padrão)
+    // Padrão
     return {
       icon: Zap,
       title: "Consistência",
-      text: "Mantenha seu link atualizado. Perfis que adicionam novidades semanalmente crescem mais rápido.",
+      text: "Mantenha seu link atualizado. Perfis ativos crescem mais rápido.",
       stat: "O algoritmo favorece atividade recente.",
       action: "Adicionar Novidade",
       href: "/dashboard/new-link"
@@ -147,15 +120,9 @@ export default function SmartInsights({ analytics, plan }: Props) {
 
   const advice = getSmartAdvice();
 
-  // Dados para o Card de Timing (Lado Direito)
-  const peakHourNum = analytics?.peakHour?.hour || 19;
-  // Formata hora (ex: 9 -> 09)
-  const peakHourFmt = String(peakHourNum).padStart(2, '0');
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
-
-      {/* Bloco 1: Ação da IA (Dinâmica) - Ocupa 7 colunas */}
+      {/* 1. IA COACH (7 colunas) */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
@@ -171,7 +138,7 @@ export default function SmartInsights({ analytics, plan }: Props) {
                 🤖 IA Growth Coach
               </h4>
               <p className="text-slate-900 dark:text-white font-bold text-base leading-tight">
-                {advice.title}: {advice.text}
+                {advice.title}: <span className="font-normal text-slate-600 dark:text-slate-300">{advice.text}</span>
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded inline-block border border-slate-100 dark:border-slate-700">
                 💡 Insight: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{advice.stat}</span>
@@ -179,14 +146,15 @@ export default function SmartInsights({ analytics, plan }: Props) {
             </div>
           </div>
           <Link href={advice.href}>
-             <Button className="bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-lg shadow-violet-500/20 whitespace-nowrap h-10 transition-transform hover:scale-105">
-               {advice.action}
-             </Button>
+              <Button className="bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-lg shadow-violet-500/20 whitespace-nowrap h-10 transition-transform hover:scale-105">
+                {advice.action === "Ativar Pixel Pro" && <Lock className="w-3 h-3 mr-2" />}
+                {advice.action}
+              </Button>
           </Link>
         </div>
       </motion.div>
 
-      {/* Bloco 2: Timing de Ouro (Dados Reais) - Ocupa 5 colunas */}
+      {/* 2. TIMING DE OURO (5 colunas) - RESTAURADO! */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
