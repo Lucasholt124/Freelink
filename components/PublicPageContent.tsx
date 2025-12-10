@@ -1604,23 +1604,18 @@ const isNewLink = (creationTime: number): boolean => {
           {/* Título + Badges */}
           <div className="flex-1 min-w-0 flex flex-col gap-0.5">
             <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className="break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300"
-                style={{
-                  color: isCta
-                    ? userAccentColor
-                    : hoveredLink === link._id
-                      ? userAccentColor
-                      : backgroundConfig.type === "image"
-                        ? '#ffffff'
-                        : isDarkMode
-                          ? 'rgb(229, 231, 235)'
-                          : 'rgb(31, 41, 55)',
-                }}
-              >
-                {link.title}
-              </span>
-
+            <span
+  className="break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300"
+  style={{
+    color: hoveredLink === link._id || isCta
+      ? userAccentColor
+      : isDarkMode
+        ? '#f3f4f6'
+        : '#1f2937',
+  }}
+>
+  {link.title}
+</span>
               {/* ✨ Badge NOVO */}
               {isNew && (
                 <motion.span
