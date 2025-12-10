@@ -44,101 +44,279 @@ import { SubscriptionPlanDetails } from "@/lib/subscription";
 import { Doc } from "@/convex/_generated/dataModel";
 
 // --- MAPA DE ÍCONES INTELIGENTE ---
+// --- MAPA DE ÍCONES ULTRA INTELIGENTE ---
 const ICON_MAP = [
-  // 📍 Localização & Mapas - CORRIGIDO: Usa MapPin ao invés do G do Google
+  // 📍 Localização & Mapas
   { match: ['google.com/maps', 'goo.gl/maps', 'maps.google', 'maps.app.goo.gl'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" /> },
   { match: ['waze.com', 'waze.to'], icon: <FaWaze className="w-4 h-4 sm:w-5 sm:h-5 text-[#33CCFF]" /> },
   { match: ['maps.apple.com'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#8E8E93]" /> },
+  { match: ['uber.com'], icon: <FaUber className="w-4 h-4 sm:w-5 sm:h-5 text-black" /> },
+  { match: ['99app', '99taxi'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFCC00]" /> },
 
   // 💬 Mensagens & Contato
   { match: ['whatsapp', 'wa.me', 'api.whatsapp'], icon: <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5 text-[#25D366]" /> },
   { match: ['t.me', 'telegram'], icon: <FaTelegram className="w-4 h-4 sm:w-5 sm:h-5 text-[#0088cc]" /> },
   { match: ['discord.com', 'discord.gg'], icon: <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-[#5865F2]" /> },
   { match: ['mailto:'], icon: <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" /> },
-  { match: ['tel:'], icon: <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-[#34A853]" /> },
+  { match: ['tel:', 'callto:'], icon: <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-[#34A853]" /> },
+  { match: ['skype.com', 'skype:'], icon: <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-[#00AFF0]" /> },
+  { match: ['zoom.us', 'zoom.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#2D8CFF]" /> },
+  { match: ['meet.google', 'hangouts'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#00897B]" /> },
+  { match: ['teams.microsoft', 'teams.live'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#6264A7]" /> },
 
   // 📸 Redes Sociais
-  { match: ['instagram.com'], icon: <FaInstagram className="w-4 h-4 sm:w-5 sm:h-5 text-[#E1306C]" /> },
-  { match: ['facebook.com', 'fb.com'], icon: <FaFacebook className="w-4 h-4 sm:w-5 sm:h-5 text-[#1877F3]" /> },
-  { match: ['twitter.com', 'x.com'], icon: <FaTwitter className="w-4 h-4 sm:w-5 sm:h-5 text-[#1DA1F2]" /> },
-  { match: ['linkedin.com'], icon: <FaLinkedin className="w-4 h-4 sm:w-5 sm:h-5 text-[#0077B5]" /> },
-  { match: ['tiktok.com'], icon: <FaTiktok className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
-  { match: ['pinterest.com'], icon: <FaPinterest className="w-4 h-4 sm:w-5 sm:h-5 text-[#E60023]" /> },
+  { match: ['instagram.com', 'instagr.am'], icon: <FaInstagram className="w-4 h-4 sm:w-5 sm:h-5 text-[#E1306C]" /> },
+  { match: ['facebook.com', 'fb.com', 'fb.me'], icon: <FaFacebook className="w-4 h-4 sm:w-5 sm:h-5 text-[#1877F3]" /> },
+  { match: ['twitter.com', 'x.com', 't.co'], icon: <FaTwitter className="w-4 h-4 sm:w-5 sm:h-5 text-[#1DA1F2]" /> },
+  { match: ['linkedin.com', 'lnkd.in'], icon: <FaLinkedin className="w-4 h-4 sm:w-5 sm:h-5 text-[#0077B5]" /> },
+  { match: ['tiktok.com', 'vm.tiktok'], icon: <FaTiktok className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
+  { match: ['pinterest.com', 'pin.it'], icon: <FaPinterest className="w-4 h-4 sm:w-5 sm:h-5 text-[#E60023]" /> },
   { match: ['snapchat.com'], icon: <FaSnapchat className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFFC00]" /> },
-  { match: ['reddit.com'], icon: <FaReddit className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF4500]" /> },
+  { match: ['reddit.com', 'redd.it'], icon: <FaReddit className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF4500]" /> },
+  { match: ['threads.net'], icon: <FaInstagram className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
+  { match: ['bsky.app', 'bluesky'], icon: <FaTwitter className="w-4 h-4 sm:w-5 sm:h-5 text-[#0085FF]" /> },
+
+  // 🎥 Vídeo & Streaming
+  { match: ['youtube.com', 'youtu.be', 'youtube.com/@'], icon: <FaYoutube className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
+  { match: ['twitch.tv'], icon: <FaTwitch className="w-4 h-4 sm:w-5 sm:h-5 text-[#9146FF]" /> },
+  { match: ['netflix.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#E50914]" /> },
+  { match: ['primevideo', 'amazon.com/prime'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#00A8E1]" /> },
+  { match: ['disneyplus', 'disney.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#113CCF]" /> },
+  { match: ['hbomax', 'max.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#B535F6]" /> },
+  { match: ['vimeo.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#1AB7EA]" /> },
+  { match: ['dailymotion'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#0066DC]" /> },
+  { match: ['kick.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#53FC18]" /> },
+  { match: ['rumble.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#85C742]" /> },
+
+  // 🎵 Música & Podcast
+  { match: ['spotify.com', 'open.spotify'], icon: <FaSpotify className="w-4 h-4 sm:w-5 sm:h-5 text-[#1DB954]" /> },
+  { match: ['soundcloud.com'], icon: <FaSoundcloud className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF5500]" /> },
+  { match: ['music.apple.com', 'itunes.apple'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#FA243C]" /> },
+  { match: ['deezer.com'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#FEAA2D]" /> },
+  { match: ['tidal.com'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
+  { match: ['music.youtube', 'youtubemusic'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
+  { match: ['podcasts.apple', 'podcasts.google', 'anchor.fm', 'spreaker', 'podbean'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#8940FA]" /> },
+
+  // 🛍️ E-commerce & Pagamentos
+  { match: ['amazon.', 'amzn.to'], icon: <FaAmazon className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF9900]" /> },
+  { match: ['shopee.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EE4D2D]" /> },
+  { match: ['shein.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
+  { match: ['mercadolivre.', 'mercadopago.', 'mercadolibre'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFE600]" /> },
+  { match: ['paypal.com', 'paypal.me'], icon: <FaPaypal className="w-4 h-4 sm:w-5 sm:h-5 text-[#003087]" /> },
+  { match: ['patreon.com'], icon: <FaPatreon className="w-4 h-4 sm:w-5 sm:h-5 text-[#F96854]" /> },
+  { match: ['pix', 'nubank', 'picpay', 'pagseguro'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#32BCAD]" /> },
+  { match: ['ifood'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA1D2C]" /> },
+  { match: ['rappi'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF441F]" /> },
+  { match: ['magalu', 'magazineluiza'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#0086FF]" /> },
+  { match: ['aliexpress'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#E62E04]" /> },
+  { match: ['etsy.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#F56400]" /> },
+  { match: ['ebay.com'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#E53238]" /> },
+  { match: ['hotmart', 'eduzz', 'monetizze', 'kiwify', 'braip'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#F04E23]" /> },
+  { match: ['gumroad'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF90E8]" /> },
+  { match: ['ko-fi', 'buymeacoffee', 'apoia.se'], icon: <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF5E5B]" /> },
+
+  // 💻 Dev & Design
+  { match: ['github.com', 'github.io'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#181717] dark:text-white" /> },
+  { match: ['gitlab.com'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#FC6D26]" /> },
+  { match: ['bitbucket.org'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#0052CC]" /> },
+  { match: ['behance.net'], icon: <FaBehance className="w-4 h-4 sm:w-5 sm:h-5 text-[#1769FF]" /> },
+  { match: ['dribbble.com'], icon: <FaDribbble className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4C89]" /> },
+  { match: ['figma.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#F24E1E]" /> },
+  { match: ['codepen.io'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
+  { match: ['stackoverflow.com'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#F58025]" /> },
+  { match: ['dev.to'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#0A0A0A] dark:text-white" /> },
+  { match: ['notion.so', 'notion.site'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
+  { match: ['canva.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#00C4CC]" /> },
+
+  // 📰 Blog & Conteúdo
+  { match: ['medium.com'], icon: <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
+  { match: ['substack.com'], icon: <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF6719]" /> },
+  { match: ['wordpress.com', 'wp.com'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#21759B]" /> },
+  { match: ['blogger.com', 'blogspot'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF5722]" /> },
+  { match: ['tumblr.com'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#36465D]" /> },
+
+  // 📱 Apps & Stores
+  { match: ['play.google.com', 'market://'], icon: <FaGooglePlay className="w-4 h-4 sm:w-5 sm:h-5 text-[#3BCCFF]" /> },
+  { match: ['apps.apple.com', 'itunes.apple.com/app'], icon: <FaAppStore className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D96F6]" /> },
+
+  // 🎮 Games
+  { match: ['store.steampowered', 'steamcommunity'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#1B2838]" /> },
+  { match: ['epicgames.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
+  { match: ['playstation.com', 'store.playstation'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#003791]" /> },
+  { match: ['xbox.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#107C10]" /> },
+  { match: ['nintendo.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#E60012]" /> },
+  { match: ['roblox.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#E2231A]" /> },
+
+  // 📅 Agendamento & Eventos
+  { match: ['calendly.com'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#006BFF]" /> },
+  { match: ['cal.com'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#292929] dark:text-white" /> },
+  { match: ['eventbrite.com'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#F05537]" /> },
+  { match: ['sympla.com.br'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#52BE80]" /> },
+  { match: ['meetup.com'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#ED1C40]" /> },
+
+  // 📚 Educação
+  { match: ['udemy.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#A435F0]" /> },
+  { match: ['coursera.org'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#0056D2]" /> },
+  { match: ['alura.com.br'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#0066CC]" /> },
+  { match: ['rocketseat.com.br'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#8257E5]" /> },
 
   // 🎉 Aniversários & Celebrações
   { match: ['bday', 'birthday', 'aniversario', 'festa'], icon: <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0080]" /> },
 
-  // 🎥 Vídeo & Streaming
-  { match: ['youtube.com', 'youtu.be'], icon: <FaYoutube className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
-  { match: ['twitch.tv'], icon: <FaTwitch className="w-4 h-4 sm:w-5 sm:h-5 text-[#9146FF]" /> },
-  { match: ['netflix.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#E50914]" /> },
+  // 📄 Documentos & Arquivos
+  { match: ['drive.google', 'docs.google', 'sheets.google', 'slides.google'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#4285F4]" /> },
+  { match: ['dropbox.com'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#0061FF]" /> },
+  { match: ['onedrive.live', 'sharepoint'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#0078D4]" /> },
+  { match: ['.pdf'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
 
-  // 🎵 Música & Podcast
-  { match: ['spotify.com'], icon: <FaSpotify className="w-4 h-4 sm:w-5 sm:h-5 text-[#1DB954]" /> },
-  { match: ['soundcloud.com'], icon: <FaSoundcloud className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF5500]" /> },
-  { match: ['music.apple.com'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#FA243C]" /> },
-
-  // 🛍️ E-commerce & Pagamentos
-  { match: ['amazon.'], icon: <FaAmazon className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF9900]" /> },
-  { match: ['shopee.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EE4D2D]" /> },
-  { match: ['shein.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
-  { match: ['mercadolivre.', 'mercadopago.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFE600]" /> },
-  { match: ['paypal.com', 'paypal.me'], icon: <FaPaypal className="w-4 h-4 sm:w-5 sm:h-5 text-[#003087]" /> },
-  { match: ['patreon.com'], icon: <FaPatreon className="w-4 h-4 sm:w-5 sm:h-5 text-[#F96854]" /> },
-  { match: ['store', 'shop', 'loja'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
-  { match: ['donate', 'donation', 'apoie'], icon: <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-[#EF4444]" /> },
-  { match: ['ifood'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA1D2C]" /> },
-
-  // 💻 Dev & Design
-  { match: ['github.com'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#181717]" /> },
-  { match: ['behance.net'], icon: <FaBehance className="w-4 h-4 sm:w-5 sm:h-5 text-[#1769FF]" /> },
-  { match: ['dribbble.com'], icon: <FaDribbble className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4C89]" /> },
-  { match: ['medium.com'], icon: <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
-  { match: ['portfolio'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#8B5CF6]" /> },
-
-  // 🌐 Outros
-  { match: ['blog'], icon: <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000]" /> },
-  { match: ['website', 'site', 'webpage'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" /> },
-  { match: ['cv', 'resume', 'curriculo'], icon: <User className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
-  { match: ['calendar', 'agenda'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#3b82f6]" /> },
-  { match: ['help', 'suporte'], icon: <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-[#10B981]" /> },
-
-  // 📱 Apps
-  { match: ['play.google.com'], icon: <FaGooglePlay className="w-4 h-4 sm:w-5 sm:h-5 text-[#3BCCFF]" /> },
-  { match: ['apps.apple.com'], icon: <FaAppStore className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D96F6]" /> },
-  { match: ['uber.com'], icon: <FaUber className="w-4 h-4 sm:w-5 sm:h-5 text-black" /> },
+  // 🔒 Segurança & Auth
+  { match: ['bit.ly', 'tinyurl', 'short.io', 'rebrand.ly', 'ow.ly'], icon: <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#EE6123]" /> },
 ];
 
+// 🔥 FUNÇÃO ULTRA INTELIGENTE PARA DETECTAR ÍCONES
 function getLinkIcon(url: string, title: string): React.ReactNode {
   if (!url) return <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
+
   const u = url.toLowerCase();
   const t = title?.toLowerCase() || "";
 
-  // 1. Verifica no Mapa de Ícones Específicos
+
+  // 1. Verifica no Mapa de Ícones Específicos (prioridade máxima)
   for (const item of ICON_MAP) {
     if (item.match.some(match => u.includes(match))) {
       return item.icon;
     }
   }
 
-  // Lógica que usa o título
-  if (t.includes('vendedor')) return <User className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />;
-  if (t.includes('ceo')) return <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />;
-  if (t.includes('suporte')) return <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />;
+  // 2. Detecção inteligente por palavras-chave no TÍTULO
+  const titleKeywords: Record<string, React.ReactNode> = {
+    // Pessoas & Cargos
+    'ceo': <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
+    'fundador': <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
+    'founder': <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
+    'diretor': <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />,
+    'gerente': <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'vendedor': <User className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
+    'suporte': <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'atendimento': <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
+    'contato': <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
 
-  // 2. Ícones Genéricos Inteligentes - CORRIGIDO: Localização usa MapPin
-  if (u.includes('map') || u.includes('rua') || u.includes('avenida') || u.includes('local'))
+    // Ações
+    'comprar': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
+    'compre': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
+    'loja': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'store': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'shop': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'catálogo': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'cardápio': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />,
+    'menu': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />,
+    'pedido': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'delivery': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'entrega': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+
+    // Doações
+    'doar': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'donate': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'apoie': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
+    'apoiar': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
+    'contribua': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
+    'pix': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />,
+
+    // Localização
+    'endereço': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'localização': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'location': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'como chegar': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'mapa': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'rota': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+
+    // Agenda
+    'agendar': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'agenda': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'marcar': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'consulta': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
+    'horário': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'reserva': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'evento': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
+
+    // Conteúdo
+    'blog': <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" />,
+    'artigo': <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" />,
+    'post': <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" />,
+    'podcast': <Music className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'música': <Music className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
+    'music': <Music className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
+    'vídeo': <Video className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'video': <Video className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'live': <Video className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />,
+    'ao vivo': <Video className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />,
+
+    // Profissional
+    'currículo': <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'cv': <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'resume': <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'portfolio': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'portfólio': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'trabalhos': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'projetos': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+
+    // Cursos & Educação
+    'curso': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'aula': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'mentoria': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
+    'ebook': <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
+    'e-book': <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
+    'material': <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'download': <Download className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+    'baixar': <Download className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+
+    // Comunidade
+    'grupo': <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />,
+    'comunidade': <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />,
+    'community': <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />,
+    'newsletter': <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />,
+    'inscreva': <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
+
+    // Promoções
+    'promoção': <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />,
+    'oferta': <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />,
+    'desconto': <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
+    'cupom': <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
+    'black friday': <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-gray-900 dark:text-white" />,
+
+    // Celebração
+    'aniversário': <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
+    'birthday': <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
+    'casamento': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'wedding': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
+    'festa': <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+    'party': <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
+  };
+
+  // Verifica palavras-chave no título
+  for (const [keyword, icon] of Object.entries(titleKeywords)) {
+    if (t.includes(keyword)) {
+      return icon;
+    }
+  }
+
+  // 3. Detecção por padrões na URL
+  if (u.includes('map') || u.includes('rua') || u.includes('avenida') || u.includes('local') || u.includes('endereco'))
     return <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" />;
 
-  if (u.includes('contato') || u.includes('fale'))
+  if (u.includes('contato') || u.includes('fale') || u.includes('contact'))
     return <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" />;
 
-  if (u.includes('agenda') || u.includes('cal'))
+  if (u.includes('agenda') || u.includes('cal') || u.includes('booking') || u.includes('schedule'))
     return <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#3b82f6]" />;
 
-  // 3. Fallback Padrão
+  if (u.includes('form') || u.includes('typeform') || u.includes('jotform') || u.includes('google.com/forms'))
+    return <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#673AB7]" />;
+
+  if (u.includes('survey') || u.includes('pesquisa') || u.includes('enquete'))
+    return <Star className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFC107]" />;
+
+  // 4. Fallback Padrão
   return <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" />;
 }
 
@@ -760,7 +938,31 @@ export default function PublicPageContent({
  const getProtectedTextClasses = () => {
   return ""; // Removido completamente - texto limpo
 };
+// 🔥 DETECTA SE É LINK DE CTA (Call-to-Action)
+const isCtaLink = (url: string, title: string): boolean => {
+  const ctaKeywords = [
+    'comprar', 'compre', 'buy', 'shop', 'loja', 'store',
+    'agendar', 'agenda', 'marcar', 'reservar', 'booking',
+    'whatsapp', 'wa.me', 'chamar', 'contato', 'falar',
+    'inscrever', 'cadastrar', 'register', 'signup',
+    'baixar', 'download', 'grátis', 'free',
+    'oferta', 'promoção', 'desconto', 'cupom'
+  ];
+  const combined = `${url} ${title}`.toLowerCase();
+  return ctaKeywords.some(keyword => combined.includes(keyword));
+};
 
+// ✨ DETECTA SE LINK É NOVO (menos de 7 dias)
+const isNewLink = (creationTime: number): boolean => {
+  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  return creationTime > sevenDaysAgo;
+};
+
+// 📱 ENCONTRA LINK DO WHATSAPP
+const whatsappLink = links?.find(link =>
+  link.url.toLowerCase().includes('whatsapp') ||
+  link.url.toLowerCase().includes('wa.me')
+);
   return (
     <div className={`min-h-screen w-full overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
 
@@ -1254,197 +1456,285 @@ export default function PublicPageContent({
                   {/* Links List */}
                   <div className="space-y-2 sm:space-y-2.5">
                     {links && links.length > 0 ? (
-                      links.map((link, index) => (
-                        <motion.div
-                          key={link._id}
-                          initial={{ opacity: 0, x: -50 }}
-                          animate={{ opacity: 1, x: 0 }}
-                          transition={{
-                            delay: index * 0.05,
-                            type: "spring",
-                            stiffness: 100
-                          }}
-                          whileHover={{ scale: 1.02, x: 5 }}
-                          onHoverStart={() => setHoveredLink(link._id)}
-                          onHoverEnd={() => setHoveredLink(null)}
-                          className="w-full max-w-full"
-                        >
-                          <a
-                            href={link.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="group relative flex items-center gap-2.5 sm:gap-3 w-full rounded-xl sm:rounded-2xl p-3 sm:p-3.5 md:p-4 font-bold text-sm sm:text-base transition-all duration-300 overflow-hidden"
-                            style={{
-                              // 🔥 LINKS TRANSPARENTES
-                              background: backgroundConfig.type === "image"
-                                ? 'rgba(255, 255, 255, 0.2)'
-                                : isDarkMode
-                                  ? 'rgba(31, 41, 55, 0.5)'
-                                  : 'rgba(255, 255, 255, 0.5)',
-                              backdropFilter: 'blur(10px)',
-                              WebkitBackdropFilter: 'blur(10px)',
-                              borderWidth: '2px',
-                              borderStyle: 'solid',
-                              borderColor: hoveredLink === link._id ? userAccentColor : 'rgba(255,255,255,0.2)',
-                              boxShadow: hoveredLink === link._id
-                                ? `0 0 30px ${hexToRgba(userAccentColor, 0.4)}, inset 0 0 20px ${hexToRgba(userAccentColor, 0.1)}`
-                                : '0 2px 8px rgba(0,0,0,0.1)',
-                            }}
-                            onClick={() => handleTrack(link)}
-                          >
-                            {/* Animated background gradient */}
-                            <motion.div
-                              className="absolute inset-0"
-                              initial={{ opacity: 0 }}
-                              animate={{
-                                opacity: hoveredLink === link._id ? 0.15 : 0,
-                              }}
-                              style={{
-                                background: `linear-gradient(135deg, ${userAccentColor}, transparent)`,
-                              }}
-                            />
+  links.map((link, index) => {
+    const isCta = isCtaLink(link.url, link.title);
+    const isNew = isNewLink(link._creationTime);
 
-                            {/* Shimmer effect on hover */}
-                            {hoveredLink === link._id && (
-                              <motion.div
-                                className="absolute inset-0"
-                                style={{
-                                  background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.3)}, transparent)`
-                                }}
-                                animate={{
-                                  x: ['-100%', '200%']
-                                }}
-                                transition={{
-                                  duration: 1.5,
-                                  repeat: Infinity,
-                                  ease: "linear"
-                                }}
-                              />
-                            )}
+    return (
+      <motion.div
+        key={link._id}
+        initial={{ opacity: 0, x: -50, rotateY: -15 }}
+        animate={{ opacity: 1, x: 0, rotateY: 0 }}
+        transition={{
+          delay: index * 0.08,
+          type: "spring",
+          stiffness: 120,
+          damping: 14
+        }}
+        whileHover={{
+          scale: isCta ? 1.05 : 1.03,
+          x: 8,
+          transition: { type: "spring", stiffness: 400 }
+        }}
+        whileTap={{ scale: 0.98 }}
+        onHoverStart={() => setHoveredLink(link._id)}
+        onHoverEnd={() => setHoveredLink(null)}
+        className="w-full max-w-full perspective-1000"
+      >
+        <a
+          href={link.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`group relative flex items-center gap-2.5 sm:gap-3 w-full rounded-xl sm:rounded-2xl p-3 sm:p-3.5 md:p-4 font-bold text-sm sm:text-base transition-all duration-300 overflow-hidden ring-offset-[var(--ring-offset-color)] ring-[var(--ring-color)] ${
+            isCta ? 'ring-2 ring-offset-2' : ''
+          }`}
+          style={{
+            background: isCta
+              ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, ${hexToRgba(userAccentColor, 0.05)})`
+              : backgroundConfig.type === "image"
+                ? 'rgba(255, 255, 255, 0.2)'
+                : isDarkMode
+                  ? 'rgba(31, 41, 55, 0.5)'
+                  : 'rgba(255, 255, 255, 0.5)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            borderWidth: isCta ? '2px' : '2px',
+            borderStyle: 'solid',
+            borderColor: isCta
+              ? userAccentColor
+              : hoveredLink === link._id
+                ? userAccentColor
+                : 'rgba(255,255,255,0.2)',
+            boxShadow: isCta
+              ? `0 0 25px ${hexToRgba(userAccentColor, 0.3)}, 0 4px 15px rgba(0,0,0,0.1)`
+              : hoveredLink === link._id
+                ? `0 0 30px ${hexToRgba(userAccentColor, 0.4)}`
+                : '0 2px 8px rgba(0,0,0,0.1)',
+            '--ring-color': isCta ? userAccentColor : 'transparent',
+            '--ring-offset-color': isDarkMode ? '#111827' : '#ffffff',
+          } as React.CSSProperties}
+          onClick={() => handleTrack(link)}
+        >
+          {/* 🔥 CTA Pulse Animation */}
+          {isCta && (
+            <motion.div
+              className="absolute inset-0 rounded-xl sm:rounded-2xl"
+              style={{
+                border: `2px solid ${userAccentColor}`,
+              }}
+              animate={{
+                scale: [1, 1.02, 1],
+                opacity: [0.5, 0.2, 0.5],
+              }}
+              transition={{
+                duration: 2,
+                repeat: Infinity,
+                ease: "easeInOut"
+              }}
+            />
+          )}
 
-                            {/* Icon */}
-                            <motion.span
-                              whileHover={{ rotate: 360, scale: 1.1 }}
-                              transition={{ duration: 0.5 }}
-                              className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg flex-shrink-0 overflow-hidden"
-                              style={{
-                                background: link.thumbnailUrl
-                                  ? 'transparent'
-                                  : hoveredLink === link._id
-                                    ? `linear-gradient(135deg, ${userAccentColor}20, ${userAccentColor}40)`
-                                    : backgroundConfig.type === "image"
-                                      ? 'rgba(255, 255, 255, 0.3)'
-                                      : isDarkMode
-                                        ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
-                                        : 'linear-gradient(135deg, rgba(249, 250, 251, 0.8), rgba(243, 244, 246, 0.8))',
-                              }}
-                            >
-                              {link.thumbnailUrl ? (
-                                <Image
-                                  src={link.thumbnailUrl}
-                                  alt={link.title}
-                                  width={40}
-                                  height={40}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                getLinkIcon(link.url, link.title)
-                              )}
-                            </motion.span>
+          {/* Gradient overlay animado */}
+          <motion.div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100"
+            initial={false}
+            animate={{
+              background: hoveredLink === link._id
+                ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, transparent)`
+                : 'transparent',
+            }}
+            transition={{ duration: 0.3 }}
+          />
 
-                            {/* 🔥 TÍTULO DO LINK COM PROTEÇÃO DE TEXTO */}
-                            <span
-                              className={`flex-1 min-w-0 break-words whitespace-normal text-sm sm:text-base font-bold leading-tight ${getProtectedTextClasses()}`}
-                              style={{
-                                color: hoveredLink === link._id
-                                  ? userAccentColor
-                                  : backgroundConfig.type === "image"
-                                    ? '#ffffff'
-                                    : isDarkMode
-                                      ? 'rgb(229, 231, 235)'
-                                      : 'rgb(31, 41, 55)',
-                                textShadow: hoveredLink === link._id
-                                  ? `0 0 10px ${hexToRgba(userAccentColor, 0.5)}`
-                                  : backgroundConfig.type === "image"
-                                    ? '0 1px 3px rgba(0,0,0,0.6)'
-                                    : 'none'
-                              }}
-                            >
-                              {link.title}
-                            </span>
+          {/* Shimmer effect */}
+          <motion.div
+            className="absolute inset-0 opacity-0 group-hover:opacity-100"
+            style={{
+              background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)`
+            }}
+            animate={hoveredLink === link._id ? {
+              x: ['-100%', '200%']
+            } : {}}
+            transition={{
+              duration: 1.2,
+              repeat: Infinity,
+              ease: "linear"
+            }}
+          />
 
-                            {/* Actions */}
-                            <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 relative z-10 ml-1">
-                              {/* Like Button */}
-                              <motion.button
-                                whileHover={{ scale: 1.15 }}
-                                whileTap={{ scale: 0.9 }}
-                                onClick={(e) => {
-                                  e.preventDefault();
-                                  handleReaction(link._id);
-                                }}
-                                className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-300"
-                                style={{
-                                  background: linkReactions[link._id]
-                                    ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.2), rgba(220, 38, 38, 0.2))'
-                                    : backgroundConfig.type === "image"
-                                      ? 'rgba(255, 255, 255, 0.2)'
-                                      : isDarkMode
-                                        ? 'rgba(55, 65, 81, 0.5)'
-                                        : 'rgba(243, 244, 246, 0.8)',
-                                  boxShadow: linkReactions[link._id]
-                                    ? '0 0 15px rgba(239, 68, 68, 0.3)'
-                                    : 'none'
-                                }}
-                              >
-                                <motion.div
-                                  animate={linkReactions[link._id] ? {
-                                    scale: [1, 1.3, 1],
-                                  } : {}}
-                                  transition={{ duration: 0.3 }}
-                                >
-                                  <Heart
-                                    className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-all duration-300 ${
-                                      linkReactions[link._id]
-                                        ? 'text-red-500 fill-current drop-shadow-[0_0_8px_rgba(239,68,68,0.8)]'
-                                        : 'text-gray-400'
-                                    }`}
-                                  />
-                                </motion.div>
-                                <span className={`text-[10px] sm:text-xs font-bold ${getProtectedTextClasses()}`}
-                                  style={{ color: backgroundConfig.type === "image" ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
-                                >
-                                  {linkReactions[link._id] || 0}
-                                </span>
-                              </motion.button>
+          {/* Icon */}
+          <motion.span
+            animate={hoveredLink === link._id ? {
+              rotate: [0, -10, 10, 0],
+              scale: [1, 1.1, 1],
+            } : {}}
+            transition={{ duration: 0.5 }}
+            className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg flex-shrink-0 overflow-hidden"
+            style={{
+              background: link.thumbnailUrl
+                ? 'transparent'
+                : isCta
+                  ? `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`
+                  : hoveredLink === link._id
+                    ? `linear-gradient(135deg, ${userAccentColor}30, ${userAccentColor}50)`
+                    : backgroundConfig.type === "image"
+                      ? 'rgba(255, 255, 255, 0.3)'
+                      : isDarkMode
+                        ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
+                        : 'linear-gradient(135deg, rgba(249, 250, 251, 0.9), rgba(243, 244, 246, 0.9))',
+              boxShadow: isCta
+                ? `0 0 20px ${hexToRgba(userAccentColor, 0.5)}`
+                : hoveredLink === link._id
+                  ? `0 0 15px ${hexToRgba(userAccentColor, 0.4)}`
+                  : '0 2px 8px rgba(0,0,0,0.1)',
+            }}
+          >
+            {link.thumbnailUrl ? (
+              <Image
+                src={link.thumbnailUrl}
+                alt={link.title}
+                width={40}
+                height={40}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <span className={isCta ? 'text-white' : ''}>
+                {getLinkIcon(link.url, link.title)}
+              </span>
+            )}
+          </motion.span>
 
-                              {/* External Link Icon */}
-                              <motion.div
-                                animate={{
-                                  x: hoveredLink === link._id ? [0, 3, 0] : 0,
-                                  y: hoveredLink === link._id ? [0, -3, 0] : 0,
-                                }}
-                                transition={{ duration: 0.5, repeat: hoveredLink === link._id ? Infinity : 0 }}
-                              >
-                                <ExternalLink
-                                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 hidden sm:block"
-                                  style={{
-                                    color: hoveredLink === link._id
-                                      ? userAccentColor
-                                      : backgroundConfig.type === "image"
-                                        ? 'rgba(255,255,255,0.7)'
-                                        : 'rgb(156, 163, 175)',
-                                    filter: hoveredLink === link._id
-                                      ? `drop-shadow(0 0 8px ${hexToRgba(userAccentColor, 0.8)})`
-                                      : 'none'
-                                  }}
-                                />
-                              </motion.div>
-                            </div>
-                          </a>
-                        </motion.div>
-                      ))
-                    ) : (
+          {/* Título + Badges */}
+          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+            <div className="flex items-center gap-2 flex-wrap">
+              <span
+                className="break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300"
+                style={{
+                  color: isCta
+                    ? userAccentColor
+                    : hoveredLink === link._id
+                      ? userAccentColor
+                      : backgroundConfig.type === "image"
+                        ? '#ffffff'
+                        : isDarkMode
+                          ? 'rgb(229, 231, 235)'
+                          : 'rgb(31, 41, 55)',
+                }}
+              >
+                {link.title}
+              </span>
+
+              {/* ✨ Badge NOVO */}
+              {isNew && (
+                <motion.span
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg"
+                  style={{
+                    boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)'
+                  }}
+                >
+                  Novo
+                </motion.span>
+              )}
+
+              {/* 🔥 Badge CTA */}
+              {isCta && (
+                <motion.span
+                  animate={{
+                    scale: [1, 1.1, 1],
+                  }}
+                  transition={{
+                    duration: 1.5,
+                    repeat: Infinity,
+                  }}
+                  className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-full text-white shadow-lg"
+                  style={{
+                    background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`,
+                    boxShadow: `0 0 10px ${hexToRgba(userAccentColor, 0.5)}`
+                  }}
+                >
+                  ⚡
+                </motion.span>
+              )}
+            </div>
+          </div>
+
+          {/* Actions */}
+          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 relative z-10 ml-1">
+            <motion.button
+              whileHover={{ scale: 1.2 }}
+              whileTap={{ scale: 0.85 }}
+              onClick={(e) => {
+                e.preventDefault();
+                handleReaction(link._id);
+              }}
+              className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-300"
+              style={{
+                background: linkReactions[link._id]
+                  ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.25))'
+                  : backgroundConfig.type === "image"
+                    ? 'rgba(255, 255, 255, 0.2)'
+                    : isDarkMode
+                      ? 'rgba(55, 65, 81, 0.5)'
+                      : 'rgba(243, 244, 246, 0.8)',
+                boxShadow: linkReactions[link._id]
+                  ? '0 0 20px rgba(239, 68, 68, 0.4)'
+                  : 'none'
+              }}
+            >
+              <motion.div
+                animate={linkReactions[link._id] ? {
+                  scale: [1, 1.4, 1],
+                  rotate: [0, -15, 15, 0],
+                } : {}}
+                transition={{ duration: 0.4 }}
+              >
+                <Heart
+                  className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-all duration-300 ${
+                    linkReactions[link._id]
+                      ? 'text-red-500 fill-current drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]'
+                      : 'text-gray-400 hover:text-red-400'
+                  }`}
+                />
+              </motion.div>
+              <span
+                className="text-[10px] sm:text-xs font-bold"
+                style={{ color: backgroundConfig.type === "image" ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
+              >
+                {linkReactions[link._id] || 0}
+              </span>
+            </motion.button>
+
+            <motion.div
+              animate={hoveredLink === link._id ? {
+                x: [0, 4, 0],
+                y: [0, -4, 0],
+              } : {}}
+              transition={{
+                duration: 0.6,
+                repeat: hoveredLink === link._id ? Infinity : 0,
+                ease: "easeInOut"
+              }}
+            >
+              <ExternalLink
+                className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 hidden sm:block"
+                style={{
+                  color: hoveredLink === link._id
+                    ? userAccentColor
+                    : backgroundConfig.type === "image"
+                      ? 'rgba(255,255,255,0.7)'
+                      : 'rgb(156, 163, 175)',
+                }}
+              />
+            </motion.div>
+          </div>
+        </a>
+      </motion.div>
+    );
+  })
+) : (
+  // ... resto do código para quando não há links
                       <motion.div
                         className="text-center py-8 sm:py-10 md:py-12"
                         initial={{ opacity: 0, scale: 0.9 }}
@@ -1648,6 +1938,56 @@ export default function PublicPageContent({
           </motion.div>
         )}
       </AnimatePresence>
+      {/* 📱 BOTÃO FLUTUANTE WHATSAPP */}
+<AnimatePresence>
+  {whatsappLink && (
+    <motion.a
+      href={whatsappLink.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      initial={{ scale: 0, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      exit={{ scale: 0, opacity: 0 }}
+      transition={{ delay: 1.5, type: "spring", stiffness: 200 }}
+      whileHover={{ scale: 1.1 }}
+      whileTap={{ scale: 0.95 }}
+      className="fixed bottom-20 right-4 sm:bottom-24 sm:right-6 w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl flex items-center justify-center z-40"
+      style={{
+        background: 'linear-gradient(135deg, #25D366, #128C7E)',
+        boxShadow: '0 4px 25px rgba(37, 211, 102, 0.5)'
+      }}
+      onClick={() => handleTrack(whatsappLink)}
+    >
+      <motion.div
+        animate={{
+          scale: [1, 1.1, 1],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+        }}
+      >
+        <FaWhatsapp className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
+      </motion.div>
+
+      {/* Ping animation */}
+      <motion.span
+        className="absolute inset-0 rounded-full"
+        style={{
+          border: '3px solid #25D366',
+        }}
+        animate={{
+          scale: [1, 1.4],
+          opacity: [0.8, 0],
+        }}
+        transition={{
+          duration: 1.5,
+          repeat: Infinity,
+        }}
+      />
+    </motion.a>
+  )}
+</AnimatePresence>
 
       {/* ✅ 5. BANNER DE COOKIES */}
       <AnimatePresence>
