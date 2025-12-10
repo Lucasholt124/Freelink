@@ -958,11 +958,8 @@ const isNewLink = (creationTime: number): boolean => {
   return creationTime > sevenDaysAgo;
 };
 
-// 📱 ENCONTRA LINK DO WHATSAPP
-const whatsappLink = links?.find(link =>
-  link.url.toLowerCase().includes('whatsapp') ||
-  link.url.toLowerCase().includes('wa.me')
-);
+
+
   return (
     <div className={`min-h-screen w-full overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
 
@@ -1938,56 +1935,7 @@ const whatsappLink = links?.find(link =>
           </motion.div>
         )}
       </AnimatePresence>
-      {/* 📱 BOTÃO FLUTUANTE WHATSAPP */}
-<AnimatePresence>
-  {whatsappLink && (
-    <motion.a
-      href={whatsappLink.url}
-      target="_blank"
-      rel="noopener noreferrer"
-      initial={{ scale: 0, opacity: 0 }}
-      animate={{ scale: 1, opacity: 1 }}
-      exit={{ scale: 0, opacity: 0 }}
-      transition={{ delay: 1.5, type: "spring", stiffness: 200 }}
-      whileHover={{ scale: 1.1 }}
-      whileTap={{ scale: 0.95 }}
-      className="fixed bottom-20 right-4 sm:bottom-24 sm:right-6 w-14 h-14 sm:w-16 sm:h-16 rounded-full shadow-2xl flex items-center justify-center z-40"
-      style={{
-        background: 'linear-gradient(135deg, #25D366, #128C7E)',
-        boxShadow: '0 4px 25px rgba(37, 211, 102, 0.5)'
-      }}
-      onClick={() => handleTrack(whatsappLink)}
-    >
-      <motion.div
-        animate={{
-          scale: [1, 1.1, 1],
-        }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-        }}
-      >
-        <FaWhatsapp className="w-7 h-7 sm:w-8 sm:h-8 text-white" />
-      </motion.div>
 
-      {/* Ping animation */}
-      <motion.span
-        className="absolute inset-0 rounded-full"
-        style={{
-          border: '3px solid #25D366',
-        }}
-        animate={{
-          scale: [1, 1.4],
-          opacity: [0.8, 0],
-        }}
-        transition={{
-          duration: 1.5,
-          repeat: Infinity,
-        }}
-      />
-    </motion.a>
-  )}
-</AnimatePresence>
 
       {/* ✅ 5. BANNER DE COOKIES */}
       <AnimatePresence>
