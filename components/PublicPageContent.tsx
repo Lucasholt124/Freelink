@@ -1608,7 +1608,9 @@ const isNewLink = (creationTime: number): boolean => {
   className="break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300"
   style={{
     color: isCta
-      ? '#ffffff'
+      ? isDarkMode
+        ? '#ffffff'
+        : '#1f2937'
       : hoveredLink === link._id
         ? userAccentColor
         : isDarkMode
