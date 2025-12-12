@@ -510,6 +510,7 @@ function ParticleField({ color = "rgba(147, 51, 234, 0.4)" }: { color?: string }
   );
 }
 
+
 // 🔥 NOVO BADGE ULTRA - ESTILO INSTAGRAM VERIFICADO
 function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" | "large"; plan?: string }) {
   const sizeClasses = size === "large" ? "w-7 h-7 sm:w-8 sm:h-8" : "w-5 h-5 sm:w-6 sm:h-6";
@@ -646,6 +647,18 @@ export default function PublicPageContent({
 
   const profileUrl = `${getBaseUrl()}/${username}`;
   const userAccentColor = customizations?.accentColor || '#6366f1';
+
+  // --- 🔥 LÓGICA DE SEPARAÇÃO: STATUS vs BIO (NOVIDADE) ---
+  const fullDescription = customizations?.description || "";
+  let statusMessage = "";
+  let displayBio = fullDescription;
+
+  // Se a bio começar com AVISO ou STATUS, o sistema separa para criar o letreiro
+  if (fullDescription.startsWith("AVISO:") || fullDescription.startsWith("STATUS:")) {
+      const parts = fullDescription.split("\n");
+      statusMessage = parts[0].replace(/^(AVISO:|STATUS:)\s*/i, "").trim();
+      displayBio = parts.slice(1).join("\n").trim();
+  }
 
   const [shared, setShared] = useState(false);
   const [showQRCode, setShowQRCode] = useState(false);
@@ -934,11 +947,10 @@ export default function PublicPageContent({
     return {};
   };
 
-  // 🔥 FUNÇÃO PARA PROTEGER TEXTOS - Retorna classes CSS para texto visível em qualquer fundo
  const getProtectedTextClasses = () => {
-  return ""; // Removido completamente - texto limpo
+  return "";
 };
-// 🔥 DETECTA SE É LINK DE CTA (Call-to-Action)
+
 const isCtaLink = (url: string, title: string): boolean => {
   const ctaKeywords = [
     'comprar', 'compre', 'buy', 'shop', 'loja', 'store',
@@ -952,13 +964,10 @@ const isCtaLink = (url: string, title: string): boolean => {
   return ctaKeywords.some(keyword => combined.includes(keyword));
 };
 
-// ✨ DETECTA SE LINK É NOVO (menos de 7 dias)
 const isNewLink = (creationTime: number): boolean => {
   const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
   return creationTime > sevenDaysAgo;
 };
-
-
 
   return (
     <div className={`min-h-screen w-full overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
@@ -1182,6 +1191,21 @@ const isNewLink = (creationTime: number): boolean => {
           </div>
         </div>
 
+      {/* 🔥 LÓGICA DO LETREIRO DIGITAL (STATUS) */}
+      {statusMessage && (
+         <motion.div
+           initial={{ y: -50, opacity: 0 }}
+           animate={{ y: 0, opacity: 1 }}
+           className="w-full py-2.5 px-4 text-center text-xs sm:text-sm font-bold text-white relative z-[60] shadow-md"
+           style={{ background: userAccentColor }}
+         >
+           <div className="flex items-center justify-center gap-2">
+             <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+             {statusMessage}
+           </div>
+         </motion.div>
+      )}
+
         <AnimatePresence>
           {showQRCode && qrCodeDataUrl && (
             <motion.div
@@ -1254,7 +1278,6 @@ const isNewLink = (creationTime: number): boolean => {
               <motion.div
                 className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-6 sm:p-5 md:p-6 shadow-2xl border border-white/20 dark:border-white/10"
                 style={{
-                  // 🔥 CARDS TRANSPARENTES - Glassmorphism melhorado
                   background: backgroundConfig.type === "image"
                     ? 'rgba(255, 255, 255, 0.15)'
                     : isDarkMode
@@ -1345,15 +1368,14 @@ const isNewLink = (creationTime: number): boolean => {
 
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
-                      {/* 🔥 NOME DO USUÁRIO COM PROTEÇÃO DE TEXTO */}
-                     <motion.h1
-  className="text-2xl sm:text-3xl font-black break-all"
-  style={{
-    color: userAccentColor,
-  }}
->
-  @{username}
-</motion.h1>
+                      <motion.h1
+                        className="text-2xl sm:text-3xl font-black break-all"
+                        style={{
+                          color: userAccentColor,
+                        }}
+                      >
+                        @{username}
+                      </motion.h1>
                       {plan !== 'free' && <VerifiedBadge size="large" plan={plan} />}
                     </div>
 
@@ -1373,8 +1395,8 @@ const isNewLink = (creationTime: number): boolean => {
                       </Link>
                     )}
 
-                    {/* 🔥 DESCRIÇÃO COM PROTEÇÃO DE TEXTO */}
-                    {customizations?.description && (
+                    {/* 🔥 DESCRIÇÃO SEM O STATUS */}
+                    {displayBio && (
                       <motion.p
                         className={`text-base sm:text-lg leading-relaxed px-4 ${getProtectedTextClasses()}`}
                         style={{ color: isDarkMode ? '#d1d5db' : '#4b5563' }}
@@ -1382,11 +1404,10 @@ const isNewLink = (creationTime: number): boolean => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
                       >
-                        {customizations.description}
+                        {displayBio}
                       </motion.p>
                     )}
 
-                    {/* 🔥 DATA COM PROTEÇÃO DE TEXTO */}
                     <div className={`flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap pt-2 ${getProtectedTextClasses()}`}
                       style={{ color: isDarkMode ? '#9ca3af' : '#6b7280' }}
                     >
@@ -1416,7 +1437,6 @@ const isNewLink = (creationTime: number): boolean => {
               <motion.div
                 className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/20 dark:border-white/10"
                 style={{
-                  // 🔥 CARDS TRANSPARENTES - Glassmorphism melhorado
                   background: backgroundConfig.type === "image"
                     ? 'rgba(255, 255, 255, 0.15)'
                     : isDarkMode
@@ -1428,12 +1448,10 @@ const isNewLink = (creationTime: number): boolean => {
                 }}
                 whileHover={{ y: -2 }}
               >
-                {/* Glassmorphism overlay */}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
 
                 <div className="relative z-10">
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
-                    {/* 🔥 TÍTULO DOS LINKS COM PROTEÇÃO */}
                     <motion.h2
                       className={`text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2 ${getProtectedTextClasses()}`}
                       style={{
@@ -1450,292 +1468,281 @@ const isNewLink = (creationTime: number): boolean => {
                     </motion.h2>
                   </div>
 
-                  {/* Links List */}
                   <div className="space-y-2 sm:space-y-2.5">
                     {links && links.length > 0 ? (
-  links.map((link, index) => {
-    const isCta = isCtaLink(link.url, link.title);
-    const isNew = isNewLink(link._creationTime);
+                      links.map((link, index) => {
+                        const isCta = isCtaLink(link.url, link.title);
+                        const isNew = isNewLink(link._creationTime);
+                        // 🔥 LOGICA PIX (Removido o botão de copia, mas preparado para futuro)
+                        // Você disse que removeu o botão de Pix, então mantemos o comportamento padrão
+                        // Mas deixo a lógica aqui se mudar de ideia. Por enquanto é link normal.
 
-    return (
-      <motion.div
-        key={link._id}
-        initial={{ opacity: 0, x: -50, rotateY: -15 }}
-        animate={{ opacity: 1, x: 0, rotateY: 0 }}
-        transition={{
-          delay: index * 0.08,
-          type: "spring",
-          stiffness: 120,
-          damping: 14
-        }}
-        whileHover={{
-          scale: isCta ? 1.05 : 1.03,
-          x: 8,
-          transition: { type: "spring", stiffness: 400 }
-        }}
-        whileTap={{ scale: 0.98 }}
-        onHoverStart={() => setHoveredLink(link._id)}
-        onHoverEnd={() => setHoveredLink(null)}
-        className="w-full max-w-full perspective-1000"
-      >
-        <a
-          href={link.url}
-          target="_blank"
-          rel="noopener noreferrer"
-          className={`group relative flex items-center gap-2.5 sm:gap-3 w-full rounded-xl sm:rounded-2xl p-3 sm:p-3.5 md:p-4 font-bold text-sm sm:text-base transition-all duration-300 overflow-hidden ring-offset-[var(--ring-offset-color)] ring-[var(--ring-color)] ${
-            isCta ? 'ring-2 ring-offset-2' : ''
-          }`}
-          style={{
-            background: isCta
-              ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, ${hexToRgba(userAccentColor, 0.05)})`
-              : backgroundConfig.type === "image"
-                ? 'rgba(255, 255, 255, 0.2)'
-                : isDarkMode
-                  ? 'rgba(31, 41, 55, 0.5)'
-                  : 'rgba(255, 255, 255, 0.5)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            borderWidth: isCta ? '2px' : '2px',
-            borderStyle: 'solid',
-            borderColor: isCta
-              ? userAccentColor
-              : hoveredLink === link._id
-                ? userAccentColor
-                : 'rgba(255,255,255,0.2)',
-            boxShadow: isCta
-              ? `0 0 25px ${hexToRgba(userAccentColor, 0.3)}, 0 4px 15px rgba(0,0,0,0.1)`
-              : hoveredLink === link._id
-                ? `0 0 30px ${hexToRgba(userAccentColor, 0.4)}`
-                : '0 2px 8px rgba(0,0,0,0.1)',
-            '--ring-color': isCta ? userAccentColor : 'transparent',
-            '--ring-offset-color': isDarkMode ? '#111827' : '#ffffff',
-          } as React.CSSProperties}
-          onClick={() => handleTrack(link)}
-        >
-          {/* 🔥 CTA Pulse Animation */}
-          {isCta && (
-            <motion.div
-              className="absolute inset-0 rounded-xl sm:rounded-2xl"
-              style={{
-                border: `2px solid ${userAccentColor}`,
-              }}
-              animate={{
-                scale: [1, 1.02, 1],
-                opacity: [0.5, 0.2, 0.5],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-            />
-          )}
+                        return (
+                          <motion.div
+                            key={link._id}
+                            initial={{ opacity: 0, x: -50, rotateY: -15 }}
+                            animate={{ opacity: 1, x: 0, rotateY: 0 }}
+                            transition={{
+                              delay: index * 0.08,
+                              type: "spring",
+                              stiffness: 120,
+                              damping: 14
+                            }}
+                            whileHover={{
+                              scale: isCta ? 1.05 : 1.03,
+                              x: 8,
+                              transition: { type: "spring", stiffness: 400 }
+                            }}
+                            whileTap={{ scale: 0.98 }}
+                            onHoverStart={() => setHoveredLink(link._id)}
+                            onHoverEnd={() => setHoveredLink(null)}
+                            className="w-full max-w-full perspective-1000"
+                          >
+                            <a
+                              href={link.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className={`group relative flex items-center gap-2.5 sm:gap-3 w-full rounded-xl sm:rounded-2xl p-3 sm:p-3.5 md:p-4 font-bold text-sm sm:text-base transition-all duration-300 overflow-hidden ring-offset-[var(--ring-offset-color)] ring-[var(--ring-color)] ${
+                                isCta ? 'ring-2 ring-offset-2' : ''
+                              }`}
+                              style={{
+                                background: isCta
+                                  ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, ${hexToRgba(userAccentColor, 0.05)})`
+                                  : backgroundConfig.type === "image"
+                                    ? 'rgba(255, 255, 255, 0.2)'
+                                    : isDarkMode
+                                      ? 'rgba(31, 41, 55, 0.5)'
+                                      : 'rgba(255, 255, 255, 0.5)',
+                                backdropFilter: 'blur(10px)',
+                                WebkitBackdropFilter: 'blur(10px)',
+                                borderWidth: isCta ? '2px' : '2px',
+                                borderStyle: 'solid',
+                                borderColor: isCta
+                                  ? userAccentColor
+                                  : hoveredLink === link._id
+                                    ? userAccentColor
+                                    : 'rgba(255,255,255,0.2)',
+                                boxShadow: isCta
+                                  ? `0 0 25px ${hexToRgba(userAccentColor, 0.3)}, 0 4px 15px rgba(0,0,0,0.1)`
+                                  : hoveredLink === link._id
+                                    ? `0 0 30px ${hexToRgba(userAccentColor, 0.4)}`
+                                    : '0 2px 8px rgba(0,0,0,0.1)',
+                                '--ring-color': isCta ? userAccentColor : 'transparent',
+                                '--ring-offset-color': isDarkMode ? '#111827' : '#ffffff',
+                              } as React.CSSProperties}
+                              onClick={() => handleTrack(link)}
+                            >
+                              {isCta && (
+                                <motion.div
+                                  className="absolute inset-0 rounded-xl sm:rounded-2xl"
+                                  style={{
+                                    border: `2px solid ${userAccentColor}`,
+                                  }}
+                                  animate={{
+                                    scale: [1, 1.02, 1],
+                                    opacity: [0.5, 0.2, 0.5],
+                                  }}
+                                  transition={{
+                                    duration: 2,
+                                    repeat: Infinity,
+                                    ease: "easeInOut"
+                                  }}
+                                />
+                              )}
 
-          {/* Gradient overlay animado */}
-          <motion.div
-            className="absolute inset-0 opacity-0 group-hover:opacity-100"
-            initial={false}
-            animate={{
-              background: hoveredLink === link._id
-                ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, transparent)`
-                : 'transparent',
-            }}
-            transition={{ duration: 0.3 }}
-          />
+                              <motion.div
+                                className="absolute inset-0 opacity-0 group-hover:opacity-100"
+                                initial={false}
+                                animate={{
+                                  background: hoveredLink === link._id
+                                    ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, transparent)`
+                                    : 'transparent',
+                                }}
+                                transition={{ duration: 0.3 }}
+                              />
 
-          {/* Shimmer effect */}
-          <motion.div
-            className="absolute inset-0 opacity-0 group-hover:opacity-100"
-            style={{
-              background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)`
-            }}
-            animate={hoveredLink === link._id ? {
-              x: ['-100%', '200%']
-            } : {}}
-            transition={{
-              duration: 1.2,
-              repeat: Infinity,
-              ease: "linear"
-            }}
-          />
+                              <motion.div
+                                className="absolute inset-0 opacity-0 group-hover:opacity-100"
+                                style={{
+                                  background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)`
+                                }}
+                                animate={hoveredLink === link._id ? {
+                                  x: ['-100%', '200%']
+                                } : {}}
+                                transition={{
+                                  duration: 1.2,
+                                  repeat: Infinity,
+                                  ease: "linear"
+                                }}
+                              />
 
-          {/* Icon */}
-          <motion.span
-            animate={hoveredLink === link._id ? {
-              rotate: [0, -10, 10, 0],
-              scale: [1, 1.1, 1],
-            } : {}}
-            transition={{ duration: 0.5 }}
-            className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg flex-shrink-0 overflow-hidden"
-            style={{
-              background: link.thumbnailUrl
-                ? 'transparent'
-                : isCta
-                  ? `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`
-                  : hoveredLink === link._id
-                    ? `linear-gradient(135deg, ${userAccentColor}30, ${userAccentColor}50)`
-                    : backgroundConfig.type === "image"
-                      ? 'rgba(255, 255, 255, 0.3)'
-                      : isDarkMode
-                        ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
-                        : 'linear-gradient(135deg, rgba(249, 250, 251, 0.9), rgba(243, 244, 246, 0.9))',
-              boxShadow: isCta
-                ? `0 0 20px ${hexToRgba(userAccentColor, 0.5)}`
-                : hoveredLink === link._id
-                  ? `0 0 15px ${hexToRgba(userAccentColor, 0.4)}`
-                  : '0 2px 8px rgba(0,0,0,0.1)',
-            }}
-          >
-            {link.thumbnailUrl ? (
-              <Image
-                src={link.thumbnailUrl}
-                alt={link.title}
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className={isCta ? 'text-white' : ''}>
-                {getLinkIcon(link.url, link.title)}
-              </span>
-            )}
-          </motion.span>
+                              <motion.span
+                                animate={hoveredLink === link._id ? {
+                                  rotate: [0, -10, 10, 0],
+                                  scale: [1, 1.1, 1],
+                                } : {}}
+                                transition={{ duration: 0.5 }}
+                                className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg flex-shrink-0 overflow-hidden"
+                                style={{
+                                  background: link.thumbnailUrl
+                                    ? 'transparent'
+                                    : isCta
+                                      ? `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`
+                                      : hoveredLink === link._id
+                                        ? `linear-gradient(135deg, ${userAccentColor}30, ${userAccentColor}50)`
+                                        : backgroundConfig.type === "image"
+                                          ? 'rgba(255, 255, 255, 0.3)'
+                                          : isDarkMode
+                                            ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
+                                            : 'linear-gradient(135deg, rgba(249, 250, 251, 0.9), rgba(243, 244, 246, 0.9))',
+                                  boxShadow: isCta
+                                    ? `0 0 20px ${hexToRgba(userAccentColor, 0.5)}`
+                                    : hoveredLink === link._id
+                                      ? `0 0 15px ${hexToRgba(userAccentColor, 0.4)}`
+                                      : '0 2px 8px rgba(0,0,0,0.1)',
+                                }}
+                              >
+                                {link.thumbnailUrl ? (
+                                  <Image
+                                    src={link.thumbnailUrl}
+                                    alt={link.title}
+                                    width={40}
+                                    height={40}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span className={isCta ? 'text-white' : ''}>
+                                    {getLinkIcon(link.url, link.title)}
+                                  </span>
+                                )}
+                              </motion.span>
 
-          {/* Título + Badges */}
-          <div className="flex-1 min-w-0 flex flex-col gap-0.5">
-            <div className="flex items-center gap-2 flex-wrap">
-         <span
-  className="break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300"
-  style={{
-    color: isCta
-      ? isDarkMode
-        ? '#ffffff'
-        : '#1f2937'
-      : hoveredLink === link._id
-        ? userAccentColor
-        : isDarkMode
-          ? '#f3f4f6'
-          : '#1f2937',
-  }}
->
-  {link.title}
-</span>
-              {/* ✨ Badge NOVO */}
-              {isNew && (
-                <motion.span
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg"
-                  style={{
-                    boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)'
-                  }}
-                >
-                  Novo
-                </motion.span>
-              )}
+                              <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+                                <div className="flex items-center gap-2 flex-wrap">
+                                  <span
+                                    className="break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300"
+                                    style={{
+                                      color: isCta
+                                        ? isDarkMode
+                                          ? '#ffffff'
+                                          : '#1f2937'
+                                        : hoveredLink === link._id
+                                          ? userAccentColor
+                                          : isDarkMode
+                                            ? '#f3f4f6'
+                                            : '#1f2937',
+                                    }}
+                                  >
+                                    {link.title}
+                                  </span>
+                                  {isNew && (
+                                    <motion.span
+                                      initial={{ scale: 0 }}
+                                      animate={{ scale: 1 }}
+                                      className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg"
+                                      style={{
+                                        boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)'
+                                      }}
+                                    >
+                                      Novo
+                                    </motion.span>
+                                  )}
+                                  {isCta && (
+                                    <motion.span
+                                      animate={{
+                                        scale: [1, 1.1, 1],
+                                      }}
+                                      transition={{
+                                        duration: 1.5,
+                                        repeat: Infinity,
+                                      }}
+                                      className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-full text-white shadow-lg"
+                                      style={{
+                                        background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`,
+                                        boxShadow: `0 0 10px ${hexToRgba(userAccentColor, 0.5)}`
+                                      }}
+                                    >
+                                      ⚡
+                                    </motion.span>
+                                  )}
+                                </div>
+                              </div>
 
-              {/* 🔥 Badge CTA */}
-              {isCta && (
-                <motion.span
-                  animate={{
-                    scale: [1, 1.1, 1],
-                  }}
-                  transition={{
-                    duration: 1.5,
-                    repeat: Infinity,
-                  }}
-                  className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-full text-white shadow-lg"
-                  style={{
-                    background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`,
-                    boxShadow: `0 0 10px ${hexToRgba(userAccentColor, 0.5)}`
-                  }}
-                >
-                  ⚡
-                </motion.span>
-              )}
-            </div>
-          </div>
+                              <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 relative z-10 ml-1">
+                                <motion.button
+                                  whileHover={{ scale: 1.2 }}
+                                  whileTap={{ scale: 0.85 }}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation(); // Stop link click
+                                    handleReaction(link._id);
+                                  }}
+                                  className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-300"
+                                  style={{
+                                    background: linkReactions[link._id]
+                                      ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.25))'
+                                      : 'transparent',
+                                    boxShadow: linkReactions[link._id]
+                                      ? '0 0 20px rgba(239, 68, 68, 0.4)'
+                                      : 'none'
+                                  }}
+                                >
+                                  <motion.div
+                                    animate={linkReactions[link._id] ? {
+                                      scale: [1, 1.4, 1],
+                                      rotate: [0, -15, 15, 0],
+                                    } : {}}
+                                    transition={{ duration: 0.4 }}
+                                  >
+                                    <Heart
+                                      className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-all duration-300 ${
+                                        linkReactions[link._id]
+                                          ? 'text-red-500 fill-current drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]'
+                                          : 'text-gray-400 hover:text-red-400'
+                                      }`}
+                                    />
+                                  </motion.div>
+                                  <span
+                                    className="text-[10px] sm:text-xs font-bold"
+                                    style={{ color: backgroundConfig.type === "image" ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
+                                  >
+                                    {linkReactions[link._id] || 0}
+                                  </span>
+                                </motion.button>
 
-          {/* Actions */}
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 relative z-10 ml-1">
-            <motion.button
-              whileHover={{ scale: 1.2 }}
-              whileTap={{ scale: 0.85 }}
-              onClick={(e) => {
-                e.preventDefault();
-                handleReaction(link._id);
-              }}
-              className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-300"
-              style={{
-                background: linkReactions[link._id]
-                  ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.25))'
-                  : backgroundConfig.type === "image"
-                    ? 'rgba(255, 255, 255, 0.2)'
-                    : isDarkMode
-                      ? 'rgba(55, 65, 81, 0.5)'
-                      : 'rgba(243, 244, 246, 0.8)',
-                boxShadow: linkReactions[link._id]
-                  ? '0 0 20px rgba(239, 68, 68, 0.4)'
-                  : 'none'
-              }}
-            >
-              <motion.div
-                animate={linkReactions[link._id] ? {
-                  scale: [1, 1.4, 1],
-                  rotate: [0, -15, 15, 0],
-                } : {}}
-                transition={{ duration: 0.4 }}
-              >
-                <Heart
-                  className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-all duration-300 ${
-                    linkReactions[link._id]
-                      ? 'text-red-500 fill-current drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]'
-                      : 'text-gray-400 hover:text-red-400'
-                  }`}
-                />
-              </motion.div>
-              <span
-                className="text-[10px] sm:text-xs font-bold"
-                style={{ color: backgroundConfig.type === "image" ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
-              >
-                {linkReactions[link._id] || 0}
-              </span>
-            </motion.button>
-
-            <motion.div
-              animate={hoveredLink === link._id ? {
-                x: [0, 4, 0],
-                y: [0, -4, 0],
-              } : {}}
-              transition={{
-                duration: 0.6,
-                repeat: hoveredLink === link._id ? Infinity : 0,
-                ease: "easeInOut"
-              }}
-            >
-              <ExternalLink
-                className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 hidden sm:block"
-                style={{
-                  color: hoveredLink === link._id
-                    ? userAccentColor
-                    : backgroundConfig.type === "image"
-                      ? 'rgba(255,255,255,0.7)'
-                      : 'rgb(156, 163, 175)',
-                }}
-              />
-            </motion.div>
-          </div>
-        </a>
-      </motion.div>
-    );
-  })
-) : (
-  // ... resto do código para quando não há links
+                                <motion.div
+                                  animate={hoveredLink === link._id ? {
+                                    x: [0, 4, 0],
+                                    y: [0, -4, 0],
+                                  } : {}}
+                                  transition={{
+                                    duration: 0.6,
+                                    repeat: hoveredLink === link._id ? Infinity : 0,
+                                    ease: "easeInOut"
+                                  }}
+                                >
+                                  <ExternalLink
+                                    className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 hidden sm:block"
+                                    style={{
+                                      color: hoveredLink === link._id
+                                        ? userAccentColor
+                                        : backgroundConfig.type === "image"
+                                          ? 'rgba(255,255,255,0.7)'
+                                          : 'rgb(156, 163, 175)',
+                                    }}
+                                  />
+                                </motion.div>
+                              </div>
+                            </a>
+                          </motion.div>
+                        );
+                      })
+                    ) : (
                       <motion.div
                         className="text-center py-8 sm:py-10 md:py-12"
                         initial={{ opacity: 0, scale: 0.9 }}
                         animate={{ opacity: 1, scale: 1 }}
-                                                transition={{ duration: 0.5 }}
+                        transition={{ duration: 0.5 }}
                       >
                         <motion.div
                           className="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-full mb-4"
@@ -1769,7 +1776,6 @@ const isNewLink = (creationTime: number): boolean => {
                 </div>
               </motion.div>
 
-              {/* CTA Card para plano free */}
               {plan === 'free' && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -1785,7 +1791,6 @@ const isNewLink = (creationTime: number): boolean => {
                     boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.5)}`
                   }}
                 >
-                  {/* Animated background */}
                   <motion.div
                     className="absolute inset-0 opacity-20"
                     style={{
@@ -1798,7 +1803,6 @@ const isNewLink = (creationTime: number): boolean => {
                     transition={{ duration: 3, repeat: Infinity }}
                   />
 
-                  {/* Shimmer effect */}
                   <motion.div
                     className="absolute inset-0"
                     style={{
@@ -1846,7 +1850,6 @@ const isNewLink = (creationTime: number): boolean => {
                         className="relative px-4 sm:px-5 md:px-6 py-2 sm:py-2.5 bg-white rounded-xl sm:rounded-2xl font-black text-xs sm:text-sm shadow-xl hover:shadow-2xl transition-all whitespace-nowrap overflow-hidden"
                         style={{ color: userAccentColor }}
                       >
-                        {/* Button shimmer */}
                         <motion.div
                           className="absolute inset-0"
                           style={{
@@ -1874,7 +1877,6 @@ const isNewLink = (creationTime: number): boolean => {
           </motion.main>
         </div>
 
-        {/* Footer */}
         {plan === 'free' && (
           <motion.footer
             initial={{ opacity: 0 }}
@@ -1907,7 +1909,6 @@ const isNewLink = (creationTime: number): boolean => {
         )}
       </div>
 
-      {/* ✅ 🔥 STICKY CTA (Botão flutuante fixo) */}
       <AnimatePresence>
         {plan === 'free' && showStickyCTA && (
           <motion.div
@@ -1935,8 +1936,6 @@ const isNewLink = (creationTime: number): boolean => {
         )}
       </AnimatePresence>
 
-
-      {/* ✅ 5. BANNER DE COOKIES */}
       <AnimatePresence>
         {cookieConsent === null && trackingSettings && (trackingSettings.facebookPixelId || trackingSettings.googleAnalyticsId) && (
           <motion.div
@@ -1987,7 +1986,6 @@ const isNewLink = (creationTime: number): boolean => {
         )}
       </AnimatePresence>
 
-      {/* Scroll to top button */}
       <AnimatePresence>
         <motion.button
           initial={{ scale: 0, opacity: 0 }}
@@ -2019,7 +2017,6 @@ const isNewLink = (creationTime: number): boolean => {
         </motion.button>
       </AnimatePresence>
 
-      {/* Custom Scrollbar */}
       <style jsx global>{`
         ::-webkit-scrollbar {
           width: 8px;

@@ -18,38 +18,45 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowRight, Link as LinkIcon, Loader2, UserCircle, BadgeCheck,
-  Upload,
+  Upload, MessageCircle, Mail
 } from "lucide-react";
 
-// Importando ícones populares para o preview
 import {
   FaFacebook, FaInstagram, FaLinkedin, FaTiktok, FaTwitter, FaYoutube, FaWhatsapp
 } from "react-icons/fa6";
 
+// Schema mantido
 const formSchema = z.object({
   title: z.string().min(1, "O título é obrigatório.").max(50, "Máximo 50 caracteres."),
   url: z.string().min(1, "A URL é obrigatória.").url("URL inválida."),
+  customMessage: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const normalizeUrl = (url: string): string => {
   const formattedUrl = url.trim();
+  // Se for email (mailto), não mexe. Se for url normal sem https, adiciona.
+  if (formattedUrl.startsWith("mailto:")) return formattedUrl;
+
   if (formattedUrl && !/^(https?:\/\/|mailto:|tel:)/i.test(formattedUrl)) {
     return `https://${formattedUrl}`;
   }
   return formattedUrl;
 };
 
-// Lógica de Preview (igual à página pública)
+// Lógica de Preview
 const getPreviewIcon = (url: string, title: string) => {
   const u = url?.toLowerCase() || "";
   const t = title?.toLowerCase() || "";
 
+  if (u.includes('mailto:')) return <Mail className="w-6 h-6 text-gray-600" />;
   if (u.includes('instagram')) return <FaInstagram className="w-6 h-6 text-[#E1306C]" />;
   if (u.includes('facebook')) return <FaFacebook className="w-6 h-6 text-[#1877F3]" />;
   if (u.includes('twitter') || u.includes('x.com')) return <FaTwitter className="w-6 h-6 text-[#1DA1F2]" />;
@@ -66,24 +73,23 @@ const getPreviewIcon = (url: string, title: string) => {
 
 export default function CreateLinkForm() {
   const createLink = useMutation(api.lib.links.createLink);
-  const generateUploadUrl = useMutation(api.files.generateUploadUrl); // CORREÇÃO: O caminho da mutation estava incorreto.
+  const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const router = useRouter();
 
-  // Estado para imagem
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
-    defaultValues: { title: "", url: "" },
+    defaultValues: { title: "", url: "", customMessage: "" },
     mode: "onChange",
   });
 
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         toast.error("A imagem deve ter no máximo 5MB");
         return;
       }
@@ -103,12 +109,8 @@ export default function CreateLinkForm() {
     try {
       let storageId = undefined;
 
-      // 1. Se tiver imagem, faz o upload primeiro
       if (selectedImage) {
-        // Pega URL de upload segura do Convex
         const postUrl = await generateUploadUrl();
-
-        // Envia o arquivo
         const result = await fetch(postUrl, {
           method: "POST",
           headers: { "Content-Type": selectedImage.type },
@@ -116,16 +118,37 @@ export default function CreateLinkForm() {
         });
 
         if (!result.ok) throw new Error("Falha no upload da imagem");
-
         const { storageId: id } = await result.json();
         storageId = id;
       }
 
-      // 2. Salva o link no banco com o ID da imagem (se houver)
+      let finalUrl = normalizeUrl(values.url);
+      const u = finalUrl.toLowerCase();
+
+      // LÓGICA INTELIGENTE: Verifica qual parâmetro usar
+      if (values.customMessage) {
+        const encodedMsg = encodeURIComponent(values.customMessage);
+
+        // Caso 1: WhatsApp (?text=)
+        if (u.includes("wa.me") || u.includes("whatsapp.com")) {
+            if (!u.includes("text=")) {
+                const separator = u.includes("?") ? "&" : "?";
+                finalUrl = `${finalUrl}${separator}text=${encodedMsg}`;
+            }
+        }
+        // Caso 2: Email (?body=)
+        else if (u.includes("mailto:")) {
+            if (!u.includes("body=")) {
+                const separator = u.includes("?") ? "&" : "?";
+                finalUrl = `${finalUrl}${separator}body=${encodedMsg}`;
+            }
+        }
+      }
+
       await createLink({
         title: values.title.trim(),
-        url: normalizeUrl(values.url),
-        thumbnailStorageId: storageId, // Campo opcional no backend
+        url: finalUrl,
+        thumbnailStorageId: storageId,
       });
 
       toast.success("Link criado com sucesso! 🎉");
@@ -139,13 +162,20 @@ export default function CreateLinkForm() {
 
   const { isSubmitting, isValid } = form.formState;
   const watchedTitle = form.watch("title");
-  const watchedUrl = form.watch("url");
+  const watchedUrl = form.watch("url")?.toLowerCase() || "";
+
+  // Verifica se é um link que suporta mensagem
+  const isWhatsApp = watchedUrl.includes("wa.me") || watchedUrl.includes("whatsapp");
+  const isEmail = watchedUrl.includes("mailto:");
+
+  // Mostra o campo se for um dos dois
+  const showMessageField = isWhatsApp || isEmail;
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-lg mx-auto">
 
-        {/* Upload de Ícone Opcional */}
+        {/* Upload de Ícone */}
         <div className="space-y-3">
           <FormLabel className="font-semibold text-gray-800">Ícone Personalizado (Opcional)</FormLabel>
           <div className="flex items-center gap-4">
@@ -190,7 +220,6 @@ export default function CreateLinkForm() {
               onChange={handleImageSelect}
             />
           </div>
-          <p className="text-xs text-gray-500">Se não escolher nada, usaremos um ícone automático.</p>
         </div>
 
         <FormField
@@ -200,7 +229,7 @@ export default function CreateLinkForm() {
             <FormItem>
               <FormLabel className="font-semibold text-gray-800">Título do Link</FormLabel>
               <FormControl>
-                <Input placeholder="Ex: Vendedor Lucas, WhatsApp..." {...field} />
+                <Input placeholder="Ex: Falar no WhatsApp..." {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -215,15 +244,60 @@ export default function CreateLinkForm() {
               <FormLabel className="font-semibold text-gray-800">URL de Destino</FormLabel>
               <FormControl>
                 <Input
-                  placeholder="https://exemplo.com"
+                  placeholder="Ex: wa.me/55... ou mailto:contato@..."
                   {...field}
                   onBlur={() => field.onChange(normalizeUrl(field.value))}
                 />
               </FormControl>
+              <FormDescription className="text-xs text-gray-500">
+                Cole o link do WhatsApp ou digite mailto:email@... para e-mail.
+              </FormDescription>
               <FormMessage />
             </FormItem>
           )}
         />
+
+        {/* MENSAGEM AUTOMÁTICA (Aparece para WhatsApp e Email) */}
+        {showMessageField && (
+            <div className={clsx(
+                "p-4 border rounded-xl animate-in fade-in slide-in-from-top-2 duration-300",
+                isWhatsApp ? "bg-green-50 border-green-200" : "bg-blue-50 border-blue-200"
+            )}>
+                <FormField
+                control={form.control}
+                name="customMessage"
+                render={({ field }) => (
+                    <FormItem>
+                    <div className="flex items-center gap-2 mb-2">
+                        {isWhatsApp ? <MessageCircle className="w-4 h-4 text-green-600" /> : <Mail className="w-4 h-4 text-blue-600" />}
+                        <FormLabel className={clsx("font-semibold m-0", isWhatsApp ? "text-green-800" : "text-blue-800")}>
+                            {isWhatsApp ? "Mensagem do WhatsApp (Opcional)" : "Corpo do E-mail (Opcional)"}
+                        </FormLabel>
+                    </div>
+                    <FormControl>
+                        <Textarea
+                            placeholder={isWhatsApp
+                                ? "Ex: Olá! Vim pelo Freelinnk e quero comprar..."
+                                : "Ex: Olá, gostaria de solicitar um orçamento..."
+                            }
+                            className={clsx(
+                                "bg-white resize-none h-20 focus-visible:ring-offset-0",
+                                isWhatsApp ? "border-green-200 focus-visible:ring-green-500" : "border-blue-200 focus-visible:ring-blue-500"
+                            )}
+                            {...field}
+                        />
+                    </FormControl>
+                    <FormDescription className={clsx("text-xs", isWhatsApp ? "text-green-700" : "text-blue-700")}>
+                        {isWhatsApp
+                           ? "O cliente já inicia a conversa com esse texto escrito."
+                           : "O cliente abrirá o app de email com esse texto já preenchido."}
+                    </FormDescription>
+                    <FormMessage />
+                    </FormItem>
+                )}
+                />
+            </div>
+        )}
 
         {/* Preview do Botão */}
         <div className="space-y-2 pt-4 border-t border-gray-100">
@@ -234,7 +308,6 @@ export default function CreateLinkForm() {
             )}>
 
             <div className="flex-shrink-0 w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center bg-white/20">
-               {/* Lógica Mágica: Se tem preview, mostra ele. Se não, mostra ícone inteligente */}
                {imagePreview ? (
                  <img src={imagePreview} className="w-full h-full object-cover" alt="icon" />
                ) : (

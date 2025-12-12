@@ -10,7 +10,7 @@ import {
   Upload, X, Image as ImageIcon, Paintbrush,
   ImagePlus, Layout, AlertCircle, Sparkles, Smartphone,
   Palette, Share2, Check, Eye, ChevronDown,
-  Camera, Sliders
+  Camera, Sliders, Megaphone
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
@@ -44,7 +44,7 @@ const COLOR_PRESETS = [
   "#1a1a2e", "#16213e", "#0f3460", "#533483",
 ];
 
-export default function CustomizationForm({ onComplete,  }: CustomizationFormProps) {
+export default function CustomizationForm({ onComplete }: CustomizationFormProps) {
   const { user } = useUser();
 
   // Refs para inputs de arquivo e preview
@@ -71,10 +71,12 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
   );
 
   // --- ESTADOS ---
-  const [formData, setFormData] = useState({
-    description: "",
-    accentColor: "#6366f1",
-  });
+  // Estado separado para Bio Limpa e Status
+  const [cleanBio, setCleanBio] = useState("");
+  const [statusEnabled, setStatusEnabled] = useState(false);
+  const [statusText, setStatusText] = useState("");
+
+  const [accentColor, setAccentColor] = useState("#6366f1");
 
   const [bioError, setBioError] = useState("");
 
@@ -96,13 +98,27 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
   const [hasChanges, setHasChanges] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
 
-  // --- CARREGAR DADOS INICIAIS ---
+  // --- CARREGAR DADOS INICIAIS (COM LOGICA DE SEPARAÇÃO STATUS/BIO) ---
   useEffect(() => {
     if (existingCustomizations) {
-      setFormData({
-        description: existingCustomizations.description || "",
-        accentColor: existingCustomizations.accentColor || "#6366f1",
-      });
+      setAccentColor(existingCustomizations.accentColor || "#6366f1");
+
+      // Lógica para separar o Status da Bio se existir
+      const fullDesc = existingCustomizations.description || "";
+      if (fullDesc.startsWith("AVISO:")) {
+        // Formato: "AVISO: Texto do status \n Resto da bio"
+        const parts = fullDesc.split("\n");
+        const extractedStatus = parts[0].replace("AVISO:", "").trim();
+        const extractedBio = parts.slice(1).join("\n").trim();
+
+        setStatusEnabled(true);
+        setStatusText(extractedStatus);
+        setCleanBio(extractedBio);
+      } else {
+        setStatusEnabled(false);
+        setStatusText("");
+        setCleanBio(fullDesc);
+      }
 
       setBackgroundConfig({
         type: (existingCustomizations.backgroundType as BackgroundType) || "color",
@@ -120,7 +136,7 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
   useEffect(() => {
     setHasChanges(true);
     setJustSaved(false);
-  }, [formData, backgroundConfig]);
+  }, [cleanBio, statusEnabled, statusText, accentColor, backgroundConfig]);
 
   // --- FUNÇÕES AUXILIARES ---
 
@@ -148,19 +164,13 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
 
   // --- HANDLERS ---
 
-  // 1. Submit com Validação Amigável
+  // 1. Submit com Validação e Fusão de Campos
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
 
-    // Validação da Bio
-    if (!formData.description || formData.description.trim().length === 0) {
-      toast.warning("Ei, faltou a Bio! 📝", {
-        description: "Seus visitantes querem te conhecer. Escreva algo breve sobre você antes de salvar.",
-        duration: 5000,
-      });
-      document.getElementById('bio')?.focus();
-      return;
+    if (cleanBio && cleanBio.trim().length === 0 && !statusEnabled) {
+      toast.warning("Ei, a Bio está vazia! 📝");
     }
 
     if (bioError) {
@@ -168,11 +178,18 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
       return;
     }
 
+    // PREPARAÇÃO DOS DADOS (FUSÃO)
+    let finalDescription = cleanBio;
+    if (statusEnabled && statusText.trim().length > 0) {
+        // Se status ativo, concatena no início
+        finalDescription = `AVISO: ${statusText.trim()}\n${cleanBio}`;
+    }
+
     startTransition(async () => {
       try {
         await updateCustomizations({
-          description: formData.description,
-          accentColor: formData.accentColor,
+          description: finalDescription, // Envia o campo fundido
+          accentColor: accentColor,
           backgroundType: backgroundConfig.type,
           backgroundStyle: backgroundConfig.style,
           backgroundColor1: backgroundConfig.color1,
@@ -405,16 +422,16 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
           <div className="space-y-3">
             <div className="flex justify-between items-center">
               <Label htmlFor="bio" className="text-sm font-semibold text-gray-700">Bio / Descrição</Label>
-              <span className={`text-xs font-medium transition-colors ${formData.description.length > 150 ? formData.description.length > 160 ? "text-red-500" : "text-orange-500" : "text-gray-400"}`}>
-                {formData.description.length}/160
+              <span className={`text-xs font-medium transition-colors ${cleanBio.length > 150 ? cleanBio.length > 160 ? "text-red-500" : "text-orange-500" : "text-gray-400"}`}>
+                {cleanBio.length}/160
               </span>
             </div>
 
             <textarea
               id="bio"
-              value={formData.description}
+              value={cleanBio}
               onChange={(e) => {
-                setFormData((prev) => ({ ...prev, description: e.target.value }));
+                setCleanBio(e.target.value);
                 validateBio(e.target.value);
               }}
               className="w-full min-h-[100px] p-4 rounded-xl border border-gray-200 focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none transition-all resize-none text-sm leading-relaxed"
@@ -430,28 +447,64 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
             </AnimatePresence>
           </div>
 
-          {/* --- 3. COR PRINCIPAL --- */}
-          <div className="space-y-3">
+          {/* --- 3. BARRA DE STATUS (NOVIDADE) --- */}
+          <div className="space-y-3 pt-2">
+             <div className="flex items-center justify-between">
+                <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                    <Megaphone className="w-4 h-4 text-orange-500" /> Aviso de Status <span className="text-[10px] bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded-full">Novo</span>
+                </Label>
+                <button
+                    type="button"
+                    onClick={() => setStatusEnabled(!statusEnabled)}
+                    className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${statusEnabled ? 'bg-orange-500' : 'bg-gray-200'}`}
+                >
+                    <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${statusEnabled ? 'translate-x-4.5' : 'translate-x-1'}`} style={{ marginLeft: statusEnabled ? '2px' : '2px' }} />
+                </button>
+             </div>
+
+             <AnimatePresence>
+                {statusEnabled && (
+                    <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <input
+                            type="text"
+                            value={statusText}
+                            onChange={(e) => setStatusText(e.target.value)}
+                            placeholder="Ex: 🎄 Promoção de Natal Ativa!"
+                            className="w-full p-3 rounded-lg border border-orange-200 bg-orange-50 focus:border-orange-400 focus:ring-2 focus:ring-orange-100 outline-none text-sm text-orange-800 font-medium placeholder:text-orange-300"
+                        />
+                        <p className="text-[11px] text-gray-400 mt-1">Isso criará uma barra colorida no topo do seu perfil.</p>
+                    </motion.div>
+                )}
+             </AnimatePresence>
+          </div>
+
+          {/* --- 4. COR PRINCIPAL --- */}
+          <div className="space-y-3 pt-2">
             <Label className="text-sm font-semibold text-gray-700">Cor Principal</Label>
             <div className="flex items-center gap-3 flex-wrap">
               <div className="relative">
                 <input
                   type="color"
-                  value={formData.accentColor}
-                  onChange={(e) => setFormData((prev) => ({ ...prev, accentColor: e.target.value }))}
+                  value={accentColor}
+                  onChange={(e) => setAccentColor(e.target.value)}
                   className="w-12 h-12 rounded-xl border-0 p-0 overflow-hidden cursor-pointer"
                 />
                 <div className="absolute inset-0 rounded-xl ring-1 ring-black/10 pointer-events-none" />
               </div>
-              <div className="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 font-mono text-xs text-gray-600 uppercase">{formData.accentColor}</div>
+              <div className="px-3 py-2 bg-gray-50 rounded-lg border border-gray-200 font-mono text-xs text-gray-600 uppercase">{accentColor}</div>
 
               <div className="flex gap-1.5 flex-wrap">
                 {["#6366f1", "#ec4899", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"].map((color) => (
                   <button
                     key={color}
                     type="button"
-                    onClick={() => setFormData((prev) => ({ ...prev, accentColor: color }))}
-                    className={`w-7 h-7 rounded-lg transition-transform hover:scale-110 ${formData.accentColor === color ? "ring-2 ring-offset-2 ring-gray-400" : ""}`}
+                    onClick={() => setAccentColor(color)}
+                    className={`w-7 h-7 rounded-lg transition-transform hover:scale-110 ${accentColor === color ? "ring-2 ring-offset-2 ring-gray-400" : ""}`}
                     style={{ backgroundColor: color }}
                   />
                 ))}
@@ -459,7 +512,7 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
             </div>
           </div>
 
-          {/* --- 4. ESTILO DE FUNDO --- */}
+          {/* --- 5. ESTILO DE FUNDO --- */}
           <div className="pt-4 border-t border-gray-100 space-y-4">
             <Label className="text-sm font-semibold text-gray-700 flex items-center gap-2"><Sparkles className="w-4 h-4 text-purple-500" /> Estilo de Fundo</Label>
 
@@ -613,6 +666,25 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
 
             {/* TELA */}
             <div className="w-full h-full rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden relative" style={getPreviewBackgroundStyle()}>
+
+              {/* 🔥 BARRA DE STATUS PREVIEW */}
+              <AnimatePresence>
+                {statusEnabled && statusText && (
+                    <motion.div
+                        initial={{ y: -50 }}
+                        animate={{ y: 0 }}
+                        exit={{ y: -50 }}
+                        className="absolute top-0 left-0 right-0 z-30 py-8 pb-2 text-center"
+                        style={{ background: accentColor }}
+                    >
+                        <span className="text-[10px] font-bold text-white uppercase tracking-wide flex items-center justify-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                            {statusText}
+                        </span>
+                    </motion.div>
+                )}
+              </AnimatePresence>
+
               {/* Background Layer no Preview */}
               {backgroundConfig.type === "image" && backgroundConfig.imageUrl && (
                 <div className="absolute inset-0">
@@ -625,10 +697,10 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
               )}
 
               {/* Conteúdo do Preview */}
-              <div className="relative z-10 flex flex-col items-center pt-14 sm:pt-16 px-4 sm:px-6 h-full overflow-y-auto no-scrollbar">
+              <div className={`relative z-10 flex flex-col items-center px-4 sm:px-6 h-full overflow-y-auto no-scrollbar ${statusEnabled ? 'pt-24' : 'pt-14 sm:pt-16'}`}>
 
                 {/* Avatar Preview */}
-                <motion.div className="mb-3 sm:mb-4 p-1 rounded-full shadow-lg" style={{ background: formData.accentColor }} animate={justSaved ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 0.3 }}>
+                <motion.div className="mb-3 sm:mb-4 p-1 rounded-full shadow-lg" style={{ background: accentColor }} animate={justSaved ? { scale: [1, 1.1, 1] } : {}} transition={{ duration: 0.3 }}>
                   <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white bg-gray-100 overflow-hidden relative">
                     {existingCustomizations?.profilePictureUrl ? (
                       <img src={existingCustomizations.profilePictureUrl} className="w-full h-full object-cover" alt="Preview" />
@@ -644,8 +716,8 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
                 </div>
 
                 <div className="text-center w-full mb-6 px-2">
-                  {formData.description ? (
-                    <p className="text-xs text-gray-700 leading-relaxed bg-white/60 p-2.5 rounded-lg backdrop-blur-sm shadow-sm border border-white/30" style={{ maxHeight: "80px", overflow: "hidden" }}>{formData.description}</p>
+                  {cleanBio ? (
+                    <p className="text-xs text-gray-700 leading-relaxed bg-white/60 p-2.5 rounded-lg backdrop-blur-sm shadow-sm border border-white/30" style={{ maxHeight: "80px", overflow: "hidden" }}>{cleanBio}</p>
                   ) : (
                     <div className="h-2 w-40 bg-black/5 rounded mx-auto" />
                   )}
@@ -654,9 +726,9 @@ export default function CustomizationForm({ onComplete,  }: CustomizationFormPro
                 {/* Links Simulados */}
                 <div className="w-full space-y-2.5 pb-6">
                   {[1, 2, 3].map((i) => (
-                    <motion.div key={i} className="w-full h-11 sm:h-12 bg-white/80 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm flex items-center justify-between px-4" style={{ borderLeft: `4px solid ${formData.accentColor}` }} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 * i }}>
+                    <motion.div key={i} className="w-full h-11 sm:h-12 bg-white/80 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm flex items-center justify-between px-4" style={{ borderLeft: `4px solid ${accentColor}` }} initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 * i }}>
                       <span className="text-xs text-gray-600 font-medium">Meu Link {i}</span>
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: formData.accentColor }} />
+                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accentColor }} />
                     </motion.div>
                   ))}
                 </div>
