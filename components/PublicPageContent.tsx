@@ -1104,7 +1104,7 @@ const isNewLink = (creationTime: number): boolean => {
           </motion.div>
         )}
 
-        <div className="absolute top-3 sm:top-4 left-3 sm:left-4 right-3 sm:right-4 flex justify-between items-center z-20">
+        <div className={`absolute left-3 sm:left-4 right-3 sm:right-4 flex justify-between items-center z-20 transition-all duration-300 ${statusMessage ? 'top-14 sm:top-16' : 'top-3 sm:top-4'}`}>
           <motion.button
             whileHover={{ scale: 1.1, rotate: 180 }}
             whileTap={{ scale: 0.95 }}
