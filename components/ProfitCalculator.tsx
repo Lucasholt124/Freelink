@@ -164,6 +164,16 @@ export default function FinancialManagerPro() {
     return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   });
 
+
+  const [showEditCustomer, setShowEditCustomer] = useState(false);
+  const [editingCustomerId, setEditingCustomerId] = useState<Id<"customers"> | null>(null);
+
+  const [showEditSupplier, setShowEditSupplier] = useState(false);
+  const [editingSupplierId, setEditingSupplierId] = useState<Id<"suppliers"> | null>(null);
+
+  // NOVAS MUTAÇÕES (Assumindo que existem no backend, já que você disse que está 100%)
+  const updateCustomer = useMutation(api.profitCalculator.updateCustomer);
+  const updateSupplier = useMutation(api.profitCalculator.updateSupplier);
     const [showOnboarding, setShowOnboarding] = useState(false);
   const [hasSeenOnboarding, setHasSeenOnboarding] = useState(false);
     const userStats = useQuery(api.gamification.getUserStats);
@@ -503,7 +513,111 @@ const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
       year: "numeric",
     });
   };
+  const openEditCustomer = (customer: Doc<"customers">) => {
+    setCustomerForm({
+      name: customer.name,
+      email: customer.email || "",
+      phone: customer.phone || "",
+      address: customer.address || "",
+      notes: customer.notes || "",
+    });
+    setEditingCustomerId(customer._id);
+    setShowEditCustomer(true);
+  };
 
+  const handleEditCustomer = async () => {
+    if (!editingCustomerId) return;
+    if (!customerForm.name.trim()) {
+      toast.error("❌ Digite o nome do cliente!");
+      return;
+    }
+
+    try {
+      await updateCustomer({
+        id: editingCustomerId,
+        name: customerForm.name,
+        email: customerForm.email || undefined,
+        phone: customerForm.phone || undefined,
+        address: customerForm.address || undefined,
+        notes: customerForm.notes || undefined,
+      });
+
+      toast.success("✅ Cliente atualizado com sucesso!");
+      setShowEditCustomer(false);
+      setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "" });
+      setEditingCustomerId(null);
+    } catch (error) {
+      handleApiError(error, "Erro ao atualizar cliente");
+    }
+  };
+
+  const handleDeleteCustomer = async (id: Id<"customers">, name: string) => {
+    if (!confirm(`🗑️ Tem certeza que deseja excluir o cliente "${name}"?\nIsso não pode ser desfeito.`)) {
+      return;
+    }
+
+    try {
+      await deleteCustomer({ id });
+      toast.success("✅ Cliente excluído!");
+    } catch (error) {
+      handleApiError(error, "Erro ao excluir cliente");
+    }
+  };
+
+  // ------------------------------------------------------------------
+  // ✅ FUNÇÕES PARA FORNECEDORES (CORRIGIDO EXCLUIR + ADICIONADO EDITAR)
+  // ------------------------------------------------------------------
+
+  const openEditSupplier = (supplier: Doc<"suppliers">) => {
+    setSupplierForm({
+      name: supplier.name,
+      email: supplier.contact?.email || "",
+      phone: supplier.contact?.phone || "",
+      address: supplier.contact?.address || "",
+      notes: supplier.notes || "",
+    });
+    setEditingSupplierId(supplier._id);
+    setShowEditSupplier(true);
+  };
+
+  const handleEditSupplier = async () => {
+    if (!editingSupplierId) return;
+    if (!supplierForm.name.trim()) {
+      toast.error("❌ Digite o nome do fornecedor!");
+      return;
+    }
+
+    try {
+      await updateSupplier({
+        id: editingSupplierId,
+        name: supplierForm.name,
+        email: supplierForm.email || undefined,
+        phone: supplierForm.phone || undefined,
+        address: supplierForm.address || undefined,
+        notes: supplierForm.notes || undefined,
+      });
+
+      toast.success("✅ Fornecedor atualizado com sucesso!");
+      setShowEditSupplier(false);
+      setSupplierForm({ name: "", email: "", phone: "", address: "", notes: "" });
+      setEditingSupplierId(null);
+    } catch (error) {
+      handleApiError(error, "Erro ao atualizar fornecedor");
+    }
+  };
+
+  const handleDeleteSupplier = async (id: Id<"suppliers">, name: string) => {
+    if (!confirm(`🗑️ Tem certeza que deseja excluir o fornecedor "${name}"?`)) {
+      return;
+    }
+
+    try {
+      await deleteSupplier({ id });
+      toast.success("✅ Fornecedor excluído!");
+    } catch (error) {
+      handleApiError(error, "Erro ao excluir fornecedor");
+    }
+  };
   const navigateMonth = (direction: "prev" | "next") => {
   const [year, month] = selectedMonth.split("-").map(Number);
   const date = new Date(year, month - 1);
@@ -2749,11 +2863,14 @@ const chartData = useMemo(() => {
               </div>
             </TabsContent>
 
-            <TabsContent value="clientes">
+           <TabsContent value="clientes">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold">Seus Clientes ({customers.length})</h3>
-                  <Button onClick={() => setShowAddCustomer(true)} className="bg-pink-600 hover:bg-pink-700">
+                  <Button onClick={() => {
+                    setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "" });
+                    setShowAddCustomer(true);
+                  }} className="bg-pink-600 hover:bg-pink-700">
                     <Plus className="w-4 h-4 mr-2" />
                     Novo Cliente
                   </Button>
@@ -2771,16 +2888,33 @@ const chartData = useMemo(() => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                     {paginatedCustomers.map((customer) => (
-                      <Card key={customer._id} className="p-3 md:p-4 hover:shadow-lg transition-shadow">
+                      <Card key={customer._id} className="p-3 md:p-4 hover:shadow-lg transition-shadow relative group">
                         <div className="flex justify-between gap-2 mb-3">
                           <div className="flex-1 min-w-0">
                             <h4 className="font-bold text-sm md:text-base truncate">{customer.name}</h4>
                             {customer.email && <p className="text-xs md:text-sm text-gray-600 truncate">{customer.email}</p>}
                             {customer.phone && <p className="text-xs md:text-sm text-gray-600">{customer.phone}</p>}
                           </div>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => deleteCustomer({ id: customer._id })}>
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
+
+                          {/* MENU DE AÇÕES */}
+                          <div className="flex gap-1">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0 text-blue-600 hover:bg-blue-50"
+                              onClick={() => openEditCustomer(customer)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0 text-red-500 hover:bg-red-50"
+                              onClick={() => handleDeleteCustomer(customer._id, customer.name)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                         <Separator className="my-2 md:my-3" />
                         <div className="space-y-1 text-xs md:text-sm">
@@ -2807,13 +2941,64 @@ const chartData = useMemo(() => {
                   />
                 )}
               </div>
+              {/* DIALOG DE EDIÇÃO DE CLIENTE */}
+              <Dialog open={showEditCustomer} onOpenChange={setShowEditCustomer}>
+                <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+                  <DialogHeader>
+                    <DialogTitle>✏️ Editar Cliente</DialogTitle>
+                    <DialogDescription>Atualize os dados do cliente</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Nome *</Label>
+                      <Input
+                        value={customerForm.name}
+                        onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
+                        placeholder="Nome completo"
+                      />
+                    </div>
+                    <div>
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        value={customerForm.email}
+                        onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
+                        placeholder="email@exemplo.com"
+                      />
+                    </div>
+                    <div>
+                      <Label>Telefone</Label>
+                      <Input
+                        value={customerForm.phone}
+                        onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
+                        placeholder="(00) 00000-0000"
+                      />
+                    </div>
+                    <div>
+                      <Label>Endereço</Label>
+                      <Input
+                        value={customerForm.address}
+                        onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
+                        placeholder="Endereço completo"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowEditCustomer(false)}>Cancelar</Button>
+                    <Button onClick={handleEditCustomer} className="bg-blue-600">Salvar Alterações</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
 
             <TabsContent value="fornecedores">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xl font-bold">Seus Fornecedores ({suppliers.length})</h3>
-                  <Button onClick={() => setShowAddSupplier(true)} className="bg-teal-600 hover:bg-teal-700">
+                  <Button onClick={() => {
+                    setSupplierForm({ name: "", email: "", phone: "", address: "", notes: "" });
+                    setShowAddSupplier(true);
+                  }} className="bg-teal-600 hover:bg-teal-700">
                     <Plus className="w-4 h-4 mr-2" />
                     Novo Fornecedor
                   </Button>
@@ -2838,16 +3023,32 @@ const chartData = useMemo(() => {
                             {supplier.contact?.email && <p className="text-xs md:text-sm text-gray-600 truncate">{supplier.contact.email}</p>}
                             {supplier.contact?.phone && <p className="text-xs md:text-sm text-gray-600">{supplier.contact.phone}</p>}
                           </div>
-                          <Button size="icon" variant="ghost" className="h-8 w-8 shrink-0" onClick={() => deleteSupplier({ id: supplier._id })}>
-                            <Trash2 className="w-4 h-4 text-red-500" />
-                          </Button>
+
+                          {/* MENU DE AÇÕES */}
+                          <div className="flex gap-1">
+                             <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0 text-blue-600 hover:bg-blue-50"
+                              onClick={() => openEditSupplier(supplier)}
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-8 w-8 shrink-0 text-red-500 hover:bg-red-50"
+                              onClick={() => handleDeleteSupplier(supplier._id, supplier.name)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
                         {supplier.notes && (
                           <>
                             <Separator className="my-2 md:my-3" />
                             <p className="text-xs md:text-sm text-gray-600 line-clamp-2">{supplier.notes}</p>
-                           </>
-
+                          </>
                         )}
                       </Card>
                     ))}
@@ -2863,6 +3064,46 @@ const chartData = useMemo(() => {
                   />
                 )}
               </div>
+              {/* DIALOG DE EDIÇÃO DE FORNECEDOR */}
+              <Dialog open={showEditSupplier} onOpenChange={setShowEditSupplier}>
+                <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+                  <DialogHeader>
+                    <DialogTitle>✏️ Editar Fornecedor</DialogTitle>
+                    <DialogDescription>Atualize os dados do fornecedor</DialogDescription>
+                  </DialogHeader>
+                  <div className="space-y-4">
+                    <div>
+                      <Label>Nome *</Label>
+                      <Input
+                        value={supplierForm.name}
+                        onChange={(e) => setSupplierForm({ ...supplierForm, name: e.target.value })}
+                        placeholder="Nome da empresa"
+                      />
+                    </div>
+                    <div>
+                      <Label>Email</Label>
+                      <Input
+                        type="email"
+                        value={supplierForm.email}
+                        onChange={(e) => setSupplierForm({ ...supplierForm, email: e.target.value })}
+                        placeholder="email@fornecedor.com"
+                      />
+                    </div>
+                    <div>
+                      <Label>Telefone</Label>
+                      <Input
+                        value={supplierForm.phone}
+                        onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
+                        placeholder="(00) 0000-0000"
+                      />
+                    </div>
+                  </div>
+                  <DialogFooter>
+                    <Button variant="outline" onClick={() => setShowEditSupplier(false)}>Cancelar</Button>
+                    <Button onClick={handleEditSupplier} className="bg-teal-600">Salvar Alterações</Button>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
             </TabsContent>
           </Tabs>
         </div>
