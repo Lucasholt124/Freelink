@@ -1,1641 +1,2481 @@
-"use client";
+  "use client";
 
-import React, { useState, useEffect, useRef } from "react";
-import { motion, AnimatePresence, useScroll, useInView } from "framer-motion";
-import { useRouter } from "next/navigation";
-import { SignInButton, useAuth } from "@clerk/nextjs";
-import {
-  ArrowRight, CheckCircle, Star, Shield,
-  Zap, TrendingUp, DollarSign, Wand2,
-  Check, Instagram, Linkedin, Youtube,
-  Target, Sparkles, MessageCircle,
-  Palette, Calculator,
-  Film, Flame, Link2, BarChart3,
-  Globe, MapPin,
-  Play, Users, Lock,
-  Menu, X, Eye, Heart,
-  ShoppingBag, Briefcase, Music,
-  Camera, BookOpen, Dumbbell, UtensilsCrossed,
-  Building2, Megaphone, Store,
-  QrCode, Bot, Fingerprint,
-  Crown, Rocket, Gift,
-  Settings, Share2, Cpu,
-  Sun, Moon, BadgeCheck, Server
-} from "lucide-react";
-import clsx from "clsx";
+  import React, { useState, useEffect, useRef } from "react";
+  import { motion, AnimatePresence, useScroll, useInView } from "framer-motion";
+  import { useRouter } from "next/navigation";
+  import { SignInButton, useAuth } from "@clerk/nextjs";
+  import {
+    ArrowRight, CheckCircle, Star, Shield,
+    Zap, TrendingUp, DollarSign, Wand2,
+    Check, Instagram, Linkedin, Youtube,
+    Target, Sparkles, MessageCircle,
+    Palette, Calculator,
+    Film, Flame, Link2, BarChart3,
+    Globe, MapPin,
+    Play, Users, Lock,
+    Menu, X, Eye, Heart,
+    ShoppingBag, Briefcase, Music,
+    Camera, BookOpen, Dumbbell, UtensilsCrossed,
+    Building2, Megaphone, Store,
+    QrCode, Bot, Fingerprint,
+    Crown, Rocket, Gift,
+    Settings, Share2, Cpu,
+    Sun, Moon, BadgeCheck,
+    Infinity as InfinityIcon,
+    PlayCircle, Image as ImageIcon
+  } from "lucide-react";
+  import clsx from "clsx";
 
-// --- CONFIGURAÇÕES VISUAIS ---
-const BRAND = {
-  primary: "#6366f1",
-  secondary: "#8b5cf6",
-  gradient: "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6]",
-  gradientHover: "hover:from-[#5558e3] hover:to-[#7c4fee]",
-  textGradient: "bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] to-[#8b5cf6]",
-};
-
-// --- DADOS ---
-const nichos = [
-  { icon: <Instagram size={18} />, name: "Criadores" },
-  { icon: <ShoppingBag size={18} />, name: "Afiliados" },
-  { icon: <Heart size={18} />, name: "Nutricionistas" },
-  { icon: <Dumbbell size={18} />, name: "Personal Trainers" },
-  { icon: <UtensilsCrossed size={18} />, name: "Restaurantes" },
-  { icon: <BookOpen size={18} />, name: "Infoprodutores" },
-  { icon: <Store size={18} />, name: "E-commerce" },
-  { icon: <Building2 size={18} />, name: "Agências" },
-  { icon: <Music size={18} />, name: "Artistas" },
-  { icon: <Camera size={18} />, name: "Fotógrafos" },
-  { icon: <Megaphone size={18} />, name: "Marketing" },
-  { icon: <Briefcase size={18} />, name: "Freelancers" },
-];
-
-const features = [
-  {
-    icon: <Link2 size={24} />,
-    title: "Página de Links",
-    desc: "Totalmente customizável. Você escolhe cada detalhe.",
-    tag: "GRÁTIS",
-    color: "from-blue-500 to-cyan-500"
-  },
-  {
-    icon: <Zap size={24} />,
-    title: "Encurtador de Links",
-    desc: "Links curtos e memoráveis com analytics Básico.",
-    tag: "GRÁTIS",
-    color: "from-yellow-500 to-orange-500"
-  },
-  {
-    icon: <BarChart3 size={24} />,
-    title: "Analytics Completo",
-    desc: "Saiba de onde vem cada clique. Cidade, dispositivo, horário.",
-    tag: "ULTRA",
-    color: "from-purple-500 to-pink-500"
-  },
-  {
-    icon: <QrCode size={24} />,
-    title: "QR Code Dinâmico",
-    desc: "QR Code em sua pagina de links",
-    tag: "GRÁTIS",
-    color: "from-green-500 to-emerald-500"
-  },
-  {
-    icon: <Film size={24} />,
-    title: "Brain Roteirista IA",
-    desc: "Roteiros virais com 95% de chance de engajamento.",
-    tag: "PRO",
-    color: "from-red-500 to-rose-500"
-  },
-  {
-    icon: <Calculator size={24} />,
-    title: "Gestão Financeira",
-    desc: "Controle vendas, custos e veja seu lucro real.",
-    tag: "ULTRA",
-    color: "from-indigo-500 to-violet-500"
-  },
-  {
-    icon: <Bot size={24} />,
-    title: "AI Studio",
-    desc: "Chat IA, remoção de fundo, upscale de imagens.",
-    tag: "ULTRA",
-    color: "from-fuchsia-500 to-purple-500"
-  },
-  {
-    icon: <Target size={24} />,
-    title: "Pixel & UTM",
-    desc: "Rastreie conversões com precisão cirúrgica.",
-    tag: "ULTRA",
-    color: "from-teal-500 to-cyan-500"
-  },
-];
-
-const stats = [
-  { value: "10.800", suffix: "+", label: "Criadores Ativos" },
-  { value: "2.4", suffix: "M+", label: "Cliques Rastreados" },
-  { value: "847", prefix: "R$", suffix: "k+", label: "Gerado para Usuários" },
-  { value: "4.9", suffix: "/5", label: "Avaliação Média" },
-];
-
-const testimonials = [
-  {
-    text: "Saí do Linktree e nunca mais voltei. O Freelinnk me dá dados que eu pagava caro pra ter.",
-    author: "Mariana Costa",
-    role: "Criadora • 89k seguidores",
-    avatar: "https://i.pravatar.cc/100?img=5",
-    increase: "+312% vendas"
-  },
-  {
-    text: "O Brain sugeriu um roteiro e meu vídeo fez 500k views. Nunca tinha acontecido antes.",
-    author: "Lucas Mendes",
-    role: "TikToker • 234k seguidores",
-    avatar: "https://i.pravatar.cc/100?img=12",
-    increase: "500k views"
-  },
-  {
-    text: "Finalmente sei quanto realmente lucro por mês. A gestão financeira mudou meu negócio.",
-    author: "Fernanda Lima",
-    role: "Personal Trainer",
-    avatar: "https://i.pravatar.cc/100?img=9",
-    increase: "+487% consultas"
-  },
-  {
-    text: "O encurtador com analytics me mostrou qual produto vender. Triplicou minha comissão.",
-    author: "Pedro Henrique",
-    role: "Afiliado Hotmart",
-    avatar: "https://i.pravatar.cc/100?img=11",
-    increase: "3x comissões"
-  },
-  {
-    text: "Interface linda, customização total. Minha página ficou a cara da minha marca.",
-    author: "Ana Paula",
-    role: "Nutricionista Online",
-    avatar: "https://i.pravatar.cc/100?img=23",
-    increase: "+89 pacientes/mês"
-  },
-  {
-    text: "Sai do zero e hoje faturo 5 dígitos. O Freelinnk foi parte essencial dessa jornada.",
-    author: "Rafael Torres",
-    role: "Infoprodutor",
-    avatar: "https://i.pravatar.cc/100?img=15",
-    increase: "5 dígitos/mês"
-  },
-];
-
-const realPages = [
-  {
-    id: 1,
-    image: "/ImpulsioneWeb.png",
-    name: "@ImpulsioneWeb",
-    type: "Agência Digital",
-    color: "from-blue-600 to-indigo-600"
-  },
-  {
-    id: 2,
-    image: "/Glam-Fit.png",
-    name: "@Glam-Fit",
-    type: "Moda Fitness",
-    color: "from-pink-500 to-rose-500"
-  },
-  {
-    id: 3,
-    image: "/Studio-Oliveira.png",
-    name: "@Studio-Oliveira",
-    type: "Nails Designer",
-    color: "from-purple-500 to-violet-500"
-  },
-  {
-    id: 4,
-    image: "/Penelope-Variedades.png",
-    name: "@Penelope-Variedades",
-    type: "Loja Virtual",
-    color: "from-orange-500 to-amber-500"
-  },
-];
-
-// --- BUTTON COMPONENT ---
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "outline" | "white" | "ghost";
-  size?: "sm" | "md" | "lg" | "xl";
-  children: React.ReactNode;
-}
-
-const Button: React.FC<ButtonProps> = ({
-  variant = "default",
-  size = "md",
-  className,
-  children,
-  ...props
-}) => {
-  const base = "inline-flex items-center justify-center font-bold rounded-2xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer active:scale-[0.98]";
-
-  const variants = {
-    default: `${BRAND.gradient} ${BRAND.gradientHover} text-white focus:ring-[#6366f1] shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:-translate-y-0.5`,
-    outline: "bg-white border-2 border-gray-200 text-gray-700 hover:border-[#6366f1] hover:text-[#6366f1] hover:bg-indigo-50/50",
-    white: "bg-white text-gray-900 hover:bg-gray-50 shadow-xl hover:shadow-2xl hover:-translate-y-0.5",
-    ghost: "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+  // --- CONFIGURAÇÕES VISUAIS ---
+  const BRAND = {
+    primary: "#6366f1",
+    secondary: "#8b5cf6",
+    gradient: "bg-gradient-to-r from-[#6366f1] to-[#8b5cf6]",
+    gradientHover: "hover:from-[#5558e3] hover:to-[#7c4fee]",
+    textGradient: "bg-clip-text text-transparent bg-gradient-to-r from-[#6366f1] to-[#8b5cf6]",
   };
 
-  const sizes = {
-    sm: "px-4 py-2.5 text-sm gap-2",
-    md: "px-6 py-3 text-sm gap-2",
-    lg: "px-8 py-4 text-base gap-2",
-    xl: "px-10 py-5 text-lg gap-3",
-  };
-
-  return (
-    <button className={clsx(base, variants[variant], sizes[size], className)} {...props}>
-      {children}
-    </button>
-  );
-};
-
-// --- SCROLL REVEAL ---
-const ScrollReveal = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "0px 0px -50px 0px" }}
-    transition={{ duration: 0.4, ease: "easeOut" }}
-    className={className}
-  >
-    {children}
-  </motion.div>
-);
-
-// --- ANIMATED COUNTER ---
-const AnimatedCounter = ({ value, prefix = "", suffix = "" }: { value: string; prefix?: string; suffix?: string }) => (
-  <span className="tabular-nums">
-    {prefix}{value}{suffix}
-  </span>
-);
-
-// --- FLOATING ELEMENTS ---
-const FloatingElement = ({ children, delay = 0, y = 10, duration = 6 }: { children: React.ReactNode; delay?: number; y?: number; duration?: number }) => (
-  <motion.div
-    animate={{ y: [-y, y, -y] }}
-    transition={{ repeat: Infinity, duration, delay, ease: "easeInOut" }}
-  >
-    {children}
-  </motion.div>
-);
-
-// --- MAGNETIC BUTTON EFFECT ---
-const MagneticWrapper = ({ children }: { children: React.ReactNode }) => (
-  <div className="relative inline-block">{children}</div>
-);
-
-// --- HERO PHONE SIMULATOR ---
-const HeroPhoneSimulator = () => {
-  const [step, setStep] = useState(0);
-  const [isDark, setIsDark] = useState(true);
-  const [likes, setLikes] = useState<{ [key: string]: number }>({
-    instagram: 12,
-    whatsapp: 8,
-    mentoria: 47,
-    ebook: 23,
-  });
-
-  useEffect(() => {
-    const timer = setInterval(() => setStep(s => (s + 1) % 5), 3500);
-    return () => clearInterval(timer);
-  }, []);
-
-  useEffect(() => {
-    if (step === 2) {
-      const likeTimer = setInterval(() => {
-        setLikes(prev => ({
-          ...prev,
-          mentoria: prev.mentoria + 1,
-        }));
-      }, 800);
-      return () => clearInterval(likeTimer);
-    }
-  }, [step]);
-
-  return (
-    <div className="relative">
-      <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-[60px] scale-110" />
-
-      <motion.div
-        className="relative w-[280px] sm:w-[320px] h-[560px] sm:h-[640px] bg-gray-900 rounded-[3rem] p-2 shadow-2xl border border-gray-800"
-        whileHover={{ scale: 1.02 }}
-        transition={{ type: "spring", stiffness: 300 }}
-      >
-        <div className="absolute top-0 inset-x-0 h-6 flex justify-center z-20">
-          <div className="w-28 h-6 bg-gray-900 rounded-b-2xl" />
-        </div>
-
-        <div className="w-full h-full bg-white rounded-[2.5rem] overflow-hidden relative">
-          <AnimatePresence mode="wait">
-            {step === 0 && (
-              <motion.div
-                key="typing"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-white flex flex-col items-center justify-center p-8"
-              >
-                <motion.div
-                  animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                  className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-3xl flex items-center justify-center mb-6 shadow-lg"
-                >
-                  <Sparkles className="w-10 h-10 text-white" />
-                </motion.div>
-
-                <h3 className="text-xl font-black text-gray-900 mb-2">Freelinnk AI</h3>
-                <p className="text-sm text-gray-500 mb-6">Descreva seu negócio...</p>
-
-                <div className="w-full bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <motion.div
-                      animate={{ opacity: [1, 0, 1] }}
-                      transition={{ repeat: Infinity, duration: 1 }}
-                      className="w-0.5 h-5 bg-indigo-500 rounded-full"
-                    />
-                    <motion.span
-                      className="text-sm text-gray-600"
-                      initial={{ width: 0 }}
-                      animate={{ width: "auto" }}
-                    >
-                      Sou criador de conteúdo digital...
-                    </motion.span>
-                  </div>
-                </div>
-
-                <motion.div
-                  initial={{ width: 0 }}
-                  animate={{ width: "100%" }}
-                  transition={{ duration: 3 }}
-                  className="h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mt-6"
-                />
-              </motion.div>
-            )}
-
-            {step === 1 && (
-              <motion.div
-                key="creating"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-600 flex flex-col items-center justify-center p-8 text-white"
-              >
-                <motion.div
-                  animate={{ rotate: 360 }}
-                  transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                  className="mb-6"
-                >
-                  <Wand2 className="w-16 h-16" />
-                </motion.div>
-
-                <h3 className="text-xl font-bold mb-8">Criando sua página...</h3>
-
-                <div className="w-full space-y-3">
-                  {[
-                    { text: "Configurando perfil", delay: 0 },
-                    { text: "Gerando layout", delay: 0.3 },
-                    { text: "Adicionando links", delay: 0.6 },
-                    { text: "Finalizando...", delay: 0.9 },
-                  ].map((item, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ x: -30, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: item.delay }}
-                      className="flex items-center gap-3 bg-white/10 backdrop-blur rounded-xl p-3"
-                    >
-                      <motion.div
-                        initial={{ scale: 0 }}
-                        animate={{ scale: 1 }}
-                        transition={{ delay: item.delay + 0.3, type: "spring" }}
-                        className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center"
-                      >
-                        <Check size={12} className="text-gray-900" />
-                      </motion.div>
-                      <span className="text-sm font-medium">{item.text}</span>
-                    </motion.div>
-                  ))}
-                </div>
-              </motion.div>
-            )}
-
-            {step === 2 && (
-              <motion.div
-                key="preview"
-                initial={{ y: 50, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className={`absolute inset-0 overflow-hidden transition-colors duration-300 ${isDark
-                    ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
-                    : "bg-gradient-to-br from-gray-50 to-white"
-                  }`}
-              >
-                <div className="flex items-center justify-between px-4 pt-8 pb-2">
-                  <motion.button
-                    whileTap={{ scale: 0.9 }}
-                    whileHover={{ rotate: 180 }}
-                    transition={{ duration: 0.3 }}
-                    onClick={() => setIsDark(!isDark)}
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-white/10 text-yellow-400" : "bg-gray-100 text-gray-600"
-                      }`}
-                  >
-                    {isDark ? <Sun size={14} /> : <Moon size={14} />}
-                  </motion.button>
-
-                  <div className="flex items-center gap-2">
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      whileHover={{ scale: 1.1 }}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-600"
-                        }`}
-                    >
-                      <QrCode size={14} />
-                    </motion.button>
-                    <motion.button
-                      whileTap={{ scale: 0.9 }}
-                      whileHover={{ scale: 1.1 }}
-                      className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-600"
-                        }`}
-                    >
-                      <Share2 size={14} />
-                    </motion.button>
-                  </div>
-                </div>
-
-                <div className="px-6 pt-2 pb-4 text-center">
-                  <motion.div
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
-                    className="relative w-20 h-20 mx-auto mb-3"
-                  >
-                    <img
-                      src="https://i.pravatar.cc/200?img=32"
-                      className="w-full h-full rounded-full object-cover border-4 border-white/20 shadow-xl"
-                      alt="Profile"
-                    />
-                    <motion.div
-                      animate={{ scale: [1, 1.2, 1] }}
-                      transition={{ repeat: Infinity, duration: 2 }}
-                      className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center"
-                    >
-                      <Check size={10} className="text-white" />
-                    </motion.div>
-                  </motion.div>
-
-                  <motion.div
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="flex items-center justify-center gap-1.5 mb-1"
-                  >
-                    <h3 className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-900"}`}>
-                      @ana.creator
-                    </h3>
-                    <BadgeCheck size={16} className="text-gray-400" />
-                  </motion.div>
-
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.4 }}
-                    className={`text-xs mb-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}
-                  >
-                    Transformo seguidores em clientes! ✨
-                  </motion.p>
-
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                    className={`text-[10px] ${isDark ? "text-gray-500" : "text-gray-400"}`}
-                  >
-                    Desde 2025
-                  </motion.p>
-                </div>
-
-                <div className="px-4 space-y-2.5 overflow-y-auto max-h-[280px] pb-4">
-                  <motion.p
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.6 }}
-                    className={`text-[10px] font-bold uppercase tracking-wider px-2 ${isDark ? "text-gray-500" : "text-gray-400"
-                      }`}
-                  >
-                    Links
-                  </motion.p>
-
-                  {[
-                    { icon: <Instagram size={16} />, text: "Instagram", likes: likes.instagram, color: "from-pink-500 to-purple-500" },
-                    { icon: <MessageCircle size={16} />, text: "WhatsApp", likes: likes.whatsapp, color: "from-green-500 to-emerald-500" },
-                    { icon: <Flame size={16} />, text: "🔥 Mentoria VIP", likes: likes.mentoria, color: "from-orange-500 to-red-500", highlight: true },
-                    { icon: <BookOpen size={16} />, text: "📚 E-book Gratuito", likes: likes.ebook, color: "from-blue-500 to-cyan-500" },
-                  ].map((link, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ x: -30, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: 0.7 + i * 0.1 }}
-                      whileHover={{ scale: 1.02, x: 4 }}
-                      whileTap={{ scale: 0.98 }}
-                      className={`relative rounded-2xl p-3.5 flex items-center justify-between cursor-pointer group overflow-hidden ${link.highlight
-                          ? `bg-gradient-to-r ${link.color} shadow-lg`
-                          : isDark
-                            ? "bg-white/5 hover:bg-white/10 border border-white/10"
-                            : "bg-gray-100 hover:bg-gray-200 border border-gray-200"
-                        }`}
-                    >
-                      {link.highlight && (
-                        <motion.div
-                          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
-                          animate={{ x: ["-100%", "100%"] }}
-                          transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-                        />
-                      )}
-
-                      <div className="flex items-center gap-3 relative z-10">
-                        <span className={link.highlight ? "text-white" : isDark ? "text-white" : "text-gray-700"}>
-                          {link.icon}
-                        </span>
-                        <span className={`text-sm font-semibold ${link.highlight ? "text-white" : isDark ? "text-white" : "text-gray-800"
-                          }`}>
-                          {link.text}
-                        </span>
-                      </div>
-
-                      <motion.div
-                        whileTap={{ scale: 1.3 }}
-                        className={`flex items-center gap-1 relative z-10 ${link.highlight ? "text-white/80" : isDark ? "text-gray-400" : "text-gray-500"
-                          }`}
-                      >
-                        <Heart size={12} className={link.highlight ? "fill-white/50" : ""} />
-                        <motion.span
-                          key={link.likes}
-                          initial={{ y: -10, opacity: 0 }}
-                          animate={{ y: 0, opacity: 1 }}
-                          className="text-xs font-medium"
-                        >
-                          {link.likes}
-                        </motion.span>
-                      </motion.div>
-                    </motion.div>
-                  ))}
-                </div>
-
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 1.2 }}
-                  className="absolute bottom-4 left-0 right-0 text-center"
-                >
-                  <p className={`text-[10px] ${isDark ? "text-gray-600" : "text-gray-400"}`}>
-                    Feito com 💜 no <span className="font-bold">Freelinnk</span>
-                  </p>
-                </motion.div>
-              </motion.div>
-            )}
-
-            {step === 3 && (
-              <motion.div
-                key="analytics"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-gray-50 p-6"
-              >
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-bold text-gray-900">Analytics</h3>
-                  <motion.span
-                    animate={{ opacity: [1, 0.5, 1] }}
-                    transition={{ repeat: Infinity, duration: 1.5 }}
-                    className="flex items-center gap-1 text-xs text-green-600 font-bold"
-                  >
-                    <span className="w-2 h-2 bg-green-500 rounded-full" />
-                    LIVE
-                  </motion.span>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3 mb-4">
-                  {[
-                    { label: "Cliques Hoje", value: "847", change: "+23%" },
-                    { label: "Conversões", value: "12.4%", change: "+8%" },
-                  ].map((stat, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ y: 20, opacity: 0 }}
-                      animate={{ y: 0, opacity: 1 }}
-                      transition={{ delay: i * 0.1 }}
-                      whileHover={{ scale: 1.05 }}
-                      className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
-                    >
-                      <p className="text-[10px] text-gray-500 uppercase font-bold">{stat.label}</p>
-                      <p className="text-2xl font-black text-gray-900">{stat.value}</p>
-                      <span className="text-xs text-green-600 font-bold">{stat.change}</span>
-                    </motion.div>
-                  ))}
-                </div>
-
-                <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
-                  <p className="text-xs font-bold text-gray-700 mb-3">Últimos cliques</p>
-                  {[
-                    { city: "São Paulo", time: "agora" },
-                    { city: "Lisboa", time: "2min" },
-                    { city: "Miami", time: "5min" },
-                  ].map((click, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ x: -20, opacity: 0 }}
-                      animate={{ x: 0, opacity: 1 }}
-                      transition={{ delay: 0.3 + i * 0.1 }}
-                      className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
-                    >
-                      <div className="flex items-center gap-2">
-                        <motion.div
-                          animate={{ scale: [1, 1.2, 1] }}
-                          transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}
-                        >
-                          <MapPin size={12} className="text-indigo-500" />
-                        </motion.div>
-                        <span className="text-xs text-gray-700">{click.city}</span>
-                      </div>
-                      <span className="text-[10px] text-gray-400">{click.time}</span>
-                    </motion.div>
-                  ))}
-                </div>
-
-                <motion.div
-                  className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl p-4 text-white"
-                  whileHover={{ scale: 1.02 }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <motion.div
-                      animate={{ rotate: [0, 10, -10, 0] }}
-                      transition={{ repeat: Infinity, duration: 2 }}
-                    >
-                      <TrendingUp size={16} />
-                    </motion.div>
-                    <span className="text-xs font-bold uppercase">Insight IA</span>
-                  </div>
-                  <p className="text-sm">72% do seu público acessa pelo celular às 14h!</p>
-                </motion.div>
-              </motion.div>
-            )}
-
-            {step === 4 && (
-              <motion.div
-                key="sale"
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-6"
-              >
-                <motion.div
-                  initial={{ y: 30 }}
-                  animate={{ y: 0 }}
-                  className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100 w-full text-center"
-                >
-                  <motion.div
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    transition={{ type: "spring", bounce: 0.5 }}
-                    className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"
-                  >
-                    <DollarSign className="w-10 h-10 text-white" />
-                  </motion.div>
-
-                  <motion.h2
-                    className="text-2xl font-black text-gray-900 mb-1"
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    Venda Aprovada!
-                  </motion.h2>
-                  <p className="text-sm text-gray-500 mb-6">Via Link na Bio • Agora</p>
-
-                  <motion.div
-                    className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-100"
-                    initial={{ scale: 0.8 }}
-                    animate={{ scale: 1 }}
-                    transition={{ delay: 0.3, type: "spring" }}
-                  >
-                    <p className="text-xs text-gray-500 uppercase font-bold mb-1">Valor</p>
-                    <motion.p
-                      initial={{ scale: 0.5 }}
-                      animate={{ scale: 1 }}
-                      transition={{ delay: 0.4, type: "spring" }}
-                      className="text-4xl font-black text-green-600"
-                    >
-                      R$ 497,00
-                    </motion.p>
-                  </motion.div>
-
-                  <motion.div
-                    className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ delay: 0.5 }}
-                  >
-                    <motion.span
-                      animate={{ scale: [1, 1.3, 1] }}
-                      transition={{ repeat: Infinity, duration: 1 }}
-                      className="w-2 h-2 bg-green-500 rounded-full"
-                    />
-                    <span>+127 vendas este mês</span>
-                  </motion.div>
-                </motion.div>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
-            {[0, 1, 2, 3, 4].map(i => (
-              <motion.div
-                key={i}
-                animate={{
-                  width: step === i ? 16 : 6,
-                  backgroundColor: step === i ? "#6366f1" : "#d1d5db"
-                }}
-                className="h-1.5 rounded-full"
-              />
-            ))}
-          </div>
-        </div>
-      </motion.div>
-
-      <FloatingElement delay={0} duration={4} y={10}>
-        <motion.div
-          className="absolute -top-4 -left-4 sm:top-8 sm:-left-16 bg-white rounded-2xl p-3 shadow-xl border border-gray-100 hidden sm:flex items-center gap-3 z-10"
-          whileHover={{ scale: 1.05 }}
-        >
-          <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
-            <TrendingUp className="w-5 h-5 text-green-600" />
-          </div>
-          <div>
-            <p className="text-[10px] text-gray-500 font-bold uppercase">Conversão</p>
-            <p className="text-lg font-black text-gray-900">+312%</p>
-          </div>
-        </motion.div>
-      </FloatingElement>
-
-      <FloatingElement delay={1} duration={5} y={12}>
-        <motion.div
-          className="absolute -bottom-4 -right-4 sm:bottom-20 sm:-right-16 bg-white rounded-2xl p-3 shadow-xl border border-gray-100 hidden sm:flex items-center gap-3 z-10"
-          whileHover={{ scale: 1.05 }}
-        >
-          <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
-            <Eye className="w-5 h-5 text-purple-600" />
-          </div>
-          <div>
-            <p className="text-[10px] text-gray-500 font-bold uppercase">Visualizações</p>
-            <p className="text-lg font-black text-gray-900">12.4k</p>
-          </div>
-        </motion.div>
-      </FloatingElement>
-    </div>
-  );
-};
-
-// --- SOCIAL PROOF AVATARS ---
-const SocialProofAvatars = () => {
-  const avatars = [
-    "https://i.pravatar.cc/80?img=1",
-    "https://i.pravatar.cc/80?img=2",
-    "https://i.pravatar.cc/80?img=3",
-    "https://i.pravatar.cc/80?img=4",
-    "https://i.pravatar.cc/80?img=5",
-    "https://i.pravatar.cc/80?img=6",
+  // --- DADOS ---
+  const nichos = [
+    { icon: <Instagram size={18} />, name: "Criadores" },
+    { icon: <ShoppingBag size={18} />, name: "Afiliados" },
+    { icon: <Heart size={18} />, name: "Nutricionistas" },
+    { icon: <Dumbbell size={18} />, name: "Personal Trainers" },
+    { icon: <UtensilsCrossed size={18} />, name: "Restaurantes" },
+    { icon: <BookOpen size={18} />, name: "Infoprodutores" },
+    { icon: <Store size={18} />, name: "E-commerce" },
+    { icon: <Building2 size={18} />, name: "Agências" },
+    { icon: <Music size={18} />, name: "Artistas" },
+    { icon: <Camera size={18} />, name: "Fotógrafos" },
+    { icon: <Megaphone size={18} />, name: "Marketing" },
+    { icon: <Briefcase size={18} />, name: "Freelancers" },
   ];
 
-  return (
-    <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
-      <div className="flex -space-x-3">
-        {avatars.map((src, i) => (
-          <motion.img
-            key={i}
-            initial={{ scale: 0, x: -10 }}
-            animate={{ scale: 1, x: 0 }}
-            transition={{ delay: i * 0.08, type: "spring" }}
-            whileHover={{ scale: 1.1, zIndex: 10 }}
-            src={src}
-            alt=""
-            className="w-10 h-10 rounded-full border-[3px] border-white shadow-md object-cover relative"
-          />
-        ))}
-      </div>
-      <div className="text-center sm:text-left">
-        <div className="flex items-center justify-center sm:justify-start gap-0.5 mb-0.5">
-          {[1, 2, 3, 4, 5].map(i => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, scale: 0 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.5 + i * 0.1 }}
-            >
-              <Star size={14} className="text-yellow-400 fill-yellow-400" />
-            </motion.div>
-          ))}
-        </div>
-        <p className="text-sm text-gray-600">
-          <span className="font-bold text-gray-900">+10.800</span> criadores ativos
-        </p>
-      </div>
-    </div>
-  );
-};
+  const features = [
+    {
+      icon: <Link2 size={24} />,
+      title: "Página de Links",
+      desc: "Totalmente customizável. Você escolhe cada detalhe.",
+      tag: "GRÁTIS",
+      color: "from-blue-500 to-cyan-500"
+    },
+    {
+      icon: <Zap size={24} />,
+      title: "Encurtador de Links",
+      desc: "Links curtos e memoráveis com analytics Básico.",
+      tag: "GRÁTIS",
+      color: "from-yellow-500 to-orange-500"
+    },
+    {
+      icon: <BarChart3 size={24} />,
+      title: "Analytics Completo",
+      desc: "Saiba de onde vem cada clique. Cidade, dispositivo, horário.",
+      tag: "ULTRA",
+      color: "from-purple-500 to-pink-500"
+    },
+    {
+      icon: <QrCode size={24} />,
+      title: "QR Code Dinâmico",
+      desc: "QR Code em sua pagina de links",
+      tag: "GRÁTIS",
+      color: "from-green-500 to-emerald-500"
+    },
+    {
+      icon: <Film size={24} />,
+      title: "Brain Roteirista IA",
+      desc: "Roteiros virais com 95% de chance de engajamento.",
+      tag: "PRO",
+      color: "from-red-500 to-rose-500"
+    },
+    {
+      icon: <Calculator size={24} />,
+      title: "Gestão Financeira",
+      desc: "Controle vendas, custos e veja seu lucro real.",
+      tag: "ULTRA",
+      color: "from-indigo-500 to-violet-500"
+    },
+    {
+      icon: <Bot size={24} />,
+      title: "AI Studio",
+      desc: "Chat IA, remoção de fundo, upscale de imagens.",
+      tag: "ULTRA",
+      color: "from-fuchsia-500 to-purple-500"
+    },
+    {
+      icon: <Target size={24} />,
+      title: "Pixel & UTM",
+      desc: "Rastreie conversões com precisão cirúrgica.",
+      tag: "ULTRA",
+      color: "from-teal-500 to-cyan-500"
+    },
+  ];
 
-// --- PÁGINAS REAIS COM CARROSSEL INFINITO ---
-const RealPagesShowcase = () => {
-  const [isPaused, setIsPaused] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const duplicatedPages = [...realPages, ...realPages, ...realPages];
+  const stats = [
+    { value: "10.800", suffix: "+", label: "Criadores Ativos" },
+    { value: "2.4", suffix: "M+", label: "Cliques Rastreados" },
+    { value: "847", prefix: "R$", suffix: "k+", label: "Gerado para Usuários" },
+    { value: "4.9", suffix: "/5", label: "Avaliação Média" },
+  ];
 
-  return (
-    <div
-      className="relative overflow-hidden py-8"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
-      <div className="absolute left-0 top-0 bottom-0 w-10 md:w-40 bg-gradient-to-r from-gray-50 via-gray-50 to-transparent z-10 pointer-events-none" />
-      <div className="absolute right-0 top-0 bottom-0 w-10 md:w-40 bg-gradient-to-l from-gray-50 via-gray-50 to-transparent z-10 pointer-events-none" />
+  const testimonials = [
+    {
+      text: "Saí do Linktree e nunca mais voltei. O Freelinnk me dá dados que eu pagava caro pra ter.",
+      author: "Mariana Costa",
+      role: "Criadora • 89k seguidores",
+      avatar: "https://i.pravatar.cc/100?img=5",
+      increase: "+312% vendas"
+    },
+    {
+      text: "O Brain sugeriu um roteiro e meu vídeo fez 500k views. Nunca tinha acontecido antes.",
+      author: "Lucas Mendes",
+      role: "TikToker • 234k seguidores",
+      avatar: "https://i.pravatar.cc/100?img=12",
+      increase: "500k views"
+    },
+    {
+      text: "Finalmente sei quanto realmente lucro por mês. A gestão financeira mudou meu negócio.",
+      author: "Fernanda Lima",
+      role: "Personal Trainer",
+      avatar: "https://i.pravatar.cc/100?img=9",
+      increase: "+487% consultas"
+    },
+    {
+      text: "O encurtador com analytics me mostrou qual produto vender. Triplicou minha comissão.",
+      author: "Pedro Henrique",
+      role: "Afiliado Hotmart",
+      avatar: "https://i.pravatar.cc/100?img=11",
+      increase: "3x comissões"
+    },
+    {
+      text: "Interface linda, customização total. Minha página ficou a cara da minha marca.",
+      author: "Ana Paula",
+      role: "Nutricionista Online",
+      avatar: "https://i.pravatar.cc/100?img=23",
+      increase: "+89 pacientes/mês"
+    },
+    {
+      text: "Sai do zero e hoje faturo 5 dígitos. O Freelinnk foi parte essencial dessa jornada.",
+      author: "Rafael Torres",
+      role: "Infoprodutor",
+      avatar: "https://i.pravatar.cc/100?img=15",
+      increase: "5 dígitos/mês"
+    },
+  ];
 
-      <motion.div
-        ref={containerRef}
-        className="flex gap-6 md:gap-8"
-        animate={{
-          x: isPaused ? undefined : [0, -1200],
-        }}
-        transition={{
-          x: {
-            repeat: Infinity,
-            repeatType: "loop",
-            duration: 40,
-            ease: "linear",
-          },
-        }}
-        style={{ width: "fit-content" }}
-      >
-        {duplicatedPages.map((page, index) => (
-          <motion.div
-            key={`${page.id}-${index}`}
-            className="relative flex-shrink-0 w-[240px] sm:w-[280px] md:w-[300px] group"
-            whileHover={{
-              y: -20,
-              scale: 1.05,
-              zIndex: 20,
-            }}
-            transition={{ type: "spring", stiffness: 300, damping: 20 }}
-          >
-            <motion.div
-              className={`absolute -inset-4 bg-gradient-to-r ${page.color} rounded-[3rem] opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500`}
-            />
+  const realPages = [
+    {
+      id: 1,
+      image: "/ImpulsioneWeb.jpeg",
+      name: "@ImpulsioneWeb",
+      type: "Agência Digital",
+      color: "from-blue-600 to-indigo-600"
+    },
+    {
+      id: 2,
+      image: "/Glam-Fit.jpeg",
+      name: "@Glam-Fit",
+      type: "Moda Fitness",
+      color: "from-pink-500 to-rose-500"
+    },
+    {
+      id: 3,
+      image: "/Studio-Oliveira.jpeg",
+      name: "@Studio-Oliveira",
+      type: "Nails Designer",
+      color: "from-purple-500 to-violet-500"
+    },
+    {
+      id: 4,
+      image: "/Penelope-Variedades.jpeg",
+      name: "@Penelope-Variedades",
+      type: "Loja Virtual",
+      color: "from-orange-500 to-amber-500"
+    },
+  ];
 
-            <div className="relative bg-gray-900 rounded-[2.5rem] p-2 shadow-xl group-hover:shadow-2xl transition-all duration-500">
-              <div className="absolute top-0 inset-x-0 h-5 flex justify-center z-10">
-                <div className="w-20 h-5 bg-gray-900 rounded-b-xl" />
-              </div>
+  // Dados dos planos (baseado no seu BillingContent)
+  const pricingPlans = [
+    {
+      id: "pro",
+      name: "Pro Creator",
+      monthlyPrice: 34.90,
+      yearlyPrice: 349,
+      badge: "🔥 MAIS ESCOLHIDO",
+      badgeColor: "from-amber-400 to-orange-500",
+      description: "Crescimento acelerado com IA essencial.",
+      features: [
+        { text: "6 Ideias Virais (IA) / dia", icon: <Sparkles className="w-4 h-4" /> },
+        { text: "3 Roteiros de Vídeo / dia", icon: <PlayCircle className="w-4 h-4" /> },
+        { text: "Ferramenta de Sorteios", icon: <Gift className="w-4 h-4" />, isHot: true },
+        { text: "Analytics Avançados", icon: <BarChart3 className="w-4 h-4" /> },
+        { text: "Remover Marca Freelinnk", icon: <CheckCircle className="w-4 h-4" /> },
+        { text: "Suporte Prioritário", icon: <Zap className="w-4 h-4" /> },
+      ],
+      cta: "Testar 7 Dias Grátis",
+      color: "blue",
+      popular: true
+    },
+    {
+      id: "ultra",
+      name: "Ultra Business",
+      monthlyPrice: 77.90,
+      yearlyPrice: 779,
+      badge: "👑 PODER MÁXIMO",
+      badgeColor: "from-purple-600 to-pink-600",
+      description: "Sua agência de marketing completa no bolso.",
+      features: [
+        { text: "Ideias e Roteiros ILIMITADOS", icon: <InfinityIcon className="w-4 h-4" /> },
+        { text: "Aprimorador de Fotos (10/dia)", icon: <Sparkles className="w-4 h-4" /> },
+        { text: "AI Studio (Chat + Audio2Text)", icon: <MessageCircle className="w-4 h-4" /> },
+        { text: "Calculadora de Lucros IA", icon: <Calculator className="w-4 h-4" /> },
+        { text: "7 Imagens IA / dia + Remove BG", icon: <ImageIcon className="w-4 h-4" /> },
+        { text: "Pixel FB + Google GA4", icon: <Target className="w-4 h-4" /> },
+        { text: "WhatsApp Pessoal VIP", icon: <Crown className="w-4 h-4" /> },
+      ],
+      cta: "Testar 7 Dias Grátis",
+      color: "purple",
+      popular: false
+    }
+  ];
 
-              <div className="bg-gray-800 rounded-[2rem] overflow-hidden aspect-[9/18] relative">
-                <motion.img
-                  src={page.image}
-                  alt={page.name}
-                  className="w-full h-full object-cover"
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.6 }}
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = `https://placehold.co/280x500/1a1a2e/6366f1?text=${encodeURIComponent(
-                      page.name
-                    )}`;
-                  }}
-                />
+  // --- BUTTON COMPONENT ---
+  interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+    variant?: "default" | "outline" | "white" | "ghost";
+    size?: "sm" | "md" | "lg" | "xl";
+    children: React.ReactNode;
+  }
 
-                <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-4" />
+  const Button: React.FC<ButtonProps> = ({
+    variant = "default",
+    size = "md",
+    className,
+    children,
+    ...props
+  }) => {
+    const base = "inline-flex items-center justify-center font-bold rounded-2xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 cursor-pointer active:scale-[0.98]";
 
-                <motion.div
-                  className="absolute bottom-0 left-0 right-0 p-5 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end items-center text-center z-20"
-                  initial={{ y: 20 }}
-                  whileHover={{ y: 0 }}
-                >
-                  <p className="text-white font-bold text-lg leading-tight mb-1 w-full break-words">
-                    {page.name}
-                  </p>
-                  <p className="text-white/80 text-sm font-medium">
-                    {page.type}
-                  </p>
-                  <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur rounded-full">
-                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                    <span className="text-[10px] text-white font-bold uppercase">
-                      Ver página
-                    </span>
-                  </div>
-                </motion.div>
-              </div>
-            </div>
+    const variants = {
+      default: `${BRAND.gradient} ${BRAND.gradientHover} text-white focus:ring-[#6366f1] shadow-lg shadow-indigo-500/30 hover:shadow-xl hover:shadow-indigo-500/40 hover:-translate-y-0.5`,
+      outline: "bg-white border-2 border-gray-200 text-gray-700 hover:border-[#6366f1] hover:text-[#6366f1] hover:bg-indigo-50/50",
+      white: "bg-white text-gray-900 hover:bg-gray-50 shadow-xl hover:shadow-2xl hover:-translate-y-0.5",
+      ghost: "bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900",
+    };
 
-            <motion.div
-              className="mt-4 text-center"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <motion.p
-                className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors"
-                whileHover={{ scale: 1.05 }}
-              >
-                {page.name}
-              </motion.p>
-              <p className="text-xs text-gray-500 mt-0.5">{page.type}</p>
-            </motion.div>
-          </motion.div>
-        ))}
-      </motion.div>
+    const sizes = {
+      sm: "px-4 py-2.5 text-sm gap-2",
+      md: "px-6 py-3 text-sm gap-2",
+      lg: "px-8 py-4 text-base gap-2",
+      xl: "px-10 py-5 text-lg gap-3",
+    };
 
-      <div className="text-center mt-12">
-        <p className="text-[10px] text-gray-400">
-          * As páginas exibidas foram autorizadas pelos criadores para aparecer em nossa galeria pública.
-        </p>
-        <motion.p
-          className="text-center text-sm text-gray-400 mt-2"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1 }}
-        >
-          <motion.span
-            animate={{ opacity: [0.5, 1, 0.5] }}
-            transition={{ repeat: Infinity, duration: 2 }}
-          >
-            Passe o mouse para pausar ✨
-          </motion.span>
-        </motion.p>
-      </div>
-    </div>
-  );
-};
+    return (
+      <button className={clsx(base, variants[variant], sizes[size], className)} {...props}>
+        {children}
+      </button>
+    );
+  };
 
-// --- FEATURE CARD ---
-const FeatureCard = ({ feature }: { feature: typeof features[0]; index: number }) => {
-  return (
-    <ScrollReveal className="h-full">
-      <div className="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:border-indigo-200 transition-colors duration-300 h-full overflow-hidden group">
-        <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
-        <div className="relative z-10">
-          <div className="flex items-start justify-between mb-4">
-            <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center text-white shadow-sm`}>
-              {feature.icon}
-            </div>
-            <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${feature.tag === "GRÁTIS" ? "bg-green-100 text-green-700" :
-                feature.tag === "PRO" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
-              }`}>
-              {feature.tag}
-            </span>
-          </div>
-          <h3 className="font-bold text-lg text-gray-900 mb-2">{feature.title}</h3>
-          <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
-        </div>
-      </div>
-    </ScrollReveal>
-  );
-};
-
-// --- TESTIMONIAL CARD ---
-const TestimonialCard = ({ testimonial }: { testimonial: typeof testimonials[0]; index: number }) => {
-  return (
-    <ScrollReveal className="h-full">
-      <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm h-full flex flex-col justify-between hover:border-indigo-100 transition-colors">
-        <div>
-          <div className="flex gap-1 mb-4">
-            {[1, 2, 3, 4, 5].map(i => <Star key={i} size={16} className="text-yellow-400 fill-yellow-400" />)}
-          </div>
-          <p className="text-gray-700 text-sm leading-relaxed mb-6 italic">&quot;{testimonial.text}&quot;</p>
-        </div>
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <img src={testimonial.avatar} alt={testimonial.author} className="w-10 h-10 rounded-full border border-gray-100 object-cover" />
-            <div>
-              <p className="font-bold text-sm text-gray-900">{testimonial.author}</p>
-              <p className="text-xs text-gray-500">{testimonial.role}</p>
-            </div>
-          </div>
-          <div className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full border border-green-100">
-            {testimonial.increase}
-          </div>
-        </div>
-      </div>
-    </ScrollReveal>
-  );
-};
-
-// --- HOW IT WORKS STEP ---
-const HowItWorksStep = ({ step, index, total }: { step: { icon: React.ReactNode; title: string; desc: string }; index: number; total: number }) => {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true });
-
-  return (
+  // --- SCROLL REVEAL ---
+  const ScrollReveal = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
     <motion.div
-      ref={ref}
-      initial={{ opacity: 0, y: 50 }}
-      animate={isInView ? { opacity: 1, y: 0 } : {}}
-      transition={{ delay: index * 0.2, duration: 0.6 }}
-      className="relative"
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "0px 0px -50px 0px" }}
+      transition={{ duration: 0.4, ease: "easeOut" }}
+      className={className}
     >
-      {index < total - 1 && (
-        <motion.div
-          className="hidden lg:block absolute top-14 left-1/2 w-full h-1 overflow-hidden"
-          initial={{ opacity: 0 }}
-          animate={isInView ? { opacity: 1 } : {}}
-        >
-          <motion.div
-            className="h-full bg-gradient-to-r from-indigo-400 to-purple-400"
-            initial={{ width: 0 }}
-            animate={isInView ? { width: "100%" } : {}}
-            transition={{ delay: index * 0.2 + 0.5, duration: 0.8 }}
-          />
-        </motion.div>
-      )}
-
-      <div className="relative z-10 flex flex-col items-center text-center">
-        <MagneticWrapper>
-          <motion.div
-            whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
-            whileTap={{ scale: 0.95 }}
-            className="w-28 h-28 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-[2rem] flex items-center justify-center text-white shadow-xl shadow-indigo-500/30 mb-4 cursor-pointer relative overflow-hidden"
-          >
-            <motion.div
-              className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
-              animate={{ x: ["-100%", "100%"] }}
-              transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
-            />
-            <span className="relative z-10">{step.icon}</span>
-          </motion.div>
-        </MagneticWrapper>
-
-        <motion.div
-          whileHover={{ scale: 1.1 }}
-          className="bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 text-sm font-bold px-4 py-1.5 rounded-full mb-3"
-        >
-          Passo {index + 1}
-        </motion.div>
-
-        <h3 className="font-bold text-lg text-gray-900 mb-2">{step.title}</h3>
-        <p className="text-sm text-gray-500 max-w-[200px]">{step.desc}</p>
-      </div>
+      {children}
     </motion.div>
   );
-};
 
-// --- NICHO CARD ---
-const NichoCard = ({ nicho }: { nicho: typeof nichos[0]; index: number }) => {
-  return (
-    <ScrollReveal>
-      <div className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-indigo-200 transition-colors duration-300 cursor-pointer text-center group h-full">
-        <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3 text-gray-600 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">
-          {nicho.icon}
-        </div>
-        <p className="text-xs sm:text-sm font-bold text-gray-700 group-hover:text-indigo-700 transition-colors">
-          {nicho.name}
-        </p>
-      </div>
-    </ScrollReveal>
+  // --- ANIMATED COUNTER ---
+  const AnimatedCounter = ({ value, prefix = "", suffix = "" }: { value: string; prefix?: string; suffix?: string }) => (
+    <span className="tabular-nums">
+      {prefix}{value}{suffix}
+    </span>
   );
-};
 
-// --- DIFFERENTIAL CARD ---
-const DifferentialCard = ({ item }: { item: { icon: React.ReactNode; title: string; desc: string }; index: number }) => {
-  return (
-    <ScrollReveal>
-      <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10 hover:bg-white/10 transition-colors duration-300 h-full">
-        <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
-          {item.icon}
-        </div>
-        <h3 className="font-bold text-xl mb-2 text-white">{item.title}</h3>
-        <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
-      </div>
-    </ScrollReveal>
+  // --- FLOATING ELEMENTS ---
+  const FloatingElement = ({ children, delay = 0, y = 10, duration = 6 }: { children: React.ReactNode; delay?: number; y?: number; duration?: number }) => (
+    <motion.div
+      animate={{ y: [-y, y, -y] }}
+      transition={{ repeat: Infinity, duration, delay, ease: "easeInOut" }}
+    >
+      {children}
+    </motion.div>
   );
-};
 
-// --- COMPONENTE PRINCIPAL ---
-export default function LandingPage() {
-  const router = useRouter();
-  const { isSignedIn, isLoaded } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [scrolled, setScrolled] = useState(false);
-  // Estado para controlar a barra fixa inferior (Sticky Footer)
-  const [showStickyFooter, setShowStickyFooter] = useState(false);
-  const { scrollYProgress } = useScroll();
+  // --- MAGNETIC BUTTON EFFECT ---
+  const MagneticWrapper = ({ children }: { children: React.ReactNode }) => (
+    <div className="relative inline-block">{children}</div>
+  );
 
-  useEffect(() => {
-    if (isLoaded && isSignedIn) router.push("/dashboard");
-  }, [isLoaded, isSignedIn, router]);
+  // --- WHATSAPP FLOATING BUTTON (NOVO - ELEGANTE E CHAMATIVO) ---
+  const WhatsAppFloatingButton = () => {
+    const [isVisible, setIsVisible] = useState(false);
+    const [showTooltip, setShowTooltip] = useState(false);
 
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 20);
-      // Mostra a barra fixa apenas depois de rolar 600px (passar do Hero)
-      setShowStickyFooter(window.scrollY > 600);
-    };
-    window.addEventListener("scroll", handleScroll);
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+    // Substitua pelo seu número real
+    const whatsappNumber = "5579999383543";
+    const whatsappMessage = encodeURIComponent("Olá! Tenho dúvidas sobre os planos do Freelinnk e gostaria de falar com um especialista.");
+    const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
-  const howItWorks = [
-    { icon: <Settings size={36} />, title: "Configure sua página", desc: "Personalize cada detalhe do seu jeito" },
-    { icon: <Wand2 size={36} />, title: "Crie seus links", desc: "Organize seus links importantes" },
-    { icon: <Share2 size={36} />, title: "Compartilhe", desc: "Coloque na bio e comece a rastrear" },
-    { icon: <Rocket size={36} />, title: "Lucre mais", desc: "Veja seus resultados explodirem" },
-  ];
+    useEffect(() => {
+      // Mostra o botão após 3 segundos
+      const timer = setTimeout(() => setIsVisible(true), 3000);
 
-  const differentials = [
-    { icon: <Gift size={28} />, title: "Grátis de verdade", desc: "Página, encurtador e analytics básico. Sem pegadinhas." },
-    { icon: <Palette size={28} />, title: "100% customizável", desc: "Você escolhe cada cor, fonte e layout." },
-    { icon: <Bot size={28} />, title: "IA que trabalha por você", desc: "Brain Roteirista, Chat IA e muito mais." },
-    { icon: <BarChart3 size={28} />, title: "Analytics de verdade", desc: "Saiba cidade, dispositivo e horário de cada clique." },
-    { icon: <Calculator size={28} />, title: "Gestão Financeira", desc: "Nenhum concorrente tem. Veja seu lucro real." },
-    { icon: <Shield size={28} />, title: "Seguro e rápido", desc: "Criptografia, CDN global e 99.99% de uptime." },
-  ];
+      // Mostra o tooltip após 5 segundos
+      const tooltipTimer = setTimeout(() => setShowTooltip(true), 5000);
 
-  return (
-    <div className="bg-white text-gray-900 font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
-      {/* Progress Bar Simplificada */}
+      // Esconde o tooltip após 10 segundos
+      const hideTooltipTimer = setTimeout(() => setShowTooltip(false), 12000);
+
+      return () => {
+        clearTimeout(timer);
+        clearTimeout(tooltipTimer);
+        clearTimeout(hideTooltipTimer);
+      };
+    }, []);
+
+    if (!isVisible) return null;
+
+    return (
       <motion.div
-        className="fixed top-0 left-0 right-0 h-1 bg-indigo-500 z-[100] origin-left"
-        style={{ scaleX: scrollYProgress }}
-      />
-
-      {/* Mobile CTA (Sticky Footer) - CONDICIONAL */}
-      {/* Só aparece depois de rolar a página para não poluir o início */}
-      <AnimatePresence>
-        {showStickyFooter && (
-          <motion.div
-            initial={{ y: 100 }}
-            animate={{ y: 0 }}
-            exit={{ y: 100 }}
-            className="fixed bottom-0 left-0 right-0 z-[90] p-3 bg-white/90 backdrop-blur-md border-t border-gray-200 md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
-          >
-            <SignInButton mode="modal">
-              <Button className="w-full relative z-50 pointer-events-auto shadow-none" size="lg">
-                Começar Grátis <ArrowRight size={18} />
-              </Button>
-            </SignInButton>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Navigation */}
-      <nav
-        className={`fixed top-0 w-full z-[80] transition-all duration-300 ${scrolled ? "bg-white/95 shadow-sm" : "bg-transparent"
-          }`}
+        initial={{ opacity: 0, scale: 0, y: 50 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 200, damping: 20 }}
+        className="fixed bottom-24 md:bottom-8 right-4 md:right-8 z-[85] flex flex-col items-end gap-3"
       >
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 md:h-20 flex items-center justify-between">
-          <div
-            className="flex items-center gap-2.5 cursor-pointer relative z-50"
-            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        {/* Tooltip */}
+        <AnimatePresence>
+          {showTooltip && (
+            <motion.div
+              initial={{ opacity: 0, x: 20, scale: 0.9 }}
+              animate={{ opacity: 1, x: 0, scale: 1 }}
+              exit={{ opacity: 0, x: 20, scale: 0.9 }}
+              className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-4 max-w-[220px] relative"
+            >
+              <button
+                onClick={() => setShowTooltip(false)}
+                className="absolute -top-2 -right-2 w-6 h-6 bg-gray-100 rounded-full flex items-center justify-center text-gray-500 hover:bg-gray-200 transition-colors"
+              >
+                <X size={12} />
+              </button>
+              <p className="text-sm text-gray-700 font-medium">
+                👋 Dúvidas sobre qual plano escolher? <span className="text-green-600 font-bold">Fale conosco!</span>
+              </p>
+              {/* Seta do tooltip */}
+              <div className="absolute -bottom-2 right-8 w-4 h-4 bg-white border-r border-b border-gray-100 transform rotate-45" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Botão Principal do WhatsApp */}
+        <a
+          href={whatsappLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="group relative"
+          onMouseEnter={() => setShowTooltip(true)}
+          onMouseLeave={() => setShowTooltip(false)}
+        >
+          {/* Círculos de pulse */}
+          <motion.div
+            className="absolute inset-0 rounded-full bg-green-500"
+            animate={{
+              scale: [1, 1.4, 1.4],
+              opacity: [0.5, 0, 0],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeOut",
+            }}
+          />
+          <motion.div
+            className="absolute inset-0 rounded-full bg-green-500"
+            animate={{
+              scale: [1, 1.4, 1.4],
+              opacity: [0.5, 0, 0],
+            }}
+            transition={{
+              duration: 2,
+              repeat: Infinity,
+              ease: "easeOut",
+              delay: 0.5,
+            }}
+          />
+
+          {/* Botão */}
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.95 }}
+            className="relative w-16 h-16 md:w-[72px] md:h-[72px] bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center shadow-2xl shadow-green-500/40 cursor-pointer overflow-hidden"
           >
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl ${BRAND.gradient} shadow-md`}>
-              F
-            </div>
-            <span className="text-xl font-bold tracking-tight">Freelinnk</span>
+            {/* Efeito de brilho */}
+            <motion.div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
+              animate={{ x: ["-100%", "100%"] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "linear", repeatDelay: 1 }}
+            />
+
+            {/* Ícone do WhatsApp */}
+            <svg
+              viewBox="0 0 24 24"
+              className="w-8 h-8 md:w-9 md:h-9 text-white relative z-10 fill-current"
+            >
+              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+            </svg>
+
+            {/* Badge "Online" */}
+            <motion.div
+              className="absolute -top-1 -right-1 w-5 h-5 bg-white rounded-full flex items-center justify-center shadow-md"
+              animate={{ scale: [1, 1.1, 1] }}
+              transition={{ duration: 2, repeat: Infinity }}
+            >
+              <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse" />
+            </motion.div>
+          </motion.div>
+
+          {/* Label em Desktop */}
+          <motion.div
+            initial={{ opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ delay: 0.5 }}
+            className="hidden lg:flex absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white px-4 py-2 rounded-xl shadow-lg border border-gray-100 whitespace-nowrap items-center gap-2"
+          >
+            <span className="text-sm font-bold text-gray-800">Falar com Especialista</span>
+            <ArrowRight size={14} className="text-green-500" />
+          </motion.div>
+        </a>
+      </motion.div>
+    );
+  };
+
+  // --- HOT BADGE COMPONENT ---
+  const HotBadge = () => (
+    <motion.span
+      initial={{ scale: 0 }}
+      animate={{ scale: 1 }}
+      className="inline-flex items-center gap-1 ml-2 px-2 py-0.5 bg-gradient-to-r from-orange-500 to-red-500 text-white text-[10px] font-black rounded-full uppercase tracking-wide"
+    >
+      <motion.span
+        animate={{
+          scale: [1, 1.2, 1],
+          rotate: [0, -10, 10, 0]
+        }}
+        transition={{
+          duration: 0.6,
+          repeat: Infinity,
+          repeatDelay: 1
+        }}
+      >
+        <Flame size={10} />
+      </motion.span>
+      HOT
+    </motion.span>
+  );
+
+  // --- HERO PHONE SIMULATOR ---
+  const HeroPhoneSimulator = () => {
+    const [step, setStep] = useState(0);
+    const [isDark, setIsDark] = useState(true);
+    const [likes, setLikes] = useState<{ [key: string]: number }>({
+      instagram: 12,
+      whatsapp: 8,
+      mentoria: 47,
+      ebook: 23,
+    });
+
+    useEffect(() => {
+      const timer = setInterval(() => setStep(s => (s + 1) % 5), 3500);
+      return () => clearInterval(timer);
+    }, []);
+
+    useEffect(() => {
+      if (step === 2) {
+        const likeTimer = setInterval(() => {
+          setLikes(prev => ({
+            ...prev,
+            mentoria: prev.mentoria + 1,
+          }));
+        }, 800);
+        return () => clearInterval(likeTimer);
+      }
+    }, [step]);
+
+    return (
+      <div className="relative">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 blur-[60px] scale-110" />
+
+        <motion.div
+          className="relative w-[280px] sm:w-[320px] h-[560px] sm:h-[640px] bg-gray-900 rounded-[3rem] p-2 shadow-2xl border border-gray-800"
+          whileHover={{ scale: 1.02 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
+          <div className="absolute top-0 inset-x-0 h-6 flex justify-center z-20">
+            <div className="w-28 h-6 bg-gray-900 rounded-b-2xl" />
           </div>
 
-          <div className="hidden lg:flex items-center gap-8">
-            {["Funcionalidades", "Como Funciona", "Depoimentos"].map((item) => (
-              <a
-                key={item}
-                href={item === "Preços" ? "#diferenciais" : `#${item.toLowerCase().replace(" ", "-")}`}
-                className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
+          <div className="w-full h-full bg-white rounded-[2.5rem] overflow-hidden relative">
+            <AnimatePresence mode="wait">
+              {step === 0 && (
+                <motion.div
+                  key="typing"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-gradient-to-br from-indigo-50 to-white flex flex-col items-center justify-center p-8"
+                >
+                  <motion.div
+                    animate={{ scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] }}
+                    transition={{ repeat: Infinity, duration: 2 }}
+                    className="w-20 h-20 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-3xl flex items-center justify-center mb-6 shadow-lg"
+                  >
+                    <Sparkles className="w-10 h-10 text-white" />
+                  </motion.div>
+
+                  <h3 className="text-xl font-black text-gray-900 mb-2">Freelinnk AI</h3>
+                  <p className="text-sm text-gray-500 mb-6">Descreva seu negócio...</p>
+
+                  <div className="w-full bg-white rounded-2xl p-4 shadow-lg border border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <motion.div
+                        animate={{ opacity: [1, 0, 1] }}
+                        transition={{ repeat: Infinity, duration: 1 }}
+                        className="w-0.5 h-5 bg-indigo-500 rounded-full"
+                      />
+                      <motion.span
+                        className="text-sm text-gray-600"
+                        initial={{ width: 0 }}
+                        animate={{ width: "auto" }}
+                      >
+                        Sou criador de conteúdo digital...
+                      </motion.span>
+                    </div>
+                  </div>
+
+                  <motion.div
+                    initial={{ width: 0 }}
+                    animate={{ width: "100%" }}
+                    transition={{ duration: 3 }}
+                    className="h-1 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full mt-6"
+                  />
+                </motion.div>
+              )}
+
+              {step === 1 && (
+                <motion.div
+                  key="creating"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-gradient-to-br from-indigo-600 to-purple-600 flex flex-col items-center justify-center p-8 text-white"
+                >
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                    className="mb-6"
+                  >
+                    <Wand2 className="w-16 h-16" />
+                  </motion.div>
+
+                  <h3 className="text-xl font-bold mb-8">Criando sua página...</h3>
+
+                  <div className="w-full space-y-3">
+                    {[
+                      { text: "Configurando perfil", delay: 0 },
+                      { text: "Gerando layout", delay: 0.3 },
+                      { text: "Adicionando links", delay: 0.6 },
+                      { text: "Finalizando...", delay: 0.9 },
+                    ].map((item, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ x: -30, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: item.delay }}
+                        className="flex items-center gap-3 bg-white/10 backdrop-blur rounded-xl p-3"
+                      >
+                        <motion.div
+                          initial={{ scale: 0 }}
+                          animate={{ scale: 1 }}
+                          transition={{ delay: item.delay + 0.3, type: "spring" }}
+                          className="w-5 h-5 bg-green-400 rounded-full flex items-center justify-center"
+                        >
+                          <Check size={12} className="text-gray-900" />
+                        </motion.div>
+                        <span className="text-sm font-medium">{item.text}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+                </motion.div>
+              )}
+
+              {step === 2 && (
+                <motion.div
+                  key="preview"
+                  initial={{ y: 50, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className={`absolute inset-0 overflow-hidden transition-colors duration-300 ${isDark
+                      ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900"
+                      : "bg-gradient-to-br from-gray-50 to-white"
+                    }`}
+                >
+                  <div className="flex items-center justify-between px-4 pt-8 pb-2">
+                    <motion.button
+                      whileTap={{ scale: 0.9 }}
+                      whileHover={{ rotate: 180 }}
+                      transition={{ duration: 0.3 }}
+                      onClick={() => setIsDark(!isDark)}
+                      className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-white/10 text-yellow-400" : "bg-gray-100 text-gray-600"
+                        }`}
+                    >
+                      {isDark ? <Sun size={14} /> : <Moon size={14} />}
+                    </motion.button>
+
+                    <div className="flex items-center gap-2">
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        whileHover={{ scale: 1.1 }}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-600"
+                          }`}
+                      >
+                        <QrCode size={14} />
+                      </motion.button>
+                      <motion.button
+                        whileTap={{ scale: 0.9 }}
+                        whileHover={{ scale: 1.1 }}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center ${isDark ? "bg-white/10 text-white" : "bg-gray-100 text-gray-600"
+                          }`}
+                      >
+                        <Share2 size={14} />
+                      </motion.button>
+                    </div>
+                  </div>
+
+                  <div className="px-6 pt-2 pb-4 text-center">
+                    <motion.div
+                      initial={{ scale: 0 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.2, type: "spring", bounce: 0.5 }}
+                      className="relative w-20 h-20 mx-auto mb-3"
+                    >
+                      <img
+                        src="https://i.pravatar.cc/200?img=32"
+                        className="w-full h-full rounded-full object-cover border-4 border-white/20 shadow-xl"
+                        alt="Profile"
+                      />
+                      <motion.div
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                        className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 rounded-full border-2 border-white flex items-center justify-center"
+                      >
+                        <Check size={10} className="text-white" />
+                      </motion.div>
+                    </motion.div>
+
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.3 }}
+                      className="flex items-center justify-center gap-1.5 mb-1"
+                    >
+                      <h3 className={`font-bold text-lg ${isDark ? "text-white" : "text-gray-900"}`}>
+                        @ana.creator
+                      </h3>
+                      <BadgeCheck size={16} className="text-gray-400" />
+                    </motion.div>
+
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.4 }}
+                      className={`text-xs mb-2 ${isDark ? "text-gray-400" : "text-gray-500"}`}
+                    >
+                      Transformo seguidores em clientes! ✨
+                    </motion.p>
+
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                      className={`text-[10px] ${isDark ? "text-gray-500" : "text-gray-400"}`}
+                    >
+                      Desde 2025
+                    </motion.p>
+                  </div>
+
+                  <div className="px-4 space-y-2.5 overflow-y-auto max-h-[280px] pb-4">
+                    <motion.p
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.6 }}
+                      className={`text-[10px] font-bold uppercase tracking-wider px-2 ${isDark ? "text-gray-500" : "text-gray-400"
+                        }`}
+                    >
+                      Links
+                    </motion.p>
+
+                    {[
+                      { icon: <Instagram size={16} />, text: "Instagram", likes: likes.instagram, color: "from-pink-500 to-purple-500" },
+                      { icon: <MessageCircle size={16} />, text: "WhatsApp", likes: likes.whatsapp, color: "from-green-500 to-emerald-500" },
+                      { icon: <Flame size={16} />, text: "🔥 Mentoria VIP", likes: likes.mentoria, color: "from-orange-500 to-red-500", highlight: true },
+                      { icon: <BookOpen size={16} />, text: "📚 E-book Gratuito", likes: likes.ebook, color: "from-blue-500 to-cyan-500" },
+                    ].map((link, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ x: -30, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 0.7 + i * 0.1 }}
+                        whileHover={{ scale: 1.02, x: 4 }}
+                        whileTap={{ scale: 0.98 }}
+                        className={`relative rounded-2xl p-3.5 flex items-center justify-between cursor-pointer group overflow-hidden ${link.highlight
+                            ? `bg-gradient-to-r ${link.color} shadow-lg`
+                            : isDark
+                              ? "bg-white/5 hover:bg-white/10 border border-white/10"
+                              : "bg-gray-100 hover:bg-gray-200 border border-gray-200"
+                          }`}
+                      >
+                        {link.highlight && (
+                          <motion.div
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
+                            animate={{ x: ["-100%", "100%"] }}
+                            transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+                          />
+                        )}
+
+                        <div className="flex items-center gap-3 relative z-10">
+                          <span className={link.highlight ? "text-white" : isDark ? "text-white" : "text-gray-700"}>
+                            {link.icon}
+                          </span>
+                          <span className={`text-sm font-semibold ${link.highlight ? "text-white" : isDark ? "text-white" : "text-gray-800"
+                            }`}>
+                            {link.text}
+                          </span>
+                        </div>
+
+                        <motion.div
+                          whileTap={{ scale: 1.3 }}
+                          className={`flex items-center gap-1 relative z-10 ${link.highlight ? "text-white/80" : isDark ? "text-gray-400" : "text-gray-500"
+                            }`}
+                        >
+                          <Heart size={12} className={link.highlight ? "fill-white/50" : ""} />
+                          <motion.span
+                            key={link.likes}
+                            initial={{ y: -10, opacity: 0 }}
+                            animate={{ y: 0, opacity: 1 }}
+                            className="text-xs font-medium"
+                          >
+                            {link.likes}
+                          </motion.span>
+                        </motion.div>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 1.2 }}
+                    className="absolute bottom-4 left-0 right-0 text-center"
+                  >
+                    <p className={`text-[10px] ${isDark ? "text-gray-600" : "text-gray-400"}`}>
+                      Feito com 💜 no <span className="font-bold">Freelinnk</span>
+                    </p>
+                  </motion.div>
+                </motion.div>
+              )}
+
+              {step === 3 && (
+                <motion.div
+                  key="analytics"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-gray-50 p-6"
+                >
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="font-bold text-gray-900">Analytics</h3>
+                    <motion.span
+                      animate={{ opacity: [1, 0.5, 1] }}
+                      transition={{ repeat: Infinity, duration: 1.5 }}
+                      className="flex items-center gap-1 text-xs text-green-600 font-bold"
+                    >
+                      <span className="w-2 h-2 bg-green-500 rounded-full" />
+                      LIVE
+                    </motion.span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mb-4">
+                    {[
+                      { label: "Cliques Hoje", value: "847", change: "+23%" },
+                      { label: "Conversões", value: "12.4%", change: "+8%" },
+                    ].map((stat, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ y: 20, opacity: 0 }}
+                        animate={{ y: 0, opacity: 1 }}
+                        transition={{ delay: i * 0.1 }}
+                        whileHover={{ scale: 1.05 }}
+                        className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+                      >
+                        <p className="text-[10px] text-gray-500 uppercase font-bold">{stat.label}</p>
+                        <p className="text-2xl font-black text-gray-900">{stat.value}</p>
+                        <span className="text-xs text-green-600 font-bold">{stat.change}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 mb-4">
+                    <p className="text-xs font-bold text-gray-700 mb-3">Últimos cliques</p>
+                    {[
+                      { city: "São Paulo", time: "agora" },
+                      { city: "Lisboa", time: "2min" },
+                      { city: "Miami", time: "5min" },
+                    ].map((click, i) => (
+                      <motion.div
+                        key={i}
+                        initial={{ x: -20, opacity: 0 }}
+                        animate={{ x: 0, opacity: 1 }}
+                        transition={{ delay: 0.3 + i * 0.1 }}
+                        className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0"
+                      >
+                        <div className="flex items-center gap-2">
+                          <motion.div
+                            animate={{ scale: [1, 1.2, 1] }}
+                            transition={{ repeat: Infinity, duration: 2, delay: i * 0.3 }}
+                          >
+                            <MapPin size={12} className="text-indigo-500" />
+                          </motion.div>
+                          <span className="text-xs text-gray-700">{click.city}</span>
+                        </div>
+                        <span className="text-[10px] text-gray-400">{click.time}</span>
+                      </motion.div>
+                    ))}
+                  </div>
+
+                  <motion.div
+                    className="bg-gradient-to-r from-indigo-500 to-purple-500 rounded-2xl p-4 text-white"
+                    whileHover={{ scale: 1.02 }}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      <motion.div
+                        animate={{ rotate: [0, 10, -10, 0] }}
+                        transition={{ repeat: Infinity, duration: 2 }}
+                      >
+                        <TrendingUp size={16} />
+                      </motion.div>
+                      <span className="text-xs font-bold uppercase">Insight IA</span>
+                    </div>
+                    <p className="text-sm">72% do seu público acessa pelo celular às 14h!</p>
+                  </motion.div>
+                </motion.div>
+              )}
+
+              {step === 4 && (
+                <motion.div
+                  key="sale"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center p-6"
+                >
+                  <motion.div
+                    initial={{ y: 30 }}
+                    animate={{ y: 0 }}
+                    className="bg-white rounded-3xl p-8 shadow-2xl border border-gray-100 w-full text-center"
+                  >
+                    <motion.div
+                      initial={{ scale: 0, rotate: -180 }}
+                      animate={{ scale: 1, rotate: 0 }}
+                      transition={{ type: "spring", bounce: 0.5 }}
+                      className="w-20 h-20 bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-4 shadow-lg"
+                    >
+                      <DollarSign className="w-10 h-10 text-white" />
+                    </motion.div>
+
+                    <motion.h2
+                      className="text-2xl font-black text-gray-900 mb-1"
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.2 }}
+                    >
+                      Venda Aprovada!
+                    </motion.h2>
+                    <p className="text-sm text-gray-500 mb-6">Via Link na Bio • Agora</p>
+
+                    <motion.div
+                      className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl p-4 border border-green-100"
+                      initial={{ scale: 0.8 }}
+                      animate={{ scale: 1 }}
+                      transition={{ delay: 0.3, type: "spring" }}
+                    >
+                      <p className="text-xs text-gray-500 uppercase font-bold mb-1">Valor</p>
+                      <motion.p
+                        initial={{ scale: 0.5 }}
+                        animate={{ scale: 1 }}
+                        transition={{ delay: 0.4, type: "spring" }}
+                        className="text-4xl font-black text-green-600"
+                      >
+                        R$ 497,00
+                      </motion.p>
+                    </motion.div>
+
+                    <motion.div
+                      className="mt-4 flex items-center justify-center gap-2 text-sm text-gray-500"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.5 }}
+                    >
+                      <motion.span
+                        animate={{ scale: [1, 1.3, 1] }}
+                        transition={{ repeat: Infinity, duration: 1 }}
+                        className="w-2 h-2 bg-green-500 rounded-full"
+                      />
+                      <span>+127 vendas este mês</span>
+                    </motion.div>
+                  </motion.div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5 z-10">
+              {[0, 1, 2, 3, 4].map(i => (
+                <motion.div
+                  key={i}
+                  animate={{
+                    width: step === i ? 16 : 6,
+                    backgroundColor: step === i ? "#6366f1" : "#d1d5db"
+                  }}
+                  className="h-1.5 rounded-full"
+                />
+              ))}
+            </div>
+          </div>
+        </motion.div>
+
+        <FloatingElement delay={0} duration={4} y={10}>
+          <motion.div
+            className="absolute -top-4 -left-4 sm:top-8 sm:-left-16 bg-white rounded-2xl p-3 shadow-xl border border-gray-100 hidden sm:flex items-center gap-3 z-10"
+            whileHover={{ scale: 1.05 }}
+          >
+            <div className="w-10 h-10 bg-green-100 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-500 font-bold uppercase">Conversão</p>
+              <p className="text-lg font-black text-gray-900">+312%</p>
+            </div>
+          </motion.div>
+        </FloatingElement>
+
+        <FloatingElement delay={1} duration={5} y={12}>
+          <motion.div
+            className="absolute -bottom-4 -right-4 sm:bottom-20 sm:-right-16 bg-white rounded-2xl p-3 shadow-xl border border-gray-100 hidden sm:flex items-center gap-3 z-10"
+            whileHover={{ scale: 1.05 }}
+          >
+            <div className="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center">
+              <Eye className="w-5 h-5 text-purple-600" />
+            </div>
+            <div>
+              <p className="text-[10px] text-gray-500 font-bold uppercase">Visualizações</p>
+              <p className="text-lg font-black text-gray-900">12.4k</p>
+            </div>
+          </motion.div>
+        </FloatingElement>
+      </div>
+    );
+  };
+
+  // --- SOCIAL PROOF AVATARS ---
+  const SocialProofAvatars = () => {
+    const avatars = [
+      "https://i.pravatar.cc/80?img=1",
+      "https://i.pravatar.cc/80?img=2",
+      "https://i.pravatar.cc/80?img=3",
+      "https://i.pravatar.cc/80?img=4",
+      "https://i.pravatar.cc/80?img=5",
+      "https://i.pravatar.cc/80?img=6",
+    ];
+
+    return (
+      <div className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4">
+        <div className="flex -space-x-3">
+          {avatars.map((src, i) => (
+            <motion.img
+              key={i}
+              initial={{ scale: 0, x: -10 }}
+              animate={{ scale: 1, x: 0 }}
+              transition={{ delay: i * 0.08, type: "spring" }}
+              whileHover={{ scale: 1.1, zIndex: 10 }}
+              src={src}
+              alt=""
+              className="w-10 h-10 rounded-full border-[3px] border-white shadow-md object-cover relative"
+            />
+          ))}
+        </div>
+        <div className="text-center sm:text-left">
+          <div className="flex items-center justify-center sm:justify-start gap-0.5 mb-0.5">
+            {[1, 2, 3, 4, 5].map(i => (
+              <motion.div
+                key={i}
+                initial={{ opacity: 0, scale: 0 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.5 + i * 0.1 }}
               >
-                {item}
-              </a>
+                <Star size={14} className="text-yellow-400 fill-yellow-400" />
+              </motion.div>
+            ))}
+          </div>
+          <p className="text-sm text-gray-600">
+            <span className="font-bold text-gray-900">+10.800</span> criadores ativos
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  // --- PÁGINAS REAIS COM CARROSSEL INFINITO ---
+  const RealPagesShowcase = () => {
+    const [isPaused, setIsPaused] = useState(false);
+    const containerRef = useRef<HTMLDivElement>(null);
+    const duplicatedPages = [...realPages, ...realPages, ...realPages];
+
+    return (
+      <div
+        className="relative overflow-hidden py-8"
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
+        <div className="absolute left-0 top-0 bottom-0 w-10 md:w-40 bg-gradient-to-r from-gray-50 via-gray-50 to-transparent z-10 pointer-events-none" />
+        <div className="absolute right-0 top-0 bottom-0 w-10 md:w-40 bg-gradient-to-l from-gray-50 via-gray-50 to-transparent z-10 pointer-events-none" />
+
+        <motion.div
+          ref={containerRef}
+          className="flex gap-6 md:gap-8"
+          animate={{
+            x: isPaused ? undefined : [0, -1200],
+          }}
+          transition={{
+            x: {
+              repeat: Infinity,
+              repeatType: "loop",
+              duration: 40,
+              ease: "linear",
+            },
+          }}
+          style={{ width: "fit-content" }}
+        >
+          {duplicatedPages.map((page, index) => (
+            <motion.div
+              key={`${page.id}-${index}`}
+              className="relative flex-shrink-0 w-[240px] sm:w-[280px] md:w-[300px] group"
+              whileHover={{
+                y: -20,
+                scale: 1.05,
+                zIndex: 20,
+              }}
+              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+            >
+              <motion.div
+                className={`absolute -inset-4 bg-gradient-to-r ${page.color} rounded-[3rem] opacity-0 group-hover:opacity-20 blur-xl transition-opacity duration-500`}
+              />
+
+              <div className="relative bg-gray-900 rounded-[2.5rem] p-2 shadow-xl group-hover:shadow-2xl transition-all duration-500">
+                <div className="absolute top-0 inset-x-0 h-5 flex justify-center z-10">
+                  <div className="w-20 h-5 bg-gray-900 rounded-b-xl" />
+                </div>
+
+                <div className="bg-gray-800 rounded-[2rem] overflow-hidden aspect-[9/18] relative">
+                  <motion.img
+                    src={page.image}
+                    alt={page.name}
+                    className="w-full h-full object-cover"
+                    whileHover={{ scale: 1.1 }}
+                    transition={{ duration: 0.6 }}
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).src = `https://placehold.co/280x500/1a1a2e/6366f1?text=${encodeURIComponent(
+                        page.name
+                      )}`;
+                    }}
+                  />
+
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-all duration-500 flex flex-col justify-end p-4" />
+
+                  <motion.div
+                    className="absolute bottom-0 left-0 right-0 p-5 opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col justify-end items-center text-center z-20"
+                    initial={{ y: 20 }}
+                    whileHover={{ y: 0 }}
+                  >
+                    <p className="text-white font-bold text-lg leading-tight mb-1 w-full break-words">
+                      {page.name}
+                    </p>
+                    <p className="text-white/80 text-sm font-medium">
+                      {page.type}
+                    </p>
+                    <div className="mt-3 inline-flex items-center gap-1.5 px-3 py-1 bg-white/20 backdrop-blur rounded-full">
+                      <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-[10px] text-white font-bold uppercase">
+                        Ver página
+                      </span>
+                    </div>
+                  </motion.div>
+                </div>
+              </div>
+
+              <motion.div
+                className="mt-4 text-center"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+              >
+                <motion.p
+                  className="font-bold text-gray-900 text-sm group-hover:text-indigo-600 transition-colors"
+                  whileHover={{ scale: 1.05 }}
+                >
+                  {page.name}
+                </motion.p>
+                <p className="text-xs text-gray-500 mt-0.5">{page.type}</p>
+              </motion.div>
+            </motion.div>
+          ))}
+        </motion.div>
+
+        <div className="text-center mt-12">
+          <p className="text-[10px] text-gray-400">
+            * As páginas exibidas foram autorizadas pelos criadores para aparecer em nossa galeria pública.
+          </p>
+          <motion.p
+            className="text-center text-sm text-gray-400 mt-2"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 1 }}
+          >
+            <motion.span
+              animate={{ opacity: [0.5, 1, 0.5] }}
+              transition={{ repeat: Infinity, duration: 2 }}
+            >
+              Passe o mouse para pausar ✨
+            </motion.span>
+          </motion.p>
+        </div>
+      </div>
+    );
+  };
+
+  // --- FEATURE CARD ---
+  const FeatureCard = ({ feature }: { feature: typeof features[0]; index: number }) => {
+    return (
+      <ScrollReveal className="h-full">
+        <div className="relative bg-white rounded-3xl p-6 border border-gray-100 shadow-sm hover:border-indigo-200 transition-colors duration-300 h-full overflow-hidden group">
+          <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-5 transition-opacity duration-300`} />
+          <div className="relative z-10">
+            <div className="flex items-start justify-between mb-4">
+              <div className={`w-14 h-14 bg-gradient-to-br ${feature.color} rounded-2xl flex items-center justify-center text-white shadow-sm`}>
+                {feature.icon}
+              </div>
+              <span className={`text-[10px] font-bold px-3 py-1.5 rounded-full ${feature.tag === "GRÁTIS" ? "bg-green-100 text-green-700" :
+                  feature.tag === "PRO" ? "bg-blue-100 text-blue-700" : "bg-purple-100 text-purple-700"
+                }`}>
+                {feature.tag}
+              </span>
+            </div>
+            <h3 className="font-bold text-lg text-gray-900 mb-2">{feature.title}</h3>
+            <p className="text-sm text-gray-500 leading-relaxed">{feature.desc}</p>
+          </div>
+        </div>
+      </ScrollReveal>
+    );
+  };
+
+  // --- TESTIMONIAL CARD ---
+  const TestimonialCard = ({ testimonial }: { testimonial: typeof testimonials[0]; index: number }) => {
+    return (
+      <ScrollReveal className="h-full">
+        <div className="bg-white rounded-3xl p-6 border border-gray-100 shadow-sm h-full flex flex-col justify-between hover:border-indigo-100 transition-colors">
+          <div>
+            <div className="flex gap-1 mb-4">
+              {[1, 2, 3, 4, 5].map(i => <Star key={i} size={16} className="text-yellow-400 fill-yellow-400" />)}
+            </div>
+            <p className="text-gray-700 text-sm leading-relaxed mb-6 italic">&quot;{testimonial.text}&quot;</p>
+          </div>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <img src={testimonial.avatar} alt={testimonial.author} className="w-10 h-10 rounded-full border border-gray-100 object-cover" />
+              <div>
+                <p className="font-bold text-sm text-gray-900">{testimonial.author}</p>
+                <p className="text-xs text-gray-500">{testimonial.role}</p>
+              </div>
+            </div>
+            <div className="bg-green-50 text-green-700 text-[10px] font-bold px-2 py-1 rounded-full border border-green-100">
+              {testimonial.increase}
+            </div>
+          </div>
+        </div>
+      </ScrollReveal>
+    );
+  };
+
+  // --- HOW IT WORKS STEP ---
+  const HowItWorksStep = ({ step, index, total }: { step: { icon: React.ReactNode; title: string; desc: string }; index: number; total: number }) => {
+    const ref = useRef(null);
+    const isInView = useInView(ref, { once: true });
+
+    return (
+      <motion.div
+        ref={ref}
+        initial={{ opacity: 0, y: 50 }}
+        animate={isInView ? { opacity: 1, y: 0 } : {}}
+        transition={{ delay: index * 0.2, duration: 0.6 }}
+        className="relative"
+      >
+        {index < total - 1 && (
+          <motion.div
+            className="hidden lg:block absolute top-14 left-1/2 w-full h-1 overflow-hidden"
+            initial={{ opacity: 0 }}
+            animate={isInView ? { opacity: 1 } : {}}
+          >
+            <motion.div
+              className="h-full bg-gradient-to-r from-indigo-400 to-purple-400"
+              initial={{ width: 0 }}
+              animate={isInView ? { width: "100%" } : {}}
+              transition={{ delay: index * 0.2 + 0.5, duration: 0.8 }}
+            />
+          </motion.div>
+        )}
+
+        <div className="relative z-10 flex flex-col items-center text-center">
+          <MagneticWrapper>
+            <motion.div
+              whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
+              whileTap={{ scale: 0.95 }}
+              className="w-28 h-28 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-[2rem] flex items-center justify-center text-white shadow-xl shadow-indigo-500/30 mb-4 cursor-pointer relative overflow-hidden"
+            >
+              <motion.div
+                className="absolute inset-0 bg-gradient-to-r from-white/0 via-white/20 to-white/0"
+                animate={{ x: ["-100%", "100%"] }}
+                transition={{ repeat: Infinity, duration: 2, ease: "linear" }}
+              />
+              <span className="relative z-10">{step.icon}</span>
+            </motion.div>
+          </MagneticWrapper>
+
+          <motion.div
+            whileHover={{ scale: 1.1 }}
+            className="bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 text-sm font-bold px-4 py-1.5 rounded-full mb-3"
+          >
+            Passo {index + 1}
+          </motion.div>
+
+          <h3 className="font-bold text-lg text-gray-900 mb-2">{step.title}</h3>
+          <p className="text-sm text-gray-500 max-w-[200px]">{step.desc}</p>
+        </div>
+      </motion.div>
+    );
+  };
+
+  // --- NICHO CARD ---
+  const NichoCard = ({ nicho }: { nicho: typeof nichos[0]; index: number }) => {
+    return (
+      <ScrollReveal>
+        <div className="bg-white rounded-2xl p-4 border border-gray-100 hover:border-indigo-200 transition-colors duration-300 cursor-pointer text-center group h-full">
+          <div className="w-10 h-10 bg-gray-50 rounded-xl flex items-center justify-center mx-auto mb-3 text-gray-600 group-hover:text-indigo-600 group-hover:bg-indigo-50 transition-colors">
+            {nicho.icon}
+          </div>
+          <p className="text-xs sm:text-sm font-bold text-gray-700 group-hover:text-indigo-700 transition-colors">
+            {nicho.name}
+          </p>
+        </div>
+      </ScrollReveal>
+    );
+  };
+
+  // --- DIFFERENTIAL CARD ---
+  const DifferentialCard = ({ item }: { item: { icon: React.ReactNode; title: string; desc: string }; index: number }) => {
+    return (
+      <ScrollReveal>
+        <div className="bg-white/5 backdrop-blur-sm rounded-3xl p-6 border border-white/10 hover:bg-white/10 transition-colors duration-300 h-full">
+          <div className="w-14 h-14 bg-gradient-to-br from-indigo-500 to-purple-500 rounded-2xl flex items-center justify-center mb-4 shadow-lg">
+            {item.icon}
+          </div>
+          <h3 className="font-bold text-xl mb-2 text-white">{item.title}</h3>
+          <p className="text-gray-400 text-sm leading-relaxed">{item.desc}</p>
+        </div>
+      </ScrollReveal>
+    );
+  };
+
+  // --- VIDEO DEMO SECTION (NOVA SEÇÃO) ---
+  const VideoDemoSection = () => {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  const handlePlay = () => {
+    if (videoRef.current) {
+      if (isPlaying) {
+        videoRef.current.pause();
+      } else {
+        videoRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  return (
+    <section className="py-24 bg-gradient-to-b from-white to-gray-50 overflow-hidden">
+      <div className="max-w-6xl mx-auto px-4">
+        <ScrollReveal>
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-100 text-red-700 rounded-full text-sm font-bold mb-4">
+              <Play size={16} className="fill-red-700" /> Veja na Prática
+            </div>
+            <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+              Veja como o Freelinnk <span className={BRAND.textGradient}>funciona</span>
+            </h2>
+            <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+              Em menos de 1 minuto, descubra como transformar seu link na bio em uma máquina de conversão.
+            </p>
+          </div>
+        </ScrollReveal>
+
+        <ScrollReveal>
+          <div className="relative max-w-4xl mx-auto">
+            {/* Glow Effect */}
+            <div className="absolute -inset-4 bg-gradient-to-r from-indigo-500/20 via-purple-500/20 to-pink-500/20 blur-3xl opacity-50" />
+
+            {/* Video Container */}
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              // MUDANÇA 1: Adicionei bg-black para ficar com fundo de cinema
+              className="relative bg-black rounded-3xl overflow-hidden shadow-2xl border border-gray-800 aspect-video cursor-pointer group"
+              onClick={handlePlay}
+            >
+
+              {/* O VÍDEO REAL */}
+              <video
+                ref={videoRef}
+                // MUDANÇA 2: Troquei 'object-cover' por 'object-contain' (Isso impede o corte)
+                className={`w-full h-full object-contain bg-black transition-opacity duration-500 ${isPlaying ? 'opacity-100' : 'opacity-0 absolute inset-0'}`}
+                src="/demo-freelinnk.mp4"
+                controls={isPlaying}
+                onEnded={() => setIsPlaying(false)}
+                playsInline
+              >
+                Seu navegador não suporta vídeos.
+              </video>
+
+              {/* A CAPA (SÓ APARECE SE O VÍDEO ESTIVER PAUSADO) */}
+              {!isPlaying && (
+                <div className="absolute inset-0 z-10">
+                  {/* Fundo da capa - Mantive cover aqui para a capa ficar bonita preenchendo tudo */}
+                  <div className="absolute inset-0 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-600 opacity-90" />
+
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC40Ij48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')]" />
+                  </div>
+
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-white p-8">
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.95 }}
+                      className="w-24 h-24 md:w-32 md:h-32 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center mb-6 border-2 border-white/30 group-hover:bg-white/30 transition-colors relative"
+                    >
+                      <motion.div
+                        className="absolute inset-0 rounded-full border-2 border-white/50"
+                        animate={{ scale: [1, 1.3, 1.3], opacity: [0.5, 0, 0] }}
+                        transition={{ duration: 2, repeat: Infinity }}
+                      />
+                      <Play size={40} className="text-white fill-white ml-2" />
+                    </motion.div>
+
+                    <h3 className="text-2xl md:text-3xl font-black mb-2 text-center">
+                      Assista ao Tour Completo
+                    </h3>
+                    <p className="text-white/80 text-sm md:text-base text-center max-w-md">
+                      Clique para ver todas as funcionalidades em ação
+                    </p>
+                  </div>
+                </div>
+              )}
+            </motion.div>
+
+            {/* Video Features */}
+            <div className="grid grid-cols-3 gap-4 mt-8">
+              {[
+                { icon: <Zap size={20} />, text: "Setup em 2 min" },
+                { icon: <BarChart3 size={20} />, text: "Lucro Real" },
+                { icon: <Sparkles size={20} />, text: "IA Viral" },
+              ].map((item, i) => (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: i * 0.1 }}
+                  className="flex flex-col items-center gap-2 p-4 bg-white rounded-2xl border border-gray-100 shadow-sm"
+                >
+                  <div className="text-indigo-500">{item.icon}</div>
+                  <span className="text-sm font-bold text-gray-700 text-center">{item.text}</span>
+                </motion.div>
+              ))}
+            </div>
+          </div>
+        </ScrollReveal>
+      </div>
+    </section>
+  );
+};
+
+  // --- PRICING SECTION (NOVA SEÇÃO COMPLETA) ---
+  const PricingSection = () => {
+    const [billingCycle, setBillingCycle] = useState<"monthly" | "yearly">("monthly");
+
+    return (
+      <section id="precos" className="py-24 bg-gradient-to-b from-gray-50 to-white overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4">
+          <ScrollReveal>
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-4">
+                <Gift size={16} /> 7 Dias Grátis em Todos os Planos
+              </div>
+              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+                Escolha seu plano e <span className={BRAND.textGradient}>comece a crescer</span>
+              </h2>
+              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                Teste todas as ferramentas por 7 dias. Cancele quando quiser, sem compromisso.
+              </p>
+            </div>
+          </ScrollReveal>
+
+          {/* Billing Toggle */}
+          <ScrollReveal>
+            <div className="flex items-center justify-center mb-12">
+              <div className="relative flex items-center gap-4 bg-white p-1.5 rounded-full border border-gray-200 shadow-sm">
+                <button
+                  onClick={() => setBillingCycle("monthly")}
+                  className={clsx(
+                    "px-6 py-2.5 rounded-full text-sm font-bold transition-all",
+                    billingCycle === "monthly"
+                      ? "bg-gray-900 text-white shadow-md"
+                      : "text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  Mensal
+                </button>
+                <button
+                  onClick={() => setBillingCycle("yearly")}
+                  className={clsx(
+                    "px-6 py-2.5 rounded-full text-sm font-bold transition-all",
+                    billingCycle === "yearly"
+                      ? "bg-green-500 text-white shadow-md"
+                      : "text-gray-500 hover:text-gray-700"
+                  )}
+                >
+                  Anual
+                </button>
+
+                {/* Discount Badge */}
+                <motion.div
+                  initial={{ opacity: 0, x: 10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  className="absolute -right-32 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 border border-green-200 px-3 py-1.5 rounded-lg"
+                >
+                  <Sparkles size={12} />
+                  2 meses grátis!
+                </motion.div>
+              </div>
+            </div>
+          </ScrollReveal>
+
+          {/* Pricing Cards */}
+          <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            {pricingPlans.map((plan) => (
+              <ScrollReveal key={plan.id}>
+                <motion.div
+                  whileHover={{ y: -8, scale: 1.02 }}
+                  transition={{ type: "spring", stiffness: 300 }}
+                  className={clsx(
+                    "relative rounded-[2rem] p-8 h-full flex flex-col overflow-hidden",
+                    plan.id === "ultra"
+                      ? "bg-gray-900 text-white border-2 border-purple-500 shadow-2xl shadow-purple-500/20"
+                      : "bg-white border-2 border-amber-300 shadow-xl"
+                  )}
+                >
+                  {/* Top Gradient Line for Ultra */}
+                  {plan.id === "ultra" && (
+                    <div className="absolute top-0 left-0 right-0 h-1.5 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500" />
+                  )}
+
+                  {/* Badge */}
+                  <div className="mb-6">
+                    <motion.div
+                      initial={{ scale: 0.9 }}
+                      animate={{ scale: 1 }}
+                      className={clsx(
+                        "inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider shadow-lg",
+                        `bg-gradient-to-r ${plan.badgeColor} text-white`
+                      )}
+                    >
+                      {plan.id === "ultra" && <Crown size={14} className="fill-current" />}
+                      {plan.badge}
+                    </motion.div>
+                  </div>
+
+                  {/* Plan Name & Description */}
+                  <h3 className={clsx(
+                    "text-2xl font-bold mb-2",
+                    plan.id === "ultra" ? "text-white" : "text-gray-900"
+                  )}>
+                    {plan.name}
+                  </h3>
+                  <p className={clsx(
+                    "text-sm mb-6",
+                    plan.id === "ultra" ? "text-gray-400" : "text-gray-500"
+                  )}>
+                    {plan.description}
+                  </p>
+
+                  {/* Price */}
+                  <div className={clsx(
+                    "p-5 rounded-2xl mb-6",
+                    plan.id === "ultra"
+                      ? "bg-white/5 border border-white/10"
+                      : "bg-amber-50 border border-amber-100"
+                  )}>
+                    <div className="flex items-baseline gap-1">
+                      <span className={clsx(
+                        "text-4xl md:text-5xl font-black",
+                        plan.id === "ultra" ? "text-white" : "text-gray-900"
+                      )}>
+                        R$ {billingCycle === "yearly" ? plan.yearlyPrice : plan.monthlyPrice.toFixed(2).replace(".", ",")}
+                      </span>
+                      <span className={clsx(
+                        "font-medium",
+                        plan.id === "ultra" ? "text-gray-400" : "text-gray-500"
+                      )}>
+                        /{billingCycle === "yearly" ? "ano" : "mês"}
+                      </span>
+                    </div>
+
+                    {billingCycle === "yearly" && (
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        className={clsx(
+                          "text-xs font-bold mt-2 flex items-center gap-1",
+                          plan.id === "ultra" ? "text-purple-400" : "text-green-600"
+                        )}
+                      >
+                        <CheckCircle size={12} />
+                        Economia de R$ {((plan.monthlyPrice * 12) - plan.yearlyPrice).toFixed(0)} por ano
+                      </motion.p>
+                    )}
+                  </div>
+
+                  {/* CTA Button */}
+                  <SignInButton mode="modal">
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      className={clsx(
+                        "w-full py-4 px-6 rounded-xl font-bold text-lg mb-8 transition-all flex items-center justify-center gap-2 cursor-pointer",
+                        plan.id === "ultra"
+                          ? "bg-white text-gray-900 hover:bg-gray-100 shadow-xl"
+                          : "bg-gradient-to-r from-blue-600 to-indigo-600 text-white hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/30"
+                      )}
+                    >
+                      <Gift size={20} />
+                      {plan.cta}
+                      <ArrowRight size={18} />
+                    </motion.button>
+                  </SignInButton>
+
+                  {/* Trial Info */}
+                  <div className={clsx(
+                    "text-center text-xs font-medium mb-6 pb-6 border-b",
+                    plan.id === "ultra"
+                      ? "text-gray-500 border-white/10"
+                      : "text-gray-400 border-gray-100"
+                  )}>
+                    <Lock size={12} className="inline mr-1" />
+                    7 dias grátis • Cancele quando quiser • Sem cartão para testar
+                  </div>
+
+                  {/* Features */}
+                  <div className="flex-1">
+                    <p className={clsx(
+                      "text-xs font-bold uppercase tracking-wider mb-4",
+                      plan.id === "ultra" ? "text-gray-500" : "text-gray-400"
+                    )}>
+                      {plan.id === "ultra" ? "Tudo do Pro, mais:" : "Tudo incluso:"}
+                    </p>
+
+                    <div className="space-y-3">
+                      {plan.features.map((feature, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -10 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.05 }}
+                          className={clsx(
+                            "flex items-center gap-3 text-sm",
+                            plan.id === "ultra" ? "text-gray-200" : "text-gray-700"
+                          )}
+                        >
+                          <div className={clsx(
+                            "shrink-0",
+                            plan.id === "ultra" ? "text-purple-400" : "text-blue-500"
+                          )}>
+                            <Check size={16} />
+                          </div>
+                          <span className="font-medium flex items-center gap-2">
+                            <span className={clsx(
+                              plan.id === "ultra" ? "text-purple-400/50" : "text-gray-400"
+                            )}>
+                              {feature.icon}
+                            </span>
+                            {feature.text}
+                            {feature.isHot && <HotBadge />}
+                          </span>
+                        </motion.div>
+                      ))}
+                    </div>
+                  </div>
+                </motion.div>
+              </ScrollReveal>
             ))}
           </div>
 
-          <div className="flex items-center gap-3 relative z-50">
-            {/* Escondido no Mobile para limpeza visual */}
-            <div className="hidden lg:block">
-              <SignInButton mode="modal">
-                <button className="text-sm font-bold text-gray-600 hover:text-indigo-600 transition-colors px-4 py-2 cursor-pointer">
-                  Entrar
-                </button>
-              </SignInButton>
+          {/* Trust Badges */}
+          <ScrollReveal>
+            <div className="mt-16 text-center">
+              <div className="flex flex-wrap items-center justify-center gap-8 text-sm text-gray-500">
+                <div className="flex items-center gap-2">
+                  <Shield size={20} className="text-green-500" />
+                  <span className="font-medium">Garantia de 7 dias</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Lock size={20} className="text-blue-500" />
+                  <span className="font-medium">Pagamento seguro</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Zap size={20} className="text-purple-500" />
+                  <span className="font-medium">Acesso imediato</span>
+                </div>
+              </div>
             </div>
+          </ScrollReveal>
 
-            {/* Escondido no Mobile para limpeza visual */}
-            <div className="hidden md:block">
-              <SignInButton mode="modal">
-                <Button size="sm" className="cursor-pointer relative z-50">Começar Grátis</Button>
-              </SignInButton>
+          {/* ROI Calculator Preview */}
+          <ScrollReveal>
+            <div className="mt-20 max-w-3xl mx-auto">
+              <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-3xl p-8 md:p-10 text-white relative overflow-hidden">
+                {/* Background Pattern */}
+                <div className="absolute inset-0 opacity-5">
+                  <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC40Ij48Y2lyY2xlIGN4PSIzMCIgY3k9IjMwIiByPSIyIi8+PC9nPjwvZz48L3N2Zz4=')]" />
+                </div>
+
+                <div className="relative z-10">
+                  <div className="text-center mb-8">
+                    <h3 className="text-2xl md:text-3xl font-black mb-2">A conta não mente 💸</h3>
+                    <p className="text-gray-400">Veja quanto custaria montar essa estrutura separadamente:</p>
+                  </div>
+
+                  <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
+                    {/* Left - Competitors */}
+                    <div className="flex-1 w-full space-y-3">
+                      {[
+                        { name: "ChatGPT Plus (IA)", price: "R$ 100,00" },
+                        { name: "Midjourney (Arte)", price: "R$ 50,00" },
+                        { name: "Linktree Pro (Links)", price: "R$ 45,00" },
+                        { name: "Analytics Pro", price: "R$ 40,00" },
+                        { name: "App de Sorteios", price: "R$ 29,00" },
+                      ].map((item, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, x: -20 }}
+                          whileInView={{ opacity: 1, x: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.1 }}
+                          className="flex justify-between items-center text-sm text-gray-400 border-b border-white/10 pb-2"
+                        >
+                          <span>{item.name}</span>
+                          <span className="line-through text-red-400">{item.price}</span>
+                        </motion.div>
+                      ))}
+                      <div className="pt-2 flex justify-between items-center font-bold text-red-400 border-t border-white/20 mt-2">
+                        <span>Total Mensal:</span>
+                        <span className="text-xl">R$ 264,00</span>
+                      </div>
+                    </div>
+
+                    {/* Arrow */}
+                    <div className="hidden md:flex items-center justify-center">
+                      <motion.div
+                        animate={{ x: [0, 10, 0] }}
+                        transition={{ duration: 1.5, repeat: Infinity }}
+                      >
+                        <ArrowRight className="w-10 h-10 text-gray-600" />
+                      </motion.div>
+                    </div>
+
+                    {/* Right - Freelinnk */}
+                    <motion.div
+                      whileHover={{ scale: 1.05 }}
+                      className="bg-gradient-to-br from-green-500/20 to-emerald-500/20 border-2 border-green-500/50 p-6 rounded-2xl w-full md:w-auto min-w-[250px] text-center"
+                    >
+                      <p className="text-xs font-bold uppercase text-green-400 tracking-wider mb-2">Freelinnk Ultra</p>
+                      <p className="text-5xl font-black text-white tracking-tighter">R$ 77</p>
+                      <p className="text-sm text-gray-400 mb-4">/mês</p>
+                      <div className="bg-green-500/20 text-green-400 border border-green-500/30 rounded-xl py-2 px-4 text-sm font-bold">
+                        💥 Economia: R$ 2.244/ano
+                      </div>
+                    </motion.div>
+                  </div>
+                </div>
+              </div>
             </div>
-
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-gray-600 relative z-50"
-            >
-              {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-          </div>
+          </ScrollReveal>
         </div>
+      </section>
+    );
+  };
 
-        {/* Mobile Menu Simples */}
-        {mobileMenuOpen && (
-          <div className="lg:hidden bg-white border-b border-gray-100 overflow-hidden relative z-40">
-            <div className="px-4 py-4 space-y-1">
-              {["Funcionalidades", "Como Funciona", "Preços", "Depoimentos"].map((item) => (
+  // --- SORTEIOS HIGHLIGHT SECTION (DESTAQUE ESPECIAL) ---
+  const SorteiosHighlightSection = () => {
+    return (
+      <section className="py-20 bg-gradient-to-r from-orange-50 via-red-50 to-pink-50 overflow-hidden">
+        <div className="max-w-6xl mx-auto px-4">
+          <ScrollReveal>
+            <div className="relative">
+              {/* Glow Effect */}
+              <motion.div
+                className="absolute -inset-4 bg-gradient-to-r from-orange-500/20 via-red-500/20 to-pink-500/20 rounded-[3rem] blur-2xl"
+                animate={{ opacity: [0.5, 0.8, 0.5] }}
+                transition={{ duration: 3, repeat: Infinity }}
+              />
+
+              {/* Main Card */}
+              <div className="relative bg-white rounded-[2.5rem] p-8 md:p-12 border-2 border-orange-200 shadow-2xl overflow-hidden">
+                {/* Shine Effect */}
+                <motion.div
+                  className="absolute inset-0 bg-gradient-to-r from-transparent via-white/60 to-transparent"
+                  animate={{ x: ["-100%", "100%"] }}
+                  transition={{ duration: 3, repeat: Infinity, ease: "linear", repeatDelay: 2 }}
+                />
+
+                <div className="relative z-10 flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
+                  {/* Icon */}
+                  <motion.div
+                    whileHover={{ scale: 1.1, rotate: [0, -5, 5, 0] }}
+                    className="flex-shrink-0"
+                  >
+                    <motion.div
+                      className="w-28 h-28 md:w-36 md:h-36 bg-gradient-to-br from-orange-500 to-red-500 rounded-[2rem] flex items-center justify-center shadow-2xl shadow-orange-500/40"
+                      animate={{
+                        boxShadow: [
+                          "0 25px 50px -12px rgba(249, 115, 22, 0.4)",
+                          "0 25px 50px -12px rgba(239, 68, 68, 0.6)",
+                          "0 25px 50px -12px rgba(249, 115, 22, 0.4)"
+                        ]
+                      }}
+                      transition={{ duration: 2, repeat: Infinity }}
+                    >
+                      <motion.div
+                        animate={{ rotate: [0, 360] }}
+                        transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                      >
+                        <Gift size={50} className="text-white" />
+                      </motion.div>
+                    </motion.div>
+                  </motion.div>
+
+                  {/* Content */}
+                  <div className="flex-1 text-center lg:text-left">
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-4">
+                      <h3 className="text-3xl md:text-4xl font-black text-gray-900">
+                        Ferramenta de Sorteios
+                      </h3>
+                      <HotBadge />
+                      <motion.span
+                        initial={{ scale: 0, rotate: -12 }}
+                        animate={{ scale: 1, rotate: 0 }}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-gradient-to-r from-emerald-500 to-teal-500 text-white text-xs font-black rounded-full uppercase"
+                      >
+                        <Sparkles size={12} />
+                        NOVO
+                      </motion.span>
+                    </div>
+
+                    <p className="text-gray-600 text-lg md:text-xl mb-6 max-w-2xl">
+                      Crie sorteios incríveis no Instagram em segundos! Aumente seu engajamento,
+                      ganhe seguidores e conecte-se com sua audiência de forma viral.
+                      <strong className="text-orange-600"> Exclusivo do Plano PRO.</strong>
+                    </p>
+
+                    {/* Feature Pills */}
+                    <div className="flex flex-wrap items-center justify-center lg:justify-start gap-3 mb-8">
+                      {[
+                        { icon: <CheckCircle size={16} />, text: "Sorteio automático" },
+                        { icon: <CheckCircle size={16} />, text: "Filtros avançados" },
+                        { icon: <CheckCircle size={16} />, text: "Resultado transparente" },
+                        { icon: <CheckCircle size={16} />, text: "Sem limite de participantes" },
+                      ].map((item, i) => (
+                        <motion.div
+                          key={i}
+                          initial={{ opacity: 0, y: 10 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: i * 0.1 }}
+                          className="flex items-center gap-2 bg-white border border-gray-200 rounded-full px-4 py-2 text-sm font-medium text-gray-700 shadow-sm"
+                        >
+                          <span className="text-green-500">{item.icon}</span>
+                          {item.text}
+                        </motion.div>
+                      ))}
+                    </div>
+
+                    {/* CTA */}
+                    <SignInButton mode="modal">
+                      <motion.button
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        className="inline-flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 text-white font-bold text-lg rounded-2xl shadow-xl shadow-orange-500/30 cursor-pointer"
+                      >
+                        <Gift size={22} />
+                        Quero Criar Sorteios Agora
+                        <ArrowRight size={20} />
+                      </motion.button>
+                    </SignInButton>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </ScrollReveal>
+        </div>
+      </section>
+    );
+  };
+
+  // --- COMPONENTE PRINCIPAL ---
+  export default function LandingPage() {
+    const router = useRouter();
+    const { isSignedIn, isLoaded } = useAuth();
+    const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+    const [scrolled, setScrolled] = useState(false);
+    const [showStickyFooter, setShowStickyFooter] = useState(false);
+    const { scrollYProgress } = useScroll();
+
+    useEffect(() => {
+      if (isLoaded && isSignedIn) router.push("/dashboard");
+    }, [isLoaded, isSignedIn, router]);
+
+    useEffect(() => {
+      const handleScroll = () => {
+        setScrolled(window.scrollY > 20);
+        setShowStickyFooter(window.scrollY > 600);
+      };
+      window.addEventListener("scroll", handleScroll);
+      return () => window.removeEventListener("scroll", handleScroll);
+    }, []);
+
+    const howItWorks = [
+      { icon: <Settings size={36} />, title: "Configure sua página", desc: "Personalize cada detalhe do seu jeito" },
+      { icon: <Wand2 size={36} />, title: "Crie seus links", desc: "Organize seus links importantes" },
+      { icon: <Share2 size={36} />, title: "Compartilhe", desc: "Coloque na bio e comece a rastrear" },
+      { icon: <Rocket size={36} />, title: "Lucre mais", desc: "Veja seus resultados explodirem" },
+    ];
+
+    const differentials = [
+      { icon: <Gift size={28} />, title: "Grátis de verdade", desc: "Página, encurtador e analytics básico. Sem pegadinhas." },
+      { icon: <Palette size={28} />, title: "100% customizável", desc: "Você escolhe cada cor, fonte e layout." },
+      { icon: <Bot size={28} />, title: "IA que trabalha por você", desc: "Brain Roteirista, Chat IA e muito mais." },
+      { icon: <BarChart3 size={28} />, title: "Analytics de verdade", desc: "Saiba cidade, dispositivo e horário de cada clique." },
+      { icon: <Calculator size={28} />, title: "Gestão Financeira", desc: "Nenhum concorrente tem. Veja seu lucro real." },
+      { icon: <Shield size={28} />, title: "Seguro e rápido", desc: "Criptografia, CDN global e 99.99% de uptime." },
+    ];
+
+    return (
+      <div className="bg-white text-gray-900 font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
+        {/* Progress Bar */}
+        <motion.div
+          className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 z-[100] origin-left"
+          style={{ scaleX: scrollYProgress }}
+        />
+
+        {/* WhatsApp Floating Button */}
+        <WhatsAppFloatingButton />
+
+        {/* Mobile CTA Sticky Footer */}
+        <AnimatePresence>
+          {showStickyFooter && (
+            <motion.div
+              initial={{ y: 100 }}
+              animate={{ y: 0 }}
+              exit={{ y: 100 }}
+              className="fixed bottom-0 left-0 right-0 z-[90] p-3 bg-white/95 backdrop-blur-md border-t border-gray-200 md:hidden shadow-[0_-4px_20px_rgba(0,0,0,0.1)]"
+            >
+              <SignInButton mode="modal">
+                <Button className="w-full relative z-50 pointer-events-auto shadow-lg" size="lg">
+                  Começar Grátis <ArrowRight size={18} />
+                </Button>
+              </SignInButton>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Navigation */}
+        <nav
+          className={`fixed top-0 w-full z-[80] transition-all duration-300 ${
+            scrolled ? "bg-white/95 backdrop-blur-sm shadow-sm" : "bg-transparent"
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 md:h-20 flex items-center justify-between">
+            <div
+              className="flex items-center gap-2.5 cursor-pointer relative z-50"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            >
+              <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white font-black text-xl ${BRAND.gradient} shadow-md`}>
+                F
+              </div>
+              <span className="text-xl font-bold tracking-tight">Freelinnk</span>
+            </div>
+
+            <div className="hidden lg:flex items-center gap-8">
+              {[
+                { label: "Funcionalidades", href: "#funcionalidades" },
+                { label: "Como Funciona", href: "#como-funciona" },
+                { label: "Preços", href: "#precos" },
+                { label: "Depoimentos", href: "#depoimentos" },
+              ].map((item) => (
                 <a
-                  key={item}
-                  href={item === "Preços" ? "#diferenciais" : `#${item.toLowerCase().replace(" ", "-")}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="block py-3 px-4 text-gray-700 hover:bg-gray-50 rounded-xl font-medium"
+                  key={item.label}
+                  href={item.href}
+                  className="text-sm font-medium text-gray-600 hover:text-indigo-600 transition-colors"
                 >
-                  {item}
+                  {item.label}
                 </a>
               ))}
-              <div className="pt-2">
+            </div>
+
+            <div className="flex items-center gap-3 relative z-50">
+              <div className="hidden lg:block">
                 <SignInButton mode="modal">
-                  <button className="block w-full py-3 px-4 text-center bg-gray-50 text-indigo-600 font-bold rounded-xl cursor-pointer">
-                    Entrar na Plataforma
+                  <button className="text-sm font-bold text-gray-600 hover:text-indigo-600 transition-colors px-4 py-2 cursor-pointer">
+                    Entrar
                   </button>
                 </SignInButton>
               </div>
-            </div>
-          </div>
-        )}
-      </nav>
 
-      {/* HERO SECTION */}
-      <section className="relative pt-24 pb-12 md:pt-32 lg:pt-40 lg:pb-24 overflow-hidden">
-        {/* Background Estático */}
-        <div className="absolute inset-0 pointer-events-none z-0">
-          <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 opacity-50" />
-          <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-100 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/3 opacity-50" />
-        </div>
-
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
-          <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-            <div className="text-center lg:text-left">
-              <ScrollReveal>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full text-sm font-bold text-green-700 mb-6">
-                  <Gift size={16} />
-                  100% Grátis para começar
-                </div>
-
-                <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.1] mb-6">
-                  Transforme seu Link na Bio em uma{" "}
-                  <span className={BRAND.textGradient}>Máquina de Vendas</span>
-                </h1>
-
-                <p className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
-                  Página totalmente customizável, encurtador com analytics e ferramentas de{" "}
-                  <strong className="text-indigo-600">IA exclusivas</strong>. Pare de perder vendas no Instagram.
-                </p>
-
-                {/* DESKTOP INPUT - Escondido no Mobile para menos atrito */}
-                <div className="hidden sm:flex max-w-md mx-auto lg:mx-0 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 flex-col sm:flex-row gap-2 mb-6 relative z-30">
-                  <div className="flex-1 bg-gray-50 rounded-xl px-4 flex items-center h-12 sm:h-auto border border-transparent focus-within:border-[#6366f1] focus-within:bg-white transition-all">
-                    <span className="text-gray-400 font-bold text-sm mr-1">freelinnk.com/</span>
-                    <input type="text" placeholder="seunome" className="bg-transparent border-none outline-none font-bold text-gray-900 w-full placeholder:text-gray-300" />
-                  </div>
-                  <SignInButton mode="modal">
-                    <Button className="w-full sm:w-auto whitespace-nowrap shadow-md cursor-pointer pointer-events-auto">Criar Grátis</Button>
-                  </SignInButton>
-                </div>
-
-                {/* MOBILE BUTTON (Botão único e direto) */}
-                <div className="flex sm:hidden flex-col gap-4 justify-center mb-8 relative z-30">
-                  <SignInButton mode="modal">
-                    <Button size="xl" className="w-full group cursor-pointer pointer-events-auto shadow-xl">
-                      Criar Minha Página Grátis
-                      <ArrowRight size={20} className="ml-1" />
-                    </Button>
-                  </SignInButton>
-                  <p className="text-xs text-gray-500 font-medium">Leva menos de 30 segundos</p>
-                </div>
-
-                <div className="hidden sm:flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 relative z-30">
-                  <SignInButton mode="modal">
-                    <Button size="xl" className="w-full sm:w-auto group cursor-pointer pointer-events-auto">
-                      Começar Agora — É Grátis
-                      <span className="text-[10px] font-normal opacity-80 block sm:inline ml-1">(leva só 30 segundos)</span>
-                      <ArrowRight size={20} className="ml-1" />
-                    </Button>
-                  </SignInButton>
-                </div>
-
-                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-[10px] sm:text-xs text-gray-500 font-medium mb-8 relative z-20">
-                  <span className="flex items-center gap-1"><Lock size={12} className="text-green-500" /> Conexão Segura</span>
-                  <span className="hidden sm:inline">·</span>
-                  <span className="flex items-center gap-1"><Shield size={12} className="text-blue-500" /> Dados Criptografados</span>
-                  <span className="hidden sm:inline">·</span>
-                  <span className="flex items-center gap-1"><Server size={12} className="text-purple-500" /> CDN Global</span>
-                </div>
-
-                <div className="relative z-20">
-                  <SocialProofAvatars />
-                </div>
-              </ScrollReveal>
-            </div>
-
-            <div className="flex justify-center lg:justify-end relative z-10">
-              <ScrollReveal>
-                <HeroPhoneSimulator />
-              </ScrollReveal>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* STATS BAR */}
-      <section className="py-10 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {stats.map((stat, i) => (
-              <div key={i} className="text-center">
-                <p className="text-3xl md:text-5xl font-black mb-1"><AnimatedCounter {...stat} /></p>
-                <p className="text-sm text-white/70">{stat.label}</p>
+              <div className="hidden md:block">
+                <SignInButton mode="modal">
+                  <Button size="sm" className="cursor-pointer relative z-50">Começar Grátis</Button>
+                </SignInButton>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
 
-      {/* PÁGINAS REAIS */}
-      <section className="py-20 bg-gray-50 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollReveal>
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold mb-4">
-                <Crown size={16} /> Páginas Reais
-              </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Veja o que nossos usuários <span className={BRAND.textGradient}>criaram</span>
-              </h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                100% customizável. Você escolhe cores, fontes, layout e muito mais.
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <RealPagesShowcase />
-
-          <div className="text-center mt-12 relative z-30">
-            <SignInButton mode="modal">
-              <Button size="lg" className="group cursor-pointer pointer-events-auto">
-                Criar Minha Página <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </SignInButton>
-          </div>
-        </div>
-      </section>
-
-      {/* FEATURES */}
-      <section id="funcionalidades" className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollReveal>
-            <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-bold mb-4">
-                <Cpu size={16} /> Funcionalidades
-              </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Tudo que você precisa para <span className={BRAND.textGradient}>vender mais</span>
-              </h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Não somos só um link na bio. Somos seu sistema de vendas completo.
-              </p>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {features.map((feature, i) => (
-              <FeatureCard key={i} feature={feature} index={i} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* HOW IT WORKS */}
-      <section id="como-funciona" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollReveal>
-            <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-4">
-                <Play size={16} /> Como Funciona
-              </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">Simples assim</h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">Em menos de 5 minutos você está pronto para vender.</p>
-            </div>
-          </ScrollReveal>
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-4">
-            {howItWorks.map((step, i) => (
-              <HowItWorksStep key={i} step={step} index={i} total={howItWorks.length} />
-            ))}
-          </div>
-
-          <div className="text-center mt-16 flex flex-col items-center justify-center gap-4 relative z-30">
-            <SignInButton mode="modal">
-              <Button size="lg" variant="default" className="shadow-lg hover:shadow-xl cursor-pointer pointer-events-auto">
-                Criar Minha Página Agora <ArrowRight size={18} />
-              </Button>
-            </SignInButton>
-          </div>
-        </div>
-      </section>
-
-      {/* PARA QUEM */}
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollReveal>
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-bold mb-4">
-                <Users size={16} /> Para Todos
-              </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Serve pra você? <span className={BRAND.textGradient}>Com certeza.</span>
-              </h2>
-            </div>
-          </ScrollReveal>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {nichos.map((nicho, i) => (
-              <NichoCard key={i} nicho={nicho} index={i} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* TESTIMONIALS */}
-      <section id="depoimentos" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollReveal>
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-sm font-bold mb-4">
-                <Star size={16} /> Depoimentos
-              </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">Quem usa, recomenda</h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">Mais de 10.800 criadores já transformaram seus resultados.</p>
-            </div>
-          </ScrollReveal>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, i) => (
-              <TestimonialCard key={i} testimonial={testimonial} index={i} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* DIFFERENTIALS */}
-      <section id="diferenciais" className="py-24 bg-gray-900 text-white relative overflow-hidden">
-        {/* Background estático leve */}
-        <div className="absolute inset-0 z-0 opacity-20 bg-gradient-to-br from-indigo-900 to-gray-900" />
-
-        <div className="max-w-7xl mx-auto px-4 relative z-10">
-          <ScrollReveal>
-            <div className="text-center mb-16">
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black mb-4">
-                Por que <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Freelinnk</span>?
-              </h2>
-              <p className="text-gray-400 text-lg max-w-2xl mx-auto">Pare de perder vendas no Instagram hoje mesmo..</p>
-            </div>
-          </ScrollReveal>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {differentials.map((item, i) => (
-              <DifferentialCard key={i} item={item} index={i} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* SECURITY */}
-      <section className="py-16 bg-white border-y border-gray-100">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
-            {[
-              { icon: <Lock size={22} />, text: "Criptografia AES-256" },
-              { icon: <Shield size={22} />, text: "LGPD Compliant" },
-              { icon: <Globe size={22} />, text: "CDN Global" },
-              { icon: <Fingerprint size={22} />, text: "HTTPS Sempre" },
-            ].map((item, i) => (
-              <ScrollReveal key={i}>
-                <div className="flex items-center gap-3 text-gray-600 cursor-pointer group">
-                  <div className="text-green-500 group-hover:text-indigo-500 transition-colors">
-                    {item.icon}
-                  </div>
-                  <span className="text-sm font-semibold group-hover:text-gray-900 transition-colors">{item.text}</span>
-                </div>
-              </ScrollReveal>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FAQ */}
-      <section className="py-20 bg-gray-50">
-        <div className="max-w-3xl mx-auto px-4">
-          <ScrollReveal>
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Perguntas Frequentes</h2>
-            </div>
-          </ScrollReveal>
-          <div className="space-y-4">
-            {[
-              { q: "O Freelinnk é realmente grátis?", a: "Sim! Página de links, encurtador e analytics básico são 100% grátis para sempre. As ferramentas de IA avançadas são para assinantes Pro ou Ultra." },
-              { q: "Preciso saber programar ou design?", a: "Não! Nossa interface é super intuitiva. Você customiza tudo com cliques, sem código." },
-              { q: "Posso usar em qualquer rede social?", a: "Sim! Instagram, TikTok, YouTube, LinkedIn, Twitter, WhatsApp... Em qualquer lugar." },
-              { q: "Meus dados estão seguros?", a: "100%. Usamos criptografia AES-256, servidores globais e somos totalmente compatíveis com a LGPD." },
-              { q: "O que é o Brain Roteirista?", a: "É nossa IA que cria roteiros virais para seus vídeos, com sugestões de ângulos, cortes e timing perfeito para engajar." },
-            ].map((faq, i) => (
-              <div
-                key={i}
-                className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm hover:border-indigo-100 transition-colors cursor-pointer"
+              <button
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                className="lg:hidden p-2 text-gray-600 relative z-50"
               >
-                <h4 className="font-bold text-gray-900 mb-3 flex items-start gap-3">
-                  <span className="w-8 h-8 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center text-sm flex-shrink-0">?</span>
-                  <span className="group-hover:text-indigo-600 transition-colors">{faq.q}</span>
-                </h4>
-                <p className="text-gray-600 text-sm pl-11 leading-relaxed">{faq.a}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FINAL CTA */}
-      <section className="py-28 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white relative overflow-hidden">
-        <div className="absolute inset-0 pointer-events-none z-0 opacity-50">
-          <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
-        </div>
-        <div className="max-w-4xl mx-auto px-4 text-center relative z-20">
-          <ScrollReveal>
-            <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur text-white border border-white/30 rounded-full px-6 py-3 text-sm font-bold mb-8">
-              <Flame className="w-5 h-5 text-orange-300" /> +10.800 criadores já estão lucrando mais
+                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </button>
             </div>
-            <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-6 leading-tight">
-              Pronto para colocar mais <br className="hidden sm:block" />
-              <span className="text-white drop-shadow-lg">dinheiro no seu bolso?</span>
-            </h2>
-            <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
-              Crie sua página grátis agora. <br /> Sem cartão, sem compromisso, sem enrolação.
-            </p>
-            <SignInButton mode="modal">
-              <Button size="xl" variant="white" className="shadow-2xl text-lg px-14 py-6 group cursor-pointer pointer-events-auto">
-                Começar Agora — É Grátis <ArrowRight size={24} className="ml-2 group-hover:translate-x-1 transition-transform" />
-              </Button>
-            </SignInButton>
-            <div className="mt-10 flex flex-col sm:flex-row justify-center gap-8 text-sm text-white/70">
-              {[
-                { icon: <CheckCircle size={18} />, text: "Grátis para sempre" },
-                { icon: <CheckCircle size={18} />, text: "Sem cartão de crédito" },
-                { icon: <CheckCircle size={18} />, text: "Pronto em 2 minutos" },
-              ].map((item, i) => (
-                <span key={i} className="flex items-center justify-center gap-2">
-                  <span className="text-green-400">{item.icon}</span> {item.text}
-                </span>
+          </div>
+
+          {/* Mobile Menu */}
+          <AnimatePresence>
+            {mobileMenuOpen && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                className="lg:hidden bg-white border-b border-gray-100 overflow-hidden"
+              >
+                <div className="px-4 py-4 space-y-1">
+                  {[
+                    { label: "Funcionalidades", href: "#funcionalidades" },
+                    { label: "Como Funciona", href: "#como-funciona" },
+                    { label: "Preços", href: "#precos" },
+                    { label: "Depoimentos", href: "#depoimentos" },
+                  ].map((item) => (
+                    <a
+                      key={item.label}
+                      href={item.href}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className="block py-3 px-4 text-gray-700 hover:bg-gray-50 rounded-xl font-medium"
+                    >
+                      {item.label}
+                    </a>
+                  ))}
+                  <div className="pt-2">
+                    <SignInButton mode="modal">
+                      <button className="block w-full py-3 px-4 text-center bg-gray-50 text-indigo-600 font-bold rounded-xl cursor-pointer">
+                        Entrar na Plataforma
+                      </button>
+                    </SignInButton>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </nav>
+
+        {/* HERO SECTION */}
+        <section className="relative pt-24 pb-12 md:pt-32 lg:pt-40 lg:pb-24 overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none z-0">
+            <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 opacity-50" />
+            <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-blue-100 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/3 opacity-50" />
+          </div>
+
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 relative z-10">
+            <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+              <div className="text-center lg:text-left">
+                <ScrollReveal>
+                  <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full text-sm font-bold text-green-700 mb-6">
+                    <Gift size={16} />
+                    Teste 7 dias grátis — Todas as ferramentas
+                  </div>
+
+                  <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.1] mb-6">
+                    Transforme seu Link na Bio em uma{" "}
+                    <span className={BRAND.textGradient}>Máquina de Vendas</span>
+                  </h1>
+
+                  <p className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 mb-8 leading-relaxed">
+                    Página totalmente customizável, encurtador com analytics e ferramentas de{" "}
+                    <strong className="text-indigo-600">IA exclusivas</strong>. Pare de perder vendas no Instagram.
+                  </p>
+
+                  {/* Desktop Input */}
+                  <div className="hidden sm:flex max-w-md mx-auto lg:mx-0 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 flex-col sm:flex-row gap-2 mb-6 relative z-30">
+                    <div className="flex-1 bg-gray-50 rounded-xl px-4 flex items-center h-12 sm:h-auto border border-transparent focus-within:border-indigo-500 focus-within:bg-white transition-all">
+                      <span className="text-gray-400 font-bold text-sm mr-1">freelinnk.com/</span>
+                      <input type="text" placeholder="seunome" className="bg-transparent border-none outline-none font-bold text-gray-900 w-full placeholder:text-gray-300" />
+                    </div>
+                    <SignInButton mode="modal">
+                      <Button className="w-full sm:w-auto whitespace-nowrap shadow-md cursor-pointer pointer-events-auto">Criar Grátis</Button>
+                    </SignInButton>
+                  </div>
+
+                  {/* Mobile CTA */}
+                  <div className="flex sm:hidden flex-col gap-4 justify-center mb-8 relative z-30">
+                    <SignInButton mode="modal">
+                      <Button size="xl" className="w-full group cursor-pointer pointer-events-auto shadow-xl">
+                        Criar Minha Página Grátis
+                        <ArrowRight size={20} className="ml-1" />
+                      </Button>
+                    </SignInButton>
+                    <p className="text-xs text-gray-500 font-medium">7 dias grátis • Sem cartão de crédito</p>
+                  </div>
+
+                  {/* Desktop CTA */}
+                  <div className="hidden sm:flex flex-col sm:flex-row gap-4 justify-center lg:justify-start mb-6 relative z-30">
+                    <SignInButton mode="modal">
+                      <Button size="xl" className="w-full sm:w-auto group cursor-pointer pointer-events-auto">
+                        Começar Teste Grátis
+                        <ArrowRight size={20} className="ml-1" />
+                      </Button>
+                    </SignInButton>
+                  </div>
+
+                  <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-[10px] sm:text-xs text-gray-500 font-medium mb-8 relative z-20">
+                    <span className="flex items-center gap-1"><CheckCircle size={12} className="text-green-500" /> 7 dias grátis</span>
+                    <span className="hidden sm:inline">·</span>
+                    <span className="flex items-center gap-1"><Lock size={12} className="text-blue-500" /> Sem cartão</span>
+                    <span className="hidden sm:inline">·</span>
+                    <span className="flex items-center gap-1"><Zap size={12} className="text-purple-500" /> Acesso imediato</span>
+                  </div>
+
+                  <div className="relative z-20">
+                    <SocialProofAvatars />
+                  </div>
+                </ScrollReveal>
+              </div>
+
+              <div className="flex justify-center lg:justify-end relative z-10">
+                <ScrollReveal>
+                  <HeroPhoneSimulator />
+                </ScrollReveal>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* STATS BAR */}
+        <section className="py-10 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 relative z-10">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {stats.map((stat, i) => (
+                <div key={i} className="text-center">
+                  <p className="text-3xl md:text-5xl font-black mb-1"><AnimatedCounter {...stat} /></p>
+                  <p className="text-sm text-white/70">{stat.label}</p>
+                </div>
               ))}
             </div>
-          </ScrollReveal>
-        </div>
-      </section>
+          </div>
+        </section>
 
-      {/* FOOTER */}
-      <footer className="bg-gray-900 text-white pt-20 pb-28 md:pb-10">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="grid md:grid-cols-4 gap-12 mb-12">
-            <div className="md:col-span-2">
-              <div className="flex items-center gap-2.5 mb-6">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-2xl ${BRAND.gradient} shadow-lg`}>F</div>
-                <span className="text-2xl font-bold">Freelinnk</span>
+        {/* VIDEO DEMO SECTION */}
+        <VideoDemoSection />
+
+        {/* PÁGINAS REAIS */}
+        <section className="py-20 bg-gray-50 overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4">
+            <ScrollReveal>
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold mb-4">
+                  <Crown size={16} /> Páginas Reais
+                </div>
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+                  Veja o que nossos usuários <span className={BRAND.textGradient}>criaram</span>
+                </h2>
+                <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                  100% customizável. Você escolhe cores, fontes, layout e muito mais.
+                </p>
               </div>
-              <p className="text-gray-400 mb-6 max-w-md leading-relaxed">
-                Transforme seu Link na Bio em uma Máquina de Vendas. Feito com 💜 no Brasil para criadores do mundo todo.
+            </ScrollReveal>
+
+            <RealPagesShowcase />
+
+            <div className="text-center mt-12 relative z-30">
+              <SignInButton mode="modal">
+                <Button size="lg" className="group cursor-pointer pointer-events-auto">
+                  Criar Minha Página <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </SignInButton>
+            </div>
+          </div>
+        </section>
+
+        {/* FEATURES */}
+        <section id="funcionalidades" className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4">
+            <ScrollReveal>
+              <div className="text-center mb-16">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-bold mb-4">
+                  <Cpu size={16} /> Funcionalidades
+                </div>
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+                  Tudo que você precisa para <span className={BRAND.textGradient}>vender mais</span>
+                </h2>
+                <p className="text-gray-600 text-lg max-w-2xl mx-auto">
+                  Não somos só um link na bio. Somos seu sistema de vendas completo.
+                </p>
+              </div>
+            </ScrollReveal>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {features.map((feature, i) => (
+                <FeatureCard key={i} feature={feature} index={i} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* SORTEIOS HIGHLIGHT SECTION */}
+        <SorteiosHighlightSection />
+
+        {/* HOW IT WORKS */}
+        <section id="como-funciona" className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4">
+            <ScrollReveal>
+              <div className="text-center mb-16">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-4">
+                  <Play size={16} /> Como Funciona
+                </div>
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">Simples assim</h2>
+                <p className="text-gray-600 text-lg max-w-2xl mx-auto">Em menos de 5 minutos você está pronto para vender.</p>
+              </div>
+            </ScrollReveal>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-4">
+              {howItWorks.map((step, i) => (
+                <HowItWorksStep key={i} step={step} index={i} total={howItWorks.length} />
+              ))}
+            </div>
+
+            <div className="text-center mt-16 flex flex-col items-center justify-center gap-4 relative z-30">
+              <SignInButton mode="modal">
+                <Button size="lg" variant="default" className="shadow-lg hover:shadow-xl cursor-pointer pointer-events-auto">
+                  Criar Minha Página Agora <ArrowRight size={18} />
+                </Button>
+              </SignInButton>
+            </div>
+          </div>
+        </section>
+
+        {/* PRICING SECTION */}
+        <PricingSection />
+
+        {/* PARA QUEM */}
+        <section className="py-20 bg-white">
+          <div className="max-w-7xl mx-auto px-4">
+            <ScrollReveal>
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-bold mb-4">
+                  <Users size={16} /> Para Todos
+                </div>
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
+                  Serve pra você? <span className={BRAND.textGradient}>Com certeza.</span>
+                </h2>
+              </div>
+            </ScrollReveal>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+              {nichos.map((nicho, i) => (
+                <NichoCard key={i} nicho={nicho} index={i} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* TESTIMONIALS */}
+        <section id="depoimentos" className="py-20 bg-gray-50">
+          <div className="max-w-7xl mx-auto px-4">
+            <ScrollReveal>
+              <div className="text-center mb-12">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-sm font-bold mb-4">
+                  <Star size={16} /> Depoimentos
+                </div>
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">Quem usa, recomenda</h2>
+                <p className="text-gray-600 text-lg max-w-2xl mx-auto">Mais de 10.800 criadores já transformaram seus resultados.</p>
+              </div>
+            </ScrollReveal>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {testimonials.map((testimonial, i) => (
+                <TestimonialCard key={i} testimonial={testimonial} index={i} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* DIFFERENTIALS */}
+        <section id="diferenciais" className="py-24 bg-gray-900 text-white relative overflow-hidden">
+          <div className="absolute inset-0 z-0 opacity-20 bg-gradient-to-br from-indigo-900 to-gray-900" />
+
+          <div className="max-w-7xl mx-auto px-4 relative z-10">
+            <ScrollReveal>
+              <div className="text-center mb-16">
+                <h2 className="text-3xl md:text-4xl lg:text-5xl font-black mb-4">
+                  Por que <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Freelinnk</span>?
+                </h2>
+                <p className="text-gray-400 text-lg max-w-2xl mx-auto">Pare de perder vendas no Instagram hoje mesmo.</p>
+              </div>
+            </ScrollReveal>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {differentials.map((item, i) => (
+                <DifferentialCard key={i} item={item} index={i} />
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* GUARANTEE SECTION */}
+        <section className="py-20 bg-white">
+          <div className="max-w-2xl mx-auto px-4 text-center">
+            <ScrollReveal>
+              <motion.div
+                whileHover={{ scale: 1.05, rotate: [0, -2, 2, 0] }}
+                className="w-24 h-24 bg-gradient-to-br from-green-100 to-emerald-100 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg border-4 border-white relative"
+              >
+                <Shield className="w-12 h-12 text-green-600" />
+                <motion.div
+                  className="absolute inset-0 rounded-full border-4 border-green-400"
+                  animate={{ scale: [1, 1.1, 1], opacity: [1, 0, 1] }}
+                  transition={{ duration: 2, repeat: Infinity }}
+                />
+              </motion.div>
+
+              <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">
+                Garantia Blindada de 7 Dias
+              </h3>
+              <p className="text-gray-600 text-lg leading-relaxed mb-8">
+                Use tudo: gere ideias, crie imagens, faça roteiros, organize seus links.
+                Se em 7 dias você não sentir que o valor entregue é <strong className="text-indigo-600">10x maior</strong> que o preço,
+                nós devolvemos 100% do seu dinheiro. <strong>Sem perguntas.</strong>
               </p>
-              <div className="flex gap-4">
+
+              <div className="flex flex-wrap items-center justify-center gap-6 text-sm font-bold text-gray-500">
+                <span className="flex items-center gap-2">
+                  <CheckCircle size={18} className="text-green-500" />
+                  Risco Zero
+                </span>
+                <span className="flex items-center gap-2">
+                  <CheckCircle size={18} className="text-green-500" />
+                  Cancelamento Fácil
+                </span>
+                <span className="flex items-center gap-2">
+                  <CheckCircle size={18} className="text-green-500" />
+                  Suporte Humanizado
+                </span>
+              </div>
+            </ScrollReveal>
+          </div>
+        </section>
+
+        {/* SECURITY */}
+        <section className="py-16 bg-gray-50 border-y border-gray-100">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-16">
+              {[
+                { icon: <Lock size={22} />, text: "Criptografia AES-256" },
+                { icon: <Shield size={22} />, text: "LGPD Compliant" },
+                { icon: <Globe size={22} />, text: "CDN Global" },
+                { icon: <Fingerprint size={22} />, text: "HTTPS Sempre" },
+              ].map((item, i) => (
+                <ScrollReveal key={i}>
+                  <div className="flex items-center gap-3 text-gray-600 cursor-pointer group">
+                    <div className="text-green-500 group-hover:text-indigo-500 transition-colors">
+                      {item.icon}
+                    </div>
+                    <span className="text-sm font-semibold group-hover:text-gray-900 transition-colors">{item.text}</span>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FAQ */}
+        <section className="py-20 bg-white">
+          <div className="max-w-3xl mx-auto px-4">
+            <ScrollReveal>
+              <div className="text-center mb-12">
+                <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Perguntas Frequentes</h2>
+              </div>
+            </ScrollReveal>
+            <div className="space-y-4">
+              {[
+                { q: "O Freelinnk é realmente grátis?", a: "Sim! Página de links, encurtador e analytics básico são 100% grátis para sempre. As ferramentas de IA avançadas são para assinantes Pro ou Ultra, mas você pode testar tudo por 7 dias grátis." },
+                { q: "Como funciona o teste grátis de 7 dias?", a: "Você tem acesso completo a todas as funcionalidades do plano escolhido por 7 dias. Se não gostar, cancele antes do período acabar e não será cobrado nada." },
+                { q: "Preciso colocar cartão de crédito para testar?", a: "Para o teste grátis completo, pedimos um cartão como garantia, mas você só será cobrado após os 7 dias se não cancelar." },
+                { q: "Como funciona a Ferramenta de Sorteios?", a: "É super simples! Cole o link do seu post, defina os filtros (curtir, comentar, seguir) e nossa IA sorteia automaticamente um vencedor válido. Exclusivo do Plano PRO!" },
+                { q: "Posso cancelar a qualquer momento?", a: "Sim! Você pode cancelar sua assinatura a qualquer momento, sem multas ou taxas. O acesso continua até o fim do período pago." },
+                { q: "O que é o Brain Roteirista?", a: "É nossa IA que cria roteiros virais para seus vídeos, com sugestões de ângulos, cortes e timing perfeito para engajar sua audiência." },
+              ].map((faq, i) => (
+                <ScrollReveal key={i}>
+                  <div className="bg-gray-50 rounded-2xl p-6 border border-gray-100 hover:border-indigo-100 transition-colors">
+                    <h4 className="font-bold text-gray-900 mb-3 flex items-start gap-3">
+                      <span className="w-8 h-8 bg-indigo-100 text-indigo-600 rounded-full flex items-center justify-center text-sm flex-shrink-0 font-black">?</span>
+                      <span>{faq.q}</span>
+                    </h4>
+                    <p className="text-gray-600 text-sm pl-11 leading-relaxed">{faq.a}</p>
+                  </div>
+                </ScrollReveal>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* FINAL CTA */}
+        <section className="py-28 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white relative overflow-hidden">
+          <div className="absolute inset-0 pointer-events-none z-0 opacity-50">
+            <div className="absolute top-0 left-0 w-full h-full bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxnIGZpbGw9IiNmZmYiIGZpbGwtb3BhY2l0eT0iMC4wNSI+PGNpcmNsZSBjeD0iMzAiIGN5PSIzMCIgcj0iMiIvPjwvZz48L2c+PC9zdmc+')] opacity-50" />
+          </div>
+          <div className="max-w-4xl mx-auto px-4 text-center relative z-20">
+            <ScrollReveal>
+              <div className="inline-flex items-center gap-2 bg-white/20 backdrop-blur text-white border border-white/30 rounded-full px-6 py-3 text-sm font-bold mb-8">
+                <Flame className="w-5 h-5 text-orange-300" /> +10.800 criadores já estão lucrando mais
+              </div>
+              <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-6 leading-tight">
+                Pronto para transformar seu perfil em um <span className="text-yellow-300">negócio?</span>
+              </h2>
+              <p className="text-xl text-white/80 mb-10 max-w-2xl mx-auto">
+                Teste grátis por 7 dias. Todas as ferramentas. <br /> Sem compromisso, sem enrolação.
+              </p>
+              <SignInButton mode="modal">
+                <Button size="xl" variant="white" className="shadow-2xl text-lg px-14 py-6 group cursor-pointer pointer-events-auto">
+                  Começar Teste Grátis <ArrowRight size={24} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                </Button>
+              </SignInButton>
+              <div className="mt-10 flex flex-col sm:flex-row justify-center gap-8 text-sm text-white/70">
                 {[
-                  { icon: <Instagram size={20} />, color: "hover:bg-gradient-to-br hover:from-purple-500 hover:to-pink-500" },
-                  { icon: <Youtube size={20} />, color: "hover:bg-red-500" },
-                  { icon: <Linkedin size={20} />, color: "hover:bg-blue-600" },
-                  { icon: <MessageCircle size={20} />, color: "hover:bg-green-500" },
-                ].map((social, i) => (
-                  <a
-                    key={i}
-                    href="#"
-                    className={`w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-gray-400 hover:text-white ${social.color} transition-all duration-300 hover:-translate-y-1`}
-                  >
-                    {social.icon}
-                  </a>
+                  { icon: <CheckCircle size={18} />, text: "7 dias grátis" },
+                  { icon: <CheckCircle size={18} />, text: "Cancele quando quiser" },
+                  { icon: <CheckCircle size={18} />, text: "Suporte humanizado" },
+                ].map((item, i) => (
+                  <span key={i} className="flex items-center justify-center gap-2">
+                    <span className="text-green-400">{item.icon}</span> {item.text}
+                  </span>
                 ))}
               </div>
-            </div>
-            <div>
-              <h4 className="font-bold text-lg mb-6">Produto</h4>
-              <ul className="space-y-4 text-gray-400">
-                {[{ href: "#funcionalidades", text: "Funcionalidades" }, { href: "#como-funciona", text: "Como Funciona" }, { href: "#depoimentos", text: "Depoimentos" }].map((link, i) => (
-                  <li key={i}>
-                    <a href={link.href} className="hover:text-white transition-colors inline-flex items-center gap-2 group">
-                      <span className="h-0.5 bg-indigo-500 w-0 group-hover:w-2 transition-all" /> {link.text}
+            </ScrollReveal>
+          </div>
+        </section>
+
+        {/* FOOTER */}
+        <footer className="bg-gray-900 text-white pt-20 pb-28 md:pb-10">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="grid md:grid-cols-4 gap-12 mb-12">
+              <div className="md:col-span-2">
+                <div className="flex items-center gap-2.5 mb-6">
+                  <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-white font-black text-2xl ${BRAND.gradient} shadow-lg`}>F</div>
+                  <span className="text-2xl font-bold">Freelinnk</span>
+                </div>
+                <p className="text-gray-400 mb-6 max-w-md leading-relaxed">
+                  Transforme seu Link na Bio em uma Máquina de Vendas. Feito com 💜 no Brasil para criadores do mundo todo.
+                </p>
+                <div className="flex gap-4">
+                  {[
+                    { icon: <Instagram size={20} />, color: "hover:bg-gradient-to-br hover:from-purple-500 hover:to-pink-500" },
+                    { icon: <Youtube size={20} />, color: "hover:bg-red-500" },
+                    { icon: <Linkedin size={20} />, color: "hover:bg-blue-600" },
+                    { icon: <MessageCircle size={20} />, color: "hover:bg-green-500" },
+                  ].map((social, i) => (
+                    <a
+                      key={i}
+                      href="#"
+                      className={`w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-gray-400 hover:text-white ${social.color} transition-all duration-300 hover:-translate-y-1`}
+                    >
+                      {social.icon}
                     </a>
-                  </li>
-                ))}
-              </ul>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <h4 className="font-bold text-lg mb-6">Produto</h4>
+                <ul className="space-y-4 text-gray-400">
+                  {[
+                    { href: "#funcionalidades", text: "Funcionalidades" },
+                    { href: "#como-funciona", text: "Como Funciona" },
+                    { href: "#precos", text: "Preços" },
+                    { href: "#depoimentos", text: "Depoimentos" }
+                  ].map((link, i) => (
+                    <li key={i}>
+                      <a href={link.href} className="hover:text-white transition-colors inline-flex items-center gap-2 group">
+                        <span className="h-0.5 bg-indigo-500 w-0 group-hover:w-2 transition-all" /> {link.text}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h4 className="font-bold text-lg mb-6">Legal</h4>
+                <ul className="space-y-4 text-gray-400">
+                  {[
+                    { href: "/terms-of-service", text: "Termos de Uso" },
+                    { href: "/privacy-policy", text: "Privacidade" },
+                    { href: "/privacy-policy", text: "LGPD" }
+                  ].map((link, i) => (
+                    <li key={i}>
+                      <a href={link.href} className="hover:text-white transition-colors inline-flex items-center gap-2 group">
+                        <span className="h-0.5 bg-indigo-500 w-0 group-hover:w-2 transition-all" /> {link.text}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </div>
             </div>
-            <div>
-              <h4 className="font-bold text-lg mb-6">Legal</h4>
-              <ul className="space-y-4 text-gray-400">
-                {[{ href: "/terms-of-service", text: "Termos de Uso" }, { href: "/privacy-policy", text: "Privacidade" }, { href: "/privacy-policy", text: "LGPD" }].map((link, i) => (
-                  <li key={i}>
-                    <a href={link.href} className="hover:text-white transition-colors inline-flex items-center gap-2 group">
-                      <span className="h-0.5 bg-indigo-500 w-0 group-hover:w-2 transition-all" /> {link.text}
-                    </a>
-                  </li>
-                ))}
-              </ul>
+            <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
+              <p className="text-sm text-gray-500">© 2025 Freelinnk. Todos os direitos reservados.</p>
+              <div className="flex items-center gap-6">
+                <div className="flex items-center gap-2 text-gray-500 text-sm"><Lock size={16} className="text-green-500" /> Conexão Segura</div>
+                <div className="flex items-center gap-2 text-gray-500 text-sm"><Shield size={16} className="text-green-500" /> LGPD</div>
+              </div>
             </div>
           </div>
-          <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-500">© 2025 Freelinnk. Todos os direitos reservados.</p>
-            <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-gray-500 text-sm"><Lock size={16} className="text-green-500" /> Conexão Segura</div>
-              <div className="flex items-center gap-2 text-gray-500 text-sm"><Shield size={16} className="text-green-500" /> LGPD</div>
-            </div>
-          </div>
-        </div>
-      </footer>
-    </div>
-  );
-}
+        </footer>
+      </div>
+    );
+  }

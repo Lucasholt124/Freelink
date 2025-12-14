@@ -54,14 +54,13 @@ export async function POST(req: NextRequest) {
     }
 
     // --- LÓGICA DE MARKETING INTELIGENTE ---
-    // Antes de enviar para o Stripe, marcamos que ele iniciou o checkout.
-    // Se ele não completar, o sistema de e-mail saberá.
+    // Mantida idêntica ao seu original
     await clerk.users.updateUser(userId, {
       publicMetadata: {
         ...user.publicMetadata,
-        cartAbandoned: true, // Marca como abandonado até que o webhook diga o contrário
-        lastCheckoutAttempt: Date.now(), // Data da tentativa
-        attemptedPlan: plan, // Qual plano ele tentou comprar
+        cartAbandoned: true,
+        lastCheckoutAttempt: Date.now(),
+        attemptedPlan: plan,
       },
     });
     // ---------------------------------------
@@ -98,6 +97,11 @@ export async function POST(req: NextRequest) {
         price: priceId,
         quantity: 1
       }],
+      // 🔥 AQUI ESTÁ A MÁGICA DOS 7 DIAS GRÁTIS 🔥
+      // Isso faz o Stripe cobrar R$ 0,00 hoje e agendar a cobrança para daqui a 7 dias.
+      subscription_data: {
+        trial_period_days: 7,
+      },
       success_url: `${baseUrl}/dashboard/billing?success=true`,
       cancel_url: `${baseUrl}/dashboard/billing?canceled=true`,
       metadata: {

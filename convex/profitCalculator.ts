@@ -1901,6 +1901,7 @@ export const updateCustomer = mutation({
 export const deleteCustomer = mutation({
   args: {
     id: v.id("customers"),
+    // Mantemos o argumento 'permanent' para compatibilidade, mas não é mais obrigatório
     permanent: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
@@ -1912,14 +1913,9 @@ export const deleteCustomer = mutation({
       throw new Error("Cliente não encontrado");
     }
 
-    if (args.permanent) {
-      await ctx.db.delete(args.id);
-    } else {
-      await ctx.db.patch(args.id, {
-        active: false,
-        updatedAt: Date.now(),
-      });
-    }
+    // ✅ CORREÇÃO: Deletar diretamente do banco de dados (Hard Delete)
+    // Isso garante que o cliente suma da lista imediatamente
+    await ctx.db.delete(args.id);
 
     return { success: true };
   },
@@ -2034,14 +2030,8 @@ export const deleteSupplier = mutation({
       throw new Error("Fornecedor não encontrado");
     }
 
-    if (args.permanent) {
-      await ctx.db.delete(args.id);
-    } else {
-      await ctx.db.patch(args.id, {
-        active: false,
-        updatedAt: Date.now(),
-      });
-    }
+    // ✅ CORREÇÃO: Deletar diretamente do banco de dados
+    await ctx.db.delete(args.id);
 
     return { success: true };
   },
