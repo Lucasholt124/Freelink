@@ -1,6 +1,6 @@
 "use client";
 
-import { TrendingUp, Users, Globe, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Users, Globe, Minus } from "lucide-react"; // Adicionei TrendingDown
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { AnalyticsData } from "@/lib/analytics-server";
@@ -15,7 +15,7 @@ import {
 
 interface Props {
   analytics: AnalyticsData;
-  plan: string;
+  plan?: string; // Coloquei opcional pois não estava sendo usado
 }
 
 interface ChartDataPoint {
@@ -26,14 +26,13 @@ interface ChartDataPoint {
 interface CustomTooltipProps {
   active?: boolean;
   payload?: {
-    payload: ChartDataPoint ;
+    payload: ChartDataPoint;
     value?: number;
   }[];
   label?: string;
 }
 
-
-// Tooltip Personalizado (Para ficar bonito no Mobile e Desktop)
+// Tooltip Personalizado
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
@@ -48,33 +47,67 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   return null;
 };
 
-export default function ImpactOverview({ analytics,  }: Props) {
+export default function ImpactOverview({ analytics }: Props) {
   // Dados Reais
   const clicks = analytics?.totalClicks || 0;
   const visitors = analytics?.uniqueVisitors || 0;
   const topCountryName = analytics?.topCountry?.name || "Brasil";
-  const growth = analytics?.growth || "+0%";
 
-  // Tratamento do Histórico para o Gráfico
-  // Se não tiver dados (ex: conta nova), cria uma linha reta zerada para não quebrar
+  // Tratamento do Histórico
   const rawHistory = analytics?.dailyClicks || [];
   const chartData = rawHistory.length > 0
     ? rawHistory
     : [
-        { date: 'Seg', count: 0 },
-        { date: 'Ter', count: 0 },
-        { date: 'Qua', count: 0 },
-        { date: 'Qui', count: 0 },
-        { date: 'Sex', count: 0 },
-        { date: 'Sab', count: 0 },
+        { date: 'Seg', count: 0 }, { date: 'Ter', count: 0 },
+        { date: 'Qua', count: 0 }, { date: 'Qui', count: 0 },
+        { date: 'Sex', count: 0 }, { date: 'Sab', count: 0 },
         { date: 'Dom', count: 0 }
       ];
 
-  // Lógica Visual do Badge
-  const isStable = growth === "+0%" || growth === "0%";
-  const growthLabel = isStable ? "Estável" : growth;
-  const growthIcon = isStable ? <Minus className="w-3 h-3 mr-1" /> : <TrendingUp className="w-3 h-3 mr-1" />;
-  const growthColor = isStable ? "bg-slate-100 text-slate-600" : "bg-emerald-100 text-emerald-700";
+  // --- LÓGICA DE CRESCIMENTO INTELIGENTE ---
+  let growthValue = 0;
+  const growthString = analytics?.growth;
+
+  // Se o backend não mandou growth, ou mandou "0%", tentamos calcular pelo gráfico
+  if (!growthString || growthString === "+0%" || growthString === "0%") {
+    if (rawHistory.length >= 2) {
+      const today = rawHistory[rawHistory.length - 1].count;
+      const yesterday = rawHistory[rawHistory.length - 2].count;
+
+      if (yesterday === 0) {
+        growthValue = today > 0 ? 100 : 0;
+      } else {
+        growthValue = ((today - yesterday) / yesterday) * 100;
+      }
+    }
+  } else {
+    // Se o backend mandou string (ex: "+15%"), convertemos para número
+    growthValue = parseFloat(growthString.replace('%', '').replace('+', ''));
+  }
+
+  // Definição dos Estados Visuais (Positivo, Negativo, Neutro)
+  const isPositive = growthValue > 0;
+  const isNegative = growthValue < 0;
+
+  let growthConfig = {
+    label: "Estável",
+    icon: <Minus className="w-3 h-3 mr-1" />,
+    color: "bg-slate-100 text-slate-600 border-slate-200"
+  };
+
+  if (isPositive) {
+    growthConfig = {
+      label: `+${growthValue.toFixed(0)}%`,
+      icon: <TrendingUp className="w-3 h-3 mr-1" />,
+      color: "bg-emerald-100 text-emerald-700 border-emerald-200"
+    };
+  } else if (isNegative) {
+    growthConfig = {
+      label: `${growthValue.toFixed(0)}%`,
+      icon: <TrendingDown className="w-3 h-3 mr-1" />, // Icone de queda
+      color: "bg-red-100 text-red-700 border-red-200" // Cor de alerta
+    };
+  }
 
   return (
     <Card className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm h-full overflow-hidden">
@@ -88,8 +121,10 @@ export default function ImpactOverview({ analytics,  }: Props) {
              </div>
              <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Impacto de Hoje</h3>
           </div>
-          <Badge variant="secondary" className={`${growthColor} font-bold px-3 py-1`}>
-            {growthIcon} {growthLabel}
+
+          {/* Badge Dinâmico */}
+          <Badge variant="secondary" className={`${growthConfig.color} font-bold px-3 py-1 border`}>
+            {growthConfig.icon} {growthConfig.label}
           </Badge>
         </div>
 
@@ -103,7 +138,7 @@ export default function ImpactOverview({ analytics,  }: Props) {
         </p>
       </div>
 
-      {/* ÁREA DO GRÁFICO RESPONSIVO (Recharts) */}
+      {/* ÁREA DO GRÁFICO RESPONSIVO */}
       <div className="h-[120px] w-full mt-4 -mb-1">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
@@ -114,7 +149,6 @@ export default function ImpactOverview({ analytics,  }: Props) {
               </linearGradient>
             </defs>
 
-            {/* Eixo X oculto mas funcional para o tooltip saber a data */}
             <XAxis dataKey="date" hide />
             <YAxis hide />
 

@@ -33,7 +33,7 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
   const [spotsLeft] = useState(3); // Escassez agressiva
 
   // SEU NÚMERO AQUI (Formato: 55 + DDD + Numero)
-  const WHATSAPP_NUMBER = "5579999383543"; // <--- COLOQUE SEU NÚMERO AQUI
+  const WHATSAPP_NUMBER = "5579999383543";
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
@@ -64,14 +64,42 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
 
   const profileUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/${username}`;
 
+  // --- FUNÇÃO DE COPIAR ROBUSTA (CORRIGIDA PARA MOBILE) ---
   const handleCopyLink = async () => {
     try {
+      // Tenta API moderna primeiro
       await navigator.clipboard.writeText(profileUrl);
       setCopied(true);
       toast.success("Link copiado! 📋");
       setTimeout(() => setCopied(false), 2000);
-    } catch {
-      toast.error("Erro ao copiar");
+    } catch  {
+      // Fallback para Mobile/HTTP
+      try {
+        const textArea = document.createElement("textarea");
+        textArea.value = profileUrl;
+
+        // Esconde visualmente mas mantém acessível para o comando copy
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "0";
+
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (successful) {
+          setCopied(true);
+          toast.success("Link copiado! 📋");
+          setTimeout(() => setCopied(false), 2000);
+        } else {
+          throw new Error("Falha no fallback");
+        }
+      } catch {
+        toast.error("Erro ao copiar. O link é: " + profileUrl);
+      }
     }
   };
 
@@ -106,7 +134,6 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
     }
   };
 
-  // --- BENEFÍCIOS CORRIGIDOS E REAIS ---
   const benefits = {
     pro: [
       "6 Ideias Virais (IA) / dia 🧠",
@@ -134,14 +161,16 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", duration: 0.5 }}
-          className="relative w-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[95vh]"
+          className="relative w-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" // Ajustei altura máxima para caber melhor no mobile
         >
-          {/* --- BARRA DE URGÊNCIA --- */}
-          <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-4 py-2 flex items-center justify-between text-xs font-bold shadow-lg z-20">
-            <span className="flex items-center gap-1 animate-pulse">
-              <Clock size={12} /> OFERTA EXPIRA EM:
+          {/* --- BARRA DE URGÊNCIA (Ajustada para não cortar) --- */}
+          <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-3 py-2.5 flex items-center justify-between text-xs font-bold shadow-lg z-20 shrink-0">
+            <span className="flex items-center gap-1 animate-pulse text-[11px] sm:text-xs">
+              <Clock size={12} /> OFERTA EXPIRA:
             </span>
-            <span className="font-mono text-sm bg-red-800/30 px-2 rounded">{formatTime(timeLeft)}</span>
+            <span className="font-mono text-sm bg-red-800/30 px-2 py-0.5 rounded border border-red-400/20">
+              {formatTime(timeLeft)}
+            </span>
           </div>
 
           {/* --- HEADER --- */}
@@ -162,26 +191,31 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
                </button>
              </div>
 
-             {/* Link Rápido */}
+             {/* Link Rápido (Ajustado para Mobile) */}
              <div className="flex items-center gap-2 bg-white/5 p-2 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
-                <p className="flex-1 text-xs font-medium text-slate-300 truncate text-left select-all">
+                <p className="flex-1 text-xs font-medium text-slate-300 truncate text-left select-all font-mono">
+                  {/* Remove protocolo para ficar mais limpo visualmente */}
                   {profileUrl.replace(/^https?:\/\//, '')}
                 </p>
-                <button onClick={handleCopyLink} className="text-white hover:text-indigo-400 transition-colors p-1">
-                  {copied ? <Check size={14} className="text-green-500"/> : <Copy size={14} />}
+                {/* Botão de Copiar com área de toque melhorada */}
+                <button
+                  onClick={handleCopyLink}
+                  className="text-white bg-indigo-600 hover:bg-indigo-500 rounded p-1.5 transition-colors active:scale-95"
+                >
+                  {copied ? <Check size={14} className="text-white"/> : <Copy size={14} />}
                 </button>
              </div>
           </div>
 
           {/* --- CONTEÚDO PRINCIPAL (Scrollável) --- */}
-          <div className="p-5 flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+          <div className="p-4 sm:p-5 flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
 
             {/* Título da Oferta */}
             <div className="text-center mb-5">
               <h3 className="text-base font-bold text-slate-600 dark:text-slate-300">
                 Parabéns! Você ganhou:
               </h3>
-              <div className="relative inline-block">
+              <div className="relative inline-block mt-1">
                  <div className="absolute -inset-1 bg-indigo-500 blur opacity-20 rounded-lg"></div>
                  <p className="relative text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 font-black text-3xl uppercase tracking-tighter transform scale-105">
                    7 DIAS GRÁTIS
@@ -192,20 +226,29 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
               </p>
             </div>
 
-            {/* SELETOR MENSAL / ANUAL */}
-            <div className="flex justify-center mb-4">
-              <div className="bg-white dark:bg-slate-800 p-1 rounded-xl flex text-xs font-bold relative border border-slate-200 dark:border-slate-700 shadow-sm">
+            {/* SELETOR MENSAL / ANUAL (Melhorado e Mais Claro) */}
+            <div className="flex justify-center mb-4 w-full">
+              <div className="bg-white dark:bg-slate-800 p-1 rounded-xl flex w-full max-w-[320px] text-xs font-bold relative border border-slate-200 dark:border-slate-700 shadow-sm">
                 <button
                   onClick={() => setBillingCycle('monthly')}
-                  className={clsx("px-4 py-2 rounded-lg transition-all z-10", billingCycle === 'monthly' ? "bg-slate-100 dark:bg-slate-700 text-indigo-600 dark:text-indigo-300" : "text-slate-400")}
+                  className={clsx(
+                    "flex-1 py-3 rounded-lg transition-all z-10 flex flex-col items-center justify-center leading-tight",
+                    billingCycle === 'monthly' ? "bg-slate-100 dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm" : "text-slate-400"
+                  )}
                 >
-                  Mensal
+                  <span>Mensal</span>
                 </button>
                 <button
                   onClick={() => setBillingCycle('yearly')}
-                  className={clsx("px-4 py-2 rounded-lg transition-all z-10 flex items-center gap-1", billingCycle === 'yearly' ? "bg-green-100 text-green-700 shadow-sm ring-1 ring-green-200" : "text-slate-400")}
+                  className={clsx(
+                    "flex-1 py-2 rounded-lg transition-all z-10 flex flex-col items-center justify-center gap-0.5 leading-tight",
+                    billingCycle === 'yearly' ? "bg-green-50 text-green-700 shadow-sm ring-1 ring-green-200 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-900" : "text-slate-400"
+                  )}
                 >
-                  Anual <span className="bg-green-600 text-white text-[9px] px-1.5 py-0.5 rounded-full">-20%</span>
+                  <span className="text-[11px]">Anual (Paga 1x)</span>
+                  <span className="bg-green-600 text-white text-[9px] px-1.5 rounded-full font-black tracking-wide">
+                    2 MESES OFF
+                  </span>
                 </button>
               </div>
             </div>
@@ -244,7 +287,7 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
                       initial={{ opacity: 0, y: 5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
-                      className="space-y-2.5 min-h-[160px]" // Altura mínima para não pular
+                      className="space-y-2.5 min-h-[160px]"
                     >
                       {(selectedPlan === 'pro' ? benefits.pro : benefits.ultra).map((benefit, i) => (
                         <div key={i} className="flex items-start gap-2.5 text-xs font-medium text-slate-700 dark:text-slate-300">
@@ -306,7 +349,7 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
               )}
             </Button>
 
-            {/* BOTÃO WHATSAPP (A Salvação) */}
+            {/* BOTÃO WHATSAPP */}
             <button
               onClick={handleWhatsApp}
               className="w-full flex items-center justify-center gap-2 text-xs font-medium text-slate-500 hover:text-green-600 transition-colors py-2 group border border-dashed border-slate-300 dark:border-slate-700 rounded-lg hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10"
@@ -319,7 +362,7 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
           </div>
 
           {/* --- FOOTER (SAÍDA DISCRETA) --- */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 text-center">
+          <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 text-center shrink-0">
              <button
               onClick={() => setShowWelcomeModal(false)}
               className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors font-medium underline decoration-slate-200 underline-offset-2"

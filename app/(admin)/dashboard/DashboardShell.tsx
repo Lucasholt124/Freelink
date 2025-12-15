@@ -7,7 +7,7 @@ import {
   Home, Settings, Wand2, Scissors, Target, LayoutGrid, Gift,
   BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles,  X,
   LucideProps, Menu, Bell, Search, PlusCircle, ArrowRight, Zap, Crown, Shield,
-  Calculator
+  Calculator, Palette, BarChart3, ChevronRight
 } from "lucide-react";
 import clsx from "clsx";
 import { UserButton, useClerk } from "@clerk/nextjs";
@@ -292,7 +292,7 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
   );
 }
 
-// --- SHELL PRINCIPAL (CORRIGIDO PARA SCROLL MOBILE) ---
+// --- SHELL PRINCIPAL ---
 export default function DashboardShell({ children, initialPlan }: { children: ReactNode, initialPlan: string }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -308,6 +308,9 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   const [showPushPrompt, setShowPushPrompt] = useState(false);
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
+
+  // Verifica se está na página inicial do dashboard para mostrar os atalhos
+  const isDashboardHome = pathname === '/dashboard';
 
   const handleEnableNotifications = async () => {
     try {
@@ -362,7 +365,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
     return Object.entries(titles).find(([path]) => pathname.startsWith(path))?.[1] || "Dashboard";
   };
 
-  // Bloqueio de scroll apenas no Sidebar Open, mas seguro para mobile
   useEffect(() => {
     if (isSidebarOpen) { document.body.style.overflow = 'hidden'; } else { document.body.style.overflow = 'unset'; }
     return () => { document.body.style.overflow = 'unset'; };
@@ -371,11 +373,10 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
 return (
     <div className="flex flex-col lg:flex-row min-h-screen relative">
 
-      {/* BACKGROUND FIXO (Mantido para performance no mobile) */}
+      {/* BACKGROUND FIXO */}
       <div className="fixed inset-0 z-[-1] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800" />
 
       {/* DESKTOP SIDEBAR */}
-      {/* Note o 'sticky top-0 h-screen': Isso faz a sidebar ficar parada enquanto você rola a página */}
       <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl h-screen sticky top-0">
         <div className="mb-4 px-2 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center group">
@@ -403,7 +404,7 @@ return (
         </div>
       </aside>
 
-      {/* MOBILE SIDEBAR (Drawer) - Sem alterações aqui */}
+      {/* MOBILE SIDEBAR (Drawer) */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -435,11 +436,10 @@ return (
         )}
       </AnimatePresence>
 
-      {/* CONTEÚDO PRINCIPAL - Alterado para crescer naturalmente */}
+      {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
 
-        {/* HEADER - Mantém sticky no mobile, static ou sticky no desktop conforme preferir.
-            Como agora a página rola inteira, 'sticky top-0' funciona bem no desktop também! */}
+        {/* HEADER - Sticky e Limpo */}
         <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-40">
            <div className="flex items-center gap-4">
              <div className="lg:hidden">
@@ -498,8 +498,55 @@ return (
            </div>
         </header>
 
-        {/* ÁREA DE CONTEÚDO PRINCIPAL - Sem scroll interno forçado */}
+        {/* ÁREA DE CONTEÚDO PRINCIPAL */}
         <main className="flex-1 w-full p-4 lg:p-8">
+
+          {/* SEÇÃO DE AÇÃO RÁPIDA (Só aparece na Home do Dashboard para iniciantes) */}
+          {isDashboardHome && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1 }}
+              className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
+            >
+              {/* Card 1: Editar Página (Design) */}
+              <Link href="/dashboard/settings">
+                <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-4 rounded-xl flex items-center gap-4 hover:border-purple-300 hover:shadow-lg hover:shadow-purple-500/5 transition-all cursor-pointer group relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/0 to-purple-500/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+
+                  <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-colors text-purple-600 dark:text-purple-300">
+                     <Palette className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                     <h3 className="font-bold text-slate-800 dark:text-white text-sm">Editar Visual da Página</h3>
+                     <p className="text-xs text-slate-500 mt-0.5">Alterar cores, tema e foto de perfil</p>
+                  </div>
+                  <div className="bg-slate-50 dark:bg-slate-800 p-2 rounded-full border border-slate-100 dark:border-slate-700 group-hover:border-purple-200">
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-purple-500 transition-colors" />
+                  </div>
+                </div>
+              </Link>
+
+              {/* Card 2: Meus Links (Analytics) */}
+              <Link href="/dashboard/links">
+                <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-4 rounded-xl flex items-center gap-4 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-500/5 transition-all cursor-pointer group relative overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/0 to-blue-500/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+
+                  <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors text-blue-600 dark:text-blue-300">
+                     <BarChart3 className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1">
+                     <h3 className="font-bold text-slate-800 dark:text-white text-sm">Gerenciar Links e Dados</h3>
+                     <p className="text-xs text-slate-500 mt-0.5">Ver estatísticas e editar botões</p>
+                  </div>
+                   <div className="bg-slate-50 dark:bg-slate-800 p-2 rounded-full border border-slate-100 dark:border-slate-700 group-hover:border-blue-200">
+                    <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          )}
+
           {children}
           {/* Espaçamento extra no final para mobile */}
           <div className="h-24 lg:hidden" />
