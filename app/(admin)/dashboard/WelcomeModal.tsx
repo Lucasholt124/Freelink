@@ -62,44 +62,85 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
     return `${mins < 10 ? "0" : ""}${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
+  // URL completa para copiar
   const profileUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/${username}`;
+
+  // URL para exibição (sem www. e sem protocolo)
+  const displayUrl = typeof window !== 'undefined'
+    ? `freelinn.com/${username}`
+    : `freelinn.com/${username}`;
 
   // --- FUNÇÃO DE COPIAR ROBUSTA (CORRIGIDA PARA MOBILE) ---
   const handleCopyLink = async () => {
-    try {
-      // Tenta API moderna primeiro
-      await navigator.clipboard.writeText(profileUrl);
-      setCopied(true);
-      toast.success("Link copiado! 📋");
-      setTimeout(() => setCopied(false), 2000);
-    } catch  {
-      // Fallback para Mobile/HTTP
+    const textToCopy = profileUrl;
+
+    // Método 1: Clipboard API (moderno)
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
       try {
-        const textArea = document.createElement("textarea");
-        textArea.value = profileUrl;
+        await navigator.clipboard.writeText(textToCopy);
+        setCopied(true);
+        toast.success("Link copiado! 📋");
+        setTimeout(() => setCopied(false), 2000);
+        return;
+      } catch (err) {
+        console.log("Clipboard API falhou, tentando fallback...", err);
+      }
+    }
 
-        // Esconde visualmente mas mantém acessível para o comando copy
-        textArea.style.position = "fixed";
-        textArea.style.left = "-9999px";
-        textArea.style.top = "0";
+    // Método 2: Fallback com textarea (funciona em mobile)
+    try {
+      const textArea = document.createElement("textarea");
+      textArea.value = textToCopy;
 
-        document.body.appendChild(textArea);
+      // Estilos para esconder mas manter funcional no iOS
+      textArea.style.position = "fixed";
+      textArea.style.top = "0";
+      textArea.style.left = "0";
+      textArea.style.width = "2em";
+      textArea.style.height = "2em";
+      textArea.style.padding = "0";
+      textArea.style.border = "none";
+      textArea.style.outline = "none";
+      textArea.style.boxShadow = "none";
+      textArea.style.background = "transparent";
+      textArea.style.fontSize = "16px"; // Previne zoom no iOS
+
+      document.body.appendChild(textArea);
+
+      // Seleção especial para iOS
+      if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
+        textArea.contentEditable = "true";
+        textArea.readOnly = false;
+        const range = document.createRange();
+        range.selectNodeContents(textArea);
+        const selection = window.getSelection();
+        if (selection) {
+          selection.removeAllRanges();
+          selection.addRange(range);
+        }
+        textArea.setSelectionRange(0, 999999);
+      } else {
         textArea.focus();
         textArea.select();
-
-        const successful = document.execCommand('copy');
-        document.body.removeChild(textArea);
-
-        if (successful) {
-          setCopied(true);
-          toast.success("Link copiado! 📋");
-          setTimeout(() => setCopied(false), 2000);
-        } else {
-          throw new Error("Falha no fallback");
-        }
-      } catch {
-        toast.error("Erro ao copiar. O link é: " + profileUrl);
       }
+
+      const successful = document.execCommand('copy');
+      document.body.removeChild(textArea);
+
+      if (successful) {
+        setCopied(true);
+        toast.success("Link copiado! 📋");
+        setTimeout(() => setCopied(false), 2000);
+      } else {
+        throw new Error("execCommand falhou");
+      }
+    } catch (err) {
+      console.error("Erro ao copiar:", err);
+      // Último recurso: mostrar o link para copiar manualmente
+      toast.error("Toque e segure o link para copiar", {
+        description: textToCopy,
+        duration: 5000
+      });
     }
   };
 
@@ -161,9 +202,9 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
           initial={{ scale: 0.9, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", duration: 0.5 }}
-          className="relative w-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]" // Ajustei altura máxima para caber melhor no mobile
+          className="relative w-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
         >
-          {/* --- BARRA DE URGÊNCIA (Ajustada para não cortar) --- */}
+          {/* --- BARRA DE URGÊNCIA --- */}
           <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-3 py-2.5 flex items-center justify-between text-xs font-bold shadow-lg z-20 shrink-0">
             <span className="flex items-center gap-1 animate-pulse text-[11px] sm:text-xs">
               <Clock size={12} /> OFERTA EXPIRA:
@@ -191,18 +232,19 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
                </button>
              </div>
 
-             {/* Link Rápido (Ajustado para Mobile) */}
+             {/* Link Rápido (CORRIGIDO - sem www.) */}
              <div className="flex items-center gap-2 bg-white/5 p-2 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
                 <p className="flex-1 text-xs font-medium text-slate-300 truncate text-left select-all font-mono">
-                  {/* Remove protocolo para ficar mais limpo visualmente */}
-                  {profileUrl.replace(/^https?:\/\//, '')}
+                  {displayUrl}
                 </p>
-                {/* Botão de Copiar com área de toque melhorada */}
+                {/* Botão de Copiar (CORRIGIDO para Mobile) */}
                 <button
                   onClick={handleCopyLink}
-                  className="text-white bg-indigo-600 hover:bg-indigo-500 rounded p-1.5 transition-colors active:scale-95"
+                  type="button"
+                  aria-label="Copiar link"
+                  className="text-white bg-indigo-600 hover:bg-indigo-500 rounded p-2.5 transition-colors active:scale-95 touch-manipulation min-w-[40px] min-h-[40px] flex items-center justify-center"
                 >
-                  {copied ? <Check size={14} className="text-white"/> : <Copy size={14} />}
+                  {copied ? <Check size={16} className="text-white"/> : <Copy size={16} />}
                 </button>
              </div>
           </div>
@@ -226,7 +268,7 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
               </p>
             </div>
 
-            {/* SELETOR MENSAL / ANUAL (Melhorado e Mais Claro) */}
+            {/* SELETOR MENSAL / ANUAL */}
             <div className="flex justify-center mb-4 w-full">
               <div className="bg-white dark:bg-slate-800 p-1 rounded-xl flex w-full max-w-[320px] text-xs font-bold relative border border-slate-200 dark:border-slate-700 shadow-sm">
                 <button
