@@ -1,11 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Check, Copy, X,
-  Loader2, Shield, Crown, Zap, CheckCircle2,
-  Clock, AlertTriangle, MessageCircle, ChevronRight
+  Check, Copy, X, Loader2, Shield, Crown, Zap, CheckCircle2,
+  Clock, MessageCircle, ChevronRight, Sparkles, Users, TrendingUp, Star
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
@@ -23,31 +22,34 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // ESTADOS DE VENDA
-  const [selectedPlan, setSelectedPlan] = useState<PlanType>("ultra"); // Começa no Ultra (Ancoragem)
+  const [selectedPlan, setSelectedPlan] = useState<PlanType>("ultra");
   const [billingCycle, setBillingCycle] = useState<CycleType>("monthly");
+  const [timeLeft, setTimeLeft] = useState(900);
 
-  // ESTADOS DE URGÊNCIA (Gatilhos Mentais)
-  const [timeLeft, setTimeLeft] = useState(900); // 15 minutos
-  const [spotsLeft] = useState(3); // Escassez agressiva
-
-  // SEU NÚMERO AQUI (Formato: 55 + DDD + Numero)
   const WHATSAPP_NUMBER = "5579999383543";
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const urlParams = new URLSearchParams(window.location.search);
-      const isWelcome = urlParams.get('welcome');
+  const getProfileUrl = useCallback(() => {
+    if (typeof window !== "undefined") {
+      return `${window.location.origin}/${username}`;
+    }
+    return `https://freelinnk.com/${username}`;
+  }, [username]);
 
-      if (isWelcome === 'true') {
+  const getDisplayUrl = useCallback(() => {
+    return `freelinnk.com/${username}`;
+  }, [username]);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const isWelcome = urlParams.get("welcome");
+      if (isWelcome === "true") {
         setShowWelcomeModal(true);
-        window.history.replaceState({}, '', '/dashboard');
+        window.history.replaceState({}, "", "/dashboard");
       }
     }
   }, []);
 
-  // Timer Regressivo
   useEffect(() => {
     if (!showWelcomeModal) return;
     const timer = setInterval(() => {
@@ -59,94 +61,54 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
-    return `${mins < 10 ? "0" : ""}${mins}:${secs < 10 ? "0" : ""}${secs}`;
+    return `${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
   };
 
-  // URL completa para copiar
-  const profileUrl = `${typeof window !== 'undefined' ? window.location.origin : ''}/${username}`;
+  const copyToClipboard = useCallback(async () => {
+    const textToCopy = getProfileUrl();
 
-  // URL para exibição (sem www. e sem protocolo)
-  const displayUrl = typeof window !== 'undefined'
-    ? `freelinn.com/${username}`
-    : `freelinn.com/${username}`;
+    const showSuccess = () => {
+      setCopied(true);
+      toast.success("Link copiado! 🎉");
+      setTimeout(() => setCopied(false), 2500);
+    };
 
-  // --- FUNÇÃO DE COPIAR ROBUSTA (CORRIGIDA PARA MOBILE) ---
-  const handleCopyLink = async () => {
-    const textToCopy = profileUrl;
+    const showFallback = () => {
+      toast("Copie seu link:", { description: textToCopy, duration: 10000 });
+    };
 
-    // Método 1: Clipboard API (moderno)
-    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+    if (navigator.clipboard && window.isSecureContext) {
       try {
         await navigator.clipboard.writeText(textToCopy);
-        setCopied(true);
-        toast.success("Link copiado! 📋");
-        setTimeout(() => setCopied(false), 2000);
+        showSuccess();
         return;
-      } catch (err) {
-        console.log("Clipboard API falhou, tentando fallback...", err);
+      } catch {
+        console.log("Clipboard API indisponível");
       }
     }
 
-    // Método 2: Fallback com textarea (funciona em mobile)
+    const textArea = document.createElement("textarea");
+    textArea.value = textToCopy;
+    textArea.style.cssText = `position:fixed;top:0;left:0;width:2em;height:2em;padding:0;border:none;outline:none;box-shadow:none;background:transparent;font-size:16px;z-index:99999;`;
+    document.body.appendChild(textArea);
+
     try {
-      const textArea = document.createElement("textarea");
-      textArea.value = textToCopy;
-
-      // Estilos para esconder mas manter funcional no iOS
-      textArea.style.position = "fixed";
-      textArea.style.top = "0";
-      textArea.style.left = "0";
-      textArea.style.width = "2em";
-      textArea.style.height = "2em";
-      textArea.style.padding = "0";
-      textArea.style.border = "none";
-      textArea.style.outline = "none";
-      textArea.style.boxShadow = "none";
-      textArea.style.background = "transparent";
-      textArea.style.fontSize = "16px"; // Previne zoom no iOS
-
-      document.body.appendChild(textArea);
-
-      // Seleção especial para iOS
-      if (navigator.userAgent.match(/ipad|ipod|iphone/i)) {
-        textArea.contentEditable = "true";
-        textArea.readOnly = false;
-        const range = document.createRange();
-        range.selectNodeContents(textArea);
-        const selection = window.getSelection();
-        if (selection) {
-          selection.removeAllRanges();
-          selection.addRange(range);
-        }
-        textArea.setSelectionRange(0, 999999);
-      } else {
-        textArea.focus();
-        textArea.select();
-      }
-
-      const successful = document.execCommand('copy');
+      textArea.focus();
+      textArea.select();
+      textArea.setSelectionRange(0, 999999);
+      const success = document.execCommand("copy");
+      if (success) showSuccess();
+      else showFallback();
+    } catch {
+      showFallback();
+    } finally {
       document.body.removeChild(textArea);
-
-      if (successful) {
-        setCopied(true);
-        toast.success("Link copiado! 📋");
-        setTimeout(() => setCopied(false), 2000);
-      } else {
-        throw new Error("execCommand falhou");
-      }
-    } catch (err) {
-      console.error("Erro ao copiar:", err);
-      // Último recurso: mostrar o link para copiar manualmente
-      toast.error("Toque e segure o link para copiar", {
-        description: textToCopy,
-        duration: 5000
-      });
     }
-  };
+  }, [getProfileUrl]);
 
   const handleWhatsApp = () => {
-    const text = `Olá Lucas! Acabei de criar minha página no Freelinnk e quero aproveitar a oferta de 7 dias grátis, mas tenho uma dúvida sobre o pagamento. Pode me ajudar?`;
-    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
+    const text = `Olá! Acabei de criar minha página no Freelinnk e quero aproveitar a oferta de 7 dias grátis. Pode me ajudar?`;
+    window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, "_blank");
   };
 
   const handleStartTrial = async () => {
@@ -155,14 +117,9 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          plan: selectedPlan,
-          cycle: billingCycle
-        }),
+        body: JSON.stringify({ plan: selectedPlan, cycle: billingCycle }),
       });
-
       const data = await res.json();
-
       if (data.url) {
         window.location.href = data.url;
       } else {
@@ -170,249 +127,291 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
       }
     } catch (error) {
       console.error(error);
-      toast.error("Erro ao processar. Tente novamente ou chame no WhatsApp.");
+      toast.error("Erro ao processar. Tente novamente.");
       setLoading(false);
     }
   };
 
-  const benefits = {
+  const getOriginalPrice = () => {
+    if (selectedPlan === "pro") {
+      return billingCycle === "monthly" ? "R$ 34,90" : "R$ 349,00";
+    }
+    return billingCycle === "monthly" ? "R$ 77,90" : "R$ 779,00";
+  };
+
+  // BENEFÍCIOS FOCADOS EM RESULTADOS (não features)
+  const benefitsResults = {
     pro: [
-      "6 Ideias Virais (IA) / dia 🧠",
-      "3 Roteiros de Vídeo / dia 🎬",
-      "Ferramenta de Sorteios 🎁",
-      "Analytics Avançados 📊",
-      "Remover Marca Freelinnk 🚫",
-      "Suporte Prioritário ⚡"
+      "Crie conteúdo viral todo dia",
+      "Economize 3h/dia com IA",
+      "Aumente seus seguidores",
+      "Profissionalize sua página",
     ],
     ultra: [
-      "Ideias e Roteiros ILIMITADOS ♾️",
-      "Aprimorador de Fotos (10/dia) ✨",
-      "AI Studio (Chat + Audio2Text) 🤖",
-      "Calculadora de Lucros IA 💰",
-      "7 Imagens IA / dia + Remove BG 🖼️",
-      "Pixel FB + Google GA4 (Tracking) 🎯",
-      "WhatsApp Pessoal VIP 👑"
-    ]
+      "Conteúdo ILIMITADO com IA",
+      "Fotos profissionais em 1 clique",
+      "Saiba exatamente quem te visita",
+      "Atendimento VIP exclusivo",
+    ],
   };
 
   return (
     <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
-      <DialogContent className="w-[95vw] max-w-md p-0 bg-transparent border-0 shadow-none outline-none overflow-hidden font-sans">
+      <DialogContent
+        className="w-[94vw] max-w-[400px] p-0 border-0 shadow-2xl overflow-hidden bg-transparent gap-0"
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onEscapeKeyDown={(e) => e.preventDefault()}
+      >
+        <style jsx global>{`
+          [data-radix-dialog-content] > button[type="button"] {
+            display: none !important;
+          }
+        `}</style>
+
         <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
+          initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
-          transition={{ type: "spring", duration: 0.5 }}
-          className="relative w-full bg-white dark:bg-slate-900 rounded-3xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]"
+          transition={{ type: "spring", duration: 0.4 }}
+          className="relative w-full bg-white dark:bg-slate-900 rounded-2xl overflow-hidden"
         >
-          {/* --- BARRA DE URGÊNCIA --- */}
-          <div className="bg-gradient-to-r from-red-600 to-red-500 text-white px-3 py-2.5 flex items-center justify-between text-xs font-bold shadow-lg z-20 shrink-0">
-            <span className="flex items-center gap-1 animate-pulse text-[11px] sm:text-xs">
-              <Clock size={12} /> OFERTA EXPIRA:
+          {/* URGÊNCIA + ESCASSEZ */}
+          <div className="bg-gradient-to-r from-red-600 to-orange-500 text-white px-3 py-2 flex items-center justify-between">
+            <span className="flex items-center gap-1.5 text-[11px] font-semibold">
+              <Clock size={12} className="animate-pulse" />
+              Oferta exclusiva expira em
             </span>
-            <span className="font-mono text-sm bg-red-800/30 px-2 py-0.5 rounded border border-red-400/20">
+            <span className="font-mono text-sm font-bold bg-black/20 px-2 py-0.5 rounded">
               {formatTime(timeLeft)}
             </span>
           </div>
 
-          {/* --- HEADER --- */}
-          <div className="relative bg-slate-950 p-5 text-center shrink-0 z-10">
-             <div className="absolute inset-0 opacity-20 bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+          {/* HEADER */}
+          <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-4">
+            <button
+              onClick={() => setShowWelcomeModal(false)}
+              className="absolute top-2 right-2 p-1.5 rounded-full bg-white/10 text-slate-400 hover:text-white transition-all"
+            >
+              <X size={14} />
+            </button>
 
-             <div className="flex justify-between items-start mb-3 relative z-10">
-               <div className="flex flex-col items-start">
-                  <span className="text-[10px] font-bold text-yellow-300 border border-yellow-400/30 bg-yellow-400/10 px-2 py-0.5 rounded mb-1 flex items-center gap-1 animate-bounce">
-                    <AlertTriangle size={10} /> RESTAM {spotsLeft} VAGAS VIP
-                  </span>
-                  <h2 className="text-xl font-black text-white leading-tight text-left">
-                    Página Publicada! 🚀
-                  </h2>
-               </div>
-               <button onClick={() => setShowWelcomeModal(false)} className="p-1.5 bg-white/10 rounded-full text-slate-400 hover:text-white transition-colors">
-                  <X size={16} />
-               </button>
-             </div>
+            {/* PROVA SOCIAL */}
+            <div className="flex items-center gap-2 mb-2">
+              <div className="flex -space-x-2">
+                {[1,2,3,4].map((i) => (
+                  <div key={i} className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 border-2 border-slate-900 flex items-center justify-center">
+                    <Users size={10} className="text-white" />
+                  </div>
+                ))}
+              </div>
+              <span className="text-emerald-400 text-xs font-medium">
+                +2.847 criadores ativos
+              </span>
+            </div>
 
-             {/* Link Rápido (CORRIGIDO - sem www.) */}
-             <div className="flex items-center gap-2 bg-white/5 p-2 rounded-lg border border-white/10 hover:bg-white/10 transition-colors">
-                <p className="flex-1 text-xs font-medium text-slate-300 truncate text-left select-all font-mono">
-                  {displayUrl}
-                </p>
-                {/* Botão de Copiar (CORRIGIDO para Mobile) */}
-                <button
-                  onClick={handleCopyLink}
-                  type="button"
-                  aria-label="Copiar link"
-                  className="text-white bg-indigo-600 hover:bg-indigo-500 rounded p-2.5 transition-colors active:scale-95 touch-manipulation min-w-[40px] min-h-[40px] flex items-center justify-center"
-                >
-                  {copied ? <Check size={16} className="text-white"/> : <Copy size={16} />}
-                </button>
-             </div>
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle2 size={16} className="text-emerald-400" />
+              <span className="text-white text-sm font-semibold">Sua página está no ar! 🎉</span>
+            </div>
+
+            {/* LINK COPIÁVEL */}
+            <div
+              onClick={copyToClipboard}
+              className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-xl cursor-pointer transition-all active:scale-[0.98]"
+            >
+              <p className="flex-1 text-white font-medium truncate text-sm font-mono">
+                {getDisplayUrl()}
+              </p>
+              <div className={clsx(
+                "shrink-0 p-2 rounded-lg transition-all",
+                copied ? "bg-emerald-500" : "bg-indigo-600 hover:bg-indigo-500"
+              )}>
+                {copied ? <Check size={14} className="text-white" /> : <Copy size={14} className="text-white" />}
+              </div>
+            </div>
           </div>
 
-          {/* --- CONTEÚDO PRINCIPAL (Scrollável) --- */}
-          <div className="p-4 sm:p-5 flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-950 scrollbar-thin scrollbar-thumb-slate-200 dark:scrollbar-thumb-slate-700">
+          {/* CONTEÚDO PRINCIPAL */}
+          <div className="px-4 py-4 bg-slate-50 dark:bg-slate-950">
 
-            {/* Título da Oferta */}
-            <div className="text-center mb-5">
-              <h3 className="text-base font-bold text-slate-600 dark:text-slate-300">
-                Parabéns! Você ganhou:
+            {/* HEADLINE COM DOR */}
+            <div className="text-center mb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
+                Não perca vendas por ter uma página
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500"> sem recursos</span>
               </h3>
-              <div className="relative inline-block mt-1">
-                 <div className="absolute -inset-1 bg-indigo-500 blur opacity-20 rounded-lg"></div>
-                 <p className="relative text-transparent bg-clip-text bg-gradient-to-r from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400 font-black text-3xl uppercase tracking-tighter transform scale-105">
-                   7 DIAS GRÁTIS
-                 </p>
-              </div>
-              <p className="text-[11px] text-slate-400 mt-1 font-medium">
-                Teste o poder total. Cancele quando quiser.
+              <p className="text-xs text-slate-500 mt-1">
+                Teste todos os recursos por 7 dias. <strong>Grátis.</strong>
               </p>
             </div>
 
-            {/* SELETOR MENSAL / ANUAL */}
-            <div className="flex justify-center mb-4 w-full">
-              <div className="bg-white dark:bg-slate-800 p-1 rounded-xl flex w-full max-w-[320px] text-xs font-bold relative border border-slate-200 dark:border-slate-700 shadow-sm">
+            {/* TOGGLE CICLO */}
+            <div className="flex justify-center mb-3">
+              <div className="inline-flex bg-white dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
                 <button
-                  onClick={() => setBillingCycle('monthly')}
+                  onClick={() => setBillingCycle("monthly")}
                   className={clsx(
-                    "flex-1 py-3 rounded-lg transition-all z-10 flex flex-col items-center justify-center leading-tight",
-                    billingCycle === 'monthly' ? "bg-slate-100 dark:bg-slate-700 text-indigo-600 dark:text-indigo-300 shadow-sm" : "text-slate-400"
+                    "px-3 py-1.5 rounded-md font-semibold transition-all",
+                    billingCycle === "monthly" ? "bg-slate-900 text-white dark:bg-slate-600" : "text-slate-500"
                   )}
                 >
-                  <span>Mensal</span>
+                  Mensal
                 </button>
                 <button
-                  onClick={() => setBillingCycle('yearly')}
+                  onClick={() => setBillingCycle("yearly")}
                   className={clsx(
-                    "flex-1 py-2 rounded-lg transition-all z-10 flex flex-col items-center justify-center gap-0.5 leading-tight",
-                    billingCycle === 'yearly' ? "bg-green-50 text-green-700 shadow-sm ring-1 ring-green-200 dark:bg-green-900/20 dark:text-green-400 dark:ring-green-900" : "text-slate-400"
+                    "px-3 py-1.5 rounded-md font-semibold transition-all flex items-center gap-1",
+                    billingCycle === "yearly" ? "bg-slate-900 text-white dark:bg-slate-600" : "text-slate-500"
                   )}
                 >
-                  <span className="text-[11px]">Anual (Paga 1x)</span>
-                  <span className="bg-green-600 text-white text-[9px] px-1.5 rounded-full font-black tracking-wide">
-                    2 MESES OFF
-                  </span>
+                  Anual <span className="text-[9px] bg-emerald-500 text-white px-1 rounded">2 MESES GRÁTIS</span>
                 </button>
               </div>
             </div>
 
-            {/* CARD DO PLANO */}
-            <div className={clsx(
-              "bg-white dark:bg-slate-900 rounded-2xl shadow-sm border p-1 mb-4 transition-all duration-300",
-              selectedPlan === 'ultra' ? "border-purple-500/30 shadow-purple-500/10" : "border-slate-200 dark:border-slate-800"
-            )}>
-              {/* Toggle Pro/Ultra */}
-              <div className="flex p-1 bg-slate-100 dark:bg-slate-800 rounded-xl mb-3">
-                <button
-                  onClick={() => setSelectedPlan('pro')}
-                  className={clsx("flex-1 py-2.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5", selectedPlan === 'pro' ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400")}
-                >
-                  <Zap size={14} className={selectedPlan === 'pro' ? "fill-indigo-600 text-indigo-600" : ""} />
-                  PRO
-                </button>
-                <button
-                  onClick={() => setSelectedPlan('ultra')}
-                  className={clsx("flex-1 py-2.5 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5", selectedPlan === 'ultra' ? "bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-md" : "text-slate-400")}
-                >
-                  <Crown size={14} className={selectedPlan === 'ultra' ? "fill-white text-white" : ""} />
-                  ULTRA
-                </button>
+            {/* SELETOR DE PLANO */}
+            <div className="grid grid-cols-2 gap-2 mb-3">
+              <button
+                onClick={() => setSelectedPlan("pro")}
+                className={clsx(
+                  "p-3 rounded-xl border-2 text-left transition-all relative",
+                  selectedPlan === "pro"
+                    ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
+                    : "border-slate-200 dark:border-slate-700"
+                )}
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Zap size={12} className={selectedPlan === "pro" ? "text-indigo-600" : "text-slate-400"} />
+                  <span className="font-bold text-xs">Pro</span>
+                </div>
+                <p className="text-base font-bold text-slate-900 dark:text-white">
+                  R$ {billingCycle === "monthly" ? "34,90" : "349"}
+                  <span className="text-[10px] font-normal text-slate-500">/{billingCycle === "monthly" ? "mês" : "ano"}</span>
+                </p>
+                {selectedPlan === "pro" && (
+                  <CheckCircle2 size={16} className="absolute top-2 right-2 text-indigo-500" />
+                )}
+              </button>
+
+              <button
+                onClick={() => setSelectedPlan("ultra")}
+                className={clsx(
+                  "p-3 rounded-xl border-2 text-left transition-all relative",
+                  selectedPlan === "ultra"
+                    ? "border-purple-500 bg-purple-50 dark:bg-purple-950/30"
+                    : "border-slate-200 dark:border-slate-700"
+                )}
+              >
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
+                  <Star size={8} className="fill-white" /> RECOMENDADO
+                </span>
+                <div className="flex items-center gap-1.5 mb-1 mt-1">
+                  <Crown size={12} className={selectedPlan === "ultra" ? "text-purple-600" : "text-slate-400"} />
+                  <span className="font-bold text-xs">Ultra</span>
+                </div>
+                <p className="text-base font-bold text-slate-900 dark:text-white">
+                  R$ {billingCycle === "monthly" ? "77,90" : "779"}
+                  <span className="text-[10px] font-normal text-slate-500">/{billingCycle === "monthly" ? "mês" : "ano"}</span>
+                </p>
+                {selectedPlan === "ultra" && (
+                  <CheckCircle2 size={16} className="absolute top-2 right-2 text-purple-500" />
+                )}
+              </button>
+            </div>
+
+            {/* BENEFÍCIOS - FOCADOS EM RESULTADO */}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={selectedPlan}
+                initial={{ opacity: 0, y: 5 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 mb-3"
+              >
+                <p className="text-[10px] uppercase text-slate-400 font-semibold mb-2 flex items-center gap-1">
+                  <TrendingUp size={10} />
+                  {selectedPlan === "pro" ? "Com o Pro você vai:" : "Com o Ultra você vai:"}
+                </p>
+                <div className="space-y-1.5">
+                  {benefitsResults[selectedPlan].map((b, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
+                      <CheckCircle2 size={12} className={selectedPlan === "ultra" ? "text-purple-500" : "text-indigo-500"} />
+                      <span>{b}</span>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            </AnimatePresence>
+
+            {/* PREÇO + GARANTIA */}
+            <div className="bg-slate-900 dark:bg-slate-800 rounded-xl p-3 mb-3">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <p className="text-slate-400 text-[10px]">Você paga hoje:</p>
+                  <span className="text-2xl font-bold text-white">R$ 0</span>
+                  <span className="text-slate-500 text-xs line-through ml-1">{getOriginalPrice()}</span>
+                </div>
+                <div className="flex items-center gap-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold px-2 py-1 rounded-full">
+                  <Shield size={10} />
+                  7 dias grátis
+                </div>
               </div>
-
-              <div className="px-3 pb-2">
-                <div className="mb-2">
-                   <p className="text-[10px] uppercase font-bold text-slate-400 tracking-wider mb-2">
-                     {selectedPlan === 'pro' ? 'Incluso no Pro:' : 'Tudo do Pro, mais:'}
-                   </p>
-                   <AnimatePresence mode="wait">
-                    <motion.div
-                      key={`${selectedPlan}`}
-                      initial={{ opacity: 0, y: 5 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -5 }}
-                      className="space-y-2.5 min-h-[160px]"
-                    >
-                      {(selectedPlan === 'pro' ? benefits.pro : benefits.ultra).map((benefit, i) => (
-                        <div key={i} className="flex items-start gap-2.5 text-xs font-medium text-slate-700 dark:text-slate-300">
-                          <CheckCircle2 size={14} className={clsx("shrink-0 mt-0.5", selectedPlan === 'ultra' ? "text-purple-500 fill-purple-500/10" : "text-indigo-500 fill-indigo-500/10")} />
-                          <span className="leading-tight">{benefit}</span>
-                        </div>
-                      ))}
-                    </motion.div>
-                  </AnimatePresence>
-                </div>
-
-                {/* Preço Ancorado */}
-                <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50 -mx-3 px-4 py-2 rounded-b-xl">
-                  <div>
-                    <p className="text-[10px] text-slate-400 strike-through line-through">
-                      De {selectedPlan === 'pro'
-                        ? (billingCycle === 'monthly' ? 'R$ 34,90' : 'R$ 349,00')
-                        : (billingCycle === 'monthly' ? 'R$ 77,90' : 'R$ 779,00')}
-                    </p>
-                    <div className="flex items-baseline gap-1">
-                       <p className="text-xl font-black text-slate-900 dark:text-white leading-none">
-                         R$ 0,00
-                       </p>
-                       <span className="text-[10px] text-slate-500 font-medium">/ hoje</span>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div className="flex items-center gap-1 text-[10px] bg-green-100 text-green-700 px-2 py-1 rounded-full font-bold border border-green-200">
-                      <Shield size={10} className="fill-green-700" />
-                      7 Dias Grátis
-                    </div>
-                  </div>
-                </div>
+              {/* GARANTIA */}
+              <div className="text-center pt-2 border-t border-slate-700">
+                <p className="text-[10px] text-slate-400">
+                  ✓ Cancele a qualquer momento • ✓ Sem compromisso • ✓ 100% seguro
+                </p>
               </div>
             </div>
 
-            {/* BOTÃO PRINCIPAL */}
+            {/* CTA */}
             <Button
               onClick={handleStartTrial}
               disabled={loading}
               className={clsx(
-                "w-full h-14 text-lg font-bold rounded-xl shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98] relative overflow-hidden group mb-3",
-                selectedPlan === 'ultra'
-                  ? "bg-gradient-to-r from-purple-600 via-pink-600 to-orange-500 hover:to-orange-400 shadow-purple-500/25"
-                  : "bg-gradient-to-r from-indigo-600 to-blue-600 shadow-indigo-500/25"
+                "w-full h-12 text-sm font-bold rounded-xl shadow-lg transition-all",
+                selectedPlan === "ultra"
+                  ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-purple-500/25"
+                  : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 shadow-indigo-500/25"
               )}
             >
-              <div className="absolute inset-0 bg-white/20 group-hover:translate-x-full transition-transform duration-700 -skew-x-12 -translate-x-full" />
-
               {loading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="animate-spin" /> Processando...
-                </div>
+                <span className="flex items-center gap-2">
+                  <Loader2 size={16} className="animate-spin" /> Processando...
+                </span>
               ) : (
-                <div className="flex flex-col items-center leading-none">
-                  <span>ATIVAR TESTE GRÁTIS</span>
-                  <span className="text-[10px] font-normal opacity-90 mt-1">Cancele quando quiser</span>
-                </div>
+                <span className="flex items-center gap-2">
+                  <Sparkles size={16} />
+                  Quero Testar Grátis por 7 Dias
+                </span>
               )}
             </Button>
 
-            {/* BOTÃO WHATSAPP */}
+            {/* MICRO COPY DE URGÊNCIA */}
+            <p className="text-center text-[10px] text-slate-400 mt-2 flex items-center justify-center gap-1">
+              <Clock size={10} />
+              Essa oferta expira quando o timer zerar
+            </p>
+
+            {/* WHATSAPP */}
             <button
               onClick={handleWhatsApp}
-              className="w-full flex items-center justify-center gap-2 text-xs font-medium text-slate-500 hover:text-green-600 transition-colors py-2 group border border-dashed border-slate-300 dark:border-slate-700 rounded-lg hover:border-green-500 hover:bg-green-50 dark:hover:bg-green-900/10"
+              className="w-full mt-2 flex items-center justify-center gap-1.5 text-xs text-slate-500 hover:text-emerald-600 transition-colors py-2"
             >
-              <MessageCircle size={16} className="text-green-500 fill-green-500/20" />
-              <span>Dúvidas ou Parcelamento? <strong>Fale comigo</strong></span>
-              <ChevronRight size={12} className="group-hover:translate-x-0.5 transition-transform" />
+              <MessageCircle size={14} className="text-emerald-500" />
+              Prefere tirar dúvidas antes? <strong>Fale comigo</strong>
+              <ChevronRight size={12} />
             </button>
-
           </div>
 
-          {/* --- FOOTER (SAÍDA DISCRETA) --- */}
-          <div className="p-3 bg-slate-50 dark:bg-slate-900 border-t border-slate-100 dark:border-slate-800 text-center shrink-0">
-             <button
+          {/* FOOTER */}
+          <div className="px-4 py-2 bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+            <button
               onClick={() => setShowWelcomeModal(false)}
-              className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors font-medium underline decoration-slate-200 underline-offset-2"
+              className="w-full text-[10px] text-slate-400 hover:text-slate-600 transition-colors"
             >
-              Pular oferta e ir para o plano grátis limitado
+              Agora não, continuar limitado
             </button>
           </div>
-
         </motion.div>
       </DialogContent>
     </Dialog>
