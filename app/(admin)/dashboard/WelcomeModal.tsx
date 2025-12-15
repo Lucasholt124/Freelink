@@ -132,6 +132,10 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
     }
   };
 
+  const handleClose = () => {
+    setShowWelcomeModal(false);
+  };
+
   const getOriginalPrice = () => {
     if (selectedPlan === "pro") {
       return billingCycle === "monthly" ? "R$ 34,90" : "R$ 349,00";
@@ -139,7 +143,6 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
     return billingCycle === "monthly" ? "R$ 77,90" : "R$ 779,00";
   };
 
-  // BENEFÍCIOS FOCADOS EM RESULTADOS (não features)
   const benefitsResults = {
     pro: [
       "Crie conteúdo viral todo dia",
@@ -158,7 +161,7 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
   return (
     <Dialog open={showWelcomeModal} onOpenChange={setShowWelcomeModal}>
       <DialogContent
-        className="w-[94vw] max-w-[400px] p-0 border-0 shadow-2xl overflow-hidden bg-transparent gap-0"
+        className="w-[96vw] max-w-[420px] p-0 border-0 shadow-2xl overflow-hidden bg-transparent gap-0 max-h-[98vh]"
         onPointerDownOutside={(e) => e.preventDefault()}
         onEscapeKeyDown={(e) => e.preventDefault()}
       >
@@ -172,244 +175,327 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
           initial={{ scale: 0.95, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: "spring", duration: 0.4 }}
-          className="relative w-full bg-white dark:bg-slate-900 rounded-2xl overflow-hidden"
+          className="relative w-full bg-white dark:bg-slate-900 rounded-2xl overflow-hidden flex flex-col max-h-[98vh]"
         >
-          {/* URGÊNCIA + ESCASSEZ */}
-          <div className="bg-gradient-to-r from-red-600 to-orange-500 text-white px-3 py-2 flex items-center justify-between">
-            <span className="flex items-center gap-1.5 text-[11px] font-semibold">
-              <Clock size={12} className="animate-pulse" />
-              Oferta exclusiva expira em
+          {/* ========== BOTÃO FECHAR FIXO - SEMPRE VISÍVEL ========== */}
+          <button
+            onClick={handleClose}
+            className="absolute top-2 right-2 z-50 p-2 rounded-full bg-black/40 hover:bg-black/60 text-white transition-all shadow-lg backdrop-blur-sm"
+            aria-label="Fechar e ir para o Dashboard"
+          >
+            <X size={18} />
+          </button>
+
+          {/* ========== URGÊNCIA ========== */}
+          <div className="bg-gradient-to-r from-red-600 to-orange-500 text-white px-4 py-2 flex items-center justify-between shrink-0">
+            <span className="flex items-center gap-1.5 text-xs font-semibold">
+              <Clock size={14} className="animate-pulse" />
+              Oferta expira em
             </span>
-            <span className="font-mono text-sm font-bold bg-black/20 px-2 py-0.5 rounded">
+            <span className="font-mono text-base font-bold bg-black/20 px-3 py-1 rounded">
               {formatTime(timeLeft)}
             </span>
           </div>
 
-          {/* HEADER */}
-          <div className="relative bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-4">
-            <button
-              onClick={() => setShowWelcomeModal(false)}
-              className="absolute top-2 right-2 p-1.5 rounded-full bg-white/10 text-slate-400 hover:text-white transition-all"
-            >
-              <X size={14} />
-            </button>
+          {/* ========== CONTEÚDO SCROLLÁVEL ========== */}
+          <div className="flex-1 overflow-y-auto overscroll-contain">
 
-            {/* PROVA SOCIAL */}
-            <div className="flex items-center gap-2 mb-2">
-              <div className="flex -space-x-2">
-                {[1,2,3,4].map((i) => (
-                  <div key={i} className="w-6 h-6 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 border-2 border-slate-900 flex items-center justify-center">
-                    <Users size={10} className="text-white" />
-                  </div>
-                ))}
-              </div>
-              <span className="text-emerald-400 text-xs font-medium">
-                +2.847 criadores ativos
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 mb-2">
-              <CheckCircle2 size={16} className="text-emerald-400" />
-              <span className="text-white text-sm font-semibold">Sua página está no ar! 🎉</span>
-            </div>
-
-            {/* LINK COPIÁVEL */}
-            <div
-              onClick={copyToClipboard}
-              className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 p-2.5 rounded-xl cursor-pointer transition-all active:scale-[0.98]"
-            >
-              <p className="flex-1 text-white font-medium truncate text-sm font-mono">
-                {getDisplayUrl()}
-              </p>
-              <div className={clsx(
-                "shrink-0 p-2 rounded-lg transition-all",
-                copied ? "bg-emerald-500" : "bg-indigo-600 hover:bg-indigo-500"
-              )}>
-                {copied ? <Check size={14} className="text-white" /> : <Copy size={14} className="text-white" />}
-              </div>
-            </div>
-          </div>
-
-          {/* CONTEÚDO PRINCIPAL */}
-          <div className="px-4 py-4 bg-slate-50 dark:bg-slate-950">
-
-            {/* HEADLINE COM DOR */}
-            <div className="text-center mb-3">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white leading-tight">
-                Não perca vendas por ter uma página
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500"> sem recursos</span>
-              </h3>
-              <p className="text-xs text-slate-500 mt-1">
-                Teste todos os recursos por 7 dias. <strong>Grátis.</strong>
-              </p>
-            </div>
-
-            {/* TOGGLE CICLO */}
-            <div className="flex justify-center mb-3">
-              <div className="inline-flex bg-white dark:bg-slate-800 p-0.5 rounded-lg border border-slate-200 dark:border-slate-700 text-xs">
-                <button
-                  onClick={() => setBillingCycle("monthly")}
-                  className={clsx(
-                    "px-3 py-1.5 rounded-md font-semibold transition-all",
-                    billingCycle === "monthly" ? "bg-slate-900 text-white dark:bg-slate-600" : "text-slate-500"
-                  )}
-                >
-                  Mensal
-                </button>
-                <button
-                  onClick={() => setBillingCycle("yearly")}
-                  className={clsx(
-                    "px-3 py-1.5 rounded-md font-semibold transition-all flex items-center gap-1",
-                    billingCycle === "yearly" ? "bg-slate-900 text-white dark:bg-slate-600" : "text-slate-500"
-                  )}
-                >
-                  Anual <span className="text-[9px] bg-emerald-500 text-white px-1 rounded">2 MESES GRÁTIS</span>
-                </button>
-              </div>
-            </div>
-
-            {/* SELETOR DE PLANO */}
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              <button
-                onClick={() => setSelectedPlan("pro")}
-                className={clsx(
-                  "p-3 rounded-xl border-2 text-left transition-all relative",
-                  selectedPlan === "pro"
-                    ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
-                    : "border-slate-200 dark:border-slate-700"
-                )}
-              >
-                <div className="flex items-center gap-1.5 mb-1">
-                  <Zap size={12} className={selectedPlan === "pro" ? "text-indigo-600" : "text-slate-400"} />
-                  <span className="font-bold text-xs">Pro</span>
-                </div>
-                <p className="text-base font-bold text-slate-900 dark:text-white">
-                  R$ {billingCycle === "monthly" ? "34,90" : "349"}
-                  <span className="text-[10px] font-normal text-slate-500">/{billingCycle === "monthly" ? "mês" : "ano"}</span>
-                </p>
-                {selectedPlan === "pro" && (
-                  <CheckCircle2 size={16} className="absolute top-2 right-2 text-indigo-500" />
-                )}
-              </button>
-
-              <button
-                onClick={() => setSelectedPlan("ultra")}
-                className={clsx(
-                  "p-3 rounded-xl border-2 text-left transition-all relative",
-                  selectedPlan === "ultra"
-                    ? "border-purple-500 bg-purple-50 dark:bg-purple-950/30"
-                    : "border-slate-200 dark:border-slate-700"
-                )}
-              >
-                <span className="absolute -top-2 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[8px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5">
-                  <Star size={8} className="fill-white" /> RECOMENDADO
-                </span>
-                <div className="flex items-center gap-1.5 mb-1 mt-1">
-                  <Crown size={12} className={selectedPlan === "ultra" ? "text-purple-600" : "text-slate-400"} />
-                  <span className="font-bold text-xs">Ultra</span>
-                </div>
-                <p className="text-base font-bold text-slate-900 dark:text-white">
-                  R$ {billingCycle === "monthly" ? "77,90" : "779"}
-                  <span className="text-[10px] font-normal text-slate-500">/{billingCycle === "monthly" ? "mês" : "ano"}</span>
-                </p>
-                {selectedPlan === "ultra" && (
-                  <CheckCircle2 size={16} className="absolute top-2 right-2 text-purple-500" />
-                )}
-              </button>
-            </div>
-
-            {/* BENEFÍCIOS - FOCADOS EM RESULTADO */}
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={selectedPlan}
-                initial={{ opacity: 0, y: 5 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0 }}
-                className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-3 mb-3"
-              >
-                <p className="text-[10px] uppercase text-slate-400 font-semibold mb-2 flex items-center gap-1">
-                  <TrendingUp size={10} />
-                  {selectedPlan === "pro" ? "Com o Pro você vai:" : "Com o Ultra você vai:"}
-                </p>
-                <div className="space-y-1.5">
-                  {benefitsResults[selectedPlan].map((b, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs text-slate-700 dark:text-slate-300">
-                      <CheckCircle2 size={12} className={selectedPlan === "ultra" ? "text-purple-500" : "text-indigo-500"} />
-                      <span>{b}</span>
+            {/* HEADER */}
+            <div className="bg-gradient-to-br from-slate-900 to-slate-800 px-4 py-4">
+              {/* PROVA SOCIAL */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex -space-x-2">
+                  {[1, 2, 3, 4].map((i) => (
+                    <div
+                      key={i}
+                      className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-400 to-purple-500 border-2 border-slate-900 flex items-center justify-center"
+                    >
+                      <Users size={12} className="text-white" />
                     </div>
                   ))}
                 </div>
-              </motion.div>
-            </AnimatePresence>
+                <span className="text-emerald-400 text-xs font-medium">
+                  +2.847 criadores ativos
+                </span>
+              </div>
 
-            {/* PREÇO + GARANTIA */}
-            <div className="bg-slate-900 dark:bg-slate-800 rounded-xl p-3 mb-3">
-              <div className="flex items-center justify-between mb-2">
-                <div>
-                  <p className="text-slate-400 text-[10px]">Você paga hoje:</p>
-                  <span className="text-2xl font-bold text-white">R$ 0</span>
-                  <span className="text-slate-500 text-xs line-through ml-1">{getOriginalPrice()}</span>
-                </div>
-                <div className="flex items-center gap-1 bg-emerald-500/20 text-emerald-400 text-[10px] font-semibold px-2 py-1 rounded-full">
-                  <Shield size={10} />
-                  7 dias grátis
-                </div>
+              <div className="flex items-center gap-2 mb-3">
+                <CheckCircle2 size={18} className="text-emerald-400 shrink-0" />
+                <span className="text-white text-base font-semibold">
+                  Sua página está no ar! 🎉
+                </span>
               </div>
-              {/* GARANTIA */}
-              <div className="text-center pt-2 border-t border-slate-700">
-                <p className="text-[10px] text-slate-400">
-                  ✓ Cancele a qualquer momento • ✓ Sem compromisso • ✓ 100% seguro
+
+              {/* LINK COPIÁVEL */}
+              <div
+                onClick={copyToClipboard}
+                className="flex items-center gap-3 bg-slate-800/80 hover:bg-slate-700 border border-slate-700 p-3 rounded-xl cursor-pointer transition-all active:scale-[0.98]"
+              >
+                <p className="flex-1 text-white font-medium truncate text-sm font-mono">
+                  {getDisplayUrl()}
                 </p>
+                <div
+                  className={clsx(
+                    "shrink-0 p-2.5 rounded-lg transition-all",
+                    copied
+                      ? "bg-emerald-500"
+                      : "bg-indigo-600 hover:bg-indigo-500"
+                  )}
+                >
+                  {copied ? (
+                    <Check size={16} className="text-white" />
+                  ) : (
+                    <Copy size={16} className="text-white" />
+                  )}
+                </div>
               </div>
+              <p className="text-center text-[11px] text-slate-500 mt-2">
+                Toque acima para copiar seu link
+              </p>
             </div>
 
-            {/* CTA */}
-            <Button
-              onClick={handleStartTrial}
-              disabled={loading}
-              className={clsx(
-                "w-full h-12 text-sm font-bold rounded-xl shadow-lg transition-all",
-                selectedPlan === "ultra"
-                  ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-purple-500/25"
-                  : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 shadow-indigo-500/25"
-              )}
-            >
-              {loading ? (
-                <span className="flex items-center gap-2">
-                  <Loader2 size={16} className="animate-spin" /> Processando...
-                </span>
-              ) : (
-                <span className="flex items-center gap-2">
-                  <Sparkles size={16} />
-                  Quero Testar Grátis por 7 Dias
-                </span>
-              )}
-            </Button>
+            {/* CONTEÚDO PRINCIPAL */}
+            <div className="px-4 py-4 bg-slate-50 dark:bg-slate-950">
+              {/* HEADLINE */}
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-bold text-slate-900 dark:text-white leading-tight">
+                  Não perca vendas por ter uma página
+                  <span className="text-transparent bg-clip-text bg-gradient-to-r from-red-500 to-orange-500">
+                    {" "}
+                    sem recursos
+                  </span>
+                </h3>
+                <p className="text-sm text-slate-500 mt-1">
+                  Teste todos os recursos por 7 dias.{" "}
+                  <strong className="text-emerald-600">Grátis.</strong>
+                </p>
+              </div>
 
-            {/* MICRO COPY DE URGÊNCIA */}
-            <p className="text-center text-[10px] text-slate-400 mt-2 flex items-center justify-center gap-1">
-              <Clock size={10} />
-              Essa oferta expira quando o timer zerar
-            </p>
+              {/* TOGGLE CICLO */}
+              <div className="flex justify-center mb-4">
+                <div className="inline-flex bg-white dark:bg-slate-800 p-1 rounded-xl border border-slate-200 dark:border-slate-700 text-sm">
+                  <button
+                    onClick={() => setBillingCycle("monthly")}
+                    className={clsx(
+                      "px-4 py-2 rounded-lg font-semibold transition-all",
+                      billingCycle === "monthly"
+                        ? "bg-slate-900 text-white dark:bg-slate-600"
+                        : "text-slate-500"
+                    )}
+                  >
+                    Mensal
+                  </button>
+                  <button
+                    onClick={() => setBillingCycle("yearly")}
+                    className={clsx(
+                      "px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-1.5",
+                      billingCycle === "yearly"
+                        ? "bg-slate-900 text-white dark:bg-slate-600"
+                        : "text-slate-500"
+                    )}
+                  >
+                    Anual
+                    <span className="text-[10px] bg-emerald-500 text-white px-1.5 py-0.5 rounded font-bold">
+                      2 MESES GRÁTIS
+                    </span>
+                  </button>
+                </div>
+              </div>
 
-            {/* WHATSAPP */}
-            <button
-              onClick={handleWhatsApp}
-              className="w-full mt-2 flex items-center justify-center gap-1.5 text-xs text-slate-500 hover:text-emerald-600 transition-colors py-2"
-            >
-              <MessageCircle size={14} className="text-emerald-500" />
-              Prefere tirar dúvidas antes? <strong>Fale comigo</strong>
-              <ChevronRight size={12} />
-            </button>
+              {/* SELETOR DE PLANO */}
+              <div className="grid grid-cols-2 gap-3 mb-4">
+                <button
+                  onClick={() => setSelectedPlan("pro")}
+                  className={clsx(
+                    "p-4 rounded-xl border-2 text-left transition-all relative",
+                    selectedPlan === "pro"
+                      ? "border-indigo-500 bg-indigo-50 dark:bg-indigo-950/30"
+                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+                  )}
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <div
+                      className={clsx(
+                        "p-1.5 rounded-lg",
+                        selectedPlan === "pro"
+                          ? "bg-indigo-500 text-white"
+                          : "bg-slate-100 dark:bg-slate-700 text-slate-500"
+                      )}
+                    >
+                      <Zap size={14} />
+                    </div>
+                    <span className="font-bold text-sm text-slate-900 dark:text-white">
+                      Pro
+                    </span>
+                  </div>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">
+                    R$ {billingCycle === "monthly" ? "34,90" : "349"}
+                    <span className="text-xs font-normal text-slate-500">
+                      /{billingCycle === "monthly" ? "mês" : "ano"}
+                    </span>
+                  </p>
+                  {selectedPlan === "pro" && (
+                    <CheckCircle2
+                      size={18}
+                      className="absolute top-3 right-3 text-indigo-500"
+                    />
+                  )}
+                </button>
+
+                <button
+                  onClick={() => setSelectedPlan("ultra")}
+                  className={clsx(
+                    "p-4 rounded-xl border-2 text-left transition-all relative",
+                    selectedPlan === "ultra"
+                      ? "border-purple-500 bg-purple-50 dark:bg-purple-950/30"
+                      : "border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800"
+                  )}
+                >
+                  <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[9px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5 whitespace-nowrap">
+                    <Star size={8} className="fill-white" /> RECOMENDADO
+                  </span>
+                  <div className="flex items-center gap-2 mb-2 mt-1">
+                    <div
+                      className={clsx(
+                        "p-1.5 rounded-lg",
+                        selectedPlan === "ultra"
+                          ? "bg-gradient-to-br from-purple-500 to-pink-500 text-white"
+                          : "bg-slate-100 dark:bg-slate-700 text-slate-500"
+                      )}
+                    >
+                      <Crown size={14} />
+                    </div>
+                    <span className="font-bold text-sm text-slate-900 dark:text-white">
+                      Ultra
+                    </span>
+                  </div>
+                  <p className="text-xl font-bold text-slate-900 dark:text-white">
+                    R$ {billingCycle === "monthly" ? "77,90" : "779"}
+                    <span className="text-xs font-normal text-slate-500">
+                      /{billingCycle === "monthly" ? "mês" : "ano"}
+                    </span>
+                  </p>
+                  {selectedPlan === "ultra" && (
+                    <CheckCircle2
+                      size={18}
+                      className="absolute top-3 right-3 text-purple-500"
+                    />
+                  )}
+                </button>
+              </div>
+
+              {/* BENEFÍCIOS */}
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={selectedPlan}
+                  initial={{ opacity: 0, y: 5 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  className="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl p-4 mb-4"
+                >
+                  <p className="text-xs uppercase text-slate-400 font-semibold mb-3 flex items-center gap-1">
+                    <TrendingUp size={12} />
+                    {selectedPlan === "pro"
+                      ? "Com o Pro você vai:"
+                      : "Com o Ultra você vai:"}
+                  </p>
+                  <div className="space-y-2.5">
+                    {benefitsResults[selectedPlan].map((b, i) => (
+                      <div
+                        key={i}
+                        className="flex items-center gap-2.5 text-sm text-slate-700 dark:text-slate-300"
+                      >
+                        <CheckCircle2
+                          size={16}
+                          className={
+                            selectedPlan === "ultra"
+                              ? "text-purple-500 shrink-0"
+                              : "text-indigo-500 shrink-0"
+                          }
+                        />
+                        <span>{b}</span>
+                      </div>
+                    ))}
+                  </div>
+                </motion.div>
+              </AnimatePresence>
+
+              {/* PREÇO + GARANTIA */}
+              <div className="bg-slate-900 dark:bg-slate-800 rounded-xl p-4 mb-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-slate-400 text-xs mb-1">Você paga hoje:</p>
+                    <div className="flex items-baseline gap-2">
+                      <span className="text-3xl font-bold text-white">R$ 0</span>
+                      <span className="text-slate-500 text-sm line-through">
+                        {getOriginalPrice()}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 bg-emerald-500/20 text-emerald-400 text-xs font-semibold px-3 py-1.5 rounded-full">
+                    <Shield size={14} />
+                    7 dias grátis
+                  </div>
+                </div>
+                <div className="pt-3 border-t border-slate-700">
+                  <p className="text-xs text-slate-400 text-center">
+                    ✓ Cancele a qualquer momento • ✓ Sem compromisso • ✓ 100%
+                    seguro
+                  </p>
+                </div>
+              </div>
+
+              {/* CTA */}
+              <Button
+                onClick={handleStartTrial}
+                disabled={loading}
+                className={clsx(
+                  "w-full h-14 text-base font-bold rounded-xl shadow-lg transition-all",
+                  selectedPlan === "ultra"
+                    ? "bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-purple-500/25"
+                    : "bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 shadow-indigo-500/25"
+                )}
+              >
+                {loading ? (
+                  <span className="flex items-center gap-2">
+                    <Loader2 size={18} className="animate-spin" /> Processando...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <Sparkles size={18} />
+                    Quero Testar Grátis por 7 Dias
+                  </span>
+                )}
+              </Button>
+
+              {/* MICRO COPY */}
+              <p className="text-center text-xs text-slate-400 mt-3 flex items-center justify-center gap-1">
+                <Clock size={12} />
+                Essa oferta expira quando o timer zerar
+              </p>
+
+              {/* WHATSAPP */}
+              <button
+                onClick={handleWhatsApp}
+                className="w-full mt-3 flex items-center justify-center gap-2 text-sm text-slate-500 hover:text-emerald-600 transition-colors py-3 border border-dashed border-slate-300 dark:border-slate-700 rounded-xl hover:border-emerald-500 hover:bg-emerald-50 dark:hover:bg-emerald-950/20"
+              >
+                <MessageCircle size={16} className="text-emerald-500" />
+                <span>
+                  Prefere tirar dúvidas? <strong>Fale comigo</strong>
+                </span>
+                <ChevronRight size={14} />
+              </button>
+            </div>
           </div>
 
-          {/* FOOTER */}
-          <div className="px-4 py-2 bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700">
+          {/* ========== FOOTER - BOTÃO DE SAIR CLARO ========== */}
+          <div className="px-4 py-3 bg-slate-100 dark:bg-slate-800 border-t border-slate-200 dark:border-slate-700 shrink-0">
             <button
-              onClick={() => setShowWelcomeModal(false)}
-              className="w-full text-[10px] text-slate-400 hover:text-slate-600 transition-colors"
+              onClick={handleClose}
+              className="w-full py-2.5 text-sm text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors font-medium flex items-center justify-center gap-2"
             >
-              Agora não, continuar limitado
+              <X size={14} />
+              Pular oferta e ir para o Dashboard
             </button>
           </div>
         </motion.div>
