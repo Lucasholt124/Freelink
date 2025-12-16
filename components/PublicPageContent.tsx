@@ -44,7 +44,6 @@ import { SubscriptionPlanDetails } from "@/lib/subscription";
 import { Doc } from "@/convex/_generated/dataModel";
 
 // --- MAPA DE ÍCONES INTELIGENTE ---
-// --- MAPA DE ÍCONES ULTRA INTELIGENTE ---
 const ICON_MAP = [
   // 📍 Localização & Mapas
   { match: ['google.com/maps', 'goo.gl/maps', 'maps.google', 'maps.app.goo.gl'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" /> },
@@ -179,7 +178,6 @@ function getLinkIcon(url: string, title: string): React.ReactNode {
 
   const u = url.toLowerCase();
   const t = title?.toLowerCase() || "";
-
 
   // 1. Verifica no Mapa de Ícones Específicos (prioridade máxima)
   for (const item of ICON_MAP) {
@@ -328,6 +326,8 @@ interface BackgroundConfig {
   imageUrl: string;
   imageBlur: number;
   imageOpacity: number;
+  // 🔥 NOVO: Opacidade dos cards quando tem imagem de fundo
+  cardOpacity?: number;
 }
 
 interface Particle {
@@ -510,17 +510,15 @@ function ParticleField({ color = "rgba(147, 51, 234, 0.4)" }: { color?: string }
   );
 }
 
-
 // 🔥 NOVO BADGE ULTRA - ESTILO INSTAGRAM VERIFICADO
 function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" | "large"; plan?: string }) {
   const sizeClasses = size === "large" ? "w-7 h-7 sm:w-8 sm:h-8" : "w-5 h-5 sm:w-6 sm:h-6";
 
   const getBadgeConfig = () => {
-    switch(plan) {
+    switch (plan) {
       case 'ultra':
-        // 🔥 BADGE ULTRA ESTILO INSTAGRAM - Azul vibrante com check branco
         return {
-          gradient: 'from-[#0095F6] to-[#0095F6]', // Azul Instagram
+          gradient: 'from-[#0095F6] to-[#0095F6]',
           icon: <Check className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-white stroke-[3]" />,
           glow: 'shadow-[0_0_20px_rgba(0,149,246,0.8)]',
           isUltra: true
@@ -565,7 +563,6 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
 
   const config = getBadgeConfig();
 
-  // 🔥 BADGE ULTRA ESPECIAL - Idêntico ao Instagram
   if (config.isUltra) {
     return (
       <motion.span
@@ -576,7 +573,6 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
         }}
         transition={{ duration: 0.2 }}
       >
-        {/* Glow pulsante */}
         <motion.span
           className="absolute inset-0 rounded-full bg-[#0095F6]"
           animate={{
@@ -589,7 +585,6 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
             ease: "easeInOut"
           }}
         />
-        {/* Check branco centralizado */}
         <span className="relative z-10 flex items-center justify-center">
           <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white stroke-[3]" />
         </span>
@@ -597,7 +592,6 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
     );
   }
 
-  // Badges para outros planos
   return (
     <motion.span
       className={`inline-flex items-center justify-center ${sizeClasses} rounded-full bg-gradient-to-r ${config.gradient} ${config.glow} transition-all duration-300 flex-shrink-0 relative overflow-hidden`}
@@ -648,16 +642,15 @@ export default function PublicPageContent({
   const profileUrl = `${getBaseUrl()}/${username}`;
   const userAccentColor = customizations?.accentColor || '#6366f1';
 
-  // --- 🔥 LÓGICA DE SEPARAÇÃO: STATUS vs BIO (NOVIDADE) ---
+  // --- 🔥 LÓGICA DE SEPARAÇÃO: STATUS vs BIO ---
   const fullDescription = customizations?.description || "";
   let statusMessage = "";
   let displayBio = fullDescription;
 
-  // Se a bio começar com AVISO ou STATUS, o sistema separa para criar o letreiro
   if (fullDescription.startsWith("AVISO:") || fullDescription.startsWith("STATUS:")) {
-      const parts = fullDescription.split("\n");
-      statusMessage = parts[0].replace(/^(AVISO:|STATUS:)\s*/i, "").trim();
-      displayBio = parts.slice(1).join("\n").trim();
+    const parts = fullDescription.split("\n");
+    statusMessage = parts[0].replace(/^(AVISO:|STATUS:)\s*/i, "").trim();
+    displayBio = parts.slice(1).join("\n").trim();
   }
 
   const [shared, setShared] = useState(false);
@@ -676,6 +669,7 @@ export default function PublicPageContent({
     imageUrl: "",
     imageBlur: 0,
     imageOpacity: 100,
+    cardOpacity: 85, // 🔥 NOVO: Opacidade padrão dos cards
   });
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
@@ -696,6 +690,66 @@ export default function PublicPageContent({
       ? `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${alpha})`
       : `rgba(99, 102, 241, ${alpha})`;
   }, []);
+
+  // 🔥 NOVA FUNÇÃO: Calcular background dos cards baseado no tipo de fundo
+  const getCardBackground = useCallback((isHovered: boolean = false) => {
+    const hasBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl;
+    const cardOpacity = (backgroundConfig.cardOpacity ?? 85) / 100;
+
+    if (hasBackgroundImage) {
+      // 🔥 Com imagem de fundo: cards mais transparentes para ver a imagem
+      if (isDarkMode) {
+        return isHovered
+          ? `rgba(17, 24, 39, ${Math.min(cardOpacity + 0.1, 0.95)})`
+          : `rgba(17, 24, 39, ${cardOpacity * 0.7})`;
+      } else {
+        return isHovered
+          ? `rgba(255, 255, 255, ${Math.min(cardOpacity + 0.1, 0.95)})`
+          : `rgba(255, 255, 255, ${cardOpacity * 0.7})`;
+      }
+    } else {
+      // Sem imagem de fundo: comportamento normal
+      if (isDarkMode) {
+        return isHovered
+          ? 'rgba(17, 24, 39, 0.85)'
+          : 'rgba(17, 24, 39, 0.6)';
+      } else {
+        return isHovered
+          ? 'rgba(255, 255, 255, 0.85)'
+          : 'rgba(255, 255, 255, 0.6)';
+      }
+    }
+  }, [backgroundConfig, isDarkMode]);
+
+  // 🔥 NOVA FUNÇÃO: Calcular background dos links
+  const getLinkBackground = useCallback((isHovered: boolean = false, isCta: boolean = false) => {
+    const hasBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl;
+    const cardOpacity = (backgroundConfig.cardOpacity ?? 85) / 100;
+
+    if (hasBackgroundImage) {
+      if (isCta) {
+        return `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.25)}, ${hexToRgba(userAccentColor, 0.1)})`;
+      }
+      if (isDarkMode) {
+        return isHovered
+          ? `rgba(31, 41, 55, ${cardOpacity * 0.8})`
+          : `rgba(31, 41, 55, ${cardOpacity * 0.5})`;
+      } else {
+        return isHovered
+          ? `rgba(255, 255, 255, ${cardOpacity * 0.8})`
+          : `rgba(255, 255, 255, ${cardOpacity * 0.5})`;
+      }
+    } else {
+      if (isCta) {
+        return `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, ${hexToRgba(userAccentColor, 0.05)})`;
+      }
+      if (isDarkMode) {
+        return 'rgba(31, 41, 55, 0.5)';
+      } else {
+        return 'rgba(255, 255, 255, 0.5)';
+      }
+    }
+  }, [backgroundConfig, isDarkMode, userAccentColor, hexToRgba]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -729,6 +783,7 @@ export default function PublicPageContent({
         imageUrl: customizations.backgroundImageUrl || "",
         imageBlur: customizations.backgroundImageBlur || 0,
         imageOpacity: customizations.backgroundImageOpacity || 100,
+        cardOpacity: (customizations as unknown as { cardOpacity?: number }).cardOpacity ?? 85, // 🔥 NOVO
       });
     }
 
@@ -936,6 +991,7 @@ export default function PublicPageContent({
     );
   }
 
+  // 🔥 FUNÇÃO MELHORADA: Background Style para página
   const getBackgroundStyle = () => {
     if (backgroundConfig.type === "color") {
       return { background: backgroundConfig.color1 };
@@ -944,30 +1000,38 @@ export default function PublicPageContent({
         background: `linear-gradient(135deg, ${backgroundConfig.color1}, ${backgroundConfig.color2})`
       };
     }
-    return {};
+    // Para imagem, retorna transparente (a imagem é renderizada separadamente)
+    return { background: 'transparent' };
   };
 
  const getProtectedTextClasses = () => {
+  // Se tiver imagem de fundo, força sombra preta no texto para garantir leitura
+  if (backgroundConfig.type === "image" && backgroundConfig.imageUrl) {
+      return "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
+  }
   return "";
 };
 
-const isCtaLink = (url: string, title: string): boolean => {
-  const ctaKeywords = [
-    'comprar', 'compre', 'buy', 'shop', 'loja', 'store',
-    'agendar', 'agenda', 'marcar', 'reservar', 'booking',
-    'whatsapp', 'wa.me', 'chamar', 'contato', 'falar',
-    'inscrever', 'cadastrar', 'register', 'signup',
-    'baixar', 'download', 'grátis', 'free',
-    'oferta', 'promoção', 'desconto', 'cupom'
-  ];
-  const combined = `${url} ${title}`.toLowerCase();
-  return ctaKeywords.some(keyword => combined.includes(keyword));
-};
+  // 🔥 FUNÇÃO: Verificar se tem imagem de fundo ativa
+  const hasActiveBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl;
 
-const isNewLink = (creationTime: number): boolean => {
-  const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
-  return creationTime > sevenDaysAgo;
-};
+  const isCtaLink = (url: string, title: string): boolean => {
+    const ctaKeywords = [
+      'comprar', 'compre', 'buy', 'shop', 'loja', 'store',
+      'agendar', 'agenda', 'marcar', 'reservar', 'booking',
+      'whatsapp', 'wa.me', 'chamar', 'contato', 'falar',
+      'inscrever', 'cadastrar', 'register', 'signup',
+      'baixar', 'download', 'grátis', 'free',
+      'oferta', 'promoção', 'desconto', 'cupom'
+    ];
+    const combined = `${url} ${title}`.toLowerCase();
+    return ctaKeywords.some(keyword => combined.includes(keyword));
+  };
+
+  const isNewLink = (creationTime: number): boolean => {
+    const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+    return creationTime > sevenDaysAgo;
+  };
 
   return (
     <div className={`min-h-screen w-full overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
@@ -1010,7 +1074,8 @@ const isNewLink = (creationTime: number): boolean => {
         </>
       )}
 
-      {backgroundConfig.type !== "image" && (
+      {/* 🔥 PARTÍCULAS: Só mostrar se NÃO tiver imagem de fundo full */}
+      {!(backgroundConfig.type === "image" && backgroundConfig.style === "full") && (
         <ParticleField color={hexToRgba(userAccentColor, 0.4)} />
       )}
 
@@ -1022,24 +1087,39 @@ const isNewLink = (creationTime: number): boolean => {
         }}
       />
 
-      <div className="fixed inset-0" style={getBackgroundStyle()}>
+      {/* 🔥 BACKGROUND CONTAINER - MELHORADO */}
+      <div className="fixed inset-0 -z-10" style={getBackgroundStyle()}>
+        {/* 🔥 IMAGEM DE FUNDO FULL - Mais visível */}
         {backgroundConfig.type === "image" && backgroundConfig.imageUrl && backgroundConfig.style === "full" && (
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url(${backgroundConfig.imageUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: `blur(${backgroundConfig.imageBlur}px)`,
-              opacity: backgroundConfig.imageOpacity / 100,
-            }}
-          />
+          <>
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${backgroundConfig.imageUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                backgroundAttachment: 'fixed',
+                filter: `blur(${backgroundConfig.imageBlur}px)`,
+                opacity: backgroundConfig.imageOpacity / 100,
+                transform: 'scale(1.02)', // Evita bordas brancas com blur
+              }}
+            />
+            {/* 🔥 Overlay mais sutil para não esconder a imagem */}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: isDarkMode
+                  ? 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 100%)'
+                  : 'linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 100%)',
+              }}
+            />
+          </>
         )}
-        {backgroundConfig.type === "image" && (
-          <div className="absolute inset-0 bg-black/20 dark:bg-black/40" />
-        )}
+
+        {/* Efeito gradiente animado (sutil quando tem imagem) */}
         <motion.div
-          className="absolute inset-0 opacity-20"
+          className="absolute inset-0"
+          style={{ opacity: hasActiveBackgroundImage ? 0.1 : 0.2 }}
           animate={{
             background: [
               `linear-gradient(135deg, ${userAccentColor}33, transparent)`,
@@ -1051,26 +1131,37 @@ const isNewLink = (creationTime: number): boolean => {
         />
       </div>
 
+      {/* 🔥 HEADER - MELHORADO */}
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
         className="relative h-48 sm:h-64 md:h-80 overflow-hidden"
       >
+        {/* 🔥 HEADER COM IMAGEM - Mais proeminente */}
         {backgroundConfig.type === "image" && backgroundConfig.imageUrl && backgroundConfig.style === "header" ? (
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundImage: `url(${backgroundConfig.imageUrl})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: `blur(${backgroundConfig.imageBlur}px)`,
-              opacity: backgroundConfig.imageOpacity / 100,
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-b from-transparent to-black/50" />
-          </div>
+          <>
+            <div
+              className="absolute inset-0"
+              style={{
+                backgroundImage: `url(${backgroundConfig.imageUrl})`,
+                backgroundSize: 'cover',
+                backgroundPosition: 'center',
+                filter: `blur(${backgroundConfig.imageBlur}px)`,
+                opacity: backgroundConfig.imageOpacity / 100,
+                transform: 'scale(1.02)',
+              }}
+            />
+            {/* 🔥 Gradiente sutil na parte inferior para transição suave */}
+            <div
+              className="absolute inset-0"
+                          style={{
+                background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 50%, transparent 100%)',
+              }}
+            />
+          </>
         ) : (
+          /* Header com gradiente de cor (quando não tem imagem no header) */
           <motion.div
             className="absolute inset-0"
             style={{
@@ -1104,6 +1195,7 @@ const isNewLink = (creationTime: number): boolean => {
           </motion.div>
         )}
 
+        {/* Botões do Header */}
         <div className={`absolute left-3 sm:left-4 right-3 sm:right-4 flex justify-between items-center z-20 transition-all duration-300 ${statusMessage ? 'top-14 sm:top-16' : 'top-3 sm:top-4'}`}>
           <motion.button
             whileHover={{ scale: 1.1, rotate: 180 }}
@@ -1191,21 +1283,22 @@ const isNewLink = (creationTime: number): boolean => {
           </div>
         </div>
 
-      {/* 🔥 LÓGICA DO LETREIRO DIGITAL (STATUS) */}
-      {statusMessage && (
-         <motion.div
-           initial={{ y: -50, opacity: 0 }}
-           animate={{ y: 0, opacity: 1 }}
-           className="w-full py-2.5 px-4 text-center text-xs sm:text-sm font-bold text-white relative z-[60] shadow-md"
-           style={{ background: userAccentColor }}
-         >
-           <div className="flex items-center justify-center gap-2">
-             <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-             {statusMessage}
-           </div>
-         </motion.div>
-      )}
+        {/* 🔥 LETREIRO DIGITAL (STATUS) */}
+        {statusMessage && (
+          <motion.div
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            className="absolute top-0 left-0 right-0 py-2.5 px-4 text-center text-xs sm:text-sm font-bold text-white z-[60] shadow-md"
+            style={{ background: userAccentColor }}
+          >
+            <div className="flex items-center justify-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
+              {statusMessage}
+            </div>
+          </motion.div>
+        )}
 
+        {/* QR Code Modal */}
         <AnimatePresence>
           {showQRCode && qrCodeDataUrl && (
             <motion.div
@@ -1265,8 +1358,11 @@ const isNewLink = (creationTime: number): boolean => {
         </AnimatePresence>
       </motion.div>
 
+      {/* 🔥 CONTEÚDO PRINCIPAL */}
       <div className="relative -mt-24 sm:-mt-32 md:-mt-40 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-8 sm:pb-12 md:pb-16 w-full">
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
+
+          {/* 🔥 SIDEBAR - CARD DO PERFIL */}
           <motion.aside
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -1274,35 +1370,36 @@ const isNewLink = (creationTime: number): boolean => {
             className="lg:col-span-1"
           >
             <div className="lg:sticky lg:top-8 space-y-3 sm:space-y-4">
-              {/* 🔥 CARD DO PERFIL - TRANSPARENTE */}
+              {/* 🔥 CARD DO PERFIL - TRANSPARÊNCIA AJUSTÁVEL */}
               <motion.div
                 className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-6 sm:p-5 md:p-6 shadow-2xl border border-white/20 dark:border-white/10"
                 style={{
-                  background: backgroundConfig.type === "image"
-                    ? 'rgba(255, 255, 255, 0.15)'
-                    : isDarkMode
-                      ? 'rgba(17, 24, 39, 0.6)'
-                      : 'rgba(255, 255, 255, 0.6)',
+                  background: getCardBackground(),
                   backdropFilter: 'blur(20px)',
                   WebkitBackdropFilter: 'blur(20px)',
                   boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.2)}, inset 0 0 0 1px rgba(255,255,255,0.1)`
                 }}
-                whileHover={{ y: -5, boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.3)}` }}
+                whileHover={{
+                  y: -5,
+                  boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.3)}`
+                }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                {/* Overlay gradiente sutil */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
                 <motion.div
                   className="absolute inset-0 rounded-2xl sm:rounded-3xl"
                   style={{
-                    background: `linear-gradient(135deg, ${userAccentColor}20, transparent)`,
+                    background: `linear-gradient(135deg, ${userAccentColor}15, transparent)`,
                   }}
                   animate={{
-                    opacity: [0.3, 0.6, 0.3],
+                    opacity: [0.3, 0.5, 0.3],
                   }}
                   transition={{ duration: 3, repeat: Infinity }}
                 />
 
                 <div className="relative z-10">
+                  {/* Avatar */}
                   <div className="flex justify-center mb-4 sm:mb-5 md:mb-6">
                     <motion.div
                       whileHover={{ scale: 1.1, rotate: 5 }}
@@ -1366,10 +1463,11 @@ const isNewLink = (creationTime: number): boolean => {
                     </motion.div>
                   </div>
 
+                  {/* Nome e Badge */}
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                       <motion.h1
-                        className="text-2xl sm:text-3xl font-black break-all"
+                        className={`text-2xl sm:text-3xl font-black break-all ${hasActiveBackgroundImage ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]' : ''}`}
                         style={{
                           color: userAccentColor,
                         }}
@@ -1387,7 +1485,7 @@ const isNewLink = (creationTime: number): boolean => {
                         >
                           <Sparkles className="w-3 h-3 text-purple-500" />
                           <p className={`text-[11px] font-medium ${getProtectedTextClasses()}`}
-                            style={{ color: isDarkMode ? '#e5e7eb' : '#4b5563' }}
+                            style={{ color: hasActiveBackgroundImage ? '#ffffff' : isDarkMode ? '#e5e7eb' : '#4b5563' }}
                           >
                             Crie seu perfil grátis no <span className="font-bold text-purple-600 dark:text-purple-400">Freelinnk</span>
                           </p>
@@ -1395,11 +1493,11 @@ const isNewLink = (creationTime: number): boolean => {
                       </Link>
                     )}
 
-                    {/* 🔥 DESCRIÇÃO SEM O STATUS */}
+                    {/* Bio */}
                     {displayBio && (
                       <motion.p
-                        className={`text-base sm:text-lg leading-relaxed px-4 ${getProtectedTextClasses()}`}
-                        style={{ color: isDarkMode ? '#d1d5db' : '#4b5563' }}
+                        className={`text-base sm:text-lg leading-relaxed px-4 ${getProtectedTextClasses()} ${hasActiveBackgroundImage ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]' : ''}`}
+                        style={{ color: hasActiveBackgroundImage ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
@@ -1408,8 +1506,9 @@ const isNewLink = (creationTime: number): boolean => {
                       </motion.p>
                     )}
 
+                    {/* Data de criação */}
                     <div className={`flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap pt-2 ${getProtectedTextClasses()}`}
-                      style={{ color: isDarkMode ? '#9ca3af' : '#6b7280' }}
+                      style={{ color: hasActiveBackgroundImage ? 'rgba(255,255,255,0.8)' : isDarkMode ? '#9ca3af' : '#6b7280' }}
                     >
                       <motion.div
                         className="flex items-center gap-1"
@@ -1425,7 +1524,7 @@ const isNewLink = (creationTime: number): boolean => {
             </div>
           </motion.aside>
 
-          {/* Links Section */}
+          {/* 🔥 SEÇÃO DE LINKS */}
           <motion.main
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1433,27 +1532,24 @@ const isNewLink = (creationTime: number): boolean => {
             className="lg:col-span-2 w-full max-w-full"
           >
             <div className="space-y-3 sm:space-y-4">
-              {/* 🔥 CARD DOS LINKS - TRANSPARENTE */}
+              {/* 🔥 CARD DOS LINKS - TRANSPARÊNCIA AJUSTÁVEL */}
               <motion.div
                 className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/20 dark:border-white/10"
                 style={{
-                  background: backgroundConfig.type === "image"
-                    ? 'rgba(255, 255, 255, 0.15)'
-                    : isDarkMode
-                      ? 'rgba(17, 24, 39, 0.6)'
-                      : 'rgba(255, 255, 255, 0.6)',
+                  background: getCardBackground(),
                   backdropFilter: 'blur(20px)',
                   WebkitBackdropFilter: 'blur(20px)',
                   boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.2)}, inset 0 0 0 1px rgba(255,255,255,0.1)`
                 }}
                 whileHover={{ y: -2 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
                 <div className="relative z-10">
+                  {/* Header */}
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <motion.h2
-                      className={`text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2 ${getProtectedTextClasses()}`}
+                      className={`text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2 ${getProtectedTextClasses()} ${hasActiveBackgroundImage ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]' : ''}`}
                       style={{
                         color: userAccentColor,
                       }}
@@ -1468,14 +1564,13 @@ const isNewLink = (creationTime: number): boolean => {
                     </motion.h2>
                   </div>
 
+                  {/* Lista de Links */}
                   <div className="space-y-2 sm:space-y-2.5">
                     {links && links.length > 0 ? (
                       links.map((link, index) => {
                         const isCta = isCtaLink(link.url, link.title);
                         const isNew = isNewLink(link._creationTime);
-                        // 🔥 LOGICA PIX (Removido o botão de copia, mas preparado para futuro)
-                        // Você disse que removeu o botão de Pix, então mantemos o comportamento padrão
-                        // Mas deixo a lógica aqui se mudar de ideia. Por enquanto é link normal.
+                        const isHovered = hoveredLink === link._id;
 
                         return (
                           <motion.div
@@ -1502,29 +1597,24 @@ const isNewLink = (creationTime: number): boolean => {
                               href={link.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`group relative flex items-center gap-2.5 sm:gap-3 w-full rounded-xl sm:rounded-2xl p-3 sm:p-3.5 md:p-4 font-bold text-sm sm:text-base transition-all duration-300 overflow-hidden ring-offset-[var(--ring-offset-color)] ring-[var(--ring-color)] ${
-                                isCta ? 'ring-2 ring-offset-2' : ''
-                              }`}
+                              className={`group relative flex items-center gap-2.5 sm:gap-3 w-full rounded-xl sm:rounded-2xl p-3 sm:p-3.5 md:p-4 font-bold text-sm sm:text-base transition-all duration-300 overflow-hidden ${isCta ? 'ring-2 ring-offset-2' : ''
+                                }`}
                               style={{
-                                background: isCta
-                                  ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, ${hexToRgba(userAccentColor, 0.05)})`
-                                  : backgroundConfig.type === "image"
-                                    ? 'rgba(255, 255, 255, 0.2)'
-                                    : isDarkMode
-                                      ? 'rgba(31, 41, 55, 0.5)'
-                                      : 'rgba(255, 255, 255, 0.5)',
-                                backdropFilter: 'blur(10px)',
-                                WebkitBackdropFilter: 'blur(10px)',
-                                borderWidth: isCta ? '2px' : '2px',
+                                background: getLinkBackground(isHovered, isCta),
+                                backdropFilter: 'blur(12px)',
+                                WebkitBackdropFilter: 'blur(12px)',
+                                borderWidth: '2px',
                                 borderStyle: 'solid',
                                 borderColor: isCta
                                   ? userAccentColor
-                                  : hoveredLink === link._id
+                                  : isHovered
                                     ? userAccentColor
-                                    : 'rgba(255,255,255,0.2)',
+                                    : hasActiveBackgroundImage
+                                      ? 'rgba(255,255,255,0.3)'
+                                      : 'rgba(255,255,255,0.2)',
                                 boxShadow: isCta
                                   ? `0 0 25px ${hexToRgba(userAccentColor, 0.3)}, 0 4px 15px rgba(0,0,0,0.1)`
-                                  : hoveredLink === link._id
+                                  : isHovered
                                     ? `0 0 30px ${hexToRgba(userAccentColor, 0.4)}`
                                     : '0 2px 8px rgba(0,0,0,0.1)',
                                 '--ring-color': isCta ? userAccentColor : 'transparent',
@@ -1532,6 +1622,7 @@ const isNewLink = (creationTime: number): boolean => {
                               } as React.CSSProperties}
                               onClick={() => handleTrack(link)}
                             >
+                              {/* Animação de pulso para CTA */}
                               {isCta && (
                                 <motion.div
                                   className="absolute inset-0 rounded-xl sm:rounded-2xl"
@@ -1550,23 +1641,25 @@ const isNewLink = (creationTime: number): boolean => {
                                 />
                               )}
 
+                              {/* Efeito hover gradiente */}
                               <motion.div
                                 className="absolute inset-0 opacity-0 group-hover:opacity-100"
                                 initial={false}
                                 animate={{
-                                  background: hoveredLink === link._id
+                                  background: isHovered
                                     ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, transparent)`
                                     : 'transparent',
                                 }}
                                 transition={{ duration: 0.3 }}
                               />
 
+                              {/* Efeito shimmer */}
                               <motion.div
                                 className="absolute inset-0 opacity-0 group-hover:opacity-100"
                                 style={{
                                   background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)`
                                 }}
-                                animate={hoveredLink === link._id ? {
+                                animate={isHovered ? {
                                   x: ['-100%', '200%']
                                 } : {}}
                                 transition={{
@@ -1576,8 +1669,9 @@ const isNewLink = (creationTime: number): boolean => {
                                 }}
                               />
 
+                              {/* Ícone do Link */}
                               <motion.span
-                                animate={hoveredLink === link._id ? {
+                                animate={isHovered ? {
                                   rotate: [0, -10, 10, 0],
                                   scale: [1, 1.1, 1],
                                 } : {}}
@@ -1588,16 +1682,16 @@ const isNewLink = (creationTime: number): boolean => {
                                     ? 'transparent'
                                     : isCta
                                       ? `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`
-                                      : hoveredLink === link._id
+                                      : isHovered
                                         ? `linear-gradient(135deg, ${userAccentColor}30, ${userAccentColor}50)`
-                                        : backgroundConfig.type === "image"
+                                        : hasActiveBackgroundImage
                                           ? 'rgba(255, 255, 255, 0.3)'
                                           : isDarkMode
                                             ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
                                             : 'linear-gradient(135deg, rgba(249, 250, 251, 0.9), rgba(243, 244, 246, 0.9))',
                                   boxShadow: isCta
                                     ? `0 0 20px ${hexToRgba(userAccentColor, 0.5)}`
-                                    : hoveredLink === link._id
+                                    : isHovered
                                       ? `0 0 15px ${hexToRgba(userAccentColor, 0.4)}`
                                       : '0 2px 8px rgba(0,0,0,0.1)',
                                 }}
@@ -1617,20 +1711,25 @@ const isNewLink = (creationTime: number): boolean => {
                                 )}
                               </motion.span>
 
+                              {/* Título e badges */}
                               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span
-                                    className="break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300"
+                                    className={`break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300 ${hasActiveBackgroundImage ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]' : ''}`}
                                     style={{
                                       color: isCta
-                                        ? isDarkMode
+                                        ? hasActiveBackgroundImage
                                           ? '#ffffff'
-                                          : '#1f2937'
-                                        : hoveredLink === link._id
-                                          ? userAccentColor
                                           : isDarkMode
-                                            ? '#f3f4f6'
-                                            : '#1f2937',
+                                            ? '#ffffff'
+                                            : '#1f2937'
+                                        : isHovered
+                                          ? userAccentColor
+                                          : hasActiveBackgroundImage
+                                            ? '#ffffff'
+                                            : isDarkMode
+                                              ? '#f3f4f6'
+                                              : '#1f2937',
                                     }}
                                   >
                                     {link.title}
@@ -1668,13 +1767,14 @@ const isNewLink = (creationTime: number): boolean => {
                                 </div>
                               </div>
 
+                              {/* Ações */}
                               <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 relative z-10 ml-1">
                                 <motion.button
                                   whileHover={{ scale: 1.2 }}
                                   whileTap={{ scale: 0.85 }}
                                   onClick={(e) => {
                                     e.preventDefault();
-                                    e.stopPropagation(); // Stop link click
+                                    e.stopPropagation();
                                     handleReaction(link._id);
                                   }}
                                   className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-300"
@@ -1695,38 +1795,37 @@ const isNewLink = (creationTime: number): boolean => {
                                     transition={{ duration: 0.4 }}
                                   >
                                     <Heart
-                                      className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-all duration-300 ${
-                                        linkReactions[link._id]
+                                      className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-all duration-300 ${linkReactions[link._id]
                                           ? 'text-red-500 fill-current drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]'
                                           : 'text-gray-400 hover:text-red-400'
-                                      }`}
+                                        }`}
                                     />
                                   </motion.div>
                                   <span
                                     className="text-[10px] sm:text-xs font-bold"
-                                    style={{ color: backgroundConfig.type === "image" ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
+                                    style={{ color: hasActiveBackgroundImage ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
                                   >
                                     {linkReactions[link._id] || 0}
                                   </span>
                                 </motion.button>
 
                                 <motion.div
-                                  animate={hoveredLink === link._id ? {
+                                  animate={isHovered ? {
                                     x: [0, 4, 0],
                                     y: [0, -4, 0],
                                   } : {}}
                                   transition={{
                                     duration: 0.6,
-                                    repeat: hoveredLink === link._id ? Infinity : 0,
+                                    repeat: isHovered ? Infinity : 0,
                                     ease: "easeInOut"
                                   }}
                                 >
                                   <ExternalLink
                                     className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 hidden sm:block"
                                     style={{
-                                      color: hoveredLink === link._id
+                                      color: isHovered
                                         ? userAccentColor
-                                        : backgroundConfig.type === "image"
+                                        : hasActiveBackgroundImage
                                           ? 'rgba(255,255,255,0.7)'
                                           : 'rgb(156, 163, 175)',
                                     }}
@@ -1761,12 +1860,12 @@ const isNewLink = (creationTime: number): boolean => {
                           />
                         </motion.div>
                         <p className={`text-base sm:text-lg font-bold mb-2 ${getProtectedTextClasses()}`}
-                          style={{ color: backgroundConfig.type === "image" ? '#ffffff' : isDarkMode ? '#9ca3af' : '#6b7280' }}
+                          style={{ color: hasActiveBackgroundImage ? '#ffffff' : isDarkMode ? '#9ca3af' : '#6b7280' }}
                         >
                           Nenhum link cadastrado ainda
                         </p>
                         <p className={`text-xs sm:text-sm ${getProtectedTextClasses()}`}
-                          style={{ color: backgroundConfig.type === "image" ? 'rgba(255,255,255,0.7)' : isDarkMode ? '#6b7280' : '#9ca3af' }}
+                          style={{ color: hasActiveBackgroundImage ? 'rgba(255,255,255,0.7)' : isDarkMode ? '#6b7280' : '#9ca3af' }}
                         >
                           Os links aparecerão aqui quando forem adicionados
                         </p>
@@ -1776,6 +1875,7 @@ const isNewLink = (creationTime: number): boolean => {
                 </div>
               </motion.div>
 
+              {/* CTA para usuários free */}
               {plan === 'free' && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -1877,6 +1977,7 @@ const isNewLink = (creationTime: number): boolean => {
           </motion.main>
         </div>
 
+        {/* Footer */}
         {plan === 'free' && (
           <motion.footer
             initial={{ opacity: 0 }}
@@ -1885,7 +1986,7 @@ const isNewLink = (creationTime: number): boolean => {
             className="mt-8 sm:mt-12 md:mt-16 pt-4 sm:pt-6 border-t border-white/10 text-center"
           >
             <p className={`text-[10px] sm:text-xs flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap px-4 ${getProtectedTextClasses()}`}
-              style={{ color: backgroundConfig.type === "image" ? 'rgba(255,255,255,0.8)' : isDarkMode ? '#9ca3af' : '#6b7280' }}
+              style={{ color: hasActiveBackgroundImage ? 'rgba(255,255,255,0.8)' : isDarkMode ? '#9ca3af' : '#6b7280' }}
             >
               Feito com
               <motion.span
@@ -1909,6 +2010,7 @@ const isNewLink = (creationTime: number): boolean => {
         )}
       </div>
 
+      {/* Sticky CTA */}
       <AnimatePresence>
         {plan === 'free' && showStickyCTA && (
           <motion.div
@@ -1936,6 +2038,7 @@ const isNewLink = (creationTime: number): boolean => {
         )}
       </AnimatePresence>
 
+      {/* Cookie Consent */}
       <AnimatePresence>
         {cookieConsent === null && trackingSettings && (trackingSettings.facebookPixelId || trackingSettings.googleAnalyticsId) && (
           <motion.div
@@ -1986,6 +2089,7 @@ const isNewLink = (creationTime: number): boolean => {
         )}
       </AnimatePresence>
 
+      {/* Botão Scroll to Top */}
       <AnimatePresence>
         <motion.button
           initial={{ scale: 0, opacity: 0 }}
@@ -2017,6 +2121,7 @@ const isNewLink = (creationTime: number): boolean => {
         </motion.button>
       </AnimatePresence>
 
+      {/* Estilos globais */}
       <style jsx global>{`
         ::-webkit-scrollbar {
           width: 8px;
