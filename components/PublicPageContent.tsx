@@ -933,6 +933,7 @@ export default function PublicPageContent({
         }}
       />
 
+
       {/* 🔥 BACKGROUND FIXO - IMAGEM FULL SCREEN */}
       {hasFullBackgroundImage && (
         <div className="fixed inset-0 -z-10">
@@ -1019,11 +1020,21 @@ export default function PublicPageContent({
         ) : (
           /* Header com gradiente de cor (quando não tem imagem) */
           <motion.div
-            className="absolute inset-0"
-            style={{
-              background: `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
-              clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
-            }}
+  className="absolute inset-0"
+  style={{
+    // 🔥 CORREÇÃO AQUI:
+    // 1. Se tem Imagem Full (hasFullBackgroundImage), o header fica TRANSPARENTE
+    // 2. Se não, ele segue a lógica de gradiente ou cor
+    background: hasFullBackgroundImage
+      ? 'transparent'
+      : backgroundConfig.type === 'gradient'
+        ? `linear-gradient(135deg, ${backgroundConfig.color1}, ${backgroundConfig.color2})`
+        : backgroundConfig.type === 'color'
+          ? backgroundConfig.color1
+          : `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
+
+    clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
+  }}
             animate={{
               background: [
                 `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
