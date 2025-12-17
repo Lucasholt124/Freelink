@@ -610,9 +610,10 @@ export default function PublicPageContent({
       : `rgba(99, 102, 241, ${alpha})`;
   }, []);
 
-  // 🔥 Verificar se tem imagem de fundo
-  const hasFullBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl && backgroundConfig.style === "full";
-  const hasHeaderBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl && backgroundConfig.style === "header";
+  // 🔥 LÓGICA CORRIGIDA: Verificar tipo de background
+  const hasBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl;
+  const isFullBackgroundImage = hasBackgroundImage && backgroundConfig.style === "full";
+  const isHeaderBackgroundImage = hasBackgroundImage && backgroundConfig.style === "header";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -765,6 +766,7 @@ export default function PublicPageContent({
     localStorage.setItem('freelinnk_cookie_consent', 'denied');
   };
 
+  // 🔥 LOADING SCREEN PREMIUM
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
@@ -824,13 +826,15 @@ export default function PublicPageContent({
     );
   }
 
-  const getBackgroundStyle = () => {
+  // 🔥 FUNÇÕES DE ESTILO CORRIGIDAS
+  const getBaseBackgroundStyle = () => {
     if (backgroundConfig.type === "color") {
       return { background: backgroundConfig.color1 };
     } else if (backgroundConfig.type === "gradient") {
       return { background: `linear-gradient(135deg, ${backgroundConfig.color1}, ${backgroundConfig.color2})` };
     }
-    return {};
+    // Para imagem, retorna transparente (a imagem é aplicada separadamente)
+    return { background: 'transparent' };
   };
 
   const isCtaLink = (url: string, title: string): boolean => {
@@ -851,36 +855,56 @@ export default function PublicPageContent({
     return creationTime > sevenDaysAgo;
   };
 
-  // 🔥 FUNÇÃO: Background do card com transparência
+  // 🔥 FUNÇÕES DE CARD COM TRANSPARÊNCIA CORRIGIDAS
   const getCardBackground = () => {
-    if (hasFullBackgroundImage || hasHeaderBackgroundImage) {
+    if (hasBackgroundImage) {
       return isDarkMode
-        ? 'rgba(17, 24, 39, 0.75)'
-        : 'rgba(255, 255, 255, 0.75)';
+        ? 'rgba(17, 24, 39, 0.8)'
+        : 'rgba(255, 255, 255, 0.85)';
     }
     return isDarkMode
-      ? 'rgba(17, 24, 39, 0.6)'
-      : 'rgba(255, 255, 255, 0.6)';
+      ? 'rgba(17, 24, 39, 0.7)'
+      : 'rgba(255, 255, 255, 0.7)';
   };
 
-  // 🔥 FUNÇÃO: Background dos links
   const getLinkBackground = (isHovered: boolean, isCta: boolean) => {
     if (isCta) {
-      return `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.2)}, ${hexToRgba(userAccentColor, 0.1)})`;
+      return `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.25)}, ${hexToRgba(userAccentColor, 0.15)})`;
     }
-    if (hasFullBackgroundImage || hasHeaderBackgroundImage) {
+    if (hasBackgroundImage) {
       return isDarkMode
-        ? isHovered ? 'rgba(31, 41, 55, 0.8)' : 'rgba(31, 41, 55, 0.6)'
-        : isHovered ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0.7)';
+        ? isHovered ? 'rgba(31, 41, 55, 0.85)' : 'rgba(31, 41, 55, 0.7)'
+        : isHovered ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.75)';
     }
     return isDarkMode
-      ? 'rgba(31, 41, 55, 0.5)'
-      : 'rgba(255, 255, 255, 0.5)';
+      ? isHovered ? 'rgba(31, 41, 55, 0.7)' : 'rgba(31, 41, 55, 0.5)'
+      : isHovered ? 'rgba(255, 255, 255, 0.7)' : 'rgba(255, 255, 255, 0.5)';
+  };
+
+  // 🔥 FUNÇÃO: Cor do texto baseada no contexto
+  const getTextColor = (variant: 'primary' | 'secondary' | 'muted' = 'primary') => {
+    const hasImage = hasBackgroundImage;
+
+    if (variant === 'primary') {
+      return hasImage
+        ? (isDarkMode ? '#ffffff' : '#1f2937')
+        : (isDarkMode ? '#f3f4f6' : '#1f2937');
+    }
+    if (variant === 'secondary') {
+      return hasImage
+        ? (isDarkMode ? '#e5e7eb' : '#374151')
+        : (isDarkMode ? '#d1d5db' : '#4b5563');
+    }
+    // muted
+    return hasImage
+      ? (isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(75,85,99,0.8)')
+      : (isDarkMode ? '#9ca3af' : '#6b7280');
   };
 
   return (
     <div className={`min-h-screen w-full overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
 
+      {/* 🔥 TRACKING SCRIPTS */}
       {cookieConsent === 'granted' && trackingSettings && (
         <>
           {trackingSettings.googleAnalyticsId && (
@@ -919,12 +943,12 @@ export default function PublicPageContent({
         </>
       )}
 
-      {/* 🔥 PARTÍCULAS - Só mostrar se NÃO tiver imagem de fundo full */}
-      {!hasFullBackgroundImage && (
+      {/* 🔥 PARTÍCULAS - Só mostrar quando NÃO tem imagem de fundo full */}
+      {!isFullBackgroundImage && (
         <ParticleField color={hexToRgba(userAccentColor, 0.4)} />
       )}
 
-      {/* Progress bar */}
+      {/* 🔥 BARRA DE PROGRESSO */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 transform-origin-0 z-50"
         style={{
@@ -933,9 +957,10 @@ export default function PublicPageContent({
         }}
       />
 
-
-      {/* 🔥 BACKGROUND FIXO - IMAGEM FULL SCREEN */}
-       {hasFullBackgroundImage && (
+      {/* ============================================ */}
+      {/* 🔥 BACKGROUND FIXO - IMAGEM FULL SCREEN     */}
+      {/* ============================================ */}
+      {isFullBackgroundImage && (
         <div className="fixed inset-0 -z-10 overflow-hidden">
           <div
             className="absolute inset-0 w-full h-full"
@@ -946,24 +971,26 @@ export default function PublicPageContent({
               backgroundRepeat: 'no-repeat',
               filter: backgroundConfig.imageBlur > 0 ? `blur(${backgroundConfig.imageBlur}px)` : 'none',
               opacity: backgroundConfig.imageOpacity / 100,
-              transform: backgroundConfig.imageBlur > 0 ? 'scale(1.1)' : 'scale(1)', // Scale apenas com blur
+              transform: backgroundConfig.imageBlur > 0 ? 'scale(1.1)' : 'scale(1)',
             }}
           />
-          {/* Overlay sutil */}
+          {/* Overlay para legibilidade */}
           <div
             className="absolute inset-0"
             style={{
               background: isDarkMode
-                ? 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 100%)'
-                : 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.2) 100%)',
+                ? 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 100%)'
+                : 'linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 100%)',
             }}
           />
         </div>
       )}
 
-      {/* 🔥 BACKGROUND NORMAL (cor/gradiente) - quando NÃO tem imagem full */}
-      {!hasFullBackgroundImage && (
-        <div className="fixed inset-0 -z-10" style={getBackgroundStyle()}>
+      {/* ============================================ */}
+      {/* 🔥 BACKGROUND NORMAL (cor/gradiente)        */}
+      {/* ============================================ */}
+      {!isFullBackgroundImage && (
+        <div className="fixed inset-0 -z-10" style={getBaseBackgroundStyle()}>
           {backgroundConfig.type !== 'image' && (
             <motion.div
               className="absolute inset-0 opacity-20"
@@ -980,21 +1007,22 @@ export default function PublicPageContent({
         </div>
       )}
 
-      {/* 🔥 HEADER - ALTURA DINÂMICA PARA IMAGEM */}
+      {/* ============================================ */}
+      {/* 🔥 HEADER SECTION                            */}
+      {/* ============================================ */}
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
         className={`relative overflow-hidden ${
-          hasHeaderBackgroundImage
-            ? 'min-h-[300px] sm:min-h-[400px] md:min-h-[450px] lg:min-h-[500px]' // 🔥 MAIOR quando tem imagem
-            : 'h-48 sm:h-64 md:h-80' // Altura normal
+          isHeaderBackgroundImage
+            ? 'min-h-[300px] sm:min-h-[400px] md:min-h-[450px] lg:min-h-[500px]'
+            : 'h-48 sm:h-64 md:h-80'
         }`}
       >
-        {/* 🔥 IMAGEM NO HEADER - EXIBIÇÃO COMPLETA */}
-        {hasHeaderBackgroundImage ? (
+        {/* 🔥 IMAGEM NO HEADER (quando style === "header") */}
+        {isHeaderBackgroundImage && (
           <>
-            {/* Container da imagem com aspect ratio preservado */}
             <div className="absolute inset-0 w-full h-full">
               <div
                 className="absolute inset-0 w-full h-full"
@@ -1012,38 +1040,26 @@ export default function PublicPageContent({
                 className="absolute inset-0"
                 style={{
                   background: isDarkMode
-                    ? 'linear-gradient(to bottom, transparent 40%, rgba(17, 24, 39, 0.8) 100%)'
-                    : 'linear-gradient(to bottom, transparent 40%, rgba(243, 244, 246, 0.8) 100%)',
+                    ? 'linear-gradient(to bottom, transparent 30%, rgba(17, 24, 39, 0.9) 100%)'
+                    : 'linear-gradient(to bottom, transparent 30%, rgba(243, 244, 246, 0.9) 100%)',
                 }}
               />
             </div>
           </>
-        ) : (
-          /* Header com gradiente de cor (quando não tem imagem) */
-          <motion.div
-  className="absolute inset-0"
-  style={{
-    // 🔥 CORREÇÃO AQUI:
-    // 1. Se tem Imagem Full (hasFullBackgroundImage), o header fica TRANSPARENTE
-    // 2. Se não, ele segue a lógica de gradiente ou cor
-    background: hasFullBackgroundImage
-      ? 'transparent'
-      : backgroundConfig.type === 'gradient'
-        ? `linear-gradient(135deg, ${backgroundConfig.color1}, ${backgroundConfig.color2})`
-        : backgroundConfig.type === 'color'
-          ? backgroundConfig.color1
-          : `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
+        )}
 
-    clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
-  }}
-            animate={{
-              background: [
-                `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
-                `linear-gradient(135deg, ${userAccentColor}dd, ${userAccentColor})`,
-                `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
-              ]
+        {/* 🔥 HEADER COM GRADIENTE/COR (quando NÃO tem imagem no header E NÃO tem imagem full) */}
+        {!isHeaderBackgroundImage && !isFullBackgroundImage && (
+          <motion.div
+            className="absolute inset-0"
+            style={{
+              background: backgroundConfig.type === 'gradient'
+                ? `linear-gradient(135deg, ${backgroundConfig.color1}, ${backgroundConfig.color2})`
+                : backgroundConfig.type === 'color'
+                  ? backgroundConfig.color1
+                  : `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
+              clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
             }}
-            transition={{ duration: 5, repeat: Infinity }}
           >
             <div className="absolute inset-0 bg-black/10" />
             <motion.div
@@ -1057,7 +1073,18 @@ export default function PublicPageContent({
           </motion.div>
         )}
 
-        {/* Botões do Header */}
+        {/* 🔥 HEADER TRANSPARENTE (quando tem imagem FULL) */}
+        {isFullBackgroundImage && (
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'transparent',
+              clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
+            }}
+          />
+        )}
+
+        {/* 🔥 BOTÕES DO HEADER */}
         <div className={`absolute left-3 sm:left-4 right-3 sm:right-4 flex justify-between items-center z-20 transition-all duration-300 ${statusMessage ? 'top-14 sm:top-16' : 'top-3 sm:top-4'}`}>
           <motion.button
             whileHover={{ scale: 1.1, rotate: 180 }}
@@ -1105,7 +1132,7 @@ export default function PublicPageContent({
               <AnimatePresence mode="wait">
                 {shared ? (
                   <motion.div key="check" initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, rotate: 180 }}>
-                                        <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.div>
                 ) : (
                   <motion.div key="share" initial={{ scale: 0, rotate: 180 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, rotate: -180 }}>
@@ -1126,13 +1153,17 @@ export default function PublicPageContent({
             style={{ background: userAccentColor }}
           >
             <div className="flex items-center justify-center gap-2">
-              <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-              {statusMessage}
+              <motion.span
+                className="w-2 h-2 rounded-full bg-white"
+                animate={{ opacity: [1, 0.3, 1] }}
+                transition={{ duration: 1.5, repeat: Infinity }}
+              />
+              <span>{statusMessage}</span>
             </div>
           </motion.div>
         )}
 
-        {/* QR Code Modal */}
+        {/* 🔥 QR CODE MODAL */}
         <AnimatePresence>
           {showQRCode && qrCodeDataUrl && (
             <motion.div
@@ -1174,13 +1205,17 @@ export default function PublicPageContent({
         </AnimatePresence>
       </motion.div>
 
-      {/* 🔥 CONTEÚDO PRINCIPAL */}
+      {/* ============================================ */}
+      {/* 🔥 CONTEÚDO PRINCIPAL                        */}
+      {/* ============================================ */}
       <div className={`relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-8 sm:pb-12 md:pb-16 w-full ${
-        hasHeaderBackgroundImage ? '-mt-20 sm:-mt-28 md:-mt-32' : '-mt-24 sm:-mt-32 md:-mt-40'
+        isHeaderBackgroundImage ? '-mt-20 sm:-mt-28 md:-mt-32' : '-mt-24 sm:-mt-32 md:-mt-40'
       }`}>
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
 
-          {/* 🔥 SIDEBAR - CARD DO PERFIL */}
+          {/* ============================================ */}
+          {/* 🔥 SIDEBAR - CARD DO PERFIL                  */}
+          {/* ============================================ */}
           <motion.aside
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -1200,7 +1235,8 @@ export default function PublicPageContent({
                 whileHover={{ y: -5, boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.3)}` }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                {/* Efeito de brilho interno */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none rounded-2xl sm:rounded-3xl" />
                 <motion.div
                   className="absolute inset-0 rounded-2xl sm:rounded-3xl"
                   style={{ background: `linear-gradient(135deg, ${userAccentColor}15, transparent)` }}
@@ -1216,6 +1252,7 @@ export default function PublicPageContent({
                       whileTap={{ scale: 0.95 }}
                       className="relative group cursor-pointer"
                     >
+                      {/* Efeitos de glow */}
                       <motion.div
                         className="absolute inset-0 rounded-full blur-2xl opacity-0 group-hover:opacity-75 transition-opacity duration-500"
                         style={{ background: userAccentColor }}
@@ -1273,7 +1310,7 @@ export default function PublicPageContent({
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                       <motion.h1
-                        className={`text-2xl sm:text-3xl font-black break-all ${(hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]' : ''}`}
+                        className={`text-2xl sm:text-3xl font-black break-all ${hasBackgroundImage ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]' : ''}`}
                         style={{ color: userAccentColor }}
                       >
                         @{username}
@@ -1290,7 +1327,7 @@ export default function PublicPageContent({
                           <Sparkles className="w-3 h-3 text-purple-500" />
                           <p
                             className="text-[11px] font-medium"
-                            style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? '#ffffff' : isDarkMode ? '#e5e7eb' : '#4b5563' }}
+                            style={{ color: getTextColor('secondary') }}
                           >
                             Crie seu perfil grátis no <span className="font-bold text-purple-600 dark:text-purple-400">Freelinnk</span>
                           </p>
@@ -1301,8 +1338,8 @@ export default function PublicPageContent({
                     {/* Bio */}
                     {displayBio && (
                       <motion.p
-                        className={`text-base sm:text-lg leading-relaxed px-4 ${(hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : ''}`}
-                        style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? (isDarkMode ? '#e5e7eb' : '#374151') : isDarkMode ? '#d1d5db' : '#4b5563' }}
+                        className={`text-base sm:text-lg leading-relaxed px-4 ${hasBackgroundImage ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : ''}`}
+                        style={{ color: getTextColor('secondary') }}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
@@ -1314,7 +1351,7 @@ export default function PublicPageContent({
                     {/* Data de criação */}
                     <div
                       className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap pt-2"
-                      style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'rgba(255,255,255,0.8)' : isDarkMode ? '#9ca3af' : '#6b7280' }}
+                      style={{ color: getTextColor('muted') }}
                     >
                       <motion.div className="flex items-center gap-1" whileHover={{ scale: 1.05 }}>
                         <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1327,7 +1364,9 @@ export default function PublicPageContent({
             </div>
           </motion.aside>
 
-          {/* 🔥 SEÇÃO DE LINKS */}
+          {/* ============================================ */}
+          {/* 🔥 SEÇÃO DE LINKS                            */}
+          {/* ============================================ */}
           <motion.main
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1346,13 +1385,13 @@ export default function PublicPageContent({
                 }}
                 whileHover={{ y: -2 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none rounded-2xl sm:rounded-3xl" />
 
                 <div className="relative z-10">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <motion.h2
-                      className={`text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2 ${(hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]' : ''}`}
+                      className={`text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2 ${hasBackgroundImage ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]' : ''}`}
                       style={{ color: userAccentColor }}
                     >
                       <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
@@ -1397,7 +1436,7 @@ export default function PublicPageContent({
                                   ? userAccentColor
                                   : isHovered
                                     ? userAccentColor
-                                    : (hasFullBackgroundImage || hasHeaderBackgroundImage)
+                                    : hasBackgroundImage
                                       ? 'rgba(255,255,255,0.3)'
                                       : 'rgba(255,255,255,0.2)',
                                 boxShadow: isCta
@@ -1448,7 +1487,7 @@ export default function PublicPageContent({
                                       ? `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`
                                       : isHovered
                                         ? `linear-gradient(135deg, ${userAccentColor}30, ${userAccentColor}50)`
-                                        : (hasFullBackgroundImage || hasHeaderBackgroundImage)
+                                        : hasBackgroundImage
                                           ? 'rgba(255, 255, 255, 0.3)'
                                           : isDarkMode
                                             ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
@@ -1471,15 +1510,13 @@ export default function PublicPageContent({
                               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span
-                                    className={`break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300 ${(hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : ''}`}
+                                    className={`break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300 ${hasBackgroundImage ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : ''}`}
                                     style={{
                                       color: isCta
-                                        ? (hasFullBackgroundImage || hasHeaderBackgroundImage) ? '#ffffff' : isDarkMode ? '#ffffff' : '#1f2937'
+                                        ? getTextColor('primary')
                                         : isHovered
                                           ? userAccentColor
-                                          : (hasFullBackgroundImage || hasHeaderBackgroundImage)
-                                            ? (isDarkMode ? '#f3f4f6' : '#1f2937')
-                                            : isDarkMode ? '#f3f4f6' : '#1f2937',
+                                          : getTextColor('primary'),
                                     }}
                                   >
                                     {link.title}
@@ -1536,7 +1573,7 @@ export default function PublicPageContent({
                                   </motion.div>
                                   <span
                                     className="text-[10px] sm:text-xs font-bold"
-                                    style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
+                                    style={{ color: getTextColor('secondary') }}
                                   >
                                     {linkReactions[link._id] || 0}
                                   </span>
@@ -1551,9 +1588,7 @@ export default function PublicPageContent({
                                     style={{
                                       color: isHovered
                                         ? userAccentColor
-                                        : (hasFullBackgroundImage || hasHeaderBackgroundImage)
-                                          ? 'rgba(255,255,255,0.7)'
-                                          : 'rgb(156, 163, 175)',
+                                        : getTextColor('muted'),
                                     }}
                                   />
                                 </motion.div>
@@ -1582,13 +1617,13 @@ export default function PublicPageContent({
                         </motion.div>
                         <p
                           className="text-base sm:text-lg font-bold mb-2"
-                          style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? '#ffffff' : isDarkMode ? '#9ca3af' : '#6b7280' }}
+                          style={{ color: getTextColor('secondary') }}
                         >
                           Nenhum link cadastrado ainda
                         </p>
                         <p
                           className="text-xs sm:text-sm"
-                          style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'rgba(255,255,255,0.7)' : isDarkMode ? '#6b7280' : '#9ca3af' }}
+                          style={{ color: getTextColor('muted') }}
                         >
                           Os links aparecerão aqui quando forem adicionados
                         </p>
@@ -1598,7 +1633,7 @@ export default function PublicPageContent({
                 </div>
               </motion.div>
 
-              {/* CTA para usuários free */}
+              {/* 🔥 CTA PARA USUÁRIOS FREE */}
               {plan === 'free' && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -1665,7 +1700,7 @@ export default function PublicPageContent({
           </motion.main>
         </div>
 
-        {/* Footer */}
+        {/* 🔥 FOOTER */}
         {plan === 'free' && (
           <motion.footer
             initial={{ opacity: 0 }}
@@ -1675,7 +1710,7 @@ export default function PublicPageContent({
           >
             <p
               className="text-[10px] sm:text-xs flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap px-4"
-              style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'rgba(255,255,255,0.8)' : isDarkMode ? '#9ca3af' : '#6b7280' }}
+              style={{ color: getTextColor('muted') }}
             >
               Feito com
               <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1, repeat: Infinity }}>
@@ -1690,8 +1725,9 @@ export default function PublicPageContent({
         )}
       </div>
 
-
-      {/* Sticky CTA */}
+      {/* ============================================ */}
+      {/* 🔥 STICKY CTA (Mobile)                       */}
+      {/* ============================================ */}
       <AnimatePresence>
         {plan === 'free' && showStickyCTA && (
           <motion.div
@@ -1719,7 +1755,9 @@ export default function PublicPageContent({
         )}
       </AnimatePresence>
 
-      {/* Cookie Consent */}
+      {/* ============================================ */}
+      {/* 🔥 COOKIE CONSENT                            */}
+      {/* ============================================ */}
       <AnimatePresence>
         {cookieConsent === null && trackingSettings && (trackingSettings.facebookPixelId || trackingSettings.googleAnalyticsId) && (
           <motion.div
@@ -1766,7 +1804,9 @@ export default function PublicPageContent({
         )}
       </AnimatePresence>
 
-      {/* Botão Scroll to Top */}
+      {/* ============================================ */}
+      {/* 🔥 BOTÃO SCROLL TO TOP                       */}
+      {/* ============================================ */}
       <AnimatePresence>
         <motion.button
           initial={{ scale: 0, opacity: 0 }}
@@ -1791,7 +1831,9 @@ export default function PublicPageContent({
         </motion.button>
       </AnimatePresence>
 
-      {/* Estilos globais */}
+      {/* ============================================ */}
+      {/* 🔥 ESTILOS GLOBAIS                           */}
+      {/* ============================================ */}
       <style jsx global>{`
         ::-webkit-scrollbar {
           width: 8px;
@@ -1832,6 +1874,10 @@ export default function PublicPageContent({
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
           }
+        }
+
+        .perspective-1000 {
+          perspective: 1000px;
         }
       `}</style>
     </div>

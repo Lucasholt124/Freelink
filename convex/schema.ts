@@ -35,6 +35,7 @@ export default defineSchema({
   userCustomizations: defineTable({
     userId: v.string(),
     profilePictureStorageId: v.optional(v.id("_storage")),
+     profilePictureUrl: v.optional(v.string()),
     description: v.optional(v.string()),
     accentColor: v.optional(v.string()),
     backgroundType: v.optional(
@@ -44,6 +45,7 @@ export default defineSchema({
     backgroundColor1: v.optional(v.string()),
     backgroundColor2: v.optional(v.string()),
     backgroundImageStorageId: v.optional(v.id("_storage")),
+    backgroundImageUrl: v.optional(v.string()),
     backgroundImageBlur: v.optional(v.number()),
     backgroundImageOpacity: v.optional(v.number()),
   }).index("by_user_id", ["userId"]),
