@@ -45,14 +45,11 @@ import { Doc } from "@/convex/_generated/dataModel";
 
 // --- MAPA DE ÍCONES INTELIGENTE ---
 const ICON_MAP = [
-  // 📍 Localização & Mapas
   { match: ['google.com/maps', 'goo.gl/maps', 'maps.google', 'maps.app.goo.gl'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" /> },
   { match: ['waze.com', 'waze.to'], icon: <FaWaze className="w-4 h-4 sm:w-5 sm:h-5 text-[#33CCFF]" /> },
   { match: ['maps.apple.com'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#8E8E93]" /> },
   { match: ['uber.com'], icon: <FaUber className="w-4 h-4 sm:w-5 sm:h-5 text-black" /> },
   { match: ['99app', '99taxi'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFCC00]" /> },
-
-  // 💬 Mensagens & Contato
   { match: ['whatsapp', 'wa.me', 'api.whatsapp'], icon: <FaWhatsapp className="w-4 h-4 sm:w-5 sm:h-5 text-[#25D366]" /> },
   { match: ['t.me', 'telegram'], icon: <FaTelegram className="w-4 h-4 sm:w-5 sm:h-5 text-[#0088cc]" /> },
   { match: ['discord.com', 'discord.gg'], icon: <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-[#5865F2]" /> },
@@ -62,8 +59,6 @@ const ICON_MAP = [
   { match: ['zoom.us', 'zoom.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#2D8CFF]" /> },
   { match: ['meet.google', 'hangouts'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#00897B]" /> },
   { match: ['teams.microsoft', 'teams.live'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#6264A7]" /> },
-
-  // 📸 Redes Sociais
   { match: ['instagram.com', 'instagr.am'], icon: <FaInstagram className="w-4 h-4 sm:w-5 sm:h-5 text-[#E1306C]" /> },
   { match: ['facebook.com', 'fb.com', 'fb.me'], icon: <FaFacebook className="w-4 h-4 sm:w-5 sm:h-5 text-[#1877F3]" /> },
   { match: ['twitter.com', 'x.com', 't.co'], icon: <FaTwitter className="w-4 h-4 sm:w-5 sm:h-5 text-[#1DA1F2]" /> },
@@ -74,8 +69,6 @@ const ICON_MAP = [
   { match: ['reddit.com', 'redd.it'], icon: <FaReddit className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF4500]" /> },
   { match: ['threads.net'], icon: <FaInstagram className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
   { match: ['bsky.app', 'bluesky'], icon: <FaTwitter className="w-4 h-4 sm:w-5 sm:h-5 text-[#0085FF]" /> },
-
-  // 🎥 Vídeo & Streaming
   { match: ['youtube.com', 'youtu.be', 'youtube.com/@'], icon: <FaYoutube className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
   { match: ['twitch.tv'], icon: <FaTwitch className="w-4 h-4 sm:w-5 sm:h-5 text-[#9146FF]" /> },
   { match: ['netflix.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#E50914]" /> },
@@ -86,8 +79,6 @@ const ICON_MAP = [
   { match: ['dailymotion'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#0066DC]" /> },
   { match: ['kick.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#53FC18]" /> },
   { match: ['rumble.com'], icon: <Video className="w-4 h-4 sm:w-5 sm:h-5 text-[#85C742]" /> },
-
-  // 🎵 Música & Podcast
   { match: ['spotify.com', 'open.spotify'], icon: <FaSpotify className="w-4 h-4 sm:w-5 sm:h-5 text-[#1DB954]" /> },
   { match: ['soundcloud.com'], icon: <FaSoundcloud className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF5500]" /> },
   { match: ['music.apple.com', 'itunes.apple'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#FA243C]" /> },
@@ -95,8 +86,6 @@ const ICON_MAP = [
   { match: ['tidal.com'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
   { match: ['music.youtube', 'youtubemusic'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
   { match: ['podcasts.apple', 'podcasts.google', 'anchor.fm', 'spreaker', 'podbean'], icon: <Music className="w-4 h-4 sm:w-5 sm:h-5 text-[#8940FA]" /> },
-
-  // 🛍️ E-commerce & Pagamentos
   { match: ['amazon.', 'amzn.to'], icon: <FaAmazon className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF9900]" /> },
   { match: ['shopee.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#EE4D2D]" /> },
   { match: ['shein.'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
@@ -113,8 +102,6 @@ const ICON_MAP = [
   { match: ['hotmart', 'eduzz', 'monetizze', 'kiwify', 'braip'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#F04E23]" /> },
   { match: ['gumroad'], icon: <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF90E8]" /> },
   { match: ['ko-fi', 'buymeacoffee', 'apoia.se'], icon: <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF5E5B]" /> },
-
-  // 💻 Dev & Design
   { match: ['github.com', 'github.io'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#181717] dark:text-white" /> },
   { match: ['gitlab.com'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#FC6D26]" /> },
   { match: ['bitbucket.org'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#0052CC]" /> },
@@ -126,69 +113,49 @@ const ICON_MAP = [
   { match: ['dev.to'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#0A0A0A] dark:text-white" /> },
   { match: ['notion.so', 'notion.site'], icon: <FaGithub className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
   { match: ['canva.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#00C4CC]" /> },
-
-  // 📰 Blog & Conteúdo
   { match: ['medium.com'], icon: <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
   { match: ['substack.com'], icon: <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF6719]" /> },
   { match: ['wordpress.com', 'wp.com'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#21759B]" /> },
   { match: ['blogger.com', 'blogspot'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF5722]" /> },
   { match: ['tumblr.com'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#36465D]" /> },
-
-  // 📱 Apps & Stores
   { match: ['play.google.com', 'market://'], icon: <FaGooglePlay className="w-4 h-4 sm:w-5 sm:h-5 text-[#3BCCFF]" /> },
   { match: ['apps.apple.com', 'itunes.apple.com/app'], icon: <FaAppStore className="w-4 h-4 sm:w-5 sm:h-5 text-[#0D96F6]" /> },
-
-  // 🎮 Games
   { match: ['store.steampowered', 'steamcommunity'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#1B2838]" /> },
   { match: ['epicgames.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#000000] dark:text-white" /> },
   { match: ['playstation.com', 'store.playstation'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#003791]" /> },
   { match: ['xbox.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#107C10]" /> },
   { match: ['nintendo.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#E60012]" /> },
   { match: ['roblox.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#E2231A]" /> },
-
-  // 📅 Agendamento & Eventos
   { match: ['calendly.com'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#006BFF]" /> },
   { match: ['cal.com'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#292929] dark:text-white" /> },
   { match: ['eventbrite.com'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#F05537]" /> },
   { match: ['sympla.com.br'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#52BE80]" /> },
   { match: ['meetup.com'], icon: <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-[#ED1C40]" /> },
-
-  // 📚 Educação
   { match: ['udemy.com'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#A435F0]" /> },
   { match: ['coursera.org'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#0056D2]" /> },
   { match: ['alura.com.br'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#0066CC]" /> },
   { match: ['rocketseat.com.br'], icon: <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-[#8257E5]" /> },
-
-  // 🎉 Aniversários & Celebrações
   { match: ['bday', 'birthday', 'aniversario', 'festa'], icon: <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0080]" /> },
-
-  // 📄 Documentos & Arquivos
   { match: ['drive.google', 'docs.google', 'sheets.google', 'slides.google'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#4285F4]" /> },
   { match: ['dropbox.com'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#0061FF]" /> },
   { match: ['onedrive.live', 'sharepoint'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#0078D4]" /> },
   { match: ['.pdf'], icon: <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#FF0000]" /> },
-
-  // 🔒 Segurança & Auth
   { match: ['bit.ly', 'tinyurl', 'short.io', 'rebrand.ly', 'ow.ly'], icon: <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5 text-[#EE6123]" /> },
 ];
 
-// 🔥 FUNÇÃO ULTRA INTELIGENTE PARA DETECTAR ÍCONES
 function getLinkIcon(url: string, title: string): React.ReactNode {
   if (!url) return <LinkIcon className="w-4 h-4 sm:w-5 sm:h-5" />;
 
   const u = url.toLowerCase();
   const t = title?.toLowerCase() || "";
 
-  // 1. Verifica no Mapa de Ícones Específicos (prioridade máxima)
   for (const item of ICON_MAP) {
     if (item.match.some(match => u.includes(match))) {
       return item.icon;
     }
   }
 
-  // 2. Detecção inteligente por palavras-chave no TÍTULO
   const titleKeywords: Record<string, React.ReactNode> = {
-    // Pessoas & Cargos
     'ceo': <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
     'fundador': <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
     'founder': <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
@@ -198,8 +165,6 @@ function getLinkIcon(url: string, title: string): React.ReactNode {
     'suporte': <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
     'atendimento': <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
     'contato': <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
-
-    // Ações
     'comprar': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
     'compre': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
     'loja': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
@@ -211,24 +176,18 @@ function getLinkIcon(url: string, title: string): React.ReactNode {
     'pedido': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
     'delivery': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
     'entrega': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
-
-    // Doações
     'doar': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
     'donate': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
     'apoie': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
     'apoiar': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
     'contribua': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
     'pix': <ShoppingBag className="w-4 h-4 sm:w-5 sm:h-5 text-teal-500" />,
-
-    // Localização
     'endereço': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
     'localização': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
     'location': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
     'como chegar': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
     'mapa': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
     'rota': <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
-
-    // Agenda
     'agendar': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
     'agenda': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
     'marcar': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
@@ -236,8 +195,6 @@ function getLinkIcon(url: string, title: string): React.ReactNode {
     'horário': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
     'reserva': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
     'evento': <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
-
-    // Conteúdo
     'blog': <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" />,
     'artigo': <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" />,
     'post': <FaMedium className="w-4 h-4 sm:w-5 sm:h-5 text-gray-700 dark:text-gray-300" />,
@@ -248,8 +205,6 @@ function getLinkIcon(url: string, title: string): React.ReactNode {
     'video': <Video className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
     'live': <Video className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />,
     'ao vivo': <Video className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />,
-
-    // Profissional
     'currículo': <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
     'cv': <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
     'resume': <User className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
@@ -257,8 +212,6 @@ function getLinkIcon(url: string, title: string): React.ReactNode {
     'portfólio': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
     'trabalhos': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
     'projetos': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
-
-    // Cursos & Educação
     'curso': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
     'aula': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
     'mentoria': <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />,
@@ -267,22 +220,16 @@ function getLinkIcon(url: string, title: string): React.ReactNode {
     'material': <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
     'download': <Download className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
     'baixar': <Download className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
-
-    // Comunidade
     'grupo': <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />,
     'comunidade': <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />,
     'community': <FaDiscord className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-500" />,
     'newsletter': <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />,
     'inscreva': <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-blue-500" />,
-
-    // Promoções
     'promoção': <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-yellow-500" />,
     'oferta': <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-orange-500" />,
     'desconto': <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-green-500" />,
     'cupom': <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
     'black friday': <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-gray-900 dark:text-white" />,
-
-    // Celebração
     'aniversário': <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
     'birthday': <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-pink-500" />,
     'casamento': <Heart className="w-4 h-4 sm:w-5 sm:h-5 text-red-500" />,
@@ -291,14 +238,12 @@ function getLinkIcon(url: string, title: string): React.ReactNode {
     'party': <Cake className="w-4 h-4 sm:w-5 sm:h-5 text-purple-500" />,
   };
 
-  // Verifica palavras-chave no título
   for (const [keyword, icon] of Object.entries(titleKeywords)) {
     if (t.includes(keyword)) {
       return icon;
     }
   }
 
-  // 3. Detecção por padrões na URL
   if (u.includes('map') || u.includes('rua') || u.includes('avenida') || u.includes('local') || u.includes('endereco'))
     return <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" />;
 
@@ -314,7 +259,6 @@ function getLinkIcon(url: string, title: string): React.ReactNode {
   if (u.includes('survey') || u.includes('pesquisa') || u.includes('enquete'))
     return <Star className="w-4 h-4 sm:w-5 sm:h-5 text-[#FFC107]" />;
 
-  // 4. Fallback Padrão
   return <FaGlobe className="w-4 h-4 sm:w-5 sm:h-5 text-[#6366f1]" />;
 }
 
@@ -326,8 +270,6 @@ interface BackgroundConfig {
   imageUrl: string;
   imageBlur: number;
   imageOpacity: number;
-  // 🔥 NOVO: Opacidade dos cards quando tem imagem de fundo
-  cardOpacity?: number;
 }
 
 interface Particle {
@@ -510,7 +452,6 @@ function ParticleField({ color = "rgba(147, 51, 234, 0.4)" }: { color?: string }
   );
 }
 
-// 🔥 NOVO BADGE ULTRA - ESTILO INSTAGRAM VERIFICADO
 function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" | "large"; plan?: string }) {
   const sizeClasses = size === "large" ? "w-7 h-7 sm:w-8 sm:h-8" : "w-5 h-5 sm:w-6 sm:h-6";
 
@@ -568,22 +509,13 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
       <motion.span
         className={`inline-flex items-center justify-center ${sizeClasses} rounded-full bg-[#0095F6] ${config.glow} transition-all duration-300 flex-shrink-0 relative`}
         title="Conta Verificada Ultra"
-        whileHover={{
-          scale: 1.15,
-        }}
+        whileHover={{ scale: 1.15 }}
         transition={{ duration: 0.2 }}
       >
         <motion.span
           className="absolute inset-0 rounded-full bg-[#0095F6]"
-          animate={{
-            scale: [1, 1.3, 1],
-            opacity: [0.5, 0, 0.5],
-          }}
-          transition={{
-            duration: 2,
-            repeat: Infinity,
-            ease: "easeInOut"
-          }}
+          animate={{ scale: [1, 1.3, 1], opacity: [0.5, 0, 0.5] }}
+          transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
         />
         <span className="relative z-10 flex items-center justify-center">
           <Check className="w-4 h-4 sm:w-5 sm:h-5 text-white stroke-[3]" />
@@ -596,27 +528,16 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
     <motion.span
       className={`inline-flex items-center justify-center ${sizeClasses} rounded-full bg-gradient-to-r ${config.gradient} ${config.glow} transition-all duration-300 flex-shrink-0 relative overflow-hidden`}
       title={`Plano ${plan.charAt(0).toUpperCase() + plan.slice(1)}`}
-      whileHover={{
-        rotate: [0, -10, 10, -10, 0],
-        scale: 1.2,
-      }}
+      whileHover={{ rotate: [0, -10, 10, -10, 0], scale: 1.2 }}
       transition={{ duration: 0.5 }}
     >
       <motion.span
         className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"
-        animate={{
-          x: ['-200%', '200%'],
-        }}
-        transition={{
-          duration: 2,
-          repeat: Infinity,
-          ease: "linear"
-        }}
+        animate={{ x: ['-200%', '200%'] }}
+        transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
       />
       <span className={`absolute inset-0 rounded-full bg-gradient-to-r ${config.gradient} blur-md opacity-50 animate-pulse`} />
-      <span className="relative z-10">
-        {config.icon}
-      </span>
+      <span className="relative z-10">{config.icon}</span>
     </motion.span>
   );
 }
@@ -642,7 +563,6 @@ export default function PublicPageContent({
   const profileUrl = `${getBaseUrl()}/${username}`;
   const userAccentColor = customizations?.accentColor || '#6366f1';
 
-  // --- 🔥 LÓGICA DE SEPARAÇÃO: STATUS vs BIO ---
   const fullDescription = customizations?.description || "";
   let statusMessage = "";
   let displayBio = fullDescription;
@@ -669,7 +589,6 @@ export default function PublicPageContent({
     imageUrl: "",
     imageBlur: 0,
     imageOpacity: 100,
-    cardOpacity: 85, // 🔥 NOVO: Opacidade padrão dos cards
   });
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [showStickyCTA, setShowStickyCTA] = useState(false);
@@ -691,73 +610,13 @@ export default function PublicPageContent({
       : `rgba(99, 102, 241, ${alpha})`;
   }, []);
 
-  // 🔥 NOVA FUNÇÃO: Calcular background dos cards baseado no tipo de fundo
-  const getCardBackground = useCallback((isHovered: boolean = false) => {
-    const hasBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl;
-    const cardOpacity = (backgroundConfig.cardOpacity ?? 85) / 100;
-
-    if (hasBackgroundImage) {
-      // 🔥 Com imagem de fundo: cards mais transparentes para ver a imagem
-      if (isDarkMode) {
-        return isHovered
-          ? `rgba(17, 24, 39, ${Math.min(cardOpacity + 0.1, 0.95)})`
-          : `rgba(17, 24, 39, ${cardOpacity * 0.7})`;
-      } else {
-        return isHovered
-          ? `rgba(255, 255, 255, ${Math.min(cardOpacity + 0.1, 0.95)})`
-          : `rgba(255, 255, 255, ${cardOpacity * 0.7})`;
-      }
-    } else {
-      // Sem imagem de fundo: comportamento normal
-      if (isDarkMode) {
-        return isHovered
-          ? 'rgba(17, 24, 39, 0.85)'
-          : 'rgba(17, 24, 39, 0.6)';
-      } else {
-        return isHovered
-          ? 'rgba(255, 255, 255, 0.85)'
-          : 'rgba(255, 255, 255, 0.6)';
-      }
-    }
-  }, [backgroundConfig, isDarkMode]);
-
-  // 🔥 NOVA FUNÇÃO: Calcular background dos links
-  const getLinkBackground = useCallback((isHovered: boolean = false, isCta: boolean = false) => {
-    const hasBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl;
-    const cardOpacity = (backgroundConfig.cardOpacity ?? 85) / 100;
-
-    if (hasBackgroundImage) {
-      if (isCta) {
-        return `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.25)}, ${hexToRgba(userAccentColor, 0.1)})`;
-      }
-      if (isDarkMode) {
-        return isHovered
-          ? `rgba(31, 41, 55, ${cardOpacity * 0.8})`
-          : `rgba(31, 41, 55, ${cardOpacity * 0.5})`;
-      } else {
-        return isHovered
-          ? `rgba(255, 255, 255, ${cardOpacity * 0.8})`
-          : `rgba(255, 255, 255, ${cardOpacity * 0.5})`;
-      }
-    } else {
-      if (isCta) {
-        return `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, ${hexToRgba(userAccentColor, 0.05)})`;
-      }
-      if (isDarkMode) {
-        return 'rgba(31, 41, 55, 0.5)';
-      } else {
-        return 'rgba(255, 255, 255, 0.5)';
-      }
-    }
-  }, [backgroundConfig, isDarkMode, userAccentColor, hexToRgba]);
+  // 🔥 Verificar se tem imagem de fundo
+  const hasFullBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl && backgroundConfig.style === "full";
+  const hasHeaderBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl && backgroundConfig.style === "header";
 
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 100) {
-        setShowStickyCTA(true);
-      } else {
-        setShowStickyCTA(false);
-      }
+      setShowStickyCTA(window.scrollY > 100);
     };
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
@@ -783,7 +642,6 @@ export default function PublicPageContent({
         imageUrl: customizations.backgroundImageUrl || "",
         imageBlur: customizations.backgroundImageBlur || 0,
         imageOpacity: customizations.backgroundImageOpacity || 100,
-        cardOpacity: (customizations as unknown as { cardOpacity?: number }).cardOpacity ?? 85, // 🔥 NOVO
       });
     }
 
@@ -804,10 +662,7 @@ export default function PublicPageContent({
     QRCode.toDataURL(profileUrl, {
       width: 256,
       margin: 2,
-      color: {
-        dark: userAccentColor,
-        light: '#FFFFFF',
-      },
+      color: { dark: userAccentColor, light: '#FFFFFF' },
     }).then(setQrCodeDataUrl);
 
     setTimeout(() => setIsLoading(false), 1200);
@@ -821,11 +676,7 @@ export default function PublicPageContent({
     };
 
     function fire(particleRatio: number, opts: ConfettiOptions) {
-      confetti({
-        ...defaults,
-        ...opts,
-        particleCount: Math.floor(count * particleRatio)
-      });
+      confetti({ ...defaults, ...opts, particleCount: Math.floor(count * particleRatio) });
     }
 
     fire(0.25, { spread: 26, startVelocity: 55 });
@@ -842,11 +693,9 @@ export default function PublicPageContent({
           url: profileUrl,
         });
         setShared(true);
-
         const stats = JSON.parse(localStorage.getItem(`stats_${username}`) || '{}');
         stats.shares = (stats.shares || 0) + 1;
         localStorage.setItem(`stats_${username}`, JSON.stringify(stats));
-
         setTimeout(() => setShared(false), 2000);
       } catch {
         copyToClipboard();
@@ -863,10 +712,7 @@ export default function PublicPageContent({
   };
 
   const handleReaction = (linkId: string) => {
-    const newReactions = {
-      ...linkReactions,
-      [linkId]: (linkReactions[linkId] || 0) + 1
-    };
+    const newReactions = { ...linkReactions, [linkId]: (linkReactions[linkId] || 0) + 1 };
     setLinkReactions(newReactions);
     localStorage.setItem(`reactions_${username}`, JSON.stringify(newReactions));
 
@@ -900,10 +746,7 @@ export default function PublicPageContent({
       visitorId,
     });
 
-    const newClicks = {
-      ...clickCounts,
-      [link._id]: (clickCounts[link._id] || 0) + 1
-    };
+    const newClicks = { ...clickCounts, [link._id]: (clickCounts[link._id] || 0) + 1 };
     setClickCounts(newClicks);
     localStorage.setItem(`clicks_${username}`, JSON.stringify(newClicks));
 
@@ -927,9 +770,7 @@ export default function PublicPageContent({
       <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
         <div
           className="absolute inset-0"
-          style={{
-            background: `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`
-          }}
+          style={{ background: `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)` }}
         />
         <motion.div
           className="absolute inset-0 opacity-30"
@@ -944,15 +785,10 @@ export default function PublicPageContent({
           }}
           transition={{ duration: 5, repeat: Infinity }}
         />
-
         <motion.div
           initial={{ scale: 0, rotate: 0 }}
           animate={{ scale: 1, rotate: 360 }}
-          transition={{
-            type: "spring",
-            stiffness: 260,
-            damping: 20,
-          }}
+          transition={{ type: "spring", stiffness: 260, damping: 20 }}
           className="relative z-10"
         >
           <div className="flex flex-col items-center gap-6">
@@ -969,10 +805,7 @@ export default function PublicPageContent({
               />
               <motion.div
                 className="absolute inset-0 m-auto w-8 h-8 sm:w-12 sm:h-12 bg-white rounded-full"
-                animate={{
-                  scale: [1, 1.2, 1],
-                  opacity: [0.5, 1, 0.5]
-                }}
+                animate={{ scale: [1, 1.2, 1], opacity: [0.5, 1, 0.5] }}
                 transition={{ duration: 1.5, repeat: Infinity }}
               />
             </div>
@@ -991,29 +824,14 @@ export default function PublicPageContent({
     );
   }
 
-  // 🔥 FUNÇÃO MELHORADA: Background Style para página
   const getBackgroundStyle = () => {
     if (backgroundConfig.type === "color") {
       return { background: backgroundConfig.color1 };
     } else if (backgroundConfig.type === "gradient") {
-      return {
-        background: `linear-gradient(135deg, ${backgroundConfig.color1}, ${backgroundConfig.color2})`
-      };
+      return { background: `linear-gradient(135deg, ${backgroundConfig.color1}, ${backgroundConfig.color2})` };
     }
-    // Para imagem, retorna transparente (a imagem é renderizada separadamente)
-    return { background: 'transparent' };
+    return {};
   };
-
- const getProtectedTextClasses = () => {
-  // Se tiver imagem de fundo, força sombra preta no texto para garantir leitura
-  if (backgroundConfig.type === "image" && backgroundConfig.imageUrl) {
-      return "text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]";
-  }
-  return "";
-};
-
-  // 🔥 FUNÇÃO: Verificar se tem imagem de fundo ativa
-  const hasActiveBackgroundImage = backgroundConfig.type === "image" && backgroundConfig.imageUrl;
 
   const isCtaLink = (url: string, title: string): boolean => {
     const ctaKeywords = [
@@ -1031,6 +849,33 @@ export default function PublicPageContent({
   const isNewLink = (creationTime: number): boolean => {
     const sevenDaysAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
     return creationTime > sevenDaysAgo;
+  };
+
+  // 🔥 FUNÇÃO: Background do card com transparência
+  const getCardBackground = () => {
+    if (hasFullBackgroundImage || hasHeaderBackgroundImage) {
+      return isDarkMode
+        ? 'rgba(17, 24, 39, 0.75)'
+        : 'rgba(255, 255, 255, 0.75)';
+    }
+    return isDarkMode
+      ? 'rgba(17, 24, 39, 0.6)'
+      : 'rgba(255, 255, 255, 0.6)';
+  };
+
+  // 🔥 FUNÇÃO: Background dos links
+  const getLinkBackground = (isHovered: boolean, isCta: boolean) => {
+    if (isCta) {
+      return `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.2)}, ${hexToRgba(userAccentColor, 0.1)})`;
+    }
+    if (hasFullBackgroundImage || hasHeaderBackgroundImage) {
+      return isDarkMode
+        ? isHovered ? 'rgba(31, 41, 55, 0.8)' : 'rgba(31, 41, 55, 0.6)'
+        : isHovered ? 'rgba(255, 255, 255, 0.85)' : 'rgba(255, 255, 255, 0.7)';
+    }
+    return isDarkMode
+      ? 'rgba(31, 41, 55, 0.5)'
+      : 'rgba(255, 255, 255, 0.5)';
   };
 
   return (
@@ -1074,11 +919,12 @@ export default function PublicPageContent({
         </>
       )}
 
-      {/* 🔥 PARTÍCULAS: Só mostrar se NÃO tiver imagem de fundo full */}
-      {!(backgroundConfig.type === "image" && backgroundConfig.style === "full") && (
+      {/* 🔥 PARTÍCULAS - Só mostrar se NÃO tiver imagem de fundo full */}
+      {!hasFullBackgroundImage && (
         <ParticleField color={hexToRgba(userAccentColor, 0.4)} />
       )}
 
+      {/* Progress bar */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 transform-origin-0 z-50"
         style={{
@@ -1087,81 +933,91 @@ export default function PublicPageContent({
         }}
       />
 
-      {/* 🔥 BACKGROUND CONTAINER - MELHORADO */}
-      <div className="fixed inset-0 -z-10" style={getBackgroundStyle()}>
-        {/* 🔥 IMAGEM DE FUNDO FULL - Mais visível */}
-        {backgroundConfig.type === "image" && backgroundConfig.imageUrl && backgroundConfig.style === "full" && (
-          <>
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url(${backgroundConfig.imageUrl})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundAttachment: 'fixed',
-                filter: `blur(${backgroundConfig.imageBlur}px)`,
-                opacity: backgroundConfig.imageOpacity / 100,
-                transform: 'scale(1.02)', // Evita bordas brancas com blur
-              }}
-            />
-            {/* 🔥 Overlay mais sutil para não esconder a imagem */}
-            <div
-              className="absolute inset-0"
-              style={{
-                background: isDarkMode
-                  ? 'linear-gradient(to bottom, rgba(0,0,0,0.3) 0%, rgba(0,0,0,0.5) 100%)'
-                  : 'linear-gradient(to bottom, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.3) 100%)',
-              }}
-            />
-          </>
-        )}
+      {/* 🔥 BACKGROUND FIXO - IMAGEM FULL SCREEN */}
+      {hasFullBackgroundImage && (
+        <div className="fixed inset-0 -z-10">
+          <div
+            className="absolute inset-0 w-full h-full"
+            style={{
+              backgroundImage: `url(${backgroundConfig.imageUrl})`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              backgroundAttachment: 'fixed',
+              filter: backgroundConfig.imageBlur > 0 ? `blur(${backgroundConfig.imageBlur}px)` : 'none',
+              opacity: backgroundConfig.imageOpacity / 100,
+              transform: 'scale(1.05)', // Evita bordas brancas com blur
+            }}
+          />
+          {/* Overlay sutil */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: isDarkMode
+                ? 'linear-gradient(to bottom, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.4) 100%)'
+                : 'linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.2) 100%)',
+            }}
+          />
+        </div>
+      )}
 
-        {/* Efeito gradiente animado (sutil quando tem imagem) */}
-        <motion.div
-          className="absolute inset-0"
-          style={{ opacity: hasActiveBackgroundImage ? 0.1 : 0.2 }}
-          animate={{
-            background: [
-              `linear-gradient(135deg, ${userAccentColor}33, transparent)`,
-              `linear-gradient(225deg, ${userAccentColor}33, transparent)`,
-              `linear-gradient(135deg, ${userAccentColor}33, transparent)`,
-            ]
-          }}
-          transition={{ duration: 10, repeat: Infinity }}
-        />
-      </div>
+      {/* 🔥 BACKGROUND NORMAL (cor/gradiente) - quando NÃO tem imagem full */}
+      {!hasFullBackgroundImage && (
+        <div className="fixed inset-0 -z-10" style={getBackgroundStyle()}>
+          <motion.div
+            className="absolute inset-0 opacity-20"
+            animate={{
+              background: [
+                `linear-gradient(135deg, ${userAccentColor}33, transparent)`,
+                `linear-gradient(225deg, ${userAccentColor}33, transparent)`,
+                `linear-gradient(135deg, ${userAccentColor}33, transparent)`,
+              ]
+            }}
+            transition={{ duration: 10, repeat: Infinity }}
+          />
+        </div>
+      )}
 
-      {/* 🔥 HEADER - MELHORADO */}
+      {/* 🔥 HEADER - ALTURA DINÂMICA PARA IMAGEM */}
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8 }}
-        className="relative h-48 sm:h-64 md:h-80 overflow-hidden"
+        className={`relative overflow-hidden ${
+          hasHeaderBackgroundImage
+            ? 'min-h-[300px] sm:min-h-[400px] md:min-h-[450px] lg:min-h-[500px]' // 🔥 MAIOR quando tem imagem
+            : 'h-48 sm:h-64 md:h-80' // Altura normal
+        }`}
       >
-        {/* 🔥 HEADER COM IMAGEM - Mais proeminente */}
-        {backgroundConfig.type === "image" && backgroundConfig.imageUrl && backgroundConfig.style === "header" ? (
+        {/* 🔥 IMAGEM NO HEADER - EXIBIÇÃO COMPLETA */}
+        {hasHeaderBackgroundImage ? (
           <>
-            <div
-              className="absolute inset-0"
-              style={{
-                backgroundImage: `url(${backgroundConfig.imageUrl})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                filter: `blur(${backgroundConfig.imageBlur}px)`,
-                opacity: backgroundConfig.imageOpacity / 100,
-                transform: 'scale(1.02)',
-              }}
-            />
-            {/* 🔥 Gradiente sutil na parte inferior para transição suave */}
-            <div
-              className="absolute inset-0"
-                          style={{
-                background: 'linear-gradient(to top, rgba(0,0,0,0.4) 0%, transparent 50%, transparent 100%)',
-              }}
-            />
+            {/* Container da imagem com aspect ratio preservado */}
+            <div className="absolute inset-0 w-full h-full">
+              <div
+                className="absolute inset-0 w-full h-full"
+                style={{
+                  backgroundImage: `url(${backgroundConfig.imageUrl})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                  backgroundRepeat: 'no-repeat',
+                  filter: backgroundConfig.imageBlur > 0 ? `blur(${backgroundConfig.imageBlur}px)` : 'none',
+                  opacity: backgroundConfig.imageOpacity / 100,
+                }}
+              />
+              {/* Gradiente na parte inferior para transição suave */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: isDarkMode
+                    ? 'linear-gradient(to bottom, transparent 40%, rgba(17, 24, 39, 0.8) 100%)'
+                    : 'linear-gradient(to bottom, transparent 40%, rgba(243, 244, 246, 0.8) 100%)',
+                }}
+              />
+            </div>
           </>
         ) : (
-          /* Header com gradiente de cor (quando não tem imagem no header) */
+          /* Header com gradiente de cor (quando não tem imagem) */
           <motion.div
             className="absolute inset-0"
             style={{
@@ -1183,14 +1039,8 @@ export default function PublicPageContent({
               style={{
                 background: `linear-gradient(45deg, transparent 30%, ${hexToRgba(userAccentColor, 0.3)} 50%, transparent 70%)`
               }}
-              animate={{
-                x: ['-200%', '200%']
-              }}
-              transition={{
-                duration: 3,
-                repeat: Infinity,
-                ease: "linear"
-              }}
+              animate={{ x: ['-200%', '200%'] }}
+              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
             />
           </motion.div>
         )}
@@ -1201,30 +1051,16 @@ export default function PublicPageContent({
             whileHover={{ scale: 1.1, rotate: 180 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsDarkMode(!isDarkMode)}
-            className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-2xl text-white border border-white/20 hover:bg-white/20 transition-all duration-300 shadow-lg hover:shadow-xl"
-            style={{
-              boxShadow: `0 4px 20px ${hexToRgba(userAccentColor, 0.3)}`
-            }}
+            className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-xl text-white border border-white/30 hover:bg-white/30 transition-all duration-300 shadow-lg"
+            style={{ boxShadow: `0 4px 20px ${hexToRgba(userAccentColor, 0.3)}` }}
           >
             <AnimatePresence mode="wait">
               {isDarkMode ? (
-                <motion.div
-                  key="sun"
-                  initial={{ rotate: -180, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: 180, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
+                <motion.div key="sun" initial={{ rotate: -180, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 180, opacity: 0 }} transition={{ duration: 0.3 }}>
                   <Sun className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.div>
               ) : (
-                <motion.div
-                  key="moon"
-                  initial={{ rotate: 180, opacity: 0 }}
-                  animate={{ rotate: 0, opacity: 1 }}
-                  exit={{ rotate: -180, opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
+                <motion.div key="moon" initial={{ rotate: 180, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -180, opacity: 0 }} transition={{ duration: 0.3 }}>
                   <Moon className="w-4 h-4 sm:w-5 sm:h-5" />
                 </motion.div>
               )}
@@ -1236,10 +1072,8 @@ export default function PublicPageContent({
               whileHover={{ scale: 1.1, y: -2 }}
               whileTap={{ scale: 0.95 }}
               onClick={() => setShowQRCode(!showQRCode)}
-              className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white/10 backdrop-blur-2xl text-white border border-white/20 hover:bg-white/20 transition-all duration-300 shadow-lg hover:shadow-xl"
-              style={{
-                boxShadow: `0 4px 20px ${hexToRgba(userAccentColor, 0.3)}`
-              }}
+              className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-xl text-white border border-white/30 hover:bg-white/30 transition-all duration-300 shadow-lg"
+              style={{ boxShadow: `0 4px 20px ${hexToRgba(userAccentColor, 0.3)}` }}
               title="Ver QR Code"
             >
               <QrCode className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -1249,32 +1083,20 @@ export default function PublicPageContent({
               whileHover={{ scale: 1.1, y: -2 }}
               whileTap={{ scale: 0.95 }}
               onClick={handleShare}
-              className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl backdrop-blur-2xl text-white border border-white/20 transition-all duration-300 shadow-lg hover:shadow-xl"
+              className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl backdrop-blur-xl text-white border border-white/30 transition-all duration-300 shadow-lg"
               style={{
-                background: shared
-                  ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.4), rgba(5, 150, 105, 0.4))'
-                  : 'rgba(255, 255, 255, 0.1)',
+                background: shared ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.4), rgba(5, 150, 105, 0.4))' : 'rgba(255, 255, 255, 0.2)',
                 boxShadow: `0 4px 20px ${hexToRgba(userAccentColor, 0.3)}`
               }}
               title={shared ? "Link copiado!" : "Compartilhar"}
             >
               <AnimatePresence mode="wait">
                 {shared ? (
-                  <motion.div
-                    key="check"
-                    initial={{ scale: 0, rotate: -180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0, rotate: 180 }}
-                  >
-                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                  <motion.div key="check" initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, rotate: 180 }}>
+                                        <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.div>
                 ) : (
-                  <motion.div
-                    key="share"
-                    initial={{ scale: 0, rotate: 180 }}
-                    animate={{ scale: 1, rotate: 0 }}
-                    exit={{ scale: 0, rotate: -180 }}
-                  >
+                  <motion.div key="share" initial={{ scale: 0, rotate: 180 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, rotate: -180 }}>
                     <Share2 className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.div>
                 )}
@@ -1307,27 +1129,15 @@ export default function PublicPageContent({
               exit={{ opacity: 0, y: -20, scale: 0.9 }}
               className="fixed top-20 right-4 sm:right-8 z-50 rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-3 sm:p-4 w-auto max-w-[calc(100vw-2rem)]"
               style={{
-                background: isDarkMode
-                  ? 'rgba(17, 24, 39, 0.95)'
-                  : 'rgba(255, 255, 255, 0.95)',
+                background: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
                 backdropFilter: 'blur(20px)',
                 boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.3)}`
               }}
             >
               <div className="flex flex-col items-center gap-2 sm:gap-3">
-                <motion.div
-                  className="relative"
-                  whileHover={{ scale: 1.05 }}
-                >
-                  <div
-                    className="absolute inset-0 rounded-lg blur-xl opacity-50"
-                    style={{ background: userAccentColor }}
-                  />
-                  <img
-                    src={qrCodeDataUrl}
-                    alt="QR Code"
-                    className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-lg relative z-10"
-                  />
+                <motion.div className="relative" whileHover={{ scale: 1.05 }}>
+                  <div className="absolute inset-0 rounded-lg blur-xl opacity-50" style={{ background: userAccentColor }} />
+                  <img src={qrCodeDataUrl} alt="QR Code" className="w-32 h-32 sm:w-40 sm:h-40 md:w-48 md:h-48 rounded-lg relative z-10" />
                 </motion.div>
 
                 <motion.button
@@ -1338,16 +1148,10 @@ export default function PublicPageContent({
                     link.download = `${username}-qrcode.png`;
                     link.href = qrCodeDataUrl;
                     link.click();
-                    confetti({
-                      particleCount: 100,
-                      spread: 70,
-                      origin: { y: 0.6 }
-                    });
+                    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
                   }}
                   className="flex items-center gap-2 px-3 py-2 sm:px-4 text-xs sm:text-sm text-white rounded-lg sm:rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
-                  style={{
-                    background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`,
-                  }}
+                  style={{ background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})` }}
                 >
                   <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                   Baixar QR Code
@@ -1359,7 +1163,9 @@ export default function PublicPageContent({
       </motion.div>
 
       {/* 🔥 CONTEÚDO PRINCIPAL */}
-      <div className="relative -mt-24 sm:-mt-32 md:-mt-40 max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-8 sm:pb-12 md:pb-16 w-full">
+      <div className={`relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-8 sm:pb-12 md:pb-16 w-full ${
+        hasHeaderBackgroundImage ? '-mt-20 sm:-mt-28 md:-mt-32' : '-mt-24 sm:-mt-32 md:-mt-40'
+      }`}>
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
 
           {/* 🔥 SIDEBAR - CARD DO PERFIL */}
@@ -1370,7 +1176,7 @@ export default function PublicPageContent({
             className="lg:col-span-1"
           >
             <div className="lg:sticky lg:top-8 space-y-3 sm:space-y-4">
-              {/* 🔥 CARD DO PERFIL - TRANSPARÊNCIA AJUSTÁVEL */}
+              {/* 🔥 CARD DO PERFIL - GLASS MORPHISM */}
               <motion.div
                 className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-6 sm:p-5 md:p-6 shadow-2xl border border-white/20 dark:border-white/10"
                 style={{
@@ -1379,22 +1185,14 @@ export default function PublicPageContent({
                   WebkitBackdropFilter: 'blur(20px)',
                   boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.2)}, inset 0 0 0 1px rgba(255,255,255,0.1)`
                 }}
-                whileHover={{
-                  y: -5,
-                  boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.3)}`
-                }}
+                whileHover={{ y: -5, boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.3)}` }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
-                {/* Overlay gradiente sutil */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
                 <motion.div
                   className="absolute inset-0 rounded-2xl sm:rounded-3xl"
-                  style={{
-                    background: `linear-gradient(135deg, ${userAccentColor}15, transparent)`,
-                  }}
-                  animate={{
-                    opacity: [0.3, 0.5, 0.3],
-                  }}
+                  style={{ background: `linear-gradient(135deg, ${userAccentColor}15, transparent)` }}
+                  animate={{ opacity: [0.3, 0.5, 0.3] }}
                   transition={{ duration: 3, repeat: Infinity }}
                 />
 
@@ -1409,23 +1207,19 @@ export default function PublicPageContent({
                       <motion.div
                         className="absolute inset-0 rounded-full blur-2xl opacity-0 group-hover:opacity-75 transition-opacity duration-500"
                         style={{ background: userAccentColor }}
-                        animate={{
-                          scale: [1, 1.2, 1],
-                        }}
+                        animate={{ scale: [1, 1.2, 1] }}
                         transition={{ duration: 2, repeat: Infinity }}
                       />
                       <motion.div
                         className="absolute inset-0 rounded-full border-4 opacity-0 group-hover:opacity-100"
                         style={{ borderColor: userAccentColor }}
-                        animate={{
-                          scale: [1, 1.3],
-                          opacity: [1, 0],
-                        }}
+                        animate={{ scale: [1, 1.3], opacity: [1, 0] }}
                         transition={{ duration: 1.5, repeat: Infinity }}
                       />
 
                       {customizations?.profilePictureUrl ? (
-                        <div className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full overflow-hidden shadow-2xl bg-white p-1 border-4 relative z-10"
+                        <div
+                          className="w-32 h-32 sm:w-36 sm:h-36 md:w-40 md:h-40 rounded-full overflow-hidden shadow-2xl bg-white p-1 border-4 relative z-10"
                           style={{
                             borderColor: userAccentColor,
                             boxShadow: `0 0 30px ${hexToRgba(userAccentColor, 0.5)}`
@@ -1467,10 +1261,8 @@ export default function PublicPageContent({
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                       <motion.h1
-                        className={`text-2xl sm:text-3xl font-black break-all ${hasActiveBackgroundImage ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]' : ''}`}
-                        style={{
-                          color: userAccentColor,
-                        }}
+                        className={`text-2xl sm:text-3xl font-black break-all ${(hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]' : ''}`}
+                        style={{ color: userAccentColor }}
                       >
                         @{username}
                       </motion.h1>
@@ -1484,8 +1276,9 @@ export default function PublicPageContent({
                           whileHover={{ scale: 1.05 }}
                         >
                           <Sparkles className="w-3 h-3 text-purple-500" />
-                          <p className={`text-[11px] font-medium ${getProtectedTextClasses()}`}
-                            style={{ color: hasActiveBackgroundImage ? '#ffffff' : isDarkMode ? '#e5e7eb' : '#4b5563' }}
+                          <p
+                            className="text-[11px] font-medium"
+                            style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? '#ffffff' : isDarkMode ? '#e5e7eb' : '#4b5563' }}
                           >
                             Crie seu perfil grátis no <span className="font-bold text-purple-600 dark:text-purple-400">Freelinnk</span>
                           </p>
@@ -1496,8 +1289,8 @@ export default function PublicPageContent({
                     {/* Bio */}
                     {displayBio && (
                       <motion.p
-                        className={`text-base sm:text-lg leading-relaxed px-4 ${getProtectedTextClasses()} ${hasActiveBackgroundImage ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]' : ''}`}
-                        style={{ color: hasActiveBackgroundImage ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
+                        className={`text-base sm:text-lg leading-relaxed px-4 ${(hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : ''}`}
+                        style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? (isDarkMode ? '#e5e7eb' : '#374151') : isDarkMode ? '#d1d5db' : '#4b5563' }}
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: 0.3 }}
@@ -1507,13 +1300,11 @@ export default function PublicPageContent({
                     )}
 
                     {/* Data de criação */}
-                    <div className={`flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap pt-2 ${getProtectedTextClasses()}`}
-                      style={{ color: hasActiveBackgroundImage ? 'rgba(255,255,255,0.8)' : isDarkMode ? '#9ca3af' : '#6b7280' }}
+                    <div
+                      className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap pt-2"
+                      style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'rgba(255,255,255,0.8)' : isDarkMode ? '#9ca3af' : '#6b7280' }}
                     >
-                      <motion.div
-                        className="flex items-center gap-1"
-                        whileHover={{ scale: 1.05 }}
-                      >
+                      <motion.div className="flex items-center gap-1" whileHover={{ scale: 1.05 }}>
                         <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
                         <span>Desde {joinDate}</span>
                       </motion.div>
@@ -1532,7 +1323,7 @@ export default function PublicPageContent({
             className="lg:col-span-2 w-full max-w-full"
           >
             <div className="space-y-3 sm:space-y-4">
-              {/* 🔥 CARD DOS LINKS - TRANSPARÊNCIA AJUSTÁVEL */}
+              {/* 🔥 CARD DOS LINKS - GLASS MORPHISM */}
               <motion.div
                 className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/20 dark:border-white/10"
                 style={{
@@ -1543,21 +1334,16 @@ export default function PublicPageContent({
                 }}
                 whileHover={{ y: -2 }}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none" />
 
                 <div className="relative z-10">
                   {/* Header */}
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <motion.h2
-                      className={`text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2 ${getProtectedTextClasses()} ${hasActiveBackgroundImage ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.5)]' : ''}`}
-                      style={{
-                        color: userAccentColor,
-                      }}
+                      className={`text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2 ${(hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]' : ''}`}
+                      style={{ color: userAccentColor }}
                     >
-                      <motion.div
-                        animate={{ rotate: [0, 360] }}
-                        transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-                      >
+                      <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 3, repeat: Infinity, ease: "linear" }}>
                         <Sparkles className="w-4 h-4 sm:w-5 sm:h-5" style={{ color: userAccentColor }} />
                       </motion.div>
                       Links
@@ -1577,17 +1363,8 @@ export default function PublicPageContent({
                             key={link._id}
                             initial={{ opacity: 0, x: -50, rotateY: -15 }}
                             animate={{ opacity: 1, x: 0, rotateY: 0 }}
-                            transition={{
-                              delay: index * 0.08,
-                              type: "spring",
-                              stiffness: 120,
-                              damping: 14
-                            }}
-                            whileHover={{
-                              scale: isCta ? 1.05 : 1.03,
-                              x: 8,
-                              transition: { type: "spring", stiffness: 400 }
-                            }}
+                            transition={{ delay: index * 0.08, type: "spring", stiffness: 120, damping: 14 }}
+                            whileHover={{ scale: isCta ? 1.05 : 1.03, x: 8, transition: { type: "spring", stiffness: 400 } }}
                             whileTap={{ scale: 0.98 }}
                             onHoverStart={() => setHoveredLink(link._id)}
                             onHoverEnd={() => setHoveredLink(null)}
@@ -1597,8 +1374,7 @@ export default function PublicPageContent({
                               href={link.url}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className={`group relative flex items-center gap-2.5 sm:gap-3 w-full rounded-xl sm:rounded-2xl p-3 sm:p-3.5 md:p-4 font-bold text-sm sm:text-base transition-all duration-300 overflow-hidden ${isCta ? 'ring-2 ring-offset-2' : ''
-                                }`}
+                              className={`group relative flex items-center gap-2.5 sm:gap-3 w-full rounded-xl sm:rounded-2xl p-3 sm:p-3.5 md:p-4 font-bold text-sm sm:text-base transition-all duration-300 overflow-hidden ${isCta ? 'ring-2 ring-offset-2' : ''}`}
                               style={{
                                 background: getLinkBackground(isHovered, isCta),
                                 backdropFilter: 'blur(12px)',
@@ -1609,7 +1385,7 @@ export default function PublicPageContent({
                                   ? userAccentColor
                                   : isHovered
                                     ? userAccentColor
-                                    : hasActiveBackgroundImage
+                                    : (hasFullBackgroundImage || hasHeaderBackgroundImage)
                                       ? 'rgba(255,255,255,0.3)'
                                       : 'rgba(255,255,255,0.2)',
                                 boxShadow: isCta
@@ -1626,18 +1402,9 @@ export default function PublicPageContent({
                               {isCta && (
                                 <motion.div
                                   className="absolute inset-0 rounded-xl sm:rounded-2xl"
-                                  style={{
-                                    border: `2px solid ${userAccentColor}`,
-                                  }}
-                                  animate={{
-                                    scale: [1, 1.02, 1],
-                                    opacity: [0.5, 0.2, 0.5],
-                                  }}
-                                  transition={{
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    ease: "easeInOut"
-                                  }}
+                                  style={{ border: `2px solid ${userAccentColor}` }}
+                                  animate={{ scale: [1, 1.02, 1], opacity: [0.5, 0.2, 0.5] }}
+                                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                                 />
                               )}
 
@@ -1645,36 +1412,21 @@ export default function PublicPageContent({
                               <motion.div
                                 className="absolute inset-0 opacity-0 group-hover:opacity-100"
                                 initial={false}
-                                animate={{
-                                  background: isHovered
-                                    ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, transparent)`
-                                    : 'transparent',
-                                }}
+                                animate={{ background: isHovered ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, transparent)` : 'transparent' }}
                                 transition={{ duration: 0.3 }}
                               />
 
                               {/* Efeito shimmer */}
                               <motion.div
                                 className="absolute inset-0 opacity-0 group-hover:opacity-100"
-                                style={{
-                                  background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)`
-                                }}
-                                animate={isHovered ? {
-                                  x: ['-100%', '200%']
-                                } : {}}
-                                transition={{
-                                  duration: 1.2,
-                                  repeat: Infinity,
-                                  ease: "linear"
-                                }}
+                                style={{ background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)` }}
+                                animate={isHovered ? { x: ['-100%', '200%'] } : {}}
+                                transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
                               />
 
                               {/* Ícone do Link */}
                               <motion.span
-                                animate={isHovered ? {
-                                  rotate: [0, -10, 10, 0],
-                                  scale: [1, 1.1, 1],
-                                } : {}}
+                                animate={isHovered ? { rotate: [0, -10, 10, 0], scale: [1, 1.1, 1] } : {}}
                                 transition={{ duration: 0.5 }}
                                 className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg flex-shrink-0 overflow-hidden"
                                 style={{
@@ -1684,7 +1436,7 @@ export default function PublicPageContent({
                                       ? `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`
                                       : isHovered
                                         ? `linear-gradient(135deg, ${userAccentColor}30, ${userAccentColor}50)`
-                                        : hasActiveBackgroundImage
+                                        : (hasFullBackgroundImage || hasHeaderBackgroundImage)
                                           ? 'rgba(255, 255, 255, 0.3)'
                                           : isDarkMode
                                             ? 'linear-gradient(135deg, rgba(55, 65, 81, 0.8), rgba(75, 85, 99, 0.8))'
@@ -1697,17 +1449,9 @@ export default function PublicPageContent({
                                 }}
                               >
                                 {link.thumbnailUrl ? (
-                                  <Image
-                                    src={link.thumbnailUrl}
-                                    alt={link.title}
-                                    width={40}
-                                    height={40}
-                                    className="w-full h-full object-cover"
-                                  />
+                                  <Image src={link.thumbnailUrl} alt={link.title} width={40} height={40} className="w-full h-full object-cover" />
                                 ) : (
-                                  <span className={isCta ? 'text-white' : ''}>
-                                    {getLinkIcon(link.url, link.title)}
-                                  </span>
+                                  <span className={isCta ? 'text-white' : ''}>{getLinkIcon(link.url, link.title)}</span>
                                 )}
                               </motion.span>
 
@@ -1715,21 +1459,15 @@ export default function PublicPageContent({
                               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span
-                                    className={`break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300 ${hasActiveBackgroundImage ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]' : ''}`}
+                                    className={`break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300 ${(hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : ''}`}
                                     style={{
                                       color: isCta
-                                        ? hasActiveBackgroundImage
-                                          ? '#ffffff'
-                                          : isDarkMode
-                                            ? '#ffffff'
-                                            : '#1f2937'
+                                        ? (hasFullBackgroundImage || hasHeaderBackgroundImage) ? '#ffffff' : isDarkMode ? '#ffffff' : '#1f2937'
                                         : isHovered
                                           ? userAccentColor
-                                          : hasActiveBackgroundImage
-                                            ? '#ffffff'
-                                            : isDarkMode
-                                              ? '#f3f4f6'
-                                              : '#1f2937',
+                                          : (hasFullBackgroundImage || hasHeaderBackgroundImage)
+                                            ? (isDarkMode ? '#f3f4f6' : '#1f2937')
+                                            : isDarkMode ? '#f3f4f6' : '#1f2937',
                                     }}
                                   >
                                     {link.title}
@@ -1739,22 +1477,15 @@ export default function PublicPageContent({
                                       initial={{ scale: 0 }}
                                       animate={{ scale: 1 }}
                                       className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white shadow-lg"
-                                      style={{
-                                        boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)'
-                                      }}
+                                      style={{ boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)' }}
                                     >
                                       Novo
                                     </motion.span>
                                   )}
                                   {isCta && (
                                     <motion.span
-                                      animate={{
-                                        scale: [1, 1.1, 1],
-                                      }}
-                                      transition={{
-                                        duration: 1.5,
-                                        repeat: Infinity,
-                                      }}
+                                      animate={{ scale: [1, 1.1, 1] }}
+                                      transition={{ duration: 1.5, repeat: Infinity }}
                                       className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-full text-white shadow-lg"
                                       style={{
                                         background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`,
@@ -1779,53 +1510,36 @@ export default function PublicPageContent({
                                   }}
                                   className="flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full transition-all duration-300"
                                   style={{
-                                    background: linkReactions[link._id]
-                                      ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.25))'
-                                      : 'transparent',
-                                    boxShadow: linkReactions[link._id]
-                                      ? '0 0 20px rgba(239, 68, 68, 0.4)'
-                                      : 'none'
+                                    background: linkReactions[link._id] ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.25), rgba(220, 38, 38, 0.25))' : 'transparent',
+                                    boxShadow: linkReactions[link._id] ? '0 0 20px rgba(239, 68, 68, 0.4)' : 'none'
                                   }}
                                 >
-                                  <motion.div
-                                    animate={linkReactions[link._id] ? {
-                                      scale: [1, 1.4, 1],
-                                      rotate: [0, -15, 15, 0],
-                                    } : {}}
-                                    transition={{ duration: 0.4 }}
-                                  >
+                                  <motion.div animate={linkReactions[link._id] ? { scale: [1, 1.4, 1], rotate: [0, -15, 15, 0] } : {}} transition={{ duration: 0.4 }}>
                                     <Heart
                                       className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-all duration-300 ${linkReactions[link._id]
-                                          ? 'text-red-500 fill-current drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]'
-                                          : 'text-gray-400 hover:text-red-400'
+                                        ? 'text-red-500 fill-current drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]'
+                                        : 'text-gray-400 hover:text-red-400'
                                         }`}
                                     />
                                   </motion.div>
                                   <span
                                     className="text-[10px] sm:text-xs font-bold"
-                                    style={{ color: hasActiveBackgroundImage ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
+                                    style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? '#ffffff' : isDarkMode ? '#d1d5db' : '#4b5563' }}
                                   >
                                     {linkReactions[link._id] || 0}
                                   </span>
                                 </motion.button>
 
                                 <motion.div
-                                  animate={isHovered ? {
-                                    x: [0, 4, 0],
-                                    y: [0, -4, 0],
-                                  } : {}}
-                                  transition={{
-                                    duration: 0.6,
-                                    repeat: isHovered ? Infinity : 0,
-                                    ease: "easeInOut"
-                                  }}
+                                  animate={isHovered ? { x: [0, 4, 0], y: [0, -4, 0] } : {}}
+                                  transition={{ duration: 0.6, repeat: isHovered ? Infinity : 0, ease: "easeInOut" }}
                                 >
                                   <ExternalLink
                                     className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 hidden sm:block"
                                     style={{
                                       color: isHovered
                                         ? userAccentColor
-                                        : hasActiveBackgroundImage
+                                        : (hasFullBackgroundImage || hasHeaderBackgroundImage)
                                           ? 'rgba(255,255,255,0.7)'
                                           : 'rgb(156, 163, 175)',
                                     }}
@@ -1849,23 +1563,20 @@ export default function PublicPageContent({
                             background: `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.1)}, ${hexToRgba(userAccentColor, 0.2)})`,
                             boxShadow: `0 0 30px ${hexToRgba(userAccentColor, 0.2)}`
                           }}
-                          animate={{
-                            scale: [1, 1.05, 1],
-                          }}
+                          animate={{ scale: [1, 1.05, 1] }}
                           transition={{ duration: 2, repeat: Infinity }}
                         >
-                          <LinkIcon
-                            className="w-8 h-8 sm:w-10 sm:h-10"
-                            style={{ color: userAccentColor }}
-                          />
+                          <LinkIcon className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: userAccentColor }} />
                         </motion.div>
-                        <p className={`text-base sm:text-lg font-bold mb-2 ${getProtectedTextClasses()}`}
-                          style={{ color: hasActiveBackgroundImage ? '#ffffff' : isDarkMode ? '#9ca3af' : '#6b7280' }}
+                        <p
+                          className="text-base sm:text-lg font-bold mb-2"
+                          style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? '#ffffff' : isDarkMode ? '#9ca3af' : '#6b7280' }}
                         >
                           Nenhum link cadastrado ainda
                         </p>
-                        <p className={`text-xs sm:text-sm ${getProtectedTextClasses()}`}
-                          style={{ color: hasActiveBackgroundImage ? 'rgba(255,255,255,0.7)' : isDarkMode ? '#6b7280' : '#9ca3af' }}
+                        <p
+                          className="text-xs sm:text-sm"
+                          style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'rgba(255,255,255,0.7)' : isDarkMode ? '#6b7280' : '#9ca3af' }}
                         >
                           Os links aparecerão aqui quando forem adicionados
                         </p>
@@ -1886,62 +1597,35 @@ export default function PublicPageContent({
                     background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`,
                     boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.4)}`
                   }}
-                  whileHover={{
-                    scale: 1.02,
-                    boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.5)}`
-                  }}
+                  whileHover={{ scale: 1.02, boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.5)}` }}
                 >
                   <motion.div
                     className="absolute inset-0 opacity-20"
-                    style={{
-                      background: 'radial-gradient(circle at 50% 50%, white, transparent)'
-                    }}
-                    animate={{
-                      scale: [1, 1.5, 1],
-                      opacity: [0.2, 0.3, 0.2]
-                    }}
+                    style={{ background: 'radial-gradient(circle at 50% 50%, white, transparent)' }}
+                    animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0.3, 0.2] }}
                     transition={{ duration: 3, repeat: Infinity }}
                   />
 
                   <motion.div
                     className="absolute inset-0"
-                    style={{
-                      background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)'
-                    }}
-                    animate={{
-                      x: ['-100%', '200%']
-                    }}
-                    transition={{
-                      duration: 2,
-                      repeat: Infinity,
-                      ease: "linear"
-                    }}
+                    style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)' }}
+                    animate={{ x: ['-100%', '200%'] }}
+                    transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                   />
 
                   <div className="relative z-10 flex flex-col sm:flex-row items-center justify-between gap-3 sm:gap-4">
                     <div className="text-center sm:text-left">
                       <motion.h3
                         className="text-base sm:text-lg md:text-xl font-black mb-1 sm:mb-2 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2"
-                        animate={{
-                          textShadow: [
-                            '0 0 10px rgba(255,255,255,0.5)',
-                            '0 0 20px rgba(255,255,255,0.8)',
-                            '0 0 10px rgba(255,255,255,0.5)',
-                          ]
-                        }}
+                        animate={{ textShadow: ['0 0 10px rgba(255,255,255,0.5)', '0 0 20px rgba(255,255,255,0.8)', '0 0 10px rgba(255,255,255,0.5)'] }}
                         transition={{ duration: 2, repeat: Infinity }}
                       >
-                        <motion.div
-                          animate={{ rotate: [0, 360] }}
-                          transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-                        >
+                        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
                           <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
                         </motion.div>
                         Quer um perfil assim?
                       </motion.h3>
-                      <p className="text-white/90 text-xs sm:text-sm font-semibold">
-                        Crie sua página com recursos exclusivos!
-                      </p>
+                      <p className="text-white/90 text-xs sm:text-sm font-semibold">Crie sua página com recursos exclusivos!</p>
                     </div>
                     <Link href="/">
                       <motion.button
@@ -1952,17 +1636,9 @@ export default function PublicPageContent({
                       >
                         <motion.div
                           className="absolute inset-0"
-                          style={{
-                            background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)`
-                          }}
-                          animate={{
-                            x: ['-100%', '200%']
-                          }}
-                          transition={{
-                            duration: 1.5,
-                            repeat: Infinity,
-                            ease: "linear"
-                          }}
+                          style={{ background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)` }}
+                          animate={{ x: ['-100%', '200%'] }}
+                          transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                         />
                         <span className="relative z-10 flex items-center gap-2">
                           <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -1985,30 +1661,23 @@ export default function PublicPageContent({
             transition={{ delay: 0.8 }}
             className="mt-8 sm:mt-12 md:mt-16 pt-4 sm:pt-6 border-t border-white/10 text-center"
           >
-            <p className={`text-[10px] sm:text-xs flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap px-4 ${getProtectedTextClasses()}`}
-              style={{ color: hasActiveBackgroundImage ? 'rgba(255,255,255,0.8)' : isDarkMode ? '#9ca3af' : '#6b7280' }}
+            <p
+              className="text-[10px] sm:text-xs flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap px-4"
+              style={{ color: (hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'rgba(255,255,255,0.8)' : isDarkMode ? '#9ca3af' : '#6b7280' }}
             >
               Feito com
-              <motion.span
-                animate={{
-                  scale: [1, 1.2, 1],
-                }}
-                transition={{ duration: 1, repeat: Infinity }}
-              >
+              <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1, repeat: Infinity }}>
                 <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 fill-current flex-shrink-0" />
               </motion.span>
               por{" "}
-              <Link
-                href={getBaseUrl() + "/"}
-                className="hover:underline font-bold transition-all"
-                style={{ color: userAccentColor }}
-              >
+              <Link href={getBaseUrl() + "/"} className="hover:underline font-bold transition-all" style={{ color: userAccentColor }}>
                 Freelinnk
               </Link>
             </p>
           </motion.footer>
         )}
       </div>
+
 
       {/* Sticky CTA */}
       <AnimatePresence>
@@ -2059,9 +1728,7 @@ export default function PublicPageContent({
               </div>
 
               <div className="flex-1 text-center sm:text-left">
-                <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-1">
-                  🍪 Cookies e Privacidade
-                </h3>
+                <h3 className="font-bold text-sm text-gray-900 dark:text-white mb-1">🍪 Cookies e Privacidade</h3>
                 <p className="text-xs text-gray-600 dark:text-gray-300">
                   Usamos cookies e rastreadores para analisar o tráfego e melhorar sua experiência no perfil de @{username}. Você aceita?
                 </p>
@@ -2077,9 +1744,7 @@ export default function PublicPageContent({
                 <button
                   onClick={handleAcceptCookies}
                   className="flex-1 sm:flex-none px-6 py-2.5 rounded-xl text-xs font-bold text-white shadow-lg transition-transform hover:scale-105"
-                  style={{
-                    background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})`,
-                  }}
+                  style={{ background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})` }}
                 >
                   Aceitar
                 </button>
@@ -2100,11 +1765,7 @@ export default function PublicPageContent({
           whileTap={{ scale: 0.95 }}
           onClick={() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            confetti({
-              particleCount: 50,
-              spread: 60,
-              origin: { y: 0.8 }
-            });
+            confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
           }}
           className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full shadow-2xl flex items-center justify-center text-white z-40 border-2 border-white/20"
           style={{
@@ -2112,10 +1773,7 @@ export default function PublicPageContent({
             boxShadow: `0 4px 20px ${hexToRgba(userAccentColor, 0.5)}`
           }}
         >
-          <motion.div
-            animate={{ y: [-2, 2, -2] }}
-            transition={{ duration: 1.5, repeat: Infinity }}
-          >
+          <motion.div animate={{ y: [-2, 2, -2] }} transition={{ duration: 1.5, repeat: Infinity }}>
             <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 rotate-180" />
           </motion.div>
         </motion.button>
