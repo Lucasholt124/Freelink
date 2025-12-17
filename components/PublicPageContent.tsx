@@ -963,20 +963,9 @@ export default function PublicPageContent({
       )}
 
       {/* 🔥 BACKGROUND NORMAL (cor/gradiente) - quando NÃO tem imagem full */}
+      {/* CORREÇÃO: Removido o overlay que vazava a cor principal */}
       {!hasFullBackgroundImage && (
-        <div className="fixed inset-0 -z-10" style={getBackgroundStyle()}>
-          <motion.div
-            className="absolute inset-0 opacity-20"
-            animate={{
-              background: [
-                `linear-gradient(135deg, ${userAccentColor}33, transparent)`,
-                `linear-gradient(225deg, ${userAccentColor}33, transparent)`,
-                `linear-gradient(135deg, ${userAccentColor}33, transparent)`,
-              ]
-            }}
-            transition={{ duration: 10, repeat: Infinity }}
-          />
-        </div>
+        <div className="fixed inset-0 -z-10" style={getBackgroundStyle()} />
       )}
 
       {/* 🔥 HEADER - ALTURA DINÂMICA PARA IMAGEM */}
@@ -1019,30 +1008,15 @@ export default function PublicPageContent({
           </>
         ) : (
           /* Header com gradiente de cor (quando não tem imagem) */
+          /* CORREÇÃO: Transparente se o fundo for imagem full, senão usa a cor do tema */
           <motion.div
-  className="absolute inset-0"
-  style={{
-    // 🔥 CORREÇÃO AQUI:
-    // 1. Se tem Imagem Full (hasFullBackgroundImage), o header fica TRANSPARENTE
-    // 2. Se não, ele segue a lógica de gradiente ou cor
-    background: hasFullBackgroundImage
-      ? 'transparent'
-      : backgroundConfig.type === 'gradient'
-        ? `linear-gradient(135deg, ${backgroundConfig.color1}, ${backgroundConfig.color2})`
-        : backgroundConfig.type === 'color'
-          ? backgroundConfig.color1
-          : `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
-
-    clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
-  }}
-            animate={{
-              background: [
-                `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
-                `linear-gradient(135deg, ${userAccentColor}dd, ${userAccentColor})`,
-                `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
-              ]
+            className="absolute inset-0"
+            style={{
+              background: hasFullBackgroundImage
+                ? 'transparent'
+                : `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
+              clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
             }}
-            transition={{ duration: 5, repeat: Infinity }}
           >
             <div className="absolute inset-0 bg-black/10" />
             <motion.div
@@ -1104,7 +1078,7 @@ export default function PublicPageContent({
               <AnimatePresence mode="wait">
                 {shared ? (
                   <motion.div key="check" initial={{ scale: 0, rotate: -180 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, rotate: 180 }}>
-                                        <Check className="w-4 h-4 sm:w-5 sm:h-5" />
+                    <Check className="w-4 h-4 sm:w-5 sm:h-5" />
                   </motion.div>
                 ) : (
                   <motion.div key="share" initial={{ scale: 0, rotate: 180 }} animate={{ scale: 1, rotate: 0 }} exit={{ scale: 0, rotate: -180 }}>
@@ -1462,7 +1436,10 @@ export default function PublicPageContent({
                                 {link.thumbnailUrl ? (
                                   <Image src={link.thumbnailUrl} alt={link.title} width={40} height={40} className="w-full h-full object-cover" />
                                 ) : (
-                                  <span className={isCta ? 'text-white' : ''}>{getLinkIcon(link.url, link.title)}</span>
+                                  // CORREÇÃO DE CONTRASTE: Filtro para tornar ícone branco se for CTA
+                                  <div style={{ filter: isCta ? 'brightness(0) invert(1)' : 'none' }}>
+                                     {getLinkIcon(link.url, link.title)}
+                                  </div>
                                 )}
                               </motion.span>
 
@@ -1473,7 +1450,7 @@ export default function PublicPageContent({
                                     className={`break-words whitespace-normal text-sm sm:text-base font-bold leading-tight transition-all duration-300 ${(hasFullBackgroundImage || hasHeaderBackgroundImage) ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : ''}`}
                                     style={{
                                       color: isCta
-                                        ? (hasFullBackgroundImage || hasHeaderBackgroundImage) ? '#ffffff' : isDarkMode ? '#ffffff' : '#1f2937'
+                                        ? '#ffffff' // Texto branco se for CTA
                                         : isHovered
                                           ? userAccentColor
                                           : (hasFullBackgroundImage || hasHeaderBackgroundImage)
@@ -1548,7 +1525,9 @@ export default function PublicPageContent({
                                   <ExternalLink
                                     className="w-3.5 h-3.5 sm:w-4 sm:h-4 transition-all duration-300 hidden sm:block"
                                     style={{
-                                      color: isHovered
+                                      color: isCta
+                                       ? '#ffffff' // Ícone externo branco no CTA
+                                       : isHovered
                                         ? userAccentColor
                                         : (hasFullBackgroundImage || hasHeaderBackgroundImage)
                                           ? 'rgba(255,255,255,0.7)'
