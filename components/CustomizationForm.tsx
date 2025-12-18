@@ -810,17 +810,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
                   <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                     <Label className="text-xs text-gray-500 mb-3 block">Estilo do fundo</Label>
                     <div className="grid grid-cols-2 gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setBackgroundConfig((prev) => ({ ...prev, style: "full" }))}
-                        className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                          backgroundConfig.style === "full"
-                            ? "border-purple-500 bg-purple-50 text-purple-700"
-                            : "border-gray-200 text-gray-600"
-                        }`}
-                      >
-                        Tela inteira
-                      </button>
+
                       <button
                         type="button"
                         onClick={() => setBackgroundConfig((prev) => ({ ...prev, style: "header" }))}
