@@ -42,6 +42,7 @@ import QRCode from 'qrcode';
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
 import { SubscriptionPlanDetails } from "@/lib/subscription";
 import { Doc } from "@/convex/_generated/dataModel";
+import { usePerformanceMode } from "@/app/hooks/usePerformanceMode";
 
 // --- MAPA DE ÍCONES INTELIGENTE ---
 const ICON_MAP = [
@@ -563,6 +564,9 @@ export default function PublicPageContent({
   const profileUrl = `${getBaseUrl()}/${username}`;
   const userAccentColor = customizations?.accentColor || '#6366f1';
 
+  // 🔥 HOOK DE PERFORMANCE
+  const performanceConfig = usePerformanceMode();
+
   const fullDescription = customizations?.description || "";
   let statusMessage = "";
   let displayBio = fullDescription;
@@ -857,6 +861,13 @@ export default function PublicPageContent({
 
   // 🔥 FUNÇÕES DE CARD COM TRANSPARÊNCIA CORRIGIDAS
   const getCardBackground = () => {
+    // Se for low-power, usa cor sólida (sem blur)
+    if (performanceConfig.isLowPower) {
+      return isDarkMode
+        ? 'rgba(17, 24, 39, 0.95)'
+        : 'rgba(255, 255, 255, 0.95)';
+    }
+
     if (hasBackgroundImage) {
       return isDarkMode
         ? 'rgba(17, 24, 39, 0.8)'
@@ -865,6 +876,12 @@ export default function PublicPageContent({
     return isDarkMode
       ? 'rgba(17, 24, 39, 0.7)'
       : 'rgba(255, 255, 255, 0.7)';
+  };
+
+  // 🔥 BLUR ADAPTATIVO
+  const getAdaptiveBlur = (originalBlur: number) => {
+    if (!performanceConfig.canUseBlur) return 0;
+    return Math.min(originalBlur, performanceConfig.recommendedBlur);
   };
 
   const getLinkBackground = (isHovered: boolean, isCta: boolean) => {
@@ -943,8 +960,8 @@ export default function PublicPageContent({
         </>
       )}
 
-      {/* 🔥 PARTÍCULAS - Só mostrar quando NÃO tem imagem de fundo full */}
-      {!isFullBackgroundImage && (
+      {/* 🔥 PARTÍCULAS: Só renderiza se permitido e sem fundo full */}
+      {!isFullBackgroundImage && performanceConfig.canUseParticles && (
         <ParticleField color={hexToRgba(userAccentColor, 0.4)} />
       )}
 
@@ -958,7 +975,7 @@ export default function PublicPageContent({
       />
 
       {/* ============================================ */}
-      {/* 🔥 BACKGROUND FIXO - IMAGEM FULL SCREEN     */}
+      {/* 🔥 BACKGROUND FIXO - IMAGEM FULL SCREEN      */}
       {/* ============================================ */}
       {isFullBackgroundImage && (
         <div className="fixed inset-0 -z-10 overflow-hidden">
@@ -969,7 +986,8 @@ export default function PublicPageContent({
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               backgroundRepeat: 'no-repeat',
-              filter: backgroundConfig.imageBlur > 0 ? `blur(${backgroundConfig.imageBlur}px)` : 'none',
+              // 🔥 CORREÇÃO: Usando getAdaptiveBlur
+              filter: backgroundConfig.imageBlur > 0 ? `blur(${getAdaptiveBlur(backgroundConfig.imageBlur)}px)` : 'none',
               opacity: backgroundConfig.imageOpacity / 100,
               transform: backgroundConfig.imageBlur > 0 ? 'scale(1.1)' : 'scale(1)',
             }}
@@ -987,11 +1005,11 @@ export default function PublicPageContent({
       )}
 
       {/* ============================================ */}
-      {/* 🔥 BACKGROUND NORMAL (cor/gradiente)        */}
+      {/* 🔥 BACKGROUND NORMAL (cor/gradiente)         */}
       {/* ============================================ */}
       {!isFullBackgroundImage && (
         <div className="fixed inset-0 -z-10" style={getBaseBackgroundStyle()}>
-          {backgroundConfig.type !== 'image' && (
+          {backgroundConfig.type !== 'image' && performanceConfig.canUseHeavyAnimations && (
             <motion.div
               className="absolute inset-0 opacity-20"
               animate={{
@@ -1013,7 +1031,7 @@ export default function PublicPageContent({
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.8 }}
+        transition={{ duration: performanceConfig.animationDuration }}
         className={`relative overflow-hidden ${
           isHeaderBackgroundImage
             ? 'min-h-[300px] sm:min-h-[400px] md:min-h-[450px] lg:min-h-[500px]'
@@ -1031,7 +1049,7 @@ export default function PublicPageContent({
                   backgroundSize: 'cover',
                   backgroundPosition: 'center',
                   backgroundRepeat: 'no-repeat',
-                  filter: backgroundConfig.imageBlur > 0 ? `blur(${backgroundConfig.imageBlur}px)` : 'none',
+                  filter: backgroundConfig.imageBlur > 0 ? `blur(${getAdaptiveBlur(backgroundConfig.imageBlur)}px)` : 'none',
                   opacity: backgroundConfig.imageOpacity / 100,
                 }}
               />
@@ -1062,14 +1080,16 @@ export default function PublicPageContent({
             }}
           >
             <div className="absolute inset-0 bg-black/10" />
-            <motion.div
-              className="absolute inset-0 opacity-30"
-              style={{
-                background: `linear-gradient(45deg, transparent 30%, ${hexToRgba(userAccentColor, 0.3)} 50%, transparent 70%)`
-              }}
-              animate={{ x: ['-200%', '200%'] }}
-              transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
-            />
+            {performanceConfig.canUseHeavyAnimations && (
+              <motion.div
+                className="absolute inset-0 opacity-30"
+                style={{
+                  background: `linear-gradient(45deg, transparent 30%, ${hexToRgba(userAccentColor, 0.3)} 50%, transparent 70%)`
+                }}
+                animate={{ x: ['-200%', '200%'] }}
+                transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
+              />
+            )}
           </motion.div>
         )}
 
@@ -1087,7 +1107,7 @@ export default function PublicPageContent({
         {/* 🔥 BOTÕES DO HEADER */}
         <div className={`absolute left-3 sm:left-4 right-3 sm:right-4 flex justify-between items-center z-20 transition-all duration-300 ${statusMessage ? 'top-14 sm:top-16' : 'top-3 sm:top-4'}`}>
           <motion.button
-            whileHover={{ scale: 1.1, rotate: 180 }}
+            whileHover={performanceConfig.canUseHeavyAnimations ? { scale: 1.1, rotate: 180 } : {}}
             whileTap={{ scale: 0.95 }}
             onClick={() => setIsDarkMode(!isDarkMode)}
             className="p-2 sm:p-2.5 rounded-xl sm:rounded-2xl bg-white/20 backdrop-blur-xl text-white border border-white/30 hover:bg-white/30 transition-all duration-300 shadow-lg"
@@ -1155,7 +1175,7 @@ export default function PublicPageContent({
             <div className="flex items-center justify-center gap-2">
               <motion.span
                 className="w-2 h-2 rounded-full bg-white"
-                animate={{ opacity: [1, 0.3, 1] }}
+                animate={performanceConfig.canUseHeavyAnimations ? { opacity: [1, 0.3, 1] } : {}}
                 transition={{ duration: 1.5, repeat: Infinity }}
               />
               <span>{statusMessage}</span>
@@ -1173,7 +1193,7 @@ export default function PublicPageContent({
               className="fixed top-20 right-4 sm:right-8 z-50 rounded-xl sm:rounded-2xl border border-white/20 shadow-2xl p-3 sm:p-4 w-auto max-w-[calc(100vw-2rem)]"
               style={{
                 background: isDarkMode ? 'rgba(17, 24, 39, 0.95)' : 'rgba(255, 255, 255, 0.95)',
-                backdropFilter: 'blur(20px)',
+                backdropFilter: performanceConfig.canUseBlur ? 'blur(20px)' : 'none',
                 boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.3)}`
               }}
             >
@@ -1191,7 +1211,9 @@ export default function PublicPageContent({
                     link.download = `${username}-qrcode.png`;
                     link.href = qrCodeDataUrl;
                     link.click();
-                    confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                    if (performanceConfig.canUseParticles) {
+                      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+                    }
                   }}
                   className="flex items-center gap-2 px-3 py-2 sm:px-4 text-xs sm:text-sm text-white rounded-lg sm:rounded-xl font-bold shadow-lg hover:shadow-xl transition-all"
                   style={{ background: `linear-gradient(135deg, ${userAccentColor}, ${hexToRgba(userAccentColor, 0.8)})` }}
@@ -1228,8 +1250,8 @@ export default function PublicPageContent({
                 className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-6 sm:p-5 md:p-6 shadow-2xl border border-white/20 dark:border-white/10"
                 style={{
                   background: getCardBackground(),
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
+                  backdropFilter: performanceConfig.canUseBlur ? 'blur(20px)' : 'none',
+                  WebkitBackdropFilter: performanceConfig.canUseBlur ? 'blur(20px)' : 'none',
                   boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.2)}, inset 0 0 0 1px rgba(255,255,255,0.1)`
                 }}
                 whileHover={{ y: -5, boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.3)}` }}
@@ -1240,7 +1262,7 @@ export default function PublicPageContent({
                 <motion.div
                   className="absolute inset-0 rounded-2xl sm:rounded-3xl"
                   style={{ background: `linear-gradient(135deg, ${userAccentColor}15, transparent)` }}
-                  animate={{ opacity: [0.3, 0.5, 0.3] }}
+                  animate={performanceConfig.canUseHeavyAnimations ? { opacity: [0.3, 0.5, 0.3] } : {}}
                   transition={{ duration: 3, repeat: Infinity }}
                 />
 
@@ -1256,13 +1278,13 @@ export default function PublicPageContent({
                       <motion.div
                         className="absolute inset-0 rounded-full blur-2xl opacity-0 group-hover:opacity-75 transition-opacity duration-500"
                         style={{ background: userAccentColor }}
-                        animate={{ scale: [1, 1.2, 1] }}
+                        animate={performanceConfig.canUseHeavyAnimations ? { scale: [1, 1.2, 1] } : {}}
                         transition={{ duration: 2, repeat: Infinity }}
                       />
                       <motion.div
                         className="absolute inset-0 rounded-full border-4 opacity-0 group-hover:opacity-100"
                         style={{ borderColor: userAccentColor }}
-                        animate={{ scale: [1, 1.3], opacity: [1, 0] }}
+                        animate={performanceConfig.canUseHeavyAnimations ? { scale: [1, 1.3], opacity: [1, 0] } : {}}
                         transition={{ duration: 1.5, repeat: Infinity }}
                       />
 
@@ -1291,13 +1313,13 @@ export default function PublicPageContent({
                             background: `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)`,
                             boxShadow: `0 0 30px ${hexToRgba(userAccentColor, 0.5)}`
                           }}
-                          animate={{
+                          animate={performanceConfig.canUseHeavyAnimations ? {
                             boxShadow: [
                               `0 0 30px ${hexToRgba(userAccentColor, 0.5)}`,
                               `0 0 40px ${hexToRgba(userAccentColor, 0.7)}`,
                               `0 0 30px ${hexToRgba(userAccentColor, 0.5)}`,
                             ]
-                          }}
+                          } : {}}
                           transition={{ duration: 2, repeat: Infinity }}
                         >
                           <User className="w-12 h-12 sm:w-14 sm:h-14 md:w-16 md:h-16 text-white" />
@@ -1379,8 +1401,8 @@ export default function PublicPageContent({
                 className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-2xl border border-white/20 dark:border-white/10"
                 style={{
                   background: getCardBackground(),
-                  backdropFilter: 'blur(20px)',
-                  WebkitBackdropFilter: 'blur(20px)',
+                  backdropFilter: performanceConfig.canUseBlur ? 'blur(20px)' : 'none',
+                  WebkitBackdropFilter: performanceConfig.canUseBlur ? 'blur(20px)' : 'none',
                   boxShadow: `0 8px 32px ${hexToRgba(userAccentColor, 0.2)}, inset 0 0 0 1px rgba(255,255,255,0.1)`
                 }}
                 whileHover={{ y: -2 }}
@@ -1414,7 +1436,7 @@ export default function PublicPageContent({
                             key={link._id}
                             initial={{ opacity: 0, x: -50, rotateY: -15 }}
                             animate={{ opacity: 1, x: 0, rotateY: 0 }}
-                            transition={{ delay: index * 0.08, type: "spring", stiffness: 120, damping: 14 }}
+                            transition={{ delay: index * 0.08, type: performanceConfig.canUseHeavyAnimations ? "spring" : "tween", stiffness: 120, damping: 14 }}
                             whileHover={{ scale: isCta ? 1.05 : 1.03, x: 8, transition: { type: "spring", stiffness: 400 } }}
                             whileTap={{ scale: 0.98 }}
                             onHoverStart={() => setHoveredLink(link._id)}
@@ -1428,8 +1450,8 @@ export default function PublicPageContent({
                               className={`group relative flex items-center gap-2.5 sm:gap-3 w-full rounded-xl sm:rounded-2xl p-3 sm:p-3.5 md:p-4 font-bold text-sm sm:text-base transition-all duration-300 overflow-hidden ${isCta ? 'ring-2 ring-offset-2' : ''}`}
                               style={{
                                 background: getLinkBackground(isHovered, isCta),
-                                backdropFilter: 'blur(12px)',
-                                WebkitBackdropFilter: 'blur(12px)',
+                                backdropFilter: performanceConfig.canUseBlur ? 'blur(12px)' : 'none',
+                                WebkitBackdropFilter: performanceConfig.canUseBlur ? 'blur(12px)' : 'none',
                                 borderWidth: '2px',
                                 borderStyle: 'solid',
                                 borderColor: isCta
@@ -1450,7 +1472,7 @@ export default function PublicPageContent({
                               onClick={() => handleTrack(link)}
                             >
                               {/* Animação de pulso para CTA */}
-                              {isCta && (
+                              {isCta && performanceConfig.canUseHeavyAnimations && (
                                 <motion.div
                                   className="absolute inset-0 rounded-xl sm:rounded-2xl"
                                   style={{ border: `2px solid ${userAccentColor}` }}
@@ -1471,13 +1493,13 @@ export default function PublicPageContent({
                               <motion.div
                                 className="absolute inset-0 opacity-0 group-hover:opacity-100"
                                 style={{ background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)` }}
-                                animate={isHovered ? { x: ['-100%', '200%'] } : {}}
+                                animate={isHovered && performanceConfig.canUseHeavyAnimations ? { x: ['-100%', '200%'] } : {}}
                                 transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
                               />
 
                               {/* Ícone do Link */}
                               <motion.span
-                                animate={isHovered ? { rotate: [0, -10, 10, 0], scale: [1, 1.1, 1] } : {}}
+                                animate={isHovered && performanceConfig.canUseHeavyAnimations ? { rotate: [0, -10, 10, 0], scale: [1, 1.1, 1] } : {}}
                                 transition={{ duration: 0.5 }}
                                 className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl transition-all duration-300 shadow-lg flex-shrink-0 overflow-hidden"
                                 style={{
@@ -1533,7 +1555,7 @@ export default function PublicPageContent({
                                   )}
                                   {isCta && (
                                     <motion.span
-                                      animate={{ scale: [1, 1.1, 1] }}
+                                      animate={performanceConfig.canUseHeavyAnimations ? { scale: [1, 1.1, 1] } : {}}
                                       transition={{ duration: 1.5, repeat: Infinity }}
                                       className="px-1.5 py-0.5 text-[9px] font-black uppercase rounded-full text-white shadow-lg"
                                       style={{
@@ -1563,7 +1585,7 @@ export default function PublicPageContent({
                                     boxShadow: linkReactions[link._id] ? '0 0 20px rgba(239, 68, 68, 0.4)' : 'none'
                                   }}
                                 >
-                                  <motion.div animate={linkReactions[link._id] ? { scale: [1, 1.4, 1], rotate: [0, -15, 15, 0] } : {}} transition={{ duration: 0.4 }}>
+                                  <motion.div animate={linkReactions[link._id] && performanceConfig.canUseHeavyAnimations ? { scale: [1, 1.4, 1], rotate: [0, -15, 15, 0] } : {}} transition={{ duration: 0.4 }}>
                                     <Heart
                                       className={`w-3 h-3 sm:w-3.5 sm:h-3.5 transition-all duration-300 ${linkReactions[link._id]
                                         ? 'text-red-500 fill-current drop-shadow-[0_0_10px_rgba(239,68,68,0.9)]'
@@ -1580,7 +1602,7 @@ export default function PublicPageContent({
                                 </motion.button>
 
                                 <motion.div
-                                  animate={isHovered ? { x: [0, 4, 0], y: [0, -4, 0] } : {}}
+                                  animate={isHovered && performanceConfig.canUseHeavyAnimations ? { x: [0, 4, 0], y: [0, -4, 0] } : {}}
                                   transition={{ duration: 0.6, repeat: isHovered ? Infinity : 0, ease: "easeInOut" }}
                                 >
                                   <ExternalLink
@@ -1610,7 +1632,7 @@ export default function PublicPageContent({
                             background: `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.1)}, ${hexToRgba(userAccentColor, 0.2)})`,
                             boxShadow: `0 0 30px ${hexToRgba(userAccentColor, 0.2)}`
                           }}
-                          animate={{ scale: [1, 1.05, 1] }}
+                          animate={performanceConfig.canUseHeavyAnimations ? { scale: [1, 1.05, 1] } : {}}
                           transition={{ duration: 2, repeat: Infinity }}
                         >
                           <LinkIcon className="w-8 h-8 sm:w-10 sm:h-10" style={{ color: userAccentColor }} />
@@ -1649,14 +1671,14 @@ export default function PublicPageContent({
                   <motion.div
                     className="absolute inset-0 opacity-20"
                     style={{ background: 'radial-gradient(circle at 50% 50%, white, transparent)' }}
-                    animate={{ scale: [1, 1.5, 1], opacity: [0.2, 0.3, 0.2] }}
+                    animate={performanceConfig.canUseHeavyAnimations ? { scale: [1, 1.5, 1], opacity: [0.2, 0.3, 0.2] } : {}}
                     transition={{ duration: 3, repeat: Infinity }}
                   />
 
                   <motion.div
                     className="absolute inset-0"
                     style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent)' }}
-                    animate={{ x: ['-100%', '200%'] }}
+                    animate={performanceConfig.canUseHeavyAnimations ? { x: ['-100%', '200%'] } : {}}
                     transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
                   />
 
@@ -1664,10 +1686,10 @@ export default function PublicPageContent({
                     <div className="text-center sm:text-left">
                       <motion.h3
                         className="text-base sm:text-lg md:text-xl font-black mb-1 sm:mb-2 flex items-center justify-center sm:justify-start gap-1.5 sm:gap-2"
-                        animate={{ textShadow: ['0 0 10px rgba(255,255,255,0.5)', '0 0 20px rgba(255,255,255,0.8)', '0 0 10px rgba(255,255,255,0.5)'] }}
+                        animate={performanceConfig.canUseHeavyAnimations ? { textShadow: ['0 0 10px rgba(255,255,255,0.5)', '0 0 20px rgba(255,255,255,0.8)', '0 0 10px rgba(255,255,255,0.5)'] } : {}}
                         transition={{ duration: 2, repeat: Infinity }}
                       >
-                        <motion.div animate={{ rotate: [0, 360] }} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
+                        <motion.div animate={performanceConfig.canUseHeavyAnimations ? { rotate: [0, 360] } : {}} transition={{ duration: 2, repeat: Infinity, ease: "linear" }}>
                           <Zap className="w-4 h-4 sm:w-5 sm:h-5" />
                         </motion.div>
                         Quer um perfil assim?
@@ -1684,7 +1706,7 @@ export default function PublicPageContent({
                         <motion.div
                           className="absolute inset-0"
                           style={{ background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)` }}
-                          animate={{ x: ['-100%', '200%'] }}
+                          animate={performanceConfig.canUseHeavyAnimations ? { x: ['-100%', '200%'] } : {}}
                           transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
                         />
                         <span className="relative z-10 flex items-center gap-2">
@@ -1713,7 +1735,7 @@ export default function PublicPageContent({
               style={{ color: getTextColor('muted') }}
             >
               Feito com
-              <motion.span animate={{ scale: [1, 1.2, 1] }} transition={{ duration: 1, repeat: Infinity }}>
+              <motion.span animate={performanceConfig.canUseHeavyAnimations ? { scale: [1, 1.2, 1] } : {}} transition={{ duration: 1, repeat: Infinity }}>
                 <Heart className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 fill-current flex-shrink-0" />
               </motion.span>
               por{" "}
@@ -1817,7 +1839,9 @@ export default function PublicPageContent({
           whileTap={{ scale: 0.95 }}
           onClick={() => {
             window.scrollTo({ top: 0, behavior: 'smooth' });
-            confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+            if (performanceConfig.canUseParticles) {
+              confetti({ particleCount: 50, spread: 60, origin: { y: 0.8 } });
+            }
           }}
           className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 w-10 h-10 sm:w-12 sm:h-12 rounded-full shadow-2xl flex items-center justify-center text-white z-40 border-2 border-white/20"
           style={{
@@ -1825,7 +1849,7 @@ export default function PublicPageContent({
             boxShadow: `0 4px 20px ${hexToRgba(userAccentColor, 0.5)}`
           }}
         >
-          <motion.div animate={{ y: [-2, 2, -2] }} transition={{ duration: 1.5, repeat: Infinity }}>
+          <motion.div animate={performanceConfig.canUseHeavyAnimations ? { y: [-2, 2, -2] } : {}} transition={{ duration: 1.5, repeat: Infinity }}>
             <ChevronDown className="w-4 h-4 sm:w-5 sm:h-5 rotate-180" />
           </motion.div>
         </motion.button>

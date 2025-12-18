@@ -10,17 +10,28 @@ import {
   Upload, X, Image as ImageIcon, Paintbrush,
   ImagePlus, Layout, AlertCircle, Sparkles, Smartphone,
   Palette, Share2, Check, Eye, ChevronDown,
-  Camera, Sliders, Megaphone
+  Camera, Sliders, Megaphone, Link as LinkIcon,
+  MapPin, Mail, ShoppingBag, Calendar,
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
+import { compressImageBeforeUpload } from "@/lib/imageCompression";
+import { usePerformanceMode } from "@/app/hooks/usePerformanceMode"; // 🔥 Hook de Performance
+import {
+  FaFacebook, FaGlobe, FaInstagram, FaLinkedin, FaTiktok, FaTwitter, FaYoutube,
+  FaWhatsapp, FaWaze,
+  FaSpotify
+} from "react-icons/fa6";
 
 // --- TIPAGENS ---
 type BackgroundType = "color" | "gradient" | "image";
 type BackgroundStyle = "full" | "header";
 
+interface CustomError extends Error {
+  message: string;
+}
 interface CustomizationFormProps {
   onComplete?: () => void;
   simplifiedMode?: boolean;
@@ -44,8 +55,42 @@ const COLOR_PRESETS = [
   "#1a1a2e", "#16213e", "#0f3460", "#533483",
 ];
 
+// --- MAPA DE ÍCONES (Para o Preview Real) ---
+const ICON_MAP = [
+  { match: ['goo.gl/maps', 'maps.google'], icon: <MapPin className="w-3.5 h-3.5" /> },
+  { match: ['waze.com'], icon: <FaWaze className="w-3.5 h-3.5" /> },
+  { match: ['whatsapp', 'wa.me'], icon: <FaWhatsapp className="w-3.5 h-3.5" /> },
+  { match: ['instagram.com'], icon: <FaInstagram className="w-3.5 h-3.5" /> },
+  { match: ['facebook.com'], icon: <FaFacebook className="w-3.5 h-3.5" /> },
+  { match: ['tiktok.com'], icon: <FaTiktok className="w-3.5 h-3.5" /> },
+  { match: ['youtube.com', 'youtu.be'], icon: <FaYoutube className="w-3.5 h-3.5" /> },
+  { match: ['linkedin.com'], icon: <FaLinkedin className="w-3.5 h-3.5" /> },
+  { match: ['twitter.com', 'x.com'], icon: <FaTwitter className="w-3.5 h-3.5" /> },
+  { match: ['spotify.com'], icon: <FaSpotify className="w-3.5 h-3.5" /> },
+];
+
+function getPreviewLinkIcon(url: string, title: string): React.ReactNode {
+  if (!url) return <LinkIcon className="w-3.5 h-3.5" />;
+  const u = url.toLowerCase();
+  const t = title?.toLowerCase() || "";
+
+  // Verifica URL
+  for (const item of ICON_MAP) {
+    if (item.match.some(match => u.includes(match))) return item.icon;
+  }
+
+  // Verifica Título (Keywords básicas)
+  if (t.includes('loja') || t.includes('comprar')) return <ShoppingBag className="w-3.5 h-3.5" />;
+  if (t.includes('contato') || t.includes('email')) return <Mail className="w-3.5 h-3.5" />;
+  if (t.includes('agendar') || t.includes('agenda')) return <Calendar className="w-3.5 h-3.5" />;
+  if (t.includes('site') || t.includes('web')) return <FaGlobe className="w-3.5 h-3.5" />;
+
+  return <LinkIcon className="w-3.5 h-3.5" />;
+}
+
 export default function CustomizationForm({ onComplete }: CustomizationFormProps) {
   const { user } = useUser();
+  const performanceConfig = usePerformanceMode(); // 🔥 Hook de Performance
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
@@ -65,6 +110,12 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
   const userSlug = useQuery(
     api.lib.usernames.getUserSlug,
     user ? { userId: user.id } : "skip"
+  );
+
+  // 🔥 BUSCAR LINKS REAIS DO USUÁRIO PARA O PREVIEW
+  const userLinks = useQuery(
+    api.lib.links.getLinksBySlug,
+    userSlug ? { slug: userSlug } : "skip"
   );
 
   // --- ESTADOS ---
@@ -145,6 +196,9 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
   }, []);
 
   const celebrate = useCallback(() => {
+    // Se for celular fraco, não solta confete para não travar
+    if (!performanceConfig.canUseParticles) return;
+
     const count = 200;
     const defaults = { origin: { y: 0.7 }, zIndex: 9999 };
     function fire(particleRatio: number, opts: confetti.Options) {
@@ -155,12 +209,12 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
     fire(0.35, { spread: 100, decay: 0.91, scalar: 0.8, colors: ['#a855f7', '#ec4899', '#6366f1'] });
     fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2, colors: ['#a855f7', '#ec4899', '#6366f1'] });
     fire(0.1, { spread: 120, startVelocity: 45, colors: ['#a855f7', '#ec4899', '#6366f1'] });
-  }, []);
+  }, [performanceConfig.canUseParticles]);
 
   // --- HANDLERS ---
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!user) return;
 
     if (bioError) {
@@ -168,7 +222,6 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
       return;
     }
 
-    // 🔥 PREPARAR DESCRIÇÃO (STATUS + BIO)
     let finalDescription = cleanBio.trim();
     if (statusEnabled && statusText.trim().length > 0) {
       finalDescription = `AVISO: ${statusText.trim()}\n${cleanBio.trim()}`;
@@ -176,7 +229,6 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
 
     startTransition(async () => {
       try {
-        // 🔥 MONTAR DADOS PARA ENVIAR
         const updateData: {
           description: string;
           accentColor: string;
@@ -198,7 +250,6 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
           backgroundImageOpacity: backgroundConfig.imageOpacity,
         };
 
-        // 🔥 Se mudou de "image" para outro tipo, sinalizar para limpar
         if (backgroundConfig.type !== "image" && existingCustomizations?.backgroundImageStorageId) {
           updateData.clearBackgroundImage = true;
         }
@@ -214,9 +265,9 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
           description: "Suas alterações já estão online.",
         });
 
-      } catch (error) {
+      } catch (error: unknown) {
         console.error(error);
-        const errorMessage = error instanceof Error ? error.message : "Erro ao salvar alterações.";
+        const errorMessage = (error as CustomError)?.message || "Erro ao salvar alterações.";
         toast.error(errorMessage);
       }
     });
@@ -225,11 +276,6 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, isBackground: boolean) => {
     const file = event.target.files?.[0];
     if (!file) return;
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast.error("Imagem muito grande. Use uma menor que 5MB.");
-      return;
-    }
 
     if (!file.type.startsWith("image/")) {
       toast.error("Por favor, selecione uma imagem válida.");
@@ -240,12 +286,30 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
 
     transition(async () => {
       try {
+        let uploadFile = file;
+
+        // 🔥 COMPRIMIR ANTES DO UPLOAD
+        if (file.size > 500 * 1024) {
+          toast.info("Otimizando imagem...", { duration: 1500 });
+
+          const result = await compressImageBeforeUpload(
+            file,
+            isBackground ? 'background' : 'profile'
+          );
+
+          uploadFile = result.file;
+
+          if (result.savings > 0) {
+            console.log(`✅ Economizou ${result.savings}% no tamanho da imagem`);
+          }
+        }
+
         const uploadUrl = await generateUploadUrl();
 
         const result = await fetch(uploadUrl, {
           method: "POST",
-          headers: { "Content-Type": file.type },
-          body: file,
+          headers: { "Content-Type": uploadFile.type },
+          body: uploadFile,
         });
 
         if (!result.ok) throw new Error("Upload failed");
@@ -297,7 +361,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Olha meu link no FreeLink! 🚀",
+          title: "Olha meu link no Freelinnk! 🚀",
           text: "Criei minha página de links!",
           url: shareUrl,
         });
@@ -327,9 +391,13 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
     }
   };
 
-  // 🔥 Helper para verificar se tem imagem de fundo
+  // 🔥 Funções auxiliares de Preview (Baseadas no Hook de Performance)
+  const getAdaptiveBlur = (originalBlur: number) => {
+    if (!performanceConfig.canUseBlur) return 0;
+    return Math.min(originalBlur, performanceConfig.recommendedBlur);
+  };
+
   const currentBackgroundImageUrl = backgroundConfig.imageUrl || existingCustomizations?.backgroundImageUrl;
-  const hasBackgroundImage = backgroundConfig.type === "image" && currentBackgroundImageUrl;
 
   return (
     <div className="flex flex-col xl:flex-row gap-6 lg:gap-8 xl:gap-12">
@@ -812,8 +880,8 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
             </AnimatePresence>
           </div>
 
-          {/* BOTÃO SALVAR */}
-          <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }}>
+          {/* BOTÃO SALVAR (Desktop) */}
+          <motion.div whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="hidden xl:block">
             <Button
               type="submit"
               disabled={isLoading || !!bioError}
@@ -838,7 +906,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
               type="button"
               variant="outline"
               onClick={handleShare}
-              className="w-full py-5 rounded-xl border-2 border-dashed"
+              className="w-full py-5 rounded-xl border-2 border-dashed hidden xl:flex"
             >
               <Share2 className="w-4 h-4 mr-2" />
               Compartilhar meu Link
@@ -875,7 +943,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
 
             {/* TELA */}
             <div
-              className="w-full h-full rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden relative"
+              className="w-full h-full rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden relative scrollbar-hide overflow-y-auto"
               style={getPreviewBackgroundStyle()}
             >
 
@@ -898,7 +966,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
               </AnimatePresence>
 
               {/* Background Image Preview */}
-              {hasBackgroundImage && (
+              {backgroundConfig.type === "image" && currentBackgroundImageUrl && (
                 <div className="absolute inset-0">
                   {backgroundConfig.style === "full" ? (
                     <div
@@ -907,7 +975,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
                         backgroundImage: `url(${currentBackgroundImageUrl})`,
                         backgroundSize: "cover",
                         backgroundPosition: "center",
-                        filter: `blur(${backgroundConfig.imageBlur}px)`,
+                        filter: `blur(${getAdaptiveBlur(backgroundConfig.imageBlur)}px)`, // 🔥 Uso do Blur Adaptativo
                         opacity: backgroundConfig.imageOpacity / 100,
                         transform: backgroundConfig.imageBlur > 0 ? "scale(1.1)" : "scale(1)"
                       }}
@@ -920,7 +988,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
                           backgroundImage: `url(${currentBackgroundImageUrl})`,
                           backgroundSize: "cover",
                           backgroundPosition: "center",
-                          filter: `blur(${backgroundConfig.imageBlur}px)`,
+                          filter: `blur(${getAdaptiveBlur(backgroundConfig.imageBlur)}px)`, // 🔥 Uso do Blur Adaptativo
                           opacity: backgroundConfig.imageOpacity / 100
                         }}
                       />
@@ -931,7 +999,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
               )}
 
               {/* Conteúdo Preview */}
-              <div className={`relative z-10 flex flex-col items-center px-4 sm:px-6 h-full overflow-y-auto ${statusEnabled && statusText ? 'pt-24' : 'pt-14 sm:pt-16'}`}>
+              <div className={`relative z-10 flex flex-col items-center px-4 sm:px-6 min-h-full ${statusEnabled && statusText ? 'pt-24' : 'pt-14 sm:pt-16'}`}>
 
                 {/* Avatar */}
                 <motion.div
@@ -970,21 +1038,38 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
                   )}
                 </div>
 
-                {/* Links Simulados */}
+                {/* 🔥 LINKS REAIS DO USUÁRIO 🔥 */}
                 <div className="w-full space-y-2.5 pb-6">
-                  {[1, 2, 3].map((i) => (
-                    <motion.div
-                      key={i}
-                      className="w-full h-11 sm:h-12 bg-white/80 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm flex items-center justify-between px-4"
-                      style={{ borderLeft: `4px solid ${accentColor}` }}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.1 * i }}
-                    >
-                      <span className="text-xs text-gray-600 font-medium">Meu Link {i}</span>
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: accentColor }} />
-                    </motion.div>
-                  ))}
+                  {userLinks && userLinks.length > 0 ? (
+                    userLinks.map((link, i) => (
+                      <motion.div
+                        key={link._id}
+                        className="w-full h-11 sm:h-12 bg-white/80 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm flex items-center gap-3 px-4 overflow-hidden"
+                        style={{ borderLeft: `4px solid ${accentColor}` }}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.05 * i }}
+                      >
+                        {/* Ícone */}
+                        <div className="flex-shrink-0 text-gray-600">
+                          {link.thumbnailUrl ? (
+                            <img src={link.thumbnailUrl} alt="icon" className="w-5 h-5 object-cover rounded-full" />
+                          ) : (
+                            getPreviewLinkIcon(link.url, link.title)
+                          )}
+                        </div>
+                        {/* Texto */}
+                        <span className="text-xs text-gray-700 font-medium truncate flex-1">{link.title}</span>
+                      </motion.div>
+                    ))
+                  ) : (
+                    // Fallback se não tiver links ainda
+                    [1, 2].map((i) => (
+                      <div key={i} className="w-full h-11 rounded-xl bg-gray-100/50 border border-gray-200/50 animate-pulse flex items-center justify-center">
+                        <span className="text-[10px] text-gray-400">Adicione links para ver aqui...</span>
+                      </div>
+                    ))
+                  )}
                 </div>
 
                 <div className="mt-auto pb-4">
@@ -997,6 +1082,41 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
           <p className="text-center text-xs text-gray-400">As alterações aparecem aqui em tempo real</p>
         </div>
       </div>
+
+      {/* 🔥 BOTÃO SALVAR FLUTUANTE - MOBILE */}
+      <AnimatePresence>
+        {hasChanges && !justSaved && (
+          <motion.div
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-0 left-0 right-0 p-4 bg-white/95 backdrop-blur-lg border-t border-gray-200 z-50 xl:hidden"
+            style={{
+              boxShadow: '0 -4px 20px rgba(0,0,0,0.1)',
+              paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
+            }}
+          >
+            <Button
+              type="submit"
+              form="customization-form"
+              disabled={isLoading || !!bioError}
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-semibold py-4 rounded-xl shadow-lg"
+            >
+              {isLoading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Salvando...
+                </span>
+              ) : (
+                <span className="flex items-center justify-center gap-2">
+                  <Sparkles className="w-5 h-5" />
+                  Salvar Alterações
+                </span>
+              )}
+            </Button>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
