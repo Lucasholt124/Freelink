@@ -10,20 +10,14 @@ import {
   Upload, X, Image as ImageIcon, Paintbrush,
   ImagePlus, Layout, AlertCircle, Sparkles, Smartphone,
   Palette, Share2, Check, Eye, ChevronDown,
-  Camera, Sliders, Megaphone, Link as LinkIcon,
-  MapPin, Mail, ShoppingBag, Calendar,
+  Camera, Sliders, Megaphone, RefreshCw, ExternalLink
 } from "lucide-react";
 import { toast } from "sonner";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import confetti from "canvas-confetti";
 import { compressImageBeforeUpload } from "@/lib/imageCompression";
-import { usePerformanceMode } from "@/app/hooks/usePerformanceMode"; // 🔥 Hook de Performance
-import {
-  FaFacebook, FaGlobe, FaInstagram, FaLinkedin, FaTiktok, FaTwitter, FaYoutube,
-  FaWhatsapp, FaWaze,
-  FaSpotify
-} from "react-icons/fa6";
+import { usePerformanceMode } from "@/app/hooks/usePerformanceMode";
 
 // --- TIPAGENS ---
 type BackgroundType = "color" | "gradient" | "image";
@@ -55,46 +49,13 @@ const COLOR_PRESETS = [
   "#1a1a2e", "#16213e", "#0f3460", "#533483",
 ];
 
-// --- MAPA DE ÍCONES (Para o Preview Real) ---
-const ICON_MAP = [
-  { match: ['goo.gl/maps', 'maps.google'], icon: <MapPin className="w-3.5 h-3.5" /> },
-  { match: ['waze.com'], icon: <FaWaze className="w-3.5 h-3.5" /> },
-  { match: ['whatsapp', 'wa.me'], icon: <FaWhatsapp className="w-3.5 h-3.5" /> },
-  { match: ['instagram.com'], icon: <FaInstagram className="w-3.5 h-3.5" /> },
-  { match: ['facebook.com'], icon: <FaFacebook className="w-3.5 h-3.5" /> },
-  { match: ['tiktok.com'], icon: <FaTiktok className="w-3.5 h-3.5" /> },
-  { match: ['youtube.com', 'youtu.be'], icon: <FaYoutube className="w-3.5 h-3.5" /> },
-  { match: ['linkedin.com'], icon: <FaLinkedin className="w-3.5 h-3.5" /> },
-  { match: ['twitter.com', 'x.com'], icon: <FaTwitter className="w-3.5 h-3.5" /> },
-  { match: ['spotify.com'], icon: <FaSpotify className="w-3.5 h-3.5" /> },
-];
-
-function getPreviewLinkIcon(url: string, title: string): React.ReactNode {
-  if (!url) return <LinkIcon className="w-3.5 h-3.5" />;
-  const u = url.toLowerCase();
-  const t = title?.toLowerCase() || "";
-
-  // Verifica URL
-  for (const item of ICON_MAP) {
-    if (item.match.some(match => u.includes(match))) return item.icon;
-  }
-
-  // Verifica Título (Keywords básicas)
-  if (t.includes('loja') || t.includes('comprar')) return <ShoppingBag className="w-3.5 h-3.5" />;
-  if (t.includes('contato') || t.includes('email')) return <Mail className="w-3.5 h-3.5" />;
-  if (t.includes('agendar') || t.includes('agenda')) return <Calendar className="w-3.5 h-3.5" />;
-  if (t.includes('site') || t.includes('web')) return <FaGlobe className="w-3.5 h-3.5" />;
-
-  return <LinkIcon className="w-3.5 h-3.5" />;
-}
-
 export default function CustomizationForm({ onComplete }: CustomizationFormProps) {
   const { user } = useUser();
-  const performanceConfig = usePerformanceMode(); // 🔥 Hook de Performance
+  const performanceConfig = usePerformanceMode();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // --- CONVEX ---
   const updateCustomizations = useMutation(api.lib.customizations.updateCustomizations);
@@ -110,12 +71,6 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
   const userSlug = useQuery(
     api.lib.usernames.getUserSlug,
     user ? { userId: user.id } : "skip"
-  );
-
-  // 🔥 BUSCAR LINKS REAIS DO USUÁRIO PARA O PREVIEW
-  const userLinks = useQuery(
-    api.lib.links.getLinksBySlug,
-    userSlug ? { slug: userSlug } : "skip"
   );
 
   // --- ESTADOS ---
@@ -142,6 +97,10 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
   const [hasChanges, setHasChanges] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
+
+  // 🔥 NOVO: Estado para controlar refresh do iframe
+  const [iframeKey, setIframeKey] = useState(0);
+  const [isIframeLoading, setIsIframeLoading] = useState(true);
 
   // --- CARREGAR DADOS INICIAIS ---
   useEffect(() => {
@@ -196,7 +155,6 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
   }, []);
 
   const celebrate = useCallback(() => {
-    // Se for celular fraco, não solta confete para não travar
     if (!performanceConfig.canUseParticles) return;
 
     const count = 200;
@@ -210,6 +168,12 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
     fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2, colors: ['#a855f7', '#ec4899', '#6366f1'] });
     fire(0.1, { spread: 120, startVelocity: 45, colors: ['#a855f7', '#ec4899', '#6366f1'] });
   }, [performanceConfig.canUseParticles]);
+
+  // 🔥 FUNÇÃO PARA RECARREGAR O IFRAME
+  const refreshPreview = useCallback(() => {
+    setIsIframeLoading(true);
+    setIframeKey(prev => prev + 1);
+  }, []);
 
   // --- HANDLERS ---
 
@@ -259,6 +223,12 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
         celebrate();
         setJustSaved(true);
         setHasChanges(false);
+
+        // 🔥 ATUALIZAR PREVIEW APÓS SALVAR
+        setTimeout(() => {
+          refreshPreview();
+        }, 500);
+
         onComplete?.();
 
         toast.success("Perfil atualizado! 🎉", {
@@ -288,7 +258,6 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
       try {
         let uploadFile = file;
 
-        // 🔥 COMPRIMIR ANTES DO UPLOAD
         if (file.size > 500 * 1024) {
           toast.info("Otimizando imagem...", { duration: 1500 });
 
@@ -331,6 +300,12 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
           await updateCustomizations({ profilePictureStorageId: storageId });
           toast.success("📸 Foto de perfil atualizada!");
         }
+
+        // 🔥 ATUALIZAR PREVIEW APÓS UPLOAD
+        setTimeout(() => {
+          refreshPreview();
+        }, 500);
+
       } catch (error) {
         console.error(error);
         toast.error("Erro no upload. Verifique sua conexão.");
@@ -349,6 +324,11 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
         type: "color",
       }));
       toast.success("Imagem de fundo removida!");
+
+      // 🔥 ATUALIZAR PREVIEW
+      setTimeout(() => {
+        refreshPreview();
+      }, 500);
     } catch (error) {
       console.error(error);
       toast.error("Erro ao remover imagem.");
@@ -378,24 +358,8 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
     }
   };
 
-  const getPreviewBackgroundStyle = () => {
-    switch (backgroundConfig.type) {
-      case "color":
-        return { background: backgroundConfig.color1 };
-      case "gradient":
-        return { background: `linear-gradient(180deg, ${backgroundConfig.color1}, ${backgroundConfig.color2})` };
-      case "image":
-        return { background: "#ffffff" };
-      default:
-        return { background: "#f3f4f6" };
-    }
-  };
-
-  // 🔥 Funções auxiliares de Preview (Baseadas no Hook de Performance)
-  const getAdaptiveBlur = (originalBlur: number) => {
-    if (!performanceConfig.canUseBlur) return 0;
-    return Math.min(originalBlur, performanceConfig.recommendedBlur);
-  };
+  // 🔥 URL DO PREVIEW (sua página pública)
+  const previewUrl = userSlug ? `${window.location.origin}/${userSlug}?preview=true&t=${iframeKey}` : null;
 
   const currentBackgroundImageUrl = backgroundConfig.imageUrl || existingCustomizations?.backgroundImageUrl;
 
@@ -915,16 +879,46 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
         </form>
       </div>
 
-      {/* LADO DIREITO: PREVIEW */}
+      {/* 🔥 LADO DIREITO: PREVIEW REAL COM IFRAME 🔥 */}
       <div className="flex-1 xl:min-w-[320px] xl:max-w-[400px] order-1 xl:order-2">
         <div className="xl:sticky xl:top-24 space-y-4">
-          <div className="flex items-center justify-center gap-2 text-sm text-gray-500">
-            <Smartphone className="w-4 h-4" />
-            <span>Preview em tempo real</span>
+
+          {/* Header do Preview */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm text-gray-500">
+              <Smartphone className="w-4 h-4" />
+              <span>Preview da sua página</span>
+            </div>
+
+            {/* Botões de Ação */}
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={refreshPreview}
+                disabled={isIframeLoading}
+                className="h-8 px-2"
+              >
+                <RefreshCw className={`w-4 h-4 ${isIframeLoading ? 'animate-spin' : ''}`} />
+              </Button>
+
+              {userSlug && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => window.open(`/${userSlug}`, '_blank')}
+                  className="h-8 px-2"
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              )}
+            </div>
           </div>
 
+          {/* Moldura do Celular */}
           <motion.div
-            ref={previewRef}
             className="relative mx-auto w-[280px] sm:w-[300px] h-[560px] sm:h-[600px] bg-gray-900 rounded-[2.5rem] sm:rounded-[3rem] p-2.5 sm:p-3 shadow-2xl"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -941,145 +935,62 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
               <div className="absolute right-4 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full bg-gray-800" />
             </div>
 
-            {/* TELA */}
-            <div
-              className="w-full h-full rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden relative scrollbar-hide overflow-y-auto"
-              style={getPreviewBackgroundStyle()}
-            >
+            {/* 🔥 TELA COM IFRAME REAL 🔥 */}
+            <div className="w-full h-full rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden relative bg-white">
 
-              {/* Status Bar Preview */}
+              {/* Loading State */}
               <AnimatePresence>
-                {statusEnabled && statusText && (
+                {isIframeLoading && (
                   <motion.div
-                    initial={{ y: -50 }}
-                    animate={{ y: 0 }}
-                    exit={{ y: -50 }}
-                    className="absolute top-0 left-0 right-0 z-30 py-8 pb-2 text-center"
-                    style={{ background: accentColor }}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="absolute inset-0 bg-white z-10 flex flex-col items-center justify-center gap-3"
                   >
-                    <span className="text-[10px] font-bold text-white uppercase tracking-wide flex items-center justify-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                      {statusText}
-                    </span>
+                    <div className="w-8 h-8 border-3 border-purple-200 border-t-purple-600 rounded-full animate-spin" />
+                    <span className="text-xs text-gray-400">Carregando preview...</span>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* Background Image Preview */}
-              {backgroundConfig.type === "image" && currentBackgroundImageUrl && (
-                <div className="absolute inset-0">
-                  {backgroundConfig.style === "full" ? (
-                    <div
-                      className="w-full h-full transition-all"
-                      style={{
-                        backgroundImage: `url(${currentBackgroundImageUrl})`,
-                        backgroundSize: "cover",
-                        backgroundPosition: "center",
-                        filter: `blur(${getAdaptiveBlur(backgroundConfig.imageBlur)}px)`, // 🔥 Uso do Blur Adaptativo
-                        opacity: backgroundConfig.imageOpacity / 100,
-                        transform: backgroundConfig.imageBlur > 0 ? "scale(1.1)" : "scale(1)"
-                      }}
-                    />
-                  ) : (
-                    <>
-                      <div
-                        className="h-36 w-full transition-all"
-                        style={{
-                          backgroundImage: `url(${currentBackgroundImageUrl})`,
-                          backgroundSize: "cover",
-                          backgroundPosition: "center",
-                          filter: `blur(${getAdaptiveBlur(backgroundConfig.imageBlur)}px)`, // 🔥 Uso do Blur Adaptativo
-                          opacity: backgroundConfig.imageOpacity / 100
-                        }}
-                      />
-                      <div className="absolute top-28 w-full h-16 bg-gradient-to-b from-transparent to-white" />
-                    </>
-                  )}
-                </div>
-              )}
-
-              {/* Conteúdo Preview */}
-              <div className={`relative z-10 flex flex-col items-center px-4 sm:px-6 min-h-full ${statusEnabled && statusText ? 'pt-24' : 'pt-14 sm:pt-16'}`}>
-
-                {/* Avatar */}
-                <motion.div
-                  className="mb-3 sm:mb-4 p-1 rounded-full shadow-lg"
-                  style={{ background: accentColor }}
-                  animate={justSaved ? { scale: [1, 1.1, 1] } : {}}
-                >
-                  <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border-4 border-white bg-gray-100 overflow-hidden relative">
-                    {existingCustomizations?.profilePictureUrl ? (
-                      <img src={existingCustomizations.profilePictureUrl} className="w-full h-full object-cover" alt="Preview" />
-                    ) : (
-                      <div className="w-full h-full bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center">
-                        <ImageIcon className="w-10 h-10 text-gray-300" />
-                      </div>
-                    )}
+              {/* Estado quando não tem slug */}
+              {!userSlug ? (
+                <div className="w-full h-full flex flex-col items-center justify-center gap-3 p-6 text-center">
+                  <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center">
+                    <Smartphone className="w-6 h-6 text-gray-400" />
                   </div>
-                </motion.div>
-
-                {/* Username */}
-                <div className="text-center w-full mb-2">
-                  {userSlug ? (
-                    <p className="font-bold text-gray-900 text-sm sm:text-base">@{userSlug}</p>
-                  ) : (
-                    <div className="h-4 w-24 bg-black/10 rounded mx-auto animate-pulse" />
-                  )}
+                  <p className="text-sm text-gray-500">Configure seu username primeiro</p>
                 </div>
-
-                {/* Bio */}
-                <div className="text-center w-full mb-6 px-2">
-                  {cleanBio ? (
-                    <p className="text-xs text-gray-700 leading-relaxed bg-white/60 p-2.5 rounded-lg backdrop-blur-sm shadow-sm border border-white/30">
-                      {cleanBio}
-                    </p>
-                  ) : (
-                    <div className="h-2 w-40 bg-black/5 rounded mx-auto" />
-                  )}
-                </div>
-
-                {/* 🔥 LINKS REAIS DO USUÁRIO 🔥 */}
-                <div className="w-full space-y-2.5 pb-6">
-                  {userLinks && userLinks.length > 0 ? (
-                    userLinks.map((link, i) => (
-                      <motion.div
-                        key={link._id}
-                        className="w-full h-11 sm:h-12 bg-white/80 backdrop-blur-sm rounded-xl border border-white/50 shadow-sm flex items-center gap-3 px-4 overflow-hidden"
-                        style={{ borderLeft: `4px solid ${accentColor}` }}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: 0.05 * i }}
-                      >
-                        {/* Ícone */}
-                        <div className="flex-shrink-0 text-gray-600">
-                          {link.thumbnailUrl ? (
-                            <img src={link.thumbnailUrl} alt="icon" className="w-5 h-5 object-cover rounded-full" />
-                          ) : (
-                            getPreviewLinkIcon(link.url, link.title)
-                          )}
-                        </div>
-                        {/* Texto */}
-                        <span className="text-xs text-gray-700 font-medium truncate flex-1">{link.title}</span>
-                      </motion.div>
-                    ))
-                  ) : (
-                    // Fallback se não tiver links ainda
-                    [1, 2].map((i) => (
-                      <div key={i} className="w-full h-11 rounded-xl bg-gray-100/50 border border-gray-200/50 animate-pulse flex items-center justify-center">
-                        <span className="text-[10px] text-gray-400">Adicione links para ver aqui...</span>
-                      </div>
-                    ))
-                  )}
-                </div>
-
-                <div className="mt-auto pb-4">
-                  <span className="text-[10px] text-gray-400/60">Feito com 💜 freelinnk.com</span>
-                </div>
-              </div>
+              ) : (
+                /* 🔥 IFRAME DA PÁGINA REAL 🔥 */
+                <iframe
+                  ref={iframeRef}
+                  key={iframeKey}
+                  src={previewUrl || undefined}
+                  className="w-full h-full border-0"
+                  onLoad={() => setIsIframeLoading(false)}
+                  title="Preview da página"
+                  sandbox="allow-same-origin allow-scripts"
+                  style={{
+                    transform: 'scale(1)',
+                    transformOrigin: 'top left',
+                  }}
+                />
+              )}
             </div>
           </motion.div>
 
-          <p className="text-center text-xs text-gray-400">As alterações aparecem aqui em tempo real</p>
+          {/* Info */}
+          <div className="text-center space-y-1">
+            <p className="text-xs text-gray-400">
+              Salve para atualizar o preview
+            </p>
+            {userSlug && (
+              <p className="text-[10px] text-gray-300">
+                freelinnk.com/{userSlug}
+              </p>
+            )}
+          </div>
         </div>
       </div>
 
