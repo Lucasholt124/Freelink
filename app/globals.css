@@ -141,20 +141,19 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html, body {
-@apply bg-background text-foreground flex flex-col min-h-screen overflow-x-hidden;
-
-    /* ADICIONE ESTA LINHA AQUI: */
-    overscroll-behavior-y: none; /* Isso mata o efeito elástico do navegador */
-
-    margin: 0;
-    padding: 0;
-  }
-  html {
-    scroll-behavior: smooth;
-  }
+html {
+  /* Removemos flex e overflow do HTML para deixar o scroll nativo funcionar */
+  scroll-behavior: smooth;
 }
 
+body {
+  @apply bg-background text-foreground min-h-screen overflow-x-hidden;
+  /* O flex deve ficar apenas se for essencial, mas evite no body se possível */
+  /* overscroll-behavior-y: none; <--- COMENTE ISSO PARA TESTAR */
+  margin: 0;
+  padding: 0;
+}
+}
 @layer utilities {
   .no-scrollbar::-webkit-scrollbar {
     display: none;

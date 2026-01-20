@@ -1898,8 +1898,7 @@
     ];
 
     return (
-      <div className="bg-white text-gray-900 font-sans selection:bg-indigo-500 selection:text-white overflow-x-hidden">
-        {/* Progress Bar */}
+<div className="bg-white text-gray-900 font-sans selection:bg-indigo-500 selection:text-white w-full">        {/* Progress Bar */}
         <motion.div
           className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 z-[100] origin-left"
           style={{ scaleX: scrollYProgress }}
