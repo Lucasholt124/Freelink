@@ -1,4 +1,4 @@
-// Em /app/terms-of-service/page.tsx
+
 
 export default function TermsOfServicePage() {
   return (

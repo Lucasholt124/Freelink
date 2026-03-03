@@ -9,7 +9,6 @@ export default function ShortLinkRedirectPage() {
   const [, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // `params.slug` pode ser um array, então pegamos o primeiro elemento
   const slug = Array.isArray(params.slug) ? params.slug[0] : params.slug;
 
   useEffect(() => {
@@ -21,7 +20,6 @@ export default function ShortLinkRedirectPage() {
       }
 
       try {
-        // Redireciona para nossa API de redirecionamento
         window.location.href = `/api/redirect?slug=${encodeURIComponent(slug)}`;
       } catch (err) {
         console.error("Erro ao redirecionar:", err);
@@ -30,7 +28,6 @@ export default function ShortLinkRedirectPage() {
       }
     }
 
-    // Pequeno timeout para garantir que os rastreadores carreguem
     const timer = setTimeout(() => {
       handleRedirect();
     }, 100);
