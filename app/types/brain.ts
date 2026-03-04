@@ -1,9 +1,4 @@
-// app/types/brain.ts - ATUALIZADO
 import { Id } from "@/convex/_generated/dataModel";
-
-// ============================================
-// CONTEÚDO GERADO
-// ============================================
 
 export interface ScriptTimelineItem {
   start_time: string;
@@ -63,16 +58,13 @@ export interface StorySequenceContent {
   engagement_tips: string[];
 }
 
-// Union type para todos os tipos de conteúdo
+//  type para todos os tipos de conteúdo
 export type ContentData =
   | ReelContent
   | CarouselContent
   | ImagePostContent
   | StorySequenceContent;
 
-// ============================================
-// TIPOS DE CONTEÚDO
-// ============================================
 
 export type ContentType =
   | "reel"
@@ -98,9 +90,6 @@ export type SocialPlatform =
   | "twitter"
   | "tiktok";
 
-// ============================================
-// BRAIN RESULTS
-// ============================================
 
 export interface ContentPack {
   reels: ReelContent[];
@@ -122,9 +111,6 @@ export interface BrainResults {
   viral_strategy: ViralStrategy;
 }
 
-// ============================================
-// HELPER FUNCTIONS
-// ============================================
 
 export function extractCaptionAndHashtags(
   contentType: ContentType,
@@ -176,9 +162,6 @@ export function isStorySequenceContent(content: ContentData): content is StorySe
   return 'slides' in content && 'engagement_tips' in content;
 }
 
-// ============================================
-// SCHEDULE MODAL TYPES
-// ============================================
 
 export interface ScheduleModalData {
   isOpen: boolean;

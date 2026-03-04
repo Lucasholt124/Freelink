@@ -14,9 +14,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const baseUrl = getBaseUrl()
   const now = new Date()
 
-  // ✅ APENAS páginas públicas que você TEM
+
   const publicRoutes: Array<MetadataRoute.Sitemap[number]> = [
-    // 🏠 Homepage - Máxima prioridade
     {
       url: baseUrl,
       lastModified: now,
@@ -24,7 +23,6 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 1.0,
     },
 
-    // 💰 Pricing - Alta prioridade (conversão)
     {
       url: `${baseUrl}/pricing`,
       lastModified: now,
@@ -32,8 +30,8 @@ export default function sitemap(): MetadataRoute.Sitemap {
       priority: 0.9,
     },
 
-    // 📝 Páginas institucionais (adicione SOMENTE se existirem)
-    // Descomente conforme você criar essas páginas:
+
+    // Descomente conforme eu criar essas páginas:
 
     // {
     //   url: `${baseUrl}/features`,

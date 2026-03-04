@@ -4,8 +4,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useScroll, useInView } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { SignInButton, useAuth } from "@clerk/nextjs";
-
-
 import WhatsAppFloatingButton from "@/components/landing/WhatsAppFloatingButton";
 import HeroPhoneSimulator from "@/components/landing/HeroPhoneSimulator";
 import VideoDemoSection from "@/components/landing/VideoDemoSection";

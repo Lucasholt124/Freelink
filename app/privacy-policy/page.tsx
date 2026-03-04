@@ -1,5 +1,3 @@
-// Em /app/privacy-policy/page.tsx
-
 export default function PrivacyPolicyPage() {
   return (
     <div className="bg-gray-50 min-h-screen">

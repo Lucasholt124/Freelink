@@ -8,7 +8,7 @@ import { getBaseUrl } from "@/convex/lib/getBaseUrl";
 import clsx from "clsx";
 import Script from "next/script";
 
-// ✅ Metadata SEM themeColor
+
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseUrl()),
   title: {
@@ -89,7 +89,7 @@ export const metadata: Metadata = {
   category: "Technology",
 };
 
-// ✅ NOVO: Viewport separado COM themeColor
+
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
@@ -101,7 +101,6 @@ export const viewport: Viewport = {
   ],
 };
 
-// Schema.org JSON-LD
 const jsonLd = {
   '@context': 'https://schema.org',
   '@type': 'SoftwareApplication',

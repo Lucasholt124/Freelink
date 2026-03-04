@@ -1,6 +1,3 @@
-// Em /app/providers/Providers.tsx
-// (Substitua o arquivo inteiro)
-
 "use client";
 
 import { ReactNode } from "react";
@@ -13,14 +10,9 @@ const convex = new ConvexReactClient(process.env.NEXT_PUBLIC_CONVEX_URL!);
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
-    // =======================================================
-    // A FONTE DA VERDADE ESTÁ AQUI
-    // =======================================================
-    // 1. O ÚNICO ClerkProvider, com a configuração de redirecionamento.
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       localization={ptBR}
-      // Caminhos relativos para funcionar em todos os ambientes
       afterSignInUrl="/dashboard"
       afterSignUpUrl="/dashboard"
       signInUrl="/sign-in"
@@ -30,7 +22,6 @@ export function Providers({ children }: { children: ReactNode }) {
         elements: { formButtonPrimary: "bg-gradient-to-r from-blue-500 to-purple-600" },
       }}
     >
-      {/* 2. O ConvexProvider vive DENTRO do ClerkProvider. */}
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>
         {children}
       </ConvexProviderWithClerk>

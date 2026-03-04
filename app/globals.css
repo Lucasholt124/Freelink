@@ -45,7 +45,7 @@
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 
-  /* --- ANIMAÇÕES PARA O DESIGN VIRAL --- */
+  /* --- ANIMAÇÕES PARA O DESIGN  --- */
   --animate-blob: blob 7s infinite;
   @keyframes blob {
     0% { transform: translate(0px, 0px) scale(1); }
@@ -67,7 +67,7 @@
   }
 }
 
-/* === VARIÁVEIS DE COR (OKLCH) === */
+/* === VARIÁVEIS DE COR === */
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
@@ -142,14 +142,11 @@
     @apply border-border outline-ring/50;
   }
 html {
-  /* Removemos flex e overflow do HTML para deixar o scroll nativo funcionar */
   scroll-behavior: smooth;
 }
 
 body {
   @apply bg-background text-foreground min-h-screen overflow-x-hidden;
-  /* O flex deve ficar apenas se for essencial, mas evite no body se possível */
-  /* overscroll-behavior-y: none; <--- COMENTE ISSO PARA TESTAR */
   margin: 0;
   padding: 0;
 }
@@ -164,8 +161,7 @@ body {
   }
 }
 
-/* === CORREÇÃO CRÍTICA PARA LAYOUT MOBILE === */
-/* Isso impede que botões e links fiquem gigantes e quebrem o menu */
+
 @media (max-width: 640px) {
   input,
   select,
@@ -173,10 +169,8 @@ body {
     min-height: 44px;
     font-size: 16px !important;
   }
-  /* Removemos a regra forçada de altura para <a> e <button> */
 }
 
-/* Scrollbar estilizada */
 .scrollbar-thin {
   scrollbar-width: thin;
 }
