@@ -186,7 +186,7 @@ export default function OnboardingPage() {
   const [profileImage, setProfileImage] = useState<{ file: File | null; preview: string | null }>({ file: null, preview: null });
   const [bio, setBio] = useState("");
   const [nicheSearch, setNicheSearch] = useState("");
-
+  const currentUser = useQuery(api.users.getMyUsername);
 
   const [showMobilePreview, setShowMobilePreview] = useState(false);
   const [templateFilter, setTemplateFilter] = useState<"all" | "light" | "dark" | "colorful" | "gradient">("all");
@@ -217,6 +217,14 @@ export default function OnboardingPage() {
   }, [nicheSearch]);
 
   const validLinksCount = useMemo(() => links.filter((l) => l.title && l.url).length, [links]);
+
+  useEffect(() => {
+    // Se terminou de carregar (não é undefined) e achou um usuário (não é null)
+    if (currentUser !== undefined && currentUser !== null) {
+      toast.info("Você já configurou sua página! Redirecionando...");
+      router.push("/dashboard");
+    }
+  }, [currentUser, router]);
 
   const usernameSuggestions = useMemo(() => {
     if (!displayName) return [];
