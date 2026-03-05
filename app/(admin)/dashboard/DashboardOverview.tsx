@@ -1,12 +1,15 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
   PlusCircle, Crown, Star, TrendingUp, Zap,
-  DollarSign, Scissors, Sparkles, Gift, ArrowRight, Lightbulb, Flame, Diamond
+  DollarSign, Scissors, Sparkles, Gift, ArrowRight, Lightbulb, Flame, Diamond,
+  Calendar, Target, Lock, Eye, BarChart3, AlertTriangle, Rocket, Share2
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import ImpactOverview from "./ImpactOverview";
 import SmartInsights from "./SmartInsights";
 import DashboardMetrics from "@/components/DashboardMetrics";
@@ -25,8 +28,65 @@ interface DashboardOverviewProps {
   userSlug: string | null;
 }
 
-// LÓGICA DO CARD DE PERFORMANCE DIÁRIA (RESTAURADO)
-const DailyPerformanceCard = ({ clicks }: { clicks: number }) => {
+
+const useStreak = () => {
+  const [streak, setStreak] = useState(0);
+  const [isNewDay, setIsNewDay] = useState(false);
+
+  useEffect(() => {
+    const today = new Date().toDateString();
+    const lastVisit = localStorage.getItem('freelinnk_last_visit');
+    const currentStreak = parseInt(localStorage.getItem('freelinnk_streak') || '0');
+
+    if (lastVisit === today) {
+
+      setStreak(currentStreak);
+      return;
+    }
+
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (lastVisit === yesterday.toDateString()) {
+      const newStreak = currentStreak + 1;
+      localStorage.setItem('freelinnk_streak', String(newStreak));
+      localStorage.setItem('freelinnk_last_visit', today);
+      setStreak(newStreak);
+      setIsNewDay(true);
+    } else {
+      localStorage.setItem('freelinnk_streak', '1');
+      localStorage.setItem('freelinnk_last_visit', today);
+      setStreak(1);
+      setIsNewDay(lastVisit !== null);
+    }
+  }, []);
+
+  return { streak, isNewDay };
+};
+
+
+const getDailyMission = () => {
+  const dayOfYear = Math.floor(
+    (Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000
+  );
+
+  const missions = [
+    { text: "Compartilhe seu link em 2 redes sociais", reward: "+10 XP", icon: Share2, href: "/dashboard/links", color: "blue" },
+    { text: "Adicione um novo link ao seu perfil", reward: "+15 XP", icon: PlusCircle, href: "/dashboard/new-link", color: "emerald" },
+    { text: "Encurte 1 link usando o Encurtador", reward: "+10 XP", icon: Scissors, href: "/dashboard/shortener", color: "violet" },
+    { text: "Verifique o conselho da IA Coach", reward: "+5 XP", icon: Sparkles, href: "#smart-insights", color: "amber" },
+    { text: "Personalize as cores do seu perfil", reward: "+10 XP", icon: Target, href: "/dashboard/settings", color: "pink" },
+    { text: "Analise seus cliques de hoje", reward: "+5 XP", icon: BarChart3, href: "#impact-overview", color: "cyan" },
+    { text: "Crie um sorteio para engajamento", reward: "+20 XP", icon: Gift, href: "/dashboard/giveaway", color: "orange" },
+  ];
+
+  return missions[dayOfYear % missions.length];
+};
+
+
+const DailyPerformanceCard = ({ clicks, plan }: { clicks: number; plan: string }) => {
+  const isFree = plan === 'free';
+
   if (clicks <= 10) {
     return (
       <div className="bg-gradient-to-br from-slate-50 to-white dark:from-slate-800 dark:to-slate-900 border border-slate-200 dark:border-slate-700 rounded-2xl p-6 h-full flex flex-col justify-center relative overflow-hidden shadow-sm">
@@ -37,10 +97,25 @@ const DailyPerformanceCard = ({ clicks }: { clicks: number }) => {
             Dica de Crescimento
           </h3>
           <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-4">
-            Seu perfil está pronto. Para desbloquear o selo <strong>Em Ascensão</strong>, compartilhe seu link agora e consiga +10 cliques.
+            Seu perfil está pronto. Para desbloquear o selo <strong className="text-emerald-600">Em Ascensão</strong>, compartilhe seu link agora e consiga +10 cliques.
           </p>
+
+          <div className="mb-3">
+            <div className="flex justify-between text-[10px] font-bold text-slate-400 mb-1">
+              <span>Progresso</span>
+              <span>{clicks}/10 cliques</span>
+            </div>
+            <div className="w-full h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full transition-all duration-1000"
+                style={{ width: `${Math.min(100, (clicks / 10) * 100)}%` }}
+              />
+            </div>
+          </div>
+
           <Link href="/dashboard/links">
             <Button variant="outline" size="sm" className="w-full text-xs font-bold border-slate-300 hover:bg-slate-100 dark:border-slate-600 dark:hover:bg-slate-800">
+              <Rocket className="w-3 h-3 mr-2" />
               Melhorar meu Link
             </Button>
           </Link>
@@ -62,12 +137,25 @@ const DailyPerformanceCard = ({ clicks }: { clicks: number }) => {
           </div>
           <h3 className="font-black text-2xl mb-1">Em Ascensão 🚀</h3>
           <p className="text-sm font-medium text-white/90 mb-4 leading-relaxed">
-            Você está crescendo mais rápido que 50% dos criadores hoje. Continue assim!
+            Você está crescendo mais rápido que <strong>50%</strong> dos criadores hoje.
           </p>
           <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
-            <div className="bg-white h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%` }}></div>
+            <div className="bg-white h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
           </div>
-          <p className="text-[10px] text-white/80 mt-1 font-bold text-right">Próximo: Elite ({50 - clicks} cliques)</p>
+          <p className="text-[10px] text-white/80 mt-1 font-bold text-right">
+            Próximo: Elite ({50 - clicks} cliques)
+          </p>
+
+          {isFree && (
+            <Link href="/dashboard/billing">
+              <div className="mt-3 bg-white/10 rounded-lg p-2 flex items-center gap-2 hover:bg-white/20 transition-colors cursor-pointer">
+                <Lock className="w-3 h-3 text-white/70" />
+                <p className="text-[10px] text-white/80 font-medium">
+                  🔒 Membros Pro veem de onde vêm esses cliques
+                </p>
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     );
@@ -86,11 +174,22 @@ const DailyPerformanceCard = ({ clicks }: { clicks: number }) => {
           </div>
           <h3 className="font-black text-2xl mb-1">Top 20% ⭐</h3>
           <p className="text-sm font-medium text-white/90 mb-4 leading-relaxed">
-            Excelente! Seu link está entre os mais visitados da plataforma hoje.
+            Seu link está entre os mais visitados da plataforma hoje.
           </p>
           <div className="w-full bg-black/10 rounded-full h-1.5 overflow-hidden">
-            <div className="bg-white h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%` }}></div>
+            <div className="bg-white h-full rounded-full transition-all duration-1000" style={{ width: `${progress}%` }} />
           </div>
+
+          {isFree && (
+            <Link href="/dashboard/billing">
+              <div className="mt-3 bg-white/10 rounded-lg p-2 flex items-center gap-2 hover:bg-white/20 transition-colors cursor-pointer">
+                <DollarSign className="w-3 h-3 text-white/70" />
+                <p className="text-[10px] text-white/80 font-medium">
+                  💰 Com {clicks} cliques, criadores Pro faturam ~R${(clicks * 0.5).toFixed(0)}/dia
+                </p>
+              </div>
+            </Link>
+          )}
         </div>
       </div>
     );
@@ -123,7 +222,7 @@ const DailyPerformanceCard = ({ clicks }: { clicks: number }) => {
   return (
     <div className="bg-gradient-to-br from-violet-600 to-indigo-600 rounded-2xl p-6 text-white shadow-2xl h-full flex flex-col justify-center relative overflow-hidden group">
       <Diamond className="absolute top-4 right-4 text-white/20 w-16 h-16 rotate-12" />
-      <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-10"></div>
+      <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-10" />
       <div className="relative z-10">
         <div className="flex items-center gap-2 mb-2">
           <span className="bg-gradient-to-r from-amber-200 to-yellow-400 text-yellow-900 border-0 px-2 py-0.5 rounded font-bold uppercase text-[10px] shadow-sm">
@@ -139,8 +238,11 @@ const DailyPerformanceCard = ({ clicks }: { clicks: number }) => {
   );
 };
 
+
 export default function DashboardOverview({ analytics, userPlan, firstName, userSlug }: DashboardOverviewProps) {
   const dailySummary = useQuery(api.profitCalculator.getDailySummary, {});
+  const { streak } = useStreak();
+  const dailyMission = getDailyMission();
 
   const totalClicks = analytics.totalClicks || 0;
   const currentLevel = Math.floor(totalClicks / 50) + 1;
@@ -148,9 +250,13 @@ export default function DashboardOverview({ analytics, userPlan, firstName, user
   const xpRemaining = Math.max(0, nextLevelClicks - totalClicks);
   const progressPercent = Math.min(100, (totalClicks / nextLevelClicks) * 100);
 
-  const levelBadgeColor = userPlan === 'ultra' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
-                          userPlan === 'pro' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
-                          'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
+  const isFree = userPlan === 'free';
+  const isPro = userPlan === 'pro';
+
+  const levelBadgeColor =
+    userPlan === 'ultra' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' :
+    userPlan === 'pro' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' :
+    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300';
 
   const getGreeting = () => {
     const h = new Date().getHours();
@@ -163,19 +269,39 @@ export default function DashboardOverview({ analytics, userPlan, firstName, user
   const formatCurrency = (val: number) =>
     new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(val);
 
+  const lockedFeaturesCount = isFree ? 8 : isPro ? 3 : 0;
+
   return (
     <div className="max-w-7xl mx-auto pb-24 pt-4 animate-in fade-in duration-500 space-y-6">
 
       <WelcomeModal username={userSlug || ""} />
 
-      {/* 1. HEADER & NIVEL & SAUDAÇÃO (RESTAURADO) */}
+
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
         <div className="w-full md:w-auto">
-          <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight mb-2">
-            {getGreeting()}, {firstName}.
-          </h1>
+          <div className="flex items-center gap-3 mb-2">
+            <h1 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+              {getGreeting()}, {firstName}.
+            </h1>
+
+             {streak > 1 && (
+              <motion.div
+                initial={{ scale: 0, rotate: -180 }}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: "spring", bounce: 0.5 }}
+              >
+                <Badge className="bg-gradient-to-r from-orange-500 to-red-500 text-white font-black text-xs px-2.5 py-1 border-0 shadow-lg shadow-orange-500/25">
+                  🔥 {streak} dias seguidos
+                </Badge>
+              </motion.div>
+            )}
+          </div>
+
           <p className="text-slate-500 dark:text-slate-400 font-medium text-lg mb-4">
-            Seu Freelinnk trabalhou por você enquanto você vivia sua vida. 🚀
+            {totalClicks > 0
+              ? `Seu Freelinnk recebeu ${totalClicks} cliques enquanto você vivia sua vida. 🚀`
+              : "Seu Freelinnk está pronto. Compartilhe para começar a receber cliques! 🚀"
+            }
           </p>
 
           <div className="bg-white dark:bg-slate-900 p-3 pr-5 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm inline-flex items-center gap-4">
@@ -190,12 +316,20 @@ export default function DashboardOverview({ analytics, userPlan, firstName, user
                 <span className="text-xs font-black uppercase text-slate-500">Nível {currentLevel}</span>
                 <span className="text-xs font-bold text-slate-300">•</span>
                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">{totalClicks} XP</span>
+                {lockedFeaturesCount > 0 && (
+                  <Link href="/dashboard/billing">
+                    <Badge variant="secondary" className="bg-red-50 text-red-600 text-[9px] font-bold border border-red-100 cursor-pointer hover:bg-red-100 transition-colors">
+                      <Lock className="w-2.5 h-2.5 mr-1" />
+                      {lockedFeaturesCount} recursos bloqueados
+                    </Badge>
+                  </Link>
+                )}
               </div>
               <div className="w-48 h-2 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
-                <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500" style={{ width: `${progressPercent}%` }}></div>
+                <div className="h-full bg-gradient-to-r from-blue-500 to-purple-500 transition-all duration-1000" style={{ width: `${progressPercent}%` }} />
               </div>
               <p className="text-[10px] font-medium text-slate-400 mt-1">
-                Faltam <span className="text-purple-600 font-bold">{xpRemaining} XP</span> para subir.
+                Faltam <span className="text-purple-600 font-bold">{xpRemaining} XP</span> para o nível {currentLevel + 1}
               </p>
             </div>
           </div>
@@ -209,102 +343,226 @@ export default function DashboardOverview({ analytics, userPlan, firstName, user
         </Link>
       </div>
 
-      {/* 2. BARRA DE AÇÕES RÁPIDAS (NOVA) */}
+
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="bg-gradient-to-r from-indigo-50 via-white to-purple-50 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 border border-indigo-100 dark:border-indigo-900/30 rounded-xl p-4 shadow-sm"
+      >
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className={`p-2.5 bg-${dailyMission.color}-100 dark:bg-${dailyMission.color}-900/20 rounded-xl`}>
+              <Calendar className="w-5 h-5 text-indigo-600 dark:text-indigo-400" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-[10px] font-black uppercase text-indigo-600 tracking-wider">Missão do Dia</span>
+                <Badge className="bg-amber-100 text-amber-700 text-[9px] font-bold border-0 px-1.5">
+                  {dailyMission.reward}
+                </Badge>
+              </div>
+              <p className="text-sm font-bold text-slate-800 dark:text-white">
+                {dailyMission.text}
+              </p>
+            </div>
+          </div>
+          <Link href={dailyMission.href}>
+            <Button size="sm" className="bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-lg shadow-md whitespace-nowrap">
+              Completar Missão
+              <ArrowRight className="w-3 h-3 ml-2" />
+            </Button>
+          </Link>
+        </div>
+      </motion.div>
+
+
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
-         <Link href="/dashboard/profit-calculator">
-            <motion.div whileHover={{ y: -2 }} className="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/20 p-4 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2 cursor-pointer group hover:border-emerald-200 h-full">
-               <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full group-hover:scale-110 transition-transform">
-                  <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-               </div>
-               <span className="font-bold text-sm text-slate-700 dark:text-slate-200">Financeiro</span>
-            </motion.div>
-         </Link>
+        <Link href="/dashboard/profit-calculator">
+          <motion.div whileHover={{ y: -2 }} className="bg-white dark:bg-slate-900 border border-emerald-100 dark:border-emerald-900/20 p-4 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2 cursor-pointer group hover:border-emerald-200 h-full">
+            <div className="p-2 bg-emerald-100 dark:bg-emerald-900/30 rounded-full group-hover:scale-110 transition-transform">
+              <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <span className="font-bold text-sm text-slate-700 dark:text-slate-200">Financeiro</span>
+          </motion.div>
+        </Link>
 
-         <Link href="/dashboard/shortener">
-            <motion.div whileHover={{ y: -2 }} className="bg-white dark:bg-slate-900 border border-blue-100 dark:border-blue-900/20 p-4 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2 cursor-pointer group hover:border-blue-200 h-full">
-               <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full group-hover:scale-110 transition-transform">
-                  <Scissors className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-               </div>
-               <span className="font-bold text-sm text-slate-700 dark:text-slate-200">Encurtar Link</span>
-            </motion.div>
-         </Link>
+        <Link href="/dashboard/shortener">
+          <motion.div whileHover={{ y: -2 }} className="bg-white dark:bg-slate-900 border border-blue-100 dark:border-blue-900/20 p-4 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2 cursor-pointer group hover:border-blue-200 h-full">
+            <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-full group-hover:scale-110 transition-transform">
+              <Scissors className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <span className="font-bold text-sm text-slate-700 dark:text-slate-200">Encurtar Link</span>
+          </motion.div>
+        </Link>
 
-         <Link href="/dashboard/ai-studio">
-            <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-purple-500 to-pink-500 p-4 rounded-xl shadow-md flex flex-col items-center justify-center gap-2 cursor-pointer text-white h-full">
-               <div className="p-2 bg-white/20 rounded-full">
-                  <Sparkles className="w-5 h-5 text-white" />
-               </div>
-               <span className="font-bold text-sm">Estúdio IA</span>
-            </motion.div>
-         </Link>
+        <Link href="/dashboard/ai-studio">
+          <motion.div whileHover={{ y: -2 }} className="bg-gradient-to-br from-purple-500 to-pink-500 p-4 rounded-xl shadow-md flex flex-col items-center justify-center gap-2 cursor-pointer text-white h-full relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-[shimmer_3s_infinite] skew-x-12" />
+            <div className="p-2 bg-white/20 rounded-full relative z-10">
+              <Sparkles className="w-5 h-5 text-white" />
+            </div>
+            <span className="font-bold text-sm relative z-10">Estúdio IA</span>
+            {userPlan !== 'ultra' && (
+              <Badge className="absolute top-2 right-2 bg-white/20 text-[8px] border-0 text-white font-bold">ULTRA</Badge>
+            )}
+          </motion.div>
+        </Link>
 
-         <Link href="/dashboard/giveaway">
-            <motion.div whileHover={{ y: -2 }} className="bg-white dark:bg-slate-900 border border-orange-100 dark:border-orange-900/20 p-4 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2 cursor-pointer group hover:border-orange-200 h-full">
-               <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full group-hover:scale-110 transition-transform">
-                  <Gift className="w-5 h-5 text-orange-600 dark:text-orange-400" />
-               </div>
-               <span className="font-bold text-sm text-slate-700 dark:text-slate-200">Sorteio</span>
-            </motion.div>
-         </Link>
+        <Link href="/dashboard/giveaway">
+          <motion.div whileHover={{ y: -2 }} className="bg-white dark:bg-slate-900 border border-orange-100 dark:border-orange-900/20 p-4 rounded-xl shadow-sm flex flex-col items-center justify-center gap-2 cursor-pointer group hover:border-orange-200 h-full">
+            <div className="p-2 bg-orange-100 dark:bg-orange-900/30 rounded-full group-hover:scale-110 transition-transform">
+              <Gift className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+            </div>
+            <span className="font-bold text-sm text-slate-700 dark:text-slate-200">Sorteio</span>
+          </motion.div>
+        </Link>
       </div>
 
-      {/* 3. GRID PRINCIPAL (RESTAURADO + HÍBRIDO) */}
+
+      {isFree && totalClicks > 5 && (
+        <motion.div
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="relative overflow-hidden"
+        >
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 dark:from-red-950/20 dark:to-orange-950/20 border border-red-200 dark:border-red-900/30 rounded-xl p-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 text-red-600" />
+                </div>
+                <div>
+                  <h4 className="font-bold text-red-800 dark:text-red-300 text-sm">
+                    Você está perdendo dados importantes
+                  </h4>
+                  <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-0.5">
+                    Com {totalClicks} cliques hoje, você não sabe: de onde vieram, quanto tempo ficaram, nem qual link converte mais.
+                    {totalClicks > 20 && " Criadores Pro com esse tráfego faturam em média R$" + (totalClicks * 0.8).toFixed(0) + "/dia."}
+                  </p>
+                </div>
+              </div>
+              <Link href="/dashboard/billing">
+                <Button size="sm" className="bg-gradient-to-r from-red-600 to-orange-600 text-white font-bold text-xs whitespace-nowrap shadow-lg">
+                  <Eye className="w-3 h-3 mr-2" />
+                  Ver o que estou perdendo
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </motion.div>
+      )}
+
+
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2">
-          {/* Gráfico de Cliques */}
+        <div className="lg:col-span-2" id="impact-overview">
           <ImpactOverview analytics={analytics} plan={userPlan} />
         </div>
 
-        {/* Lado Direito: Daily Performance + Mini Financeiro */}
         <div className="lg:col-span-1 flex flex-col gap-4">
-           {/* Card de Performance Diária (RESTAURADO) */}
-           <div className="flex-1">
-             <DailyPerformanceCard clicks={totalClicks} />
-           </div>
+          <div className="flex-1">
+            <DailyPerformanceCard clicks={totalClicks} plan={userPlan} />
+          </div>
 
-           {/* Card Financeiro Compacto (NOVO) */}
-           <Link href="/dashboard/profit-calculator">
-             <motion.div
-               whileHover={{ scale: 1.01 }}
-               className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between hover:border-emerald-300 transition-colors group cursor-pointer"
-             >
-                <div className="flex items-center gap-3">
-                   <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
-                      <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
-                   </div>
-                   <div>
-                      <p className="text-xs text-slate-500 font-medium">Faturamento Hoje</p>
-                      <p className="font-bold text-slate-800 dark:text-white">
-                        {dailySummary ? formatCurrency(dailySummary.totalRevenue) : "R$ 0,00"}
-                      </p>
-                   </div>
+          <Link href="/dashboard/profit-calculator">
+            <motion.div
+              whileHover={{ scale: 1.01 }}
+              className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl p-4 flex items-center justify-between hover:border-emerald-300 transition-colors group cursor-pointer"
+            >
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-emerald-100 dark:bg-emerald-900/30 rounded-lg flex items-center justify-center">
+                  <DollarSign className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
                 </div>
-                <ArrowRight className="w-4 h-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
-             </motion.div>
-           </Link>
+                <div>
+                  <p className="text-xs text-slate-500 font-medium">Faturamento Hoje</p>
+                  <p className="font-bold text-slate-800 dark:text-white">
+                    {dailySummary ? formatCurrency(dailySummary.totalRevenue) : "R$ 0,00"}
+                  </p>
+                  {dailySummary && dailySummary.salesCount > 0 && (
+                    <p className="text-[10px] text-emerald-600 font-medium mt-0.5">
+                      ✅ {dailySummary.salesCount} venda(s) registrada(s)
+                    </p>
+                  )}
+                  {(!dailySummary || dailySummary.salesCount === 0) && (
+                    <p className="text-[10px] text-slate-400 font-medium mt-0.5">
+                      Nenhuma venda registrada ainda
+                    </p>
+                  )}
+                </div>
+              </div>
+              <ArrowRight className="w-4 h-4 text-emerald-500 opacity-0 group-hover:opacity-100 transition-opacity" />
+            </motion.div>
+          </Link>
         </div>
       </div>
 
-      {/* 4. INSIGHTS IA & TIMING DE OURO */}
-      <SmartInsights analytics={analytics} plan={userPlan} hasSales={(dailySummary && dailySummary.salesCount > 0) ?? false} />
 
-      {/* 5. FERRAMENTAS DE CRESCIMENTO */}
+      <div id="smart-insights">
+        <SmartInsights
+          analytics={analytics}
+          plan={userPlan}
+          hasSales={(dailySummary && dailySummary.salesCount > 0) ?? false}
+        />
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <div className="md:col-span-8 space-y-6">
           <DashboardMetrics analytics={analytics} plan={userPlan} />
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <InstagramStrategyWidget userPlan={userPlan} />
-            <ViralScriptWidget userPlan={userPlan} />
+            <InstagramStrategyWidget userPlan={userPlan} totalClicks={totalClicks} />
+            <ViralScriptWidget userPlan={userPlan} totalClicks={totalClicks} />
           </div>
 
-          <div>
-            <GrowthChecklist plan={userPlan} clicks={totalClicks} username={userSlug || "meu-link"} />
-          </div>
+          <GrowthChecklist plan={userPlan} clicks={totalClicks} username={userSlug || "meu-link"} />
         </div>
 
         <div className="md:col-span-4 space-y-6">
           <TrendingLinkCard analytics={analytics} plan={userPlan} />
+
+
+          {isFree && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.5 }}
+              className="bg-gradient-to-br from-slate-900 to-slate-800 dark:from-slate-950 dark:to-slate-900 rounded-2xl p-5 text-white shadow-lg border border-slate-700/50 relative overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent animate-[shimmer_3s_infinite] skew-x-12" />
+
+              <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3">
+                  <Eye className="w-4 h-4 text-purple-400" />
+                  <h4 className="font-bold text-sm">O que você não está vendo</h4>
+                </div>
+
+                <div className="space-y-2 mb-4">
+                  {[
+                    "De quais cidades vêm seus cliques",
+                    "Qual horário seu link mais converte",
+                    "Quanto tempo cada visitante fica",
+                    "Quais redes sociais trazem tráfego",
+                    "Relatório semanal com IA",
+                  ].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <Lock className="w-3 h-3 text-slate-500" />
+                      <span className="text-xs text-slate-400 font-medium">{item}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <Link href="/dashboard/billing">
+                  <Button className="w-full bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold text-xs shadow-lg hover:scale-[1.02] transition-transform">
+                    <Zap className="w-3 h-3 mr-2" />
+                    Desbloquear tudo — Pro
+                  </Button>
+                </Link>
+
+                <p className="text-[9px] text-slate-500 text-center mt-2">
+                  ✨ 1.247 criadores fizeram upgrade esta semana
+                </p>
+              </div>
+            </motion.div>
+          )}
         </div>
       </div>
     </div>

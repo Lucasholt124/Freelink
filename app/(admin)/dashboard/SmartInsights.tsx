@@ -4,11 +4,11 @@ import { motion } from "framer-motion";
 import {
   Target, Zap, Share2,
   Instagram, Linkedin, DollarSign,
-   RefreshCw,
-  Calculator, Lock
+  RefreshCw, Calculator, Lock, Eye, Crown,
 } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import type { AnalyticsData } from "@/lib/analytics-server";
 
 interface Props {
@@ -19,29 +19,28 @@ interface Props {
 
 export default function SmartInsights({ analytics, plan, hasSales = false }: Props) {
   const isFree = plan === 'free';
+  const isPro = plan === 'pro';
   const totalClicks = analytics?.totalClicks || 0;
   const growthRaw = analytics?.growth || "+0%";
   const growthNum = parseFloat(growthRaw.replace('%', '').replace('+', ''));
   const topSource = analytics?.topReferrer?.source?.toLowerCase() || "direto";
 
-  // Dados para o Timing de Ouro
   const peakHourNum = analytics?.peakHour?.hour || 19;
   const peakHourFmt = String(peakHourNum).padStart(2, '0');
 
-  // --- ENGINE DE INTELIGÊNCIA ARTIFICIAL ---
+  const extraInsightsCount = isFree ? 5 : isPro ? 2 : 0;
+
   const getSmartAdvice = () => {
-    // 1. PRIORIDADE: ATIVAÇÃO FINANCEIRA
     if (totalClicks > 5 && !hasSales) {
-        return {
-            icon: Calculator,
-            title: "Você está perdendo dinheiro?",
-            text: "Você teve visitas hoje, mas não registrou vendas. Use o Gestor Financeiro para calcular seu lucro real.",
-            stat: "Gestão aumenta o lucro em 30%.",
-            action: "Registrar Venda",
-            href: "/dashboard/profit-calculator"
-        };
+      return {
+        icon: Calculator,
+        title: "Você está perdendo dinheiro?",
+        text: "Você teve visitas hoje, mas não registrou vendas. Use o Gestor Financeiro para calcular seu lucro real.",
+        stat: "Gestão aumenta o lucro em 30%.",
+        action: "Registrar Venda",
+        href: "/dashboard/profit-calculator"
+      };
     }
-    // 2. ESTAGNAÇÃO
     if (totalClicks > 50 && growthNum <= 0) {
       return {
         icon: RefreshCw,
@@ -52,7 +51,6 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
         href: "/dashboard/settings"
       };
     }
-    // 3. CRESCIMENTO EXPLOSIVO
     if (growthNum > 20 && totalClicks > 100) {
       return {
         icon: DollarSign,
@@ -63,7 +61,6 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
         href: "/dashboard/new-link"
       };
     }
-    // 4. TRÁFEGO DO INSTAGRAM
     if (topSource.includes("instagram")) {
       return {
         icon: Instagram,
@@ -74,7 +71,6 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
         href: "/dashboard/brain"
       };
     }
-    // 5. TRÁFEGO DO LINKEDIN
     if (topSource.includes("linkedin")) {
       return {
         icon: Linkedin,
@@ -85,32 +81,29 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
         href: "/dashboard/settings"
       };
     }
-    // 6. INICIANTE ZERO
     if (totalClicks === 0) {
       return {
         icon: Share2,
         title: "Primeiro Passo",
-        text: "Seu link está pronto. Copie e cole na bio do Instagram agora.",
+        text: "Seu link está pronto. Copie e cole na bio do Instagram agora para começar a receber cliques.",
         stat: "A bio é responsável por 90% do tráfego inicial.",
         action: "Ir para Meus Links",
         href: "/dashboard/links"
       };
     }
-    // 7. POWER USER (Upsell Pixel)
     if (totalClicks >= 200 && isFree) {
       return {
         icon: Target,
-        title: "Perdendo Dados?",
-        text: "Você passou de 200 cliques! Ative o Pixel para fazer remarketing.",
-        stat: "Não deixe esse público escapar.",
+        title: "Perdendo Dados Valiosos",
+        text: `Você passou de ${totalClicks} cliques! Sem o Pixel, você não consegue fazer remarketing. Cada visitante perdido é dinheiro no ralo.`,
+        stat: `Estimativa: R$${(totalClicks * 0.3).toFixed(0)} em oportunidades perdidas hoje.`,
         action: "Ativar Pixel Pro",
         href: "/dashboard/tracking"
       };
     }
-    // Padrão
     return {
       icon: Zap,
-      title: "Consistência",
+      title: "Consistência é a Chave",
       text: "Mantenha seu link atualizado. Perfis ativos crescem mais rápido.",
       stat: "O algoritmo favorece atividade recente.",
       action: "Adicionar Novidade",
@@ -122,13 +115,12 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-12 gap-6 mb-8">
-      {/* 1. IA COACH (7 colunas) */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        className="md:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm flex flex-col justify-center"
+        className="md:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm flex flex-col"
       >
-        <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 h-full">
+        <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 flex-1">
           <div className="flex gap-4">
             <div className="p-3 bg-violet-100 dark:bg-violet-900/30 rounded-xl h-fit shadow-inner">
               <advice.icon className="w-6 h-6 text-violet-600 dark:text-violet-400" />
@@ -146,15 +138,34 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
             </div>
           </div>
           <Link href={advice.href}>
-              <Button className="bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-lg shadow-violet-500/20 whitespace-nowrap h-10 transition-transform hover:scale-105">
-                {advice.action === "Ativar Pixel Pro" && <Lock className="w-3 h-3 mr-2" />}
-                {advice.action}
-              </Button>
+            <Button className="bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-lg shadow-violet-500/20 whitespace-nowrap h-10 transition-transform hover:scale-105">
+              {advice.action === "Ativar Pixel Pro" && <Lock className="w-3 h-3 mr-2" />}
+              {advice.action}
+            </Button>
           </Link>
         </div>
+
+
+        {extraInsightsCount > 0 && (
+          <Link href="/dashboard/billing">
+            <div className="border-t border-slate-100 dark:border-slate-800 px-5 py-2.5 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer group">
+              <div className="flex items-center gap-2">
+                <Eye className="w-3.5 h-3.5 text-purple-500" />
+                <span className="text-[11px] text-slate-500 font-medium">
+                  <span className="text-purple-600 font-bold">+{extraInsightsCount} insights</span> disponíveis no {isFree ? 'Pro' : 'Ultra'}
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <Badge className="bg-gradient-to-r from-purple-500 to-pink-500 text-[9px] font-bold border-0 text-white px-1.5">
+                  {isFree ? <Zap className="w-2.5 h-2.5" /> : <Crown className="w-2.5 h-2.5" />}
+                </Badge>
+                <span className="text-[10px] text-purple-500 font-bold group-hover:translate-x-1 transition-transform">→</span>
+              </div>
+            </div>
+          </Link>
+        )}
       </motion.div>
 
-      {/* 2. TIMING DE OURO (5 colunas) - RESTAURADO! */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
@@ -168,16 +179,45 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
             <Zap className="w-3 h-3" /> Timing de Ouro
           </div>
           <p className="text-slate-800 dark:text-slate-200 font-bold text-sm mb-3 leading-snug">
-            Com base no histórico, seu pico de hoje será às <strong className="text-lg text-amber-600">{peakHourFmt}:00h</strong>.
+            Com base no histórico, seu pico de hoje será às{' '}
+            <strong className="text-lg text-amber-600">{peakHourFmt}:00h</strong>.
             <br/>
             <span className="text-slate-500 dark:text-slate-400 font-normal text-xs mt-1 block">
-              Prepare um story ou post para esse horário.
+              Prepare um story ou post para esse horário para maximizar o alcance.
             </span>
           </p>
 
+          {(() => {
+            const currentHour = new Date().getHours();
+            const hoursUntilPeak = peakHourNum - currentHour;
+
+            if (hoursUntilPeak > 0 && hoursUntilPeak <= 3) {
+              return (
+                <div className="bg-amber-100 dark:bg-amber-900/30 rounded-lg p-2 mb-2">
+                  <p className="text-[11px] text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1">
+                    ⏰ Faltam {hoursUntilPeak}h para o seu pico! Prepare seu conteúdo agora.
+                  </p>
+                </div>
+              );
+            }
+
+            if (hoursUntilPeak === 0) {
+              return (
+                <div className="bg-emerald-100 dark:bg-emerald-900/30 rounded-lg p-2 mb-2 animate-pulse">
+                  <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold flex items-center gap-1">
+                    🔥 SEU PICO É AGORA! Poste imediatamente para máximo alcance.
+                  </p>
+                </div>
+              );
+            }
+
+            return null;
+          })()}
+
           {isFree && (
             <Link href="/dashboard/billing" className="inline-flex items-center text-[10px] font-bold text-amber-700 bg-amber-100/50 dark:bg-amber-900/40 px-3 py-1.5 rounded-full cursor-pointer hover:bg-amber-200/50 transition-colors border border-amber-200/50">
-              Ver análise completa (PRO) <Zap className="w-3 h-3 ml-1" />
+              <Lock className="w-3 h-3 mr-1" />
+              Ver análise de horários completa (PRO) <Zap className="w-3 h-3 ml-1" />
             </Link>
           )}
         </div>

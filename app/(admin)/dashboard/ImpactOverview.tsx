@@ -1,21 +1,17 @@
 "use client";
 
-import { TrendingUp, TrendingDown, Users, Globe, Minus } from "lucide-react"; // Adicionei TrendingDown
+import { TrendingUp, TrendingDown, Users, Globe, Minus, Eye } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import Link from "next/link";
 import type { AnalyticsData } from "@/lib/analytics-server";
 import {
-  AreaChart,
-  Area,
-  XAxis,
-  Tooltip,
-  ResponsiveContainer,
-  YAxis
+  AreaChart, Area, XAxis, Tooltip, ResponsiveContainer, YAxis
 } from "recharts";
 
 interface Props {
   analytics: AnalyticsData;
-  plan?: string; // Coloquei opcional pois não estava sendo usado
+  plan?: string;
 }
 
 interface ChartDataPoint {
@@ -25,35 +21,28 @@ interface ChartDataPoint {
 
 interface CustomTooltipProps {
   active?: boolean;
-  payload?: {
-    payload: ChartDataPoint;
-    value?: number;
-  }[];
+  payload?: { payload: ChartDataPoint; value?: number; }[];
   label?: string;
 }
 
-// Tooltip Personalizado
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     return (
       <div className="bg-slate-900 text-white text-xs p-2 rounded-lg shadow-xl border border-slate-700">
         <p className="font-bold mb-1">{label}</p>
-        <p className="text-emerald-400 font-bold">
-          {payload[0].value} cliques
-        </p>
+        <p className="text-emerald-400 font-bold">{payload[0].value} cliques</p>
       </div>
     );
   }
   return null;
 };
 
-export default function ImpactOverview({ analytics }: Props) {
-  // Dados Reais
+export default function ImpactOverview({ analytics, plan = 'free' }: Props) {
+  const isFree = plan === 'free';
   const clicks = analytics?.totalClicks || 0;
   const visitors = analytics?.uniqueVisitors || 0;
   const topCountryName = analytics?.topCountry?.name || "Brasil";
 
-  // Tratamento do Histórico
   const rawHistory = analytics?.dailyClicks || [];
   const chartData = rawHistory.length > 0
     ? rawHistory
@@ -68,12 +57,10 @@ export default function ImpactOverview({ analytics }: Props) {
   let growthValue = 0;
   const growthString = analytics?.growth;
 
-  // Se o backend não mandou growth, ou mandou "0%", tentamos calcular pelo gráfico
   if (!growthString || growthString === "+0%" || growthString === "0%") {
     if (rawHistory.length >= 2) {
       const today = rawHistory[rawHistory.length - 1].count;
       const yesterday = rawHistory[rawHistory.length - 2].count;
-
       if (yesterday === 0) {
         growthValue = today > 0 ? 100 : 0;
       } else {
@@ -81,11 +68,9 @@ export default function ImpactOverview({ analytics }: Props) {
       }
     }
   } else {
-    // Se o backend mandou string (ex: "+15%"), convertemos para número
     growthValue = parseFloat(growthString.replace('%', '').replace('+', ''));
   }
 
-  // Definição dos Estados Visuais (Positivo, Negativo, Neutro)
   const isPositive = growthValue > 0;
   const isNegative = growthValue < 0;
 
@@ -104,25 +89,38 @@ export default function ImpactOverview({ analytics }: Props) {
   } else if (isNegative) {
     growthConfig = {
       label: `${growthValue.toFixed(0)}%`,
-      icon: <TrendingDown className="w-3 h-3 mr-1" />, // Icone de queda
-      color: "bg-red-100 text-red-700 border-red-200" // Cor de alerta
+      icon: <TrendingDown className="w-3 h-3 mr-1" />,
+      color: "bg-red-100 text-red-700 border-red-200"
     };
   }
+
+  const getComparisonPercent = () => {
+    if (clicks === 0) return 0;
+    if (clicks <= 5) return 25;
+    if (clicks <= 15) return 45;
+    if (clicks <= 30) return 58;
+    if (clicks <= 50) return 68;
+    if (clicks <= 100) return 78;
+    if (clicks <= 200) return 85;
+    if (clicks <= 500) return 92;
+    if (clicks <= 1000) return 96;
+    return 99;
+  };
+
+  const comparisonPercent = getComparisonPercent();
 
   return (
     <Card className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm h-full overflow-hidden">
 
-      {/* Cabeçalho do Card */}
       <div className="p-6 pb-2">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
-             <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-             </div>
-             <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Impacto de Hoje</h3>
+            <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+              <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Impacto de Hoje</h3>
           </div>
 
-          {/* Badge Dinâmico */}
           <Badge variant="secondary" className={`${growthConfig.color} font-bold px-3 py-1 border`}>
             {growthConfig.icon} {growthConfig.label}
           </Badge>
@@ -133,12 +131,19 @@ export default function ImpactOverview({ analytics }: Props) {
           <span className="text-lg font-bold text-slate-400">cliques</span>
         </div>
 
-        <p className="text-xs text-slate-500 font-medium">
-          Você está acima de <span className="text-purple-600 font-bold">68%</span> dos novos criadores.
-        </p>
+
+        {clicks > 0 ? (
+          <p className="text-xs text-slate-500 font-medium">
+            Você está acima de <span className="text-purple-600 font-bold">{comparisonPercent}%</span> dos criadores hoje.
+            {comparisonPercent >= 90 && " 🔥"}
+          </p>
+        ) : (
+          <p className="text-xs text-slate-500 font-medium">
+            Compartilhe seu link para começar a receber cliques.
+          </p>
+        )}
       </div>
 
-      {/* ÁREA DO GRÁFICO RESPONSIVO */}
       <div className="h-[120px] w-full mt-4 -mb-1">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={chartData} margin={{ top: 10, right: 0, left: 0, bottom: 0 }}>
@@ -148,15 +153,12 @@ export default function ImpactOverview({ analytics }: Props) {
                 <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
               </linearGradient>
             </defs>
-
             <XAxis dataKey="date" hide />
             <YAxis hide />
-
             <Tooltip
               content={<CustomTooltip />}
               cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }}
             />
-
             <Area
               type="monotone"
               dataKey="count"
@@ -170,21 +172,32 @@ export default function ImpactOverview({ analytics }: Props) {
         </ResponsiveContainer>
       </div>
 
-      {/* Rodapé com Stats Secundários */}
       <div className="p-6 pt-4 border-t border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-        <div className="flex items-center gap-6 text-sm">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-slate-400" />
-            <span className="font-bold text-slate-700 dark:text-slate-300">
-               {visitors} pessoas reais
-            </span>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-6 text-sm">
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-slate-400" />
+              <span className="font-bold text-slate-700 dark:text-slate-300">
+                {visitors} {visitors === 1 ? 'pessoa' : 'pessoas'}
+              </span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Globe className="w-4 h-4 text-slate-400" />
+              <span className="font-bold text-slate-700 dark:text-slate-300">
+                {topCountryName}
+              </span>
+            </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Globe className="w-4 h-4 text-slate-400" />
-            <span className="font-bold text-slate-700 dark:text-slate-300">
-               {topCountryName}
-            </span>
-          </div>
+
+          {/*  Mostra dados ocultos para FREE */}
+          {isFree && clicks > 0 && (
+            <Link href="/dashboard/billing">
+              <Badge variant="secondary" className="bg-purple-50 text-purple-600 text-[9px] font-bold cursor-pointer hover:bg-purple-100 transition-colors border border-purple-100">
+                <Eye className="w-2.5 h-2.5 mr-1" />
+                +4 métricas ocultas
+              </Badge>
+            </Link>
+          )}
         </div>
       </div>
     </Card>

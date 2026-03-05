@@ -5,9 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home, Settings, Wand2, Scissors, Target, LayoutGrid, Gift,
-  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles,  X,
+  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, X,
   LucideProps, Menu, Bell, Search, PlusCircle, ArrowRight, Zap, Crown, Shield,
-  Calculator, Palette, BarChart3, ChevronRight
+  Calculator, Palette, BarChart3, ChevronRight, Flame, Lock
 } from "lucide-react";
 import clsx from "clsx";
 import { UserButton, useClerk } from "@clerk/nextjs";
@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { usePushNotifications } from "@/app/hooks/usePushNotifications";
 
-// --- TIPAGENS ---
+
 type LucideIcon = ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
 
 const Z_INDEX = {
@@ -89,7 +89,6 @@ const useDebounce = <T,>(value: T, delay: number): T => {
   return debouncedValue;
 };
 
-// --- CONFIGURAÇÃO DE NAVEGAÇÃO ---
 export const navItems: NavItem[] = [
   { href: "/dashboard", icon: Home, label: "Visão Geral" },
   { href: "/dashboard/links", icon: LayoutGrid, label: "Meus Links" },
@@ -155,11 +154,16 @@ function FreelinkLogo({ size = 32 }: { size?: number }) {
   );
 }
 
-// --- CONTEÚDO DA SIDEBAR ---
 function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: string }) {
   const pathname = usePathname();
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [streak, setStreak] = useState(0);
+
+  useEffect(() => {
+    const s = parseInt(localStorage.getItem('freelinnk_streak') || '0');
+    setStreak(s);
+  }, []);
 
   useEffect(() => {
     navItems.forEach(item => {
@@ -172,34 +176,55 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
 
   const isActive = (href: string) => (href === "/dashboard" ? pathname === href : pathname.startsWith(href));
 
-  // Lógica de Vendas no Card
   const isFree = userPlan === "free";
+  const isPro = userPlan === "pro";
+
+
   const upgradeCardConfig = isFree ? {
-    title: "Potencial Limitado",
-    subtitle: "Você perde dados.",
+    title: "Você está no escuro",
+    subtitle: "Seus cliques estão sem rastreamento.",
     gradient: "from-slate-900 to-slate-800",
+    lossMessage: "Sem saber de onde vêm, você perde oportunidades todos os dias.",
     features: [
-      { text: "Rastreamento", icon: Target },
-      { text: "Sem Branding", icon: Shield },
+      { text: "Rastreamento de origens", icon: Target },
+      { text: "Remover branding", icon: Shield },
+      { text: "Roteiros com IA", icon: Sparkles },
     ],
-    buttonText: "Desbloquear PRO",
+    buttonText: "Parar de perder dados",
     buttonGradient: "from-blue-600 to-indigo-600",
-    progress: 35
+    progress: 25,
+    socialProof: "847 criadores fizeram upgrade hoje"
   } : {
-    title: "Vire uma Lenda",
-    subtitle: "Automatize seu império.",
+    title: "Falta pouco para o topo",
+    subtitle: "Automatize com IA avançada.",
     gradient: "from-indigo-900 to-violet-900",
+    lossMessage: "Você tem dados mas não tem automação. Criadores Ultra crescem 3x mais rápido.",
     features: [
-      { text: "IA de Imagens", icon: Wand2 },
-      { text: "Scripts Virais", icon: Sparkles },
+      { text: "IA de Imagens e Posts", icon: Wand2 },
+      { text: "Scripts Virais com IA", icon: Sparkles },
+      { text: "Analytics completo", icon: BarChart3 },
     ],
-    buttonText: "Virar ULTRA",
+    buttonText: "Virar ULTRA agora",
     buttonGradient: "from-purple-600 to-pink-600",
-    progress: 75
+    progress: 65,
+    socialProof: "Os top 5% usam o plano Ultra"
   };
 
   return (
     <nav className="flex flex-col gap-2 pb-24 md:pb-4">
+
+      {streak > 1 && (
+        <div className="mx-3 mb-2 bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border border-orange-100 dark:border-orange-900/30 rounded-xl p-3 flex items-center gap-3">
+          <div className="p-1.5 bg-orange-100 dark:bg-orange-900/30 rounded-lg">
+            <Flame className="w-4 h-4 text-orange-500" />
+          </div>
+          <div>
+            <p className="text-xs font-black text-orange-700 dark:text-orange-400">{streak} dias seguidos 🔥</p>
+            <p className="text-[10px] text-orange-600/70 dark:text-orange-400/70 font-medium">Não quebre a sequência!</p>
+          </div>
+        </div>
+      )}
+
       <ul className="space-y-0.5">
         <LayoutGroup id={uniqueId}>
           {navItems.map((item, idx) => (
@@ -223,15 +248,20 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
                       <motion.ul initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: "easeInOut" }} className="mt-1 space-y-0.5 overflow-hidden">
                         {item.subItems?.map((subItem) => {
                           const isItemActive = isActive(subItem.href);
+                          const isItemLocked = (subItem.pro && isFree) || (subItem.ultra && (isFree || isPro));
                           return (
                             <motion.li key={subItem.href} initial={{ x: -20, opacity: 0 }} animate={{ x: 0, opacity: 1 }} onMouseEnter={() => setHoveredItem(subItem.href)} onMouseLeave={() => setHoveredItem(null)}>
-                              <Link href={subItem.href}>
+                              <Link href={isItemLocked ? "/dashboard/billing" : subItem.href}>
                                 <motion.div className={clsx("flex items-center gap-3 py-2.5 px-4 rounded-xl font-medium text-sm transition-all mx-2 group relative overflow-hidden", isItemActive ? "bg-gradient-to-r from-blue-50 to-purple-50 text-blue-700 dark:from-blue-900/20 dark:to-purple-900/20 dark:text-blue-300 shadow-sm" : "text-slate-600 dark:text-slate-400 hover:bg-slate-100/60 dark:hover:bg-slate-800/60")} whileHover={{ x: 4, scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                                   <div className={clsx("w-8 h-8 flex-shrink-0 flex items-center justify-center rounded-lg transition-all", isItemActive ? "bg-gradient-to-br from-blue-500 to-purple-500 shadow-md" : hoveredItem === subItem.href ? "bg-slate-200 dark:bg-slate-700" : "bg-slate-100 dark:bg-slate-800")}>
-                                    <subItem.icon className={clsx("w-4 h-4", isItemActive ? "text-white" : "text-slate-500")} />
+                                    {isItemLocked ? (
+                                      <Lock className={clsx("w-4 h-4", isItemActive ? "text-white" : "text-slate-400")} />
+                                    ) : (
+                                      <subItem.icon className={clsx("w-4 h-4", isItemActive ? "text-white" : "text-slate-500")} />
+                                    )}
                                   </div>
                                   <div className="flex-1 ml-3 min-w-0">
-                                    <span className="block truncate">{subItem.label}</span>
+                                    <span className={clsx("block truncate", isItemLocked && "opacity-60")}>{subItem.label}</span>
                                   </div>
 
                                   <div className="flex items-center gap-1.5 ml-auto flex-shrink-0">
@@ -255,6 +285,7 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
         </LayoutGroup>
       </ul>
 
+
       {userPlan !== "ultra" && (
         <div className="px-3 mt-4">
           <motion.div whileHover={{ y: -2 }} className={`relative rounded-xl p-[1px] overflow-hidden bg-gradient-to-br ${upgradeCardConfig.gradient}`}>
@@ -266,7 +297,7 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
                   <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">{isFree ? "Plano Free" : "Membro Pro"}</span>
                 </div>
                 <h3 className="font-black text-sm leading-tight mb-0.5">{upgradeCardConfig.title}</h3>
-                <p className="text-[10px] text-slate-300 font-medium mb-2">{upgradeCardConfig.subtitle}</p>
+                <p className="text-[10px] text-red-300 font-medium mb-2">{upgradeCardConfig.lossMessage}</p>
                 <div className="w-full bg-white/10 h-1 rounded-full mb-3 overflow-hidden">
                   <div className={`h-full bg-gradient-to-r ${isFree ? 'from-yellow-400 to-orange-500' : 'from-purple-400 to-pink-500'}`} style={{ width: `${upgradeCardConfig.progress}%` }} />
                 </div>
@@ -283,6 +314,9 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
                     <span className="relative flex items-center justify-center gap-1.5">{upgradeCardConfig.buttonText} <ArrowRight className="w-3 h-3" /></span>
                   </motion.button>
                 </Link>
+                <p className="text-[9px] text-slate-500 text-center mt-2 font-medium">
+                  ✨ {upgradeCardConfig.socialProof}
+                </p>
               </div>
             </div>
           </motion.div>
@@ -292,7 +326,6 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
   );
 }
 
-// --- SHELL PRINCIPAL ---
 export default function DashboardShell({ children, initialPlan }: { children: ReactNode, initialPlan: string }) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -309,7 +342,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
 
-  // Verifica se está na página inicial do dashboard para mostrar os atalhos
   const isDashboardHome = pathname === '/dashboard';
 
   const handleEnableNotifications = async () => {
@@ -329,7 +361,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
 
   useEffect(() => {
     const fetchNotifications = async () => {
-        try { const res = await fetch("/api/notifications"); if(res.ok) { const data = await res.json(); setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS)); } } catch { } finally { setNotificationsLoading(false); }
+      try { const res = await fetch("/api/notifications"); if(res.ok) { const data = await res.json(); setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS)); } } catch { } finally { setNotificationsLoading(false); }
     };
     fetchNotifications();
   }, []);
@@ -370,13 +402,11 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
     return () => { document.body.style.overflow = 'unset'; };
   }, [isSidebarOpen]);
 
-return (
+  return (
     <div className="flex flex-col lg:flex-row min-h-screen relative">
 
-      {/* BACKGROUND FIXO */}
       <div className="fixed inset-0 z-[-1] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800" />
 
-      {/* DESKTOP SIDEBAR */}
       <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl h-screen sticky top-0">
         <div className="mb-4 px-2 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center group">
@@ -391,20 +421,19 @@ return (
           <SidebarContent userPlan={userPlan} uniqueId="desktop-sidebar" />
         </div>
         <div className="mt-auto pt-4 border-t border-slate-200/50 dark:border-slate-700/50 flex items-center justify-between px-2 flex-shrink-0">
-           <div className="flex items-center gap-3">
-             <UserButton afterSignOutUrl="/" />
-             <div className="text-sm">
-                <p className="font-bold text-slate-800 dark:text-slate-200">Minha Conta</p>
-                <p className="text-xs text-slate-500">{userPlan.toUpperCase()}</p>
-             </div>
-           </div>
-           <Button variant="ghost" size="icon" onClick={() => signOut({ redirectUrl: '/' })}>
-             <LogOut className="w-4 h-4 text-red-500" />
-           </Button>
+          <div className="flex items-center gap-3">
+            <UserButton afterSignOutUrl="/" />
+            <div className="text-sm">
+              <p className="font-bold text-slate-800 dark:text-slate-200">Minha Conta</p>
+              <p className="text-xs text-slate-500">{userPlan.toUpperCase()}</p>
+            </div>
+          </div>
+          <Button variant="ghost" size="icon" onClick={() => signOut({ redirectUrl: '/' })}>
+            <LogOut className="w-4 h-4 text-red-500" />
+          </Button>
         </div>
       </aside>
 
-      {/* MOBILE SIDEBAR (Drawer) */}
       <AnimatePresence>
         {isSidebarOpen && (
           <>
@@ -436,72 +465,77 @@ return (
         )}
       </AnimatePresence>
 
-      {/* CONTEÚDO PRINCIPAL */}
       <div className="flex-1 flex flex-col min-w-0 relative z-10">
 
-        {/* HEADER - Sticky e Limpo */}
         <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-40">
-           <div className="flex items-center gap-4">
-             <div className="lg:hidden">
-               <motion.button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
-                 <Menu className="w-6 h-6 text-slate-700 dark:text-slate-200" />
-               </motion.button>
-             </div>
-             <h1 className="text-lg font-bold hidden md:block">{getPageTitle()}</h1>
-           </div>
+          <div className="flex items-center gap-4">
+            <div className="lg:hidden">
+              <motion.button onClick={() => setIsSidebarOpen(true)} className="p-2 -ml-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800">
+                <Menu className="w-6 h-6 text-slate-700 dark:text-slate-200" />
+              </motion.button>
+            </div>
+            <div className="flex items-center gap-3">
+              <h1 className="text-lg font-bold hidden md:block">{getPageTitle()}</h1>
+              {userPlan === 'free' && (
+                <Link href="/dashboard/billing">
+                  <Badge variant="secondary" className="bg-slate-100 text-slate-500 text-[9px] font-bold cursor-pointer hover:bg-slate-200 transition-colors hidden md:flex">
+                    FREE — Fazer upgrade
+                  </Badge>
+                </Link>
+              )}
+            </div>
+          </div>
 
-           <div className="flex items-center gap-2">
-             <div className="relative">
-                <AnimatePresence>
-                  {isSearchOpen ? (
-                    <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: "260px", opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="absolute right-0 top-1/2 -translate-y-1/2 z-50">
-                        <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar..." className="pl-10 h-9 rounded-xl bg-white shadow-xl border border-slate-200 w-full" autoFocus />
-                        <motion.button onClick={() => { setIsSearchOpen(false); setSearchTerm("") }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1"><X className="w-4 h-4" /></motion.button>
-                        {(searchResults.length > 0 || searchLoading) && (
-                           <div className="absolute top-full right-0 w-full bg-white shadow-2xl p-2 rounded-lg mt-2 border border-slate-100">
-                              {searchLoading ? ( <div className="p-4 text-center text-xs text-slate-500">Buscando...</div> ) : ( searchResults.map((res, i) => ( <Link href={res.href} key={i} onClick={handleSearchLinkClick}> <div className="p-2 hover:bg-slate-100 rounded flex items-center gap-2 text-sm cursor-pointer"> {res.icon && <res.icon className="w-4 h-4 text-slate-500" />} <span className="truncate">{res.label}</span> </div> </Link> )) )}
-                           </div>
-                        )}
-                    </motion.div>
-                  ) : (
-                    <motion.button onClick={() => setIsSearchOpen(true)} className="p-2 hover:bg-slate-100 rounded-full">
-                       <Search className="w-5 h-5 text-slate-500" />
-                    </motion.button>
-                  )}
-                </AnimatePresence>
-             </div>
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <AnimatePresence>
+                {isSearchOpen ? (
+                  <motion.div initial={{ width: 0, opacity: 0 }} animate={{ width: "260px", opacity: 1 }} exit={{ width: 0, opacity: 0 }} className="absolute right-0 top-1/2 -translate-y-1/2 z-50">
+                    <Input value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} placeholder="Buscar..." className="pl-10 h-9 rounded-xl bg-white shadow-xl border border-slate-200 w-full" autoFocus />
+                    <motion.button onClick={() => { setIsSearchOpen(false); setSearchTerm("") }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1"><X className="w-4 h-4" /></motion.button>
+                    {(searchResults.length > 0 || searchLoading) && (
+                      <div className="absolute top-full right-0 w-full bg-white shadow-2xl p-2 rounded-lg mt-2 border border-slate-100">
+                        {searchLoading ? ( <div className="p-4 text-center text-xs text-slate-500">Buscando...</div> ) : ( searchResults.map((res, i) => ( <Link href={res.href} key={i} onClick={handleSearchLinkClick}> <div className="p-2 hover:bg-slate-100 rounded flex items-center gap-2 text-sm cursor-pointer"> {res.icon && <res.icon className="w-4 h-4 text-slate-500" />} <span className="truncate">{res.label}</span> </div> </Link> )) )}
+                      </div>
+                    )}
+                  </motion.div>
+                ) : (
+                  <motion.button onClick={() => setIsSearchOpen(true)} className="p-2 hover:bg-slate-100 rounded-full">
+                    <Search className="w-5 h-5 text-slate-500" />
+                  </motion.button>
+                )}
+              </AnimatePresence>
+            </div>
 
-             <Popover>
-                <PopoverTrigger asChild>
-                   <Button variant="ghost" size="icon" className="relative">
-                      <Bell className="w-5 h-5" />
-                      {userNotifications.filter(n => !n.isRead).length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />}
-                   </Button>
-                </PopoverTrigger>
-                <PopoverContent align="end" className="w-80 p-0 overflow-hidden">
-                   <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 flex justify-between items-center text-white">
-                      <h4 className="font-bold text-sm">Notificações</h4>
-                      <button onClick={markAllAsRead} className="text-xs hover:underline opacity-90">Ler todas</button>
-                   </div>
-                   <div className="max-h-60 overflow-y-auto p-2">
-                      {notificationsLoading ? ( <div className="text-center p-4 text-xs text-slate-500">Carregando...</div> ) : userNotifications.length > 0 ? ( userNotifications.map(n => ( <div key={n.id} onClick={() => markNotificationAsRead(n.id)} className={clsx("p-2 rounded text-sm mb-1 cursor-pointer", n.isRead ? "bg-white" : "bg-slate-50 border-l-2 border-purple-500")}> <p className="text-xs text-slate-800">{n.message}</p> </div> )) ) : ( <div className="text-center p-4 text-xs text-slate-500">Nenhuma notificação</div> )}
-                   </div>
-                </PopoverContent>
-             </Popover>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="icon" className="relative">
+                  <Bell className="w-5 h-5" />
+                  {userNotifications.filter(n => !n.isRead).length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-80 p-0 overflow-hidden">
+                <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 flex justify-between items-center text-white">
+                  <h4 className="font-bold text-sm">Notificações</h4>
+                  <button onClick={markAllAsRead} className="text-xs hover:underline opacity-90">Ler todas</button>
+                </div>
+                <div className="max-h-60 overflow-y-auto p-2">
+                  {notificationsLoading ? ( <div className="text-center p-4 text-xs text-slate-500">Carregando...</div> ) : userNotifications.length > 0 ? ( userNotifications.map(n => ( <div key={n.id} onClick={() => markNotificationAsRead(n.id)} className={clsx("p-2 rounded text-sm mb-1 cursor-pointer", n.isRead ? "bg-white" : "bg-slate-50 border-l-2 border-purple-500")}> <p className="text-xs text-slate-800">{n.message}</p> </div> )) ) : ( <div className="text-center p-4 text-xs text-slate-500">Nenhuma notificação</div> )}
+                </div>
+              </PopoverContent>
+            </Popover>
 
-             <Link href="/dashboard/new-link">
-               <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold shadow-lg hidden sm:flex">
-                 <PlusCircle className="w-4 h-4 mr-2" /> Novo Link
-               </Button>
-             </Link>
-             <div className="lg:hidden"><UserButton /></div>
-           </div>
+            <Link href="/dashboard/new-link">
+              <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold shadow-lg hidden sm:flex">
+                <PlusCircle className="w-4 h-4 mr-2" /> Novo Link
+              </Button>
+            </Link>
+            <div className="lg:hidden"><UserButton /></div>
+          </div>
         </header>
 
-        {/* ÁREA DE CONTEÚDO PRINCIPAL */}
         <main className="flex-1 w-full p-4 lg:p-8">
 
-          {/* SEÇÃO DE AÇÃO RÁPIDA (Só aparece na Home do Dashboard para iniciantes) */}
           {isDashboardHome && (
             <motion.div
               initial={{ opacity: 0, y: 10 }}
@@ -509,17 +543,15 @@ return (
               transition={{ delay: 0.1 }}
               className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6"
             >
-              {/* Card 1: Editar Página (Design) */}
               <Link href="/dashboard/settings">
                 <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-4 rounded-xl flex items-center gap-4 hover:border-purple-300 hover:shadow-lg hover:shadow-purple-500/5 transition-all cursor-pointer group relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-purple-500/0 via-purple-500/0 to-purple-500/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-
                   <div className="bg-purple-100 dark:bg-purple-900/20 p-3 rounded-lg group-hover:bg-purple-500 group-hover:text-white transition-colors text-purple-600 dark:text-purple-300">
-                     <Palette className="w-6 h-6" />
+                    <Palette className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
-                     <h3 className="font-bold text-slate-800 dark:text-white text-sm">Editar Visual da Página</h3>
-                     <p className="text-xs text-slate-500 mt-0.5">Alterar cores, tema e foto de perfil</p>
+                    <h3 className="font-bold text-slate-800 dark:text-white text-sm">Editar Visual da Página</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Alterar cores, tema e foto de perfil</p>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800 p-2 rounded-full border border-slate-100 dark:border-slate-700 group-hover:border-purple-200">
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-purple-500 transition-colors" />
@@ -527,19 +559,17 @@ return (
                 </div>
               </Link>
 
-              {/* Card 2: Meus Links (Analytics) */}
               <Link href="/dashboard/links">
                 <div className="bg-white dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/50 p-4 rounded-xl flex items-center gap-4 hover:border-blue-300 hover:shadow-lg hover:shadow-blue-500/5 transition-all cursor-pointer group relative overflow-hidden">
                   <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/0 to-blue-500/5 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
-
                   <div className="bg-blue-100 dark:bg-blue-900/20 p-3 rounded-lg group-hover:bg-blue-500 group-hover:text-white transition-colors text-blue-600 dark:text-blue-300">
-                     <BarChart3 className="w-6 h-6" />
+                    <BarChart3 className="w-6 h-6" />
                   </div>
                   <div className="flex-1">
-                     <h3 className="font-bold text-slate-800 dark:text-white text-sm">Gerenciar Links e Dados</h3>
-                     <p className="text-xs text-slate-500 mt-0.5">Ver estatísticas e editar botões</p>
+                    <h3 className="font-bold text-slate-800 dark:text-white text-sm">Gerenciar Links e Dados</h3>
+                    <p className="text-xs text-slate-500 mt-0.5">Ver estatísticas e editar botões</p>
                   </div>
-                   <div className="bg-slate-50 dark:bg-slate-800 p-2 rounded-full border border-slate-100 dark:border-slate-700 group-hover:border-blue-200">
+                  <div className="bg-slate-50 dark:bg-slate-800 p-2 rounded-full border border-slate-100 dark:border-slate-700 group-hover:border-blue-200">
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />
                   </div>
                 </div>
@@ -548,28 +578,27 @@ return (
           )}
 
           {children}
-          {/* Espaçamento extra no final para mobile */}
           <div className="h-24 lg:hidden" />
         </main>
 
         <AnimatePresence>
           {showPushPrompt && (
             <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="fixed bottom-4 right-4 bg-white dark:bg-slate-800 p-4 shadow-2xl rounded-xl z-50 border border-slate-200 dark:border-slate-700 w-80">
-                <div className="flex items-start gap-3">
-                   <div className="bg-purple-100 p-2 rounded-full"><Bell className="w-5 h-5 text-purple-600" /></div>
-                   <div>
-                      <p className="font-bold text-sm mb-1">Ativar Notificações?</p>
-                      <p className="text-xs text-slate-500 mb-3">Receba alertas de cliques e vendas.</p>
-                      <div className="flex gap-2">
-                          <Button size="sm" onClick={handleEnableNotifications} className="h-7 text-xs">Sim, ativar</Button>
-                          <Button variant="ghost" size="sm" onClick={() => setShowPushPrompt(false)} className="h-7 text-xs">Agora não</Button>
-                      </div>
-                   </div>
+              <div className="flex items-start gap-3">
+                <div className="bg-purple-100 p-2 rounded-full"><Bell className="w-5 h-5 text-purple-600" /></div>
+                <div>
+                  <p className="font-bold text-sm mb-1">Ativar Notificações?</p>
+                  <p className="text-xs text-slate-500 mb-3">Receba alertas de cliques e vendas em tempo real.</p>
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={handleEnableNotifications} className="h-7 text-xs">Sim, ativar</Button>
+                    <Button variant="ghost" size="sm" onClick={() => setShowPushPrompt(false)} className="h-7 text-xs">Agora não</Button>
+                  </div>
                 </div>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
     </div>
   );
-};
+}
