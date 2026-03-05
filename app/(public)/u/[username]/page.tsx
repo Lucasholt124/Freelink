@@ -6,7 +6,7 @@ import Script from "next/script";
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 
-// ✅ Force dynamic rendering (Importante para dados sempre frescos)
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -14,18 +14,15 @@ interface PageProps {
   params: Promise<{ username: string }>;
 }
 
-// ✅ GERADOR DE METADATA (O SEGREDO DO SEO NO WHATSAPP)
-// ✅ GERADOR DE METADATA (CORRIGIDO)
 export async function generateMetadata(
   { params }: PageProps
-  // Removi o 'parent' daqui pois não estava sendo usado
 ): Promise<Metadata> {
   const { username } = await params;
 
-  // Busca dados para SEO
+
   const customizations = await fetchQuery(api.lib.customizations.getCustomizationsBySlug, { slug: username });
 
-  // Imagem de fallback
+
   const defaultImage = "https://freelinnk.com/og-image-default.png";
 
   const title = `@${username} | Freelinnk`;
@@ -55,12 +52,11 @@ export default async function PublicLinkInBioPage({ params }: PageProps) {
   try {
     const { username } = await params;
 
-    // ✅ Validação robusta
     if (!username || typeof username !== 'string' || username.length < 2 || username.length > 50) {
       notFound();
     }
 
-    // ✅ Carrega dados em paralelo (Performance Máxima)
+
     const [
       preloadedLinks,
       preloadedCustomizations,
@@ -73,7 +69,6 @@ export default async function PublicLinkInBioPage({ params }: PageProps) {
       fetchQuery(api.tracking.getIdsBySlug, { slug: username }),
     ]);
 
-    // ✅ Verifica se o usuário existe
     if (!preloadedCustomizations) {
       notFound();
     }

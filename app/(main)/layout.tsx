@@ -1,5 +1,3 @@
-// Em /app/(main)/layout.tsx
-// (Crie este novo arquivo e pasta)
 
 import { LandingHeader } from "@/components/LandingHeader";
 import { Footer } from "@/components/Footer";

@@ -18,7 +18,7 @@ import {
   AlertCircle
 } from "lucide-react";
 
-// --- Elementos Flutuantes (Otimizado para Mobile - Leve) ---
+// --- Elementos Flutuantes (Otimizado para Mobile) ---
 const FloatingElements = () => (
   <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
     {[...Array(12)].map((_, i) => (
@@ -74,6 +74,7 @@ const showToast = (message: string, type: 'success' | 'error') => {
   const toastEl = document.createElement('div');
   const bgColor = type === 'success' ? 'bg-emerald-500' : 'bg-red-500';
   // Responsividade: ajustado para não quebrar em telas pequenas
+
   toastEl.className = `fixed top-4 left-4 right-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 ${bgColor} text-white px-4 py-3 rounded-xl shadow-2xl z-[9999] flex items-center justify-center gap-2 animate-bounce font-medium text-sm text-center`;
   toastEl.innerHTML = `<span>${message}</span>`;
   document.body.appendChild(toastEl);
