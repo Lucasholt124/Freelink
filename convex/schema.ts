@@ -1138,4 +1138,17 @@
     })
       .index("by_post", ["postId"])
       .index("by_user", ["userId"]),
+
+
+      subAccounts: defineTable({
+        ownerUserId: v.string(),   // userId do Clerk da conta principal (quem criou)
+        subUserId: v.string(),     // userId do Clerk da sub-conta (gerado pelo sistema)
+        username: v.string(),      // slug da sub-conta (ex: "pizzariadomario")
+        displayName: v.optional(v.string()), // nome amigável opcional
+        createdAt: v.number(),
+      })
+        .index("by_owner", ["ownerUserId"])
+        .index("by_sub_user", ["subUserId"])
+        .index("by_username", ["username"]),
+
   });

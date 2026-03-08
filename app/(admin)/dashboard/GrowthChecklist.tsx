@@ -58,7 +58,7 @@ export default function GrowthChecklist({ plan, clicks, username }: { plan: stri
       animate={{ opacity: 1, y: 0 }}
       className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-6 shadow-sm h-full flex flex-col"
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-1">
         <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
           <Trophy className="w-5 h-5 text-yellow-500" />
           Setup de Crescimento
@@ -75,7 +75,7 @@ export default function GrowthChecklist({ plan, clicks, username }: { plan: stri
         </div>
       </div>
 
-      <div className="mb-5">
+      <div className="mb-1">
         <Progress value={progress} className="h-2 bg-slate-100 dark:bg-slate-800" />
         <p className="text-xs text-slate-400 mt-2 font-medium">
           {allDone
@@ -128,7 +128,8 @@ export default function GrowthChecklist({ plan, clicks, username }: { plan: stri
 
             <div className="flex-1 min-w-0 flex items-center gap-2">
               <div className="flex-1 min-w-0">
-                <p className={`text-sm font-medium truncate ${task.done ? 'line-through decoration-slate-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                <p className={`text-sm font-medium truncate ${task.done ?
+                  'line-through decoration-slate-400' : 'text-slate-700 dark:text-slate-200'}`}>
                   {task.label}
                 </p>
                 {!task.done && (
@@ -138,7 +139,9 @@ export default function GrowthChecklist({ plan, clicks, username }: { plan: stri
 
               {task.isUltra && !task.done && (
                 <Link href="/dashboard/billing">
-                  <span className="text-[10px] bg-purple-100 text-purple-700 px-2 py-0.5 rounded font-bold uppercase cursor-pointer hover:bg-purple-200 whitespace-nowrap flex items-center gap-1">
+                  <span className="text-[10px] bg-purple-100 text-purple-700 px-2
+                  py-0.5 rounded font-bold uppercase cursor-pointer hover:bg-purple-200
+                  whitespace-nowrap flex items-center gap-1">
                     Ultra <ExternalLink className="w-2 h-2" />
                   </span>
                 </Link>
@@ -147,7 +150,9 @@ export default function GrowthChecklist({ plan, clicks, username }: { plan: stri
               {task.isShare && !task.done && (
                 <button
                   onClick={handleCopyLink}
-                  className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold cursor-pointer hover:bg-blue-100 flex items-center gap-1 transition-colors whitespace-nowrap border border-blue-100"
+                  className="text-[10px] bg-blue-50 text-blue-600 px-2 py-0.5 rounded font-bold
+                  cursor-pointer hover:bg-blue-100 flex items-center gap-1 transition-colors
+                  whitespace-nowrap border border-blue-100"
                 >
                   <Copy className="w-2 h-2" /> Copiar
                 </button>

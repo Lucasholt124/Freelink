@@ -76,8 +76,9 @@ const GROQ_MODELS = {
   pro_fallback: 'mixtral-8x7b-32768',
   shared_fallback: 'gemma2-9b-it',
 };
+
 const groq = new OpenAI({
-  apiKey: process.env.GROQ_API_KEY,
+  apiKey: process.env.GROQ_API_KEY || "missing_key_at_build_time",
   baseURL: 'https://api.groq.com/openai/v1',
 });
 

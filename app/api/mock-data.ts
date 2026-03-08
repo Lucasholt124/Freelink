@@ -1,5 +1,3 @@
-// app/api/mock-data.ts
-
 export const MOCK_NOTIFICATIONS = [
   { id: "1", message: "Seu link 'campanha-verao' atingiu 1000 cliques!", isRead: false, timestamp: new Date(Date.now() - 3600000).toISOString(), link: "/dashboard/links" },
   { id: "2", message: "Novas ferramentas IA disponíveis no plano ULTRA!", isRead: false, timestamp: new Date(Date.now() - 7200000).toISOString(), link: "/dashboard/billing" },

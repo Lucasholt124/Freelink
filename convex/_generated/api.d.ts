@@ -26,6 +26,7 @@ import type * as lib_fetchLinkAnalytics from "../lib/fetchLinkAnalytics.js";
 import type * as lib_files from "../lib/files.js";
 import type * as lib_getBaseUrl from "../lib/getBaseUrl.js";
 import type * as lib_links from "../lib/links.js";
+import type * as lib_subAccounts from "../lib/subAccounts.js";
 import type * as lib_usernames from "../lib/usernames.js";
 import type * as migrations from "../migrations.js";
 import type * as notificationHelpers from "../notificationHelpers.js";
@@ -68,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   "lib/files": typeof lib_files;
   "lib/getBaseUrl": typeof lib_getBaseUrl;
   "lib/links": typeof lib_links;
+  "lib/subAccounts": typeof lib_subAccounts;
   "lib/usernames": typeof lib_usernames;
   migrations: typeof migrations;
   notificationHelpers: typeof notificationHelpers;

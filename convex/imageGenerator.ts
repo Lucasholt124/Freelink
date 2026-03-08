@@ -14,7 +14,7 @@ const DAILY_LIMIT = 10;
 const MODEL_FLUX = "black-forest-labs/FLUX.1-dev";
 const MODEL_SDXL = "stabilityai/stable-diffusion-xl-base-1.0";
 
-const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY || "chave_temporaria_apenas_para_o_build" });
 
 // =================================================================
 // 🛠️ HELPERS
