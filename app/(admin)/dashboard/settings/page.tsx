@@ -2,6 +2,7 @@
 
 import UsernameForm from "@/components/UsernameForm";
 import CustomizationForm from "@/components/CustomizationForm";
+import Link from "next/link";
 import {
   Sparkles,
   Check,
@@ -50,16 +51,18 @@ interface SubAccount {
   createdAt: number;
 }
 
-// === HELPERS DE PLANO ===
+// === HELPERS DE PLANO (Agora blindados contra maiúsculas/minúsculas) ===
 function getPlanLimits(plan: string): number {
-  if (plan === "ultra") return 30;
-  if (plan === "pro") return 10;
+  const normalizedPlan = String(plan).toLowerCase();
+  if (normalizedPlan === "ultra") return 30;
+  if (normalizedPlan === "pro") return 10;
   return 0;
 }
 
 function getPlanLabel(plan: string): string {
-  if (plan === "ultra") return "Ultra";
-  if (plan === "pro") return "Pro";
+  const normalizedPlan = String(plan).toLowerCase();
+  if (normalizedPlan === "ultra") return "Ultra";
+  if (normalizedPlan === "pro") return "Pro";
   return "Free";
 }
 
@@ -297,8 +300,6 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
   };
 
   const handleEnter = (subUserId: string, username: string) => {
-    // Redireciona para o painel da sub-conta passando o subUserId como parâmetro
-    // O painel detecta o parâmetro e carrega os dados daquele userId
     window.open(`/dashboard?subAccount=${subUserId}&username=${username}`, "_blank");
   };
 
@@ -390,12 +391,14 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
                       <span><strong className="text-white">Ultra</strong> — até 30 páginas</span>
                     </div>
                   </div>
-                  <a
-                    href="/pricing"
+
+                  {/* LINK CORRIGIDO AQUI */}
+                  <Link
+                    href="/dashboard/billing"
                     className="mt-4 flex items-center justify-center gap-2 w-full py-2 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all"
                   >
                     Ver Planos <ArrowRight className="w-3.5 h-3.5" />
-                  </a>
+                  </Link>
                 </>
               )}
             </div>
@@ -523,8 +526,9 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
 
-  // Plano do usuário via Clerk publicMetadata
-  const userPlan = (user?.publicMetadata?.subscriptionPlan as string) || "free";
+  // Plano do usuário via Clerk publicMetadata (AGORA COM SEGURANÇA CONTRA LETRAS MAIÚSCULAS)
+  const rawPlan = user?.publicMetadata?.subscriptionPlan || user?.publicMetadata?.plan || "free";
+  const userPlan = String(rawPlan).toLowerCase();
 
   const userSlug = useQuery(
     api.lib.usernames.getUserSlug,
