@@ -30,7 +30,6 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
 
-// === ANIMAÇÕES ===
 const fadeInUp = {
   initial: { opacity: 0, y: 15 },
   animate: { opacity: 1, y: 0 },
@@ -43,7 +42,7 @@ const staggerContainer = {
   }
 };
 
-// === TIPOS ===
+
 interface SubAccount {
   _id: string;
   subUserId: string;
@@ -51,7 +50,7 @@ interface SubAccount {
   createdAt: number;
 }
 
-// === HELPERS DE PLANO (Blindados contra maiúsculas/minúsculas) ===
+
 function getPlanLimits(plan: string): number {
   const normalizedPlan = String(plan).toLowerCase();
   if (normalizedPlan === "ultra") return 30;
@@ -66,7 +65,7 @@ function getPlanLabel(plan: string): string {
   return "Free";
 }
 
-// === COMPONENTE: CARD DE SUB-CONTA ===
+
 function SubAccountCard({
   sub,
   onDelete,
@@ -91,7 +90,7 @@ function SubAccountCard({
       exit={{ opacity: 0, x: -20 }}
       className="group flex items-center justify-between gap-4 p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
     >
-      {/* Avatar + Info */}
+
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shrink-0 text-sm font-bold text-indigo-600 uppercase select-none">
           {sub.username.slice(0, 2)}
@@ -107,7 +106,7 @@ function SubAccountCard({
         </div>
       </div>
 
-      {/* Ações */}
+
       <div className="flex items-center gap-2 shrink-0">
         <motion.button
           whileHover={{ scale: 1.02 }}
@@ -130,7 +129,7 @@ function SubAccountCard({
   );
 }
 
-// === COMPONENTE: MODAL CRIAR SUB-CONTA ===
+
 function CreateSubAccountModal({
   onClose,
   onCreate,
@@ -172,7 +171,6 @@ function CreateSubAccountModal({
         exit={{ opacity: 0, scale: 0.95, y: 10 }}
         className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6"
       >
-        {/* Header */}
         <div className="flex items-center gap-3 mb-6">
           <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl flex items-center justify-center">
             <Plus className="w-5 h-5 text-white" />
@@ -183,7 +181,6 @@ function CreateSubAccountModal({
           </div>
         </div>
 
-        {/* Input */}
         <div className="space-y-3 mb-6">
           <label className="text-sm font-semibold text-gray-700">
             Username da nova página
@@ -222,7 +219,6 @@ function CreateSubAccountModal({
           )}
         </div>
 
-        {/* Info box */}
         <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100 text-xs text-amber-800 mb-6">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-amber-500" />
           <p>
@@ -230,7 +226,6 @@ function CreateSubAccountModal({
           </p>
         </div>
 
-        {/* Botões */}
         <div className="flex gap-3">
           <button
             onClick={onClose}
@@ -260,13 +255,14 @@ function CreateSubAccountModal({
   );
 }
 
-// === COMPONENTE: SEÇÃO DE SUB-CONTAS ===
 function SubAccountsSection({ userPlan }: { userPlan: string }) {
   const { user } = useUser();
   const [showModal, setShowModal] = useState(false);
 
-  const limit = getPlanLimits(userPlan);
-  const isPro = userPlan === "pro" || userPlan === "ultra";
+  // Normaliza o plano apenas uma vez e garante que seja comparado corretamente
+  const normalizedPlan = String(userPlan).toLowerCase();
+  const limit = getPlanLimits(normalizedPlan);
+  const isPro = normalizedPlan === "pro" || normalizedPlan === "ultra";
 
   // Queries e mutations do Convex
   const subAccounts = useQuery(
@@ -318,7 +314,6 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
         className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 mb-16 lg:mb-24 scroll-mt-24"
         variants={fadeInUp}
       >
-        {/* Sidebar */}
         <aside className="lg:col-span-4 space-y-6">
           <div className="lg:sticky lg:top-24 space-y-6">
             <div>
@@ -335,38 +330,38 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
 
             {/* Card de plano */}
             <div className={`rounded-xl p-5 border shadow-sm ${
-              userPlan === "ultra"
+              normalizedPlan === "ultra"
                 ? "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200"
-                : userPlan === "pro"
+                : normalizedPlan === "pro"
                 ? "bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200"
                 : "bg-gray-900 border-gray-800"
             }`}>
               {isPro ? (
                 <>
                   <div className="flex items-center gap-2 mb-3">
-                    <Crown className={`w-4 h-4 ${userPlan === "ultra" ? "text-amber-500" : "text-indigo-600"}`} />
-                    <span className={`text-[11px] font-bold uppercase tracking-wider ${userPlan === "ultra" ? "text-amber-700" : "text-indigo-700"}`}>
-                      Plano {getPlanLabel(userPlan)}
+                    <Crown className={`w-4 h-4 ${normalizedPlan === "ultra" ? "text-amber-500" : "text-indigo-600"}`} />
+                    <span className={`text-[11px] font-bold uppercase tracking-wider ${normalizedPlan === "ultra" ? "text-amber-700" : "text-indigo-700"}`}>
+                      Plano {getPlanLabel(normalizedPlan)}
                     </span>
                   </div>
                   <div className="flex items-end gap-1 mb-2">
-                    <span className={`text-3xl font-bold ${userPlan === "ultra" ? "text-amber-700" : "text-indigo-700"}`}>
+                    <span className={`text-3xl font-bold ${normalizedPlan === "ultra" ? "text-amber-700" : "text-indigo-700"}`}>
                       {count}
                     </span>
-                    <span className={`text-sm mb-1 ${userPlan === "ultra" ? "text-amber-500" : "text-indigo-400"}`}>
+                    <span className={`text-sm mb-1 ${normalizedPlan === "ultra" ? "text-amber-500" : "text-indigo-400"}`}>
                       / {limit} páginas
                     </span>
                   </div>
                   {/* Barra de progresso */}
                   <div className="w-full h-1.5 bg-white/60 rounded-full overflow-hidden">
                     <motion.div
-                      className={`h-full rounded-full ${userPlan === "ultra" ? "bg-amber-500" : "bg-indigo-500"}`}
+                      className={`h-full rounded-full ${normalizedPlan === "ultra" ? "bg-amber-500" : "bg-indigo-500"}`}
                       initial={{ width: 0 }}
                       animate={{ width: `${Math.min((count / limit) * 100, 100)}%` }}
                       transition={{ duration: 0.8, ease: "circOut" }}
                     />
                   </div>
-                  <p className={`text-[11px] mt-2 ${userPlan === "ultra" ? "text-amber-600" : "text-indigo-500"}`}>
+                  <p className={`text-[11px] mt-2 ${normalizedPlan === "ultra" ? "text-amber-600" : "text-indigo-500"}`}>
                     {limit - count} slots disponíveis
                   </p>
                 </>
@@ -392,7 +387,6 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
                     </div>
                   </div>
 
-                  {/* LINK CORRIGIDO AQUI */}
                   <Link
                     href="/dashboard/billing"
                     className="mt-4 flex items-center justify-center gap-2 w-full py-2 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-purple-600 rounded-lg hover:from-indigo-700 hover:to-purple-700 transition-all"
@@ -405,10 +399,10 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
           </div>
         </aside>
 
-        {/* Conteúdo principal */}
+
         <div className="lg:col-span-8">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-            {/* Header do card */}
+
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-gray-400" />
@@ -422,7 +416,7 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
                 )}
               </div>
 
-              {/* Botão criar */}
+
               <motion.button
                 whileHover={canCreate ? { scale: 1.02 } : {}}
                 whileTap={canCreate ? { scale: 0.97 } : {}}
@@ -452,16 +446,14 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
               </motion.button>
             </div>
 
-            {/* Lista de sub-contas */}
+
             <div className="p-6 space-y-3 min-h-[200px]">
               <AnimatePresence>
                 {!subAccounts ? (
-                  // Loading
                   <div className="flex items-center justify-center py-12">
                     <div className="w-5 h-5 border-2 border-gray-200 border-t-gray-500 rounded-full animate-spin" />
                   </div>
                 ) : subAccounts.length === 0 ? (
-                  // Empty state
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -491,7 +483,6 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
                     )}
                   </motion.div>
                 ) : (
-                  // Lista
                   subAccounts.map((sub) => (
                     <SubAccountCard
                       key={sub._id}
@@ -520,16 +511,11 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
   );
 }
 
-// === PÁGINA PRINCIPAL ===
+
 export default function SettingsPage() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const [mounted, setMounted] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
-
-  // LOG PARA DEBUG (abra o F12 no navegador para ver o que o Clerk está mandando)
-  console.log("=== DEBUG DO PLANO CLERK ===");
-  console.log("publicMetadata:", user?.publicMetadata);
-  console.log("unsafeMetadata:", user?.unsafeMetadata);
 
   // Busca abrangente: Procura o plano tanto no publicMetadata quanto no unsafeMetadata
   const rawPlan =
@@ -539,8 +525,7 @@ export default function SettingsPage() {
     user?.unsafeMetadata?.plan ||
     "free";
 
-  const userPlan = String(rawPlan).toLowerCase();
-  console.log("Plano Final Normalizado:", userPlan);
+  const userPlan = (isLoaded && user) ? String(rawPlan).toLowerCase() : "free";
 
   const userSlug = useQuery(
     api.lib.usernames.getUserSlug,
@@ -590,7 +575,7 @@ export default function SettingsPage() {
     window.open(link, "_blank");
   };
 
-  if (!mounted) {
+  if (!mounted || !isLoaded) {
     return (
       <div className="min-h-screen bg-[#F9FAFB] flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-purple-600 border-t-transparent rounded-full animate-spin" />
@@ -606,7 +591,7 @@ export default function SettingsPage() {
         animate="animate"
         variants={staggerContainer}
       >
-        {/* === HEADER PRINCIPAL === */}
+
         <motion.header className="mb-10 lg:mb-14" variants={fadeInUp}>
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
             <div className="max-w-2xl">
@@ -657,12 +642,12 @@ export default function SettingsPage() {
 
         <div className="w-full h-px bg-gray-200 mb-10 lg:mb-16" />
 
-        {/* === SEÇÃO 0: MÚLTIPLAS PÁGINAS (SUB-CONTAS) === */}
+
         <SubAccountsSection userPlan={userPlan} />
 
         <div className="w-full h-px bg-gray-200 mb-10 lg:mb-16" />
 
-        {/* === SEÇÃO 1: URL E IDENTIDADE === */}
+
         <motion.section
           className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 mb-16 lg:mb-24 scroll-mt-24"
           id="identity"
@@ -749,7 +734,7 @@ export default function SettingsPage() {
           </div>
         </motion.section>
 
-        {/* === SEÇÃO 2: ESTILO VISUAL === */}
+
         <motion.section
           className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 scroll-mt-24"
           id="style"
@@ -811,7 +796,7 @@ export default function SettingsPage() {
           </div>
         </motion.section>
 
-        {/* === FOOTER === */}
+
         <motion.footer
           className="mt-20 border-t border-gray-200 pt-8 pb-8 text-center"
           initial={{ opacity: 0 }}
