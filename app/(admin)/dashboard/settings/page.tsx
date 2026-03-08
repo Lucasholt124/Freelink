@@ -51,7 +51,7 @@ interface SubAccount {
   createdAt: number;
 }
 
-// === HELPERS DE PLANO (Agora blindados contra maiúsculas/minúsculas) ===
+// === HELPERS DE PLANO (Blindados contra maiúsculas/minúsculas) ===
 function getPlanLimits(plan: string): number {
   const normalizedPlan = String(plan).toLowerCase();
   if (normalizedPlan === "ultra") return 30;
@@ -526,9 +526,21 @@ export default function SettingsPage() {
   const [mounted, setMounted] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
 
-  // Plano do usuário via Clerk publicMetadata (AGORA COM SEGURANÇA CONTRA LETRAS MAIÚSCULAS)
-  const rawPlan = user?.publicMetadata?.subscriptionPlan || user?.publicMetadata?.plan || "free";
+  // LOG PARA DEBUG (abra o F12 no navegador para ver o que o Clerk está mandando)
+  console.log("=== DEBUG DO PLANO CLERK ===");
+  console.log("publicMetadata:", user?.publicMetadata);
+  console.log("unsafeMetadata:", user?.unsafeMetadata);
+
+  // Busca abrangente: Procura o plano tanto no publicMetadata quanto no unsafeMetadata
+  const rawPlan =
+    user?.publicMetadata?.subscriptionPlan ||
+    user?.publicMetadata?.plan ||
+    user?.unsafeMetadata?.subscriptionPlan ||
+    user?.unsafeMetadata?.plan ||
+    "free";
+
   const userPlan = String(rawPlan).toLowerCase();
+  console.log("Plano Final Normalizado:", userPlan);
 
   const userSlug = useQuery(
     api.lib.usernames.getUserSlug,
