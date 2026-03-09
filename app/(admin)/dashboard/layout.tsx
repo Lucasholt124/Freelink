@@ -1,10 +1,10 @@
 import { ReactNode } from "react";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { getUserSubscriptionPlan } from "@/lib/subscription";
 import { fetchQuery } from "convex/nextjs";
 import { api } from "@/convex/_generated/api";
 import DashboardShell from "./DashboardShell";
+import { getUserSubscriptionPlan } from "@/lib/subscription";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await currentUser();

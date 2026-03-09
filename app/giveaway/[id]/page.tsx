@@ -11,14 +11,17 @@ import {
   Loader2,
   X,
   Sparkles,
-  Users,
   Star,
   Heart,
   PartyPopper,
-  AlertCircle
+  AlertCircle,
+  Instagram,
+  MessageSquare,
+  ArrowRight
 } from "lucide-react";
+import clsx from "clsx";
 
-// --- Elementos Flutuantes (Otimizado para Mobile) ---
+// --- Elementos Flutuantes ---
 const FloatingElements = () => (
   <div className="fixed inset-0 pointer-events-none overflow-hidden z-0">
     {[...Array(12)].map((_, i) => (
@@ -52,7 +55,7 @@ const FloatingElements = () => (
   </div>
 );
 
-// --- Badge do Freelinnk (Fixo no rodapé) ---
+// --- Badge do Freelinnk ---
 const FreelinnkBadge = () => (
   <a
     href="https://freelinnk.com"
@@ -69,41 +72,40 @@ const FreelinnkBadge = () => (
   </a>
 );
 
-// --- Sistema de Toast Simples e Responsivo ---
+// --- Toast ---
 const showToast = (message: string, type: 'success' | 'error') => {
   const toastEl = document.createElement('div');
   const bgColor = type === 'success' ? 'bg-emerald-500' : 'bg-red-500';
-  // Responsividade: ajustado para não quebrar em telas pequenas
-
   toastEl.className = `fixed top-4 left-4 right-4 md:left-1/2 md:right-auto md:transform md:-translate-x-1/2 ${bgColor} text-white px-4 py-3 rounded-xl shadow-2xl z-[9999] flex items-center justify-center gap-2 animate-bounce font-medium text-sm text-center`;
   toastEl.innerHTML = `<span>${message}</span>`;
   document.body.appendChild(toastEl);
   setTimeout(() => {
-    if(document.body.contains(toastEl)) document.body.removeChild(toastEl);
+    if (document.body.contains(toastEl)) document.body.removeChild(toastEl);
   }, 3500);
 };
 
 export default function PublicGiveawayPage() {
   const params = useParams();
 
-  // Tratamento seguro do ID vindo da URL
   const rawId = params?.id;
   const giveawayId = Array.isArray(rawId) ? rawId[0] : rawId || "";
 
-  // 1. Busca os dados em TEMPO REAL (Convex fará a mágica de atualizar sozinho)
   const giveaway = useQuery(api.publicGiveaways.getGiveaway,
     giveawayId ? { giveawayId } : "skip"
   );
 
   const addParticipantMutation = useMutation(api.publicGiveaways.addParticipant);
 
-  // Estados locais
+  // --- Novos Estados para o Form Multi-step ---
+  const [step, setStep] = useState<1 | 2>(1);
+  const [contactType, setContactType] = useState<"instagram" | "whatsapp" | null>(null);
   const [formData, setFormData] = useState({ name: "", identifier: "" });
+  const [identifierError, setIdentifierError] = useState("");
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [hasRegistered, setHasRegistered] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
-  // Verifica localStorage para saber se este navegador já participou
   useEffect(() => {
     if (giveawayId) {
       const registered = localStorage.getItem(`registered_${giveawayId}`);
@@ -111,11 +113,54 @@ export default function PublicGiveawayPage() {
     }
   }, [giveawayId]);
 
+  // Função para aplicar máscara de WhatsApp e validar o @
+  const handleIdentifierChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setIdentifierError("");
+    let value = e.target.value;
+
+    if (contactType === "whatsapp") {
+      // Deixa apenas números
+      value = value.replace(/\D/g, "");
+      // Máscara: (99) 99999-9999
+      if (value.length <= 11) {
+        value = value.replace(/^(\d{2})(\d)/g, "($1) $2");
+        value = value.replace(/(\d)(\d{4})$/, "$1-$2");
+      } else {
+        value = value.slice(0, 15); // Limita tamanho
+      }
+    } else if (contactType === "instagram") {
+      // Se não começar com @ e tiver texto, adiciona o @
+      if (value.length > 0 && !value.startsWith('@')) {
+        value = '@' + value;
+      }
+      value = value.replace(/[^@a-zA-Z0-9._]/g, ""); // Remove espaços e caracteres inválidos
+    }
+
+    setFormData({ ...formData, identifier: value });
+  };
+
+  const handleNextStep = () => {
+    if (!formData.name.trim()) {
+      showToast("Digite seu nome para continuar!", 'error');
+      return;
+    }
+    if (!contactType) {
+      showToast("Escolha como quer ser contatado!", 'error');
+      return;
+    }
+    setStep(2);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!formData.name.trim() || !formData.identifier.trim()) {
-      showToast("Preencha todos os campos!", 'error');
+    // Validação final estrita
+    if (contactType === "instagram" && formData.identifier.length < 3) {
+      setIdentifierError("Digite um usuário válido");
+      return;
+    }
+    if (contactType === "whatsapp" && formData.identifier.replace(/\D/g, "").length < 10) {
+      setIdentifierError("Digite um DDD + Número válido");
       return;
     }
 
@@ -128,15 +173,16 @@ export default function PublicGiveawayPage() {
     setIsSubmitting(true);
 
     try {
-      // Cria um ID único simples e rápido
       const tempId = `${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
+      // Salva o identificador junto com o tipo para o criador saber (ex: "Instagram: @lucas")
+      const finalIdentifier = `${contactType === 'instagram' ? 'Instagram:' : 'WhatsApp:'} ${formData.identifier}`;
 
       await addParticipantMutation({
         giveawayId: giveawayId,
         participant: {
           id: tempId,
           name: formData.name,
-          identifier: formData.identifier,
+          identifier: finalIdentifier,
           timestamp: new Date().toISOString(),
           verified: false,
         },
@@ -146,16 +192,13 @@ export default function PublicGiveawayPage() {
       setHasRegistered(true);
       showToast("Você está participando! 🍀", 'success');
 
-      // Feedback tátil (Vibração) em celulares compatíveis
       if (typeof navigator !== 'undefined' && navigator.vibrate) {
         navigator.vibrate(100);
       }
-
-    } catch (error) { // 'error' é do tipo 'unknown' por padrão
+    } catch (error) {
       let msg = "Erro ao participar. Tente novamente.";
       let alreadyRegistered = false;
 
-      // Verificamos se o erro é um objeto Error antes de acessar 'message'
       if (error instanceof Error && error.message.includes("já está participando")) {
         msg = "Você já está na lista deste sorteio!";
         alreadyRegistered = true;
@@ -172,7 +215,7 @@ export default function PublicGiveawayPage() {
     }
   };
 
-  // --- Tela de Carregamento ---
+  // --- Telas de Estado ---
   if (giveaway === undefined) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 flex items-center justify-center">
@@ -181,7 +224,6 @@ export default function PublicGiveawayPage() {
     );
   }
 
-  // --- Tela de 404 (Sorteio não existe no banco) ---
   if (giveaway === null) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -199,11 +241,8 @@ export default function PublicGiveawayPage() {
     );
   }
 
-  // --- Renderização Principal ---
   return (
     <div className="min-h-screen bg-gradient-to-br from-violet-600 via-purple-600 to-fuchsia-600 py-6 px-4 flex flex-col items-center justify-center relative overflow-hidden">
-
-      {/* Background Decorativo Suave */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
         <div className="absolute top-[-20%] left-[-20%] w-[60%] h-[60%] bg-purple-400/20 rounded-full blur-[80px]" />
         <div className="absolute bottom-[-20%] right-[-20%] w-[60%] h-[60%] bg-blue-400/20 rounded-full blur-[80px]" />
@@ -217,8 +256,6 @@ export default function PublicGiveawayPage() {
         className="w-full max-w-md relative z-10"
       >
         <AnimatePresence mode="wait">
-
-          {/* CASO 1: Sorteio Encerrado */}
           {!giveaway.isActive ? (
              <motion.div
              key="closed"
@@ -235,8 +272,6 @@ export default function PublicGiveawayPage() {
              </div>
            </motion.div>
           )
-
-          /* CASO 2: Usuário já cadastrado (Tela de Sucesso) */
           : hasRegistered ? (
             <motion.div
               key="success"
@@ -282,8 +317,6 @@ export default function PublicGiveawayPage() {
               </div>
             </motion.div>
           )
-
-          /* CASO 3: Formulário de Cadastro (Entrada) */
           : (
             <motion.div
               key="form"
@@ -293,72 +326,139 @@ export default function PublicGiveawayPage() {
             >
               <div className="text-center mb-6">
                 <div className="inline-block mb-4">
-                  <div className="w-16 h-16 bg-gradient-to-tr from-violet-500 to-fuchsia-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30 rotate-3 mx-auto">
-                    <Gift className="w-8 h-8 text-white" />
+                  <div className="w-14 h-14 bg-gradient-to-tr from-violet-500 to-fuchsia-500 rounded-2xl flex items-center justify-center shadow-lg shadow-purple-500/30 rotate-3 mx-auto">
+                    <Gift className="w-7 h-7 text-white" />
                   </div>
                 </div>
 
                 <h1 className="text-xl font-bold text-gray-400 uppercase tracking-wider mb-1 text-[10px] sm:text-xs">
-                  Participe Grátis
+                  Sorteio Oficial
                 </h1>
                 <p className="text-xl sm:text-2xl font-black text-gray-800 leading-tight break-words">
                   {giveaway.title}
                 </p>
-
-                <div className="flex items-center justify-center gap-2 mt-3 text-gray-500 text-xs font-medium bg-gray-100/80 py-1 px-3 rounded-full w-fit mx-auto">
-                  <Users className="w-3 h-3" />
-                  <span>{giveaway.participants.length} participando</span>
-                </div>
               </div>
 
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <div className={`transition-all duration-200 rounded-xl bg-gray-50 border-2 ${focusedField === 'name' ? 'border-purple-500 bg-white shadow-sm' : 'border-gray-100'}`}>
-                    <input
-                      type="text"
-                      placeholder="Seu Nome Completo"
-                      value={formData.name}
-                      onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                      onFocus={() => setFocusedField('name')}
-                      onBlur={() => setFocusedField(null)}
-                      className="w-full px-4 py-3.5 bg-transparent outline-none text-gray-800 placeholder-gray-400 font-medium text-sm sm:text-base"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className={`transition-all duration-200 rounded-xl bg-gray-50 border-2 ${focusedField === 'identifier' ? 'border-purple-500 bg-white shadow-sm' : 'border-gray-100'}`}>
-                    <input
-                      type="text"
-                      placeholder="Instagram ou WhatsApp"
-                      value={formData.identifier}
-                      onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
-                      onFocus={() => setFocusedField('identifier')}
-                      onBlur={() => setFocusedField(null)}
-                      className="w-full px-4 py-3.5 bg-transparent outline-none text-gray-800 placeholder-gray-400 font-medium text-sm sm:text-base"
-                      required
-                    />
-                  </div>
-                </div>
-
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white py-4 rounded-xl font-bold text-base sm:text-lg shadow-lg shadow-purple-500/30 mt-2 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+              {/* WIZARD: PASSO 1 */}
+              {step === 1 && (
+                <motion.div
+                  initial={{ x: -20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  exit={{ x: 20, opacity: 0 }}
+                  className="space-y-4"
                 >
-                  {isSubmitting ? (
-                    <Loader2 className="w-6 h-6 animate-spin" />
-                  ) : (
-                    <>
-                      <span>Quero Ganhar!</span>
-                      <Sparkles className="w-5 h-5" />
-                    </>
-                  )}
-                </motion.button>
-              </form>
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">Como podemos te chamar?</label>
+                    <div className={`transition-all duration-200 rounded-xl bg-gray-50 border-2 ${focusedField === 'name' ? 'border-purple-500 bg-white shadow-sm' : 'border-gray-100'}`}>
+                      <input
+                        type="text"
+                        placeholder="Seu Nome e Sobrenome"
+                        value={formData.name}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onFocus={() => setFocusedField('name')}
+                        onBlur={() => setFocusedField(null)}
+                        className="w-full px-4 py-3.5 bg-transparent outline-none text-gray-800 placeholder-gray-400 font-medium text-sm sm:text-base"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">Como você prefere ser contatado se ganhar?</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setContactType("instagram")}
+                        className={clsx(
+                          "flex flex-col items-center justify-center gap-2 py-4 rounded-xl border-2 transition-all",
+                          contactType === "instagram" ? "border-pink-500 bg-pink-50 text-pink-700 shadow-sm" : "border-gray-100 bg-gray-50 text-gray-500 hover:bg-gray-100"
+                        )}
+                      >
+                        <Instagram className="w-6 h-6" />
+                        <span className="font-bold text-xs">Instagram</span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setContactType("whatsapp")}
+                        className={clsx(
+                          "flex flex-col items-center justify-center gap-2 py-4 rounded-xl border-2 transition-all",
+                          contactType === "whatsapp" ? "border-green-500 bg-green-50 text-green-700 shadow-sm" : "border-gray-100 bg-gray-50 text-gray-500 hover:bg-gray-100"
+                        )}
+                      >
+                        <MessageSquare className="w-6 h-6" />
+                        <span className="font-bold text-xs">WhatsApp</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  <motion.button
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={handleNextStep}
+                    className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white py-4 rounded-xl font-bold text-base shadow-lg mt-4 flex items-center justify-center gap-2"
+                  >
+                    <span>Continuar</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </motion.button>
+                </motion.div>
+              )}
+
+              {/* WIZARD: PASSO 2 */}
+              {step === 2 && (
+                <motion.form
+                  initial={{ x: 20, opacity: 0 }}
+                  animate={{ x: 0, opacity: 1 }}
+                  onSubmit={handleSubmit}
+                  className="space-y-4"
+                >
+                  <div>
+                    <label className="block text-sm font-bold text-gray-700 mb-1.5 ml-1">
+                      {contactType === 'instagram' ? "Qual o seu @ do Instagram?" : "Qual o seu número de WhatsApp?"}
+                    </label>
+                    <div className={`transition-all duration-200 rounded-xl bg-gray-50 border-2 ${identifierError ? 'border-red-400 bg-red-50' : focusedField === 'identifier' ? 'border-purple-500 bg-white shadow-sm' : 'border-gray-100'}`}>
+                      <input
+                        type={contactType === 'whatsapp' ? "tel" : "text"}
+                        placeholder={contactType === 'instagram' ? "@seu_usuario" : "(11) 99999-9999"}
+                        value={formData.identifier}
+                        onChange={handleIdentifierChange}
+                        onFocus={() => setFocusedField('identifier')}
+                        onBlur={() => setFocusedField(null)}
+                        className="w-full px-4 py-3.5 bg-transparent outline-none text-gray-800 placeholder-gray-400 font-medium text-sm sm:text-base"
+                      />
+                    </div>
+                    {identifierError && <p className="text-red-500 text-xs font-medium mt-1.5 ml-1">{identifierError}</p>}
+                  </div>
+
+                  <div className="flex gap-2 mt-4">
+                    <button
+                      type="button"
+                      onClick={() => setStep(1)}
+                      className="px-4 py-4 rounded-xl bg-gray-100 text-gray-600 font-bold hover:bg-gray-200 transition-colors"
+                    >
+                      Voltar
+                    </button>
+                    <motion.button
+                      whileHover={{ scale: 1.02 }}
+                      whileTap={{ scale: 0.98 }}
+                      type="submit"
+                      disabled={isSubmitting || !formData.identifier.trim()}
+                      className="flex-1 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white py-4 rounded-xl font-bold text-base shadow-lg flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
+                    >
+                      {isSubmitting ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                      ) : (
+                        <>
+                          <span>Confirmar Participação</span>
+                          <CheckCircle2 className="w-4 h-4" />
+                        </>
+                      )}
+                    </motion.button>
+                  </div>
+
+                  <p className="text-[10px] text-gray-400 text-center mt-2 flex items-center justify-center gap-1">
+                    <AlertCircle className="w-3 h-3"/> Prometemos não enviar spam.
+                  </p>
+                </motion.form>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

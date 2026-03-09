@@ -1,7 +1,8 @@
-// Em convex/tracking.ts
-
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+
+// ID DO ADMIN MASTER
+const ADMIN_USER_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
 
 // --- QUERY: Buscar IDs pelo nome de usuário (slug) ---
 export const getIdsBySlug = query({
@@ -13,14 +14,25 @@ export const getIdsBySlug = query({
       .withIndex("by_username", (q) => q.eq("username", args.slug))
       .first();
 
-    if (!userBySlug) {
-      return null;
+    let targetUserId = userBySlug?.userId;
+
+    // 1.1 Se não achou em usernames, tenta em subAccounts
+    if (!targetUserId) {
+        const subAccountBySlug = await ctx.db
+            .query("subAccounts")
+            .withIndex("by_username", (q) => q.eq("username", args.slug))
+            .first();
+        if (subAccountBySlug) {
+            targetUserId = subAccountBySlug.subUserId;
+        }
     }
 
-    // 2. Com o userId, buscar as configurações de rastreamento na tabela 'tracking'
+    if (!targetUserId) return null;
+
+    // 2. Com o userId, buscar as configurações
     const trackingSettings = await ctx.db
       .query("tracking")
-      .withIndex("by_userId", (q) => q.eq("userId", userBySlug.userId))
+      .withIndex("by_userId", (q) => q.eq("userId", targetUserId))
       .first();
 
     return trackingSettings;
@@ -28,25 +40,35 @@ export const getIdsBySlug = query({
 });
 
 // --- MUTAÇÃO: Salvar ou atualizar os IDs ---
-// --- MUTAÇÃO: Salvar ou atualizar os IDs ---
 export const saveTrackingIds = mutation({
   args: {
+    userId: v.optional(v.string()), // Recebe o ID da sub-conta (se houver)
     facebookPixelId: v.optional(v.string()),
     googleAnalyticsId: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      throw new Error("Você precisa estar logado.");
+    if (!identity) throw new Error("Você precisa estar logado.");
+
+    // Define o ID alvo (Sub-conta ou Conta Principal)
+    const targetUserId = args.userId || identity.subject;
+
+    // TRAVA DE SEGURANÇA: Garante que ninguém altere contas de terceiros
+    if (targetUserId !== identity.subject && identity.subject !== ADMIN_USER_ID) {
+        const subAccount = await ctx.db.query("subAccounts")
+            .withIndex("by_sub_user", (q) => q.eq("subUserId", targetUserId))
+            .first();
+
+        if (!subAccount || subAccount.ownerUserId !== identity.subject) {
+            throw new Error("Acesso negado: Você não tem permissão para editar esta página.");
+        }
     }
-    const userId = identity.subject;
 
     const existingSettings = await ctx.db
       .query("tracking")
-      .withIndex("by_userId", (q) => q.eq("userId", userId))
+      .withIndex("by_userId", (q) => q.eq("userId", targetUserId))
       .first();
 
-    // ✅ CORREÇÃO: Garantir que string vazia vira undefined
     const cleanFacebookPixel = args.facebookPixelId?.trim();
     const facebookPixelId = cleanFacebookPixel && cleanFacebookPixel.length > 0
       ? cleanFacebookPixel
@@ -64,7 +86,7 @@ export const saveTrackingIds = mutation({
       });
     } else {
       await ctx.db.insert("tracking", {
-        userId,
+        userId: targetUserId,
         facebookPixelId,
         googleAnalyticsId,
       });
@@ -74,16 +96,18 @@ export const saveTrackingIds = mutation({
   },
 });
 
-// --- QUERY: Buscar as configurações do usuário logado (para o formulário do dashboard) ---
+// --- QUERY: Buscar as configurações (Lê sub-conta) ---
 export const getMyTrackingIds = query({
-  handler: async (ctx) => {
+  args: { userId: v.optional(v.string()) },
+  handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
-      return null;
-    }
+    if (!identity) return null;
+
+    const targetUserId = args.userId || identity.subject;
+
     return await ctx.db
       .query("tracking")
-      .withIndex("by_userId", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_userId", (q) => q.eq("userId", targetUserId))
       .first();
   }
 });

@@ -8,19 +8,13 @@
  * @module
  */
 
-import type * as aiStudio from "../aiStudio.js";
 import type * as analytics from "../analytics.js";
-import type * as autoPublisher from "../autoPublisher.js";
-import type * as brain from "../brain.js";
-import type * as brainCampaigns from "../brainCampaigns.js";
-import type * as calendar from "../calendar.js";
 import type * as client from "../client.js";
 import type * as connections from "../connections.js";
 import type * as crons from "../crons.js";
 import type * as files from "../files.js";
 import type * as gamification from "../gamification.js";
 import type * as giveaways from "../giveaways.js";
-import type * as imageGenerator from "../imageGenerator.js";
 import type * as lib_customizations from "../lib/customizations.js";
 import type * as lib_fetchLinkAnalytics from "../lib/fetchLinkAnalytics.js";
 import type * as lib_files from "../lib/files.js";
@@ -28,17 +22,8 @@ import type * as lib_getBaseUrl from "../lib/getBaseUrl.js";
 import type * as lib_links from "../lib/links.js";
 import type * as lib_subAccounts from "../lib/subAccounts.js";
 import type * as lib_usernames from "../lib/usernames.js";
-import type * as migrations from "../migrations.js";
-import type * as notificationHelpers from "../notificationHelpers.js";
-import type * as notificationQueries from "../notificationQueries.js";
-import type * as notificationSender from "../notificationSender.js";
-import type * as notifications from "../notifications.js";
-import type * as posts from "../posts.js";
 import type * as profitCalculator from "../profitCalculator.js";
 import type * as publicGiveaways from "../publicGiveaways.js";
-import type * as push from "../push.js";
-import type * as pushActions from "../pushActions.js";
-import type * as scheduledPosts from "../scheduledPosts.js";
 import type * as shareAchievements from "../shareAchievements.js";
 import type * as shortLinks from "../shortLinks.js";
 import type * as tracking from "../tracking.js";
@@ -51,19 +36,13 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
-  aiStudio: typeof aiStudio;
   analytics: typeof analytics;
-  autoPublisher: typeof autoPublisher;
-  brain: typeof brain;
-  brainCampaigns: typeof brainCampaigns;
-  calendar: typeof calendar;
   client: typeof client;
   connections: typeof connections;
   crons: typeof crons;
   files: typeof files;
   gamification: typeof gamification;
   giveaways: typeof giveaways;
-  imageGenerator: typeof imageGenerator;
   "lib/customizations": typeof lib_customizations;
   "lib/fetchLinkAnalytics": typeof lib_fetchLinkAnalytics;
   "lib/files": typeof lib_files;
@@ -71,17 +50,8 @@ declare const fullApi: ApiFromModules<{
   "lib/links": typeof lib_links;
   "lib/subAccounts": typeof lib_subAccounts;
   "lib/usernames": typeof lib_usernames;
-  migrations: typeof migrations;
-  notificationHelpers: typeof notificationHelpers;
-  notificationQueries: typeof notificationQueries;
-  notificationSender: typeof notificationSender;
-  notifications: typeof notifications;
-  posts: typeof posts;
   profitCalculator: typeof profitCalculator;
   publicGiveaways: typeof publicGiveaways;
-  push: typeof push;
-  pushActions: typeof pushActions;
-  scheduledPosts: typeof scheduledPosts;
   shareAchievements: typeof shareAchievements;
   shortLinks: typeof shortLinks;
   tracking: typeof tracking;

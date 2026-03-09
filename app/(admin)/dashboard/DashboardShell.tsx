@@ -4,21 +4,17 @@ import { ReactNode, useState, useEffect, ForwardRefExoticComponent, RefAttribute
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Settings, Wand2, Scissors, Target, LayoutGrid, Gift,
-  BrainCircuit, CreditCard, LogOut, ChevronDown, HelpCircle, Sparkles, X,
-  LucideProps, Menu, Bell, Search, PlusCircle, ArrowRight, Zap, Crown, Shield,
-  Calculator, Palette, BarChart3, ChevronRight, Flame, Lock
+  Home, Settings, Scissors, Target, LayoutGrid, Gift,
+  CreditCard, LogOut, ChevronDown, HelpCircle, X,
+  LucideProps, Menu, Search, PlusCircle, ArrowRight, Zap, Crown, Shield,
+  Calculator, Palette, BarChart3, ChevronRight, Flame, Lock, Users
 } from "lucide-react";
 import clsx from "clsx";
 import { UserButton, useClerk } from "@clerk/nextjs";
-import { useAuth } from "@clerk/clerk-react";
 import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { usePushNotifications } from "@/app/hooks/usePushNotifications";
-
 
 type LucideIcon = ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
 
@@ -36,7 +32,6 @@ const Z_INDEX = {
 } as const;
 
 const DASHBOARD_CONFIG = {
-  MAX_NOTIFICATIONS: 50,
   MAX_SEARCH_RESULTS: 10,
 } as const;
 
@@ -72,14 +67,6 @@ interface SearchResponse {
   description?: string;
 }
 
-interface Notification {
-  id: string;
-  message: string;
-  isRead: boolean;
-  timestamp: string;
-  link?: string;
-}
-
 const useDebounce = <T,>(value: T, delay: number): T => {
   const [debouncedValue, setDebouncedValue] = useState<T>(value);
   useEffect(() => {
@@ -89,21 +76,14 @@ const useDebounce = <T,>(value: T, delay: number): T => {
   return debouncedValue;
 };
 
+// 🔥 MENU LIMPO: Focado no que importa
 export const navItems: NavItem[] = [
   { href: "/dashboard", icon: Home, label: "Visão Geral" },
   { href: "/dashboard/links", icon: LayoutGrid, label: "Meus Links" },
   {
-    label: "Ferramentas de IA",
-    subItems: [
-      { href: "/dashboard/mentor-ia", icon: Wand2, label: "Mentor.IA", ultra: true, description: "IA para estratégias" },
-      { href: "/dashboard/brain", icon: BrainCircuit, label: "FreelinnkBrain", pro: true, new: true, description: "Gerador de conteúdo" },
-      { href: "/dashboard/ai-studio", icon: BrainCircuit, label: "AI Studio", ultra: true, new: true, description: "Criação avançada" },
-    ]
-  },
-  {
     label: "Negócios",
     subItems: [
-      { href: "/dashboard/profit-calculator", icon: Calculator, label: "Calculadora de Lucros", ultra: true, new: true, description: "Análise IA completa" },
+      { href: "/dashboard/profit-calculator", icon: Calculator, label: "Calculadora Financeira", ultra: true, description: "Análise completa" },
     ]
   },
   {
@@ -111,7 +91,7 @@ export const navItems: NavItem[] = [
     subItems: [
       { href: "/dashboard/shortener", icon: Scissors, label: "Encurtador", description: "Links curtos" },
       { href: "/dashboard/giveaway", icon: Gift, label: "Sorteios", pro: true, description: "Engajamento" },
-      { href: "/dashboard/tracking", icon: Target, label: "Rastreamento", ultra: true, new: true, description: "Analytics completo" },
+      { href: "/dashboard/tracking", icon: Target, label: "Rastreamento", ultra: true, new: true, description: "Pixel & Analytics" },
     ]
   },
   {
@@ -127,9 +107,6 @@ export const navItems: NavItem[] = [
 const searchableItemsMap: { [key: string]: LucideIcon } = {
   "/dashboard": Home,
   "/dashboard/links": LayoutGrid,
-  "/dashboard/mentor-ia": Wand2,
-  "/dashboard/brain": BrainCircuit,
-  "/dashboard/ai-studio": BrainCircuit,
   "/dashboard/profit-calculator": Calculator,
   "/dashboard/shortener": Scissors,
   "/dashboard/giveaway": Gift,
@@ -179,29 +156,29 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
   const isFree = userPlan === "free";
   const isPro = userPlan === "pro";
 
-
+  // 🔥 BANNERS DE UPGRADE ATUALIZADOS (Foco em Agência/Múltiplas Contas)
   const upgradeCardConfig = isFree ? {
-    title: "Você está no escuro",
-    subtitle: "Seus cliques estão sem rastreamento.",
+    title: "Destrave seu potencial",
+    subtitle: "Crie para múltiplos clientes.",
     gradient: "from-slate-900 to-slate-800",
-    lossMessage: "Sem saber de onde vêm, você perde oportunidades todos os dias.",
+    lossMessage: "Assine e tenha múltiplas páginas na mesma conta.",
     features: [
-      { text: "Rastreamento de origens", icon: Target },
+      { text: "Rastreamento avançado", icon: Target },
       { text: "Remover branding", icon: Shield },
-      { text: "Roteiros com IA", icon: Sparkles },
+      { text: "Criar sub-contas", icon: Users },
     ],
-    buttonText: "Parar de perder dados",
+    buttonText: "Ver Vantagens Pro",
     buttonGradient: "from-blue-600 to-indigo-600",
     progress: 25,
     socialProof: "847 criadores fizeram upgrade hoje"
   } : {
-    title: "Falta pouco para o topo",
-    subtitle: "Automatize com IA avançada.",
+    title: "Torne-se uma Agência",
+    subtitle: "Domine o mercado.",
     gradient: "from-indigo-900 to-violet-900",
-    lossMessage: "Você tem dados mas não tem automação. Criadores Ultra crescem 3x mais rápido.",
+    lossMessage: "Crie até 30 páginas completas para os seus clientes.",
     features: [
-      { text: "IA de Imagens e Posts", icon: Wand2 },
-      { text: "Scripts Virais com IA", icon: Sparkles },
+      { text: "Até 30 Sub-contas", icon: Users },
+      { text: "Gestão Financeira", icon: Calculator },
       { text: "Analytics completo", icon: BarChart3 },
     ],
     buttonText: "Virar ULTRA agora",
@@ -285,7 +262,6 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
         </LayoutGroup>
       </ul>
 
-
       {userPlan !== "ultra" && (
         <div className="px-3 mt-4">
           <motion.div whileHover={{ y: -2 }} className={`relative rounded-xl p-[1px] overflow-hidden bg-gradient-to-br ${upgradeCardConfig.gradient}`}>
@@ -335,36 +311,11 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   const [searchLoading, setSearchLoading] = useState(false);
   const pathname = usePathname();
   const userPlan = initialPlan || "free";
-  const { isLoaded: authLoaded, isSignedIn } = useAuth();
   const { signOut } = useClerk();
-  const { isSupported, isSubscribed, subscribe } = usePushNotifications();
-  const [showPushPrompt, setShowPushPrompt] = useState(false);
-  const [userNotifications, setUserNotifications] = useState<Notification[]>([]);
-  const [notificationsLoading, setNotificationsLoading] = useState(true);
 
   const isDashboardHome = pathname === '/dashboard';
 
-  const handleEnableNotifications = async () => {
-    try {
-      if (!('Notification' in window)) return;
-      const permission = await Notification.requestPermission();
-      if (permission !== 'granted') { setShowPushPrompt(false); localStorage.setItem('hasSeenPushPrompt', 'true'); return; }
-      try { await navigator.serviceWorker.register('/sw.js'); } catch {}
-      const success = await subscribe();
-      if (success) { localStorage.setItem('hasSeenPushPrompt', 'true'); setShowPushPrompt(false); new Notification('Freelinnk', { body: '✅ Notificações ativadas!', icon: '/icon-192x192.png' }); }
-    } catch { setShowPushPrompt(false); localStorage.setItem('hasSeenPushPrompt', 'true'); }
-  };
-
-  const markAllAsRead = async () => { setUserNotifications(current => current.map(n => ({ ...n, isRead: true }))); try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ markAll: true }) }); } catch {} };
-  const markNotificationAsRead = async (id: string) => { setUserNotifications(current => current.map(n => n.id === id ? { ...n, isRead: true } : n)); try { await fetch("/api/notifications", { method: "PATCH", body: JSON.stringify({ id }) }); } catch {} };
   const handleSearchLinkClick = () => { setIsSearchOpen(false); setSearchTerm(""); };
-
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      try { const res = await fetch("/api/notifications"); if(res.ok) { const data = await res.json(); setUserNotifications(data.slice(0, DASHBOARD_CONFIG.MAX_NOTIFICATIONS)); } } catch { } finally { setNotificationsLoading(false); }
-    };
-    fetchNotifications();
-  }, []);
 
   useEffect(() => {
     const fetchSearchResults = async () => {
@@ -381,11 +332,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
     fetchSearchResults();
   }, [debouncedSearchTerm]);
 
-  useEffect(() => {
-    const hasSeenPrompt = localStorage.getItem('hasSeenPushPrompt');
-    if (authLoaded && isSignedIn && isSupported && !isSubscribed && !hasSeenPrompt) { setTimeout(() => setShowPushPrompt(true), 5000); }
-  }, [authLoaded, isSignedIn, isSupported, isSubscribed]);
-
   const getPlanBadge = () => {
     if (userPlan === "pro") return <Badge className="bg-gradient-to-r from-blue-500 to-cyan-500">PRO</Badge>;
     if (userPlan === "ultra") return <Badge className="bg-gradient-to-r from-purple-500 to-pink-500">ULTRA</Badge>;
@@ -393,7 +339,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
   };
 
   const getPageTitle = () => {
-    const titles: { [key: string]: string } = { "/dashboard": "Visão Geral", "/dashboard/links": "Meus Links", "/dashboard/mentor-ia": "Mentor.IA", "/dashboard/brain": "FreelinkBrain", "/dashboard/settings": "Configurações", "/dashboard/billing": "Plano e Cobrança" };
+    const titles: { [key: string]: string } = { "/dashboard": "Visão Geral", "/dashboard/links": "Meus Links", "/dashboard/settings": "Configurações", "/dashboard/billing": "Plano e Cobrança" };
     return Object.entries(titles).find(([path]) => pathname.startsWith(path))?.[1] || "Dashboard";
   };
 
@@ -486,7 +432,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-4">
             <div className="relative">
               <AnimatePresence>
                 {isSearchOpen ? (
@@ -506,24 +452,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
                 )}
               </AnimatePresence>
             </div>
-
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="icon" className="relative">
-                  <Bell className="w-5 h-5" />
-                  {userNotifications.filter(n => !n.isRead).length > 0 && <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent align="end" className="w-80 p-0 overflow-hidden">
-                <div className="bg-gradient-to-r from-purple-600 to-pink-600 p-3 flex justify-between items-center text-white">
-                  <h4 className="font-bold text-sm">Notificações</h4>
-                  <button onClick={markAllAsRead} className="text-xs hover:underline opacity-90">Ler todas</button>
-                </div>
-                <div className="max-h-60 overflow-y-auto p-2">
-                  {notificationsLoading ? ( <div className="text-center p-4 text-xs text-slate-500">Carregando...</div> ) : userNotifications.length > 0 ? ( userNotifications.map(n => ( <div key={n.id} onClick={() => markNotificationAsRead(n.id)} className={clsx("p-2 rounded text-sm mb-1 cursor-pointer", n.isRead ? "bg-white" : "bg-slate-50 border-l-2 border-purple-500")}> <p className="text-xs text-slate-800">{n.message}</p> </div> )) ) : ( <div className="text-center p-4 text-xs text-slate-500">Nenhuma notificação</div> )}
-                </div>
-              </PopoverContent>
-            </Popover>
 
             <Link href="/dashboard/new-link">
               <Button className="bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold shadow-lg hidden sm:flex">
@@ -580,24 +508,6 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
           {children}
           <div className="h-24 lg:hidden" />
         </main>
-
-        <AnimatePresence>
-          {showPushPrompt && (
-            <motion.div initial={{ y: 100 }} animate={{ y: 0 }} exit={{ y: 100 }} className="fixed bottom-4 right-4 bg-white dark:bg-slate-800 p-4 shadow-2xl rounded-xl z-50 border border-slate-200 dark:border-slate-700 w-80">
-              <div className="flex items-start gap-3">
-                <div className="bg-purple-100 p-2 rounded-full"><Bell className="w-5 h-5 text-purple-600" /></div>
-                <div>
-                  <p className="font-bold text-sm mb-1">Ativar Notificações?</p>
-                  <p className="text-xs text-slate-500 mb-3">Receba alertas de cliques e vendas em tempo real.</p>
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={handleEnableNotifications} className="h-7 text-xs">Sim, ativar</Button>
-                    <Button variant="ghost" size="sm" onClick={() => setShowPushPrompt(false)} className="h-7 text-xs">Agora não</Button>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
     </div>
   );

@@ -1,12 +1,8 @@
-// Em app/dashboard/tracking/page.tsx
-
 import { currentUser } from "@clerk/nextjs/server";
 import { getUserSubscriptionPlan } from "@/lib/subscription";
 import {
-
   Target,
   Sparkles,
-
   ArrowRight,
   Check,
   Users,
@@ -14,14 +10,13 @@ import {
   Rocket,
   Crown,
   Star,
-
   TrendingUp,
   BarChart3,
   Eye,
   MousePointerClick,
   DollarSign,
   Share2,
-  Infinity
+  Infinity as InfinityIcon
 } from "lucide-react";
 import Link from "next/link";
 import { TrackingForm } from "@/components/TrackingForm";
@@ -40,7 +35,6 @@ function LockedTrackingPage() {
 
           {/* Lado Esquerdo - Info e CTA */}
           <div className="text-center lg:text-left space-y-3 lg:space-y-4">
-            {/* Badge */}
             <div className="inline-flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-purple-100 to-blue-100 border border-purple-200 rounded-full">
               <Target className="w-3 sm:w-3.5 h-3 sm:h-3.5 text-purple-600 animate-pulse" />
               <span className="text-[10px] sm:text-xs font-semibold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
@@ -48,7 +42,6 @@ function LockedTrackingPage() {
               </span>
             </div>
 
-            {/* Título */}
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black leading-tight">
               <span className="block text-gray-900 mb-1">Rastreamento</span>
               <span className="relative inline-block">
@@ -63,7 +56,6 @@ function LockedTrackingPage() {
               <span className="font-semibold text-gray-900">+2.000 anunciantes</span> já otimizam campanhas e <span className="text-purple-600 font-semibold">aumentam ROI em 300%</span>
             </p>
 
-            {/* Features em Pills */}
             <div className="flex flex-wrap gap-2 justify-center lg:justify-start">
               <div className="flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-1 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg shadow-sm border border-blue-200">
                 <Share2 className="w-3 h-3 text-blue-500" />
@@ -79,7 +71,6 @@ function LockedTrackingPage() {
               </div>
             </div>
 
-            {/* Benefits List Compacto */}
             <div className="bg-white rounded-lg p-3 border border-gray-200 shadow-sm">
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2 text-xs">
@@ -109,7 +100,6 @@ function LockedTrackingPage() {
               </div>
             </div>
 
-            {/* Stats Rápidos */}
             <div className="grid grid-cols-3 gap-2">
               <div className="bg-gradient-to-br from-purple-50 to-indigo-50 rounded-lg p-2 border border-purple-100">
                 <p className="text-lg font-bold text-purple-600">+300%</p>
@@ -125,7 +115,6 @@ function LockedTrackingPage() {
               </div>
             </div>
 
-            {/* Social Proof */}
             <div className="flex items-center gap-3 justify-center lg:justify-start">
               <div className="flex -space-x-2">
                 {[...Array(4)].map((_, i) => (
@@ -142,7 +131,6 @@ function LockedTrackingPage() {
               </div>
             </div>
 
-            {/* CTA Principal */}
             <div className="space-y-2">
               <Button
                 asChild
@@ -156,7 +144,6 @@ function LockedTrackingPage() {
                 </Link>
               </Button>
 
-              {/* Garantias */}
               <div className="flex flex-wrap items-center justify-center lg:justify-start gap-2 sm:gap-3 text-[10px] text-gray-500">
                 <span className="flex items-center gap-1">
                   <Check className="w-3 h-3 text-green-500" />
@@ -167,7 +154,7 @@ function LockedTrackingPage() {
                   Garantia 30d
                 </span>
                 <span className="flex items-center gap-1">
-                  <Infinity className="w-3 h-3 text-purple-500" />
+                  <InfinityIcon className="w-3 h-3 text-purple-500" />
                   Pixels ilimitados
                 </span>
               </div>
@@ -177,7 +164,6 @@ function LockedTrackingPage() {
           {/* Lado Direito - Visual Desktop Only */}
           <div className="relative hidden lg:block">
             <div className="relative max-h-[70vh] flex items-center justify-center">
-              {/* Cards de pixels - Reduzido */}
               <div className="absolute top-0 left-0 transform -rotate-3 z-10">
                 <div className="bg-white rounded-lg shadow-lg p-3 border border-blue-100 w-48">
                   <div className="flex items-center gap-1.5 mb-2">
@@ -218,7 +204,6 @@ function LockedTrackingPage() {
                 </div>
               </div>
 
-              {/* Card Central - Compacto */}
               <div className="relative z-30 mt-16 bg-gradient-to-br from-purple-600 to-blue-600 rounded-xl shadow-2xl p-5 text-white max-w-sm">
                 <div className="flex flex-col items-center space-y-3">
                   <div className="relative">
@@ -231,13 +216,10 @@ function LockedTrackingPage() {
                       </div>
                     </div>
                   </div>
-
                   <div className="text-center">
                     <p className="text-base font-bold mb-0.5">Rastreamento Ultra</p>
                     <p className="text-xs text-white/80">Todos os pixels, um só lugar</p>
                   </div>
-
-                  {/* Mini grid de métricas - Compacto */}
                   <div className="grid grid-cols-2 gap-2 w-full">
                     <div className="bg-white/10 backdrop-blur rounded p-2">
                       <Eye className="w-3 h-3 mb-0.5" />
@@ -260,8 +242,6 @@ function LockedTrackingPage() {
                       <p className="text-[10px] font-bold">Otimizar</p>
                     </div>
                   </div>
-
-                  {/* Stats */}
                   <div className="flex gap-3 text-center pt-2 border-t border-white/20 w-full">
                     <div className="flex-1">
                       <p className="text-base font-bold">∞</p>
@@ -279,7 +259,6 @@ function LockedTrackingPage() {
                 </div>
               </div>
 
-              {/* Card inferior - Analytics - Compacto */}
               <div className="absolute bottom-0 left-1/2 transform -translate-x-1/2 z-10">
                 <div className="bg-white rounded-lg shadow-lg p-2.5 border border-orange-100 w-40">
                   <div className="flex items-center gap-1.5 mb-1">
@@ -322,38 +301,15 @@ export default async function TrackingPage() {
   if (!user) return null;
 
   const subscription = await getUserSubscriptionPlan(user.id);
+  const isAdmin = user.id === "user_301NTkVsE3v48SXkoCEp0XOXifI";
 
-  if (subscription.plan !== "ultra") {
+  if (subscription.plan !== "ultra" && !isAdmin) {
     return <LockedTrackingPage />;
   }
 
   return (
-    <div className="space-y-3 sm:space-y-4 max-w-6xl mx-auto">
-      {/* Cabeçalho Compacto */}
-      <div className="flex items-center gap-2 sm:gap-3 px-4 sm:px-0">
-        <div className="p-2 sm:p-2.5 bg-gradient-to-br from-purple-100 to-blue-100 rounded-xl shadow-md">
-          <Target className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-            <h1 className="text-xl sm:text-2xl lg:text-3xl font-black bg-gradient-to-r from-gray-900 to-gray-700 bg-clip-text text-transparent">
-              Rastreamento
-            </h1>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-bold bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow animate-pulse">
-              <Crown className="w-2.5 h-2.5 sm:w-3 sm:h-3 mr-0.5 sm:mr-1" />
-              ULTRA
-            </span>
-          </div>
-          <p className="text-xs sm:text-sm text-gray-600 mt-0.5">
-            Conecte seus pixels • <span className="font-semibold text-purple-600">Otimize campanhas</span>
-          </p>
-        </div>
-      </div>
-
-      {/* Formulário de Tracking */}
-      <div className="bg-white p-4 sm:p-6 lg:p-8 rounded-xl sm:rounded-2xl border border-gray-200/80 shadow-lg animate-fadeIn">
-        <TrackingForm />
-      </div>
+    <div className="space-y-3 sm:space-y-4 max-w-6xl mx-auto flex flex-col min-h-screen">
+      <TrackingForm />
     </div>
   );
 }
