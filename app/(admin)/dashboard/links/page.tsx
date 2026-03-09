@@ -1,22 +1,70 @@
-import Link from "next/link";
-import { currentUser } from "@clerk/nextjs/server";
-import { fetchQuery } from "convex/nextjs";
-import { api } from "@/convex/_generated/api";
+"use client";
 
-import { Eye, LayoutGrid, Sparkles, ArrowUpRight, Zap } from "lucide-react";
+import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { useState, useEffect } from "react";
+import { Eye, LayoutGrid, Sparkles, ArrowUpRight, Zap, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import ManageLinks from "@/components/ManageLinks";
 
-export default async function LinksPage() {
-  const user = await currentUser();
-  if (!user) return null;
+export default function LinksPage() {
+  const { user, isLoaded } = useUser();
+  const [subAccount, setSubAccount] = useState<{subUserId: string, username: string} | null>(null);
 
-  const userSlug = await fetchQuery(api.lib.usernames.getUserSlug, {
-    userId: user.id,
-  });
+  // Lê a memória do navegador para saber se estamos em uma sub-conta
+  useEffect(() => {
+    const saved = localStorage.getItem("freelinnk_active_subaccount");
+    if (saved) {
+      try { setSubAccount(JSON.parse(saved)); } catch  {}
+    }
+  }, []);
+
+  // Função para voltar à conta original
+  const handleExitSubAccount = () => {
+    localStorage.removeItem("freelinnk_active_subaccount");
+    setSubAccount(null);
+    window.location.reload(); // Força o recarregamento limpo
+  };
+
+  // Define de quem são os dados
+  const targetUserId = subAccount?.subUserId || user?.id;
+
+  const userSlug = useQuery(
+    api.lib.usernames.getUserSlug,
+    targetUserId ? { userId: targetUserId } : "skip"
+  );
+
+  if (!isLoaded) return null;
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/40">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-purple-50/30 to-pink-50/40 flex flex-col">
+
+      {/* 🔥 BANNER FIXO DE SUB-CONTA 🔥 */}
+      {subAccount && (
+        <div className="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between shadow-md relative z-50">
+          <div className="flex items-center gap-2">
+             <Sparkles className="w-4 h-4 text-indigo-300" />
+             <span className="text-sm font-medium hidden sm:inline">
+               Editando links da página: <strong className="bg-white/20 px-2 py-0.5 rounded-md tracking-wider">@{subAccount.username}</strong>
+             </span>
+             <span className="text-sm font-medium sm:hidden">
+               Página: <strong className="bg-white/20 px-2 py-0.5 rounded-md">@{subAccount.username}</strong>
+             </span>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleExitSubAccount}
+            className="h-8 text-xs font-bold hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+             <LogOut className="w-3 h-3 sm:mr-2" />
+             <span className="hidden sm:inline">Voltar para minha conta</span>
+          </Button>
+        </div>
+      )}
+
       {/* Background decorativo otimizado */}
       <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
         <div className="absolute -top-32 -right-32 w-64 h-64 sm:w-80 sm:h-80 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-25 animate-pulse" />
@@ -32,14 +80,14 @@ export default async function LinksPage() {
         />
       </div>
 
-      <div className="relative px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10">
+      <div className="relative px-4 py-5 sm:px-6 sm:py-8 lg:px-8 lg:py-10 flex-1">
         <div className="max-w-5xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
-          {/* Cabeçalho - Mobile First */}
+          {/* Cabeçalho */}
           <header className="animate-in fade-in slide-in-from-bottom-4 duration-500">
             <div className="bg-white/70 backdrop-blur-2xl rounded-2xl sm:rounded-3xl p-4 sm:p-6 lg:p-8 shadow-lg shadow-purple-500/5 border border-white/60 ring-1 ring-black/[0.02]">
+
               {/* Mobile Layout */}
               <div className="flex flex-col gap-4 sm:hidden">
-                {/* Top row - Icon + Title */}
                 <div className="flex items-center gap-3">
                   <div className="relative group flex-shrink-0">
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl blur-md opacity-50 group-hover:opacity-70 transition-opacity duration-300" />
@@ -64,7 +112,6 @@ export default async function LinksPage() {
                   </div>
                 </div>
 
-                {/* Button - Full width on mobile */}
                 {userSlug && (
                   <Button
                     asChild
@@ -75,10 +122,9 @@ export default async function LinksPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2 justify-center"
-                      aria-label="Ver Página Pública em nova aba"
                     >
                       <Eye className="w-4 h-4" />
-                      <span>Ver Minha Página Pública</span>
+                      <span>Ver Minha Página</span>
                       <ArrowUpRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
                     </Link>
                   </Button>
@@ -87,7 +133,6 @@ export default async function LinksPage() {
 
               {/* Desktop/Tablet Layout */}
               <div className="hidden sm:flex sm:flex-row sm:items-center sm:justify-between gap-4 lg:gap-6">
-                {/* Left side - Icon + Text */}
                 <div className="flex items-center gap-4">
                   <div className="relative group">
                     <div className="absolute inset-0 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl blur-lg opacity-50 group-hover:opacity-70 transition-opacity duration-300" />
@@ -112,7 +157,6 @@ export default async function LinksPage() {
                   </div>
                 </div>
 
-                {/* Right side - Button */}
                 {userSlug && (
                   <Button
                     asChild
@@ -123,7 +167,6 @@ export default async function LinksPage() {
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-2.5 justify-center"
-                      aria-label="Ver Página Pública em nova aba"
                     >
                       <Eye className="w-4.5 h-4.5 lg:w-5 lg:h-5 transition-transform group-hover:scale-110" />
                       <span>Ver Página Pública</span>
@@ -138,16 +181,15 @@ export default async function LinksPage() {
           {/* Container de Gerenciamento */}
           <section className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-150">
             <div className="bg-white/80 backdrop-blur-2xl rounded-2xl sm:rounded-3xl shadow-xl shadow-purple-500/5 border border-white/60 ring-1 ring-black/[0.02] overflow-hidden">
-              {/* Header decorativo com gradiente */}
               <div className="h-1 sm:h-1.5 bg-gradient-to-r from-purple-500 via-pink-500 to-purple-500" />
-
               <div className="p-4 sm:p-6 lg:p-8">
-                <ManageLinks />
+                {/* 🔥 PASSANDO O ID EFETIVO PARA O COMPONENTE DE LINKS 🔥 */}
+                <ManageLinks effectiveUserId={targetUserId} />
               </div>
             </div>
           </section>
 
-          {/* Footer com dica - Compacto no mobile */}
+          {/* Footer com dica */}
           <footer className="animate-in fade-in slide-in-from-bottom-4 duration-500 delay-300">
             <div className="bg-gradient-to-r from-purple-50 via-pink-50 to-purple-50 backdrop-blur-sm rounded-xl sm:rounded-2xl p-3 sm:p-4 border border-purple-100/80 shadow-sm">
               <div className="flex items-center justify-center gap-2 sm:gap-3 text-center">

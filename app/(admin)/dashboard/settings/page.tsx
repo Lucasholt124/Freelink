@@ -3,7 +3,6 @@
 import UsernameForm from "@/components/UsernameForm";
 import CustomizationForm from "@/components/CustomizationForm";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import {
   Sparkles,
   Check,
@@ -23,6 +22,7 @@ import {
   ArrowRight,
   ChevronRight,
   LogIn,
+  LogOut
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -30,7 +30,9 @@ import { useUser } from "@clerk/nextjs";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
+// === ANIMAÇÕES ===
 const fadeInUp = {
   initial: { opacity: 0, y: 15 },
   animate: { opacity: 1, y: 0 },
@@ -43,6 +45,7 @@ const staggerContainer = {
   }
 };
 
+// === TIPOS ===
 interface SubAccount {
   _id: string;
   subUserId: string;
@@ -53,11 +56,12 @@ interface SubAccount {
 // ID DO ADMIN MASTER
 const ADMIN_USER_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
 
+// === HELPERS DE PLANO ===
 function getPlanLimits(plan: string): number {
   const normalizedPlan = String(plan).toLowerCase();
   if (normalizedPlan === "ultra") return 30;
   if (normalizedPlan === "pro") return 10;
-  return 0;
+  return 0; // Free = 0
 }
 
 function getPlanLabel(plan: string): string {
@@ -67,6 +71,7 @@ function getPlanLabel(plan: string): string {
   return "Free";
 }
 
+// === COMPONENTE: CARD DE SUB-CONTA ===
 function SubAccountCard({
   sub,
   onDelete,
@@ -128,6 +133,7 @@ function SubAccountCard({
   );
 }
 
+// === COMPONENTE: MODAL CRIAR SUB-CONTA ===
 function CreateSubAccountModal({
   onClose,
   onCreate,
@@ -257,7 +263,7 @@ function SubAccountsSection({ userPlan, isAdmin }: { userPlan: string, isAdmin: 
   const { user } = useUser();
   const [showModal, setShowModal] = useState(false);
 
-  // A MÁGICA DO ADMIN: Força ser Ultra se for você
+  // A MÁGICA DO ADMIN
   const normalizedPlan = isAdmin ? "ultra" : String(userPlan).toLowerCase();
   const limit = getPlanLimits(normalizedPlan);
   const isPro = normalizedPlan === "pro" || normalizedPlan === "ultra";
@@ -292,9 +298,10 @@ function SubAccountsSection({ userPlan, isAdmin }: { userPlan: string, isAdmin: 
     }
   };
 
+  // 🔥 SALVANDO A SESSÃO DA SUB-CONTA NA MEMÓRIA DO NAVEGADOR
   const handleEnter = (subUserId: string, username: string) => {
-    // Agora vai com a query certa na URL
-    window.location.href = `/dashboard/settings?subAccount=${subUserId}&username=${username}`;
+    localStorage.setItem("freelinnk_active_subaccount", JSON.stringify({ subUserId, username }));
+    window.location.reload(); // Recarrega a página para aplicar a nova conta imediatamente
   };
 
   return (
@@ -504,18 +511,32 @@ function SubAccountsSection({ userPlan, isAdmin }: { userPlan: string, isAdmin: 
 
 export default function SettingsPage() {
   const { user, isLoaded } = useUser();
-  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
 
+  // 🔥 LENDO A SUB-CONTA DO LOCALSTORAGE 🔥
+  const [subAccount, setSubAccount] = useState<{subUserId: string, username: string} | null>(null);
+
+  useEffect(() => {
+    setMounted(true);
+    const saved = localStorage.getItem("freelinnk_progress");
+    if (saved) setCompletedSteps(parseInt(saved));
+
+    const savedSub = localStorage.getItem("freelinnk_active_subaccount");
+    if (savedSub) {
+      try { setSubAccount(JSON.parse(savedSub)); } catch {}
+    }
+  }, []);
+
+  const handleExitSubAccount = () => {
+    localStorage.removeItem("freelinnk_active_subaccount");
+    setSubAccount(null);
+    window.location.reload(); // Recarrega para voltar à conta original
+  };
+
   const isAdmin = user?.id === ADMIN_USER_ID;
-
-  // LÊ SE ESTAMOS NUMA SUB-CONTA PELA URL
-  const subAccountIdParam = searchParams.get("subAccount");
-  const isSubAccount = !!subAccountIdParam;
-
-  // IMPORTANTE: Este é o ID que diz ao sistema quem estamos editando!
-  const effectiveUserId = isSubAccount ? subAccountIdParam : user?.id;
+  const isSubAccount = !!subAccount;
+  const effectiveUserId = isSubAccount ? subAccount.subUserId : user?.id;
 
   const rawPlan = isAdmin ? "ultra" : (
     user?.publicMetadata?.subscriptionPlan ||
@@ -527,24 +548,15 @@ export default function SettingsPage() {
 
   const userPlan = (isLoaded && user) ? String(rawPlan).toLowerCase() : "free";
 
-  // Agora a query usa o effectiveUserId para mostrar a URL certa
   const userSlug = useQuery(
     api.lib.usernames.getUserSlug,
     effectiveUserId ? { userId: effectiveUserId as string } : "skip"
   );
 
-  useEffect(() => {
-    setMounted(true);
-    const saved = localStorage.getItem("freelink_progress");
-    if (saved) setCompletedSteps(parseInt(saved));
-
-    // 🚨 REMOVI O CÓDIGO QUE APAGAVA A URL AQUI! 🚨
-  }, []);
-
   const updateProgress = (step: number) => {
     const newProgress = Math.max(completedSteps, step);
     setCompletedSteps(newProgress);
-    localStorage.setItem("freelink_progress", newProgress.toString());
+    localStorage.setItem("freelinnk_progress", newProgress.toString());
   };
 
   const getCleanLink = () => {
@@ -578,9 +590,34 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F9FAFB] selection:bg-purple-100 selection:text-purple-900 font-sans text-gray-900 overflow-x-hidden">
+    <div className="min-h-screen bg-[#F9FAFB] selection:bg-purple-100 selection:text-purple-900 font-sans text-gray-900 overflow-x-hidden flex flex-col">
+
+      {/* 🔥 BANNER FIXO DE SUB-CONTA 🔥 */}
+      {subAccount && (
+        <div className="bg-indigo-600 text-white px-4 py-3 flex items-center justify-between shadow-md relative z-50">
+          <div className="flex items-center gap-2">
+             <Sparkles className="w-4 h-4 text-indigo-300" />
+             <span className="text-sm font-medium hidden sm:inline">
+               Editando configurações da página: <strong className="bg-white/20 px-2 py-0.5 rounded-md tracking-wider">@{subAccount.username}</strong>
+             </span>
+             <span className="text-sm font-medium sm:hidden">
+               Página: <strong className="bg-white/20 px-2 py-0.5 rounded-md">@{subAccount.username}</strong>
+             </span>
+          </div>
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={handleExitSubAccount}
+            className="h-8 text-xs font-bold hover:bg-red-50 hover:text-red-600 transition-colors"
+          >
+             <LogOut className="w-3 h-3 sm:mr-2" />
+             <span className="hidden sm:inline">Voltar para minha conta</span>
+          </Button>
+        </div>
+      )}
+
       <motion.div
-        className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12"
+        className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 lg:py-12 flex-1"
         initial="initial"
         animate="animate"
         variants={staggerContainer}
@@ -590,11 +627,6 @@ export default function SettingsPage() {
             <div className="max-w-2xl">
               <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 mb-3 flex items-center gap-3">
                 Configurações
-                {isSubAccount && (
-                   <span className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200 uppercase tracking-wider font-black">
-                     Editando Sub-conta
-                   </span>
-                )}
               </h1>
               <p className="text-gray-500 text-sm sm:text-[15px] leading-relaxed">
                 {isSubAccount
