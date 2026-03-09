@@ -31,7 +31,6 @@ import {
   FaFacebook, FaInstagram, FaLinkedin, FaTiktok, FaTwitter, FaYoutube, FaWhatsapp
 } from "react-icons/fa6";
 
-// Schema mantido
 const formSchema = z.object({
   title: z.string().min(1, "O título é obrigatório.").max(50, "Máximo 50 caracteres."),
   url: z.string().min(1, "A URL é obrigatória.").url("URL inválida."),
@@ -42,16 +41,13 @@ type FormValues = z.infer<typeof formSchema>;
 
 const normalizeUrl = (url: string): string => {
   const formattedUrl = url.trim();
-  // Se for email (mailto), não mexe. Se for url normal sem https, adiciona.
   if (formattedUrl.startsWith("mailto:")) return formattedUrl;
-
   if (formattedUrl && !/^(https?:\/\/|mailto:|tel:)/i.test(formattedUrl)) {
     return `https://${formattedUrl}`;
   }
   return formattedUrl;
 };
 
-// Lógica de Preview
 const getPreviewIcon = (url: string, title: string) => {
   const u = url?.toLowerCase() || "";
   const t = title?.toLowerCase() || "";
@@ -71,7 +67,8 @@ const getPreviewIcon = (url: string, title: string) => {
   return <LinkIcon className="w-6 h-6" />;
 };
 
-export default function CreateLinkForm() {
+// 🔥 ADICIONADO: Prop para receber o ID
+export default function CreateLinkForm({ effectiveUserId }: { effectiveUserId?: string }) {
   const createLink = useMutation(api.lib.links.createLink);
   const generateUploadUrl = useMutation(api.files.generateUploadUrl);
   const router = useRouter();
@@ -125,18 +122,14 @@ export default function CreateLinkForm() {
       let finalUrl = normalizeUrl(values.url);
       const u = finalUrl.toLowerCase();
 
-      // LÓGICA INTELIGENTE: Verifica qual parâmetro usar
       if (values.customMessage) {
         const encodedMsg = encodeURIComponent(values.customMessage);
-
-        // Caso 1: WhatsApp (?text=)
         if (u.includes("wa.me") || u.includes("whatsapp.com")) {
             if (!u.includes("text=")) {
                 const separator = u.includes("?") ? "&" : "?";
                 finalUrl = `${finalUrl}${separator}text=${encodedMsg}`;
             }
         }
-        // Caso 2: Email (?body=)
         else if (u.includes("mailto:")) {
             if (!u.includes("body=")) {
                 const separator = u.includes("?") ? "&" : "?";
@@ -145,7 +138,9 @@ export default function CreateLinkForm() {
         }
       }
 
+      // 🔥 IMPORTANTE: Passando o userId caso seja uma sub-conta
       await createLink({
+        userId: effectiveUserId,
         title: values.title.trim(),
         url: finalUrl,
         thumbnailStorageId: storageId,
@@ -164,18 +159,13 @@ export default function CreateLinkForm() {
   const watchedTitle = form.watch("title");
   const watchedUrl = form.watch("url")?.toLowerCase() || "";
 
-  // Verifica se é um link que suporta mensagem
   const isWhatsApp = watchedUrl.includes("wa.me") || watchedUrl.includes("whatsapp");
   const isEmail = watchedUrl.includes("mailto:");
-
-  // Mostra o campo se for um dos dois
   const showMessageField = isWhatsApp || isEmail;
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8 max-w-lg mx-auto">
-
-        {/* Upload de Ícone */}
         <div className="space-y-3">
           <FormLabel className="font-semibold text-gray-800">Ícone Personalizado (Opcional)</FormLabel>
           <div className="flex items-center gap-4">
@@ -257,7 +247,6 @@ export default function CreateLinkForm() {
           )}
         />
 
-        {/* MENSAGEM AUTOMÁTICA (Aparece para WhatsApp e Email) */}
         {showMessageField && (
             <div className={clsx(
                 "p-4 border rounded-xl animate-in fade-in slide-in-from-top-2 duration-300",
@@ -299,7 +288,6 @@ export default function CreateLinkForm() {
             </div>
         )}
 
-        {/* Preview do Botão */}
         <div className="space-y-2 pt-4 border-t border-gray-100">
           <h3 className="text-sm font-medium text-gray-600">Pré-visualização:</h3>
           <div className={clsx(
@@ -323,7 +311,7 @@ export default function CreateLinkForm() {
         <Button
           type="submit"
           disabled={isSubmitting || (!isValid && !imagePreview)}
-          className="w-full py-6 text-base font-bold"
+          className="w-full py-6 text-base font-bold bg-gray-900 hover:bg-black text-white"
         >
           {isSubmitting ? <Loader2 className="animate-spin" /> : "Criar Link"}
         </Button>

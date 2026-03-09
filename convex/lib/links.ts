@@ -1,9 +1,13 @@
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 
+// ID DO ADMIN MASTER
+const ADMIN_USER_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
+
 // 🚀 Criar um link
 export const createLink = mutation({
   args: {
+    userId: v.optional(v.string()), // 🔥 NOVO: Aceita o ID da sub-conta
     title: v.string(),
     url: v.string(),
     thumbnailStorageId: v.optional(v.id("_storage")),
@@ -14,6 +18,20 @@ export const createLink = mutation({
   handler: async ({ db, auth }, args) => {
     const identity = await auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+
+    // 🔥 Define o ID alvo (Sub-conta ou Conta Principal)
+    const targetUserId = args.userId || identity.subject;
+
+    // 🛡️ TRAVA DE SEGURANÇA: Garante que ninguém altere contas de terceiros
+    if (targetUserId !== identity.subject && identity.subject !== ADMIN_USER_ID) {
+      const subAccount = await db.query("subAccounts")
+        .withIndex("by_sub_user", (q) => q.eq("subUserId", targetUserId))
+        .first();
+
+      if (!subAccount || subAccount.ownerUserId !== identity.subject) {
+        throw new Error("Acesso negado: Você não tem permissão para criar links nesta conta.");
+      }
+    }
 
     // ✅ Validação de título
     if (args.title.trim().length < 3) {
@@ -32,7 +50,7 @@ export const createLink = mutation({
     }
 
     return await db.insert("links", {
-      userId: identity.subject,
+      userId: targetUserId, // 🔥 SALVA NO USUÁRIO CORRETO
       title: args.title.trim(),
       url: args.url.trim(),
       order: Date.now(),
@@ -243,8 +261,18 @@ export const deleteLink = mutation({
     if (!identity) throw new Error("Not authenticated");
 
     const link = await db.get(args.linkId);
-    if (!link || link.userId !== identity.subject) {
-      throw new Error("Unauthorized");
+
+    // 🛡️ TRAVA DE SEGURANÇA PARA DELETAR
+    if (!link) throw new Error("Link not found");
+
+    if (link.userId !== identity.subject && identity.subject !== ADMIN_USER_ID) {
+      const subAccount = await db.query("subAccounts")
+        .withIndex("by_sub_user", (q) => q.eq("subUserId", link.userId))
+        .first();
+
+      if (!subAccount || subAccount.ownerUserId !== identity.subject) {
+        throw new Error("Unauthorized: Você não pode deletar links desta conta.");
+      }
     }
 
     // ✅ Remove thumbnail do storage se existir
@@ -273,8 +301,17 @@ export const updateLink = mutation({
     if (!identity) throw new Error("Not authenticated");
 
     const link = await db.get(args.linkId);
-    if (!link || link.userId !== identity.subject) {
-      throw new Error("Unauthorized");
+    if (!link) throw new Error("Link not found");
+
+    // 🛡️ TRAVA DE SEGURANÇA PARA ATUALIZAR
+    if (link.userId !== identity.subject && identity.subject !== ADMIN_USER_ID) {
+      const subAccount = await db.query("subAccounts")
+        .withIndex("by_sub_user", (q) => q.eq("subUserId", link.userId))
+        .first();
+
+      if (!subAccount || subAccount.ownerUserId !== identity.subject) {
+        throw new Error("Unauthorized: Você não pode editar links desta conta.");
+      }
     }
 
     // ✅ Validação de título
@@ -318,8 +355,16 @@ export const removeLinkThumbnail = mutation({
     if (!identity) throw new Error("Not authenticated");
 
     const link = await db.get(args.linkId);
-    if (!link || link.userId !== identity.subject) {
-      throw new Error("Unauthorized");
+    if (!link) throw new Error("Link not found");
+
+    if (link.userId !== identity.subject && identity.subject !== ADMIN_USER_ID) {
+      const subAccount = await db.query("subAccounts")
+        .withIndex("by_sub_user", (q) => q.eq("subUserId", link.userId))
+        .first();
+
+      if (!subAccount || subAccount.ownerUserId !== identity.subject) {
+        throw new Error("Unauthorized");
+      }
     }
 
     if (link.thumbnailStorageId) {
@@ -341,18 +386,33 @@ export const updateLinkOrder = mutation({
     const identity = await auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
-    // Obtenha todos os links e filtre os inválidos
     const links = await Promise.all(linkIds.map((linkId) => db.get(linkId)));
 
-    const validLinks = links
-      .map((link, index) => ({ link, originalIndex: index }))
-      .filter(({ link }) => link && link.userId === identity.subject)
-      .map(({ link, originalIndex }) => ({
-        link: link as NonNullable<typeof link>,
-        originalIndex,
-      }));
+    // Para evitar que a pessoa mova os links dos outros, filtramos apenas os links
+    // que pertencem ao sujeito original OU às sub-contas dele.
+    const validLinks = [];
 
-    // Atualiza apenas links válidos com seu novo pedido
+    for (let i = 0; i < links.length; i++) {
+        const link = links[i];
+        if (!link) continue;
+
+        let hasPermission = false;
+        if (link.userId === identity.subject || identity.subject === ADMIN_USER_ID) {
+            hasPermission = true;
+        } else {
+            const subAccount = await db.query("subAccounts")
+                .withIndex("by_sub_user", (q) => q.eq("subUserId", link.userId))
+                .first();
+            if (subAccount && subAccount.ownerUserId === identity.subject) {
+                hasPermission = true;
+            }
+        }
+
+        if (hasPermission) {
+            validLinks.push({ link, originalIndex: i });
+        }
+    }
+
     await Promise.all(
       validLinks.map(({ link, originalIndex }) =>
         db.patch(link._id, { order: originalIndex }),
@@ -371,8 +431,14 @@ export const toggleLinkFeatured = mutation({
     if (!identity) throw new Error("Not authenticated");
 
     const link = await db.get(args.linkId);
-    if (!link || link.userId !== identity.subject) {
-      throw new Error("Unauthorized");
+    if (!link) throw new Error("Link not found");
+
+    if (link.userId !== identity.subject && identity.subject !== ADMIN_USER_ID) {
+      const subAccount = await db.query("subAccounts")
+        .withIndex("by_sub_user", (q) => q.eq("subUserId", link.userId))
+        .first();
+
+      if (!subAccount || subAccount.ownerUserId !== identity.subject) throw new Error("Unauthorized");
     }
 
     const newFeaturedStatus = !link.isFeatured;
@@ -397,8 +463,14 @@ export const updateLinkBadge = mutation({
     if (!identity) throw new Error("Not authenticated");
 
     const link = await db.get(args.linkId);
-    if (!link || link.userId !== identity.subject) {
-      throw new Error("Unauthorized");
+    if (!link) throw new Error("Link not found");
+
+    if (link.userId !== identity.subject && identity.subject !== ADMIN_USER_ID) {
+      const subAccount = await db.query("subAccounts")
+        .withIndex("by_sub_user", (q) => q.eq("subUserId", link.userId))
+        .first();
+
+      if (!subAccount || subAccount.ownerUserId !== identity.subject) throw new Error("Unauthorized");
     }
 
     await db.patch(args.linkId, {
