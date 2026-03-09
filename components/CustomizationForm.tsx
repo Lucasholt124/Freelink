@@ -29,6 +29,7 @@ interface CustomError extends Error {
 interface CustomizationFormProps {
   onComplete?: () => void;
   simplifiedMode?: boolean;
+  effectiveUserId?: string; // ID da sub-conta (se estiver em uma)
 }
 
 // --- PRESETS ---
@@ -49,13 +50,16 @@ const COLOR_PRESETS = [
   "#1a1a2e", "#16213e", "#0f3460", "#533483",
 ];
 
-export default function CustomizationForm({ onComplete }: CustomizationFormProps) {
+export default function CustomizationForm({ onComplete, effectiveUserId }: CustomizationFormProps) {
   const { user } = useUser();
   const performanceConfig = usePerformanceMode();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const backgroundInputRef = useRef<HTMLInputElement>(null);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Define de quem são os dados: da sub-conta ou da conta principal
+  const targetUserId = effectiveUserId || user?.id;
 
   // --- CONVEX ---
   const updateCustomizations = useMutation(api.lib.customizations.updateCustomizations);
@@ -65,12 +69,12 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
 
   const existingCustomizations = useQuery(
     api.lib.customizations.getUserCustomizations,
-    user ? { userId: user.id } : "skip",
+    targetUserId ? { userId: targetUserId } : "skip",
   );
 
   const userSlug = useQuery(
     api.lib.usernames.getUserSlug,
-    user ? { userId: user.id } : "skip"
+    targetUserId ? { userId: targetUserId } : "skip"
   );
 
   // --- ESTADOS ---
@@ -98,13 +102,13 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
   const [justSaved, setJustSaved] = useState(false);
   const [initialLoadDone, setInitialLoadDone] = useState(false);
 
-  // 🔥 NOVO: Estado para controlar refresh do iframe
+  // Estado para controlar refresh do iframe
   const [iframeKey, setIframeKey] = useState(0);
   const [isIframeLoading, setIsIframeLoading] = useState(true);
 
   // --- CARREGAR DADOS INICIAIS ---
   useEffect(() => {
-    if (existingCustomizations && !initialLoadDone) {
+    if (existingCustomizations) {
       setAccentColor(existingCustomizations.accentColor || "#6366f1");
 
       const fullDesc = existingCustomizations.description || "";
@@ -134,7 +138,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
       setInitialLoadDone(true);
       setHasChanges(false);
     }
-  }, [existingCustomizations, initialLoadDone]);
+  }, [existingCustomizations]);
 
   // Monitora mudanças
   useEffect(() => {
@@ -169,7 +173,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
     fire(0.1, { spread: 120, startVelocity: 45, colors: ['#a855f7', '#ec4899', '#6366f1'] });
   }, [performanceConfig.canUseParticles]);
 
-  // 🔥 FUNÇÃO PARA RECARREGAR O IFRAME
+  // FUNÇÃO PARA RECARREGAR O IFRAME
   const refreshPreview = useCallback(() => {
     setIsIframeLoading(true);
     setIframeKey(prev => prev + 1);
@@ -179,7 +183,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
 
   const handleSubmit = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!user) return;
+    if (!targetUserId) return;
 
     if (bioError) {
       toast.error("Verifique os erros no formulário.");
@@ -193,17 +197,9 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
 
     startTransition(async () => {
       try {
-        const updateData: {
-          description: string;
-          accentColor: string;
-          backgroundType: "color" | "gradient" | "image";
-          backgroundStyle: "full" | "header";
-          backgroundColor1: string;
-          backgroundColor2: string;
-          backgroundImageBlur: number;
-          backgroundImageOpacity: number;
-          clearBackgroundImage?: boolean;
-        } = {
+        // 🔥 Correção do tipo de updateData para satisfazer o TypeScript
+        const updateData: Parameters<typeof updateCustomizations>[0] = {
+          userId: targetUserId,
           description: finalDescription,
           accentColor: accentColor,
           backgroundType: backgroundConfig.type,
@@ -224,7 +220,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
         setJustSaved(true);
         setHasChanges(false);
 
-        // 🔥 ATUALIZAR PREVIEW APÓS SALVAR
+        // ATUALIZAR PREVIEW APÓS SALVAR
         setTimeout(() => {
           refreshPreview();
         }, 500);
@@ -245,7 +241,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>, isBackground: boolean) => {
     const file = event.target.files?.[0];
-    if (!file) return;
+    if (!file || !targetUserId) return;
 
     if (!file.type.startsWith("image/")) {
       toast.error("Por favor, selecione uma imagem válida.");
@@ -287,6 +283,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
 
         if (isBackground) {
           await updateCustomizations({
+            userId: targetUserId,
             backgroundType: "image",
             backgroundImageStorageId: storageId,
             backgroundStyle: backgroundConfig.style,
@@ -297,11 +294,14 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
           setBackgroundConfig((prev) => ({ ...prev, type: "image" }));
           toast.success("🖼️ Fundo atualizado com sucesso!");
         } else {
-          await updateCustomizations({ profilePictureStorageId: storageId });
+          await updateCustomizations({
+            userId: targetUserId,
+            profilePictureStorageId: storageId
+          });
           toast.success("📸 Foto de perfil atualizada!");
         }
 
-        // 🔥 ATUALIZAR PREVIEW APÓS UPLOAD
+        // ATUALIZAR PREVIEW APÓS UPLOAD
         setTimeout(() => {
           refreshPreview();
         }, 500);
@@ -316,8 +316,9 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
   };
 
   const handleRemoveBackgroundImage = async () => {
+    if (!targetUserId) return;
     try {
-      await removeBackgroundImage();
+      await removeBackgroundImage({ userId: targetUserId });
       setBackgroundConfig((prev) => ({
         ...prev,
         imageUrl: "",
@@ -325,7 +326,6 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
       }));
       toast.success("Imagem de fundo removida!");
 
-      // 🔥 ATUALIZAR PREVIEW
       setTimeout(() => {
         refreshPreview();
       }, 500);
@@ -358,7 +358,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
     }
   };
 
-  // 🔥 URL DO PREVIEW (sua página pública)
+  // URL DO PREVIEW (sua página pública)
   const previewUrl = userSlug ? `${window.location.origin}/${userSlug}?preview=true&t=${iframeKey}` : null;
 
   const currentBackgroundImageUrl = backgroundConfig.imageUrl || existingCustomizations?.backgroundImageUrl;
@@ -456,7 +456,7 @@ export default function CustomizationForm({ onComplete }: CustomizationFormProps
                       variant="ghost"
                       size="sm"
                       className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                      onClick={() => removeProfilePicture()}
+                      onClick={() => removeProfilePicture({ userId: targetUserId })}
                     >
                       <X className="w-4 h-4" />
                     </Button>

@@ -1,6 +1,8 @@
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
 
+// ID DO ADMIN MASTER
+const ADMIN_USER_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
 
 // ============================================
 // LIMITES POR PLANO
@@ -31,7 +33,6 @@ export const getSubAccounts = query({
 export const checkSubAccountUsername = query({
   args: { username: v.string() },
   handler: async (ctx, { username }) => {
-    // Verifica na tabela de sub-contas
     const existingSubAccount = await ctx.db
       .query("subAccounts")
       .withIndex("by_username", (q) => q.eq("username", username))
@@ -39,7 +40,6 @@ export const checkSubAccountUsername = query({
 
     if (existingSubAccount) return { available: false };
 
-    // Verifica também na tabela de usernames normais (evita conflito)
     const existingUsername = await ctx.db
       .query("usernames")
       .withIndex("by_username", (q) => q.eq("username", username))
@@ -72,14 +72,11 @@ export const createSubAccount = mutation({
     displayName: v.optional(v.string()),
   },
   handler: async (ctx, { ownerUserId, username, displayName }) => {
-
-    // 1. Valida o username
     const usernameRegex = /^[a-z0-9_-]{3,30}$/;
     if (!usernameRegex.test(username)) {
       throw new Error("Username inválido. Use 3-30 caracteres: letras, números, hífen ou underscore.");
     }
 
-    // 2. Verifica disponibilidade do username em sub-contas
     const existingSubAccount = await ctx.db
       .query("subAccounts")
       .withIndex("by_username", (q) => q.eq("username", username))
@@ -89,7 +86,6 @@ export const createSubAccount = mutation({
       throw new Error("Este username já está em uso por outra página.");
     }
 
-    // 3. Verifica disponibilidade do username em contas normais
     const existingUsername = await ctx.db
       .query("usernames")
       .withIndex("by_username", (q) => q.eq("username", username))
@@ -99,20 +95,8 @@ export const createSubAccount = mutation({
       throw new Error("Este username já está em uso.");
     }
 
-    // 4. Busca o plano do usuário via Clerk (armazenado no metadata)
-    // Como o Convex não tem acesso direto ao Clerk aqui,
-    // precisamos verificar via uma action separada com o Clerk SDK.
-    // Por ora, fazemos a verificação contando as sub-contas existentes
-    // e o plano deve ser passado como argumento (validado no frontend via useUser).
-    // A validação definitiva de plano acontece na action createSubAccountWithClerk abaixo.
-
-
-    // 5. Gera um subUserId único para esta sub-conta
-    // Usamos um ID baseado em timestamp + hash do ownerUserId + username
-    // para garantir unicidade sem precisar chamar o Clerk aqui
     const subUserId = `sub_${ownerUserId}_${username}_${Date.now()}`;
 
-    // 6. Cria a sub-conta no Convex
     const subAccountId = await ctx.db.insert("subAccounts", {
       ownerUserId,
       subUserId,
@@ -121,8 +105,6 @@ export const createSubAccount = mutation({
       createdAt: Date.now(),
     });
 
-    // 7. Registra o username na tabela de usernames para a sub-conta
-    // Isso garante que a página pública funcione normalmente
     await ctx.db.insert("usernames", {
       userId: subUserId,
       username,
@@ -145,8 +127,6 @@ export const deleteSubAccount = mutation({
     subAccountId: v.id("subAccounts"),
   },
   handler: async (ctx, { subAccountId }) => {
-
-    // 1. Busca a sub-conta
     const subAccount = await ctx.db.get(subAccountId);
     if (!subAccount) {
       throw new Error("Sub-conta não encontrada.");
@@ -154,7 +134,6 @@ export const deleteSubAccount = mutation({
 
     const { subUserId, username } = subAccount;
 
-    // 2. Remove o username da tabela de usernames
     const usernameRecord = await ctx.db
       .query("usernames")
       .withIndex("by_username", (q) => q.eq("username", username))
@@ -164,7 +143,6 @@ export const deleteSubAccount = mutation({
       await ctx.db.delete(usernameRecord._id);
     }
 
-    // 3. Remove os links da sub-conta
     const links = await ctx.db
       .query("links")
       .withIndex("by_user", (q) => q.eq("userId", subUserId))
@@ -174,7 +152,6 @@ export const deleteSubAccount = mutation({
       await ctx.db.delete(link._id);
     }
 
-    // 4. Remove as customizações da sub-conta
     const customizations = await ctx.db
       .query("userCustomizations")
       .withIndex("by_user_id", (q) => q.eq("userId", subUserId))
@@ -184,7 +161,6 @@ export const deleteSubAccount = mutation({
       await ctx.db.delete(customizations._id);
     }
 
-    // 5. Remove a sub-conta
     await ctx.db.delete(subAccountId);
 
     return { success: true };
@@ -200,6 +176,12 @@ export const validateSubAccountLimit = mutation({
     plan: v.string(),
   },
   handler: async (ctx, { ownerUserId, plan }) => {
+
+    // MAGICA DO ADMIN NO BACKEND
+    if (ownerUserId === ADMIN_USER_ID) {
+        return { allowed: true, current: 0, limit: 999, remaining: 999 };
+    }
+
     const limit = getSubAccountLimit(plan);
 
     if (limit === 0) {
@@ -228,7 +210,6 @@ export const validateSubAccountLimit = mutation({
 
 // ============================================
 // QUERY: Verifica se um userId é sub-conta
-// e retorna o ownerUserId se for
 // ============================================
 export const getOwnerOfSubAccount = query({
   args: { subUserId: v.string() },

@@ -30,8 +30,8 @@ export const getUserIdBySlug = query({
     if (usernameRecord) {
       return usernameRecord.userId;
     }
-// Se nenhum nome de usuário personalizado for encontrado, trate o slug como um possível ID de funcionário
-// Precisaremos verificar se este usuário realmente existe, verificando se ele possui links
+    // Se nenhum nome de usuário personalizado for encontrado, trate o slug como um possível ID de funcionário
+    // Precisaremos verificar se este usuário realmente existe, verificando se ele possui links
     const links = await db
       .query("links")
       .withIndex("by_user", (q) => q.eq("userId", args.slug))
@@ -43,11 +43,28 @@ export const getUserIdBySlug = query({
 
 // ✏️ Definir/atualizar nome de usuário para um usuário
 export const setUsername = mutation({
-  args: { username: v.string() },
+  args: {
+    username: v.string(),
+    userId: v.optional(v.string()) // 🔥 NOVO: Aceita o ID da sub-conta
+  },
   returns: v.object({ success: v.boolean(), error: v.optional(v.string()) }),
   handler: async ({ db, auth }, args) => {
     const identity = await auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+
+    // 🔥 Define o ID alvo (Sub-conta ou Conta Principal)
+    const targetUserId = args.userId || identity.subject;
+
+    // 🛡️ TRAVA DE SEGURANÇA: Garante que ninguém altere contas de terceiros
+    if (targetUserId !== identity.subject && identity.subject !== "user_301NTkVsE3v48SXkoCEp0XOXifI") {
+      const subAccount = await db.query("subAccounts")
+        .withIndex("by_sub_user", (q) => q.eq("subUserId", targetUserId))
+        .first();
+
+      if (!subAccount || subAccount.ownerUserId !== identity.subject) {
+        throw new Error("Acesso negado: Você não tem permissão para alterar esta conta.");
+      }
+    }
 
     // Validate username format
     const usernameRegex = /^[a-zA-Z0-9_-]+$/;
@@ -72,14 +89,14 @@ export const setUsername = mutation({
       .withIndex("by_username", (q) => q.eq("username", args.username))
       .unique();
 
-    if (existingUsername && existingUsername.userId !== identity.subject) {
+    if (existingUsername && existingUsername.userId !== targetUserId) {
       return { success: false, error: "O nome de usuário já foi escolhido" };
     }
 
     // Verifique se o usuário já possui um registro de nome de usuário
     const currentRecord = await db
       .query("usernames")
-      .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user_id", (q) => q.eq("userId", targetUserId))
       .unique();
 
     if (currentRecord) {
@@ -88,7 +105,7 @@ export const setUsername = mutation({
     } else {
       // Create new record
       await db.insert("usernames", {
-        userId: identity.subject,
+        userId: targetUserId,
         username: args.username,
       });
     }

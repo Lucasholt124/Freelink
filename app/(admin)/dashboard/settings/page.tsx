@@ -3,6 +3,7 @@
 import UsernameForm from "@/components/UsernameForm";
 import CustomizationForm from "@/components/CustomizationForm";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Sparkles,
   Check,
@@ -42,7 +43,6 @@ const staggerContainer = {
   }
 };
 
-
 interface SubAccount {
   _id: string;
   subUserId: string;
@@ -50,6 +50,8 @@ interface SubAccount {
   createdAt: number;
 }
 
+// ID DO ADMIN MASTER
+const ADMIN_USER_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
 
 function getPlanLimits(plan: string): number {
   const normalizedPlan = String(plan).toLowerCase();
@@ -64,7 +66,6 @@ function getPlanLabel(plan: string): string {
   if (normalizedPlan === "pro") return "Pro";
   return "Free";
 }
-
 
 function SubAccountCard({
   sub,
@@ -90,7 +91,6 @@ function SubAccountCard({
       exit={{ opacity: 0, x: -20 }}
       className="group flex items-center justify-between gap-4 p-4 bg-white rounded-xl border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
     >
-
       <div className="flex items-center gap-3 min-w-0">
         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-100 to-purple-100 flex items-center justify-center shrink-0 text-sm font-bold text-indigo-600 uppercase select-none">
           {sub.username.slice(0, 2)}
@@ -105,7 +105,6 @@ function SubAccountCard({
           </p>
         </div>
       </div>
-
 
       <div className="flex items-center gap-2 shrink-0">
         <motion.button
@@ -128,7 +127,6 @@ function SubAccountCard({
     </motion.div>
   );
 }
-
 
 function CreateSubAccountModal({
   onClose,
@@ -255,16 +253,15 @@ function CreateSubAccountModal({
   );
 }
 
-function SubAccountsSection({ userPlan }: { userPlan: string }) {
+function SubAccountsSection({ userPlan, isAdmin }: { userPlan: string, isAdmin: boolean }) {
   const { user } = useUser();
   const [showModal, setShowModal] = useState(false);
 
-  // Normaliza o plano apenas uma vez e garante que seja comparado corretamente
-  const normalizedPlan = String(userPlan).toLowerCase();
+  // A MÁGICA DO ADMIN: Força ser Ultra se for você
+  const normalizedPlan = isAdmin ? "ultra" : String(userPlan).toLowerCase();
   const limit = getPlanLimits(normalizedPlan);
   const isPro = normalizedPlan === "pro" || normalizedPlan === "ultra";
 
-  // Queries e mutations do Convex
   const subAccounts = useQuery(
     api.lib.subAccounts.getSubAccounts,
     user ? { ownerUserId: user.id } : "skip"
@@ -296,7 +293,8 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
   };
 
   const handleEnter = (subUserId: string, username: string) => {
-    window.open(`/dashboard?subAccount=${subUserId}&username=${username}`, "_blank");
+    // Agora vai com a query certa na URL
+    window.location.href = `/dashboard/settings?subAccount=${subUserId}&username=${username}`;
   };
 
   return (
@@ -328,7 +326,6 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
               </p>
             </div>
 
-            {/* Card de plano */}
             <div className={`rounded-xl p-5 border shadow-sm ${
               normalizedPlan === "ultra"
                 ? "bg-gradient-to-br from-amber-50 to-orange-50 border-amber-200"
@@ -341,7 +338,7 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
                   <div className="flex items-center gap-2 mb-3">
                     <Crown className={`w-4 h-4 ${normalizedPlan === "ultra" ? "text-amber-500" : "text-indigo-600"}`} />
                     <span className={`text-[11px] font-bold uppercase tracking-wider ${normalizedPlan === "ultra" ? "text-amber-700" : "text-indigo-700"}`}>
-                      Plano {getPlanLabel(normalizedPlan)}
+                      Plano {getPlanLabel(normalizedPlan)} {isAdmin && "(Admin)"}
                     </span>
                   </div>
                   <div className="flex items-end gap-1 mb-2">
@@ -352,7 +349,6 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
                       / {limit} páginas
                     </span>
                   </div>
-                  {/* Barra de progresso */}
                   <div className="w-full h-1.5 bg-white/60 rounded-full overflow-hidden">
                     <motion.div
                       className={`h-full rounded-full ${normalizedPlan === "ultra" ? "bg-amber-500" : "bg-indigo-500"}`}
@@ -399,10 +395,8 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
           </div>
         </aside>
 
-
         <div className="lg:col-span-8">
           <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-
             <div className="flex items-center justify-between px-6 py-5 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-gray-400" />
@@ -415,7 +409,6 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
                   </span>
                 )}
               </div>
-
 
               <motion.button
                 whileHover={canCreate ? { scale: 1.02 } : {}}
@@ -445,7 +438,6 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
                 )}
               </motion.button>
             </div>
-
 
             <div className="p-6 space-y-3 min-h-[200px]">
               <AnimatePresence>
@@ -495,7 +487,6 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
               </AnimatePresence>
             </div>
 
-            {/* Footer info */}
             {isPro && count > 0 && (
               <div className="px-6 py-4 border-t border-gray-50 bg-gray-50/50">
                 <p className="text-[11px] text-gray-400 flex items-center gap-1.5">
@@ -511,25 +502,35 @@ function SubAccountsSection({ userPlan }: { userPlan: string }) {
   );
 }
 
-
 export default function SettingsPage() {
   const { user, isLoaded } = useUser();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [completedSteps, setCompletedSteps] = useState(0);
 
-  // Busca abrangente: Procura o plano tanto no publicMetadata quanto no unsafeMetadata
-  const rawPlan =
+  const isAdmin = user?.id === ADMIN_USER_ID;
+
+  // LÊ SE ESTAMOS NUMA SUB-CONTA PELA URL
+  const subAccountIdParam = searchParams.get("subAccount");
+  const isSubAccount = !!subAccountIdParam;
+
+  // IMPORTANTE: Este é o ID que diz ao sistema quem estamos editando!
+  const effectiveUserId = isSubAccount ? subAccountIdParam : user?.id;
+
+  const rawPlan = isAdmin ? "ultra" : (
     user?.publicMetadata?.subscriptionPlan ||
     user?.publicMetadata?.plan ||
     user?.unsafeMetadata?.subscriptionPlan ||
     user?.unsafeMetadata?.plan ||
-    "free";
+    "free"
+  );
 
   const userPlan = (isLoaded && user) ? String(rawPlan).toLowerCase() : "free";
 
+  // Agora a query usa o effectiveUserId para mostrar a URL certa
   const userSlug = useQuery(
     api.lib.usernames.getUserSlug,
-    user ? { userId: user.id } : "skip"
+    effectiveUserId ? { userId: effectiveUserId as string } : "skip"
   );
 
   useEffect(() => {
@@ -537,14 +538,7 @@ export default function SettingsPage() {
     const saved = localStorage.getItem("freelink_progress");
     if (saved) setCompletedSteps(parseInt(saved));
 
-    if (typeof window !== "undefined" && window.location.search) {
-      const cleanUrl =
-        window.location.protocol +
-        "//" +
-        window.location.host +
-        window.location.pathname;
-      window.history.replaceState({ path: cleanUrl }, "", cleanUrl);
-    }
+    // 🚨 REMOVI O CÓDIGO QUE APAGAVA A URL AQUI! 🚨
   }, []);
 
   const updateProgress = (step: number) => {
@@ -591,15 +585,21 @@ export default function SettingsPage() {
         animate="animate"
         variants={staggerContainer}
       >
-
         <motion.header className="mb-10 lg:mb-14" variants={fadeInUp}>
           <div className="flex flex-col md:flex-row md:items-start justify-between gap-6">
             <div className="max-w-2xl">
-              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 mb-3">
+              <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-gray-900 mb-3 flex items-center gap-3">
                 Configurações
+                {isSubAccount && (
+                   <span className="text-xs bg-indigo-100 text-indigo-700 px-3 py-1 rounded-full border border-indigo-200 uppercase tracking-wider font-black">
+                     Editando Sub-conta
+                   </span>
+                )}
               </h1>
               <p className="text-gray-500 text-sm sm:text-[15px] leading-relaxed">
-                Transforme sua página em uma experiência única. Personalize cada detalhe para refletir sua identidade.
+                {isSubAccount
+                  ? "Você está editando uma página adicional. Tudo feito aqui afetará apenas esta conta."
+                  : "Transforme sua página em uma experiência única. Personalize cada detalhe para refletir sua identidade."}
               </p>
             </div>
 
@@ -611,42 +611,46 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="mt-8 sm:mt-10">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                <Sparkles className="w-4 h-4 text-purple-600" />
-                Nível do Perfil{" "}
-                <span className="text-gray-400 font-normal hidden sm:inline">—</span>{" "}
-                <span className="text-gray-500 font-normal text-xs sm:text-sm bg-gray-100 px-2 py-0.5 rounded-full">
-                  Passo {Math.min(completedSteps + 1, 2)} de 2
+          {!isSubAccount && (
+            <div className="mt-8 sm:mt-10">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-600" />
+                  Nível do Perfil{" "}
+                  <span className="text-gray-400 font-normal hidden sm:inline">—</span>{" "}
+                  <span className="text-gray-500 font-normal text-xs sm:text-sm bg-gray-100 px-2 py-0.5 rounded-full">
+                    Passo {Math.min(completedSteps + 1, 2)} de 2
+                  </span>
                 </span>
-              </span>
-            </div>
+              </div>
 
-            <div className="relative w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
-              <motion.div
-                className="absolute inset-y-0 left-0 bg-gray-900"
-                initial={{ width: 0 }}
-                animate={{ width: `${(completedSteps / 2) * 100}%` }}
-                transition={{ duration: 0.8, ease: "circOut" }}
-              />
-            </div>
+              <div className="relative w-full h-1.5 bg-gray-200 rounded-full overflow-hidden">
+                <motion.div
+                  className="absolute inset-y-0 left-0 bg-gray-900"
+                  initial={{ width: 0 }}
+                  animate={{ width: `${(completedSteps / 2) * 100}%` }}
+                  transition={{ duration: 0.8, ease: "circOut" }}
+                />
+              </div>
 
-            <p className="text-xs text-gray-500 mt-2 font-medium">
-              {completedSteps === 0 && "🏁 Configure sua URL personalizada"}
-              {completedSteps === 1 && "🎨 Defina seu estilo visual"}
-              {completedSteps >= 2 && "🚀 Perfil configurado com sucesso!"}
-            </p>
-          </div>
+              <p className="text-xs text-gray-500 mt-2 font-medium">
+                {completedSteps === 0 && "🏁 Configure sua URL personalizada"}
+                {completedSteps === 1 && "🎨 Defina seu estilo visual"}
+                {completedSteps >= 2 && "🚀 Perfil configurado com sucesso!"}
+              </p>
+            </div>
+          )}
         </motion.header>
 
         <div className="w-full h-px bg-gray-200 mb-10 lg:mb-16" />
 
-
-        <SubAccountsSection userPlan={userPlan} />
-
-        <div className="w-full h-px bg-gray-200 mb-10 lg:mb-16" />
-
+        {/* SÓ MOSTRA O PAINEL DE CRIAR SUB-CONTAS SE ESTIVER NA CONTA PRINCIPAL */}
+        {!isSubAccount && (
+            <>
+              <SubAccountsSection userPlan={userPlan} isAdmin={isAdmin} />
+              <div className="w-full h-px bg-gray-200 mb-10 lg:mb-16" />
+            </>
+        )}
 
         <motion.section
           className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 mb-16 lg:mb-24 scroll-mt-24"
@@ -720,7 +724,8 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="mb-6">
-                  <UsernameForm onComplete={() => updateProgress(1)} />
+                  {/* IMPORTANTE: Os componentes filhos precisam saber quem atualizar! */}
+                  <UsernameForm effectiveUserId={effectiveUserId as string} onComplete={() => updateProgress(1)} />
                 </div>
 
                 <div className="flex items-start gap-3 p-3 bg-amber-50 rounded-lg border border-amber-100/60 text-xs text-amber-800 leading-relaxed">
@@ -733,7 +738,6 @@ export default function SettingsPage() {
             </div>
           </div>
         </motion.section>
-
 
         <motion.section
           className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16 scroll-mt-24"
@@ -789,13 +793,12 @@ export default function SettingsPage() {
                 </div>
                 <div className="space-y-6">
                   <p className="text-sm text-gray-600">Personalize toda a aparência do seu link.</p>
-                  <CustomizationForm onComplete={() => updateProgress(2)} />
+                  <CustomizationForm effectiveUserId={effectiveUserId as string} onComplete={() => updateProgress(2)} />
                 </div>
               </div>
             </div>
           </div>
         </motion.section>
-
 
         <motion.footer
           className="mt-20 border-t border-gray-200 pt-8 pb-8 text-center"

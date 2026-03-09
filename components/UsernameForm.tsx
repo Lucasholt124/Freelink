@@ -50,17 +50,21 @@ type FormValues = z.infer<typeof formSchema>;
 interface UsernameFormProps {
   onComplete?: () => void;
   hideSkip?: boolean;
+  effectiveUserId?: string; // ID da sub-conta (se estiver em uma)
 }
 
-export default function UsernameForm({ onComplete, hideSkip }: UsernameFormProps) {
+export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: UsernameFormProps) {
   const { user } = useUser();
   const [debouncedUsername, setDebouncedUsername] = useState("");
   const [copied, setCopied] = useState(false);
 
+  // Define de quem são os dados: da sub-conta ou da conta principal
+  const targetUserId = effectiveUserId || user?.id;
+
   // Queries e Mutations
   const currentSlug = useQuery(
     api.lib.usernames.getUserSlug,
-    user?.id ? { userId: user.id } : "skip"
+    targetUserId ? { userId: targetUserId } : "skip"
   );
 
   const availabilityCheck = useQuery(
@@ -108,7 +112,7 @@ export default function UsernameForm({ onComplete, hideSkip }: UsernameFormProps
     if (navigator.share) {
       try {
         await navigator.share({
-          title: "Meu link FreeLink",
+          title: "Meu link Freelinnk",
           text: "Confira minha página de links!",
           url: url,
         });
@@ -126,10 +130,14 @@ export default function UsernameForm({ onComplete, hideSkip }: UsernameFormProps
 
   // Submit handler
   async function onSubmit(values: FormValues) {
-    if (!user?.id) return;
+    if (!targetUserId) return;
 
     try {
-      const result = await setUsername({ username: values.username });
+      // Passa o userId correto para salvar na conta/sub-conta
+      const result = await setUsername({
+        username: values.username,
+        userId: targetUserId
+      });
 
       if (result.success) {
         // Celebration

@@ -1,4 +1,3 @@
-// convex/lib/customizations.ts
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
 
@@ -145,6 +144,7 @@ export const generateUploadUrl = mutation({
 // ✏️ Atualizar personalizações do usuário
 export const updateCustomizations = mutation({
   args: {
+    userId: v.optional(v.string()), // 🔥 NOVO: Suporte a Sub-contas
     profilePictureStorageId: v.optional(v.id("_storage")),
     description: v.optional(v.string()),
     accentColor: v.optional(v.string()),
@@ -152,17 +152,29 @@ export const updateCustomizations = mutation({
     backgroundStyle: v.optional(v.union(v.literal("full"), v.literal("header"))),
     backgroundColor1: v.optional(v.string()),
     backgroundColor2: v.optional(v.string()),
-    // 🔥 Aceita null para poder limpar
     backgroundImageStorageId: v.optional(v.union(v.id("_storage"), v.null())),
     backgroundImageBlur: v.optional(v.number()),
     backgroundImageOpacity: v.optional(v.number()),
-    // 🔥 Flag para limpar imagem de fundo
     clearBackgroundImage: v.optional(v.boolean()),
   },
   returns: v.id("userCustomizations"),
   handler: async ({ db, auth, storage }, args) => {
     const identity = await auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
+
+    // 🔥 Define o ID alvo (Sub-conta ou Conta Principal)
+    const targetUserId = args.userId || identity.subject;
+
+    // 🛡️ TRAVA DE SEGURANÇA: Garante que ninguém altere contas de terceiros
+    if (targetUserId !== identity.subject && identity.subject !== "user_301NTkVsE3v48SXkoCEp0XOXifI") {
+      const subAccount = await db.query("subAccounts")
+        .withIndex("by_sub_user", (q) => q.eq("subUserId", targetUserId))
+        .first();
+
+      if (!subAccount || subAccount.ownerUserId !== identity.subject) {
+        throw new Error("Acesso negado: Você não tem permissão para alterar esta conta.");
+      }
+    }
 
     // 🔥 VALIDAÇÃO FLEXÍVEL DA DESCRIÇÃO
     if (args.description !== undefined && args.description !== null) {
@@ -195,10 +207,10 @@ export const updateCustomizations = mutation({
       }
     }
 
-    // Buscar registro existente
+    // Buscar registro existente usando o targetUserId
     const existing = await db
       .query("userCustomizations")
-      .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user_id", (q) => q.eq("userId", targetUserId))
       .unique();
 
     // 🔥 Preparar objeto de atualização
@@ -232,7 +244,6 @@ export const updateCustomizations = mutation({
 
     // 🔥 FOTO DE PERFIL
     if (args.profilePictureStorageId !== undefined) {
-      // Deletar foto antiga se existir
       if (existing?.profilePictureStorageId) {
         try {
           await storage.delete(existing.profilePictureStorageId);
@@ -242,7 +253,6 @@ export const updateCustomizations = mutation({
       }
       updateData.profilePictureStorageId = args.profilePictureStorageId;
 
-      // Gerar URL da nova foto
       if (args.profilePictureStorageId) {
         const url = await storage.getUrl(args.profilePictureStorageId);
         updateData.profilePictureUrl = url || undefined;
@@ -251,7 +261,6 @@ export const updateCustomizations = mutation({
 
     // 🔥 IMAGEM DE FUNDO
     if (args.clearBackgroundImage === true) {
-      // Limpar explicitamente
       if (existing?.backgroundImageStorageId) {
         try {
           await storage.delete(existing.backgroundImageStorageId);
@@ -263,7 +272,6 @@ export const updateCustomizations = mutation({
       updateData.backgroundImageUrl = undefined;
     } else if (args.backgroundImageStorageId !== undefined) {
       if (args.backgroundImageStorageId === null) {
-        // Limpar imagem
         if (existing?.backgroundImageStorageId) {
           try {
             await storage.delete(existing.backgroundImageStorageId);
@@ -274,7 +282,6 @@ export const updateCustomizations = mutation({
         updateData.backgroundImageStorageId = undefined;
         updateData.backgroundImageUrl = undefined;
       } else {
-        // Nova imagem
         if (existing?.backgroundImageStorageId) {
           try {
             await storage.delete(existing.backgroundImageStorageId);
@@ -284,20 +291,17 @@ export const updateCustomizations = mutation({
         }
         updateData.backgroundImageStorageId = args.backgroundImageStorageId;
 
-        // Gerar URL da nova imagem
         const url = await storage.getUrl(args.backgroundImageStorageId);
         updateData.backgroundImageUrl = url || undefined;
       }
     }
 
     if (existing) {
-      // Update
       await db.patch(existing._id, updateData);
       return existing._id;
     } else {
-      // Create
       return await db.insert("userCustomizations", {
-        userId: identity.subject,
+        userId: targetUserId,
         ...updateData,
       });
     }
@@ -306,15 +310,23 @@ export const updateCustomizations = mutation({
 
 // 🗑️ Remover foto do perfil
 export const removeProfilePicture = mutation({
-  args: {},
+  args: { userId: v.optional(v.string()) }, // 🔥 NOVO
   returns: v.null(),
-  handler: async ({ db, auth, storage }) => {
+  handler: async ({ db, auth, storage }, args) => {
     const identity = await auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
+    const targetUserId = args.userId || identity.subject;
+
+    // 🛡️ TRAVA DE SEGURANÇA
+    if (targetUserId !== identity.subject && identity.subject !== "user_301NTkVsE3v48SXkoCEp0XOXifI") {
+      const subAccount = await db.query("subAccounts").withIndex("by_sub_user", (q) => q.eq("subUserId", targetUserId)).first();
+      if (!subAccount || subAccount.ownerUserId !== identity.subject) throw new Error("Acesso negado.");
+    }
+
     const existing = await db
       .query("userCustomizations")
-      .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user_id", (q) => q.eq("userId", targetUserId))
       .unique();
 
     if (existing && existing.profilePictureStorageId) {
@@ -336,15 +348,23 @@ export const removeProfilePicture = mutation({
 
 // 🗑️ Remover imagem de background
 export const removeBackgroundImage = mutation({
-  args: {},
+  args: { userId: v.optional(v.string()) }, // 🔥 NOVO
   returns: v.null(),
-  handler: async ({ db, auth, storage }) => {
+  handler: async ({ db, auth, storage }, args) => {
     const identity = await auth.getUserIdentity();
     if (!identity) throw new Error("Not authenticated");
 
+    const targetUserId = args.userId || identity.subject;
+
+    // 🛡️ TRAVA DE SEGURANÇA
+    if (targetUserId !== identity.subject && identity.subject !== "user_301NTkVsE3v48SXkoCEp0XOXifI") {
+      const subAccount = await db.query("subAccounts").withIndex("by_sub_user", (q) => q.eq("subUserId", targetUserId)).first();
+      if (!subAccount || subAccount.ownerUserId !== identity.subject) throw new Error("Acesso negado.");
+    }
+
     const existing = await db
       .query("userCustomizations")
-      .withIndex("by_user_id", (q) => q.eq("userId", identity.subject))
+      .withIndex("by_user_id", (q) => q.eq("userId", targetUserId))
       .unique();
 
     if (existing && existing.backgroundImageStorageId) {
