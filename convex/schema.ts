@@ -447,24 +447,24 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_business", ["businessId"]),
 
-  customers: defineTable({
-    userId: v.string(),
-    businessId: v.optional(v.id("businesses")),
-    name: v.string(),
-    email: v.optional(v.string()),
-    phone: v.optional(v.string()),
-    address: v.optional(v.string()),
-    tags: v.optional(v.array(v.string())),
-    totalSpent: v.number(),
-    totalOrders: v.number(),
-    lastPurchase: v.optional(v.number()),
-    notes: v.optional(v.string()),
-    // 🔥 NOVO CAMPO: Adicionado para o CRM (Data de Aniversário)
-    birthDate: v.optional(v.string()),
-    active: v.boolean(),
-    createdAt: v.number(),
-    updatedAt: v.optional(v.number()),
-  })
+    customers: defineTable({
+      userId: v.string(),
+      businessId: v.optional(v.id("businesses")),
+      name: v.string(),
+      email: v.optional(v.string()),
+      phone: v.optional(v.string()),
+      address: v.optional(v.string()),
+      notes: v.optional(v.string()),
+      tags: v.optional(v.array(v.string())),
+      totalSpent: v.number(),
+      totalOrders: v.number(),
+      lastPurchase: v.optional(v.number()),
+      active: v.boolean(),
+      createdAt: v.number(),
+      updatedAt: v.optional(v.number()),
+      birthDate: v.optional(v.string()),
+      status: v.optional(v.string()),
+    })
     .index("by_user", ["userId"])
     .index("by_business", ["businessId"])
     .index("by_email", ["userId", "email"]),

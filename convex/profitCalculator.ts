@@ -1848,6 +1848,7 @@ export const addCustomer = mutation({
     tags: v.optional(v.array(v.string())),
     notes: v.optional(v.string()),
     birthDate: v.optional(v.string()),
+    status: v.optional(v.string()), // 🔥 Adicionado Status aqui
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -1867,6 +1868,7 @@ export const addCustomer = mutation({
       active: true,
       createdAt: Date.now(),
       birthDate: args.birthDate,
+      status: args.status,
     });
   },
 });
@@ -1880,6 +1882,8 @@ export const updateCustomer = mutation({
     address: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     notes: v.optional(v.string()),
+    birthDate: v.optional(v.string()), // 🔥 Adicionado Birthdate aqui
+    status: v.optional(v.string()),    // 🔥 Adicionado Status aqui
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();

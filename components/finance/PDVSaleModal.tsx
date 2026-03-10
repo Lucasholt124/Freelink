@@ -205,8 +205,7 @@ export function PDVSaleModal({ isOpen, onClose, products, customers, businessId 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="w-full max-w-5xl h-[95vh] md:h-[85vh] p-0 flex flex-col overflow-hidden bg-gray-50">
-
+<DialogContent className="w-full max-w-5xl h-[100dvh] sm:h-auto sm:max-h-[90vh] p-0 flex flex-col overflow-hidden">
         {/* HEADER */}
         <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-4 flex items-center justify-between shadow-md z-10 shrink-0">
           <div className="flex items-center gap-3">

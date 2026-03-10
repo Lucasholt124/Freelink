@@ -344,6 +344,7 @@ export default function FinancialManagerPro() {
     address: "",
     notes: "",
     birthDate: "",
+    status: "ativo",
   });
 
   const [supplierForm, setSupplierForm] = useState({
@@ -527,6 +528,7 @@ const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
       address: customer.address || "",
       notes: customer.notes || "",
       birthDate: customer.birthDate || "",
+      status: customer.status || "",
     });
     setEditingCustomerId(customer._id);
     setShowEditCustomer(true);
@@ -551,7 +553,7 @@ const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
 
       toast.success("✅ Cliente atualizado com sucesso!");
       setShowEditCustomer(false);
-      setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: ""});
+      setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: "", status: ""});
       setEditingCustomerId(null);
     } catch (error) {
       handleApiError(error, "Erro ao atualizar cliente");
@@ -998,12 +1000,13 @@ const handleAddExpense = async () => {
         phone: customerForm.phone || undefined,
         address: customerForm.address || undefined,
         notes: customerForm.notes || undefined,
-        birthDate: customerForm.birthDate || undefined
+        birthDate: customerForm.birthDate || undefined,
+        status: customerForm.status || undefined
       });
 
       toast.success("✅ Cliente cadastrado!");
       setShowAddCustomer(false);
-      setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: "" });
+      setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: "", status: ""});
     } catch (error) {
       toast.error("❌ Erro ao cadastrar cliente");
       console.error(error);
@@ -2923,7 +2926,7 @@ const chartData = useMemo(() => {
                     <p className="text-sm text-gray-500">Gerencie relacionamentos e gere vendas automáticas</p>
                   </div>
                   <Button onClick={() => {
-                    setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: "" });
+                    setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: "", status: "" });
                     setShowAddCustomer(true);
                   }} className="bg-pink-600 hover:bg-pink-700 shadow-lg hover:shadow-pink-500/30 transition-all">
                     <Plus className="w-4 h-4 mr-2" /> Novo Cliente
@@ -4016,6 +4019,23 @@ const chartData = useMemo(() => {
                 />
               </div>
               <div>
+                <Label>Situação do Cliente</Label>
+                <Select
+                  value={customerForm.status}
+                  onValueChange={(v) => setCustomerForm({ ...customerForm, status: v })}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Selecione a situação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="lead">🔥 Novo Lead</SelectItem>
+                    <SelectItem value="ativo">✅ Ativo</SelectItem>
+                    <SelectItem value="inativo">❄️ Inativo</SelectItem>
+                    <SelectItem value="vip">💎 VIP</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
                 <Label>Endereço</Label>
                 <Input
                   value={customerForm.address}
@@ -4064,6 +4084,23 @@ const chartData = useMemo(() => {
                   onChange={(e) => setCustomerForm({ ...customerForm, birthDate: e.target.value })}
                   className="bg-white"
                 />
+              </div>
+              <div>
+                <Label>Situação do Cliente</Label>
+                <Select
+                  value={customerForm.status}
+                  onValueChange={(v) => setCustomerForm({ ...customerForm, status: v })}
+                >
+                  <SelectTrigger className="bg-white">
+                    <SelectValue placeholder="Selecione a situação" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="lead">🔥 Novo Lead</SelectItem>
+                    <SelectItem value="ativo">✅ Ativo</SelectItem>
+                    <SelectItem value="inativo">❄️ Inativo</SelectItem>
+                    <SelectItem value="vip">💎 VIP</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
                 <Input
                   value={customerForm.phone}
