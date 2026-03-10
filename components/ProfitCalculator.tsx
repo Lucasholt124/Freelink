@@ -45,6 +45,8 @@ import {
   Activity,
   Menu,
   Rocket,
+  Copy,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -99,7 +101,7 @@ import { AnimatePresence } from "framer-motion";
 import { AnimatedCard } from "./AnimatedCard";
 import { Pagination } from "./Pagination";
 import { AnimatedCounter } from "./AnimatedCounter";
-
+import { YearlyChart } from "./finance/YearlyChart";
 
 type TabType = "dashboard" | "produtos" | "vendas" | "gastos" | "resumo" | "metas" | "clientes" | "fornecedores" | "rapido";
 type GoalType = "revenue" | "profit" | "margin" | "sales_count" | "expense_reduction";
@@ -179,6 +181,7 @@ export default function FinancialManagerPro() {
     const userStats = useQuery(api.gamification.getUserStats);
   const initStats = useMutation(api.gamification.initUserStats);
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
+  const [summaryView, setSummaryView] = useState<"month" | "year" | "all">("month");
   const [showAddProduct, setShowAddProduct] = useState(false);
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [showAddSale, setShowAddSale] = useState(false);
@@ -194,6 +197,8 @@ export default function FinancialManagerPro() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const deleteCashFlow = useMutation(api.profitCalculator.deleteCashFlow);
+  const [, setShowPDV] = useState(false);
+
 
   // ✅ ESTADOS PARA MODO OFFLINE
   const [isOnline, setIsOnline] = useState(true);
@@ -337,6 +342,7 @@ export default function FinancialManagerPro() {
     phone: "",
     address: "",
     notes: "",
+    birthDate: "",
   });
 
   const [supplierForm, setSupplierForm] = useState({
@@ -398,7 +404,6 @@ const [productSearchTerm, setProductSearchTerm] = useState("");
   const addProduct = useMutation(api.profitCalculator.addProduct);
   const updateProduct = useMutation(api.profitCalculator.updateProduct);
   const deleteProduct = useMutation(api.profitCalculator.deleteProduct);
-  const addSale = useMutation(api.profitCalculator.addSale);
   const deleteSale = useMutation(api.profitCalculator.deleteSale);
   const addExpense = useMutation(api.profitCalculator.addExpense);
   const deleteExpense = useMutation(api.profitCalculator.deleteExpense);
@@ -520,6 +525,7 @@ const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
       phone: customer.phone || "",
       address: customer.address || "",
       notes: customer.notes || "",
+      birthDate: customer.birthDate || "",
     });
     setEditingCustomerId(customer._id);
     setShowEditCustomer(true);
@@ -544,7 +550,7 @@ const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
 
       toast.success("✅ Cliente atualizado com sucesso!");
       setShowEditCustomer(false);
-      setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "" });
+      setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: ""});
       setEditingCustomerId(null);
     } catch (error) {
       handleApiError(error, "Erro ao atualizar cliente");
@@ -794,124 +800,48 @@ const handleDeleteProduct = async (id: Id<"products">, permanent = false) => {
   }
 };
 
-  const openEditProduct = (productId: Id<"products">) => {
-    const product = products.find((p) => p._id === productId);
-    if (!product) return;
+const openEditProduct = (productId: Id<"products">) => {
+  const product = products.find((p) => p._id === productId);
+  if (!product) return;
 
-    setProductForm({
-      name: product.name,
-      costPrice: product.costPrice.toString(),
-      salePrice: product.salePrice.toString(),
-      sku: product.sku || "",
-      category: product.category || "",
-      stock: product.stock?.toString() || "",
-      minStock: product.minStock?.toString() || "",
-      unit: product.unit || "un",
-      description: product.description || "",
-    });
-    setEditingProductId(productId);
-    setShowEditProduct(true);
-  };
-
- const validateSale = (form: typeof saleForm, product: Doc<"products">): string[] => {
-  const errors: string[] = [];
-
-  if (!form.productId) errors.push("Selecione um produto");
-  if (!form.date) errors.push("Selecione uma data");
-
-  const quantity = parseInt(form.quantity);
-  if (isNaN(quantity) || quantity <= 0) {
-    errors.push("Quantidade deve ser maior que zero");
-  }
-  if (quantity > 10000) {
-    errors.push("Quantidade muito alta, confira");
-  }
-
-  // ✅ VALIDAÇÃO DE DATA CORRIGIDA
-  const saleDate = new Date(form.date + "T00:00:00");
-  const todayStr = getBrazilDate();
-  const today = new Date(todayStr + "T23:59:59");
-  const oneYearAgo = new Date(todayStr + "T00:00:00");
-  oneYearAgo.setFullYear(oneYearAgo.getFullYear() - 1);
-
-  if (saleDate > today) {
-    errors.push("Data não pode ser no futuro");
-  }
-  if (saleDate < oneYearAgo) {
-    errors.push("Data muito antiga (mais de 1 ano)");
-  }
-
-  // Valida estoque
-  if (product && product.stock !== undefined) {
-    if (product.stock < quantity) {
-      errors.push(`Estoque insuficiente! Disponível: ${product.stock}`);
-    }
-  }
-
-  // Valida desconto
-  if (form.discount) {
-    const discount = parseFloat(form.discount);
-    const totalPrice = product.salePrice * quantity;
-
-    if (discount < 0) errors.push("Desconto não pode ser negativo");
-    if (discount >= totalPrice) errors.push("Desconto maior que o valor total");
-  }
-
-  return errors;
+  setProductForm({
+    name: product.name,
+    costPrice: product.costPrice.toString(),
+    salePrice: product.salePrice.toString(),
+    sku: product.sku || "",
+    category: product.category || "",
+    stock: product.stock?.toString() || "",
+    minStock: product.minStock?.toString() || "",
+    unit: product.unit || "un",
+    description: product.description || "",
+  });
+  setEditingProductId(productId);
+  setShowEditProduct(true);
 };
 
-const [, setIsSubmittingSale] = useState(false);
-
-const handleAddSale = async () => {
-  const product = products.find((p) => p._id === saleForm.productId);
-  if (!product) {
-    toast.error("❌ Produto não encontrado!");
-    return;
-  }
-
-  const errors = validateSale(saleForm, product);
-  if (errors.length > 0) {
-    toast.error(errors[0]);
-    return;
-  }
-
-  setIsSubmittingSale(true);
-  try {
-    await addSale({
-      productId: saleForm.productId as Id<"products">,
-      customerId: saleForm.customerId ? (saleForm.customerId as Id<"customers">) : undefined,
-      quantity: parseInt(saleForm.quantity),
-      discount: saleForm.discount ? parseFloat(saleForm.discount) : undefined,
-      date: saleForm.date,
-      paymentMethod: saleForm.paymentMethod,
-      paymentStatus: saleForm.paymentStatus,
-      notes: saleForm.notes || undefined,
-    });
-
-    await generateReport({ month: saleForm.date.substring(0, 7) });
-
-    confetti({ particleCount: 150, spread: 90, origin: { y: 0.6 }, colors: ["#10B981", "#3B82F6", "#F59E0B"] });
-
-    toast.success("🎉 Venda registrada com sucesso!");
-    setShowAddSale(false);
-    setSaleForm({
-      productId: "",
-      customerId: "",
-      quantity: "",
-      discount: "",
-      date: getBrazilDate(),
-      paymentMethod: "pix",
-      paymentStatus: "paid",
-      notes: "",
-    });
-  } catch (error) {
-    const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-    toast.error(`❌ Erro ao registrar: ${errorMessage}`);
-    console.error("Sale creation error:", error);
-  } finally {
-    setIsSubmittingSale(false);
-  }
+const handleDuplicateProduct = (product: Doc<"products">) => {
+  setProductForm({
+    name: `${product.name} (Cópia)`,
+    costPrice: product.costPrice.toString(),
+    salePrice: product.salePrice.toString(),
+    sku: product.sku ? `${product.sku}-copy` : "",
+    category: product.category || "",
+    stock: "0",
+    minStock: product.minStock?.toString() || "",
+    unit: product.unit || "un",
+    description: product.description || "",
+  });
+  setEditingProductId(null);
+  setShowAddProduct(true);
 };
+
+
+
+
+
+
+
+
 
   const handleDeleteSale = async (id: Id<"sales">, saleMonth: string) => {
     try {
@@ -1020,11 +950,12 @@ const handleAddExpense = async () => {
         phone: customerForm.phone || undefined,
         address: customerForm.address || undefined,
         notes: customerForm.notes || undefined,
+        birthDate: customerForm.birthDate || undefined
       });
 
       toast.success("✅ Cliente cadastrado!");
       setShowAddCustomer(false);
-      setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "" });
+      setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: "" });
     } catch (error) {
       toast.error("❌ Erro ao cadastrar cliente");
       console.error(error);
@@ -1541,7 +1472,7 @@ const chartData = useMemo(() => {
       {/* ✅ FLOATING ACTION BUTTON (MOBILE) */}
       <div className="md:hidden">
         <FloatingActionButton
-          onQuickSale={() => setShowQuickSale(true)}
+          onQuickSale={() => setShowPDV(true)}
           onQuickExpense={() => setShowQuickExpense(true)}
           onAddProduct={() => setShowAddProduct(true)}
         />
@@ -2203,15 +2134,15 @@ const chartData = useMemo(() => {
                   </div>
 
                   <div className="grid md:grid-cols-2 gap-4">
-                    <Button
+                  <Button
                       size="lg"
-                      onClick={() => setShowQuickSale(true)}
+                      onClick={() => setShowPDV(true)} // 🔥 MUDOU AQUI
                       className="h-32 bg-gradient-to-br from-emerald-600 to-green-600 hover:from-emerald-700 hover:to-green-700 text-white shadow-xl"
                     >
                       <div className="text-center">
                         <ArrowUpRight className="w-10 h-10 mx-auto mb-2" />
-                        <p className="text-xl font-black">Registrar Venda</p>
-                        <p className="text-sm opacity-90">Clique para adicionar</p>
+                        <p className="text-xl font-black">Frente de Caixa (PDV)</p> {/* Pode até mudar o texto se quiser */}
+                        <p className="text-sm opacity-90">Clique para abrir</p>
                       </div>
                     </Button>
 
@@ -2454,14 +2385,18 @@ const chartData = useMemo(() => {
                                   <Edit className="w-4 h-4 mr-2" />
                                   Editar
                                 </DropdownMenuItem>
+
+                                {/* 🔥 O NOVO BOTÃO AQUI 🔥 */}
+                                <DropdownMenuItem onClick={() => handleDuplicateProduct(product)}>
+                                  <Copy className="w-4 h-4 mr-2 text-blue-500" />
+                                  Duplicar
+                                </DropdownMenuItem>
+
                                 <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, false)} className="text-orange-600">
                                   <AlertCircle className="w-4 h-4 mr-2" />
                                   Desativar
                                 </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => handleDeleteProduct(product._id, true)} className="text-red-600">
-                                  <Trash2 className="w-4 h-4 mr-2" />
-                                  Deletar
-                                </DropdownMenuItem>
+
                               </DropdownMenuContent>
                             </DropdownMenu>
                           </div>
@@ -2558,7 +2493,7 @@ const chartData = useMemo(() => {
                       <Download className="w-4 h-4 mr-2" />
                       Exportar PDF
                     </Button>
-                    <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
+                    <Button onClick={() => setShowPDV(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
                       <Plus className="w-4 h-4 mr-2" />
                       Nova Venda
                     </Button>
@@ -2578,7 +2513,7 @@ const chartData = useMemo(() => {
                     <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                     <h3 className="text-xl font-bold mb-2">Nenhuma venda registrada</h3>
                     <p className="text-gray-500 mb-4">Comece registrando sua primeira venda</p>
-                    <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600" disabled={products.filter((p) => p.active).length === 0}>
+                    <Button onClick={() => setShowPDV(true)} className="bg-emerald-600" disabled={products.filter((p) => p.active).length === 0}>
                       Registrar Primeira Venda
                     </Button>
                   </Card>
@@ -2692,121 +2627,186 @@ const chartData = useMemo(() => {
             </TabsContent>
             <TabsContent value="resumo">
               <div className="space-y-4">
+
+                {/* 🌟 CABEÇALHO DO RESUMO COM AS 3 VISÕES 🌟 */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <h3 className="text-xl font-bold">Resumo de {getCurrentMonthName()}</h3>
-                  <div className="flex gap-2">
-                    <Button
-                      onClick={() => {
-                        if (monthlyReport && sales && expenses) {
-                          const exporter = new PDFExporter();
-                          // Mapear dados para o formato esperado pelo PDFExporter
-                          const salesForPDF = sales.map(s => ({
-                            _id: s._id,
-                            productName: s.productName,
-                            quantity: s.quantity,
-                            salePrice: s.salePrice,
-                            totalRevenue: s.totalRevenue,
-                            profit: s.profit,
-                            date: s.date,
-                          }));
-                          const expensesForPDF = expenses.map(e => ({
-                            _id: e._id,
-                            description: e.description,
-                            categoryName: e.categoryName,
-                            amount: e.amount,
-                            date: e.date,
-                          }));
-                          exporter.exportMonthlyReport(monthlyReport, salesForPDF, expensesForPDF);
-                          toast.success("📄 PDF gerado com sucesso!");
-                        } else {
-                          toast.error("❌ Aguarde o carregamento dos dados");
-                        }
-                      }}
-                      variant="outline"
-                      size="sm"
-                      className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                  <h3 className="text-xl font-bold flex items-center gap-2">
+                    <FileText className="w-6 h-6 text-indigo-600" />
+                    Relatórios da Loja
+                  </h3>
+
+                  {/* Os 3 Botões Mágicos de Visão */}
+                  <div className="bg-gray-100 p-1 rounded-xl flex gap-1 w-full sm:w-auto">
+                    <button
+                      onClick={() => setSummaryView("month")}
+                      className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all ${summaryView === "month" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:bg-gray-200"}`}
                     >
-                      <Download className="w-4 h-4 mr-2" />
-                      Exportar PDF
-                    </Button>
-                    <Button onClick={handleRegenerateReport} variant="outline" size="sm">
-                      <RefreshCw className="w-4 h-4 mr-2" />
-                      Atualizar
-                    </Button>
+                      Mês Atual
+                    </button>
+                    <button
+                      onClick={() => setSummaryView("year")}
+                      className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all ${summaryView === "year" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:bg-gray-200"}`}
+                    >
+                      Visão Anual
+                    </button>
+                    <button
+                      onClick={() => setSummaryView("all")}
+                      className={`flex-1 sm:flex-none px-4 py-2 rounded-lg text-sm font-bold transition-all ${summaryView === "all" ? "bg-white text-indigo-600 shadow-sm" : "text-gray-500 hover:bg-gray-200"}`}
+                    >
+                      Tudo
+                    </button>
                   </div>
                 </div>
 
-                {!monthlyReport ? (
-                  <Card className="p-12 text-center">
-                    <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                    <h3 className="text-xl font-bold mb-2">Sem dados para o mês</h3>
-                    <p className="text-gray-500 mb-4">Registre vendas e gastos para gerar o relatório</p>
-                    <Button onClick={handleRegenerateReport} className="bg-indigo-600">
-                      Gerar Relatório
-                    </Button>
-                  </Card>
-                ) : (
-                  <div className="space-y-6">
-                    <Card className="p-6">
-                      <div className="grid md:grid-cols-3 gap-6 mb-6">
-                        <div className="text-center p-4 bg-blue-50 rounded-lg">
-                          <p className="text-sm text-gray-600 mb-1">Receita</p>
-                          <p className="text-2xl font-bold text-blue-600">{formatCurrency(monthlyReport.totalRevenue)}</p>
-                          <p className="text-xs text-gray-500 mt-1">{monthlyReport.totalSales} vendas</p>
-                        </div>
-                        <div className="text-center p-4 bg-red-50 rounded-lg">
-                          <p className="text-sm text-gray-600 mb-1">Gastos</p>
-                          <p className="text-2xl font-bold text-red-600">{formatCurrency(monthlyReport.totalExpenses)}</p>
-                        </div>
-                        <div className={`text-center p-4 rounded-lg ${monthlyReport.netProfit >= 0 ? "bg-emerald-50" : "bg-orange-50"}`}>
-                          <p className="text-sm text-gray-600 mb-1">Lucro Líquido</p>
-                          <p className={`text-2xl font-bold ${monthlyReport.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
-                            {formatCurrency(monthlyReport.netProfit)}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">Margem: {monthlyReport.profitMargin.toFixed(1)}%</p>
-                        </div>
+                {/* 📅 VISÃO 1: MÊS ATUAL (O que você já tinha) */}
+                {summaryView === "month" && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h2 className="text-lg font-bold text-gray-800">Resultado de {formatMonthName(selectedMonth)}</h2>
+                        <p className="text-xs text-gray-500">Desempenho detalhado do mês selecionado</p>
                       </div>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={() => {
+                            if (monthlyReport && sales && expenses) {
+                              const exporter = new PDFExporter();
+                              const salesForPDF = sales.map(s => ({ _id: s._id, productName: s.productName, quantity: s.quantity, salePrice: s.salePrice, totalRevenue: s.totalRevenue, profit: s.profit, date: s.date }));
+                              const expensesForPDF = expenses.map(e => ({ _id: e._id, description: e.description, categoryName: e.categoryName, amount: e.amount, date: e.date }));
+                              exporter.exportMonthlyReport(monthlyReport, salesForPDF, expensesForPDF);
+                              toast.success("📄 PDF gerado com sucesso!");
+                            } else {
+                              toast.error("❌ Aguarde o carregamento dos dados");
+                            }
+                          }}
+                          variant="outline"
+                          size="sm"
+                          className="bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-300"
+                        >
+                          <Download className="w-4 h-4 mr-2" /> Exportar PDF
+                        </Button>
+                        <Button onClick={handleRegenerateReport} variant="outline" size="sm">
+                          <RefreshCw className="w-4 h-4 mr-2" /> Atualizar
+                        </Button>
+                      </div>
+                    </div>
 
-                      {monthlyReport.topProducts.length > 0 && (
-
-                        <>
-                          <Separator className="my-6" />
-                          <div>
-                            <h4 className="font-bold mb-4 flex items-center gap-2">
-                              <Star className="w-5 h-5 text-yellow-600" />
-                              Produtos Mais Vendidos
-                            </h4>
-                            <div className="space-y-2">
-                              {monthlyReport.topProducts.slice(0, 5).map((product, idx) => (
-                                <div key={product.productId} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                  <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-full bg-purple-600 text-white flex items-center justify-center font-bold text-sm">
-                                      {idx + 1}
-                                    </div>
-                                    <div>
-                                      <p className="font-semibold">{product.productName}</p>
-                                      <p className="text-sm text-gray-600">
-                                        {product.quantity} vendas • {formatCurrency(product.revenue)}
-                                      </p>
-                                    </div>
-                                  </div>
-                                  <p className="font-bold text-emerald-600">{formatCurrency(product.profit)}</p>
-                                </div>
-                              ))}
+                    {!monthlyReport ? (
+                      <Card className="p-12 text-center">
+                        <FileText className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                        <h3 className="text-xl font-bold mb-2">Sem dados para este mês</h3>
+                        <p className="text-gray-500 mb-4">Registre vendas e gastos para gerar o relatório</p>
+                        <Button onClick={handleRegenerateReport} className="bg-indigo-600">Gerar Relatório</Button>
+                      </Card>
+                    ) : (
+                      <div className="space-y-6">
+                        <Card className="p-6">
+                          <div className="grid md:grid-cols-3 gap-6 mb-6">
+                            <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-100">
+                              <p className="text-sm text-gray-600 mb-1">Receita</p>
+                              <p className="text-3xl font-black text-blue-600">{formatCurrency(monthlyReport.totalRevenue)}</p>
+                              <p className="text-xs text-gray-500 mt-1">{monthlyReport.totalSales} vendas realizadas</p>
+                            </div>
+                            <div className="text-center p-4 bg-red-50 rounded-lg border border-red-100">
+                              <p className="text-sm text-gray-600 mb-1">Gastos Operacionais</p>
+                              <p className="text-3xl font-black text-red-600">{formatCurrency(monthlyReport.totalExpenses)}</p>
+                            </div>
+                            <div className={`text-center p-4 rounded-lg border ${monthlyReport.netProfit >= 0 ? "bg-emerald-50 border-emerald-100" : "bg-orange-50 border-orange-100"}`}>
+                              <p className="text-sm text-gray-600 mb-1">LUCRO LÍQUIDO</p>
+                              <p className={`text-3xl font-black ${monthlyReport.netProfit >= 0 ? "text-emerald-600" : "text-red-600"}`}>
+                                {formatCurrency(monthlyReport.netProfit)}
+                              </p>
+                              <p className="text-xs font-bold text-gray-600 mt-1">Margem Final: {monthlyReport.profitMargin.toFixed(1)}%</p>
                             </div>
                           </div>
-                           <Pagination
-    currentPage={productsPage}
-    totalPages={totalProductsPages}
-    onPageChange={setProductsPage}
-    totalItems={filteredProducts.length}
-    itemsPerPage={PRODUCTS_PER_PAGE}
-  />
-                        </>
-                      )}
-                    </Card>
+
+                          {monthlyReport.topProducts.length > 0 && (
+                            <>
+                              <Separator className="my-6" />
+                              <div>
+                                <h4 className="font-bold mb-4 flex items-center gap-2 text-lg">
+                                  <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+                                  Top 5 Produtos Mais Vendidos
+                                </h4>
+                                <div className="space-y-3">
+                                  {monthlyReport.topProducts.slice(0, 5).map((product, idx) => (
+                                    <div key={product.productId} className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border border-gray-100 hover:bg-white hover:shadow-md transition-all">
+                                      <div className="flex items-center gap-4">
+                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black text-lg ${idx === 0 ? 'bg-yellow-400 text-yellow-900 shadow-[0_0_15px_rgba(250,204,21,0.5)]' : idx === 1 ? 'bg-gray-300 text-gray-700' : idx === 2 ? 'bg-amber-600 text-white' : 'bg-indigo-100 text-indigo-700'}`}>
+                                          {idx + 1}
+                                        </div>
+                                        <div>
+                                          <p className="font-bold text-gray-900">{product.productName}</p>
+                                          <p className="text-sm text-gray-500">{product.quantity} unidades vendidas</p>
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        <p className="text-xs text-gray-500 uppercase font-bold tracking-wider mb-1">Lucro</p>
+                                        <p className="font-black text-emerald-600 text-lg">{formatCurrency(product.profit)}</p>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </Card>
+                      </div>
+                    )}
                   </div>
                 )}
+
+               {/* 📆 VISÃO 2: ANO ATUAL */}
+               {summaryView === "year" && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    {allMonths.length === 0 ? (
+                      <Card className="p-12 text-center border-2 border-dashed">
+                        <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                        <h3 className="text-xl font-bold mb-2">Sem histórico suficiente</h3>
+                        <p className="text-gray-500">O gráfico anual aparecerá aqui conforme você registra suas vendas nos próximos meses.</p>
+                      </Card>
+                    ) : (
+                      <YearlyChart
+                        data={allMonths.map(m => {
+                          const [year, monthNum] = m.month.split("-");
+                          const dateObj = new Date(parseInt(year), parseInt(monthNum) - 1);
+                          return {
+                            month: dateObj.toLocaleDateString("pt-BR", { month: "short" }).replace(".", ""),
+                            revenue: m.totalRevenue || 0,
+                            expenses: m.totalExpenses || 0,
+                            profit: m.netProfit || 0
+                          };
+                        }).reverse()} // Reverse para ficar em ordem cronológica (Jan -> Dez)
+                      />
+                    )}
+                  </div>
+                )}
+
+                {/* 🌍 VISÃO 3: TODO O PERÍODO */}
+                {summaryView === "all" && (
+                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <div className="grid md:grid-cols-2 gap-6">
+                      <Card className="p-8 bg-gradient-to-br from-purple-600 to-indigo-700 text-white border-0 shadow-xl relative overflow-hidden">
+                        <div className="relative z-10">
+                          <p className="text-purple-200 font-bold uppercase tracking-widest text-sm mb-2">Faturamento Histórico</p>
+                          <h2 className="text-5xl font-black mb-2">{formatCurrency(userStats?.totalRevenue || 0)}</h2>
+                          <p className="text-purple-100">Desde o primeiro dia no aplicativo</p>
+                        </div>
+                        <Target className="absolute -bottom-10 -right-10 w-48 h-48 text-purple-500 opacity-20" />
+                      </Card>
+
+                      <Card className="p-8 bg-gradient-to-br from-emerald-500 to-green-600 text-white border-0 shadow-xl relative overflow-hidden">
+                        <div className="relative z-10">
+                          <p className="text-emerald-100 font-bold uppercase tracking-widest text-sm mb-2">Lucro Histórico</p>
+                          <h2 className="text-5xl font-black mb-2">{formatCurrency(userStats?.totalProfit || 0)}</h2>
+                          <p className="text-emerald-100">O que realmente ficou no bolso</p>
+                        </div>
+                        <DollarSign className="absolute -bottom-10 -right-10 w-48 h-48 text-emerald-400 opacity-20" />
+                      </Card>
+                    </div>
+                  </div>
+                )}
+
               </div>
             </TabsContent>
 
@@ -2863,24 +2863,117 @@ const chartData = useMemo(() => {
               </div>
             </TabsContent>
 
-           <TabsContent value="clientes">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-xl font-bold">Seus Clientes ({customers.length})</h3>
+            <TabsContent value="clientes">
+              <div className="space-y-6">
+
+                {/* HEADER DA ABA */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="text-xl font-bold flex items-center gap-2">
+                      <Users className="w-6 h-6 text-pink-600" />
+                      CRM Inteligente ({customers.length})
+                    </h3>
+                    <p className="text-sm text-gray-500">Gerencie relacionamentos e gere vendas automáticas</p>
+                  </div>
                   <Button onClick={() => {
-                    setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "" });
+                    setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: "" });
                     setShowAddCustomer(true);
-                  }} className="bg-pink-600 hover:bg-pink-700">
-                    <Plus className="w-4 h-4 mr-2" />
-                    Novo Cliente
+                  }} className="bg-pink-600 hover:bg-pink-700 shadow-lg hover:shadow-pink-500/30 transition-all">
+                    <Plus className="w-4 h-4 mr-2" /> Novo Cliente
                   </Button>
                 </div>
 
+                {/* PAINEL DE AUTOMAÇÕES (Ações do Dia) */}
+                {customers.length > 0 && (
+                  <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-5 border border-pink-100 shadow-sm">
+                    <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                      <Sparkles className="w-5 h-5 text-pink-500" />
+                      Ações Recomendadas Hoje
+                    </h4>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+
+                      {/* CARD 1: Aniversariantes */}
+                      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-bold text-sm text-gray-800">🎂 Aniversariantes</p>
+                          <Badge className="bg-pink-100 text-pink-700">Mimar</Badge>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-3">Envie os parabéns com um cupom especial para quem faz aniversário este mês.</p>
+                        <Button
+                          size="sm"
+                          className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white"
+                          onClick={() => {
+                            const aniversariantes = customers.filter(c => c.birthDate && new Date(c.birthDate).getMonth() === new Date().getMonth());
+                            if(aniversariantes.length === 0) return toast.info("Nenhum aniversariante este mês.");
+                            // Abre o primeiro aniversariante (pode expandir depois para lista)
+                            const c = aniversariantes[0];
+                            const phone = c.phone?.replace(/\D/g, '');
+                            if(!phone) return toast.error(`${c.name} não tem telefone cadastrado.`);
+                            window.open(`https://wa.me/55${phone}?text=Oii%20${c.name}!%20Vi%20que%20seu%20anivers%C3%A1rio%20t%C3%A1%20chegando%20%F0%9F%8E%89%20Pra%20comemorar,%20separei%20um%20cupom%20de%2015%25%20de%20desconto%20pra%20voc%C3%AA%20aqui%20na%20loja!`, '_blank');
+                          }}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-2" /> Enviar Parabéns
+                        </Button>
+                      </div>
+
+                      {/* CARD 2: Clientes Sumidos (Saudade) */}
+                      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-bold text-sm text-gray-800">🥺 Sumidos (+30 dias)</p>
+                          <Badge className="bg-orange-100 text-orange-700">Resgatar</Badge>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-3">Estes clientes não compram há mais de um mês. Mande as novidades!</p>
+                        <Button
+                          size="sm"
+                          className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white"
+                          onClick={() => {
+                            const trintaDias = Date.now() - (30 * 24 * 60 * 60 * 1000);
+                            const sumidos = customers.filter(c => c.lastPurchase && c.lastPurchase < trintaDias);
+                            if(sumidos.length === 0) return toast.info("Nenhum cliente sumido!");
+                            const c = sumidos[0];
+                            const phone = c.phone?.replace(/\D/g, '');
+                            if(!phone) return toast.error(`${c.name} não tem telefone.`);
+                            window.open(`https://wa.me/55${phone}?text=Oii%20${c.name},%20tudo%20bem%3F%20%E2%9C%A8%20Tem%20um%20tempinho%20que%20voc%C3%AA%20n%C3%A3o%20vem%20aqui...%20Chegou%20uma%20cole%C3%A7%C3%A3o%20nova%20linda,%20quer%20dar%20uma%20olhada%3F`, '_blank');
+                          }}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-2" /> Mostrar Novidades
+                        </Button>
+                      </div>
+
+                      {/* CARD 3: Clientes VIP */}
+                      <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                        <div className="flex items-center justify-between mb-2">
+                          <p className="font-bold text-sm text-gray-800">💎 Clientes VIPs</p>
+                          <Badge className="bg-purple-100 text-purple-700">Fidelizar</Badge>
+                        </div>
+                        <p className="text-xs text-gray-500 mb-3">Seus melhores compradores. Mande um mimo ou aviso de pré-venda.</p>
+                        <Button
+                          size="sm"
+                          className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white"
+                          onClick={() => {
+                            const vips = [...customers].sort((a, b) => b.totalSpent - a.totalSpent);
+                            if(vips.length === 0 || vips[0].totalSpent === 0) return toast.info("Ainda sem VIPs.");
+                            const c = vips[0];
+                            const phone = c.phone?.replace(/\D/g, '');
+                            if(!phone) return toast.error(`${c.name} não tem telefone.`);
+                            window.open(`https://wa.me/55${phone}?text=Oii%20${c.name}!%20Tudo%20bem%3F%20%F0%9F%92%96%20Como%20voc%C3%AA%20%C3%A9%20nossa%20cliente%20VIP,%20to%20te%20mandando%20em%20primeira%20m%C3%A3o%20as%20novidades%20que%20acabaram%20de%20chegar!`, '_blank');
+                          }}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-2" /> Contatar VIP
+                        </Button>
+                      </div>
+
+                    </div>
+                  </div>
+                )}
+
+                {/* LISTA DE CLIENTES */}
                 {customers.length === 0 ? (
                   <Card className="p-12 text-center border-2 border-dashed">
                     <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                     <h3 className="text-xl font-bold mb-2">Nenhum cliente cadastrado</h3>
-                    <p className="text-gray-500 mb-4">Gerencie seus clientes em um só lugar</p>
+                    <p className="text-gray-500 mb-4">Comece a construir sua base de clientes para ativar as automações!</p>
                     <Button onClick={() => setShowAddCustomer(true)} className="bg-pink-600">
                       Cadastrar Primeiro Cliente
                     </Button>
@@ -2888,20 +2981,22 @@ const chartData = useMemo(() => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                     {paginatedCustomers.map((customer) => (
-                      <Card key={customer._id} className="p-3 md:p-4 hover:shadow-lg transition-shadow relative group">
-                        <div className="flex justify-between gap-2 mb-3">
+                      <Card key={customer._id} className="p-4 hover:shadow-lg transition-all relative group border-gray-100">
+                        <div className="flex justify-between items-start gap-2 mb-3">
                           <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-sm md:text-base truncate">{customer.name}</h4>
-                            {customer.email && <p className="text-xs md:text-sm text-gray-600 truncate">{customer.email}</p>}
-                            {customer.phone && <p className="text-xs md:text-sm text-gray-600">{customer.phone}</p>}
+                            <h4 className="font-bold text-lg text-gray-800 truncate">{customer.name}</h4>
+                            <div className="flex flex-col gap-1 mt-1">
+                              {customer.phone && <span className="text-xs text-gray-500 font-mono">📱 {customer.phone}</span>}
+                              {customer.birthDate && <span className="text-xs text-gray-500">🎂 {formatDate(customer.birthDate)}</span>}
+                            </div>
                           </div>
 
-                          {/* MENU DE AÇÕES */}
-                          <div className="flex gap-1">
+                          {/* Botões Hover (Editar / Excluir / Zap) */}
+                          <div className="flex flex-col gap-1 shrink-0">
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 shrink-0 text-blue-600 hover:bg-blue-50"
+                              className="h-8 w-8 text-blue-600 hover:bg-blue-50"
                               onClick={() => openEditCustomer(customer)}
                             >
                               <Edit className="w-4 h-4" />
@@ -2909,28 +3004,44 @@ const chartData = useMemo(() => {
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-8 w-8 shrink-0 text-red-500 hover:bg-red-50"
+                              className="h-8 w-8 text-red-500 hover:bg-red-50"
                               onClick={() => handleDeleteCustomer(customer._id, customer.name)}
                             >
                               <Trash2 className="w-4 h-4" />
                             </Button>
+                            {customer.phone && (
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-8 w-8 text-[#25D366] hover:bg-green-50"
+                                onClick={() => {
+                                  const phone = customer.phone?.replace(/\D/g, '');
+                                  window.open(`https://wa.me/55${phone}`, '_blank');
+                                }}
+                              >
+                                <MessageSquare className="w-4 h-4" />
+                              </Button>
+                            )}
                           </div>
                         </div>
-                        <Separator className="my-2 md:my-3" />
-                        <div className="space-y-1 text-xs md:text-sm">
-                          <p className="text-gray-600 flex justify-between">
-                            <span>Total gasto:</span>
-                            <span className="font-semibold">{formatCurrency(customer.totalSpent)}</span>
-                          </p>
-                          <p className="text-gray-600 flex justify-between">
-                            <span>Pedidos:</span>
-                            <span className="font-semibold">{customer.totalOrders}</span>
-                          </p>
+
+                        <Separator className="my-3 opacity-50" />
+
+                        <div className="flex justify-between items-center text-sm">
+                          <div>
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide font-bold">Total Gasto</p>
+                            <p className="font-black text-pink-600">{formatCurrency(customer.totalSpent)}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-[10px] text-gray-400 uppercase tracking-wide font-bold">Pedidos</p>
+                            <p className="font-bold text-gray-700">{customer.totalOrders}</p>
+                          </div>
                         </div>
                       </Card>
                     ))}
                   </div>
                 )}
+
                 {customers.length > 0 && (
                   <Pagination
                     currentPage={customersPage}
@@ -2941,54 +3052,6 @@ const chartData = useMemo(() => {
                   />
                 )}
               </div>
-              {/* DIALOG DE EDIÇÃO DE CLIENTE */}
-              <Dialog open={showEditCustomer} onOpenChange={setShowEditCustomer}>
-                <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
-                  <DialogHeader>
-                    <DialogTitle>✏️ Editar Cliente</DialogTitle>
-                    <DialogDescription>Atualize os dados do cliente</DialogDescription>
-                  </DialogHeader>
-                  <div className="space-y-4">
-                    <div>
-                      <Label>Nome *</Label>
-                      <Input
-                        value={customerForm.name}
-                        onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
-                        placeholder="Nome completo"
-                      />
-                    </div>
-                    <div>
-                      <Label>Email</Label>
-                      <Input
-                        type="email"
-                        value={customerForm.email}
-                        onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
-                        placeholder="email@exemplo.com"
-                      />
-                    </div>
-                    <div>
-                      <Label>Telefone</Label>
-                      <Input
-                        value={customerForm.phone}
-                        onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
-                        placeholder="(00) 00000-0000"
-                      />
-                    </div>
-                    <div>
-                      <Label>Endereço</Label>
-                      <Input
-                        value={customerForm.address}
-                        onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
-                        placeholder="Endereço completo"
-                      />
-                    </div>
-                  </div>
-                  <DialogFooter>
-                    <Button variant="outline" onClick={() => setShowEditCustomer(false)}>Cancelar</Button>
-                    <Button onClick={handleEditCustomer} className="bg-blue-600">Salvar Alterações</Button>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
             </TabsContent>
 
             <TabsContent value="fornecedores">
@@ -3091,6 +3154,15 @@ const chartData = useMemo(() => {
                     </div>
                     <div>
                       <Label>Telefone</Label>
+                      <div>
+                <Label>Data de Aniversário</Label>
+                <Input
+                  type="date"
+                  value={customerForm.birthDate}
+                  onChange={(e) => setCustomerForm({ ...customerForm, birthDate: e.target.value })}
+                  className="bg-white"
+                />
+              </div>
                       <Input
                         value={supplierForm.phone}
                         onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}
@@ -3756,10 +3828,11 @@ const chartData = useMemo(() => {
               </div>
             </div>
             <DialogFooter>
+
               <Button variant="outline" onClick={() => setShowAddSale(false)}>
                 Cancelar
               </Button>
-              <Button onClick={handleAddSale} className="bg-emerald-600">
+              <Button onClick={() => setShowPDV(true)} className="bg-emerald-600">
                 <Save className="w-4 h-4 mr-2" />
                 Registrar Venda
               </Button>
@@ -3853,7 +3926,63 @@ const chartData = useMemo(() => {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-
+{/* DIALOG DE EDIÇÃO DE CLIENTE */}
+<Dialog open={showEditCustomer} onOpenChange={setShowEditCustomer}>
+          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+            <DialogHeader>
+              <DialogTitle>✏️ Editar Cliente</DialogTitle>
+              <DialogDescription>Atualize os dados do cliente</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Nome *</Label>
+                <Input
+                  value={customerForm.name}
+                  onChange={(e) => setCustomerForm({ ...customerForm, name: e.target.value })}
+                  placeholder="Nome completo"
+                />
+              </div>
+              <div>
+                <Label>Email</Label>
+                <Input
+                  type="email"
+                  value={customerForm.email}
+                  onChange={(e) => setCustomerForm({ ...customerForm, email: e.target.value })}
+                  placeholder="email@exemplo.com"
+                />
+              </div>
+              <div>
+                <Label>Telefone</Label>
+                <Input
+                  value={customerForm.phone}
+                  onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+              <div>
+                <Label>Data de Aniversário</Label>
+                <Input
+                  type="date"
+                  value={customerForm.birthDate}
+                  onChange={(e) => setCustomerForm({ ...customerForm, birthDate: e.target.value })}
+                  className="bg-white"
+                />
+              </div>
+              <div>
+                <Label>Endereço</Label>
+                <Input
+                  value={customerForm.address}
+                  onChange={(e) => setCustomerForm({ ...customerForm, address: e.target.value })}
+                  placeholder="Endereço completo"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEditCustomer(false)}>Cancelar</Button>
+              <Button onClick={handleEditCustomer} className="bg-blue-600">Salvar Alterações</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
           <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
             <DialogHeader>
@@ -3880,6 +4009,15 @@ const chartData = useMemo(() => {
               </div>
               <div>
                 <Label>Telefone</Label>
+                <div>
+                <Label>Data de Aniversário</Label>
+                <Input
+                  type="date"
+                  value={customerForm.birthDate}
+                  onChange={(e) => setCustomerForm({ ...customerForm, birthDate: e.target.value })}
+                  className="bg-white"
+                />
+              </div>
                 <Input
                   value={customerForm.phone}
                   onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
@@ -3932,6 +4070,15 @@ const chartData = useMemo(() => {
               </div>
               <div>
                 <Label>Telefone</Label>
+                <div>
+                <Label>Data de Aniversário</Label>
+                <Input
+                  type="date"
+                  value={customerForm.birthDate}
+                  onChange={(e) => setCustomerForm({ ...customerForm, birthDate: e.target.value })}
+                  className="bg-white"
+                />
+              </div>
                 <Input
                   value={supplierForm.phone}
                   onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}

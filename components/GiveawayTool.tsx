@@ -195,7 +195,7 @@ function SmartLinkGenerator({ onGenerate, existingGiveaway }: { onGenerate: (dat
         <div className="space-y-3">
           <input
             type="text"
-            placeholder="Nome do Sorteio (Ex: Kit Setup 2024)"
+            placeholder="Nome do Sorteio (Ex: Kit Setup 2026)"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             className="w-full px-4 py-3 border-2 border-gray-200 dark:border-gray-700 rounded-xl focus:border-purple-500 outline-none transition-all font-medium"

@@ -1847,6 +1847,7 @@ export const addCustomer = mutation({
     address: v.optional(v.string()),
     tags: v.optional(v.array(v.string())),
     notes: v.optional(v.string()),
+    birthDate: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
@@ -1865,6 +1866,7 @@ export const addCustomer = mutation({
       totalOrders: 0,
       active: true,
       createdAt: Date.now(),
+      birthDate: args.birthDate,
     });
   },
 });
@@ -3339,5 +3341,153 @@ export const predictNextMonth = action({
       insights,
       recommendations,
     };
+  },
+});
+
+// =================================================================
+// 🛒 FRENTE DE CAIXA (PDV) - MÚLTIPLOS ITENS E CARRINHO
+// =================================================================
+export const addPDVSale = mutation({
+  args: {
+    businessId: v.optional(v.id("businesses")),
+    customerId: v.optional(v.id("customers")),
+    items: v.array(
+      v.object({
+        productId: v.id("products"),
+        productName: v.string(),
+        quantity: v.number(),
+        costPrice: v.number(),
+        salePrice: v.number(),
+      })
+    ),
+    discount: v.optional(v.number()),
+    date: v.string(),
+    paymentMethod: v.optional(v.string()),
+    paymentStatus: v.optional(v.string()),
+    notes: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Faça login para continuar");
+
+    let totalCost = 0;
+    let totalRevenue = 0;
+
+    // 1. Validar e abater estoque de TODOS os itens do carrinho
+    for (const item of args.items) {
+      const product = await ctx.db.get(item.productId);
+      if (!product) throw new Error(`Produto ${item.productName} não encontrado.`);
+      if (!product.active) throw new Error(`Produto ${item.productName} está inativo.`);
+
+      if (product.stock !== undefined) {
+        const newStock = product.stock - item.quantity;
+        if (newStock < 0) throw new Error(`Estoque insuficiente para ${product.name}. Disponível: ${product.stock}`);
+
+        await ctx.db.patch(product._id, {
+          stock: newStock,
+          totalSold: (product.totalSold ?? 0) + item.quantity,
+          totalRevenue: (product.totalRevenue ?? 0) + (item.salePrice * item.quantity),
+          totalProfit: (product.totalProfit ?? 0) + ((item.salePrice - item.costPrice) * item.quantity),
+          updatedAt: Date.now(),
+        });
+
+        // Alerta de estoque baixo automático
+        if (product.minStock && newStock <= product.minStock) {
+          await ctx.db.insert("alerts", {
+            userId: identity.subject,
+            businessId: product.businessId,
+            type: "low_stock",
+            severity: "warning",
+            title: "⚠️ Estoque Baixo",
+            message: `O produto "${product.name}" chegou a ${newStock} unidades.`,
+            relatedId: product._id,
+            read: false,
+            createdAt: Date.now(),
+          });
+        }
+      }
+
+      totalCost += item.costPrice * item.quantity;
+      totalRevenue += item.salePrice * item.quantity;
+    }
+
+    // 2. Aplicar desconto no total da compra
+    const finalRevenue = totalRevenue - (args.discount ?? 0);
+    const profit = finalRevenue - totalCost;
+    const month = args.date.substring(0, 7);
+
+    // 3. Salvar a Venda
+    const saleId = await ctx.db.insert("sales", {
+      userId: identity.subject,
+      businessId: args.businessId,
+      customerId: args.customerId,
+      productName: args.items.length === 1 ? args.items[0].productName : `Venda Múltipla (${args.items.length} itens)`,
+      quantity: args.items.reduce((sum, item) => sum + item.quantity, 0),
+      costPrice: totalCost,
+      salePrice: totalRevenue,
+      items: args.items, // 🔥 Salvando o array do carrinho!
+      discount: args.discount,
+      totalCost,
+      totalRevenue: finalRevenue,
+      profit,
+      paymentMethod: args.paymentMethod as undefined,
+      paymentStatus: args.paymentStatus as undefined,
+      date: args.date,
+      month,
+      notes: args.notes,
+      isQuickSale: false,
+      createdAt: Date.now(),
+    });
+
+    // 4. Atualizar Histórico do Cliente
+    if (args.customerId) {
+      const customer = await ctx.db.get(args.customerId);
+      if (customer) {
+        await ctx.db.patch(args.customerId, {
+          totalSpent: customer.totalSpent + finalRevenue,
+          totalOrders: customer.totalOrders + 1,
+          lastPurchase: Date.now(),
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
+    // 5. Registrar no Fluxo de Caixa (se estiver pago)
+    if (args.paymentStatus === "paid") {
+      const now = new Date();
+      const brazilTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
+      const time = brazilTime.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+
+      await ctx.db.insert("cashFlow", {
+        userId: identity.subject,
+        businessId: args.businessId,
+        type: "in",
+        amount: finalRevenue,
+        description: args.items.length === 1 ? `Venda: ${args.items[0].productName}` : `Venda PDV (${args.items.length} itens)`,
+        date: args.date,
+        time,
+        paymentMethod: args.paymentMethod,
+        createdAt: Date.now(),
+      });
+    }
+
+    // 6. Atualizar Gamificação e Resumo
+    await ctx.scheduler.runAfter(0, internal.gamification.updateActivityStreak, {
+      userId: identity.subject,
+    });
+
+    await ctx.scheduler.runAfter(0, internal.profitCalculator.updateDailySummary, {
+      userId: identity.subject,
+      date: args.date,
+      businessId: args.businessId,
+    });
+
+    await ctx.scheduler.runAfter(500, internal.profitCalculator.regenerateMonthlyReport, {
+      userId: identity.subject,
+      month,
+      businessId: args.businessId,
+    });
+
+    return saleId;
   },
 });

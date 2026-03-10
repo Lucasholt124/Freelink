@@ -76,6 +76,70 @@ export default defineSchema({
     .index("by_slug", ["slug"])
     .index("by_user", ["userId"]),
 
+  analyses: defineTable({
+    optimized_bio: v.string(),
+    content_pillars: v.array(
+      v.object({
+        pillar: v.string(),
+        description: v.string(),
+      })
+    ),
+    audience_persona: v.object({
+      name: v.string(),
+      description: v.string(),
+      pain_points: v.array(v.string()),
+    }),
+    brand_voice: v.string(),
+    content_plan: v.array(
+      v.object({
+        day: v.string(),
+        time: v.string(),
+        format: v.union(
+          v.literal("reels"),
+          v.literal("carrossel"),
+          v.literal("stories"),
+          v.literal("imagem"),
+          v.literal("atividade")
+        ),
+        title: v.string(),
+        content_idea: v.string(),
+        status: v.union(v.literal("planejado"), v.literal("concluido")),
+        completedAt: v.optional(v.number()),
+        funnel_stage: v.union(
+          v.literal("atrair"),
+          v.literal("nutrir"),
+          v.literal("converter")
+        ),
+        focus_metric: v.string(),
+        details: v.optional(
+          v.object({
+            tool_suggestion: v.string(),
+            step_by_step: v.string(),
+            script_or_copy: v.string(),
+            hashtags: v.string(),
+            creative_guidance: v.object({
+              type: v.string(),
+              description: v.string(),
+              prompt: v.string(),
+              tool_link: v.string(),
+            }),
+          })
+        ),
+      })
+    ),
+    userId: v.string(),
+    username: v.string(),
+    bio: v.string(),
+    offer: v.string(),
+    audience: v.string(),
+    planDuration: v.union(v.literal("week"), v.literal("month")),
+    aiModel: v.optional(v.string()),
+    createdAt: v.optional(v.number()),
+    updatedAt: v.optional(v.number()),
+  })
+    .index("by_user", ["userId"])
+    .index("by_created", ["createdAt"]),
+
   publicGiveaways: defineTable({
     giveawayId: v.string(),
     title: v.string(),
@@ -395,6 +459,8 @@ export default defineSchema({
     totalOrders: v.number(),
     lastPurchase: v.optional(v.number()),
     notes: v.optional(v.string()),
+    // 🔥 NOVO CAMPO: Adicionado para o CRM (Data de Aniversário)
+    birthDate: v.optional(v.string()),
     active: v.boolean(),
     createdAt: v.number(),
     updatedAt: v.optional(v.number()),
@@ -448,6 +514,18 @@ export default defineSchema({
     quantity: v.number(),
     costPrice: v.number(),
     salePrice: v.number(),
+    // 🔥 NOVO CAMPO: Adicionado para o Carrinho de Vendas Múltiplas
+    items: v.optional(
+      v.array(
+        v.object({
+          productId: v.optional(v.id("products")),
+          productName: v.string(),
+          quantity: v.number(),
+          costPrice: v.number(),
+          salePrice: v.number(),
+        })
+      )
+    ),
     discount: v.optional(v.number()),
     totalCost: v.number(),
     totalRevenue: v.number(),

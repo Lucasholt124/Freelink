@@ -891,7 +891,7 @@ export default function PublicPageContent({
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
-  const [joinDate] = useState<string>(customizations?._creationTime ? new Date(customizations._creationTime).getFullYear().toString() : "2024");
+  const [joinDate] = useState<string>(customizations?._creationTime ? new Date(customizations._creationTime).getFullYear().toString() : "2026");
   const [backgroundConfig, setBackgroundConfig] = useState<BackgroundConfig>({
     type: "color", style: "full", color1: "#f3f4f6", color2: "#e5e7eb",
     imageUrl: "", imageBlur: 0, imageOpacity: 100,
