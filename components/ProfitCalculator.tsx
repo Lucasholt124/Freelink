@@ -102,6 +102,7 @@ import { AnimatedCard } from "./AnimatedCard";
 import { Pagination } from "./Pagination";
 import { AnimatedCounter } from "./AnimatedCounter";
 import { YearlyChart } from "./finance/YearlyChart";
+import { PDVSaleModal } from './finance/PDVSaleModal';
 
 type TabType = "dashboard" | "produtos" | "vendas" | "gastos" | "resumo" | "metas" | "clientes" | "fornecedores" | "rapido";
 type GoalType = "revenue" | "profit" | "margin" | "sales_count" | "expense_reduction";
@@ -197,7 +198,7 @@ export default function FinancialManagerPro() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const deleteCashFlow = useMutation(api.profitCalculator.deleteCashFlow);
-  const [, setShowPDV] = useState(false);
+  const [showPDV, setShowPDV] = useState(false);
 
 
   // ✅ ESTADOS PARA MODO OFFLINE
@@ -838,7 +839,54 @@ const handleDuplicateProduct = (product: Doc<"products">) => {
 
 
 
+const addSale = useMutation(api.profitCalculator.addSale);
+  const [isSubmittingSale, setIsSubmittingSale] = useState(false);
 
+  const validateSale = (form: typeof saleForm, product: Doc<"products">): string[] => {
+    const errors: string[] = [];
+    if (!form.productId) errors.push("Selecione um produto");
+    if (!form.quantity || parseInt(form.quantity) <= 0) errors.push("Quantidade inválida");
+    if (product.stock !== undefined && parseInt(form.quantity) > product.stock) {
+      errors.push(`Estoque insuficiente. Disponível: ${product.stock}`);
+    }
+    if (form.discount && parseFloat(form.discount) < 0) errors.push("Desconto inválido");
+    const saleDate = new Date(form.date + "T00:00:00");
+    const today = new Date(getBrazilDate() + "T23:59:59");
+    if (saleDate > today) errors.push("Data não pode ser no futuro");
+    return errors;
+  };
+
+  const handleAddSale = async () => {
+    const product = products.find((p) => p._id === saleForm.productId);
+    if (!product) return toast.error("Produto não encontrado");
+
+    const errors = validateSale(saleForm, product);
+    if (errors.length > 0) return toast.error(errors[0]);
+
+    setIsSubmittingSale(true);
+    try {
+      await addSale({
+        productId: product._id,
+        customerId: saleForm.customerId ? (saleForm.customerId as Id<"customers">) : undefined,
+        quantity: parseInt(saleForm.quantity),
+        discount: saleForm.discount ? parseFloat(saleForm.discount) : undefined,
+        date: saleForm.date,
+        paymentMethod: saleForm.paymentMethod,
+        paymentStatus: saleForm.paymentStatus,
+        notes: saleForm.notes || undefined,
+      });
+
+      await generateReport({ month: saleForm.date.substring(0, 7) });
+      confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+      toast.success("✅ Venda registrada com sucesso!");
+      setShowAddSale(false);
+      setSaleForm({ productId: "", customerId: "", quantity: "", discount: "", date: getBrazilDate(), paymentMethod: "pix", paymentStatus: "paid", notes: "" });
+    } catch (error) {
+      handleApiError(error, "Erro ao registrar venda");
+    } finally {
+      setIsSubmittingSale(false);
+    }
+  };
 
 
 
@@ -2493,7 +2541,7 @@ const chartData = useMemo(() => {
                       <Download className="w-4 h-4 mr-2" />
                       Exportar PDF
                     </Button>
-                    <Button onClick={() => setShowPDV(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
+                    <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
                       <Plus className="w-4 h-4 mr-2" />
                       Nova Venda
                     </Button>
@@ -2513,8 +2561,7 @@ const chartData = useMemo(() => {
                     <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                     <h3 className="text-xl font-bold mb-2">Nenhuma venda registrada</h3>
                     <p className="text-gray-500 mb-4">Comece registrando sua primeira venda</p>
-                    <Button onClick={() => setShowPDV(true)} className="bg-emerald-600" disabled={products.filter((p) => p.active).length === 0}>
-                      Registrar Primeira Venda
+                    <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600" disabled={products.filter((p) => p.active).length === 0}>                      Registrar Primeira Venda
                     </Button>
                   </Card>
                 ) : (
@@ -3832,8 +3879,8 @@ const chartData = useMemo(() => {
               <Button variant="outline" onClick={() => setShowAddSale(false)}>
                 Cancelar
               </Button>
-              <Button onClick={() => setShowPDV(true)} className="bg-emerald-600">
-                <Save className="w-4 h-4 mr-2" />
+              <Button onClick={handleAddSale} className="bg-emerald-600" disabled={isSubmittingSale}>
+                {isSubmittingSale ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
                 Registrar Venda
               </Button>
             </DialogFooter>
@@ -4251,6 +4298,15 @@ const chartData = useMemo(() => {
             </div>
           </DialogContent>
         </Dialog>
+        {/* MODAL DE FRENTE DE CAIXA (PDV) */}
+        {showPDV && (
+          <PDVSaleModal
+            isOpen={showPDV}
+            onClose={() => setShowPDV(false)}
+            products={products}
+            customers={customers}
+          />
+        )}
     </>
   );
 }
