@@ -905,6 +905,7 @@ export default function PublicPageContent({
     title: string;
     text: string;
     mediaUrls: string[];
+    mediaTypes?: string[];
     link: string;
   } | null>(null);
   const [adImageIndex, setAdImageIndex] = useState(0);
@@ -2039,19 +2040,36 @@ export default function PublicPageContent({
 
                   <div className="relative z-10 bg-white dark:bg-slate-900 rounded-xl sm:rounded-[22px] overflow-hidden flex flex-col md:flex-row">
                     {/* Imagem do Anúncio */}
-                    {publicAd.mediaUrls && publicAd.mediaUrls.length > 0 && publicAd.mediaUrls[0] !== "" && (
+                  {/* Imagem ou Vídeo do Anúncio */}
+                  {publicAd.mediaUrls && publicAd.mediaUrls.length > 0 && publicAd.mediaUrls[0] !== "" && (
                       <div className="w-full md:w-2/5 aspect-video md:aspect-square relative overflow-hidden bg-slate-100 dark:bg-slate-800">
                         <AnimatePresence mode="wait">
-                          <motion.img
-                            key={adImageIndex}
-                            src={publicAd.mediaUrls[adImageIndex]}
-                            initial={{ opacity: 0, scale: 1.05 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0 }}
-                            transition={{ duration: 0.5 }}
-                            className="absolute inset-0 w-full h-full object-cover"
-                            alt="Ad visual"
-                          />
+                          {publicAd.mediaTypes && publicAd.mediaTypes[adImageIndex] === 'video' ? (
+                            <motion.video
+                              key={adImageIndex}
+                              src={publicAd.mediaUrls[adImageIndex]}
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                              initial={{ opacity: 0, scale: 1.05 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.5 }}
+                              className="absolute inset-0 w-full h-full object-cover"
+                            />
+                          ) : (
+                            <motion.img
+                              key={adImageIndex}
+                              src={publicAd.mediaUrls[adImageIndex]}
+                              initial={{ opacity: 0, scale: 1.05 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.5 }}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              alt="Anúncio"
+                            />
+                          )}
                         </AnimatePresence>
                         {/* Badge de Patrocinado */}
                         <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[9px] font-bold text-white uppercase tracking-wider border border-white/10">

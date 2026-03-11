@@ -1,12 +1,15 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-
 const getCurrentMonthString = () => {
   const now = new Date();
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 };
 
+// 🔥 NOVA FUNÇÃO: Gera um link seguro para o usuário subir o Vídeo/Imagem
+export const generateUploadUrl = mutation(async (ctx) => {
+  return await ctx.storage.generateUploadUrl();
+});
 
 export const getCampaigns = query({
   args: {},
@@ -21,7 +24,6 @@ export const getCampaigns = query({
       .order("desc")
       .collect();
 
-
     return campaigns.map(camp => {
       if (camp.lastResetMonth !== currentMonth) {
         return { ...camp, views: 0 };
@@ -31,13 +33,14 @@ export const getCampaigns = query({
   },
 });
 
-// 🚀 CRIAR UMA NOVA CAMPANHA
+// 🚀 CRIAR CAMPANHA (ATUALIZADO PARA RECEBER ARQUIVOS DO STORAGE)
 export const createCampaign = mutation({
   args: {
     title: v.string(),
     productLink: v.string(),
     adText: v.string(),
-    mediaUrls: v.array(v.string()),
+    mediaStorageIds: v.array(v.id("_storage")), // 🔥 Recebe os IDs do Storage
+    mediaTypes: v.array(v.string()), // 🔥 Recebe "video" ou "image"
     userPlan: v.string(),
     niche: v.optional(v.string()),
   },
@@ -45,6 +48,12 @@ export const createCampaign = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autorizado");
 
+    // 🔥 Gera os URLs públicos e rápidos a partir dos arquivos salvos na nuvem
+    const mediaUrls = [];
+    for (const storageId of args.mediaStorageIds) {
+      const url = await ctx.storage.getUrl(storageId);
+      if (url) mediaUrls.push(url);
+    }
 
     const limit = args.userPlan === "ultra" ? 5000 : 1000;
     const currentMonth = getCurrentMonthString();
@@ -54,7 +63,8 @@ export const createCampaign = mutation({
       title: args.title,
       productLink: args.productLink,
       adText: args.adText,
-      mediaUrls: args.mediaUrls,
+      mediaUrls: mediaUrls,
+      mediaTypes: args.mediaTypes, // Salva o tipo
       niche: args.niche || "geral",
       status: "active",
       views: 0,
@@ -66,7 +76,6 @@ export const createCampaign = mutation({
   },
 });
 
-
 export const toggleCampaignStatus = mutation({
   args: {
     id: v.id("adCampaigns"),
@@ -77,14 +86,11 @@ export const toggleCampaignStatus = mutation({
     if (!identity) throw new Error("Não autorizado");
 
     const campaign = await ctx.db.get(args.id);
-    if (!campaign || campaign.userId !== identity.subject) {
-      throw new Error("Campanha não encontrada");
-    }
+    if (!campaign || campaign.userId !== identity.subject) throw new Error("Campanha não encontrada");
 
     const currentMonth = getCurrentMonthString();
     let currentViews = campaign.views;
 
-    // Se o mês virou, reseta as views de verdade no banco antes de verificar o limite
     if (campaign.lastResetMonth !== currentMonth) {
       currentViews = 0;
       await ctx.db.patch(args.id, { views: 0, lastResetMonth: currentMonth });
@@ -94,16 +100,11 @@ export const toggleCampaignStatus = mutation({
       throw new Error("Limite de visualizações do mês atingido. Faça upgrade para o Ultra!");
     }
 
-    await ctx.db.patch(args.id, {
-      status: args.status,
-      updatedAt: Date.now(),
-    });
-
+    await ctx.db.patch(args.id, { status: args.status, updatedAt: Date.now() });
     return { success: true };
   },
 });
 
-// 🗑️ DELETAR UMA CAMPANHA
 export const deleteCampaign = mutation({
   args: { id: v.id("adCampaigns") },
   handler: async (ctx, args) => {
@@ -111,9 +112,7 @@ export const deleteCampaign = mutation({
     if (!identity) throw new Error("Não autorizado");
 
     const campaign = await ctx.db.get(args.id);
-    if (!campaign || campaign.userId !== identity.subject) {
-      throw new Error("Campanha não encontrada");
-    }
+    if (!campaign || campaign.userId !== identity.subject) throw new Error("Campanha não encontrada");
 
     await ctx.db.delete(args.id);
     return { success: true };
@@ -127,6 +126,9 @@ export const getAdForPublicPage = mutation({
     pageOwnerPlan: v.string(),  // Plano de quem é dono do link
   },
   handler: async (ctx, args) => {
+    // ⚠️ ATENÇÃO: NÃO podemos colocar check de autenticação aqui,
+    // porque quem visita a página pública não está logado no Convex.
+
     // 1. Regra de Ouro: Se a página é Ultra, NÃO EXIBE ANÚNCIO (Whitelabel)
     if (args.pageOwnerPlan === "ultra") return null;
 
@@ -173,15 +175,16 @@ export const getAdForPublicPage = mutation({
       title: selectedAd.title,
       text: selectedAd.adText,
       mediaUrls: selectedAd.mediaUrls,
+      mediaTypes: selectedAd.mediaTypes || [], // Manda o tipo pra página pública saber se é vídeo
       link: selectedAd.productLink
     };
   }
 });
 
-// 🖱️ REGISTRAR O CLIQUE DO USUÁRIO FINAL
 export const registerAdClick = mutation({
   args: { id: v.id("adCampaigns") },
   handler: async (ctx, args) => {
+    // ⚠️ Também sem checagem de auth, porque é o usuário visitante que clica
     const campaign = await ctx.db.get(args.id);
     if (campaign) {
       await ctx.db.patch(args.id, { clicks: campaign.clicks + 1 });

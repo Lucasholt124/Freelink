@@ -843,6 +843,7 @@ export default defineSchema({
       title: v.string(),
       productLink: v.string(),
       adText: v.string(),
+      mediaTypes: v.optional(v.array(v.string())),
       mediaUrls: v.array(v.string()), // 🔥 Agora é um array (suporta N imagens/gifs/vídeos)
       niche: v.optional(v.string()), // 🔥 A IA vai preencher isso (Ex: "moda", "comida", "serviços")
       status: v.union(v.literal("active"), v.literal("paused"), v.literal("completed")),

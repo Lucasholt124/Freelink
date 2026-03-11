@@ -7,7 +7,7 @@ import { Id, Doc } from "@/convex/_generated/dataModel";
 import {
   Megaphone, Plus, Play, Pause, Trash2, Eye, MousePointerClick,
   Sparkles, Link as LinkIcon, Loader2, TrendingUp, BarChart3,
-  AlertTriangle, X, UploadCloud
+  AlertTriangle, X, UploadCloud, Video
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,49 +20,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 
-// 🛠️ Função Mágica para comprimir a imagem antes de salvar no banco
-const compressImage = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(file);
-    reader.onload = (event) => {
-      const img = new Image();
-      img.src = event.target?.result as string;
-      img.onload = () => {
-        const canvas = document.createElement("canvas");
-        const MAX_WIDTH = 800; // Resolução perfeita para Ads
-        const MAX_HEIGHT = 800;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-        } else {
-          if (height > MAX_HEIGHT) {
-            width *= MAX_HEIGHT / height;
-            height = MAX_HEIGHT;
-          }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext("2d");
-        ctx?.drawImage(img, 0, 0, width, height);
-        // Comprime para 70% da qualidade original (fica super leve pro banco)
-        resolve(canvas.toDataURL("image/jpeg", 0.7));
-      };
-      img.onerror = (err) => reject(err);
-    };
-  });
-};
-
 export default function AdsManagerComponent({ userPlan }: { userPlan: string }) {
-  // 🔥 CORREÇÃO DE TIPAGEM: Forçando o TypeScript a entender o formato da Campanha
   const campaignsRaw = useQuery(api.ads.getCampaigns);
   const campaigns = (campaignsRaw ?? []) as Doc<"adCampaigns">[];
 
+  const generateUploadUrl = useMutation(api.ads.generateUploadUrl);
   const createCampaign = useMutation(api.ads.createCampaign);
   const toggleStatus = useMutation(api.ads.toggleCampaignStatus);
   const deleteCampaign = useMutation(api.ads.deleteCampaign);
@@ -77,14 +39,12 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
     adText: "",
   });
 
-  // 📂 ESTADOS DO NOVO UPLOAD
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<{url: string, type: string}[]>([]);
 
   const isUltra = userPlan === "ultra";
-  const maxMediaAllowed = isUltra ? 10 : 2; // Regra de Negócio: Pro = 2 / Ultra = 10
+  const maxMediaAllowed = isUltra ? 10 : 2;
 
-  // 🔥 CORREÇÃO DE TIPAGEM: Avisando que 'c' é uma Campanha
   const totalViews = campaigns.reduce((sum: number, c: Doc<"adCampaigns">) => sum + c.views, 0);
   const totalClicks = campaigns.reduce((sum: number, c: Doc<"adCampaigns">) => sum + c.clicks, 0);
   const activeCount = campaigns.filter((c: Doc<"adCampaigns">) => c.status === "active").length;
@@ -93,20 +53,27 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
     const files = Array.from(e.target.files || []);
 
     if (selectedFiles.length + files.length > maxMediaAllowed) {
-      toast.error(`Seu plano permite até ${maxMediaAllowed} mídias. Faça upgrade para o Ultra!`);
+      toast.error(`Seu plano permite até ${maxMediaAllowed} mídias.`);
       return;
     }
 
-    const validFiles = files.filter(f => f.type.startsWith('image/'));
-    if (validFiles.length < files.length) {
-      toast.warning("Apenas imagens são suportadas nesta versão de teste.");
-    }
+    // Aceita Imagem e Vídeo (limita vídeo em 50MB pra não travar a internet do cara)
+    const validFiles = files.filter(f => {
+      if (f.type.startsWith('video/') && f.size > 50 * 1024 * 1024) {
+        toast.error(`O vídeo ${f.name} é maior que 50MB.`);
+        return false;
+      }
+      return f.type.startsWith('image/') || f.type.startsWith('video/');
+    });
 
     setSelectedFiles([...selectedFiles, ...validFiles]);
-    const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+
+    const newPreviews = validFiles.map(file => ({
+      url: URL.createObjectURL(file),
+      type: file.type.startsWith('video/') ? 'video' : 'image'
+    }));
     setMediaPreviews([...mediaPreviews, ...newPreviews]);
 
-    // Limpa o input para poder selecionar o mesmo arquivo de novo se quiser
     e.target.value = '';
   };
 
@@ -116,7 +83,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
     setSelectedFiles(newFiles);
 
     const newPreviews = [...mediaPreviews];
-    URL.revokeObjectURL(newPreviews[index]); // Limpa a memória do navegador
+    URL.revokeObjectURL(newPreviews[index].url);
     newPreviews.splice(index, 1);
     setMediaPreviews(newPreviews);
   };
@@ -128,10 +95,30 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
     }
 
     setIsSubmitting(true);
-    const loadingToast = toast.loading("Processando imagens e ativando a IA...");
+    const loadingToast = toast.loading("Enviando mídias para a nuvem...");
 
     try {
-      // 1. CHAMA A IA DA GROQ PARA CLASSIFICAR O NICHO
+      const mediaStorageIds = [];
+      const mediaTypes = [];
+
+      // 1. FAZ O UPLOAD REAL DOS ARQUIVOS PARA O CONVEX STORAGE
+      for (const file of selectedFiles) {
+        toast.loading(`Enviando ${file.name}...`, { id: loadingToast });
+        const postUrl = await generateUploadUrl();
+
+        const result = await fetch(postUrl, {
+          method: "POST",
+          headers: { "Content-Type": file.type },
+          body: file,
+        });
+
+        const { storageId } = await result.json();
+        mediaStorageIds.push(storageId);
+        mediaTypes.push(file.type.startsWith('video/') ? 'video' : 'image');
+      }
+
+      // 2. CHAMA A IA PARA CLASSIFICAR
+      toast.loading("Analisando nicho com Inteligência Artificial...", { id: loadingToast });
       let niche = "geral";
       try {
         const res = await fetch('/api/analyze-niche', {
@@ -143,37 +130,30 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
           const data = await res.json();
           niche = data.niche;
         }
-      } catch  {
-        console.warn("Falha na IA, usando nicho geral.");
-      }
+      } catch  {}
 
-      // 2. COMPRIME AS IMAGENS PARA BASE64
-      toast.loading("Otimizando mídias para a vitrine...", { id: loadingToast });
-      const compressedImages = await Promise.all(selectedFiles.map(file => compressImage(file)));
-
-      // 3. SALVA NO BANCO DE DADOS
+      // 3. SALVA A CAMPANHA
       await createCampaign({
         title: form.title,
         productLink: form.productLink,
         adText: form.adText,
-        mediaUrls: compressedImages,
+        mediaStorageIds: mediaStorageIds, // Manda os IDs pro backend
+        mediaTypes: mediaTypes, // Manda se é foto ou vídeo
         userPlan: userPlan,
         niche: niche,
       });
 
       toast.dismiss(loadingToast);
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      toast.success(`🚀 Anúncio no ar! Nicho detectado: "${niche}"`);
+      toast.success(`🚀 Anúncio criado com sucesso! (Nicho: ${niche})`);
 
-      // Reseta tudo
       setIsModalOpen(false);
       setForm({ title: "", productLink: "", adText: "" });
       setSelectedFiles([]);
       setMediaPreviews([]);
-    } catch (error) {
+    } catch  {
       toast.dismiss(loadingToast);
       toast.error("Erro ao criar campanha. Verifique sua conexão.");
-      console.error(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -185,7 +165,6 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
       await toggleStatus({ id, status: newStatus });
       toast.success(newStatus === "active" ? "▶️ Campanha ativada!" : "⏸️ Campanha pausada!");
     } catch (error) {
-      // 🔥 CORREÇÃO DE TIPAGEM: error as Error
       const err = error as Error;
       toast.error(err.message || "Erro ao alterar status.");
     }
@@ -274,10 +253,10 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
           <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
           <h3 className="text-xl font-bold mb-2 text-gray-700">Nenhum anúncio rodando</h3>
           <p className="text-gray-500 mb-6 max-w-md mx-auto">
-            Aumente suas vendas aparecendo no final de outras páginas. A inteligência do Freelinnk garante que você nunca vai anunciar na página de um concorrente.
+            Faça upload de vídeos e imagens para atrair mais clientes para sua loja de forma inteligente.
           </p>
           <Button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
-            Começar Primeira Campanha
+            Criar Primeiro Anúncio
           </Button>
         </Card>
       ) : (
@@ -322,7 +301,6 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
                   </div>
                 </div>
 
-                {/* 🔥 CORREÇÃO DO PROGRESS BAR (sem indicatorClassName) */}
                 <div className="mb-5">
                   <div className="flex justify-between text-[10px] text-gray-500 font-medium mb-1.5">
                     <span>Consumo: {campaign.views} de {campaign.maxViewsLimit}</span>
@@ -354,7 +332,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
         </div>
       )}
 
-      {/* 📝 MODAL DE CRIAÇÃO COM UPLOAD */}
+      {/* 📝 MODAL DE CRIAÇÃO */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="w-full sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -363,7 +341,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
               Novo Anúncio na Rede
             </DialogTitle>
             <DialogDescription>
-              Faça upload das imagens do produto. A IA fará o resto.
+              Faça upload de vídeos ou imagens do seu produto. A IA fará o resto.
             </DialogDescription>
           </DialogHeader>
 
@@ -411,9 +389,9 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
             {/* 📸 ÁREA DE UPLOAD DE ARQUIVOS BONITA */}
             <div className="p-4 bg-slate-50 border border-slate-200 border-dashed rounded-xl space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-semibold">Mídias do Anúncio (Fotos)</Label>
+                <Label className="text-sm font-semibold">Mídias (Vídeos ou Imagens)</Label>
                 <span className="text-xs text-gray-500 font-medium">
-                  {mediaPreviews.length} de {maxMediaAllowed} imagens
+                  {mediaPreviews.length} de {maxMediaAllowed} mídias
                 </span>
               </div>
 
@@ -421,12 +399,20 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
               {mediaPreviews.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {mediaPreviews.map((preview, index) => (
-                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group shadow-sm">
-                      <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group shadow-sm bg-black flex items-center justify-center">
+                      {preview.type === 'video' ? (
+                        <>
+                          <Video className="absolute w-6 h-6 text-white/70 z-10" />
+                          <video src={preview.url} className="w-full h-full object-cover opacity-70" />
+                        </>
+                      ) : (
+                        <img src={preview.url} alt="Preview" className="w-full h-full object-cover" />
+                      )}
+
                       <button
                         type="button"
                         onClick={() => handleRemoveMedia(index)}
-                        className="absolute top-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all transform hover:scale-110"
+                        className="absolute top-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all transform hover:scale-110 z-20"
                       >
                         <X className="w-3 h-3" />
                       </button>
@@ -440,17 +426,16 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
                 <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-blue-200 border-dashed rounded-lg cursor-pointer bg-blue-50/50 hover:bg-blue-50 transition-colors group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <UploadCloud className="w-6 h-6 mb-2 text-blue-400 group-hover:text-blue-500 transition-colors" />
-                    <p className="text-xs text-slate-500"><span className="font-semibold text-blue-600">Clique para fazer upload</span> das imagens</p>
+                    <p className="text-xs text-slate-500"><span className="font-semibold text-blue-600">Clique para escolher</span> fotos ou vídeos</p>
                   </div>
-                  {/* Arquivo real oculto */}
-                  <input type="file" className="hidden" accept="image/*" multiple onChange={handleFileSelect} />
+                  <input type="file" className="hidden" accept="image/*,video/mp4,video/quicktime" multiple onChange={handleFileSelect} />
                 </label>
               )}
 
               {!isUltra && mediaPreviews.length >= maxMediaAllowed && (
                 <div className="text-center mt-2 p-2 bg-orange-50 rounded-lg">
                   <p className="text-xs text-orange-600 flex items-center justify-center gap-1 font-medium">
-                    <AlertTriangle className="w-3 h-3" /> Limite de {maxMediaAllowed} imagens do plano PRO atingido.
+                    <AlertTriangle className="w-3 h-3" /> Limite de {maxMediaAllowed} mídias do plano PRO atingido.
                   </p>
                 </div>
               )}
