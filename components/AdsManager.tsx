@@ -3,11 +3,11 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Doc, Id } from "@/convex/_generated/dataModel";
+import { Id, Doc } from "@/convex/_generated/dataModel";
 import {
   Megaphone, Plus, Play, Pause, Trash2, Eye, MousePointerClick,
-  Sparkles, Link as LinkIcon, Image as ImageIcon, Loader2,
-  TrendingUp, BarChart3, AlertTriangle, X
+  Sparkles, Link as LinkIcon, Loader2, TrendingUp, BarChart3,
+  AlertTriangle, X, UploadCloud
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,49 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
 
+// 🛠️ Função Mágica para comprimir a imagem antes de salvar no banco
+const compressImage = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target?.result as string;
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        const MAX_WIDTH = 800; // Resolução perfeita para Ads
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > MAX_WIDTH) {
+            height *= MAX_WIDTH / width;
+            width = MAX_WIDTH;
+          }
+        } else {
+          if (height > MAX_HEIGHT) {
+            width *= MAX_HEIGHT / height;
+            height = MAX_HEIGHT;
+          }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+        // Comprime para 70% da qualidade original (fica super leve pro banco)
+        resolve(canvas.toDataURL("image/jpeg", 0.7));
+      };
+      img.onerror = (err) => reject(err);
+    };
+  });
+};
+
 export default function AdsManagerComponent({ userPlan }: { userPlan: string }) {
+  // 🔥 CORREÇÃO DE TIPAGEM: Forçando o TypeScript a entender o formato da Campanha
   const campaignsRaw = useQuery(api.ads.getCampaigns);
   const campaigns = (campaignsRaw ?? []) as Doc<"adCampaigns">[];
+
   const createCampaign = useMutation(api.ads.createCampaign);
   const toggleStatus = useMutation(api.ads.toggleCampaignStatus);
   const deleteCampaign = useMutation(api.ads.deleteCampaign);
@@ -31,38 +71,54 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isGeneratingIA, setIsGeneratingIA] = useState(false);
 
-  // Formulário agora suporta um Array de Mídias
   const [form, setForm] = useState({
     title: "",
     productLink: "",
     adText: "",
-    mediaUrls: [""],
   });
 
+  // 📂 ESTADOS DO NOVO UPLOAD
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<string[]>([]);
+
   const isUltra = userPlan === "ultra";
-  const maxMediaAllowed = isUltra ? 10 : 2; // 2 mídias para Pro, 10 para Ultra
+  const maxMediaAllowed = isUltra ? 10 : 2; // Regra de Negócio: Pro = 2 / Ultra = 10
 
-  const totalViews = campaigns.reduce((sum, c) => sum + c.views, 0);
-  const totalClicks = campaigns.reduce((sum, c) => sum + c.clicks, 0);
-  const activeCount = campaigns.filter(c => c.status === "active").length;
+  // 🔥 CORREÇÃO DE TIPAGEM: Avisando que 'c' é uma Campanha
+  const totalViews = campaigns.reduce((sum: number, c: Doc<"adCampaigns">) => sum + c.views, 0);
+  const totalClicks = campaigns.reduce((sum: number, c: Doc<"adCampaigns">) => sum + c.clicks, 0);
+  const activeCount = campaigns.filter((c: Doc<"adCampaigns">) => c.status === "active").length;
 
-  const handleAddMediaField = () => {
-    if (form.mediaUrls.length >= maxMediaAllowed) {
-      toast.error(`Seu plano permite até ${maxMediaAllowed} mídias por anúncio.`);
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+
+    if (selectedFiles.length + files.length > maxMediaAllowed) {
+      toast.error(`Seu plano permite até ${maxMediaAllowed} mídias. Faça upgrade para o Ultra!`);
       return;
     }
-    setForm({ ...form, mediaUrls: [...form.mediaUrls, ""] });
-  };
 
-  const handleMediaChange = (index: number, value: string) => {
-    const newMedia = [...form.mediaUrls];
-    newMedia[index] = value;
-    setForm({ ...form, mediaUrls: newMedia });
+    const validFiles = files.filter(f => f.type.startsWith('image/'));
+    if (validFiles.length < files.length) {
+      toast.warning("Apenas imagens são suportadas nesta versão de teste.");
+    }
+
+    setSelectedFiles([...selectedFiles, ...validFiles]);
+    const newPreviews = validFiles.map(file => URL.createObjectURL(file));
+    setMediaPreviews([...mediaPreviews, ...newPreviews]);
+
+    // Limpa o input para poder selecionar o mesmo arquivo de novo se quiser
+    e.target.value = '';
   };
 
   const handleRemoveMedia = (index: number) => {
-    const newMedia = form.mediaUrls.filter((_, i) => i !== index);
-    setForm({ ...form, mediaUrls: newMedia });
+    const newFiles = [...selectedFiles];
+    newFiles.splice(index, 1);
+    setSelectedFiles(newFiles);
+
+    const newPreviews = [...mediaPreviews];
+    URL.revokeObjectURL(newPreviews[index]); // Limpa a memória do navegador
+    newPreviews.splice(index, 1);
+    setMediaPreviews(newPreviews);
   };
 
   const handleCreate = async () => {
@@ -71,44 +127,52 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
       return;
     }
 
-    // Limpa links vazios do array de mídia
-    const validMediaUrls = form.mediaUrls.filter(url => url.trim() !== "");
-
     setIsSubmitting(true);
+    const loadingToast = toast.loading("Processando imagens e ativando a IA...");
+
     try {
-      toast.loading("Analisando seu anúncio com IA...");
-
-      // 🤖 CHAMA A NOSSA ROTA DA GROQ PARA DESCOBRIR O NICHO!
-      const res = await fetch('/api/analyze-niche', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: form.title, text: form.adText })
-      });
-
+      // 1. CHAMA A IA DA GROQ PARA CLASSIFICAR O NICHO
       let niche = "geral";
-      if (res.ok) {
-        const data = await res.json();
-        niche = data.niche;
+      try {
+        const res = await fetch('/api/analyze-niche', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: form.title, text: form.adText })
+        });
+        if (res.ok) {
+          const data = await res.json();
+          niche = data.niche;
+        }
+      } catch  {
+        console.warn("Falha na IA, usando nicho geral.");
       }
 
-      toast.dismiss(); // Apaga o loading
+      // 2. COMPRIME AS IMAGENS PARA BASE64
+      toast.loading("Otimizando mídias para a vitrine...", { id: loadingToast });
+      const compressedImages = await Promise.all(selectedFiles.map(file => compressImage(file)));
 
+      // 3. SALVA NO BANCO DE DADOS
       await createCampaign({
         title: form.title,
         productLink: form.productLink,
         adText: form.adText,
-        mediaUrls: validMediaUrls,
+        mediaUrls: compressedImages,
         userPlan: userPlan,
-        niche: niche, // Passa o nicho blindado pro backend
+        niche: niche,
       });
 
+      toast.dismiss(loadingToast);
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      toast.success(`🚀 Anúncio criado e classificado como "${niche}"!`);
+      toast.success(`🚀 Anúncio no ar! Nicho detectado: "${niche}"`);
+
+      // Reseta tudo
       setIsModalOpen(false);
-      setForm({ title: "", productLink: "", adText: "", mediaUrls: [""] });
+      setForm({ title: "", productLink: "", adText: "" });
+      setSelectedFiles([]);
+      setMediaPreviews([]);
     } catch (error) {
-      toast.dismiss();
-      toast.error("Erro ao criar campanha.");
+      toast.dismiss(loadingToast);
+      toast.error("Erro ao criar campanha. Verifique sua conexão.");
       console.error(error);
     } finally {
       setIsSubmitting(false);
@@ -121,8 +185,9 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
       await toggleStatus({ id, status: newStatus });
       toast.success(newStatus === "active" ? "▶️ Campanha ativada!" : "⏸️ Campanha pausada!");
     } catch (error) {
-        const err = error as Error;
-        toast.error(err.message || "Erro ao alterar status.");
+      // 🔥 CORREÇÃO DE TIPAGEM: error as Error
+      const err = error as Error;
+      toast.error(err.message || "Erro ao alterar status.");
     }
   };
 
@@ -131,7 +196,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
     try {
       await deleteCampaign({ id });
       toast.success("🗑️ Campanha excluída!");
-    } catch  {
+    } catch {
       toast.error("Erro ao excluir.");
     }
   };
@@ -257,6 +322,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
                   </div>
                 </div>
 
+                {/* 🔥 CORREÇÃO DO PROGRESS BAR (sem indicatorClassName) */}
                 <div className="mb-5">
                   <div className="flex justify-between text-[10px] text-gray-500 font-medium mb-1.5">
                     <span>Consumo: {campaign.views} de {campaign.maxViewsLimit}</span>
@@ -288,7 +354,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
         </div>
       )}
 
-      {/* 📝 MODAL DE CRIAÇÃO */}
+      {/* 📝 MODAL DE CRIAÇÃO COM UPLOAD */}
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
         <DialogContent className="w-full sm:max-w-xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
@@ -297,7 +363,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
               Novo Anúncio na Rede
             </DialogTitle>
             <DialogDescription>
-              A nossa IA lerá seu anúncio para exibi-lo longe dos seus concorrentes.
+              Faça upload das imagens do produto. A IA fará o resto.
             </DialogDescription>
           </DialogHeader>
 
@@ -342,49 +408,59 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
               />
             </div>
 
-            {/* 🔥 ÁREA DE MULTIPLAS IMAGENS/GIFS */}
-            <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl space-y-3">
+            {/* 📸 ÁREA DE UPLOAD DE ARQUIVOS BONITA */}
+            <div className="p-4 bg-slate-50 border border-slate-200 border-dashed rounded-xl space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-sm font-semibold">Mídias (Imagens/GIFs)</Label>
-                <span className="text-xs text-gray-500 font-medium">{form.mediaUrls.length} de {maxMediaAllowed} permitidas</span>
+                <Label className="text-sm font-semibold">Mídias do Anúncio (Fotos)</Label>
+                <span className="text-xs text-gray-500 font-medium">
+                  {mediaPreviews.length} de {maxMediaAllowed} imagens
+                </span>
               </div>
 
-              {form.mediaUrls.map((url, index) => (
-                <div key={index} className="flex items-center gap-2">
-                  <div className="relative flex-1">
-                    <ImageIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                    <Input
-                      placeholder="Link da imagem (https://...)"
-                      value={url}
-                      onChange={(e) => handleMediaChange(index, e.target.value)}
-                      className="pl-9 bg-white"
-                    />
-                  </div>
-                  {form.mediaUrls.length > 1 && (
-                    <Button type="button" variant="ghost" size="icon" onClick={() => handleRemoveMedia(index)} className="text-red-500 hover:bg-red-50">
-                      <X className="w-4 h-4" />
-                    </Button>
-                  )}
+              {/* Grid de Previews */}
+              {mediaPreviews.length > 0 && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {mediaPreviews.map((preview, index) => (
+                    <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-slate-200 group shadow-sm">
+                      <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveMedia(index)}
+                        className="absolute top-1 right-1 p-1.5 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-all transform hover:scale-110"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              )}
 
-              {form.mediaUrls.length < maxMediaAllowed ? (
-                <Button type="button" variant="outline" size="sm" onClick={handleAddMediaField} className="w-full mt-2 border-dashed border-blue-200 text-blue-600 hover:bg-blue-50">
-                  <Plus className="w-4 h-4 mr-2" /> Adicionar outra mídia
-                </Button>
-              ) : !isUltra && (
-                <div className="text-center mt-2">
-                  <p className="text-xs text-orange-600 mb-2 flex items-center justify-center gap-1">
-                    <AlertTriangle className="w-3 h-3" /> Limite de mídias do plano PRO atingido.
+              {/* Botão de Dropzone para upload */}
+              {mediaPreviews.length < maxMediaAllowed && (
+                <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-blue-200 border-dashed rounded-lg cursor-pointer bg-blue-50/50 hover:bg-blue-50 transition-colors group">
+                  <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                    <UploadCloud className="w-6 h-6 mb-2 text-blue-400 group-hover:text-blue-500 transition-colors" />
+                    <p className="text-xs text-slate-500"><span className="font-semibold text-blue-600">Clique para fazer upload</span> das imagens</p>
+                  </div>
+                  {/* Arquivo real oculto */}
+                  <input type="file" className="hidden" accept="image/*" multiple onChange={handleFileSelect} />
+                </label>
+              )}
+
+              {!isUltra && mediaPreviews.length >= maxMediaAllowed && (
+                <div className="text-center mt-2 p-2 bg-orange-50 rounded-lg">
+                  <p className="text-xs text-orange-600 flex items-center justify-center gap-1 font-medium">
+                    <AlertTriangle className="w-3 h-3" /> Limite de {maxMediaAllowed} imagens do plano PRO atingido.
                   </p>
                 </div>
               )}
             </div>
+
           </div>
 
           <DialogFooter className="border-t pt-4 mt-2">
             <Button variant="ghost" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-            <Button onClick={handleCreate} disabled={isSubmitting} className="bg-blue-600 hover:bg-blue-700 min-w-[140px]">
+            <Button onClick={handleCreate} disabled={isSubmitting || selectedFiles.length === 0} className="bg-blue-600 hover:bg-blue-700 min-w-[140px]">
               {isSubmitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Play className="w-4 h-4 mr-2" />}
               Lançar na Rede
             </Button>

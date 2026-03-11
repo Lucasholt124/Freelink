@@ -978,39 +978,35 @@ export default function PublicPageContent({
   }, [profileUrl, username, userAccentColor, customizations]);
 
   // 🎰 Gira a Roleta de Anúncios
-  useEffect(() => {
-    const loadAd = async () => {
-      if (plan === "ultra") return; // Ultra não tem anúncio na página
+ // 🎰 Gira a Roleta de Anúncios
+ useEffect(() => {
+  let mounted = true;
 
-      // Pega o nicho dessa página para a IA barrar concorrentes
-      // Como não salvamos o nicho na tabela de customização antes, mandamos a bio pra IA decidir
-      let pageNiche = "geral";
-      if (displayBio) {
-        try {
-          const res = await fetch('/api/analyze-niche', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title: username, text: displayBio })
-          });
-          if (res.ok) {
-            const data = await res.json();
-            pageNiche = data.niche;
-          }
-        } catch  {} // Falha silenciosa, segue como geral
+  const loadAd = async () => {
+    // Se for plano Ultra, nunca roda anúncio
+    if (plan === "ultra") return;
+
+    try {
+      // Envia o texto da bio diretamente para o backend. O backend se vira.
+      const ad = await fetchAd({
+        pageOwnerNiche: "geral", // Por enquanto usamos geral
+        pageOwnerPlan: plan
+      });
+
+      if (mounted && ad) {
+        setPublicAd(ad);
       }
+    } catch (e) {
+      console.error("Erro ao buscar anúncio", e);
+    }
+  };
 
-      // Chama a mutação do banco para buscar 1 anúncio válido
-      try {
-        const ad = await fetchAd({
-          pageOwnerNiche: pageNiche,
-          pageOwnerPlan: plan
-        });
-        if (ad) setPublicAd(ad);
-      } catch (e) { console.error("Erro ao buscar anúncio", e); }
-    };
+  loadAd();
 
-    loadAd();
-  }, [plan, username, displayBio]);
+  return () => {
+    mounted = false;
+  };
+}, [plan, fetchAd]);
 
   // Carrossel do Anúncio (Gira imagens a cada 3 segundos)
   useEffect(() => {
@@ -2027,17 +2023,18 @@ export default function PublicPageContent({
                 </div>
               </motion.div>
 
-              {/* 📢 ESPAÇO PUBLICITÁRIO (AD NETWORK FREELINNK) */}
               {publicAd && plan !== "ultra" && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: 0.4 }}
                   className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-1 mt-6 shadow-xl group"
-                  style={{
-                    background: `linear-gradient(135deg, ${userAccentColor}40, transparent)`,
-                  }}
                 >
+                  {/* Fundo Seguro */}
+                  <div
+                    className="absolute inset-0 opacity-40"
+                    style={{ background: `linear-gradient(135deg, ${userAccentColor}, transparent)` }}
+                  />
                   <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-md" />
 
                   <div className="relative z-10 bg-white dark:bg-slate-900 rounded-xl sm:rounded-[22px] overflow-hidden flex flex-col md:flex-row">
