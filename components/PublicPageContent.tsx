@@ -978,36 +978,38 @@ export default function PublicPageContent({
     setTimeout(() => setIsLoading(false), 1200);
   }, [profileUrl, username, userAccentColor, customizations]);
 
-  // 🎰 Gira a Roleta de Anúncios
- // 🎰 Gira a Roleta de Anúncios
- useEffect(() => {
-  let mounted = true;
+// 🎰 Gira a Roleta de Anúncios
+useEffect(() => {
+  // Evita rodar duas vezes no React Strict Mode
+  let hasFetched = false;
 
   const loadAd = async () => {
-    // Se for plano Ultra, nunca roda anúncio
-    if (plan === "ultra") return;
+    if (plan === "ultra" || hasFetched) return;
+    hasFetched = true;
 
     try {
-      // Envia o texto da bio diretamente para o backend. O backend se vira.
       const ad = await fetchAd({
-        pageOwnerNiche: "geral", // Por enquanto usamos geral
+        pageOwnerNiche: "geral", // Ajustaremos a IA de nichos depois para não travar agora
         pageOwnerPlan: plan
       });
 
-      if (mounted && ad) {
+      // Só atualiza o estado se o backend retornar um anúncio real
+      if (ad && ad.id) {
+        console.log("Anúncio carregado com sucesso:", ad.title); // Para você ver no console se funcionou!
         setPublicAd(ad);
       }
     } catch (e) {
-      console.error("Erro ao buscar anúncio", e);
+      console.error("Erro silencioso na roleta de anúncios:", e);
     }
   };
 
-  loadAd();
+  // Atrasamos a roleta em meio segundo para não competir com o carregamento dos links
+  const timer = setTimeout(() => {
+    loadAd();
+  }, 500);
 
-  return () => {
-    mounted = false;
-  };
-}, [plan, fetchAd]);
+  return () => clearTimeout(timer);
+}, [plan]); // Removemos o fetchAd das dependências pra não ficar em loop
 
   // Carrossel do Anúncio (Gira imagens a cada 3 segundos)
   useEffect(() => {
