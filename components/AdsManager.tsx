@@ -242,7 +242,17 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
           </h3>
           <p className="text-sm text-gray-500">Gerencie onde seus produtos aparecem na Rede Freelinnk.</p>
         </div>
-        <Button onClick={() => setIsModalOpen(true)} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto shadow-lg shadow-blue-500/30">
+        <Button
+          onClick={() => {
+            const maxCampaigns = isUltra ? 3 : 2;
+            if (campaigns.length >= maxCampaigns) {
+              toast.error(`Limite atingido: O seu plano permite no máximo ${maxCampaigns} anúncios rodando. Faça upgrade ou apague o antigo!`);
+              return;
+            }
+            setIsModalOpen(true);
+          }}
+          className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto shadow-lg shadow-blue-500/30"
+        >
           <Plus className="w-4 h-4 mr-2" /> Criar Anúncio
         </Button>
       </div>
@@ -255,7 +265,14 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
           <p className="text-gray-500 mb-6 max-w-md mx-auto">
             Faça upload de vídeos e imagens para atrair mais clientes para sua loja de forma inteligente.
           </p>
-          <Button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 hover:bg-indigo-700">
+          <Button
+            onClick={() => {
+              const maxCampaigns = isUltra ? 3 : 2;
+              if (campaigns.length >= maxCampaigns) return;
+              setIsModalOpen(true);
+            }}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
             Criar Primeiro Anúncio
           </Button>
         </Card>
