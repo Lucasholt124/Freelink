@@ -53,7 +53,6 @@ export default function ImpactOverview({ analytics, plan = 'free' }: Props) {
         { date: 'Dom', count: 0 }
       ];
 
-  // --- LÓGICA DE CRESCIMENTO INTELIGENTE ---
   let growthValue = 0;
   const growthString = analytics?.growth;
 
@@ -94,21 +93,6 @@ export default function ImpactOverview({ analytics, plan = 'free' }: Props) {
     };
   }
 
-  const getComparisonPercent = () => {
-    if (clicks === 0) return 0;
-    if (clicks <= 5) return 25;
-    if (clicks <= 15) return 45;
-    if (clicks <= 30) return 58;
-    if (clicks <= 50) return 68;
-    if (clicks <= 100) return 78;
-    if (clicks <= 200) return 85;
-    if (clicks <= 500) return 92;
-    if (clicks <= 1000) return 96;
-    return 99;
-  };
-
-  const comparisonPercent = getComparisonPercent();
-
   return (
     <Card className="flex flex-col justify-between bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-sm h-full overflow-hidden">
 
@@ -118,7 +102,7 @@ export default function ImpactOverview({ analytics, plan = 'free' }: Props) {
             <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
               <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
             </div>
-            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Impacto de Hoje</h3>
+            <h3 className="text-sm font-bold text-slate-500 uppercase tracking-wider">Tráfego da Vitrine</h3>
           </div>
 
           <Badge variant="secondary" className={`${growthConfig.color} font-bold px-3 py-1 border`}>
@@ -128,18 +112,16 @@ export default function ImpactOverview({ analytics, plan = 'free' }: Props) {
 
         <div className="flex flex-col sm:flex-row items-baseline gap-3 mb-2">
           <h2 className="text-4xl font-black text-slate-900 dark:text-white">{clicks}</h2>
-          <span className="text-lg font-bold text-slate-400">cliques</span>
+          <span className="text-lg font-bold text-slate-400">leads potenciais</span>
         </div>
-
 
         {clicks > 0 ? (
           <p className="text-xs text-slate-500 font-medium">
-            Você está acima de <span className="text-purple-600 font-bold">{comparisonPercent}%</span> dos criadores hoje.
-            {comparisonPercent >= 90 && " 🔥"}
+            Mantenha a consistência. Cada lead não convertido é dinheiro deixado na mesa.
           </p>
         ) : (
           <p className="text-xs text-slate-500 font-medium">
-            Compartilhe seu link para começar a receber cliques.
+            Coloque a loja para rodar. Ative o Hub ou espalhe seu link na Bio!
           </p>
         )}
       </div>
@@ -155,19 +137,8 @@ export default function ImpactOverview({ analytics, plan = 'free' }: Props) {
             </defs>
             <XAxis dataKey="date" hide />
             <YAxis hide />
-            <Tooltip
-              content={<CustomTooltip />}
-              cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }}
-            />
-            <Area
-              type="monotone"
-              dataKey="count"
-              stroke="#2563eb"
-              strokeWidth={3}
-              fillOpacity={1}
-              fill="url(#colorCount)"
-              animationDuration={1500}
-            />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#94a3b8', strokeWidth: 1, strokeDasharray: '4 4' }} />
+            <Area type="monotone" dataKey="count" stroke="#2563eb" strokeWidth={3} fillOpacity={1} fill="url(#colorCount)" animationDuration={1500} />
           </AreaChart>
         </ResponsiveContainer>
       </div>
@@ -178,7 +149,7 @@ export default function ImpactOverview({ analytics, plan = 'free' }: Props) {
             <div className="flex items-center gap-2">
               <Users className="w-4 h-4 text-slate-400" />
               <span className="font-bold text-slate-700 dark:text-slate-300">
-                {visitors} {visitors === 1 ? 'pessoa' : 'pessoas'}
+                {visitors} {visitors === 1 ? 'visitante único' : 'visitantes únicos'}
               </span>
             </div>
             <div className="flex items-center gap-2">
@@ -189,12 +160,11 @@ export default function ImpactOverview({ analytics, plan = 'free' }: Props) {
             </div>
           </div>
 
-          {/*  Mostra dados ocultos para FREE */}
           {isFree && clicks > 0 && (
             <Link href="/dashboard/billing">
               <Badge variant="secondary" className="bg-purple-50 text-purple-600 text-[9px] font-bold cursor-pointer hover:bg-purple-100 transition-colors border border-purple-100">
                 <Eye className="w-2.5 h-2.5 mr-1" />
-                +4 métricas ocultas
+                Desbloquear Taxa de Saída
               </Badge>
             </Link>
           )}

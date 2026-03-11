@@ -1,6 +1,3 @@
-// Em /app/api/shortener/[linkId]/route.ts
-// (Substitua o arquivo inteiro)
-
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import prisma from '@/lib/prisma';

@@ -7,8 +7,8 @@ import {
   Zap, Shield,
   Crown, ArrowRight, Lock,
   Infinity as InfinityIcon, Check,
-  BarChart3, LayoutDashboard, PlayCircle,
-  Image as ImageIcon, Gift, Calculator, MessageSquare, Sparkles, AlertTriangle, Settings
+  BarChart3, Megaphone,
+  TrendingUp, MousePointerClick, SearchX, Globe, AlertTriangle, Settings, Layers, Gift, PieChart
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -59,7 +59,7 @@ function useScrollTracking() {
 }
 
 // ============================================
-// TIPAGEM & DADOS
+// TIPAGEM & DADOS (NOVO COPYWRITING ABRANGENTE)
 // ============================================
 
 type PlanIdentifier = "free" | "pro" | "ultra";
@@ -76,19 +76,20 @@ interface PricingSectionProps {
 const plans = [
   {
     id: "pro",
-    name: "Pro Creator",
+    name: "Pro Seller",
     monthlyPrice: "R$ 34,90",
     yearlyPrice: "R$ 349",
     discount: "50% OFF",
     badge: "🔥 MAIS ESCOLHIDO",
-    description: "Crescimento acelerado com IA essencial.",
+    description: "Para quem quer profissionalizar as vendas e entender o tráfego.",
     features: [
-      { text: "6 Ideias Virais (IA) / dia", icon: <BrainIcon /> },
-      { text: "3 Roteiros de Vídeo / dia", icon: <PlayCircle className="w-4 h-4" /> },
-      { text: "Ferramenta de Sorteios", icon: <Gift className="w-4 h-4" /> },
-      { text: "Analytics Avançados", icon: <BarChart3 className="w-4 h-4" /> },
-      { text: "Remover Marca Freelinnk", icon: <CheckCircle className="w-4 h-4" /> },
-      { text: "Suporte Prioritário", icon: <Zap className="w-4 h-4" /> },
+      { text: "Hub de Anúncios (2 Campanhas)", icon: <Megaphone className="w-4 h-4" /> },
+      { text: "1.000 visualizações de Anúncio / mês", icon: <TrendingUp className="w-4 h-4" /> },
+      { text: "Relatório de Inteligência do Link", icon: <PieChart className="w-4 h-4" /> },
+      { text: "Ferramenta de Sorteios Inclusa", icon: <Gift className="w-4 h-4" /> },
+      { text: "Múltiplas Páginas (Até 10 Perfis)", icon: <Layers className="w-4 h-4" /> },
+      { text: "Pixel do Facebook e Google GA4", icon: <TargetIcon /> },
+      { text: "Selo Pro e Sem Logo Freelinnk", icon: <Shield className="w-4 h-4" /> },
     ],
     cta: "Desbloquear Pro Agora",
     color: "blue"
@@ -99,24 +100,23 @@ const plans = [
     monthlyPrice: "R$ 77,90",
     yearlyPrice: "R$ 779",
     discount: "Melhor Valor",
-    badge: "👑 PODER MÁXIMO",
-    description: "Sua agência de marketing completa no bolso.",
+    badge: "👑 MÁQUINA DE VENDAS",
+    description: "Sua agência de marketing, CRM e gestão em um só lugar.",
     features: [
-      { text: "Ideias e Roteiros ILIMITADOS", icon: <InfinityIcon className="w-4 h-4" /> },
-      { text: "Aprimorador de Fotos (10/dia)", icon: <Sparkles className="w-4 h-4" /> },
-      { text: "AI Studio (Chat + Audio2Text)", icon: <MessageSquare className="w-4 h-4" /> },
-      { text: "Calculadora de Lucros IA", icon: <Calculator className="w-4 h-4" /> },
-      { text: "7 Imagens IA / dia + Remove BG", icon: <ImageIcon className="w-4 h-4" /> },
-      { text: "Pixel FB + Google GA4", icon: <TargetIcon /> },
-      { text: "WhatsApp Pessoal VIP", icon: <Crown className="w-4 h-4" /> },
+      { text: "Hub de Anúncios (3 Campanhas)", icon: <InfinityIcon className="w-4 h-4" /> },
+      { text: "15.000 visualizações de Anúncio / mês", icon: <Globe className="w-4 h-4" /> },
+      { text: "Calculadora de Lucros e CRM Inteligente", icon: <BarChart3 className="w-4 h-4" /> },
+      { text: "Analytics Detalhado (Calor, Cidades, Horários)", icon: <MousePointerClick className="w-4 h-4" /> },
+      { text: "Múltiplas Páginas (Até 30 Perfis)", icon: <Layers className="w-4 h-4 text-purple-400" /> },
+      { text: "Proteção Total (Seu perfil 100% sem anúncios)", icon: <SearchX className="w-4 h-4" /> },
+      { text: "Suporte VIP via WhatsApp", icon: <Zap className="w-4 h-4" /> },
     ],
-    cta: "Liberar Ultra — Crescimento Máximo",
+    cta: "Liberar Ultra — Poder Máximo",
     color: "purple"
   }
 ];
 
 // Ícones customizados
-function BrainIcon() { return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 1.98-3A2.5 2.5 0 0 1 9.5 2Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-1.98-3A2.5 2.5 0 0 0 14.5 2Z"/></svg>}
 function TargetIcon() { return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>}
 
 // ============================================
@@ -124,34 +124,33 @@ function TargetIcon() { return <svg xmlns="http://www.w3.org/2000/svg" width="16
 // ============================================
 function PersonalHeader({ name, currentPlan }: { name: string, currentPlan: PlanIdentifier }) {
 
-  // Lógica de texto baseada no plano
   const content = {
     free: {
-      badge: "⚠️ Análise de Perfil: Recursos Bloqueados",
+      badge: "⚠️ Atenção: Análise e Vendas Limitadas",
       badgeColor: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-200 dark:border-red-800",
-      title: <>Seu perfil está operando abaixo do potencial. <br className="hidden md:block"/><span className="text-blue-600">Vamos destravar agora?</span></>,
-      description: "Você já começou, mas para viralizar de verdade e transformar seu perfil em um negócio, você precisa das ferramentas certas.",
+      title: <>Você está vendendo às cegas. <br className="hidden md:block"/><span className="text-blue-600">Vamos mudar isso agora?</span></>,
+      description: "Sua taxa de saída e mapas de calor estão bloqueados. Para escalar, você precisa das métricas certas e tráfego orgânico com nosso Hub de Anúncios.",
       statusColor: "bg-slate-100 dark:bg-slate-800 text-slate-600",
-      statusText: "Free",
-      viralStat: <span className="font-bold text-red-500 flex items-center gap-1 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded"><Lock className="w-3 h-3" /> 0</span>
+      statusText: "Free (Limitado)",
+      viralStat: <span className="font-bold text-red-500 flex items-center gap-1 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded"><Lock className="w-3 h-3" /> Bloqueado</span>
     },
     pro: {
-      badge: "🚀 Você é Pro! Próximo passo: Escala",
+      badge: "🚀 Você é Pro! Começando a dominar.",
       badgeColor: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800",
-      title: <>Você já cresce rápido. <br className="hidden md:block"/><span className="text-purple-600">Hora de virar uma agência.</span></>,
-      description: "O plano Pro é ótimo, mas o Ultra coloca automação total e ferramentas de agência na sua mão.",
+      title: <>Você já tem os dados. <br className="hidden md:block"/><span className="text-purple-600">Agora falta dominar a gestão.</span></>,
+      description: "Com o plano Pro, você tem tráfego e relatórios. Mas o Ultra te dá o CRM Inteligente e a Calculadora de Lucros para gerenciar o dinheiro que entra.",
       statusColor: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
-      statusText: "Pro Creator",
-      viralStat: <span className="font-bold text-blue-600">6/dia</span>
+      statusText: "Pro Seller",
+      viralStat: <span className="font-bold text-blue-600">2 Campanhas de Anúncio</span>
     },
     ultra: {
       badge: "👑 Membro Ultra Business",
       badgeColor: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-200 dark:border-purple-800",
-      title: <>Você está no topo. <br className="hidden md:block"/><span className="text-green-500">Aproveite seu poder total.</span></>,
-      description: "Você tem acesso ilimitado a todas as ferramentas. Use o painel para gerenciar sua assinatura.",
+      title: <>Sua Máquina de Vendas <br className="hidden md:block"/><span className="text-green-500">está a todo vapor.</span></>,
+      description: "Você tem o pacote completo: 15 mil views mensais, CRM de Lucros, Analytics Profundo e até 30 páginas de Links liberadas.",
       statusColor: "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300",
       statusText: "Ultra Business",
-      viralStat: <span className="font-bold text-purple-600 flex items-center gap-1"><InfinityIcon className="w-3 h-3" /> Ilimitado</span>
+      viralStat: <span className="font-bold text-purple-600 flex items-center gap-1"><InfinityIcon className="w-3 h-3" /> Poder Máximo</span>
     }
   };
 
@@ -174,7 +173,7 @@ function PersonalHeader({ name, currentPlan }: { name: string, currentPlan: Plan
                 {activeContent.title}
              </h1>
              <p className="text-slate-600 dark:text-slate-300 text-lg max-w-xl leading-relaxed">
-                Olá, <strong>{name || "Criador"}</strong>. {activeContent.description}
+                Olá, <strong>{name || "Empreendedor"}</strong>. {activeContent.description}
              </p>
           </div>
 
@@ -186,13 +185,15 @@ function PersonalHeader({ name, currentPlan }: { name: string, currentPlan: Plan
              <div className="space-y-4">
                 <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                        <LayoutDashboard className="w-4 h-4 text-blue-500" /> Links Ativos
+                        <PieChart className="w-4 h-4 text-blue-500" /> Relatório Completo
                     </span>
-                    <span className="font-bold text-slate-900 dark:text-white">3</span>
+                    <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                        {currentPlan === 'free' ? <span className="text-red-500"><Lock className="w-3 h-3 inline"/></span> : <CheckCircle className="w-3 h-3 text-green-500"/>}
+                    </span>
                 </div>
                 <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-500 dark:text-slate-500 flex items-center gap-2">
-                        <BrainIcon /> Ideias Virais
+                        <Megaphone className="w-4 h-4 text-purple-500" /> Tráfego do Hub
                     </span>
                     {activeContent.viralStat}
                 </div>
@@ -214,10 +215,10 @@ function LossAversionSection({ currentPlan }: { currentPlan: PlanIdentifier }) {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { label: "Ideias Virais (IA)", icon: BrainIcon },
-                    { label: "Roteiros Prontos", icon: PlayCircle },
-                    { label: "Pixel / Analytics", icon: TargetIcon },
-                    { label: "Imagens IA", icon: ImageIcon },
+                    { label: "Análise Profunda (Cidades/Saída)", icon: PieChart },
+                    { label: "Hub de Anúncios Automático", icon: Megaphone },
+                    { label: "Calculadora de Lucros & CRM", icon: BarChart3 },
+                    { label: "Ferramenta de Sorteios", icon: Gift },
                 ].map((item, i) => (
                     <div key={i} className="flex flex-col items-center justify-center p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 opacity-75 grayscale hover:grayscale-0 hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/10 hover:border-red-100 transition-all duration-300 group cursor-not-allowed">
                          <div className="mb-3 p-3 bg-white dark:bg-slate-800 rounded-full shadow-sm relative group-hover:scale-110 transition-transform">
@@ -237,7 +238,6 @@ function LossAversionSection({ currentPlan }: { currentPlan: PlanIdentifier }) {
 // 3. PRICING CARDS (BOTÕES INTELIGENTES E RESPONSIVOS)
 function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, loading, handleCheckout }: PricingSectionProps) {
 
-    // Função auxiliar para renderizar o botão correto
     const renderButton = (planId: "pro" | "ultra", ctaText: string, variant: "blue" | "white") => {
         const isCurrent = currentPlan === planId;
         const isDisabled = loading !== null;
@@ -270,7 +270,7 @@ function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, l
         <div className="max-w-6xl mx-auto mb-24">
             {/* Toggle */}
             <div className="flex flex-col items-center justify-center mb-12">
-                <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-6 text-center">Escolha seu novo nível</h2>
+                <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-6 text-center">Invista na sua Gestão e Tráfego</h2>
                 <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-1.5 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm relative">
                     <span className={clsx("px-6 py-2.5 rounded-full text-sm font-bold cursor-pointer transition-all", billingCycle === 'monthly' ? "bg-slate-100 text-slate-900" : "text-slate-500")}>Mensal</span>
                     <Switch checked={billingCycle === 'yearly'} onCheckedChange={handleBillingCycleChange} />
@@ -292,12 +292,12 @@ function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, l
                     whileHover={{ y: -5 }}
                     className={clsx(
                         "relative bg-white dark:bg-slate-900 rounded-[2rem] border-2 shadow-xl p-8 flex flex-col h-full overflow-hidden transition-all",
-                        currentPlan === 'pro' ? "border-slate-200 opacity-80 scale-95" : "border-amber-400/50 dark:border-amber-500/30 shadow-amber-500/10"
+                        currentPlan === 'pro' ? "border-slate-200 opacity-80 scale-95" : "border-blue-400/50 dark:border-blue-500/30 shadow-blue-500/10"
                     )}
                 >
                     <div className="mb-6 relative z-10">
                         {currentPlan !== 'pro' && (
-                            <div className="inline-block bg-gradient-to-r from-amber-400 to-orange-500 text-white text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-amber-500/20 mb-4 transform -rotate-1">
+                            <div className="inline-block bg-gradient-to-r from-blue-500 to-cyan-500 text-white text-xs font-black uppercase tracking-widest px-4 py-1.5 rounded-full shadow-lg shadow-blue-500/20 mb-4 transform -rotate-1">
                                 {plans[0].badge}
                             </div>
                         )}
@@ -307,7 +307,7 @@ function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, l
                         <p className="text-slate-500 mt-2 text-sm font-medium">{plans[0].description}</p>
                     </div>
 
-                    <div className="mb-8 p-4 bg-amber-50/50 dark:bg-amber-900/10 rounded-2xl border border-amber-100 dark:border-amber-900/20">
+                    <div className="mb-8 p-4 bg-blue-50/50 dark:bg-blue-900/10 rounded-2xl border border-blue-100 dark:border-blue-900/20">
                         <div className="flex items-baseline gap-1">
                             <span className="text-4xl font-black text-slate-900 dark:text-white">{billingCycle === 'yearly' ? plans[0].yearlyPrice : plans[0].monthlyPrice}</span>
                             <span className="text-slate-500 font-medium">/{billingCycle === 'yearly' ? 'ano' : 'mês'}</span>
@@ -367,7 +367,7 @@ function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, l
                         </div>
                         {currentPlan !== 'ultra' && (
                             <p className="text-purple-300 text-xs font-bold mt-2">
-                                 Melhor Custo-Benefício do Mercado
+                                 Acesso Total a Análise, CRM e Ads
                             </p>
                         )}
                     </div>
@@ -394,23 +394,23 @@ function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, l
     )
 }
 
-// 4. ROI DEVASTADOR
+// 4. ROI DEVASTADOR (O "PESO" FINANCEIRO DO HUB)
 function DevastatingROI() {
     return (
         <div className="max-w-3xl mx-auto bg-slate-50 dark:bg-slate-900/50 rounded-3xl p-8 sm:p-10 border border-slate-200 dark:border-slate-800 mb-24">
             <div className="text-center mb-8">
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white">A conta não mente 💸</h3>
-                <p className="text-slate-500 mt-2">Veja quanto custaria montar essa estrutura separadamente:</p>
+                <p className="text-slate-500 mt-2">Veja quanto custaria para comprar todas essas ferramentas separadas:</p>
             </div>
 
             <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
                 <div className="flex-1 w-full space-y-3">
                     {[
-                        { name: "ChatGPT Plus (IA)", price: "R$ 100,00" },
-                        { name: "Midjourney (Arte)", price: "R$ 50,00" },
-                        { name: "Linktree Pro (Links)", price: "R$ 45,00" },
-                        { name: "Analytics Pro", price: "R$ 40,00" },
-                        { name: "App de Sorteios", price: "R$ 29,00" },
+                        { name: "Sistema de Links (30 páginas)", price: "R$ 65,00" },
+                        { name: "Google Ads (15.000 impressões)", price: "R$ 150,00" },
+                        { name: "Analytics de Calor e Origem", price: "R$ 55,00" },
+                        { name: "Software de Sorteios", price: "R$ 29,90" },
+                        { name: "CRM e Calculadora de Gestão", price: "R$ 69,90" },
                     ].map((item, i) => (
                         <div key={i} className="flex justify-between items-center text-sm text-slate-500 border-b border-slate-200 dark:border-slate-800 pb-2 last:border-0">
                             <span>{item.name}</span>
@@ -418,8 +418,8 @@ function DevastatingROI() {
                         </div>
                     ))}
                     <div className="pt-2 flex justify-between items-center font-bold text-red-500 border-t border-slate-300 dark:border-slate-700 mt-2">
-                        <span>Total Mensal:</span>
-                        <span>R$ 264,00</span>
+                        <span>Total Gasto por Mês:</span>
+                        <span>R$ 369,80</span>
                     </div>
                 </div>
 
@@ -432,7 +432,7 @@ function DevastatingROI() {
                     <p className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">R$ 77</p>
                     <p className="text-sm text-slate-500 mb-4">/mês</p>
                     <Badge className="bg-green-100 text-green-700 border-0 w-full justify-center py-1.5 font-bold">
-                        💥 Economia: R$ 1.885/ano
+                        💥 Economia: R$ 3.513/ano
                     </Badge>
                 </div>
             </div>
@@ -450,13 +450,12 @@ function GuaranteeSection() {
             </div>
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-3">Garantia Blindada de 7 Dias</h3>
             <p className="text-slate-600 dark:text-slate-400 text-lg leading-relaxed mb-6">
-                Use tudo: gere ideias, crie imagens, faça roteiros, organize seus links.
-                Se em 7 dias você não sentir que o valor entregue é <strong>10x maior</strong> que o preço,
-                nós devolvemos 100% do seu dinheiro. Sem perguntas.
+                Use a plataforma. Analise seus mapas de calor, cadastre suas vendas no CRM e rode sua campanha de Ads.
+                Se em 7 dias você não sentir que a ferramenta se pagou, nós devolvemos 100% do seu dinheiro. Sem perguntas.
             </p>
             <div className="flex items-center justify-center gap-4 text-xs font-bold text-slate-400 uppercase tracking-wider">
                 <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-500" /> Risco Zero</span>
-                <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-500" /> Cancelamento Fácil</span>
+                <span className="flex items-center gap-1"><CheckCircle className="w-4 h-4 text-green-500" /> Cancelamento Online</span>
             </div>
         </div>
     )
@@ -469,18 +468,18 @@ function FinalCTA({ handleCheckout, currentPlan }: { handleCheckout: (p: "pro" |
     return (
         <div className="text-center pb-12">
             <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-white mb-6">
-                Pronto para transformar seu perfil?
+                Pronto para multiplicar seu faturamento?
             </h2>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Button
                     onClick={() => handleCheckout('pro')}
                     className="h-14 px-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-xl shadow-blue-500/30 hover:scale-105 transition-transform"
                 >
-                    Quero Crescer com o Plano Pro
+                    Começar a Vender com o Pro
                 </Button>
             </div>
             <p className="mt-4 text-sm text-slate-500 font-medium">
-                Junte-se a 5.427 criadores crescendo hoje.
+                Junte-se à nova rede de lojistas inteligentes.
             </p>
         </div>
     )
@@ -530,7 +529,7 @@ export default function BillingContent() {
     const success = searchParams.get("success");
     const canceled = searchParams.get("canceled");
     if (success) {
-        toast.success("🚀 Assinatura confirmada! Bem-vindo à elite.", { duration: 5000 });
+        toast.success("🚀 Assinatura confirmada! Bem-vindo à rede inteligente.", { duration: 5000 });
         user?.reload();
         router.replace("/dashboard/billing", { scroll: false });
     }
@@ -623,7 +622,7 @@ export default function BillingContent() {
                         <ArrowRight className="w-8 h-8 text-red-500 fill-current" />
                     </div>
                     <h3 className="text-xl font-bold">Não vá embora ainda!</h3>
-                    <p className="text-slate-500 text-sm mt-2">Você perderá acesso às ferramentas de IA e seus dados de analytics. Tem certeza?</p>
+                    <p className="text-slate-500 text-sm mt-2">Você perderá o tráfego do Hub, CRM e seus relatórios profundos. Tem certeza?</p>
                 </div>
                 <div className="space-y-4 mb-6">
                      <select className="w-full p-3 rounded-lg border border-slate-200 bg-slate-50" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)}>
@@ -647,7 +646,7 @@ export default function BillingContent() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-32">
 
-        <PersonalHeader name={user?.firstName || "Criador"} currentPlan={currentPlan} />
+        <PersonalHeader name={user?.firstName || "Lojista"} currentPlan={currentPlan} />
 
         <LossAversionSection currentPlan={currentPlan} />
 

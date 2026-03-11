@@ -4,7 +4,7 @@ import { WebhookEvent } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { clerkClient } from "@clerk/nextjs/server";
-import Stripe from 'stripe'; // 🟢 1. Importar Stripe
+import Stripe from 'stripe';
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'

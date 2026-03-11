@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { Play, Zap, BarChart3, Sparkles } from "lucide-react";
+import { Play, Zap, BarChart3, Target } from "lucide-react";
 import { ScrollReveal } from "../Animaçoes/Animations";
 import { BRAND } from "@/app/constants/landing-data";
 
@@ -33,7 +33,7 @@ export default function VideoDemoSection() {
               Veja como o Freelinnk <span className={BRAND.textGradient}>funciona</span>
             </h2>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-              Em menos de 1 minuto, descubra como transformar seu link na bio em uma máquina de conversão.
+              Em menos de 1 minuto, descubra como transformar sua Bio num funil automático de vendas.
             </p>
           </div>
         </ScrollReveal>
@@ -83,7 +83,7 @@ export default function VideoDemoSection() {
                       Assista ao Tour Completo
                     </h3>
                     <p className="text-white/80 text-sm md:text-base text-center max-w-md">
-                      Clique para ver todas as funcionalidades em ação
+                      Clique para ver a máquina de vendas em ação
                     </p>
                   </div>
                 </div>
@@ -94,7 +94,7 @@ export default function VideoDemoSection() {
               {[
                 { icon: <Zap size={20} />, text: "Setup em 2 min" },
                 { icon: <BarChart3 size={20} />, text: "Lucro Real" },
-                { icon: <Sparkles size={20} />, text: "IA Viral" },
+                { icon: <Target size={20} />, text: "Pixel de Ads" },
               ].map((item, i) => (
                 <motion.div
                   key={i}

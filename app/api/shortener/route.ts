@@ -1,10 +1,7 @@
-// Em /app/api/shortener/route.ts
-// (Substitua o arquivo inteiro)
-
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
 import { Link as PrismaLink } from '@prisma/client';
-import prisma from '@/lib/prisma'; // <<< A MUDANÇA CRUCIAL ESTÁ AQUI
+import prisma from '@/lib/prisma';
 
 export async function GET() {
     try {

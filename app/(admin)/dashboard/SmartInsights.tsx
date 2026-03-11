@@ -1,11 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import {
-  Target, Zap, Share2,
-  Instagram, Linkedin, DollarSign,
-  RefreshCw, Calculator, Lock, Eye, Crown,
-} from "lucide-react";
+import { Target, Zap, Share2, Megaphone, DollarSign, Calculator, Lock, Eye, Crown, AlertCircle } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -23,91 +19,67 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
   const totalClicks = analytics?.totalClicks || 0;
   const growthRaw = analytics?.growth || "+0%";
   const growthNum = parseFloat(growthRaw.replace('%', '').replace('+', ''));
-  const topSource = analytics?.topReferrer?.source?.toLowerCase() || "direto";
 
-  const peakHourNum = analytics?.peakHour?.hour || 19;
-  const peakHourFmt = String(peakHourNum).padStart(2, '0');
-
-  const extraInsightsCount = isFree ? 5 : isPro ? 2 : 0;
+  const extraInsightsCount = isFree ? 4 : isPro ? 2 : 0;
 
   const getSmartAdvice = () => {
     if (totalClicks > 5 && !hasSales) {
       return {
-        icon: Calculator,
-        title: "Você está perdendo dinheiro?",
-        text: "Você teve visitas hoje, mas não registrou vendas. Use o Gestor Financeiro para calcular seu lucro real.",
-        stat: "Gestão aumenta o lucro em 30%.",
-        action: "Registrar Venda",
+        icon: AlertCircle,
+        title: "Tráfego sem conversão?",
+        text: "Você teve cliques, mas zero vendas registradas hoje. Analise seus preços e custos no CRM.",
+        stat: "15% de margem extra só gerenciando dados corretos.",
+        action: "Acessar CRM",
         href: "/dashboard/profit-calculator"
       };
     }
-    if (totalClicks > 50 && growthNum <= 0) {
+    if (totalClicks > 50 && growthNum <= 0 && isFree) {
       return {
-        icon: RefreshCw,
-        title: "Reativação de Audiência",
-        text: "Seu tráfego estagnou. Trocar a foto de perfil e a cor de fundo renova o interesse.",
-        stat: "Perfis atualizados recuperam +18% de atenção.",
-        action: "Renovar Design",
-        href: "/dashboard/settings"
+        icon: Megaphone,
+        title: "A Estagnação Mata o Negócio",
+        text: "Seu tráfego orgânico bateu num teto. Acione o Hub de Anúncios e roube tráfego da rede para a sua vitrine.",
+        stat: "O AdsHub traz até +15k clientes/mês.",
+        action: "Ativar AdsHub",
+        href: "/dashboard/ads"
       };
     }
     if (growthNum > 20 && totalClicks > 100) {
       return {
-        icon: DollarSign,
-        title: "Momento Viral Detectado",
-        text: "Você está crescendo rápido! É a hora perfeita para adicionar um link de produto ou afiliado.",
-        stat: "Sua taxa de conversão está no pico.",
-        action: "Adicionar Link de Venda",
-        href: "/dashboard/new-link"
-      };
-    }
-    if (topSource.includes("instagram")) {
-      return {
-        icon: Instagram,
-        title: "Estratégia de Stories",
-        text: "O Instagram é sua maior força. Crie um destaque 'Links' no seu perfil apontando pra cá.",
-        stat: "Isso aumenta a retenção do link em 3x.",
-        action: "Ver Roteiro de Story",
-        href: "/dashboard/brain"
-      };
-    }
-    if (topSource.includes("linkedin")) {
-      return {
-        icon: Linkedin,
-        title: "Autoridade Profissional",
-        text: "Seu público vem do LinkedIn. Destaque sua 'Headline' profissional na bio.",
-        stat: "Visitantes do LinkedIn buscam credibilidade.",
-        action: "Editar Bio",
-        href: "/dashboard/settings"
+        icon: Target,
+        title: "Momento Escalável",
+        text: "Você está bombando hoje! É vital que o seu Pixel esteja ativo para gravar as IDs desses visitantes no Facebook/Insta.",
+        stat: "Remarketing custa 3x mais barato que anúncio comum.",
+        action: "Conferir Pixel",
+        href: "/dashboard/tracking"
       };
     }
     if (totalClicks === 0) {
       return {
         icon: Share2,
-        title: "Primeiro Passo",
-        text: "Seu link está pronto. Copie e cole na bio do Instagram agora para começar a receber cliques.",
-        stat: "A bio é responsável por 90% do tráfego inicial.",
-        action: "Ir para Meus Links",
+        title: "Link Parado Não Vende",
+        text: "Copie seu link para o botão da Bio. É de lá que virão seus clientes mais quentes e gratuitos.",
+        stat: "90% das compras começam pelo link do perfil.",
+        action: "Configurar Vitrine",
         href: "/dashboard/links"
       };
     }
     if (totalClicks >= 200 && isFree) {
       return {
-        icon: Target,
-        title: "Perdendo Dados Valiosos",
-        text: `Você passou de ${totalClicks} cliques! Sem o Pixel, você não consegue fazer remarketing. Cada visitante perdido é dinheiro no ralo.`,
-        stat: `Estimativa: R$${(totalClicks * 0.3).toFixed(0)} em oportunidades perdidas hoje.`,
-        action: "Ativar Pixel Pro",
-        href: "/dashboard/tracking"
+        icon: Calculator,
+        title: "Lucro Escapando",
+        text: `Com ${totalClicks} visitas, você precisa saber de onde elas vêm e onde estão desistindo da compra (Taxa de Saída).`,
+        stat: `R$ ${(totalClicks * 0.4).toFixed(0)} perdidos sem gestão hoje.`,
+        action: "Desbloquear Análises",
+        href: "/dashboard/billing"
       };
     }
     return {
       icon: Zap,
-      title: "Consistência é a Chave",
-      text: "Mantenha seu link atualizado. Perfis ativos crescem mais rápido.",
-      stat: "O algoritmo favorece atividade recente.",
-      action: "Adicionar Novidade",
-      href: "/dashboard/new-link"
+      title: "Tráfego é Relacionamento",
+      text: "Pessoas confiam em produtos ativos. Lance um sorteio relâmpago ou um desconto usando a nossa ferramenta interna.",
+      stat: "Sorteios captam leads 4x mais rápido.",
+      action: "Criar Sorteio",
+      href: "/dashboard/giveaway"
     };
   };
 
@@ -118,7 +90,7 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
-        className="md:col-span-7 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm flex flex-col"
+        className="md:col-span-8 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-1 shadow-sm flex flex-col"
       >
         <div className="p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 flex-1">
           <div className="flex gap-4">
@@ -127,24 +99,23 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
             </div>
             <div>
               <h4 className="font-bold text-slate-500 text-xs uppercase tracking-wide mb-1 flex items-center gap-1">
-                🤖 IA Growth Coach
+                🤖 Análise de Negócios (IA)
               </h4>
               <p className="text-slate-900 dark:text-white font-bold text-base leading-tight">
                 {advice.title}: <span className="font-normal text-slate-600 dark:text-slate-300">{advice.text}</span>
               </p>
               <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 font-medium bg-slate-50 dark:bg-slate-800 px-2 py-1 rounded inline-block border border-slate-100 dark:border-slate-700">
-                💡 Insight: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{advice.stat}</span>
+                💡 Mercado: <span className="text-emerald-600 dark:text-emerald-400 font-bold">{advice.stat}</span>
               </p>
             </div>
           </div>
           <Link href={advice.href}>
             <Button className="bg-violet-600 hover:bg-violet-700 text-white font-bold rounded-xl shadow-lg shadow-violet-500/20 whitespace-nowrap h-10 transition-transform hover:scale-105">
-              {advice.action === "Ativar Pixel Pro" && <Lock className="w-3 h-3 mr-2" />}
+              {advice.action === "Desbloquear Análises" && <Lock className="w-3 h-3 mr-2" />}
               {advice.action}
             </Button>
           </Link>
         </div>
-
 
         {extraInsightsCount > 0 && (
           <Link href="/dashboard/billing">
@@ -152,7 +123,7 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
               <div className="flex items-center gap-2">
                 <Eye className="w-3.5 h-3.5 text-purple-500" />
                 <span className="text-[11px] text-slate-500 font-medium">
-                  <span className="text-purple-600 font-bold">+{extraInsightsCount} insights</span> disponíveis no {isFree ? 'Pro' : 'Ultra'}
+                  <span className="text-purple-600 font-bold">+{extraInsightsCount} insights de funil</span> bloqueados.
                 </span>
               </div>
               <div className="flex items-center gap-1.5">
@@ -166,59 +137,33 @@ export default function SmartInsights({ analytics, plan, hasSales = false }: Pro
         )}
       </motion.div>
 
+      {/* Caixa Menor ao lado (Foco em FOMO Financeiro) */}
       <motion.div
         initial={{ opacity: 0, y: 5 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.1 }}
-        className="md:col-span-5 bg-amber-50 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 rounded-2xl p-5 flex flex-col justify-center relative overflow-hidden group"
+        className="md:col-span-4 bg-gradient-to-br from-slate-900 to-black border border-slate-800 rounded-2xl p-5 flex flex-col justify-center relative overflow-hidden group"
       >
-        <Zap className="absolute -right-4 -top-4 w-24 h-24 text-amber-500/5 rotate-12 group-hover:rotate-45 transition-transform duration-700" />
-
+        <div className="absolute inset-0 bg-[url('/noise.svg')] opacity-20 mix-blend-overlay" />
         <div className="relative z-10">
-          <div className="flex items-center gap-2 mb-2 text-amber-700 dark:text-amber-500 font-black text-xs uppercase tracking-wider">
-            <Zap className="w-3 h-3" /> Timing de Ouro
+          <div className="flex items-center gap-2 mb-2 text-emerald-400 font-black text-xs uppercase tracking-wider">
+            <DollarSign className="w-4 h-4" /> Gestão Fina
           </div>
-          <p className="text-slate-800 dark:text-slate-200 font-bold text-sm mb-3 leading-snug">
-            Com base no histórico, seu pico de hoje será às{' '}
-            <strong className="text-lg text-amber-600">{peakHourFmt}:00h</strong>.
-            <br/>
-            <span className="text-slate-500 dark:text-slate-400 font-normal text-xs mt-1 block">
-              Prepare um story ou post para esse horário para maximizar o alcance.
-            </span>
+          <p className="text-white font-bold text-sm mb-3 leading-snug">
+            Empreendedor amador não conta moedas. Profissional conta cada centavo.
           </p>
 
-          {(() => {
-            const currentHour = new Date().getHours();
-            const hoursUntilPeak = peakHourNum - currentHour;
-
-            if (hoursUntilPeak > 0 && hoursUntilPeak <= 3) {
-              return (
-                <div className="bg-amber-100 dark:bg-amber-900/30 rounded-lg p-2 mb-2">
-                  <p className="text-[11px] text-amber-800 dark:text-amber-300 font-bold flex items-center gap-1">
-                    ⏰ Faltam {hoursUntilPeak}h para o seu pico! Prepare seu conteúdo agora.
-                  </p>
-                </div>
-              );
-            }
-
-            if (hoursUntilPeak === 0) {
-              return (
-                <div className="bg-emerald-100 dark:bg-emerald-900/30 rounded-lg p-2 mb-2 animate-pulse">
-                  <p className="text-[11px] text-emerald-800 dark:text-emerald-300 font-bold flex items-center gap-1">
-                    🔥 SEU PICO É AGORA! Poste imediatamente para máximo alcance.
-                  </p>
-                </div>
-              );
-            }
-
-            return null;
-          })()}
+          <Link href={isFree ? "/dashboard/billing" : "/dashboard/profit-calculator"}>
+             <Button variant="secondary" size="sm" className="w-full text-xs font-bold bg-white/10 text-white border-white/20 hover:bg-white/20">
+                {isFree ? <Lock className="w-3 h-3 mr-2" /> : <Calculator className="w-3 h-3 mr-2" />}
+                Configurar CRM de Lucro
+             </Button>
+          </Link>
 
           {isFree && (
-            <Link href="/dashboard/billing" className="inline-flex items-center text-[10px] font-bold text-amber-700 bg-amber-100/50 dark:bg-amber-900/40 px-3 py-1.5 rounded-full cursor-pointer hover:bg-amber-200/50 transition-colors border border-amber-200/50">
-              <Lock className="w-3 h-3 mr-1" />
-              Ver análise de horários completa (PRO) <Zap className="w-3 h-3 ml-1" />
-            </Link>
+            <p className="text-[9px] text-center text-slate-500 mt-3 font-medium">
+               Disponível nos planos avançados.
+            </p>
           )}
         </div>
       </motion.div>

@@ -1,423 +1,182 @@
+"use client";
+
+import { CheckCircle2, ShieldCheck, Mail, Info } from "lucide-react";
+
 export default function PrivacyPolicyPage() {
   return (
-    <div className="bg-gray-50 min-h-screen">
+    <div className="bg-gray-50 min-h-screen font-sans">
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
-        <div className="prose prose-lg lg:prose-xl text-gray-700 max-w-none">
-          <h1 className="text-3xl font-bold text-gray-900 mb-8">POLÍTICA DE PRIVACIDADE</h1>
-          <p className="text-sm text-gray-600 mb-8"><strong>Última atualização: 03 de Setembro de 2025</strong></p>
 
-          <div className="bg-blue-50 border-l-4 border-blue-400 p-4 mb-8">
-            <p className="text-sm">
-              Esta Política de Privacidade está em conformidade com a Lei Geral de Proteção de Dados Pessoais
-              (Lei nº 13.709/2018), o Marco Civil da Internet (Lei nº 12.965/2014) e demais normas aplicáveis.
+        {/* Cabeçalho */}
+        <div className="mb-12">
+          <div className="flex items-center gap-3 mb-4">
+            <ShieldCheck className="w-10 h-10 text-indigo-600" />
+            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight">Política de Privacidade</h1>
+          </div>
+          <p className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-6">
+            Última atualização: 11 de Março de 2026
+          </p>
+
+          <div className="bg-indigo-50 border-l-4 border-indigo-500 p-5 rounded-r-xl shadow-sm flex gap-3">
+            <Info className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+            <p className="text-sm text-indigo-900 leading-relaxed">
+              Esta Política de Privacidade está em total conformidade com a <strong>Lei Geral de Proteção de Dados Pessoais (LGPD - Lei nº 13.709/2018)</strong>, o Marco Civil da Internet (Lei nº 12.965/2014) e demais normas do Brasil.
+            </p>
+          </div>
+        </div>
+
+        {/* Conteúdo Principal */}
+        <div className="prose prose-slate prose-lg max-w-none prose-headings:font-bold prose-headings:text-slate-900 prose-a:text-indigo-600">
+
+          <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2">
+            1. Introdução e nosso Compromisso
+          </h2>
+          <p>
+            A presente Política tem por finalidade demonstrar o compromisso do <strong>FREELINNK</strong> (nós, nosso ou Plataforma) com a privacidade e proteção dos seus dados pessoais, além de estabelecer as regras sobre como tratamos as informações que coletamos na plataforma disponível em <strong>https://freelinnk.com</strong>.
+          </p>
+          <p>
+            Como condição para acesso e uso das funcionalidades exclusivas da nossa Plataforma, você declara que fez a leitura completa e atenta desta Política, estando plenamente ciente e conferindo sua livre e expressa concordância com os termos aqui estipulados.
+          </p>
+
+          <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2 mt-12">
+            2. Definições Rápidas
+          </h2>
+          <ul className="list-none space-y-3 pl-0">
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-5 h-5 text-emerald-500 mt-1 flex-shrink-0" /><span><strong>Dados Pessoais:</strong> Qualquer informação relacionada a você que te identifique.</span></li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-5 h-5 text-emerald-500 mt-1 flex-shrink-0" /><span><strong>Titular (Você):</strong> A pessoa física a quem se referem os dados pessoais.</span></li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-5 h-5 text-emerald-500 mt-1 flex-shrink-0" /><span><strong>Controlador (Nós):</strong> O Freelinnk, que decide como seus dados são tratados para fazer a plataforma funcionar.</span></li>
+            <li className="flex items-start gap-2"><CheckCircle2 className="w-5 h-5 text-emerald-500 mt-1 flex-shrink-0" /><span><strong>Anonimização:</strong> Ocultar o dono do dado. (Ex: Sabemos que 10 pessoas clicaram num link, mas não sabemos os nomes delas).</span></li>
+          </ul>
+
+          <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2 mt-12">
+            3. Dados Pessoais que Coletamos
+          </h2>
+          <p>Coletamos dados apenas para que o Freelinnk entregue a melhor ferramenta de vendas possível para o seu negócio.</p>
+
+          <h3>3.1. Para Cadastro e Conta</h3>
+          <ul className="list-disc pl-6 marker:text-slate-400">
+            <li>Nome completo e Endereço de e-mail.</li>
+            <li>Foto de perfil (opcional, usada na sua vitrine pública).</li>
+            <li>ID único de usuário (gerado pelo nosso sistema seguro de login, o Clerk).</li>
+          </ul>
+
+          <h3>3.2. Para Assinaturas e Pagamentos</h3>
+          <ul className="list-disc pl-6 marker:text-slate-400">
+            <li>Seu faturamento financeiro (Apenas se você usar a nossa ferramenta de CRM/Calculadora de Lucros - esses dados são estritamente privados seus).</li>
+            <li>Dados transacionais para assinar os planos Pro/Ultra. <em>Nota: Não guardamos o número completo do seu cartão. O pagamento é processado diretamente pela Stripe, líder mundial em segurança financeira.</em></li>
+          </ul>
+
+          <h3>3.3. Analytics, Pixels e Rede de Anúncios (Hub)</h3>
+          <p>Esta é a principal inteligência do Freelinnk para fazer você vender mais:</p>
+          <ul className="list-disc pl-6 marker:text-slate-400">
+            <li><strong>Estatísticas Anônimas:</strong> Coletamos quantos cliques seus links recebem, horários de pico e a cidade aproximada dos visitantes para gerar seus relatórios.</li>
+            <li><strong>Rastreamento (Pixel):</strong> Se você for usuário Pro/Ultra, permitimos que você injete seu Pixel do Meta/Google na sua página. Nesse caso, a responsabilidade pelo consentimento do usuário final que clica no <em>seu</em> link passa a ser sua (você é o Controlador perante seus clientes).</li>
+            <li><strong>Hub de Anúncios:</strong> O Freelinnk possui uma rede de anúncios nativa. A Inteligência Artificial analisa a descrição (Bio) que você escreveu no seu perfil público para categorizar o seu nicho. Isso garante que anúncios de concorrentes não apareçam na sua página, e que o seu anúncio seja mostrado em páginas de interesse comum.</li>
+          </ul>
+
+          <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2 mt-12">
+            4. Bases Legais (Por que usamos seus dados?)
+          </h2>
+          <div className="overflow-x-auto my-6">
+            <table className="min-w-full border-collapse border border-slate-200 text-sm">
+              <thead className="bg-slate-100 text-slate-700">
+                <tr>
+                  <th className="border border-slate-200 px-4 py-3 text-left">O que fazemos</th>
+                  <th className="border border-slate-200 px-4 py-3 text-left">Base Legal (LGPD)</th>
+                </tr>
+              </thead>
+              <tbody className="text-slate-600">
+                <tr>
+                  <td className="border border-slate-200 px-4 py-2">Criar sua vitrine de links</td>
+                  <td className="border border-slate-200 px-4 py-2">Execução de contrato (Art. 7º, V)</td>
+                </tr>
+                <tr>
+                  <td className="border border-slate-200 px-4 py-2">Fazer o sorteio da Roleta de Anúncios</td>
+                  <td className="border border-slate-200 px-4 py-2">Execução de contrato (Art. 7º, V)</td>
+                </tr>
+                <tr>
+                  <td className="border border-slate-200 px-4 py-2">Analisar seu nicho via IA</td>
+                  <td className="border border-slate-200 px-4 py-2">Legítimo Interesse (Art. 7º, IX)</td>
+                </tr>
+                <tr>
+                  <td className="border border-slate-200 px-4 py-2">Processar assinaturas</td>
+                  <td className="border border-slate-200 px-4 py-2">Execução de contrato (Art. 7º, V)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2 mt-12">
+            5. Infraestrutura e Compartilhamento de Dados
+          </h2>
+          <p><strong>Nós nunca vendemos seus dados pessoais.</strong> A operação do Freelinnk é sustentada por uma infraestrutura de ponta, compartilhando dados apenas com sistemas robustos que fazem a plataforma funcionar com segurança e velocidade:</p>
+          <ul className="list-disc pl-6 marker:text-slate-400">
+            <li><strong>HostGator:</strong> Provedor de hospedagem oficial onde o nosso sistema está alocado.</li>
+            <li><strong>Cloudflare:</strong> Plataforma responsável pelo gerenciamento do nosso DNS, oferecendo firewall e segurança contra ataques (DDoS) para garantir estabilidade.</li>
+            <li><strong>Vercel:</strong> Plataforma que gerencia o deploy do nosso projeto e as atualizações contínuas de interface (Frontend).</li>
+            <li><strong>GitHub:</strong> Utilizado para o versionamento seguro e controle de qualidade do nosso código-fonte.</li>
+            <li><strong>Convex:</strong> Nosso banco de dados de ultra-velocidade para armazenamento das informações dos links e processamento em tempo real.</li>
+            <li><strong>Clerk:</strong> Nosso sistema de proteção de senhas, autenticação e logins.</li>
+            <li><strong>Stripe:</strong> Nosso banco processador de pagamentos e cartões.</li>
+            <li><strong>Provedores de IA:</strong> Usamos IA para ler a bio da sua vitrine e gerar relatórios, tudo de forma automatizada sem intervenção humana no seu conteúdo pessoal.</li>
+          </ul>
+
+          <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2 mt-12">
+            6. Seus Direitos (Você no Controle)
+          </h2>
+          <p>A qualquer momento, pelo nosso painel ou via suporte, você tem o direito de:</p>
+          <ul className="list-disc pl-6 marker:text-slate-400">
+            <li>Saber quais dados temos sobre você.</li>
+            <li>Corrigir dados errados.</li>
+            <li>Excluir sua conta e apagar definitivamente seus links, anúncios e métricas do nosso banco de dados.</li>
+            <li>Exportar suas informações financeiras (se usar o nosso CRM).</li>
+          </ul>
+
+          <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2 mt-12">
+            7. Tempo de Guarda dos Dados
+          </h2>
+          <p>
+            Manteremos as suas informações enquanto sua conta estiver ativa. Se você decidir excluir sua conta, nós apagaremos suas métricas e vitrines imediatamente. Guardaremos apenas logs técnicos por 6 meses (como exige o Marco Civil da Internet) e recibos de pagamento por 5 anos (como exige a Receita Federal).
+          </p>
+
+          <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2 mt-12">
+            8. Segurança
+          </h2>
+          <p>
+            Suas senhas não ficam com a gente, seus dados de cartão não passam pelos nossos servidores e suas senhas financeiras são criptografadas. Usamos proteção de alto nível (SSL/TLS) para garantir que ninguém intercepte o seu tráfego.
+          </p>
+
+          <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2 mt-12">
+            9. Foro Competente e Legislação Aplicável
+          </h2>
+          <p>
+            Esta Política de Privacidade é regida pelas leis da República Federativa do Brasil. Priorizamos a resolução amigável de qualquer questão. Em caso de dúvidas ou divergências, entre em contato conosco.
+          </p>
+          <ul className="list-disc pl-6 marker:text-slate-400">
+            <li>
+              <strong>Para usuários consumidores:</strong> Você tem o direito de escolher ajuizar eventual ação no seu próprio domicílio, conforme o Código de Defesa do Consumidor.
+            </li>
+            <li>
+              <strong>Para usuários PJ ou lojistas profissionais:</strong> Fica eleito o foro da comarca de <strong>Ribeirópolis, Sergipe (SE)</strong>, para dirimir quaisquer controvérsias, abrindo mão de qualquer outro, por mais privilegiado que seja.
+            </li>
+          </ul>
+
+          <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2 mt-12">
+            10. Fale Conosco
+          </h2>
+          <div className="bg-slate-100 p-6 rounded-xl mt-6 border border-slate-200">
+            <p className="mb-4">Se você achar que a sua privacidade foi desrespeitada ou quiser falar com o nosso Encarregado de Dados (DPO), chame a gente:</p>
+            <div className="flex flex-col gap-2 font-medium text-slate-800">
+              <a href="mailto:lucasholt2021@gmail.com" className="flex items-center gap-2 hover:text-indigo-600 transition-colors">
+                <Mail className="w-5 h-5 text-indigo-500" />
+                lucasholt2021@gmail.com
+              </a>
+            </div>
+            <p className="text-sm text-slate-500 mt-6">
+              Você também tem o direito legal de reclamar na Autoridade Nacional de Proteção de Dados (ANPD) acessando gov.br/anpd.
             </p>
           </div>
 
-          <h2>1. INTRODUÇÃO E COMPROMISSO COM A PRIVACIDADE</h2>
-          <p>
-            A presente Política tem por finalidade demonstrar o compromisso do <strong>FREELINNK</strong>
-            (nós, nosso ou Plataforma) com a privacidade e proteção dos seus dados pessoais,
-            além de estabelecer as regras sobre o tratamento dos seus dados pessoais, dentro do escopo
-            dos serviços e funcionalidades da plataforma disponível em <strong>https://freelinnk.com</strong>,
-            de acordo com as leis em vigor, com transparência e clareza.
-          </p>
-          <p>
-            Como condição para acesso e uso das funcionalidades exclusivas da nossa Plataforma, você
-            declara que fez a leitura completa e atenta desta Política, estando plenamente ciente,
-            conferindo assim sua livre e expressa concordância com os termos aqui estipulados.
-          </p>
-
-          <h2>2. DEFINIÇÕES IMPORTANTES</h2>
-          <p>Para melhor compreensão desta Política, considere as seguintes definições:</p>
-          <ul className="list-disc pl-6">
-            <li><strong>Dados Pessoais:</strong> Informações relacionadas a pessoa natural identificada ou identificável</li>
-            <li><strong>Dados Pessoais Sensíveis:</strong> Dados pessoais sobre origem racial ou étnica, convicção religiosa, opinião política, filiação a sindicato ou organização religiosa, filosófica ou política, dados referentes à saúde ou vida sexual, dados genéticos ou biométricos</li>
-            <li><strong>Titular:</strong> Pessoa natural a quem se referem os dados pessoais (você)</li>
-            <li><strong>Controlador:</strong> Pessoa jurídica a quem competem as decisões sobre o tratamento de dados pessoais (Freelinnk)</li>
-            <li><strong>Operador:</strong> Pessoa jurídica que realiza o tratamento de dados em nome do controlador</li>
-            <li><strong>Tratamento:</strong> Toda operação realizada com dados pessoais</li>
-            <li><strong>Anonimização:</strong> Processo que torna um dado não associável a um indivíduo</li>
-            <li><strong>Consentimento:</strong> Manifestação livre, informada e inequívoca do titular concordando com o tratamento</li>
-            <li><strong>LGPD:</strong> Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018)</li>
-            <li><strong>ANPD:</strong> Autoridade Nacional de Proteção de Dados</li>
-          </ul>
-
-          <h2>3. DADOS PESSOAIS QUE COLETAMOS</h2>
-          <p>Coletamos diferentes tipos de dados pessoais dependendo de como você interage com nossa Plataforma:</p>
-
-          <h3>3.1 Dados de Cadastro e Autenticação</h3>
-          <ul className="list-disc pl-6">
-            <li>Nome completo</li>
-            <li>Endereço de e-mail</li>
-            <li>Foto de perfil (opcional)</li>
-            <li>Dados de autenticação (gerenciados pelo Clerk)</li>
-            <li>ID único de usuário</li>
-          </ul>
-
-          <h3>3.2 Dados de Pagamento (para assinantes)</h3>
-          <ul className="list-disc pl-6">
-            <li>Nome do titular do cartão</li>
-            <li>Últimos 4 dígitos do cartão (apenas para referência)</li>
-            <li>Histórico de transações</li>
-            <li>Status da assinatura</li>
-            <li>Dados processados diretamente pelo Stripe (PCI Compliant)</li>
-          </ul>
-
-          <h3>3.3 Dados do Instagram (mediante autorização)</h3>
-          <ul className="list-disc pl-6">
-            <li>Nome de usuário do Instagram</li>
-            <li>Biografia do perfil</li>
-            <li>Foto de perfil pública</li>
-            <li>Lista de posts públicos</li>
-            <li>Comentários em posts selecionados</li>
-            <li>Métricas públicas (seguidores, seguindo)</li>
-            <li>Token de acesso da API (criptografado)</li>
-          </ul>
-
-          <h3>3.4 Dados de Uso e Interação</h3>
-          <ul className="list-disc pl-6">
-            <li>Links criados e suas configurações</li>
-            <li>Estatísticas de cliques e visualizações</li>
-            <li>Interações com o Mentor IA</li>
-            <li>Configurações de sorteios realizados</li>
-            <li>Preferências de personalização</li>
-            <li>Histórico de ações na plataforma</li>
-          </ul>
-
-          <h3>3.5 Dados Técnicos e de Navegação</h3>
-          <ul className="list-disc pl-6">
-            <li>Endereço IP</li>
-            <li>Tipo e versão do navegador</li>
-            <li>Sistema operacional</li>
-            <li>Páginas visitadas e tempo de permanência</li>
-            <li>Data e hora de acesso</li>
-            <li>Origem do tráfego (referrer)</li>
-            <li>Cookies e identificadores similares</li>
-            <li>Localização aproximada (país/cidade)</li>
-          </ul>
-
-          <h2>4. BASES LEGAIS PARA O TRATAMENTO</h2>
-          <p>Tratamos seus dados pessoais com base nas seguintes hipóteses legais previstas na LGPD:</p>
-
-          <table className="min-w-full border-collapse border border-gray-300 my-6">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="border border-gray-300 px-4 py-2 text-left">Finalidade</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Base Legal</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Criação e gerenciamento de conta</td>
-                <td className="border border-gray-300 px-4 py-2">Execução de contrato (Art. 7º, V)</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Processamento de pagamentos</td>
-                <td className="border border-gray-300 px-4 py-2">Execução de contrato (Art. 7º, V)</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Integração com Instagram</td>
-                <td className="border border-gray-300 px-4 py-2">Consentimento (Art. 7º, I)</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Envio de comunicações sobre o serviço</td>
-                <td className="border border-gray-300 px-4 py-2">Execução de contrato (Art. 7º, V)</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Marketing direto</td>
-                <td className="border border-gray-300 px-4 py-2">Consentimento (Art. 7º, I)</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Melhoria dos serviços</td>
-                <td className="border border-gray-300 px-4 py-2">Legítimo interesse (Art. 7º, IX)</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Cumprimento de obrigações legais</td>
-                <td className="border border-gray-300 px-4 py-2">Obrigação legal (Art. 7º, II)</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Prevenção a fraudes</td>
-                <td className="border border-gray-300 px-4 py-2">Legítimo interesse (Art. 7º, IX)</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <h2>5. COMO UTILIZAMOS SEUS DADOS</h2>
-          <p>Utilizamos seus dados pessoais para as seguintes finalidades:</p>
-
-          <h3>5.1 Prestação dos Serviços</h3>
-          <ul className="list-disc pl-6">
-            <li>Criar e gerenciar sua conta</li>
-            <li>Permitir a criação e personalização de páginas de links</li>
-            <li>Processar pagamentos e gerenciar assinaturas</li>
-            <li>Fornecer análises e estatísticas de desempenho</li>
-            <li>Executar funcionalidades de IA (Mentor IA)</li>
-            <li>Realizar sorteios através dos comentários do Instagram</li>
-          </ul>
-
-          <h3>5.2 Comunicação</h3>
-          <ul className="list-disc pl-6">
-            <li>Enviar confirmações e notificações importantes</li>
-            <li>Responder a dúvidas e fornecer suporte</li>
-            <li>Informar sobre atualizações e novos recursos</li>
-            <li>Enviar conteúdo de marketing (com consentimento)</li>
-          </ul>
-
-          <h3>5.3 Melhoria e Segurança</h3>
-          <ul className="list-disc pl-6">
-            <li>Analisar o uso da plataforma para melhorias</li>
-            <li>Detectar e prevenir fraudes e atividades maliciosas</li>
-            <li>Garantir a segurança e integridade dos dados</li>
-            <li>Cumprir obrigações legais e regulatórias</li>
-          </ul>
-
-          <h2>6. COMPARTILHAMENTO DE DADOS</h2>
-          <p>
-            Não vendemos, alugamos ou comercializamos seus dados pessoais. Compartilhamos seus dados
-            apenas nas seguintes situações:
-          </p>
-
-          <h3>6.1 Parceiros e Prestadores de Serviços</h3>
-          <p>Compartilhamos dados com prestadores de serviços essenciais para nossa operação:</p>
-          <ul className="list-disc pl-6">
-            <li><strong>Clerk:</strong> Autenticação e gerenciamento de identidade</li>
-            <li><strong>Stripe:</strong> Processamento seguro de pagamentos</li>
-            <li><strong>Convex:</strong> Armazenamento e processamento de dados</li>
-            <li><strong>Vercel:</strong> Hospedagem e infraestrutura</li>
-            <li><strong>OpenAI:</strong> Processamento de IA para o Mentor</li>
-            <li><strong>Meta (Instagram):</strong> Acesso às APIs para funcionalidades</li>
-            <li><strong>Google Analytics:</strong> Análise de tráfego (dados anonimizados)</li>
-          </ul>
-
-          <h3>6.2 Obrigações Legais</h3>
-          <p>
-            Podemos divulgar dados quando exigido por lei, ordem judicial ou autoridade governamental
-            competente, incluindo para:
-          </p>
-          <ul className="list-disc pl-6">
-            <li>Cumprir com processos legais</li>
-            <li>Proteger direitos, propriedade ou segurança</li>
-            <li>Prevenir fraude ou questões de segurança</li>
-            <li>Atender requisições de autoridades públicas</li>
-          </ul>
-
-          <h3>6.3 Transferências de Negócios</h3>
-          <p>
-            Em caso de fusão, aquisição ou venda de ativos, seus dados podem ser transferidos,
-            sendo você notificado previamente sobre qualquer mudança na titularidade ou uso dos dados.
-          </p>
-
-          <h2>7. ARMAZENAMENTO E RETENÇÃO DE DADOS</h2>
-
-          <h3>7.1 Localização do Armazenamento</h3>
-          <p>
-            Seus dados são armazenados em servidores seguros localizados nos Estados Unidos e
-            podem ser processados em outros países onde nossos prestadores de serviço operam.
-            Garantimos que todas as transferências internacionais seguem as salvaguardas adequadas
-            conforme a LGPD.
-          </p>
-
-          <h3>7.2 Prazos de Retenção</h3>
-          <table className="min-w-full border-collapse border border-gray-300 my-6">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="border border-gray-300 px-4 py-2 text-left">Tipo de Dado</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Prazo de Retenção</th>
-                <th className="border border-gray-300 px-4 py-2 text-left">Base Legal</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Dados cadastrais</td>
-                <td className="border border-gray-300 px-4 py-2">5 anos após encerramento da conta</td>
-                <td className="border border-gray-300 px-4 py-2">Art. 206, §5º, I, Código Civil</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Dados de pagamento</td>
-                <td className="border border-gray-300 px-4 py-2">5 anos após última transação</td>
-                <td className="border border-gray-300 px-4 py-2">Obrigações fiscais e contábeis</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Logs de acesso</td>
-                <td className="border border-gray-300 px-4 py-2">6 meses</td>
-                <td className="border border-gray-300 px-4 py-2">Art. 15, Marco Civil da Internet</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Dados do Instagram</td>
-                <td className="border border-gray-300 px-4 py-2">Até revogação da autorização</td>
-                <td className="border border-gray-300 px-4 py-2">Consentimento do titular</td>
-              </tr>
-              <tr>
-                <td className="border border-gray-300 px-4 py-2">Conteúdo criado</td>
-                <td className="border border-gray-300 px-4 py-2">Enquanto a conta estiver ativa</td>
-                <td className="border border-gray-300 px-4 py-2">Execução do contrato</td>
-              </tr>
-            </tbody>
-          </table>
-
-          <h2>8. SEGURANÇA DOS DADOS</h2>
-          <p>
-            Implementamos medidas técnicas e organizacionais apropriadas para proteger seus dados
-            pessoais contra acesso não autorizado, perda, destruição ou alteração:
-          </p>
-
-          <h3>8.1 Medidas Técnicas</h3>
-          <ul className="list-disc pl-6">
-            <li>Criptografia de dados em trânsito (TLS/SSL)</li>
-            <li>Criptografia de dados em repouso</li>
-            <li>Autenticação de dois fatores disponível</li>
-            <li>Tokens de acesso com expiração automática</li>
-            <li>Firewalls e sistemas de detecção de intrusão</li>
-            <li>Backups regulares e redundância de dados</li>
-            <li>Monitoramento contínuo de segurança</li>
-          </ul>
-
-          <h3>8.2 Medidas Organizacionais</h3>
-          <ul className="list-disc pl-6">
-            <li>Acesso restrito baseado em necessidade</li>
-            <li>Treinamento regular da equipe em proteção de dados</li>
-            <li>Acordos de confidencialidade com funcionários</li>
-            <li>Avaliações periódicas de segurança</li>
-            <li>Plano de resposta a incidentes</li>
-            <li>Due diligence de fornecedores</li>
-          </ul>
-
-          <h2>9. SEUS DIREITOS COMO TITULAR DOS DADOS</h2>
-          <p>
-            Conforme a LGPD, você possui os seguintes direitos em relação aos seus dados pessoais:
-          </p>
-
-          <h3>9.1 Direitos Garantidos</h3>
-          <ul className="list-disc pl-6">
-            <li><strong>Confirmação e Acesso:</strong> Confirmar se tratamos seus dados e acessá-los</li>
-            <li><strong>Correção:</strong> Solicitar a correção de dados incompletos ou desatualizados</li>
-            <li><strong>Anonimização ou Bloqueio:</strong> Solicitar anonimização ou bloqueio de dados desnecessários</li>
-            <li><strong>Portabilidade:</strong> Receber seus dados em formato estruturado</li>
-            <li><strong>Eliminação:</strong> Solicitar a exclusão de dados pessoais</li>
-            <li><strong>Informação sobre Compartilhamento:</strong> Saber com quem compartilhamos seus dados</li>
-            <li><strong>Revogação do Consentimento:</strong> Retirar seu consentimento a qualquer momento</li>
-            <li><strong>Oposição:</strong> Opor-se a tratamentos realizados sem consentimento</li>
-            <li><strong>Revisão de Decisões Automatizadas:</strong> Solicitar revisão de decisões tomadas por IA</li>
-          </ul>
-
-          <h3>9.2 Como Exercer Seus Direitos</h3>
-          <p>
-            Para exercer qualquer um desses direitos, você pode:
-          </p>
-          <ul className="list-disc pl-6">
-            <li>Acessar as configurações da sua conta no painel de controle</li>
-            <li>Enviar e-mail para: <strong>privacidade@freelinnk.com</strong></li>
-            <li>Contatar nosso Encarregado de Proteção de Dados (DPO)</li>
-          </ul>
-          <p className="mt-4">
-            Responderemos às suas solicitações no prazo máximo de 15 dias, conforme previsto na LGPD.
-            Podemos solicitar informações adicionais para confirmar sua identidade antes de processar
-            a solicitação.
-          </p>
-
-          <h2>10. COOKIES E TECNOLOGIAS SIMILARES</h2>
-
-          <h3>10.1 O que são Cookies</h3>
-          <p>
-            Cookies são pequenos arquivos de texto armazenados no seu dispositivo quando você visita
-            nossa plataforma. Utilizamos cookies e tecnologias similares para:
-          </p>
-
-          <h3>10.2 Tipos de Cookies Utilizados</h3>
-          <ul className="list-disc pl-6">
-            <li><strong>Cookies Essenciais:</strong> Necessários para o funcionamento básico da plataforma</li>
-            <li><strong>Cookies de Desempenho:</strong> Coletam informações sobre como você usa a plataforma</li>
-            <li><strong>Cookies de Funcionalidade:</strong> Lembram suas preferências e personalizações</li>
-            <li><strong>Cookies de Marketing:</strong> Usados para análise e publicidade direcionada (com consentimento)</li>
-          </ul>
-
-          <h3>10.3 Gerenciamento de Cookies</h3>
-          <p>
-            Você pode gerenciar suas preferências de cookies através das configurações do seu navegador
-            ou através do nosso banner de cookies. Note que desabilitar cookies essenciais pode afetar
-            a funcionalidade da plataforma.
-          </p>
-
-          <h2>11. MENORES DE IDADE</h2>
-          <p>
-            Nossa plataforma não é direcionada a menores de 18 anos. Não coletamos conscientemente
-            dados pessoais de menores. Se você é pai/mãe ou responsável e acredita que seu filho
-            forneceu dados pessoais, entre em contato conosco imediatamente para que possamos
-            tomar as medidas apropriadas.
-          </p>
-
-          <h2>12. ALTERAÇÕES NESTA POLÍTICA</h2>
-          <p>
-            Podemos atualizar esta Política de Privacidade periodicamente para refletir mudanças
-            em nossas práticas, tecnologias, requisitos legais ou outros fatores. Quando fizermos
-            alterações significativas:
-          </p>
-          <ul className="list-disc pl-6">
-            <li>Atualizaremos a data de Última atualização no topo desta página</li>
-            <li>Notificaremos você por e-mail ou através de um aviso em destaque na plataforma</li>
-            <li>Quando necessário, solicitaremos seu consentimento novamente</li>
-          </ul>
-
-          <h2>13. ENCARREGADO DE PROTEÇÃO DE DADOS (DPO)</h2>
-          <p>
-            Para questões relacionadas à proteção de dados e privacidade, você pode entrar em
-            contato com nosso Encarregado de Proteção de Dados:
-          </p>
-
-          <h2>14. AUTORIDADE DE PROTEÇÃO DE DADOS</h2>
-          <p>
-            Você tem o direito de apresentar uma reclamação à Autoridade Nacional de Proteção
-            de Dados (ANPD) se acreditar que violamos seus direitos de privacidade:
-          </p>
-          <div className="bg-gray-100 p-4 rounded-lg my-4">
-            <p><strong>Site:</strong> www.gov.br/anpd</p>
-            <p><strong>Endereço:</strong> Esplanada dos Ministérios, Bloco C, 2º andar, Brasília/DF, CEP: 70.297-400</p>
-          </div>
-
-       <h2>15. LEGISLAÇÃO APLICÁVEL E FORO</h2>
-<p>
-  Esta Política de Privacidade é regida pelas leis da República Federativa do Brasil,
-  especialmente:
-</p>
-<ul className="list-disc pl-6">
-  <li>Lei Geral de Proteção de Dados Pessoais (Lei nº 13.709/2018)</li>
-  <li>Código de Defesa do Consumidor (Lei nº 8.078/1990)</li>
-  <li>Marco Civil da Internet (Lei nº 12.965/2014)</li>
-  <li>Demais normas aplicáveis do ordenamento jurídico brasileiro</li>
-</ul>
-
-<h3>15.1 Resolução de Conflitos</h3>
-<p>
-  Priorizamos a resolução amigável de qualquer questão relacionada a esta Política.
-  Em caso de dúvidas ou divergências, entre em contato conosco através dos canais
-  disponibilizados para buscarmos uma solução consensual.
-</p>
-
-<h3>15.2 Foro Competente</h3>
-<p>
-  Caso não seja possível uma resolução amigável, as partes reconhecem que:
-</p>
-<ul className="list-disc pl-6">
-  <li>
-    <strong>Para usuários consumidores:</strong> Conforme artigo 101, I, do Código de
-    Defesa do Consumidor, você tem o direito de escolher ajuizar eventual ação em seu
-    próprio domicílio, no nosso domicílio, ou no local onde o dano eventualmente ocorreu
-  </li>
-  <li>
-    <strong>Para usuários pessoas jurídicas ou relações não-consumeristas:</strong>
-    Fica eleito o foro da comarca de [Cidade onde a empresa está sediada] para dirimir
-    quaisquer controvérsias, salvo disposição legal em contrário
-  </li>
-</ul>
-
-<div className="bg-blue-50 border-l-4 border-blue-400 p-4 mt-4">
-  <p className="text-sm">
-    <strong>Seus direitos são prioridade:</strong> Esta cláusula respeita integralmente
-    seus direitos como consumidor. Você sempre poderá buscar atendimento nos órgãos de
-    defesa do consumidor, como PROCON, ou através da plataforma consumidor.gov.br,
-    além de poder ajuizar ação em seu próprio domicílio.
-  </p>
-</div>
         </div>
       </main>
     </div>

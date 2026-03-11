@@ -108,7 +108,7 @@ function isEndOfYear(date: Date): boolean {
 }
 
 // ============================================================
-// 📧 TEMPLATES - COMPLETO
+// 📧 TEMPLATES - FOCADOS EM VENDAS E TRÁFEGO
 // ============================================================
 
 function getValueDay3Email(ctx: UserContext): EmailTemplate {
@@ -120,28 +120,28 @@ function getValueDay3Email(ctx: UserContext): EmailTemplate {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
       <p style="color: #64748b; font-size: 15px; margin: 0 0 24px 0;">${ctx.firstName},</p>
-      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; line-height: 1.4;">Quantas vezes você já ficou olhando a tela em branco?</h1>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">30 minutos pensando no que postar. 1 hora tentando escrever uma legenda. No final, desiste e não posta nada.</p>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">O bloqueio criativo é o maior inimigo da consistência.</p>
+      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; line-height: 1.4;">Seu link atual pode estar espantando clientes.</h1>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">Você já parou para pensar que uma vitrine amadora reduz sua taxa de conversão em até 40%?</p>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">E o pior: se você não rastreia quem clica, você não pode fazer campanhas de remarketing para eles.</p>
       <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 12px; padding: 28px; margin: 24px 0; color: white;">
-        <p style="font-size: 12px; opacity: 0.7; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 1px;">💡 Ideia gerada pelo FreelinnkBrain hoje</p>
-        <p style="font-size: 18px; font-weight: 500; line-height: 1.5; margin: 0 0 16px 0;">"5 erros que você comete na bio do Instagram sem perceber"</p>
+        <p style="font-size: 12px; opacity: 0.7; margin: 0 0 12px 0; text-transform: uppercase; letter-spacing: 1px;">💡 A SOLUÇÃO DEFINITIVA</p>
+        <p style="font-size: 18px; font-weight: 500; line-height: 1.5; margin: 0 0 16px 0;">No Freelinnk, você injeta o Pixel do Facebook na sua vitrine com 1 clique.</p>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <span style="background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px; font-size: 12px;">📈 Alto potencial</span>
-          <span style="background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px; font-size: 12px;">📱 Carrossel</span>
+          <span style="background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px; font-size: 12px;">📈 Remarketing Automático</span>
+          <span style="background: rgba(255,255,255,0.15); padding: 6px 12px; border-radius: 20px; font-size: 12px;">🎯 Dados Reais</span>
         </div>
       </div>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 32px 0;">No plano Pro, você recebe <strong>5 ideias assim todo dia</strong>. Nunca mais olha pra tela em branco.</p>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 32px 0;">Nos planos Pro e Ultra, a sua página trabalha a seu favor. Nunca mais perca um lead qualificado.</p>
       <div style="text-align: center;">
-        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: #1e293b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">Conhecer o FreelinnkBrain</a>
+        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: #1e293b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">Conhecer Planos Pro</a>
       </div>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `O segredo para nunca mais travar na hora de criar`,
-    preheader: 'Como acabar com o bloqueio criativo de vez',
+    subject: `O segredo para parar de perder vendas`,
+    preheader: 'Como o Pixel transforma cliques em clientes',
     priority: 70,
     cooldownHours: 72,
     countTowardsLimit: true,
@@ -158,37 +158,37 @@ function getSocialProofDay7Email(ctx: UserContext): EmailTemplate {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
       <p style="color: #64748b; font-size: 15px; margin: 0 0 24px 0;">Oi ${ctx.firstName},</p>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">Queria compartilhar uma história:</p>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">Queria compartilhar o que acontece quando você automatiza o tráfego:</p>
       <div style="background: #f8fafc; border-left: 4px solid #6366f1; padding: 24px; margin: 24px 0; border-radius: 0 12px 12px 0;">
-        <p style="color: #1e293b; font-size: 16px; line-height: 1.7; margin: 0 0 20px 0; font-style: italic;">"Eu estava travada há meses. Quando comecei a usar o FreelinnkBrain, virou rotina: abro de manhã, escolho a melhor ideia, e gravo. Em 4 meses saí de 3K para 47K seguidores."</p>
+        <p style="color: #1e293b; font-size: 16px; line-height: 1.7; margin: 0 0 20px 0; font-style: italic;">"Eu estava dependendo apenas do tráfego orgânico do Insta. Ativei a Rede de Anúncios do Freelinnk e recebi mais de 4.000 visualizações na minha vitrine vindas de outras páginas do meu nicho. Minhas vendas duplicaram."</p>
         <div style="display: flex; align-items: center;">
           <div style="width: 48px; height: 48px; background: linear-gradient(135deg, #ec4899 0%, #8b5cf6 100%); border-radius: 50%; margin-right: 14px;"></div>
           <div>
-            <p style="margin: 0; color: #1e293b; font-weight: 600;">Ana Costa</p>
-            <p style="margin: 2px 0 0 0; color: #64748b; font-size: 14px;">Criadora de lifestyle</p>
+            <p style="margin: 0; color: #1e293b; font-weight: 600;">Ricardo Sales</p>
+            <p style="margin: 2px 0 0 0; color: #64748b; font-size: 14px;">Dono de E-commerce</p>
           </div>
         </div>
       </div>
       <div style="display: flex; gap: 12px; margin: 24px 0;">
         <div style="flex: 1; background: #f0fdf4; border-radius: 12px; padding: 20px; text-align: center;">
-          <p style="color: #22c55e; font-size: 24px; font-weight: 700; margin: 0;">15x</p>
-          <p style="color: #64748b; font-size: 12px; margin: 6px 0 0 0;">crescimento</p>
+          <p style="color: #22c55e; font-size: 24px; font-weight: 700; margin: 0;">+4k</p>
+          <p style="color: #64748b; font-size: 12px; margin: 6px 0 0 0;">visitas extras</p>
         </div>
         <div style="flex: 1; background: #fef3c7; border-radius: 12px; padding: 20px; text-align: center;">
-          <p style="color: #f59e0b; font-size: 24px; font-weight: 700; margin: 0;">4</p>
-          <p style="color: #64748b; font-size: 12px; margin: 6px 0 0 0;">meses</p>
+          <p style="color: #f59e0b; font-size: 24px; font-weight: 700; margin: 0;">2x</p>
+          <p style="color: #64748b; font-size: 12px; margin: 6px 0 0 0;">mais vendas</p>
         </div>
       </div>
       <div style="text-align: center;">
-        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">Quero resultados assim</a>
+        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">Quero tráfego assim</a>
       </div>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `Como a Ana cresceu 15x em 4 meses`,
-    preheader: 'De 3K para 47K seguidores',
+    subject: `Como o Ricardo duplicou as vendas com nosso Hub`,
+    preheader: 'Tráfego automático pra sua vitrine',
     priority: 65,
     cooldownHours: 96,
     countTowardsLimit: true,
@@ -205,36 +205,36 @@ function getMidMonthDay14Email(ctx: UserContext): EmailTemplate {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
       <p style="color: #64748b; font-size: 15px; margin: 0 0 24px 0;">${ctx.firstName},</p>
-      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; line-height: 1.4;">Já se passaram 2 semanas.</h1>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">Pergunta honesta: você está mais perto dos seus objetivos?</p>
-      ${ctx.totalClicks > 0 ? `<p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">Você já teve <strong style="color: #6366f1;">${ctx.totalClicks} cliques</strong> no seu perfil. Imagina esse número 3x maior?</p>` : ''}
+      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; line-height: 1.4;">2 semanas já se passaram.</h1>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">Pergunta honesta: você está gerando lucro real ou só volume de cliques?</p>
+      ${ctx.totalClicks > 0 ? `<p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">Você já teve <strong style="color: #6366f1;">${ctx.totalClicks} cliques</strong>. Sabe exatamente quantos viraram dinheiro no bolso?</p>` : ''}
       <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin: 24px 0;">
-        <p style="color: #64748b; font-size: 13px; margin: 0 0 16px 0; text-transform: uppercase;">Média: Free vs Pro</p>
+        <p style="color: #64748b; font-size: 13px; margin: 0 0 16px 0; text-transform: uppercase;">Média: Free vs Ultra</p>
         <div style="margin-bottom: 12px;">
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: #1e293b; font-size: 14px;">Posts por semana</span>
-            <span style="color: #22c55e; font-size: 14px; font-weight: 600;">+340%</span>
+            <span style="color: #1e293b; font-size: 14px;">Tráfego Recebido</span>
+            <span style="color: #22c55e; font-size: 14px; font-weight: 600;">15.000 visualizações</span>
           </div>
           <div style="background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;"><div style="background: #22c55e; height: 100%; width: 85%;"></div></div>
         </div>
         <div>
           <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-            <span style="color: #1e293b; font-size: 14px;">Crescimento</span>
-            <span style="color: #6366f1; font-size: 14px; font-weight: 600;">+220%</span>
+            <span style="color: #1e293b; font-size: 14px;">Controle Financeiro</span>
+            <span style="color: #6366f1; font-size: 14px; font-weight: 600;">CRM Completo</span>
           </div>
-          <div style="background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;"><div style="background: #6366f1; height: 100%; width: 75%;"></div></div>
+          <div style="background: #e2e8f0; height: 6px; border-radius: 3px; overflow: hidden;"><div style="background: #6366f1; height: 100%; width: 100%;"></div></div>
         </div>
       </div>
       <div style="text-align: center;">
-        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: #1e293b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">Ver planos Pro</a>
+        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: #1e293b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 15px;">Assumir controle do negócio</a>
       </div>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `${ctx.firstName}, 2 semanas já. Como está indo?`,
-    preheader: 'Uma reflexão sobre seu crescimento',
+    subject: `${ctx.firstName}, você sabe quanto lucrou essas semanas?`,
+    preheader: 'A importância de um CRM integrado',
     priority: 60,
     cooldownHours: 168,
     countTowardsLimit: true,
@@ -250,21 +250,21 @@ function getLastChanceDay25Email(ctx: UserContext): EmailTemplate {
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #0f172a;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 16px; padding: 48px 40px; text-align: center; color: white;">
-      <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 16px 0;">Seu primeiro mês está acabando</h1>
-      <p style="font-size: 16px; opacity: 0.9; margin: 0 0 32px 0;">E com ele, vai o desconto especial de novos usuários.</p>
+      <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 16px 0;">${ctx.firstName}, seu primeiro mês está acabando</h1>
+      <p style="font-size: 16px; opacity: 0.9; margin: 0 0 32px 0;">Não deixe sua vitrine sem tráfego e sem rastreamento.</p>
       <div style="background: rgba(251, 191, 36, 0.15); border: 2px solid rgba(251, 191, 36, 0.4); border-radius: 12px; padding: 28px; margin: 0 0 32px 0;">
         <p style="color: #fbbf24; font-size: 14px; margin: 0 0 8px 0; text-transform: uppercase;">Oferta de primeiro mês</p>
         <p style="font-size: 48px; font-weight: 800; margin: 0; color: #fbbf24;">50% OFF</p>
-        <p style="font-size: 16px; margin: 12px 0 0 0; opacity: 0.9;">Pro por <strong>R$ 34,90</strong></p>
+        <p style="font-size: 16px; margin: 12px 0 0 0; opacity: 0.9;">Plano Pro por <strong>R$ 34,90</strong></p>
       </div>
-      <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: #fbbf24; color: #1e1b4b; padding: 18px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">Ativar desconto</a>
+      <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: #fbbf24; color: #1e1b4b; padding: 18px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">Ativar desconto e crescer</a>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `${ctx.firstName}, seu desconto de estreia expira em breve`,
-    preheader: 'Última chance de pegar 50% OFF',
+    subject: `${ctx.firstName}, seu desconto expira em breve`,
+    preheader: 'Última chance de garantir as ferramentas de venda',
     priority: 80,
     cooldownHours: 168,
     countTowardsLimit: true,
@@ -276,11 +276,11 @@ function getCartAbandonedEmail(ctx: UserContext): EmailTemplate {
   const planDetails: Record<string, { price: string; benefits: string[] }> = {
     pro: {
       price: 'R$ 34,90',
-      benefits: ['5 ideias virais por dia com FreelinnkBrain', '5 roteiros de vídeo prontos', 'Analytics avançados', 'Remover marca Freelinnk']
+      benefits: ['Até 2.000 Views de Tráfego Automático', 'Pixel de Rastreamento', 'Analytics Profundo', 'Múltiplas Vitrines']
     },
     ultra: {
       price: 'R$ 77,90',
-      benefits: ['FreelinnkBrain cinematográfico ILIMITADO', 'Vídeos virais ILIMITADOS', '7 imagens com IA por dia', 'Suporte VIP WhatsApp']
+      benefits: ['Até 15.000 Views de Tráfego', 'Calculadora de Lucros e CRM', 'Sem Anúncios de Terceiros', 'Suporte VIP']
     }
   };
   const plan = planDetails[ctx.attemptedPlan] || planDetails.pro;
@@ -292,20 +292,20 @@ function getCartAbandonedEmail(ctx: UserContext): EmailTemplate {
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0;">Percebi que você não finalizou seu upgrade</h1>
-      <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 24px 0;">Acontece! Seu carrinho com o plano <strong style="color: #6366f1;">${ctx.attemptedPlan.toUpperCase()}</strong> ainda está salvo.</p>
+      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0;">${ctx.firstName}, percebi que você não finalizou a compra</h1>
+      <p style="color: #475569; font-size: 16px; line-height: 1.7; margin: 0 0 24px 0;">Acontece! Seu carrinho com o plano <strong style="color: #6366f1;">${ctx.attemptedPlan.toUpperCase()}</strong> ainda está salvo e a sua Máquina de Vendas está pronta pra rodar.</p>
       <div style="background: #f8fafc; border-radius: 12px; padding: 24px; margin: 0 0 24px 0;">
         ${plan.benefits.map(b => `<div style="display: flex; align-items: center; margin-bottom: 10px;"><span style="color: #22c55e; margin-right: 10px;">✓</span><span style="color: #1e293b; font-size: 15px;">${b}</span></div>`).join('')}
       </div>
       <div style="text-align: center;">
-        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 18px 48px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;">Continuar de onde parei</a>
+        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 18px 48px; text-decoration: none; border-radius: 12px; font-weight: 600; font-size: 16px;">Continuar e Escalar Vendas</a>
       </div>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `${ctx.firstName}, você deixou algo pra trás`,
+    subject: `${ctx.firstName}, você deixou suas vendas pra trás`,
     preheader: `Seu upgrade para ${ctx.attemptedPlan.toUpperCase()} está esperando`,
     priority: 100,
     cooldownHours: 48,
@@ -323,29 +323,28 @@ function getGiveawayFeatureEmail(ctx: UserContext): EmailTemplate {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
       <div style="text-align: center; margin-bottom: 24px;"><span style="font-size: 48px;">🎁</span></div>
-      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; text-align: center;">O truque que criadores de 100K+ usam</h1>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">${ctx.firstName}, já reparou como alguns perfis crescem "do nada"?</p>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">Na maioria das vezes, tem um <strong>sorteio bem feito</strong> por trás.</p>
+      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; text-align: center;">Transforme comentários em leads</h1>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">${ctx.firstName}, sabe qual é o jeito mais barato de levar tráfego pra sua vitrine?</p>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">Criando um <strong>Sorteio no Instagram</strong> pedindo para clicarem no seu link.</p>
       <div style="background: linear-gradient(135deg, #fef3c7 0%, #fef9c3 100%); border-radius: 12px; padding: 24px; margin: 24px 0;">
-        <p style="color: #92400e; font-size: 14px; margin: 0 0 12px 0; font-weight: 600;">🎁 FERRAMENTA DE SORTEIOS FREELINNK</p>
+        <p style="color: #92400e; font-size: 14px; margin: 0 0 12px 0; font-weight: 600;">🎁 SORTEADOR NATIVO FREELINNK</p>
         <ul style="color: #78350f; font-size: 15px; line-height: 1.8; margin: 0; padding-left: 20px;">
-          <li>Sorteio automático via comentários</li>
-          <li>Filtro anti-bot</li>
-          <li>Certificado de transparência</li>
-          <li>Relatório de alcance</li>
+          <li>Puxa todos os comentários do post automaticamente</li>
+          <li>Filtro anti-bot rigoroso</li>
+          <li>Certificado de sorteio limpo</li>
         </ul>
       </div>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 32px 0;">Criadores reportam <strong>+1.200 seguidores por sorteio</strong> em média.</p>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 32px 0;">Leve tráfego orgânico pra sua vitrine sem pagar Ads.</p>
       <div style="text-align: center;">
-        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: #f59e0b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Criar meu primeiro sorteio</a>
+        <a href="https://www.freelinnk.com/dashboard/giveaway" style="display: inline-block; background: #f59e0b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Acessar o Sorteador</a>
       </div>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `O truque para ganhar 1.000 seguidores em uma semana`,
-    preheader: 'Como criadores grandes crescem rápido',
+    subject: `${ctx.firstName}, o segredo para atrair clientes grátis no Instagram`,
+    preheader: 'A estratégia dos sorteios conectada ao seu link',
     priority: 50,
     cooldownHours: 336,
     countTowardsLimit: true,
@@ -354,8 +353,6 @@ function getGiveawayFeatureEmail(ctx: UserContext): EmailTemplate {
 }
 
 function getImageAIFeatureEmail(ctx: UserContext): EmailTemplate {
-  console.log('getImageAIFeatureEmail');
-  console.log(ctx);
   const raw = `
 <!DOCTYPE html>
 <html>
@@ -363,38 +360,38 @@ function getImageAIFeatureEmail(ctx: UserContext): EmailTemplate {
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0;">A primeira impressão acontece em 0.3 segundos.</h1>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">É o tempo que seu seguidor leva pra decidir se para ou continua scrollando.</p>
+      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0;">${ctx.firstName}, já ouviu falar de Tráfego Cruzado?</h1>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">Essa é a ferramenta mais poderosa que os assinantes Premium do Freelinnk usam.</p>
       <div style="display: flex; gap: 16px; margin: 24px 0;">
         <div style="flex: 1; background: #fee2e2; border-radius: 12px; padding: 20px; text-align: center;">
           <span style="font-size: 32px;">📱</span>
-          <p style="color: #991b1b; font-size: 14px; font-weight: 600; margin: 12px 0 4px 0;">Imagem genérica</p>
-          <p style="color: #b91c1c; font-size: 24px; font-weight: 700; margin: 0;">127</p>
-          <p style="color: #991b1b; font-size: 12px; margin: 0;">views</p>
+          <p style="color: #991b1b; font-size: 14px; font-weight: 600; margin: 12px 0 4px 0;">Apenas na sua bio</p>
+          <p style="color: #b91c1c; font-size: 24px; font-weight: 700; margin: 0;">Baixo</p>
+          <p style="color: #991b1b; font-size: 12px; margin: 0;">alcance</p>
         </div>
         <div style="flex: 1; background: #d1fae5; border-radius: 12px; padding: 20px; text-align: center;">
           <span style="font-size: 32px;">✨</span>
-          <p style="color: #065f46; font-size: 14px; font-weight: 600; margin: 12px 0 4px 0;">Imagem com IA</p>
-          <p style="color: #059669; font-size: 24px; font-weight: 700; margin: 0;">12.4K</p>
-          <p style="color: #065f46; font-size: 12px; margin: 0;">views</p>
+          <p style="color: #065f46; font-size: 14px; font-weight: 600; margin: 12px 0 4px 0;">No Ads Hub</p>
+          <p style="color: #059669; font-size: 24px; font-weight: 700; margin: 0;">Alto</p>
+          <p style="color: #065f46; font-size: 12px; margin: 0;">Tráfego Automático</p>
         </div>
       </div>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">No <strong style="color: #8b5cf6;">Freelinnk Ultra</strong>:</p>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">No <strong style="color: #8b5cf6;">Freelinnk Pro/Ultra</strong>:</p>
       <ul style="color: #475569; font-size: 15px; line-height: 2; margin: 0 0 24px 0; padding-left: 20px;">
-        <li><strong>7 imagens profissionais com IA</strong> por dia</li>
-        <li><strong>Aprimoramentos ilimitados</strong></li>
-        <li><strong>Templates prontos</strong> para Reels e carrosséis</li>
+        <li>Você cadastra uma foto ou vídeo do seu produto.</li>
+        <li>Nós rodamos ele em carrosséis nas páginas da nossa rede de usuários.</li>
+        <li>Você ganha clientes de pessoas que nunca te seguiram no Instagram.</li>
       </ul>
       <div style="text-align: center;">
-        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Testar geração de imagens</a>
+        <a href="https://www.freelinnk.com/dashboard/ads" style="display: inline-block; background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Ativar Hub de Tráfego</a>
       </div>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `Suas imagens estão te sabotando?`,
-    preheader: 'A diferença entre 100 e 10.000 views',
+    subject: `${ctx.firstName}, como conseguir tráfego sem pagar o Facebook`,
+    preheader: 'O segredo do Tráfego Cruzado do Freelinnk',
     priority: 50,
     cooldownHours: 336,
     countTowardsLimit: true,
@@ -411,19 +408,18 @@ function getAnalyticsFeatureEmail(ctx: UserContext): EmailTemplate {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
       <div style="text-align: center; margin-bottom: 24px;"><span style="font-size: 48px;">📊</span></div>
-      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; text-align: center;">Criadores que entendem seus números crescem 2x mais rápido</h1>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">${ctx.firstName}, você sabe responder:</p>
+      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; text-align: center;">De qual cidade os seus clientes compram?</h1>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">${ctx.firstName}, aposto que você não sabe qual o horário de maior tráfego da sua loja hoje.</p>
       <ul style="color: #475569; font-size: 15px; line-height: 2.2; margin: 0 0 24px 0; padding-left: 20px;">
-        <li>Qual horário seu público mais clica?</li>
-        <li>De qual país/cidade vêm seus seguidores?</li>
-        <li>Eles usam mais celular ou computador?</li>
-        <li>Qual link tem melhor conversão?</li>
+        <li>De qual link sai mais vendas?</li>
+        <li>Quanto tempo o cliente fica na página?</li>
+        <li>É hora de ativar o Pixel de rastreio?</li>
       </ul>
       <div style="background: #f0f4ff; border-radius: 12px; padding: 24px; margin: 24px 0;">
-        <p style="color: #6366f1; font-size: 14px; margin: 0 0 12px 0; font-weight: 600;">📈 ANALYTICS AVANÇADOS INCLUEM:</p>
-        <p style="color: #475569; font-size: 14px; line-height: 1.8; margin: 0;">• Mapa de calor de cliques<br>• Localização dos visitantes<br>• Dispositivos e navegadores<br>• Horários de pico<br>• Comparativo semanal/mensal</p>
+        <p style="color: #6366f1; font-size: 14px; margin: 0 0 12px 0; font-weight: 600;">📈 NOSSAS ANÁLISES PROFUNDAS:</p>
+        <p style="color: #475569; font-size: 14px; line-height: 1.8; margin: 0;">• Mapa de calor de cliques<br>• Localização precisa dos visitantes<br>• Dispositivos e Taxa de Conversão<br>• Integração com o Pixel Meta</p>
       </div>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 32px 0;">Disponível nos planos Pro e Ultra.</p>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 32px 0;">Lojista cego não escala. Desbloqueie seus dados reais.</p>
       <div style="text-align: center;">
         <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: #1e293b; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Desbloquear Analytics</a>
       </div>
@@ -432,8 +428,8 @@ function getAnalyticsFeatureEmail(ctx: UserContext): EmailTemplate {
 </body>
 </html>`;
   return {
-    subject: `Você sabe de onde vêm seus cliques?`,
-    preheader: 'Dados que fazem você crescer mais rápido',
+    subject: `${ctx.firstName}, a sua loja está vendendo às cegas?`,
+    preheader: 'Dados que geram vendas reais',
     priority: 50,
     cooldownHours: 336,
     countTowardsLimit: true,
@@ -449,29 +445,29 @@ function getVideoScriptsEmail(ctx: UserContext): EmailTemplate {
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-      <div style="text-align: center; margin-bottom: 24px;"><span style="font-size: 48px;">🎬</span></div>
-      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; text-align: center;">"O que eu gravo hoje?"</h1>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">${ctx.firstName}, essa pergunta consome horas da semana de todo criador.</p>
+      <div style="text-align: center; margin-bottom: 24px;"><span style="font-size: 48px;">💰</span></div>
+      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; text-align: center;">E o seu caixa, como está?</h1>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">${ctx.firstName}, faturamento não é lucro.</p>
       <div style="background: linear-gradient(135deg, #1e1b4b 0%, #312e81 100%); border-radius: 12px; padding: 24px; margin: 24px 0; color: white;">
-        <p style="font-size: 12px; opacity: 0.7; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 1px;">🎬 EXEMPLO DE ROTEIRO GERADO HOJE</p>
-        <p style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">"3 coisas que todo mundo erra no primeiro Reels"</p>
-        <p style="font-size: 14px; opacity: 0.9; margin: 0 0 16px 0; line-height: 1.6;"><strong>Gancho:</strong> "Se você tá começando no Reels, para de fazer isso..."<br><strong>Desenvolvimento:</strong> 3 erros com solução<br><strong>CTA:</strong> "Salva pra não esquecer"</p>
+        <p style="font-size: 12px; opacity: 0.7; margin: 0 0 16px 0; text-transform: uppercase; letter-spacing: 1px;">💳 CONHEÇA A CALCULADORA INTELIGENTE</p>
+        <p style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0;">Seu negócio precisa de um CRM interno</p>
+        <p style="font-size: 14px; opacity: 0.9; margin: 0 0 16px 0; line-height: 1.6;">Use a aba Financeira do Freelinnk Ultra para registrar custos fixos, taxa de cartão, frete e custo de anúncios. O sistema te entrega exatamente qual a sua margem de lucro por produto.</p>
         <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-          <span style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 12px; font-size: 11px;">⏱️ 30-60s</span>
-          <span style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 12px; font-size: 11px;">📈 Alto potencial</span>
+          <span style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 12px; font-size: 11px;">📊 Gestão Financeira</span>
+          <span style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 12px; font-size: 11px;">💵 Margem Real</span>
         </div>
       </div>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 32px 0;">No Pro: <strong>5 roteiros assim por dia</strong>.<br>No Ultra: <strong>ILIMITADO</strong>.</p>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 32px 0;">Esse recurso transformou perfis comuns em empresas lucrativas.</p>
       <div style="text-align: center;">
-        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Gerar meus roteiros</a>
+        <a href="https://www.freelinnk.com/dashboard/profit-calculator" style="display: inline-block; background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Calcular Meus Lucros</a>
       </div>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `5 roteiros prontos pra você gravar hoje`,
-    preheader: 'Ideias de vídeo que viralizam',
+    subject: `${ctx.firstName}, faturamento não é lucro. Entenda seu caixa.`,
+    preheader: 'Como usar a Calculadora Inteligente',
     priority: 50,
     cooldownHours: 336,
     countTowardsLimit: true,
@@ -487,34 +483,29 @@ function getSavingsComparisonEmail(ctx: UserContext): EmailTemplate {
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8fafc;">
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0;">Faz as contas, ${ctx.firstName}</h1>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">Se você usa ferramentas separadas pra criar conteúdo:</p>
+      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0;">Faz as contas do seu negócio, ${ctx.firstName}</h1>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">Se você assinar serviços gringos separadamente:</p>
       <div style="background: #fee2e2; border-radius: 12px; padding: 20px; margin: 0 0 16px 0;">
-        <p style="color: #991b1b; font-size: 14px; margin: 0 0 12px 0; font-weight: 600;">❌ FERRAMENTAS SEPARADAS</p>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color: #7f1d1d; font-size: 14px;">Canva Pro</span><span style="color: #7f1d1d; font-size: 14px;">R$ 34/mês</span></div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color: #7f1d1d; font-size: 14px;">ChatGPT Plus</span><span style="color: #7f1d1d; font-size: 14px;">R$ 100/mês</span></div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color: #7f1d1d; font-size: 14px;">Midjourney</span><span style="color: #7f1d1d; font-size: 14px;">R$ 50/mês</span></div>
-        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color: #7f1d1d; font-size: 14px;">Linktree Pro</span><span style="color: #7f1d1d; font-size: 14px;">R$ 24/mês</span></div>
-        <div style="border-top: 1px solid #fca5a5; padding-top: 12px; margin-top: 12px; display: flex; justify-content: space-between;"><span style="color: #7f1d1d; font-size: 16px; font-weight: 700;">TOTAL</span><span style="color: #7f1d1d; font-size: 16px; font-weight: 700;">R$ 208/mês</span></div>
+        <p style="color: #991b1b; font-size: 14px; margin: 0 0 12px 0; font-weight: 600;">❌ ASSINATURAS SEPARADAS</p>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color: #7f1d1d; font-size: 14px;">Linktree Pro (Só pra colocar Pixel)</span><span style="color: #7f1d1d; font-size: 14px;">US$ 10 (R$ 55/mês)</span></div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color: #7f1d1d; font-size: 14px;">Software de Sorteios</span><span style="color: #7f1d1d; font-size: 14px;">R$ 30/mês</span></div>
+        <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span style="color: #7f1d1d; font-size: 14px;">CRM / Gestão Financeira</span><span style="color: #7f1d1d; font-size: 14px;">R$ 69/mês</span></div>
+        <div style="border-top: 1px solid #fca5a5; padding-top: 12px; margin-top: 12px; display: flex; justify-content: space-between;"><span style="color: #7f1d1d; font-size: 16px; font-weight: 700;">TOTAL</span><span style="color: #7f1d1d; font-size: 16px; font-weight: 700;">R$ 154/mês</span></div>
       </div>
       <div style="background: #d1fae5; border-radius: 12px; padding: 20px; margin: 0 0 24px 0;">
-        <p style="color: #065f46; font-size: 14px; margin: 0 0 12px 0; font-weight: 600;">✅ TUDO NO FREELINNK ULTRA</p>
-        <div style="display: flex; justify-content: space-between;"><span style="color: #065f46; font-size: 16px; font-weight: 700;">Tudo incluído + bônus</span><span style="color: #065f46; font-size: 16px; font-weight: 700;">R$ 77,90/mês</span></div>
-      </div>
-      <div style="background: #fef3c7; border-radius: 12px; padding: 20px; text-align: center; margin: 0 0 32px 0;">
-        <p style="color: #92400e; font-size: 14px; margin: 0 0 4px 0;">Economia anual</p>
-        <p style="color: #78350f; font-size: 32px; font-weight: 700; margin: 0;">R$ 1.561</p>
+        <p style="color: #065f46; font-size: 14px; margin: 0 0 12px 0; font-weight: 600;">✅ A MÁQUINA FREELINNK ULTRA</p>
+        <div style="display: flex; justify-content: space-between;"><span style="color: #065f46; font-size: 16px; font-weight: 700;">Vitrine, Hub de Ads, CRM e Pixel</span><span style="color: #065f46; font-size: 16px; font-weight: 700;">R$ 77,90/mês</span></div>
       </div>
       <div style="text-align: center;">
-        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: #059669; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Economizar agora</a>
+        <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: #059669; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Cortar Custos Agora</a>
       </div>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `Você está pagando R$ 208/mês em ferramentas separadas?`,
-    preheader: 'Como economizar mais de R$ 1.500/ano',
+    subject: `${ctx.firstName}, pare de pagar em Dólar por ferramentas caras`,
+    preheader: 'Como economizar dinheiro centralizando o negócio',
     priority: 50,
     cooldownHours: 336,
     countTowardsLimit: true,
@@ -531,25 +522,24 @@ function getReEngagementEmail(ctx: UserContext): EmailTemplate {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: white; border-radius: 16px; padding: 40px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
       <div style="text-align: center; margin-bottom: 24px;"><span style="font-size: 48px;">👋</span></div>
-      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; text-align: center;">Oi ${ctx.firstName}, tudo bem?</h1>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">Faz um tempinho que você não aparece no Freelinnk.</p>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">Enquanto isso, lançamos algumas novidades que talvez você goste:</p>
+      <h1 style="color: #1e293b; font-size: 24px; font-weight: 600; margin: 0 0 24px 0; text-align: center;">Oi ${ctx.firstName}, você parou de vender?</h1>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 16px 0;">Faz um tempinho que você não acessa o painel do seu negócio.</p>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">Enquanto isso, liberamos novidades incríveis pra atrair tráfego:</p>
       <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 0 0 24px 0;">
-        <div style="margin-bottom: 16px;"><span style="color: #6366f1; font-weight: 600;">🧠 FreelinnkBrain melhorado</span><p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;">Ideias ainda mais personalizadas pro seu nicho</p></div>
-        <div style="margin-bottom: 16px;"><span style="color: #6366f1; font-weight: 600;">🎨 Novos templates</span><p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;">Mais opções de design para seu perfil</p></div>
-        <div><span style="color: #6366f1; font-weight: 600;">📊 Analytics aprimorados</span><p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;">Novos insights sobre seu público</p></div>
+        <div style="margin-bottom: 16px;"><span style="color: #6366f1; font-weight: 600;">📣 Hub de Anúncios</span><p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;">Crie campanhas para mostrar seu produto para milhares de pessoas de graça.</p></div>
+        <div style="margin-bottom: 16px;"><span style="color: #6366f1; font-weight: 600;">💰 CRM de Lucros</span><p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;">Controle suas despesas financeiras dentro do próprio painel.</p></div>
+        <div><span style="color: #6366f1; font-weight: 600;">🎯 Integração com Pixel</span><p style="color: #64748b; font-size: 14px; margin: 4px 0 0 0;">A base sólida para você fazer remarketing.</p></div>
       </div>
       <div style="text-align: center;">
-        <a href="https://www.freelinnk.com/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Ver o que há de novo</a>
+        <a href="https://www.freelinnk.com/dashboard" style="display: inline-block; background: #6366f1; color: white; padding: 16px 40px; text-decoration: none; border-radius: 12px; font-weight: 600;">Voltar a Crescer</a>
       </div>
-      <p style="color: #94a3b8; font-size: 14px; text-align: center; margin: 24px 0 0 0;">Estamos torcendo pelo seu sucesso! 💜</p>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `${ctx.firstName}, sentimos sua falta`,
-    preheader: 'Faz tempo que você não aparece',
+    subject: `${ctx.firstName}, você parou de faturar?`,
+    preheader: 'A máquina de vendas tá pronta pra rodar de novo',
     priority: 55,
     cooldownHours: 720,
     countTowardsLimit: true,
@@ -568,31 +558,28 @@ function getNewMonthEmail(ctx: UserContext): EmailTemplate {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%); border-radius: 16px; padding: 48px 40px; text-align: center; color: white;">
       <span style="font-size: 48px; display: block; margin-bottom: 16px;">🚀</span>
-      <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 16px 0;">${currentMonth} chegou!</h1>
-      <p style="font-size: 17px; opacity: 0.95; margin: 0; line-height: 1.6;">Um novo mês, uma nova chance de crescer.</p>
+      <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 16px 0;">${currentMonth} é o mês de bater a meta!</h1>
     </div>
     <div style="background: white; border-radius: 16px; padding: 32px; margin-top: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">${ctx.firstName}, qual é sua meta para ${currentMonth.toLowerCase()}?</p>
+      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">${ctx.firstName}, sua vitrine está pronta para receber tráfego pesado.</p>
       <div style="background: #f8fafc; border-radius: 12px; padding: 20px; margin: 0 0 24px 0;">
-        <p style="color: #64748b; font-size: 14px; margin: 0 0 12px 0;">Metas populares dos nossos usuários:</p>
+        <p style="color: #64748b; font-size: 14px; margin: 0 0 12px 0;">Dicas para multiplicar as vendas este mês:</p>
         <ul style="color: #1e293b; font-size: 15px; line-height: 2; margin: 0; padding-left: 20px;">
-          <li>Postar 4x por semana</li>
-          <li>Ganhar 1.000 novos seguidores</li>
-          <li>Fazer minha primeira venda</li>
-          <li>Criar um produto digital</li>
+          <li>Ligue a campanha do Hub de Anúncios.</li>
+          <li>Analise quais links tiveram cliques e remova os links fracos.</li>
+          <li>Cadastre os seus custos fixos na Calculadora.</li>
         </ul>
       </div>
-      <p style="color: #475569; font-size: 16px; line-height: 1.8; margin: 0 0 24px 0;">Independente da sua meta, o Freelinnk está aqui pra te ajudar a alcançar.</p>
       <div style="text-align: center;">
-        <a href="https://www.freelinnk.com/dashboard" style="display: inline-block; background: #1e293b; color: white; padding: 14px 36px; text-decoration: none; border-radius: 12px; font-weight: 600;">Começar ${currentMonth.toLowerCase()} bem</a>
+        <a href="https://www.freelinnk.com/dashboard" style="display: inline-block; background: #1e293b; color: white; padding: 14px 36px; text-decoration: none; border-radius: 12px; font-weight: 600;">Abrir Meu Painel</a>
       </div>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `${currentMonth} chegou! Qual sua meta esse mês?`,
-    preheader: 'Um novo mês, novas oportunidades',
+    subject: `${ctx.firstName}, chegou a hora de bater a meta em ${currentMonth}`,
+    preheader: 'Estratégias de vendas para virar o mês no lucro',
     priority: 45,
     cooldownHours: 672,
     countTowardsLimit: true,
@@ -601,8 +588,6 @@ function getNewMonthEmail(ctx: UserContext): EmailTemplate {
 }
 
 function getBlackFridayEmail(ctx: UserContext): EmailTemplate {
-  console.log('getBlackFridayEmail');
-  console.log(ctx);
   const year = new Date().getFullYear();
   const raw = `
 <!DOCTYPE html>
@@ -613,20 +598,20 @@ function getBlackFridayEmail(ctx: UserContext): EmailTemplate {
     <div style="background: linear-gradient(135deg, #1a1a1a 0%, #0a0a0a 100%); border: 1px solid #333; border-radius: 16px; padding: 48px 40px; text-align: center;">
       <p style="color: #fbbf24; font-size: 14px; font-weight: 600; letter-spacing: 2px; margin: 0 0 16px 0;">BLACK FRIDAY ${year}</p>
       <h1 style="color: white; font-size: 64px; font-weight: 800; margin: 0 0 8px 0;">60<span style="color: #fbbf24;">%</span> OFF</h1>
-      <p style="color: #9ca3af; font-size: 18px; margin: 0 0 32px 0;">no plano Ultra</p>
+      <p style="color: #9ca3af; font-size: 18px; margin: 0 0 32px 0;">no Plano Ultra Anual, ${ctx.firstName}</p>
       <div style="background: rgba(251, 191, 36, 0.1); border: 1px solid rgba(251, 191, 36, 0.3); border-radius: 12px; padding: 24px; margin: 0 0 32px 0;">
-        <p style="color: #9ca3af; font-size: 16px; margin: 0 0 8px 0;"><span style="text-decoration: line-through;">R$ 77,90</span>/mês</p>
-        <p style="color: #fbbf24; font-size: 40px; font-weight: 700; margin: 0;">R$ 31,16<span style="font-size: 16px; color: #9ca3af;">/mês</span></p>
+        <p style="color: #fbbf24; font-size: 40px; font-weight: 700; margin: 0;">Tráfego Máximo</p>
+        <p style="font-size: 16px; color: #9ca3af; margin-top:10px;">Até 15k visualizações no seu anúncio</p>
       </div>
-      <a href="https://www.freelinnk.com/dashboard/billing" style="display: block; background: #fbbf24; color: #000; padding: 20px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 18px;">GARANTIR OFERTA</a>
+      <a href="https://www.freelinnk.com/dashboard/billing" style="display: block; background: #fbbf24; color: #000; padding: 20px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 18px;">GARANTIR A MÁQUINA DE VENDAS</a>
       <p style="color: #6b7280; font-size: 13px; margin: 24px 0 0 0;">⏰ Oferta expira em 24 horas</p>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `⚫ 60% OFF no Ultra – Só hoje`,
-    preheader: 'A maior oferta do ano no Freelinnk',
+    subject: `⚫ ${ctx.firstName}, A Máquina de Vendas por 60% a menos`,
+    preheader: 'Maior desconto do ano no Freelinnk',
     priority: 100,
     cooldownHours: 0,
     countTowardsLimit: false,
@@ -644,20 +629,20 @@ function getEndOfYearEmail(ctx: UserContext): EmailTemplate {
   <div style="max-width: 600px; margin: 0 auto; padding: 40px 20px;">
     <div style="background: linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%); border-radius: 16px; padding: 48px 40px; color: white; text-align: center;">
       <span style="font-size: 48px; display: block; margin-bottom: 20px;">🎆</span>
-      <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 16px 0;">E se ${nextYear} fosse o ano que você realmente cresce?</h1>
-      <p style="font-size: 16px; opacity: 0.9; margin: 0 0 32px 0;">Comece com as ferramentas certas.</p>
+      <h1 style="font-size: 28px; font-weight: 700; margin: 0 0 16px 0;">${ctx.firstName}, construa sua base para ${nextYear}</h1>
+      <p style="font-size: 16px; opacity: 0.9; margin: 0 0 32px 0;">Quem escala vendas, começa o ano rastreando tráfego.</p>
       <div style="background: rgba(255,255,255,0.1); border-radius: 12px; padding: 24px; margin: 0 0 32px 0;">
         <p style="font-size: 14px; opacity: 0.7; margin: 0 0 8px 0; text-transform: uppercase;">Plano Anual</p>
         <p style="font-size: 28px; font-weight: 700; margin: 0;">2 meses <span style="color: #fbbf24;">GRÁTIS</span></p>
       </div>
-      <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: white; color: #1e3a5f; padding: 18px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">Começar ${nextYear} no Pro</a>
+      <a href="https://www.freelinnk.com/dashboard/billing" style="display: inline-block; background: white; color: #1e3a5f; padding: 18px 48px; text-decoration: none; border-radius: 12px; font-weight: 700; font-size: 16px;">Vender mais em ${nextYear}</a>
     </div>
   </div>
 </body>
 </html>`;
   return {
-    subject: `${nextYear} pode ser diferente, ${ctx.firstName}`,
-    preheader: 'Comece o ano com as ferramentas certas',
+    subject: `${ctx.firstName}, o que te impede de faturar mais em ${nextYear}?`,
+    preheader: 'Sua loja merece as ferramentas certas',
     priority: 80,
     cooldownHours: 0,
     countTowardsLimit: false,
@@ -857,7 +842,7 @@ for (let i = 0; i < contextsToProcess.length; i += BATCH_SIZE) {
 
         if (error) throw error;
 
-        // Atualiza Clerk (igual ao seu código)
+        // Atualiza Clerk
         const newEmailHistory = [...(item.meta.emailHistory || []), Date.now()].slice(-50);
         await clerk.users.updateUser(item.userId, {
           publicMetadata: {

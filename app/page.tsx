@@ -5,11 +5,9 @@ import { motion, AnimatePresence, useScroll } from "framer-motion";
 import { useRouter } from "next/navigation";
 import { SignInButton, useAuth } from "@clerk/nextjs";
 
-
 import { ScrollReveal } from "@/components/Animaçoes/Animations";
 import { Button } from "@/components/Animaçoes/Button";
 import { AnimatedCounter } from "@/components/AnimatedCounter";
-
 
 import WhatsAppFloatingButton from "@/components/landing/WhatsAppFloatingButton";
 import HeroPhoneSimulator from "@/components/landing/HeroPhoneSimulator";
@@ -18,71 +16,70 @@ import PricingSection from "@/components/landing/PricingSection";
 import RealPagesShowcase from "@/components/landing/RealPagesShowcase";
 import SorteiosHighlightSection from "@/components/landing/SorteiosHighlightSection";
 
-
-import { FaLinkedinIn, FaTiktok, FaYoutube } from "react-icons/fa6";
+import {  FaTiktok, FaYoutube } from "react-icons/fa6";
 import {
-  ArrowRight, BarChart3, Bot, Calculator, Check, CheckCircle, Cpu, Crown, Gift, Globe,
-  Instagram, Layers, Link2, Lock, Menu, MessageCircleCode, Palette, Play, Rocket, Settings,
-  Share2, Shield, Sparkles, Star, TrendingUp, Users, Wand2, X, Zap
+  ArrowRight, BarChart3,  Calculator, Check, CheckCircle, Cpu, Crown, Gift, Globe,
+  Instagram, Link2, Lock, Menu, MessageCircleCode,  Play, Rocket, Settings,
+   Shield, Sparkles,  TrendingUp,  X, Zap, Target, Megaphone
 } from "lucide-react";
-import { BRAND, features, nichos, stats, testimonials } from "./constants/landing-data";
+import { BRAND, features, stats } from "./constants/landing-data";
 
 import {
-  RotatingText, SocialProofToast, FAQItem, FeatureCard, TestimonialCard,
-  HowItWorksStep, NichoCard, DifferentialCard, ComparisonCell
+  RotatingText, SocialProofToast, FAQItem, FeatureCard,
+  HowItWorksStep, DifferentialCard, ComparisonCell
 } from "@/components/landing/landing-components";
 
+
+
 const howItWorks = [
-  { icon: <Settings size={36} />, title: "Configure sua página", desc: "Personalize cada detalhe do seu jeito" },
-  { icon: <Wand2 size={36} />, title: "Crie seus links", desc: "Organize seus links importantes" },
-  { icon: <Share2 size={36} />, title: "Compartilhe", desc: "Coloque na bio e comece a rastrear" },
-  { icon: <Rocket size={36} />, title: "Lucre mais", desc: "Veja seus resultados explodirem" },
+  { icon: <Settings size={36} />, title: "1. Crie sua Vitrine", desc: "Adicione seus produtos, redes e links de afiliados em 2 minutos." },
+  { icon: <Target size={36} />, title: "2. Conecte seu Pixel", desc: "Instale Pixel do Facebook e Analytics com 1 clique (sem código)." },
+  { icon: <Megaphone size={36} />, title: "3. Ative a Rede de Ads", desc: "Coloque seu produto para rodar em páginas de outros criadores." },
+  { icon: <Rocket size={36} />, title: "4. Escale suas Vendas", desc: "Acompanhe os resultados no nosso CRM Inteligente de Lucros." },
 ];
 
 const differentials = [
-  { icon: <Gift size={28} />, title: "Grátis de verdade", desc: "Página, encurtador e analytics básico. Sem pegadinhas." },
-  { icon: <Palette size={28} />, title: "100% customizável", desc: "Você escolhe cada cor, fonte e layout." },
-  { icon: <Bot size={28} />, title: "IA que trabalha por você", desc: "Brain Roteirista, Chat IA e muito mais." },
-  { icon: <BarChart3 size={28} />, title: "Analytics de verdade", desc: "Saiba cidade, dispositivo e horário de cada clique." },
-  { icon: <Calculator size={28} />, title: "Gestão Financeira", desc: "Nenhum concorrente tem. Veja seu lucro real." },
-  { icon: <Shield size={28} />, title: "Seguro e rápido", desc: "Criptografia, CDN global e 99.99% de uptime." },
+  { icon: <Megaphone size={28} />, title: "Hub de Tráfego Grátis", desc: "Membros Pro/Ultra recebem de 2.000 a 15.000 visitantes reais na vitrine por mês." },
+  { icon: <Target size={28} />, title: "Pixel & Remarketing", desc: "O único que permite rastrear cada cliente para você fazer anúncios que convertem." },
+  { icon: <Calculator size={28} />, title: "Gestão Financeira (CRM)", desc: "Uma calculadora de lucros com IA que mostra para onde seu dinheiro está indo." },
+  { icon: <BarChart3 size={28} />, title: "Analytics Profundo", desc: "Saiba qual cidade, horário e celular mais geram vendas no seu link." },
+  { icon: <Gift size={28} />, title: "Máquina de Sorteios", desc: "Sistema integrado para puxar comentários do Instagram e bombar seu engajamento." },
+  { icon: <Shield size={28} />, title: "Criptografia de Bancos", desc: "Hospedado na AWS/Vercel com proteção da Cloudflare. Não cai e não trava." },
 ];
 
 const pillars = [
-  { icon: <Link2 size={32} />, title: "Página de Links Profissional", desc: "Centralize todos os seus links em uma página linda, rápida e 100% personalizável. Cores, fontes, layout — tudo do seu jeito.", color: "from-indigo-500 to-blue-500", badge: "Core" },
-  { icon: <BarChart3 size={32} />, title: "Encurtador com Analytics", desc: "Encurte seus links e saiba exatamente quem clicou, de onde, qual dispositivo e em que horário. Dados reais para decisões reais.", color: "from-purple-500 to-pink-500", badge: "Analytics" },
-  { icon: <Bot size={32} />, title: "Ferramentas de IA Exclusivas", desc: "Chat com IA, roteirista inteligente, gestão financeira automatizada e sorteios integrados. Tudo que seu negócio precisa em um só lugar.", color: "from-amber-500 to-orange-500", badge: "IA" },
+  { icon: <Link2 size={32} />, title: "Sua Vitrine de Alta Conversão", desc: "Pare de mandar seu cliente para um 'linktree' sem graça. Crie uma página rápida, que carrega as imagens do seu produto em milissegundos e transmite confiança.", color: "from-indigo-500 to-blue-500", badge: "Vitrine" },
+  { icon: <Megaphone size={32} />, title: "Tráfego Automático (AdsHub)", desc: "Exclusividade Freelinnk: nós exibimos o seu produto em formato de anúncio nas vitrines de outros lojistas que não competem com você. Tráfego real entrando no seu funil.", color: "from-purple-500 to-pink-500", badge: "Tráfego" },
+  { icon: <Calculator size={32} />, title: "CRM e Analytics Comercial", desc: "Você sabe qual é sua taxa de conversão hoje? Nosso sistema mapeia horários de pico, localizações e calcula sua margem de lucro líquida de forma automática.", color: "from-emerald-500 to-teal-500", badge: "Gestão" },
 ];
 
 const painPoints = [
-  { problem: "Usa Linktree genérico que não combina com sua marca", solution: "Página 100% personalizada com sua identidade visual" },
-  { problem: "Não sabe quais links geram vendas de verdade", solution: "Analytics detalhado com cidade, dispositivo e horário de cada clique" },
-  { problem: "Gasta horas criando conteúdo sem ideias", solution: "IA Roteirista gera roteiros, legendas e ideias em segundos" },
-  { problem: "Não controla quanto entra e quanto sai do negócio", solution: "Gestão financeira integrada para ver seu lucro real de verdade" },
+  { problem: "Usa um agregador de links grátis, feio e amador que espanta clientes", solution: "Uma vitrine Premium que transmite confiança de uma marca gigante" },
+  { problem: "Perde clientes quentes porque não pode colocar o Pixel do Facebook no link", solution: "Integração nativa com Meta Pixel e Google Analytics em 1 clique" },
+  { problem: "Sofre para conseguir tráfego e visualizações nos seus produtos", solution: "Rede de anúncios interna que joga tráfego qualificado na sua página" },
+  { problem: "Não sabe qual produto dá lucro ou se está pagando imposto demais", solution: "CRM Inteligente que cruza suas vendas e custos, gerando relatórios reais" },
 ];
 
 const comparisonData = [
-  { name: "Página de Links", freelinnk: true as const, linktree: true as const, beacons: true as const },
-  { name: "Encurtador de Links", freelinnk: true as const, linktree: false as const, beacons: false as const },
-  { name: "Analytics Avançado", freelinnk: true as const, linktree: "paid" as const, beacons: "paid" as const },
-  { name: "Chat com IA", freelinnk: true as const, linktree: false as const, beacons: false as const },
-  { name: "IA Roteirista", freelinnk: true as const, linktree: false as const, beacons: false as const },
-  { name: "Gestão Financeira", freelinnk: true as const, linktree: false as const, beacons: false as const },
-  { name: "Sorteios Integrados", freelinnk: true as const, linktree: false as const, beacons: false as const },
-  { name: "100% Customizável", freelinnk: true as const, linktree: "partial" as const, beacons: "partial" as const },
-  { name: "Suporte em Português", freelinnk: true as const, linktree: false as const, beacons: false as const },
-  { name: "Plano Grátis Completo", freelinnk: true as const, linktree: "partial" as const, beacons: "partial" as const },
+  { name: "Páginas Customizáveis", freelinnk: true as const, linktree: true as const, beacons: true as const },
+  { name: "Pixel FB / Analytics", freelinnk: true as const, linktree: "paid" as const, beacons: "paid" as const },
+  { name: "Hub de Anúncios Nativo", freelinnk: true as const, linktree: false as const, beacons: false as const },
+  { name: "Calculadora de Lucro (CRM)", freelinnk: true as const, linktree: false as const, beacons: false as const },
+  { name: "Sorteador Instagram", freelinnk: true as const, linktree: false as const, beacons: false as const },
+  { name: "Estatísticas (Cidade/Hora)", freelinnk: true as const, linktree: "paid" as const, beacons: "paid" as const },
+  { name: "Encurtador de Link", freelinnk: true as const, linktree: false as const, beacons: false as const },
+  { name: "Múltiplas Páginas", freelinnk: true as const, linktree: "partial" as const, beacons: "partial" as const },
+  { name: "Suporte VIP WhatsApp", freelinnk: true as const, linktree: false as const, beacons: false as const },
+  { name: "Garantia 7 Dias", freelinnk: true as const, linktree: false as const, beacons: false as const },
 ];
 
 const faqs = [
-  { q: "O Freelinnk é realmente grátis?", a: "Sim! Página de links, encurtador e analytics básico são 100% grátis para sempre. As ferramentas de IA avançadas, gestão financeira e sorteios são para assinantes Pro ou Ultra." },
-  { q: "Como funciona o teste grátis de 7 dias?", a: "Você tem acesso completo a todas as funcionalidades do plano escolhido por 7 dias. Se não gostar, cancele antes do período acabar e não será cobrado nenhum centavo." },
-  { q: "Posso usar meu domínio personalizado?", a: "Sim! No plano Pro e Ultra você pode conectar seu próprio domínio para ter uma URL totalmente profissional e alinhada com sua marca." },
-  { q: "O Freelinnk funciona para qual tipo de negócio?", a: "Para qualquer criador de conteúdo, empreendedor, freelancer, coach, loja virtual, restaurante, salão de beleza — qualquer pessoa que queira transformar seu perfil em uma máquina de vendas." },
-  { q: "Qual a diferença entre o Freelinnk e o Linktree?", a: "O Freelinnk vai muito além de links na bio. Oferecemos encurtador com analytics, IA roteirista, chat com IA, gestão financeira, sorteios e personalização total — funcionalidades que nenhum concorrente oferece juntas." },
-  { q: "Meus dados estão seguros?", a: "Absolutamente. Usamos criptografia de ponta a ponta, CDN global para velocidade máxima e seguimos todas as normas da LGPD. Seus dados são seus e de mais ninguém." },
+  { q: "O Freelinnk é seguro? Corre o risco de cair?", a: "Absolutamente. Usamos a mesma infraestrutura dos gigantes (Vercel e Cloudflare) com criptografia ponta a ponta. Seu link nunca fica fora do ar." },
+  { q: "Qual a vantagem de usar o Hub de Anúncios?", a: "Se você não pagar anúncios no Facebook, ninguém vê seus produtos. Com nosso Hub, os planos Pro e Ultra ganham milhares de visualizações distribuindo seus produtos nas páginas da nossa rede (sempre para nichos compatíveis)." },
+  { q: "Como instalo o Pixel do Facebook?", a: "Se você é Pro ou Ultra, basta colar o código do seu Pixel nas configurações. O Freelinnk rastreia automaticamente visualizações, cliques e redirecionamentos, permitindo campanhas de remarketing perfeitas." },
+  { q: "Como funciona a Garantia de 7 dias?", a: "Comece o teste. Se em 7 dias a ferramenta não te ajudar a vender mais, gerir melhor seu negócio ou captar tráfego, basta pedir o cancelamento. Devolvemos 100% sem dor de cabeça." },
+  { q: "Por que sair do Linktree para o Freelinnk?", a: "O Linktree é um agrupador de botões. O Freelinnk é um funil de vendas. Aqui você tem tráfego, CRM financeiro, Pixel e Sorteador integrados." },
 ];
-
 
 export default function LandingPage() {
   const router = useRouter();
@@ -111,7 +108,7 @@ export default function LandingPage() {
 
   return (
     <div className="bg-white text-gray-900 font-sans selection:bg-indigo-500 selection:text-white w-full">
-      {/* Barra de progresso de scroll */}
+
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 to-purple-500 z-[100] origin-left"
         style={{ scaleX: scrollYProgress }}
@@ -120,7 +117,7 @@ export default function LandingPage() {
       <WhatsAppFloatingButton />
       <SocialProofToast />
 
-      {/* Footer Mobile Fixo */}
+
       <AnimatePresence>
         {showStickyFooter && (
           <motion.div
@@ -138,7 +135,7 @@ export default function LandingPage() {
         )}
       </AnimatePresence>
 
-      {/* NAVBAR */}
+
       <nav className={`fixed top-0 w-full z-[80] transition-all duration-300 ${scrolled ? "bg-white/95 backdrop-blur-sm shadow-sm" : "bg-transparent"}`}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 md:h-20 flex items-center justify-between">
           <div className="flex items-center gap-2.5 cursor-pointer relative z-50" onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}>
@@ -170,7 +167,7 @@ export default function LandingPage() {
             </div>
             <div className="hidden md:block">
               <SignInButton mode="modal" forceRedirectUrl="/onboarding">
-                <Button size="sm" className="cursor-pointer relative z-50">Começar Grátis</Button>
+                <Button size="sm" className="cursor-pointer relative z-50">Criar Conta Grátis</Button>
               </SignInButton>
             </div>
             <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="lg:hidden p-2 text-gray-600 relative z-50">
@@ -197,7 +194,7 @@ export default function LandingPage() {
                 <div className="pt-2">
                   <SignInButton mode="modal" forceRedirectUrl="/dashboard">
                     <button className="block w-full py-3 px-4 text-center bg-gray-50 text-indigo-600 font-bold rounded-xl cursor-pointer">
-                      Entrar na Plataforma
+                      Acessar Meu Painel
                     </button>
                   </SignInButton>
                 </div>
@@ -207,7 +204,7 @@ export default function LandingPage() {
         </AnimatePresence>
       </nav>
 
-      {/* HERO SECTION */}
+
       <section className="relative pt-24 pb-12 md:pt-32 lg:pt-40 lg:pb-24 overflow-hidden">
         <div className="absolute inset-0 pointer-events-none z-0">
           <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-100 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/3 opacity-50" />
@@ -219,30 +216,30 @@ export default function LandingPage() {
           <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
             <div className="text-center lg:text-left">
               <ScrollReveal>
-                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full text-sm font-bold text-green-700 mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-50 border border-green-200 rounded-full text-sm font-bold text-green-700 mb-6 shadow-sm">
                   <span className="relative flex h-2.5 w-2.5">
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
                   </span>
-                  +2.000 criadores já usam — Teste 7 dias grátis
+                  A primeira Bio-Store com Anúncios Integrados
                 </div>
 
                 <h1 className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black tracking-tight leading-[1.1] mb-6">
-                  Seu Link na Bio gerando mais <RotatingText />
+                  Seu Link na Bio não deve ser um <RotatingText />
                 </h1>
 
                 <p className="text-lg sm:text-xl text-gray-600 max-w-xl mx-auto lg:mx-0 mb-4 leading-relaxed">
-                  <strong className="text-gray-900">Freelinnk é a plataforma all-in-one</strong> para criadores e empreendedores: página de links personalizável, encurtador com analytics, ferramentas de <strong className="text-indigo-600">IA</strong> e gestão financeira.
+                  <strong className="text-gray-900">Pare de perder vendas.</strong> O Freelinnk cria uma vitrine profissional, joga <strong>tráfego de graça</strong> nos seus produtos e rastreia seus leads com Pixel nativo.
                 </p>
 
                 <div className="flex items-center justify-center lg:justify-start gap-3 mb-8">
-                  <span className="text-xs text-gray-400 font-medium">Funciona com:</span>
+                  <span className="text-xs text-gray-400 font-medium">Traga tráfego de:</span>
                   <div className="flex items-center gap-2">
                     {[
                       { icon: <Instagram size={18} />, label: "Instagram", color: "text-pink-500" },
                       { icon: <FaTiktok size={16} />, label: "TikTok", color: "text-gray-900" },
                       { icon: <FaYoutube size={18} />, label: "YouTube", color: "text-red-500" },
-                      { icon: <Globe size={18} />, label: "Qualquer bio", color: "text-blue-500" },
+                      { icon: <Globe size={18} />, label: "Web", color: "text-blue-500" },
                     ].map((platform, i) => (
                       <div key={i} className={`w-9 h-9 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center ${platform.color} hover:scale-110 transition-transform cursor-default`} title={platform.label}>
                         {platform.icon}
@@ -251,21 +248,20 @@ export default function LandingPage() {
                   </div>
                 </div>
 
-
                 <div className="hidden sm:flex max-w-md mx-auto lg:mx-0 bg-white p-2 rounded-2xl shadow-sm border border-gray-200 flex-col sm:flex-row gap-2 mb-6 relative z-30">
                   <div className="flex-1 bg-gray-50 rounded-xl px-4 flex items-center h-12 sm:h-auto border border-transparent focus-within:border-indigo-500 focus-within:bg-white transition-all">
                     <span className="text-gray-400 font-bold text-sm mr-1">freelinnk.com/</span>
                     <input
                       type="text"
-                      placeholder="seunome"
+                      placeholder="minhaloja"
                       value={heroUsername}
                       onChange={(e) => setHeroUsername(e.target.value)}
-                      className="bg-transparent border-none outline-none font-bold text-gray-900 w-full placeholder:text-gray-300"
+                      className="bg-transparent border-none outline-none font-bold text-gray-900 w-full placeholder:text-gray-300 focus:ring-0"
                     />
                   </div>
                   <SignInButton mode="modal" forceRedirectUrl={heroUsername ? `/onboarding?username=${heroUsername}` : "/onboarding"}>
                     <Button className="w-full sm:w-auto whitespace-nowrap shadow-md cursor-pointer pointer-events-auto">
-                      Criar Grátis
+                      Garantir Meu Nome
                     </Button>
                   </SignInButton>
                 </div>
@@ -273,20 +269,18 @@ export default function LandingPage() {
                 <div className="flex sm:hidden flex-col gap-4 justify-center mb-8 relative z-30">
                   <SignInButton mode="modal" forceRedirectUrl="/onboarding">
                     <Button size="xl" className="w-full group cursor-pointer pointer-events-auto shadow-xl">
-                      Criar Minha Página Grátis <ArrowRight size={20} className="ml-1" />
+                      Montar Minha Vitrine <ArrowRight size={20} className="ml-1" />
                     </Button>
                   </SignInButton>
-                  <p className="text-xs text-gray-500 font-medium">7 dias grátis • Sem cartão de crédito</p>
+                  <p className="text-xs text-gray-500 font-medium">7 dias grátis • Sem dor de cabeça</p>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 text-[10px] sm:text-xs text-gray-500 font-medium mb-8 relative z-20">
-                  <span className="flex items-center gap-1"><CheckCircle size={12} className="text-green-500" /> 7 dias grátis</span>
+                  <span className="flex items-center gap-1"><CheckCircle size={12} className="text-green-500" /> Sem limite de links</span>
                   <span className="hidden sm:inline">·</span>
-                  <span className="flex items-center gap-1"><Lock size={12} className="text-blue-500" /> Sem cartão</span>
+                  <span className="flex items-center gap-1"><Lock size={12} className="text-blue-500" /> Aceita Pixel do FB</span>
                   <span className="hidden sm:inline">·</span>
                   <span className="flex items-center gap-1"><Zap size={12} className="text-purple-500" /> Pronto em 2 min</span>
-                  <span className="hidden sm:inline">·</span>
-                  <span className="flex items-center gap-1"><Shield size={12} className="text-indigo-500" /> LGPD Compliant</span>
                 </div>
               </ScrollReveal>
             </div>
@@ -298,8 +292,8 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* DEMAIS SEÇÕES */}
-      <section className="py-10 bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-600 text-white relative overflow-hidden">
+
+      <section className="py-10 bg-gradient-to-r from-indigo-900 via-indigo-800 to-indigo-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute inset-0" style={{ backgroundImage: `radial-gradient(circle, white 1px, transparent 1px)`, backgroundSize: "30px 30px" }} />
         </div>
@@ -308,25 +302,26 @@ export default function LandingPage() {
             {stats.map((stat, i) => (
               <div key={i} className="text-center">
                 <p className="text-3xl md:text-5xl font-black mb-1"><AnimatedCounter {...stat} value={Number(stat.value)} /></p>
-                <p className="text-sm text-white/70">{stat.label}</p>
+                <p className="text-sm text-indigo-200 font-bold uppercase tracking-wider">{stat.label}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
+
       <section className="py-20 bg-white relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold mb-4">
-                <Layers size={16} /> Plataforma All-in-One
+                <Target size={16} /> A Máquina de Vendas
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Mais que um link na bio. <span className={BRAND.textGradient}>Seu sistema de vendas completo.</span>
+                Lojista de verdade precisa de <span className={BRAND.textGradient}>dados e tráfego.</span>
               </h2>
               <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                O Freelinnk reúne tudo que você precisa para profissionalizar sua presença online e transformar seguidores em clientes.
+                Não somos apenas botões empilhados. O Freelinnk foi construído para te dar as mesmas ferramentas das grandes lojas.
               </p>
             </div>
           </ScrollReveal>
@@ -353,41 +348,43 @@ export default function LandingPage() {
 
       <VideoDemoSection />
 
+
       <section className="py-20 bg-gray-50 overflow-hidden">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold mb-4">
-                <Crown size={16} /> Páginas Reais
+                <Crown size={16} /> Alta Conversão
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Veja o que nossos usuários <span className={BRAND.textGradient}>criaram</span>
+                Lindo para eles. <span className={BRAND.textGradient}>Lucrativo para você.</span>
               </h2>
               <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                100% customizável. Você escolhe cores, fontes, layout e muito mais.
+                Vitrines reais construídas na nossa plataforma.
               </p>
             </div>
           </ScrollReveal>
           <RealPagesShowcase />
           <div className="text-center mt-12 relative z-30">
             <SignInButton mode="modal" forceRedirectUrl="/onboarding">
-              <Button size="lg" className="group cursor-pointer pointer-events-auto">
-                Criar Minha Página <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+              <Button size="lg" className="group cursor-pointer pointer-events-auto shadow-lg">
+                Montar Minha Vitrine Agora <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </SignInButton>
           </div>
         </div>
       </section>
 
+
       <section className="py-20 bg-gradient-to-b from-white to-gray-50">
         <div className="max-w-5xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-16">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 rounded-full text-sm font-bold mb-4">
-                <TrendingUp size={16} /> Pare de Perder Vendas
+                <TrendingUp size={16} /> Pare de Queimar Dinheiro
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Seus seguidores querem comprar. <span className="text-red-500">Você está facilitando ou dificultando?</span>
+                Seu agrupador de links antigo está <span className="text-red-500">roubando seus clientes.</span>
               </h2>
             </div>
           </ScrollReveal>
@@ -400,14 +397,14 @@ export default function LandingPage() {
                     <div className="p-6 flex items-start gap-4 bg-red-50/50 border-b md:border-b-0 md:border-r border-red-100/50">
                       <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"><X size={16} className="text-red-500" /></div>
                       <div>
-                        <p className="text-xs font-bold text-red-400 uppercase tracking-wider mb-1">Sem Freelinnk</p>
+                        <p className="text-xs font-bold text-red-400 uppercase tracking-wider mb-1">Linktree / Outros</p>
                         <p className="text-gray-700 font-medium text-sm">{point.problem}</p>
                       </div>
                     </div>
-                    <div className="p-6 flex items-start gap-4 bg-green-50/50">
-                      <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"><Check size={16} className="text-green-600" /></div>
+                    <div className="p-6 flex items-start gap-4 bg-emerald-50/50">
+                      <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5"><Check size={16} className="text-emerald-600" /></div>
                       <div>
-                        <p className="text-xs font-bold text-green-500 uppercase tracking-wider mb-1">Com Freelinnk</p>
+                        <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider mb-1">No Freelinnk</p>
                         <p className="text-gray-700 font-medium text-sm">{point.solution}</p>
                       </div>
                     </div>
@@ -419,27 +416,25 @@ export default function LandingPage() {
 
           <div className="text-center mt-12 relative z-30">
             <SignInButton mode="modal" forceRedirectUrl="/onboarding">
-              <Button size="lg" className="group cursor-pointer pointer-events-auto shadow-lg">
-                Resolver Isso Agora <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+              <Button size="lg" className="group cursor-pointer pointer-events-auto shadow-lg bg-emerald-600 hover:bg-emerald-700">
+                Parar de Perder Vendas <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </SignInButton>
           </div>
         </div>
       </section>
 
+
       <section id="funcionalidades" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-full text-sm font-bold mb-4">
-                <Cpu size={16} /> Funcionalidades
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-100 text-indigo-700 rounded-full text-sm font-bold mb-4">
+                <Cpu size={16} /> Arsenal Completo
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Tudo que você precisa para <span className={BRAND.textGradient}>vender mais</span>
+                A tecnologia por trás das <span className={BRAND.textGradient}>suas vendas.</span>
               </h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Página de links, encurtador, IA, analytics, gestão financeira e sorteios — tudo em uma plataforma.
-              </p>
             </div>
           </ScrollReveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
@@ -452,19 +447,17 @@ export default function LandingPage() {
 
       <SorteiosHighlightSection />
 
+
       <section id="como-funciona" className="py-20 bg-white">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-16">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-full text-sm font-bold mb-4">
-                <Play size={16} /> Como Funciona
+              <div className="inline-flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-full text-sm font-bold mb-4">
+                <Play size={16} /> Como Começar
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Pronto em menos de <span className={BRAND.textGradient}>2 minutos</span>
+                Sua vitrine pronta hoje, <span className={BRAND.textGradient}>em 4 passos.</span>
               </h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Sem complicação. Configure, personalize e comece a converter.
-              </p>
             </div>
           </ScrollReveal>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-4">
@@ -477,18 +470,19 @@ export default function LandingPage() {
 
       <PricingSection />
 
+
       <section id="comparativo" className="py-20 bg-gray-50">
         <div className="max-w-4xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-12">
               <div className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-50 text-indigo-700 rounded-full text-sm font-bold mb-4">
-                <Sparkles size={16} /> Comparativo
+                <Sparkles size={16} /> A Verdade Revelada
               </div>
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Freelinnk vs <span className="text-gray-400 line-through decoration-red-400">concorrentes</span>
+                Por que lojistas estão <span className="text-gray-400 line-through decoration-red-400">abandonando os velhos</span>?
               </h2>
               <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Veja por que o Freelinnk é a escolha mais inteligente para quem leva o digital a sério.
+                Não pague ferramentas gringas em Dólar que não oferecem suporte no Brasil e não entregam tráfego.
               </p>
             </div>
           </ScrollReveal>
@@ -496,7 +490,7 @@ export default function LandingPage() {
           <ScrollReveal>
             <div className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden">
               <div className="grid grid-cols-4 gap-0 border-b border-gray-100">
-                <div className="p-4 md:p-6"><p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Recurso</p></div>
+                <div className="p-4 md:p-6"><p className="text-xs font-bold text-gray-400 uppercase tracking-wider">O que importa</p></div>
                 <div className="p-4 md:p-6 text-center bg-indigo-50/50 border-x border-indigo-100">
                   <div className="flex items-center justify-center gap-1.5">
                     <div className={`w-6 h-6 rounded-md ${BRAND.gradient} flex items-center justify-center text-white text-xs font-black`}>F</div>
@@ -517,10 +511,10 @@ export default function LandingPage() {
               ))}
 
               <div className="grid grid-cols-4 gap-0 bg-gray-50 border-t border-gray-100">
-                <div className="p-4 md:p-5 flex items-center"><span className="text-sm font-black text-gray-900">Preço Pro</span></div>
-                <div className="p-4 md:p-5 text-center bg-indigo-50/50 border-x border-indigo-100"><p className="text-lg font-black text-indigo-600">34,90 <span className="text-xs font-medium text-gray-500">/mês</span></p></div>
-                <div className="p-4 md:p-5 text-center"><p className="text-lg font-black text-gray-400">~R$50 <span className="text-xs font-medium text-gray-400">/mês</span></p></div>
-                <div className="p-4 md:p-5 text-center"><p className="text-lg font-black text-gray-400">~R$55 <span className="text-xs font-medium text-gray-400">/mês</span></p></div>
+                <div className="p-4 md:p-5 flex items-center"><span className="text-sm font-black text-gray-900">Preço Pro (Mês)</span></div>
+                <div className="p-4 md:p-5 text-center bg-indigo-50/50 border-x border-indigo-100"><p className="text-lg font-black text-indigo-600">R$ 34,90</p></div>
+                <div className="p-4 md:p-5 text-center"><p className="text-lg font-black text-gray-400">R$ 55 <span className="text-xs">(US$ 10)</span></p></div>
+                <div className="p-4 md:p-5 text-center"><p className="text-lg font-black text-gray-400">R$ 55 <span className="text-xs">(US$ 10)</span></p></div>
               </div>
             </div>
           </ScrollReveal>
@@ -528,58 +522,13 @@ export default function LandingPage() {
           <div className="text-center mt-10 relative z-30">
             <SignInButton mode="modal" forceRedirectUrl="/onboarding">
               <Button size="lg" className="group cursor-pointer pointer-events-auto shadow-lg">
-                Escolher o Freelinnk <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
+                Garantir o Melhor Preço <ArrowRight size={18} className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </SignInButton>
           </div>
         </div>
       </section>
 
-      <section className="py-20 bg-white">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollReveal>
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-orange-100 text-orange-700 rounded-full text-sm font-bold mb-4">
-                <Users size={16} /> Para Todos
-              </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Serve pra você? <span className={BRAND.textGradient}>Com certeza.</span>
-              </h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Criadores, empreendedores, freelancers, marcas — qualquer pessoa que tenha um perfil e queira vender mais.
-              </p>
-            </div>
-          </ScrollReveal>
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-            {nichos.map((nicho, i) => (
-              <NichoCard key={i} nicho={nicho} />
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="depoimentos" className="py-20 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4">
-          <ScrollReveal>
-            <div className="text-center mb-12">
-              <div className="inline-flex items-center gap-2 px-4 py-2 bg-yellow-100 text-yellow-700 rounded-full text-sm font-bold mb-4">
-                <Star size={16} /> Depoimentos
-              </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black text-gray-900 mb-4">
-                Quem usa, recomenda
-              </h2>
-              <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-                Veja os resultados reais de quem já transformou seu perfil com o Freelinnk.
-              </p>
-            </div>
-          </ScrollReveal>
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {testimonials.map((testimonial, i) => (
-              <TestimonialCard key={i} testimonial={testimonial} />
-            ))}
-          </div>
-        </div>
-      </section>
 
       <section id="diferenciais" className="py-24 bg-gray-900 text-white relative overflow-hidden">
         <div className="absolute inset-0 z-0 opacity-20 bg-gradient-to-br from-indigo-900 to-gray-900" />
@@ -588,10 +537,10 @@ export default function LandingPage() {
           <ScrollReveal>
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl lg:text-5xl font-black mb-4">
-                Por que <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Freelinnk</span>?
+                O que ninguém te conta sobre <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-purple-400">Links</span>
               </h2>
               <p className="text-gray-400 text-lg max-w-2xl mx-auto">
-                6 motivos para você fazer a escolha certa hoje.
+                Não adianta ser bonito se não for feito para converter. Veja como nós resolvemos isso.
               </p>
             </div>
           </ScrollReveal>
@@ -603,6 +552,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+
       <section className="py-20 bg-white">
         <div className="max-w-2xl mx-auto px-4 text-center">
           <ScrollReveal>
@@ -612,19 +562,16 @@ export default function LandingPage() {
                 <Check className="w-5 h-5 text-white" />
               </motion.div>
             </motion.div>
-            <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Garantia Blindada de 7 Dias</h3>
+            <h3 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Garantia Blindada de Vendas</h3>
             <p className="text-gray-600 text-lg leading-relaxed mb-4">
-              Use tudo. Teste todas as funcionalidades. Se em 7 dias você não sentir que o valor entregue é <strong className="text-indigo-600">10x maior</strong> que o preço, devolvemos 100% do seu dinheiro. <strong>Sem perguntas, sem burocracia.</strong>
+              Assine. Instale seu Pixel, ative a Rede de Tráfego e analise seus cliques. Se em 7 dias a ferramenta não se pagar sozinha com os resultados, devolvemos 100% do seu dinheiro no mesmo dia. <strong>Zero burocracia.</strong>
             </p>
-            <div className="flex items-center justify-center gap-6 text-sm text-gray-500 mt-6">
-              <span className="flex items-center gap-2"><Lock size={14} className="text-green-500" /> Pagamento seguro</span>
-              <span className="flex items-center gap-2"><Shield size={14} className="text-green-500" /> Cancele a qualquer momento</span>
-            </div>
           </ScrollReveal>
         </div>
       </section>
 
-      <section className="py-20 bg-white border-t border-gray-100">
+
+      <section className="py-20 bg-gray-50 border-t border-gray-100">
         <div className="max-w-3xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-12">
@@ -632,7 +579,6 @@ export default function LandingPage() {
                 <MessageCircleCode size={16} /> FAQ
               </div>
               <h2 className="text-3xl md:text-4xl font-black text-gray-900 mb-4">Perguntas Frequentes</h2>
-              <p className="text-gray-600 max-w-xl mx-auto">Tem alguma dúvida? Provavelmente a resposta está aqui.</p>
             </div>
           </ScrollReveal>
           <div className="space-y-3">
@@ -640,16 +586,9 @@ export default function LandingPage() {
               <FAQItem key={i} q={faq.q} a={faq.a} />
             ))}
           </div>
-          <div className="text-center mt-8">
-            <p className="text-sm text-gray-500">
-              Ainda tem dúvidas?{" "}
-              <a href="https://wa.me/5579999383543" target="_blank" rel="noopener noreferrer" className="text-indigo-600 font-bold hover:underline">
-                Fale conosco no WhatsApp →
-              </a>
-            </p>
-          </div>
         </div>
       </section>
+
 
       <section className="py-28 bg-gradient-to-br from-indigo-600 via-purple-600 to-indigo-700 text-white relative overflow-hidden">
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -663,24 +602,20 @@ export default function LandingPage() {
               <Rocket size={36} className="text-yellow-300" />
             </motion.div>
             <h2 className="text-4xl sm:text-5xl md:text-6xl font-black mb-6 leading-tight">
-              Pronto para transformar seu perfil em um <span className="text-yellow-300">negócio de verdade?</span>
+              Pare de empilhar botões.<br/> Comece a <span className="text-yellow-300">fechar negócios.</span>
             </h2>
             <p className="text-lg text-white/70 max-w-2xl mx-auto mb-10">
-              Junte-se a milhares de criadores que já estão lucrando mais com o Freelinnk. Comece grátis, sem cartão de crédito.
+              Transforme a sua Bio no Instagram num funil automático. Tráfego, Pixel e Lucro em um só lugar.
             </p>
             <SignInButton mode="modal" forceRedirectUrl="/onboarding">
-              <Button size="xl" variant="white" className="shadow-2xl text-lg px-14 py-6 group cursor-pointer pointer-events-auto">
-                Começar Meu Teste Grátis <ArrowRight size={24} className="ml-2 group-hover:translate-x-1 transition-transform" />
+              <Button size="xl" variant="white" className="shadow-2xl text-lg px-14 py-6 group cursor-pointer pointer-events-auto text-indigo-700 hover:text-indigo-900">
+                Criar Minha Vitrine Grátis <ArrowRight size={24} className="ml-2 group-hover:translate-x-1 transition-transform" />
               </Button>
             </SignInButton>
-            <div className="flex items-center justify-center gap-6 mt-8 text-sm text-white/50">
-              <span className="flex items-center gap-1.5"><CheckCircle size={14} /> 7 dias grátis</span>
-              <span className="flex items-center gap-1.5"><CheckCircle size={14} /> Sem cartão</span>
-              <span className="flex items-center gap-1.5"><CheckCircle size={14} /> Cancele quando quiser</span>
-            </div>
           </ScrollReveal>
         </div>
       </section>
+
 
       <footer className="bg-gray-900 text-white pt-20 pb-28 md:pb-10">
         <div className="max-w-7xl mx-auto px-4">
@@ -691,19 +626,8 @@ export default function LandingPage() {
                 <span className="text-2xl font-bold">Freelinnk</span>
               </div>
               <p className="text-gray-400 mb-6 max-w-md leading-relaxed">
-                A plataforma all-in-one para transformar seu Link na Bio em uma Máquina de Vendas. Página de links, encurtador, IA e gestão financeira. Feito com 💜 no Brasil.
+                O único Bio Link focado em Vendas. CRM, Pixel de Rastreamento e Rede de Tráfego Automática para lojistas e criadores profissionais.
               </p>
-              <div className="flex gap-4">
-                {[
-                  { url: "https://www.instagram.com/freelinnk_oficial", icon: <Instagram size={20} />, color: "hover:bg-gradient-to-br hover:from-purple-500 hover:to-pink-500" },
-                  { url: "https://linkedin.com/in/lucasaragao-dev", icon: <FaLinkedinIn size={20} />, color: "hover:bg-blue-600" },
-                  { url: "https://wa.me/5579999383543", icon: <MessageCircleCode size={20} />, color: "hover:bg-green-500" },
-                ].map((social, i) => (
-                  <a key={i} href={social.url} target="_blank" rel="noopener noreferrer" className={`w-12 h-12 bg-white/5 rounded-xl flex items-center justify-center text-gray-400 hover:text-white ${social.color} transition-all duration-300 hover:-translate-y-1`}>
-                    {social.icon}
-                  </a>
-                ))}
-              </div>
             </div>
             <div>
               <h4 className="font-bold text-lg mb-6">Produto</h4>
@@ -713,7 +637,6 @@ export default function LandingPage() {
                   { href: "#como-funciona", text: "Como Funciona" },
                   { href: "#precos", text: "Preços" },
                   { href: "#comparativo", text: "Comparativo" },
-                  { href: "#depoimentos", text: "Depoimentos" },
                 ].map((link, i) => (
                   <li key={i}>
                     <a href={link.href} className="hover:text-white transition-colors inline-flex items-center gap-2 group">
@@ -728,8 +651,8 @@ export default function LandingPage() {
               <ul className="space-y-4 text-gray-400">
                 {[
                   { href: "/terms-of-service", text: "Termos de Uso" },
-                  { href: "/privacy-policy", text: "Privacidade" },
-                  { href: "/privacy-policy", text: "LGPD" },
+                  { href: "/privacy-policy", text: "Política de Privacidade" },
+                  { href: "/help", text: "Central de Ajuda" },
                 ].map((link, i) => (
                   <li key={i}>
                     <a href={link.href} className="hover:text-white transition-colors inline-flex items-center gap-2 group">
@@ -741,10 +664,10 @@ export default function LandingPage() {
             </div>
           </div>
           <div className="pt-8 border-t border-gray-800 flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-sm text-gray-500">© 2026 Freelinnk. Todos os direitos reservados.</p>
+            <p className="text-sm text-gray-500">© 2026 Freelinnk. Lojistas Profissionais.</p>
             <div className="flex items-center gap-6">
-              <div className="flex items-center gap-2 text-gray-500 text-sm"><Lock size={16} className="text-green-500" /> Conexão Segura</div>
-              <div className="flex items-center gap-2 text-gray-500 text-sm"><Shield size={16} className="text-green-500" /> LGPD</div>
+              <div className="flex items-center gap-2 text-gray-500 text-sm"><Lock size={16} className="text-green-500" /> Criptografia 256-bit</div>
+              <div className="flex items-center gap-2 text-gray-500 text-sm"><Shield size={16} className="text-green-500" /> LGPD Compliant</div>
             </div>
           </div>
         </div>

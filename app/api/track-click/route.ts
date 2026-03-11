@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-// import { geolocation } from '@vercel/functions'; // Não precisamos mais disso
 import { api } from '@/convex/_generated/api';
 import { getClient } from '@/convex/client';
 import { ClientTrackingData } from '@/lib/types';
@@ -9,8 +8,6 @@ export async function POST(request: NextRequest) {
   try {
     const data: ClientTrackingData = await request.json();
 
-    // <<< MUDANÇA PRINCIPAL: Usando os headers da Vercel diretamente >>>
-    // Esta é a forma mais confiável de obter a localização do usuário na Vercel.
     const country = request.headers.get('x-vercel-ip-country') || 'Unknown';
     const region = request.headers.get('x-vercel-ip-country-region') || 'Unknown'; // Isso retornará "SE"
     const city = request.headers.get('x-vercel-ip-city') || 'Unknown';

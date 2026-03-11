@@ -1,4 +1,3 @@
-// /app/api/uptime-check/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
 

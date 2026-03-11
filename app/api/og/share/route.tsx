@@ -1,4 +1,3 @@
-// app/api/og/share/route.tsx
 import { ImageResponse } from 'next/og';
 import { NextRequest } from 'next/server';
 

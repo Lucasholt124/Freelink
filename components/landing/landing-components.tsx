@@ -13,7 +13,7 @@ import { BRAND, features, nichos, testimonials } from "../../app/constants/landi
 import { MagneticWrapper, ScrollReveal } from "@/components/Animaçoes/Animations";
 
 export const RotatingText = () => {
-  const words = ["Vendas", "Cliques", "Resultados", "Seguidores"];
+  const words = ["Tráfego", "Vendas", "Lucro", "Leads Quentes"];
   const [index, setIndex] = useState(0);
 
   useEffect(() => {
@@ -46,11 +46,11 @@ export const SocialProofToast = () => {
   const [current, setCurrent] = useState(0);
 
   const notifications = [
-    { name: "Maria", city: "São Paulo", action: "criou sua página" },
-    { name: "João", city: "Rio de Janeiro", action: "ativou o plano Pro" },
-    { name: "Ana", city: "Belo Horizonte", action: "criou sua página" },
-    { name: "Carlos", city: "Curitiba", action: "encurtou 15 links" },
-    { name: "Juliana", city: "Salvador", action: "criou sua página" },
+    { name: "Maria", city: "São Paulo", action: "vendeu um infoproduto" },
+    { name: "João", city: "Rio de Janeiro", action: "ativou a Rede de Ads" },
+    { name: "Ana", city: "Belo Horizonte", action: "instalou o Pixel na Vitrine" },
+    { name: "Carlos", city: "Curitiba", action: "conseguiu +200 views no link" },
+    { name: "Juliana", city: "Salvador", action: "assinou o plano Ultra" },
   ];
 
   useEffect(() => {
@@ -337,7 +337,7 @@ export const ComparisonCell = ({
   if (value === "paid")
     return (
       <span className="text-xs text-yellow-600 font-bold bg-yellow-50 px-2 py-1 rounded-full">
-        💰 Pago
+        💰 Caro
       </span>
     );
   if (value === "partial")

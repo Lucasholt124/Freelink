@@ -8,26 +8,25 @@ import { getBaseUrl } from "@/convex/lib/getBaseUrl";
 import clsx from "clsx";
 import Script from "next/script";
 
-
 export const metadata: Metadata = {
   metadataBase: new URL(getBaseUrl()),
   title: {
-    default: "Freelinnk - Link na Bio com IA que Vende Sozinho | Crie Conteúdo Viral",
+    default: "Freelinnk - A Máquina de Vendas e Tráfego para o seu Link na Bio",
     template: "%s | Freelinnk",
   },
   description:
-    "Crie conteúdo viral com IA, encurte links, faça sorteios e rastreie vendas. Plataforma completa para criadores, comerciantes, negociantes, vendedores online, quem posta videos e imagens em redes sociais, influencers e afiliados. Mais barato que Linktree + ChatGPT + Midjourney juntos.",
+    "Transforme seu link na bio em uma máquina de conversão. Receba tráfego automático da nossa rede de anúncios, gerencie suas vendas com CRM integrado e conecte seu Pixel do Facebook. Mais barato e inteligente que ferramentas comuns de botões.",
   keywords: [
     "link na bio",
     "freelinnk",
     "linktree alternativa",
-    "gerador de conteúdo IA",
-    "encurtador de links",
-    "sorteios instagram",
-    "analytics de cliques",
-    "criadores de conteúdo",
-    "influencers",
-    "afiliados",
+    "rede de anúncios",
+    "gerar tráfego grátis",
+    "crm para instagram",
+    "calculadora de lucros",
+    "pixel do facebook no link",
+    "vender mais no instagram",
+    "lojistas e afiliados",
   ],
   authors: [{ name: "Freelinnk", url: getBaseUrl() }],
   creator: "Freelinnk",
@@ -61,23 +60,23 @@ export const metadata: Metadata = {
     locale: "pt_BR",
     url: getBaseUrl(),
     siteName: "Freelinnk",
-    title: "Freelinnk - Link na Bio com IA que Vende Sozinho",
+    title: "Freelinnk - O Link na Bio que Vende e Atrai Tráfego",
     description:
-      "Crie conteúdo viral com IA, faça sorteios e rastreie vendas. Tudo em uma plataforma.",
+      "Pare de perder clientes. Use o Freelinnk para exibir seus produtos na nossa rede de anúncios, gerenciar lucros e instalar seu Pixel.",
     images: [
       {
         url: "/og-image.png",
         width: 1200,
         height: 630,
-        alt: "Freelinnk - Plataforma completa para criadores",
+        alt: "Freelinnk - A Máquina de Vendas para o seu Perfil",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Freelinnk - Link na Bio com IA que Vende Sozinho",
+    title: "Freelinnk - A Máquina de Vendas para sua Bio",
     description:
-      "Crie conteúdo viral com IA, faça sorteios e rastreie vendas.",
+      "Tráfego Automático, CRM Financeiro e Rastreamento. O Link na Bio dos profissionais.",
     images: ["/twitter-image.png"],
   },
   applicationName: "Freelinnk",
@@ -86,9 +85,8 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "Freelinnk",
   },
-  category: "Technology",
+  category: "Business",
 };
-
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -138,11 +136,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="pt-BR" suppressHydrationWarning>
       <head>
-      <script
-  async
-  src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5238589195477270"
-  crossOrigin="anonymous"
-/>
+        <script
+          async
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-5238589195477270"
+          crossOrigin="anonymous"
+        />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

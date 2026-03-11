@@ -8,9 +8,8 @@ export default function WhatsAppFloatingButton() {
   const [isVisible, setIsVisible] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
-
   const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER;
-  const whatsappMessage = encodeURIComponent("Olá! Gostaria de saber mais sobre o Freelink. Poderia me ajudar?");
+  const whatsappMessage = encodeURIComponent("Olá! Sou lojista e quero usar o Freelinnk para escalar minhas vendas. Como vocês podem me ajudar?");
   const whatsappLink = `https://wa.me/${whatsappNumber}?text=${whatsappMessage}`;
 
   useEffect(() => {
@@ -49,7 +48,7 @@ export default function WhatsAppFloatingButton() {
               <X size={12} />
             </button>
             <p className="text-sm text-gray-700 font-medium">
-              👋 Dúvidas sobre qual plano escolher? <span className="text-green-600 font-bold">Fale conosco!</span>
+              👋 Precisa de ajuda para ligar sua Máquina de Vendas? <span className="text-green-600 font-bold">Fale com um especialista.</span>
             </p>
             <div className="absolute -bottom-2 right-8 w-4 h-4 bg-white border-r border-b border-gray-100 transform rotate-45" />
           </motion.div>
@@ -103,7 +102,7 @@ export default function WhatsAppFloatingButton() {
           transition={{ delay: 0.5 }}
           className="hidden lg:flex absolute right-full mr-4 top-1/2 -translate-y-1/2 bg-white px-4 py-2 rounded-xl shadow-lg border border-gray-100 whitespace-nowrap items-center gap-2"
         >
-          <span className="text-sm font-bold text-gray-800">Falar com Especialista</span>
+          <span className="text-sm font-bold text-gray-800">Falar com Especialista de Vendas</span>
           <ArrowRight size={14} className="text-green-500" />
         </motion.div>
       </a>
