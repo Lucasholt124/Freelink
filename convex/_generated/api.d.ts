@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as ads from "../ads.js";
 import type * as analytics from "../analytics.js";
 import type * as client from "../client.js";
 import type * as connections from "../connections.js";
@@ -36,6 +37,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  ads: typeof ads;
   analytics: typeof analytics;
   client: typeof client;
   connections: typeof connections;

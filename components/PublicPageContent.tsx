@@ -1,6 +1,6 @@
 "use client";
 import { api } from "@/convex/_generated/api";
-import { Preloaded, usePreloadedQuery, useQuery } from "convex/react";
+import { Preloaded, useMutation, usePreloadedQuery, useQuery } from "convex/react";
 import {
   User, Share2, Link as LinkIcon, Check, Heart, Sparkles, QrCode,
   Moon, Sun, Calendar, Download, ExternalLink, ChevronDown, Shield,
@@ -26,7 +26,7 @@ import {
 import QRCode from 'qrcode';
 import { motion, AnimatePresence, useScroll, useSpring } from "framer-motion";
 import { SubscriptionPlanDetails } from "@/lib/subscription";
-import { Doc } from "@/convex/_generated/dataModel";
+import { Doc, Id } from "@/convex/_generated/dataModel";
 import { usePerformanceMode } from "@/app/hooks/usePerformanceMode";
 
 // ============================================================
@@ -900,6 +900,16 @@ export default function PublicPageContent({
   const [showStickyCTA, setShowStickyCTA] = useState(false);
   const [cookieConsent, setCookieConsent] = useState<"granted" | "denied" | null>(null);
   const [holidayFired, setHolidayFired] = useState(false);
+  const [publicAd, setPublicAd] = useState<{
+    id: Id<"adCampaigns">;
+    title: string;
+    text: string;
+    mediaUrls: string[];
+    link: string;
+  } | null>(null);
+  const [adImageIndex, setAdImageIndex] = useState(0);
+  const fetchAd = useMutation(api.ads.getAdForPublicPage);
+  const registerAdClick = useMutation(api.ads.registerAdClick);
 
   const links = usePreloadedQuery(preloadedLinks);
   const { scrollYProgress } = useScroll();
@@ -966,6 +976,56 @@ export default function PublicPageContent({
 
     setTimeout(() => setIsLoading(false), 1200);
   }, [profileUrl, username, userAccentColor, customizations]);
+
+  // 🎰 Gira a Roleta de Anúncios
+  useEffect(() => {
+    const loadAd = async () => {
+      if (plan === "ultra") return; // Ultra não tem anúncio na página
+
+      // Pega o nicho dessa página para a IA barrar concorrentes
+      // Como não salvamos o nicho na tabela de customização antes, mandamos a bio pra IA decidir
+      let pageNiche = "geral";
+      if (displayBio) {
+        try {
+          const res = await fetch('/api/analyze-niche', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ title: username, text: displayBio })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            pageNiche = data.niche;
+          }
+        } catch  {} // Falha silenciosa, segue como geral
+      }
+
+      // Chama a mutação do banco para buscar 1 anúncio válido
+      try {
+        const ad = await fetchAd({
+          pageOwnerNiche: pageNiche,
+          pageOwnerPlan: plan
+        });
+        if (ad) setPublicAd(ad);
+      } catch (e) { console.error("Erro ao buscar anúncio", e); }
+    };
+
+    loadAd();
+  }, [plan, username, displayBio]);
+
+  // Carrossel do Anúncio (Gira imagens a cada 3 segundos)
+  useEffect(() => {
+    if (!publicAd || !publicAd.mediaUrls || publicAd.mediaUrls.length <= 1) return;
+    const interval = setInterval(() => {
+      setAdImageIndex((prev) => (prev + 1) % publicAd.mediaUrls.length);
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [publicAd]);
+
+  const handleAdClick = () => {
+    if (publicAd) {
+      registerAdClick({ id: publicAd.id });
+    }
+  };
 
   const handleShare = async () => {
     const count = 200;
@@ -1966,6 +2026,66 @@ export default function PublicPageContent({
                   </div>
                 </div>
               </motion.div>
+
+              {/* 📢 ESPAÇO PUBLICITÁRIO (AD NETWORK FREELINNK) */}
+              {publicAd && plan !== "ultra" && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4 }}
+                  className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-1 mt-6 shadow-xl group"
+                  style={{
+                    background: `linear-gradient(135deg, ${userAccentColor}40, transparent)`,
+                  }}
+                >
+                  <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-md" />
+
+                  <div className="relative z-10 bg-white dark:bg-slate-900 rounded-xl sm:rounded-[22px] overflow-hidden flex flex-col md:flex-row">
+                    {/* Imagem do Anúncio */}
+                    {publicAd.mediaUrls && publicAd.mediaUrls.length > 0 && publicAd.mediaUrls[0] !== "" && (
+                      <div className="w-full md:w-2/5 aspect-video md:aspect-square relative overflow-hidden bg-slate-100 dark:bg-slate-800">
+                        <AnimatePresence mode="wait">
+                          <motion.img
+                            key={adImageIndex}
+                            src={publicAd.mediaUrls[adImageIndex]}
+                            initial={{ opacity: 0, scale: 1.05 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.5 }}
+                            className="absolute inset-0 w-full h-full object-cover"
+                            alt="Ad visual"
+                          />
+                        </AnimatePresence>
+                        {/* Badge de Patrocinado */}
+                        <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[9px] font-bold text-white uppercase tracking-wider border border-white/10">
+                          Patrocinado
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Conteúdo do Anúncio */}
+                    <div className="p-4 md:p-5 flex-1 flex flex-col justify-center">
+                      <h4 className="font-black text-lg md:text-xl text-slate-900 dark:text-white leading-tight mb-2">
+                        {publicAd.title}
+                      </h4>
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3">
+                        {publicAd.text}
+                      </p>
+                      <a
+                        href={publicAd.link}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={handleAdClick}
+                        className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl font-bold text-white text-sm transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5"
+                        style={{ background: userAccentColor }}
+                      >
+                        <ShoppingBag className="w-4 h-4" />
+                        Ver Oferta
+                      </a>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
               {/* CTA FREE */}
               {plan === 'free' && (

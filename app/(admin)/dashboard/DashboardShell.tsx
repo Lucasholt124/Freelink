@@ -7,7 +7,8 @@ import {
   Home, Settings, Scissors, Target, LayoutGrid, Gift,
   CreditCard, LogOut, ChevronDown, HelpCircle, X,
   LucideProps, Menu, Search, PlusCircle, ArrowRight, Zap, Crown, Shield,
-  Calculator, Palette, BarChart3, ChevronRight, Flame, Lock, Users
+  Calculator, Palette, BarChart3, ChevronRight, Flame, Lock, Users,
+  Megaphone
 } from "lucide-react";
 import clsx from "clsx";
 import { UserButton, useClerk } from "@clerk/nextjs";
@@ -91,7 +92,8 @@ export const navItems: NavItem[] = [
     subItems: [
       { href: "/dashboard/shortener", icon: Scissors, label: "Encurtador", description: "Links curtos" },
       { href: "/dashboard/giveaway", icon: Gift, label: "Sorteios", pro: true, description: "Engajamento" },
-      { href: "/dashboard/tracking", icon: Target, label: "Rastreamento", ultra: true, new: true, description: "Pixel & Analytics" },
+      { href: "/dashboard/ads", icon: Megaphone, label: "Hub de Anúncios", pro: true, new: true, description: "Impulsione produtos" }, // 🔥 NOVO AQUI
+      { href: "/dashboard/tracking", icon: Target, label: "Rastreamento", ultra: true, description: "Pixel & Analytics" },
     ]
   },
   {

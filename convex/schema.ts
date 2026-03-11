@@ -834,4 +834,26 @@ export default defineSchema({
     .index("by_user_date", ["userId", "date"])
     .index("by_business", ["businessId"])
     .index("by_type", ["userId", "type"]),
+
+   // ==========================================
+    // 📢 TABELAS DO HUB DE ANÚNCIOS E REDE (ADS)
+    // ==========================================
+    adCampaigns: defineTable({
+      userId: v.string(),
+      title: v.string(),
+      productLink: v.string(),
+      adText: v.string(),
+      mediaUrls: v.array(v.string()), // 🔥 Agora é um array (suporta N imagens/gifs/vídeos)
+      niche: v.optional(v.string()), // 🔥 A IA vai preencher isso (Ex: "moda", "comida", "serviços")
+      status: v.union(v.literal("active"), v.literal("paused"), v.literal("completed")),
+      views: v.number(),
+      clicks: v.number(),
+      maxViewsLimit: v.number(),
+      lastResetMonth: v.string(), // 🔥 Controle para saber se já resetou neste mês
+      createdAt: v.number(),
+      updatedAt: v.optional(v.number()),
+    })
+      .index("by_user", ["userId"])
+      .index("by_status", ["status"])
+      .index("by_niche", ["niche"]), // Indexado para a busca rápida da IA
 });

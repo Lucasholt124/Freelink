@@ -3033,8 +3033,23 @@ const chartData = useMemo(() => {
                     {paginatedCustomers.map((customer) => (
                       <Card key={customer._id} className="p-4 hover:shadow-lg transition-all relative group border-gray-100">
                         <div className="flex justify-between items-start gap-2 mb-3">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-bold text-lg text-gray-800 truncate">{customer.name}</h4>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-bold text-lg text-gray-800 truncate">{customer.name}</h4>
+                              {customer.status && (
+                                <Badge className={`text-[10px] px-1.5 py-0 hover:bg-opacity-80 border-0 ${
+                                  customer.status === 'vip' ? 'bg-purple-100 text-purple-700' :
+                                  customer.status === 'inativo' ? 'bg-gray-100 text-gray-600' :
+                                  customer.status === 'lead' ? 'bg-orange-100 text-orange-700' :
+                                  'bg-emerald-100 text-emerald-700'
+                                }`}>
+                                  {customer.status === 'vip' && '💎 VIP'}
+                                  {customer.status === 'inativo' && '❄️ Inativo'}
+                                  {customer.status === 'lead' && '🔥 Lead'}
+                                  {customer.status === 'ativo' && '✅ Ativo'}
+                                </Badge>
+                              )}
+                            </div>
                             <div className="flex flex-col gap-1 mt-1">
                               {customer.phone && <span className="text-xs text-gray-500 font-mono">📱 {customer.phone}</span>}
                               {customer.birthDate && <span className="text-xs text-gray-500">🎂 {formatDate(customer.birthDate)}</span>}
