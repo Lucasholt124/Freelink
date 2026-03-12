@@ -12,7 +12,6 @@ import {
   Heart,
   Star,
   Sparkles,
-  Zap,
   TrendingUp,
   Globe,
   Rocket,
@@ -39,8 +38,6 @@ import {
 import { celebrate } from "../constants/onboarding-utils";
 import { FreelinnkLogo } from "@/components/onboarding/FreelinnkLogo";
 import { PhonePreview } from "@/components/onboarding/PhonePreview";
-
-
 import { StepWelcome } from "@/components/onboarding/steps/StepWelcome";
 import { StepName } from "@/components/onboarding/steps/StepName";
 import { StepNiche } from "@/components/onboarding/steps/StepNiche";
@@ -49,7 +46,6 @@ import { StepLinks } from "@/components/onboarding/steps/StepLinks";
 import { StepTemplate } from "@/components/onboarding/steps/StepTemplate";
 import { StepReview } from "@/components/onboarding/steps/StepReview";
 import { StepLaunching } from "@/components/onboarding/steps/StepLaunching";
-
 
 type ExtendedStep = Step | "review";
 
@@ -63,15 +59,14 @@ interface StepInfo {
 
 const STEP_INFO: Record<ExtendedStep, StepInfo> = {
   welcome: { num: 0, total: 6, label: "Início", icon: <Rocket className="w-4 h-4" /> },
-  name: { num: 1, total: 6, label: "Perfil", icon: <User className="w-4 h-4" />, estimatedTime: "30s" },
-  niche: { num: 2, total: 6, label: "Área", icon: <Hash className="w-4 h-4" />, estimatedTime: "10s" },
-  username: { num: 3, total: 6, label: "Link", icon: <LinkIcon className="w-4 h-4" />, estimatedTime: "15s" },
-  links: { num: 4, total: 6, label: "Links", icon: <Layout className="w-4 h-4" />, estimatedTime: "45s" },
-  template: { num: 5, total: 6, label: "Estilo", icon: <Palette className="w-4 h-4" />, estimatedTime: "15s" },
-  review: { num: 6, total: 6, label: "Revisar", icon: <FileCheck className="w-4 h-4" />, estimatedTime: "10s" },
-  launching: { num: 6, total: 6, label: "Lançando", icon: <Rocket className="w-4 h-4" /> },
+  name: { num: 1, total: 6, label: "Loja/Perfil", icon: <User className="w-4 h-4" />, estimatedTime: "15s" },
+  niche: { num: 2, total: 6, label: "Nicho", icon: <Hash className="w-4 h-4" />, estimatedTime: "10s" },
+  username: { num: 3, total: 6, label: "Seu Link", icon: <LinkIcon className="w-4 h-4" />, estimatedTime: "10s" },
+  links: { num: 4, total: 6, label: "Produtos", icon: <Layout className="w-4 h-4" />, estimatedTime: "Pular" },
+  template: { num: 5, total: 6, label: "Visual", icon: <Palette className="w-4 h-4" />, estimatedTime: "Pular" },
+  review: { num: 6, total: 6, label: "Lançar", icon: <FileCheck className="w-4 h-4" />, estimatedTime: "5s" },
+  launching: { num: 6, total: 6, label: "Construindo Máquina...", icon: <Rocket className="w-4 h-4" /> },
 };
-
 
 const StepProgressBar = ({ currentStep }: { currentStep: ExtendedStep }) => {
   const steps: ExtendedStep[] = ["name", "niche", "username", "links", "template", "review"];
@@ -91,16 +86,16 @@ const StepProgressBar = ({ currentStep }: { currentStep: ExtendedStep }) => {
                 className={cn(
                   "w-full h-1.5 rounded-full transition-all duration-500",
                   isCompleted
-                    ? "bg-gradient-to-r from-violet-500 to-indigo-500"
+                    ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
                     : isActive
-                    ? "bg-gradient-to-r from-violet-400 to-indigo-400 animate-pulse"
+                    ? "bg-gradient-to-r from-emerald-300 to-emerald-400 animate-pulse"
                     : "bg-slate-100"
                 )}
               />
               <span
                 className={cn(
-                  "text-[10px] mt-1 font-medium transition-colors",
-                  isActive ? "text-violet-600" : isCompleted ? "text-indigo-500" : "text-slate-300"
+                  "text-[10px] mt-1 font-bold uppercase tracking-wider transition-colors",
+                  isActive ? "text-emerald-600" : isCompleted ? "text-emerald-500" : "text-slate-300"
                 )}
               >
                 {info.label}
@@ -118,9 +113,9 @@ const EstimatedTime = ({ step }: { step: ExtendedStep }) => {
   if (!info.estimatedTime) return null;
 
   return (
-    <div className="flex items-center gap-1.5 text-slate-400 text-xs">
-      <Clock className="w-3 h-3" />
-      <span>~{info.estimatedTime}</span>
+    <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium bg-slate-50 px-2 py-1 rounded-md">
+      <Clock className="w-3 h-3 text-slate-500" />
+      <span>{info.estimatedTime}</span>
     </div>
   );
 };
@@ -144,21 +139,21 @@ const CompletionScore = ({
 }: CompletionScoreProps) => {
   const score = useMemo(() => {
     let s = 0;
-    if (displayName) s += 15;
-    if (profileImage.preview) s += 20;
-    if (bio) s += 10;
-    if (username) s += 15;
+    if (displayName) s += 25; // Peso maior para o nome
+    if (username) s += 45; // Peso vital para o @
+    if (profileImage.preview) s += 10;
+    if (bio) s += 5;
     const validLinks = links.filter((l) => l.title && l.url);
-    s += Math.min(validLinks.length * 10, 30);
-    if (selectedTemplate) s += 10;
+    s += Math.min(validLinks.length * 5, 10);
+    if (selectedTemplate) s += 5;
     return Math.min(s, 100);
   }, [displayName, profileImage, bio, username, links, selectedTemplate]);
 
-  const color = score < 40 ? "text-red-500" : score < 70 ? "text-amber-500" : "text-emerald-500";
+  const color = score < 50 ? "text-amber-500" : score < 90 ? "text-emerald-400" : "text-emerald-500";
 
   return (
     <div className="flex items-center gap-2">
-      <div className="w-8 h-8 relative">
+      <div className="w-8 h-8 relative group cursor-help">
         <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
           <path className="text-slate-100" stroke="currentColor" strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
           <motion.path
@@ -166,7 +161,7 @@ const CompletionScore = ({
             initial={{ strokeDasharray: "0, 100" }} animate={{ strokeDasharray: `${score}, 100` }} transition={{ duration: 0.8, ease: "easeOut" }}
           />
         </svg>
-        <span className={cn("absolute inset-0 flex items-center justify-center text-[8px] font-black", color)}>{score}</span>
+        <span className={cn("absolute inset-0 flex items-center justify-center text-[9px] font-black", color)}>{score}%</span>
       </div>
     </div>
   );
@@ -177,7 +172,6 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<ExtendedStep>("welcome");
   const [loading, setLoading] = useState(false);
 
-
   const [displayName, setDisplayName] = useState("");
   const [selectedNiche, setSelectedNiche] = useState<NicheOption | null>(null);
   const [username, setUsername] = useState("");
@@ -186,6 +180,7 @@ export default function OnboardingPage() {
   const [profileImage, setProfileImage] = useState<{ file: File | null; preview: string | null }>({ file: null, preview: null });
   const [bio, setBio] = useState("");
   const [nicheSearch, setNicheSearch] = useState("");
+
   const currentUser = useQuery(api.users.getMyUsername);
 
   const [showMobilePreview, setShowMobilePreview] = useState(false);
@@ -197,14 +192,13 @@ export default function OnboardingPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const debouncedUsername = useDebounce(username, 500);
 
-    const checkAvailability = useQuery(api.lib.usernames.checkUsernameAvailability, debouncedUsername.length >= 3 ? { username: debouncedUsername } : "skip");
+  const checkAvailability = useQuery(api.lib.usernames.checkUsernameAvailability, debouncedUsername.length >= 3 ? { username: debouncedUsername } : "skip");
   const setUsernameMutation = useMutation(api.lib.usernames.setUsername);
   const updateCustomizations = useMutation(api.lib.customizations.updateCustomizations);
   const generateUploadUrl = useMutation(api.lib.customizations.generateUploadUrl);
   const createLink = useMutation(api.lib.links.createLink);
 
   const isUsernameValid = username.length >= 3 && checkAvailability?.available;
-
 
   const filteredTemplates = useMemo(() => {
     if (templateFilter === "all") return TEMPLATES;
@@ -219,9 +213,8 @@ export default function OnboardingPage() {
   const validLinksCount = useMemo(() => links.filter((l) => l.title && l.url).length, [links]);
 
   useEffect(() => {
-    // Se terminou de carregar (não é undefined) e achou um usuário (não é null)
     if (currentUser !== undefined && currentUser !== null) {
-      toast.info("Você já configurou sua página! Redirecionando...");
+      toast.info("Máquina de vendas identificada! Redirecionando...");
       router.push("/dashboard");
     }
   }, [currentUser, router]);
@@ -229,12 +222,11 @@ export default function OnboardingPage() {
   const usernameSuggestions = useMemo(() => {
     if (!displayName) return [];
     const base = displayName.toLowerCase().replace(/[^a-z0-9\s]/g, "");
-    return [base.replace(/\s+/g, ""), base.replace(/\s+/g, "."), base.replace(/\s+/g, "_"), `${base.replace(/\s+/g, "")}oficial`]
+    return [base.replace(/\s+/g, ""), base.replace(/\s+/g, "."), base.replace(/\s+/g, "_"), `${base.replace(/\s+/g, "")}oficial`, `loja${base.replace(/\s+/g, "")}`]
       .map((s) => s.slice(0, 30))
       .filter((s) => s.length >= 3);
   }, [displayName]);
 
-  // Efeitos
   useEffect(() => {
     if (step !== "welcome") return;
     const interval = setInterval(() => setCurrentPhraseIndex((prev) => (prev + 1) % HERO_PHRASES.length), 3000);
@@ -245,7 +237,6 @@ export default function OnboardingPage() {
     return () => { if (profileImage.preview) URL.revokeObjectURL(profileImage.preview); };
   }, [profileImage.preview]);
 
-  //  Lógica
   const handleLaunch = async () => {
     setStep("launching");
     setLaunchProgress(0);
@@ -268,12 +259,12 @@ export default function OnboardingPage() {
       await new Promise((r) => setTimeout(r, 300));
 
       await updateCustomizations({
-        description: bio || `${selectedNiche?.emoji || ""} ${displayName || username}`,
+        description: bio || `${selectedNiche?.emoji || "🚀"} Construindo presença digital`,
         profilePictureStorageId: profileStorageId,
         accentColor: selectedTemplate.preview.accent,
         backgroundType: selectedTemplate.preview.bg.includes("gradient") ? "gradient" : "color",
-        backgroundColor1: selectedTemplate.preview.bg.includes("gradient") ? selectedTemplate.preview.bg.match(/#[a-fA-F0-9]{6}/g)?.[0] || "#667eea" : selectedTemplate.preview.bg,
-        backgroundColor2: selectedTemplate.preview.bg.includes("gradient") ? selectedTemplate.preview.bg.match(/#[a-fA-F0-9]{6}/g)?.[1] || "#764ba2" : undefined,
+        backgroundColor1: selectedTemplate.preview.bg.includes("gradient") ? selectedTemplate.preview.bg.match(/#[a-fA-F0-9]{6}/g)?.[0] || "#0f172a" : selectedTemplate.preview.bg,
+        backgroundColor2: selectedTemplate.preview.bg.includes("gradient") ? selectedTemplate.preview.bg.match(/#[a-fA-F0-9]{6}/g)?.[1] || "#1e1b4b" : undefined,
       });
 
       setLaunchProgress(55);
@@ -295,11 +286,11 @@ export default function OnboardingPage() {
       setLaunchChecklist((prev) => ({ ...prev, publishing: true }));
       celebrate("epic");
 
-      setTimeout(() => { toast.success("Sua página está no ar! 🚀", { description: "Redirecionando para o dashboard..." }); }, 500);
+      setTimeout(() => { toast.success("Máquina Ligada! 🚀", { description: "Indo para o painel..." }); }, 500);
       setTimeout(() => { router.push("/dashboard?welcome=true"); }, 3000);
     } catch (e) {
       console.error(e);
-      toast.error("Erro ao criar página. Tente novamente.");
+      toast.error("Erro na conexão. Tente novamente.");
       setStep("review");
     }
   };
@@ -312,13 +303,14 @@ export default function OnboardingPage() {
 
   return (
     <>
-      <div className="min-h-screen bg-white flex flex-col lg:flex-row overflow-hidden">
-        {/* Painel Esquerdo */}
-        <div className="w-full lg:w-[55%] xl:w-[50%] min-h-screen flex flex-col relative z-10 bg-white">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-violet-50 via-white to-white opacity-70" />
+      <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-hidden font-sans">
+
+        {/* Painel Esquerdo (Formulários) */}
+        <div className="w-full lg:w-[55%] xl:w-[50%] min-h-screen flex flex-col relative z-10 bg-white border-r border-slate-200 shadow-xl">
+          <div className="absolute inset-0 bg-gradient-to-b from-slate-50/50 to-white pointer-events-none" />
 
           {step !== "welcome" && step !== "launching" && (
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative p-4 sm:p-6 space-y-3">
+            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative p-4 sm:p-6 space-y-3 bg-white/80 backdrop-blur-md border-b border-slate-100 z-20">
               <div className="flex items-center justify-between">
                 <FreelinnkLogo />
                 <div className="flex items-center gap-3">
@@ -327,20 +319,22 @@ export default function OnboardingPage() {
                 </div>
               </div>
               <StepProgressBar currentStep={step} />
+
+              {/* Barra Mobile */}
               <div className="sm:hidden">
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-violet-600 font-semibold">{STEP_INFO[step].label}</span>
-                  <span className="text-xs text-slate-400">{STEP_INFO[step].num}/{STEP_INFO[step].total}</span>
+                  <span className="text-xs text-emerald-600 font-bold uppercase tracking-wider">{STEP_INFO[step].label}</span>
+                  <span className="text-xs font-bold text-slate-400">{STEP_INFO[step].num}/{STEP_INFO[step].total}</span>
                 </div>
                 <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <motion.div className="h-full bg-gradient-to-r from-violet-600 to-indigo-600 rounded-full" initial={{ width: "0%" }} animate={{ width: `${(STEP_INFO[step].num / STEP_INFO[step].total) * 100}%` }} transition={{ duration: 0.5 }} />
+                  <motion.div className="h-full bg-emerald-500 rounded-full" initial={{ width: "0%" }} animate={{ width: `${(STEP_INFO[step].num / STEP_INFO[step].total) * 100}%` }} transition={{ duration: 0.5 }} />
                 </div>
               </div>
             </motion.div>
           )}
 
           <div className="relative flex-1 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-            <div className="w-full max-w-lg">
+            <div className="w-full max-w-md">
               <AnimatePresence mode="wait">
                 {step === "welcome" && <StepWelcome onNext={() => setStep("name")} currentPhraseIndex={currentPhraseIndex} />}
 
@@ -351,7 +345,7 @@ export default function OnboardingPage() {
                     onImageSelect={(e) => {
                       const file = e.target.files?.[0];
                       if (file) {
-                        if (file.size > 5 * 1024 * 1024) { toast.error("Máximo 5MB."); return; }
+                        if (file.size > 5 * 1024 * 1024) { toast.error("A foto deve ter no máximo 5MB."); return; }
                         setProfileImage({ file, preview: URL.createObjectURL(file) });
                       }
                     }}
@@ -364,9 +358,10 @@ export default function OnboardingPage() {
                     nicheSearch={nicheSearch} setNicheSearch={setNicheSearch} filteredNiches={filteredNiches}
                     onNicheSelect={(niche) => {
                       setSelectedNiche(niche);
-                      setLinks(niche.suggestedLinks.map((link, i) => ({ id: `suggested-${i}`, title: link.title, url: "" })));
-                      celebrate("medium");
-                      setTimeout(() => setStep("username"), 500);
+                      // Dica: Não criamos links vazios sugeridos se ele não tiver colocado, deixamos para adicionar no painel se quiser.
+                      setLinks(niche.suggestedLinks.slice(0, 2).map((link, i) => ({ id: `suggested-${i}`, title: link.title, url: "" })));
+                      celebrate("small");
+                      setTimeout(() => setStep("username"), 400);
                     }}
                   />
                 )}
@@ -384,8 +379,7 @@ export default function OnboardingPage() {
                         celebrate("medium");
                         setStep("links");
                       } catch (e: unknown) {
-                        const message =
-                          e instanceof Error ? e.message : "Ocorreu um erro ao salvar o username.";
+                        const message = e instanceof Error ? e.message : "Esse nome já está em uso.";
                         toast.error(message);
                       } finally {
                         setLoading(false);
@@ -402,7 +396,7 @@ export default function OnboardingPage() {
                     removeLink={(id) => setLinks(p => p.filter(l => l.id !== id))}
                     addCustomLink={() => setLinks(p => [...p, { id: `custom-${Date.now()}`, title: "", url: "" }])}
                     validLinksCount={validLinksCount} onShowPreview={() => setShowMobilePreview(true)}
-                    onSubmit={() => { celebrate("medium"); setStep("template"); }}
+                    onSubmit={() => { celebrate("small"); setStep("template"); }}
                   />
                 )}
 
@@ -433,73 +427,74 @@ export default function OnboardingPage() {
           </div>
 
           {step !== "welcome" && step !== "launching" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative p-4 sm:p-6 pt-0">
-              <button onClick={goBack} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-600 transition-colors">
-                <ChevronLeft className="w-4 h-4" /> <span className="text-sm font-medium">Voltar</span>
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative p-4 sm:p-6 bg-white border-t border-slate-100 z-20">
+              <button onClick={goBack} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-900 transition-colors font-bold px-3 py-2 rounded-lg hover:bg-slate-100">
+                <ChevronLeft className="w-4 h-4" /> <span className="text-sm">Voltar</span>
               </button>
             </motion.div>
           )}
         </div>
 
-        {/* Painel Direito (Preview) */}
-        <div className="hidden lg:flex flex-1 items-center justify-center relative bg-slate-100 overflow-hidden">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#e2e8f0_1px,transparent_1px),linear-gradient(to_bottom,#e2e8f0_1px,transparent_1px)] bg-[size:2rem_2rem]" />
-          <motion.div className="absolute w-[500px] h-[500px] rounded-full blur-[150px] opacity-30" style={{ background: selectedTemplate.preview.accent }} animate={{ scale: [1, 1.1, 1], opacity: [0.2, 0.35, 0.2] }} transition={{ duration: 4, repeat: Infinity }} />
+        {/* Painel Direito (Preview do Celular) */}
+        <div className="hidden lg:flex flex-1 items-center justify-center relative bg-slate-900 overflow-hidden">
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:2rem_2rem]" />
+
+          <motion.div className="absolute w-[600px] h-[600px] rounded-full blur-[150px] opacity-20" style={{ background: selectedTemplate.preview.accent }} animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.2, 0.1] }} transition={{ duration: 5, repeat: Infinity }} />
 
           {step !== "welcome" && step !== "launching" && (
             <PhonePreview username={username} template={selectedTemplate} links={links} profileImage={profileImage} displayName={displayName} bio={bio} />
           )}
 
           {step === "welcome" && (
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6 z-10">
               <div className="relative">
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="w-64 h-64 rounded-full border-4 border-dashed border-violet-200" />
+                <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="w-64 h-64 rounded-full border-4 border-dashed border-slate-700/50" />
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-48 h-48 bg-gradient-to-br from-violet-500 to-indigo-500 rounded-3xl flex items-center justify-center shadow-2xl shadow-violet-500/30">
+                  <div className="w-48 h-48 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/20 border border-white/10">
                     <span className="text-7xl font-black text-white">F</span>
                   </div>
                 </div>
               </div>
-              <p className="text-slate-400 font-medium">Crie sua página em 2 minutos</p>
+              <p className="text-slate-400 font-bold tracking-widest uppercase text-sm">Central de Negócios</p>
             </motion.div>
           )}
 
           {step === "launching" && (
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center">
+            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center z-10">
               <PhonePreview username={username} template={selectedTemplate} links={links} profileImage={profileImage} displayName={displayName} bio={bio} />
             </motion.div>
           )}
 
-          {/* Decorativos */}
-          <motion.div animate={{ y: [0, -10, 0], rotate: [0, 5, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-20 right-20 p-3 rounded-xl bg-white shadow-lg border border-slate-200"><Heart className="w-6 h-6 text-pink-500" /></motion.div>
-          <motion.div animate={{ y: [0, 10, 0], rotate: [0, -5, 0] }} transition={{ duration: 3.5, repeat: Infinity, delay: 0.5 }} className="absolute bottom-28 left-20 p-3 rounded-xl bg-white shadow-lg border border-slate-200"><Star className="w-6 h-6 text-amber-500" /></motion.div>
-          <motion.div animate={{ y: [0, -8, 0], rotate: [0, 8, 0] }} transition={{ duration: 5, repeat: Infinity, delay: 1 }} className="absolute top-36 left-28 p-3 rounded-xl bg-white shadow-lg border border-slate-200"><Sparkles className="w-6 h-6 text-violet-500" /></motion.div>
-          <motion.div animate={{ y: [0, 8, 0], rotate: [0, -6, 0] }} transition={{ duration: 4.5, repeat: Infinity, delay: 0.8 }} className="absolute bottom-36 right-28 p-3 rounded-xl bg-white shadow-lg border border-slate-200"><Zap className="w-6 h-6 text-cyan-500" /></motion.div>
+          {/* Decorativos Flutuantes no Painel Escuro */}
+          <motion.div animate={{ y: [0, -10, 0], rotate: [0, 5, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-20 right-20 p-3 rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10"><Heart className="w-6 h-6 text-pink-400" /></motion.div>
+          <motion.div animate={{ y: [0, 10, 0], rotate: [0, -5, 0] }} transition={{ duration: 3.5, repeat: Infinity, delay: 0.5 }} className="absolute bottom-32 left-20 p-3 rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10"><Star className="w-6 h-6 text-amber-400" /></motion.div>
+          <motion.div animate={{ y: [0, -8, 0], rotate: [0, 8, 0] }} transition={{ duration: 5, repeat: Infinity, delay: 1 }} className="absolute top-40 left-24 p-3 rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10"><Sparkles className="w-6 h-6 text-emerald-400" /></motion.div>
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="absolute top-8 right-8 p-4 rounded-2xl bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200">
+          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="absolute top-8 right-8 p-4 rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-100 to-teal-100 flex items-center justify-center"><TrendingUp className="w-6 h-6 text-emerald-600" /></div>
-              <div><p className="text-2xl font-black text-slate-900">50k+</p><p className="text-slate-500 text-xs">Criadores ativos</p></div>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center"><TrendingUp className="w-6 h-6 text-white" /></div>
+              <div><p className="text-2xl font-black text-white">Pixel</p><p className="text-slate-300 text-xs font-medium uppercase">Pronto p/ Ativar</p></div>
             </div>
           </motion.div>
 
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }} className="absolute bottom-8 left-8 p-4 rounded-2xl bg-white/90 backdrop-blur-sm shadow-lg border border-slate-200">
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }} className="absolute bottom-12 left-8 p-4 rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10">
             <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-100 to-indigo-100 flex items-center justify-center"><Globe className="w-6 h-6 text-violet-600" /></div>
-              <div><p className="text-2xl font-black text-slate-900">2M+</p><p className="text-slate-500 text-xs">Cliques por mês</p></div>
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center"><Globe className="w-6 h-6 text-white" /></div>
+              <div><p className="text-2xl font-black text-white">Tráfego</p><p className="text-slate-300 text-xs font-medium uppercase">Rede Conectada</p></div>
             </div>
           </motion.div>
         </div>
       </div>
 
+      {/* Preview Mobile Overlay */}
       <AnimatePresence>
         {showMobilePreview && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4 lg:hidden" onClick={() => setShowMobilePreview(false)}>
             <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} onClick={(e) => e.stopPropagation()} className="relative">
               <button onClick={() => setShowMobilePreview(false)} className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"><X className="w-5 h-5" /></button>
-              <div className="absolute -top-12 left-0 flex items-center gap-2 text-white"><Smartphone className="w-4 h-4" /><span className="text-sm font-medium">Preview</span></div>
+              <div className="absolute -top-12 left-0 flex items-center gap-2 text-white"><Smartphone className="w-4 h-4" /><span className="text-sm font-bold uppercase tracking-wider">Preview de Vendas</span></div>
               <PhonePreview username={username} template={selectedTemplate} links={links} profileImage={profileImage} displayName={displayName} bio={bio} />
-              <p className="text-center text-white/40 text-xs mt-4">Toque fora para fechar</p>
+              <p className="text-center text-white/40 text-xs mt-4 font-medium uppercase tracking-widest">Toque fora para voltar</p>
             </motion.div>
           </motion.div>
         )}
@@ -508,8 +503,8 @@ export default function OnboardingPage() {
       <style jsx global>{`
         .custom-scrollbar::-webkit-scrollbar { width: 4px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>

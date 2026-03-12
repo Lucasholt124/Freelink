@@ -33,7 +33,7 @@ export function StepName({
 
   const handleContinue = () => {
     if (!displayName.trim()) {
-      toast.error("Digite seu nome para continuar");
+      toast.error("Por favor, digite o nome da sua loja ou marca.");
       return;
     }
     celebrate("small");
@@ -51,15 +51,15 @@ export function StepName({
       <motion.div
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
-        className="p-4 rounded-2xl bg-gradient-to-r from-violet-50 to-indigo-50 border border-violet-100"
+        className="p-4 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100"
       >
         <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-violet-500 to-indigo-500 flex items-center justify-center shadow-lg">
+          <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 flex items-center justify-center shadow-lg">
             <Gift className="w-6 h-6 text-white" />
           </div>
           <div>
-            <p className="text-slate-900 font-bold">Bem-vindo! 👋</p>
-            <p className="text-slate-500 text-sm">Vamos criar algo incrível juntos</p>
+            <p className="text-slate-900 font-bold">Máquina Ligada! 🚀</p>
+            <p className="text-slate-500 text-sm">Vamos configurar seu negócio</p>
           </div>
         </div>
       </motion.div>
@@ -71,18 +71,18 @@ export function StepName({
           transition={{ delay: 0.1 }}
           className="text-2xl sm:text-3xl lg:text-4xl font-black text-slate-900"
         >
-          Como você se{" "}
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-600 to-indigo-600">
-            chama?
+          Como se chama sua{" "}
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-emerald-500 to-teal-500">
+            loja?
           </span>
         </motion.h1>
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.2 }}
-          className="text-slate-500"
+          className="text-slate-500 font-medium"
         >
-          Este nome aparecerá na sua página
+          Pode ser seu nome pessoal também.
         </motion.p>
       </div>
 
@@ -98,7 +98,7 @@ export function StepName({
             whileHover={{ scale: 1.05 }}
             whileTap={{ scale: 0.95 }}
             onClick={() => fileInputRef.current?.click()}
-            className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-violet-100 to-indigo-100 border-2 border-dashed border-violet-300 flex items-center justify-center overflow-hidden group"
+            className="relative w-20 h-20 rounded-2xl bg-gradient-to-br from-slate-200 to-slate-300 border-2 border-dashed border-slate-400 flex items-center justify-center overflow-hidden group"
           >
             {profileImage.preview ? (
               <>
@@ -113,8 +113,8 @@ export function StepName({
               </>
             ) : (
               <div className="flex flex-col items-center gap-1">
-                <Camera className="w-6 h-6 text-violet-400" />
-                <span className="text-[10px] text-violet-400 font-medium">Foto</span>
+                <Camera className="w-6 h-6 text-slate-500" />
+                <span className="text-[10px] text-slate-500 font-bold uppercase">Foto</span>
               </div>
             )}
           </motion.button>
@@ -126,47 +126,46 @@ export function StepName({
             onChange={onImageSelect}
           />
           <div className="flex-1">
-            <p className="text-slate-900 font-semibold mb-1">Foto de Perfil</p>
+            <p className="text-slate-900 font-bold mb-1">Logo ou Foto</p>
             <p className="text-slate-400 text-sm">
-              {profileImage.preview ? "✅ Foto adicionada! Clique para trocar" : "Adicionar foto (opcional)"}
+              {profileImage.preview ? "✅ Adicionada!" : "Opcional. Coloque depois se preferir."}
             </p>
-            <div className="flex items-center gap-1 mt-1 text-violet-600 text-xs font-medium">
-              <TrendingUp className="w-3 h-3" />
-              <span>+300% mais cliques com foto</span>
-            </div>
+            {!profileImage.preview && (
+              <div className="flex items-center gap-1 mt-1 text-emerald-600 text-[10px] font-bold uppercase tracking-wider">
+                <TrendingUp className="w-3 h-3" />
+                <span>Aumenta cliques</span>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Nome */}
         <div className="space-y-2">
-          <Label className="text-slate-700 font-medium">Seu nome ou marca</Label>
+          <Label className="text-slate-700 font-bold">Nome da Vitrine</Label>
           <Input
-            className="h-14 rounded-xl border-slate-200 text-lg font-medium placeholder:text-slate-300 focus-visible:ring-violet-500"
-            placeholder="Ex: João Silva"
+            className="h-14 rounded-xl border-slate-200 text-lg font-bold placeholder:text-slate-300 focus-visible:ring-emerald-500"
+            placeholder="Ex: Minha Loja Online"
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             autoFocus
             onKeyDown={(e) => {
-              if (e.key === "Enter") {
+              if (e.key === "Enter" && displayName.trim()) {
                 e.preventDefault();
                 handleContinue();
               }
             }}
           />
-          <p className="text-slate-400 text-xs flex items-center gap-1">
-            <span className="text-violet-500">↵</span> Pressione Enter para continuar
-          </p>
         </div>
 
-        {/* Bio */}
+        {/* Bio (Sem necessidade de Label forte, só um campo sutil) */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <Label className="text-slate-700 font-medium">Bio curta (opcional)</Label>
-            <span className="text-slate-400 text-xs">{bio.length}/80</span>
+            <Label className="text-slate-500 font-medium">O que você vende? (Opcional)</Label>
+            <span className="text-slate-300 text-xs">{bio.length}/80</span>
           </div>
           <Input
-            className="h-12 rounded-xl border-slate-200 placeholder:text-slate-300 focus-visible:ring-violet-500"
-            placeholder="Ex: Criador de conteúdo | Empreendedor"
+            className="h-12 rounded-xl border-slate-200 placeholder:text-slate-300 focus-visible:ring-emerald-500"
+            placeholder="Ex: Roupas fitness para mulheres..."
             value={bio}
             onChange={(e) => setBio(e.target.value.slice(0, 80))}
             maxLength={80}
@@ -180,21 +179,6 @@ export function StepName({
         </div>
       </motion.div>
 
-
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
-        className="flex items-start gap-2.5 p-3 rounded-xl bg-amber-50/80 border border-amber-100"
-      >
-        <div className="w-7 h-7 rounded-lg bg-amber-100 flex items-center justify-center text-amber-600 flex-shrink-0 mt-0.5">
-          <Camera className="w-4 h-4" />
-        </div>
-        <p className="text-amber-700 text-xs font-medium leading-relaxed">
-          Perfis com foto recebem 3x mais cliques!
-        </p>
-      </motion.div>
-
       <motion.div
         initial={{ opacity: 0, y: 10 }}
         animate={{ opacity: 1, y: 0 }}
@@ -202,9 +186,9 @@ export function StepName({
       >
         <Button
           onClick={handleContinue}
-          className="w-full h-14 text-lg font-bold rounded-2xl bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 shadow-lg shadow-violet-500/25 group"
+          className="w-full h-14 text-lg font-bold rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 shadow-lg shadow-emerald-500/25 group"
         >
-          Continuar
+          Avançar
           <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" />
         </Button>
       </motion.div>

@@ -4,15 +4,15 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Check, Copy, X, Loader2, Shield, Crown, Zap, CheckCircle2,
-  Clock, MessageCircle, ChevronRight, Sparkles, Star,
-  ArrowRight, Gift
+  Clock, MessageCircle, ChevronRight, Star,
+  ArrowRight, Gift, Target, Megaphone, Calculator,
+  Rocket
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import clsx from "clsx";
 import { useClipboard } from "@/app/hooks/useClipboard";
 import { usePersistentTimer } from "@/app/hooks/usePersistentTimer";
-
 
 interface WelcomeModalProps {
   username: string;
@@ -21,39 +21,39 @@ interface WelcomeModalProps {
 type PlanType = "pro" | "ultra";
 type CycleType = "monthly" | "yearly";
 
-
 const WHATSAPP_NUMBER = "5579999383543";
 const TIMER_SECONDS = 900; // 15 minutos
 
+
 const BENEFITS = {
   pro: [
-    { text: "Gerador de conteúdo com IA", highlight: false },
-    { text: "Economize 3h por dia", highlight: true },
-    { text: "Roteiros virais automáticos", highlight: false },
-    { text: "Página sem branding Freelinnk", highlight: false },
+    { text: "Até 2.000 visualizações na Rede de Ads", highlight: true },
+    { text: "Pixel do FB / Google Analytics", highlight: false },
+    { text: "Analytics: Mapa de Cidades e Horários", highlight: false },
+    { text: "Vitrine Limpa (Sem logo do Freelinnk)", highlight: false },
   ],
   ultra: [
-    { text: "Tudo do Pro + IA ilimitada", highlight: false },
-    { text: "Fotos profissionais em 1 clique", highlight: true },
-    { text: "Analytics completo de visitantes", highlight: false },
-    { text: "Suporte VIP prioritário", highlight: false },
+    { text: "Até 15.000 visualizações na Rede de Ads", highlight: true },
+    { text: "CRM: Calculadora de Lucros Nativa", highlight: false },
+    { text: "Blindagem (Sem anúncios na sua vitrine)", highlight: false },
+    { text: "Suporte VIP Prioritário no WhatsApp", highlight: false },
   ],
 } as const;
 
 const FEATURE_PREVIEW = [
   {
-    icon: Sparkles,
-    label: "IA para conteúdo",
+    icon: Megaphone,
+    label: "Tráfego Automático",
     color: "text-purple-500 bg-purple-50 dark:bg-purple-950/30",
   },
   {
-    icon: Crown,
-    label: "Analytics completo",
+    icon: Target,
+    label: "Pixel & Remarketing",
     color: "text-blue-500 bg-blue-50 dark:bg-blue-950/30",
   },
   {
-    icon: Shield,
-    label: "Sem branding",
+    icon: Calculator,
+    label: "CRM Financeiro",
     color: "text-emerald-500 bg-emerald-50 dark:bg-emerald-950/30",
   },
   {
@@ -69,7 +69,6 @@ const SOCIAL_PROOF_GRADIENTS = [
   "from-emerald-400 to-teal-500",
   "from-amber-400 to-orange-500",
 ] as const;
-
 
 export default function WelcomeModal({ username }: WelcomeModalProps) {
   const [showWelcomeModal, setShowWelcomeModal] = useState(false);
@@ -103,7 +102,6 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
     return billingCycle === "monthly" ? "R$ 77,90" : "R$ 779,00";
   };
 
-
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -113,7 +111,6 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
       window.history.replaceState({}, "", "/dashboard");
     }
   }, []);
-
 
   useEffect(() => {
     if (showWelcomeModal) {
@@ -126,7 +123,6 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
     };
   }, [showWelcomeModal]);
 
-
   const handleClose = () => setShowWelcomeModal(false);
 
   const handleCopyLink = useCallback(async () => {
@@ -134,7 +130,7 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
     const success = await copy(url);
 
     if (success) {
-      toast.success("Link copiado! Cole na sua bio agora 🎉");
+      toast.success("Link copiado! Coloque na Bio do Instagram agora 🎉");
     } else {
       toast("Copie seu link manualmente:", {
         description: url,
@@ -145,7 +141,7 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
 
   const handleWhatsApp = () => {
     const text =
-      "Olá! Acabei de criar minha página no Freelinnk e quero aproveitar a oferta de 7 dias grátis. Pode me ajudar?";
+      "Olá! Acabei de criar minha vitrine no Freelinnk e quero ajuda para escalar minhas vendas. Podem me auxiliar com os planos Premium?";
     window.open(
       `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`,
       "_blank"
@@ -165,7 +161,6 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
         }),
       });
 
-      // Verifica se a resposta do servidor é válida
       if (!res.ok) {
         let errorMessage = `Erro do servidor (${res.status})`;
         try {
@@ -182,12 +177,11 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
         throw new Error(errorMessage);
       }
 
-      // Só parseia JSON depois de confirmar res.ok
       const data = await res.json();
 
       if (data.url && typeof data.url === "string") {
         window.location.href = data.url;
-        return; // Não faz setLoading(false) pois vai redirecionar
+        return;
       }
 
       throw new Error("Resposta inválida do servidor. Tente novamente.");
@@ -204,7 +198,6 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
       setLoading(false);
     }
   };
-
 
   if (!showWelcomeModal) return null;
 
@@ -281,7 +274,6 @@ export default function WelcomeModal({ username }: WelcomeModalProps) {
   );
 }
 
-
 interface WelcomeStepProps {
   username: string;
   displayUrl: string;
@@ -337,22 +329,22 @@ function WelcomeStep({
             <div className="p-2 bg-emerald-500/20 rounded-full">
               <CheckCircle2 size={20} className="text-emerald-400" />
             </div>
-            <span className="text-emerald-400 text-sm font-semibold">
-              Página criada com sucesso!
+            <span className="text-emerald-400 text-sm font-semibold uppercase tracking-wider">
+              Setup Concluído!
             </span>
           </motion.div>
 
           <h2 className="text-2xl font-black text-white mb-2 leading-tight">
-            Bem-vindo ao Freelinnk,
+            A sua Máquina de Vendas está pronta,
             <br />
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">
               {username}
             </span>{" "}
-            🎉
+            🚀
           </h2>
 
           <p className="text-slate-400 text-sm leading-relaxed">
-            Sua página já está no ar. Copie o link e compartilhe agora.
+            Copie o link abaixo e cole na bio do seu Instagram para começar a receber clientes.
           </p>
         </div>
       </div>
@@ -369,8 +361,8 @@ function WelcomeStep({
           )}
         >
           <div className="flex-1 min-w-0">
-            <p className="text-[11px] text-slate-400 font-medium mb-0.5">
-              Seu link exclusivo
+            <p className="text-[11px] text-slate-400 font-bold uppercase mb-0.5 tracking-wider">
+              Seu Link Oficial
             </p>
             <p className="text-slate-900 dark:text-white font-bold text-base truncate font-mono">
               {displayUrl}
@@ -411,9 +403,9 @@ function WelcomeStep({
           </div>
           <span className="text-xs text-slate-500 font-medium">
             <span className="text-slate-700 dark:text-slate-300 font-bold">
-              2.847
+              4.847
             </span>{" "}
-            criadores ativos esta semana
+            lojistas ativos no Hub hoje.
           </span>
         </div>
       </div>
@@ -424,15 +416,14 @@ function WelcomeStep({
 
       <div className="px-6 pb-6">
         <div className="text-center mb-4">
-          <h3 className="text-lg font-bold text-slate-900 dark:text-white">
-            Quer crescer{" "}
+          <h3 className="text-lg font-black text-slate-900 dark:text-white">
+            Quer transformar sua página num{" "}
             <span className="text-transparent bg-clip-text bg-gradient-to-r from-purple-600 to-pink-600">
-              3x mais rápido
+              funil de vendas?
             </span>
-            ?
           </h3>
-          <p className="text-sm text-slate-500 mt-1">
-            Teste todas as ferramentas por 7 dias. Grátis.
+          <p className="text-sm text-slate-500 mt-1 font-medium">
+            Ative as ferramentas Premium. Grátis por 7 dias.
           </p>
         </div>
 
@@ -446,7 +437,7 @@ function WelcomeStep({
               className={`flex items-center gap-2 p-2.5 rounded-xl ${feat.color}`}
             >
               <feat.icon size={14} />
-              <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
                 {feat.label}
               </span>
             </motion.div>
@@ -458,7 +449,7 @@ function WelcomeStep({
           className="w-full h-14 text-base font-bold rounded-2xl bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 shadow-xl shadow-purple-500/20 transition-all hover:shadow-purple-500/30 hover:scale-[1.01]"
         >
           <Gift size={18} className="mr-2" />
-          Quero testar 7 dias grátis
+          Quero destrancar as Vendas (Grátis)
           <ArrowRight size={16} className="ml-2" />
         </Button>
 
@@ -466,13 +457,12 @@ function WelcomeStep({
           onClick={onClose}
           className="w-full mt-3 py-3 text-sm text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-medium transition-colors text-center"
         >
-          Continuar com o plano gratuito →
+          Continuar apenas com a Vitrine Básica →
         </button>
       </div>
     </motion.div>
   );
 }
-
 
 interface PlansStepProps {
   selectedPlan: PlanType;
@@ -522,7 +512,7 @@ function PlansStep({
             <ChevronRight size={12} className="rotate-180" />
             Voltar
           </button>
-          <h3 className="text-white font-bold text-lg">Escolha seu plano</h3>
+          <h3 className="text-white font-black text-lg">Qual a sua meta?</h3>
         </div>
 
         <div
@@ -570,8 +560,8 @@ function PlansStep({
             className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/30 rounded-xl p-3 text-center"
           >
             <p className="text-xs text-red-700 dark:text-red-400 font-bold">
-              ⏰ A oferta especial expirou, mas você ainda pode testar por 7
-              dias.
+              ⏰ O desconto extra expirou, mas você ainda pode testar por 7
+              dias gratuitamente.
             </p>
           </motion.div>
         )}
@@ -609,7 +599,7 @@ function PlansStep({
         <div className="grid grid-cols-2 gap-3">
           <PlanCard
             plan="pro"
-            icon={Zap}
+            icon={Target}
             label="Pro"
             price={billingCycle === "monthly" ? "34,90" : "349"}
             cycle={billingCycle}
@@ -641,8 +631,8 @@ function PlansStep({
           >
             <p className="text-[11px] uppercase text-slate-400 font-bold mb-3 tracking-wider">
               {selectedPlan === "pro"
-                ? "Com o Pro você vai"
-                : "Com o Ultra você vai"}
+                ? "No plano Pro você ganha:"
+                : "No plano Ultra você domina o mercado:"}
             </p>
             <div className="space-y-2.5">
               {BENEFITS[selectedPlan].map((b, i) => (
@@ -667,7 +657,7 @@ function PlansStep({
                       "text-sm",
                       b.highlight
                         ? "font-bold text-slate-900 dark:text-white"
-                        : "text-slate-600 dark:text-slate-300"
+                        : "text-slate-600 dark:text-slate-300 font-medium"
                     )}
                   >
                     {b.text}
@@ -681,12 +671,12 @@ function PlansStep({
         <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-5 border border-slate-700/50">
           <div className="flex items-center justify-between mb-3">
             <div>
-              <p className="text-slate-500 text-xs font-medium mb-1">
+              <p className="text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">
                 Você paga hoje
               </p>
               <div className="flex items-baseline gap-2">
-                <span className="text-3xl font-black text-white">R$ 0</span>
-                <span className="text-slate-500 text-sm line-through">
+                <span className="text-3xl font-black text-emerald-400">R$ 0</span>
+                <span className="text-slate-500 text-sm font-medium line-through">
                   {originalPrice}
                 </span>
               </div>
@@ -694,17 +684,17 @@ function PlansStep({
             <div className="bg-emerald-500/10 border border-emerald-500/20 px-3 py-2 rounded-xl">
               <div className="flex items-center gap-1.5 text-emerald-400">
                 <Shield size={14} />
-                <span className="text-xs font-bold">7 dias grátis</span>
+                <span className="text-xs font-bold uppercase tracking-wider">7 Dias Grátis</span>
               </div>
             </div>
           </div>
-          <div className="flex items-center gap-4 text-[11px] text-slate-500 pt-3 border-t border-slate-700/50">
+          <div className="flex items-center gap-4 text-[11px] text-slate-400 pt-3 border-t border-slate-700/50 font-medium">
             <span className="flex items-center gap-1">
-              <Check size={12} className="text-slate-500" />
+              <Check size={12} className="text-emerald-500" />
               Cancele quando quiser
             </span>
             <span className="flex items-center gap-1">
-              <Check size={12} className="text-slate-500" />
+              <Check size={12} className="text-emerald-500" />
               Sem compromisso
             </span>
           </div>
@@ -724,12 +714,12 @@ function PlansStep({
             {loading ? (
               <span className="flex items-center gap-2">
                 <Loader2 size={18} className="animate-spin" />
-                Processando...
+                Processando Assinatura...
               </span>
             ) : (
               <span className="flex items-center gap-2">
-                <Sparkles size={18} />
-                Começar meu teste grátis
+                <Rocket size={18} />
+                Ativar Minha Conta (0 Reais hoje)
               </span>
             )}
           </Button>
@@ -739,9 +729,9 @@ function PlansStep({
             className="w-full flex items-center justify-center gap-2 text-sm text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 py-2.5 transition-colors"
           >
             <MessageCircle size={16} className="text-emerald-500" />
-            Tem dúvidas?{" "}
+            Precisa de ajuda pra fechar?{" "}
             <strong className="text-slate-600 dark:text-slate-300">
-              Fale comigo
+              Fale com a gente.
             </strong>
           </button>
 
@@ -749,14 +739,13 @@ function PlansStep({
             onClick={onClose}
             className="w-full py-2 text-xs text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 font-medium transition-colors text-center"
           >
-            Continuar com o plano gratuito
+            Continuar com a vitrine grátis, sem o Hub.
           </button>
         </div>
       </div>
     </motion.div>
   );
 }
-
 
 interface PlanCardProps {
   plan: PlanType;
@@ -806,7 +795,7 @@ function PlanCard({
     >
       {isPopular && (
         <span className="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-purple-600 to-pink-600 text-white text-[10px] font-bold px-3 py-0.5 rounded-full flex items-center gap-1 shadow-lg">
-          <Star size={8} className="fill-white" /> POPULAR
+          <Star size={8} className="fill-white" /> INDICADO
         </span>
       )}
 
@@ -821,7 +810,7 @@ function PlanCard({
         >
           <Icon size={16} />
         </div>
-        <span className="font-bold text-sm text-slate-900 dark:text-white">
+        <span className="font-black text-sm text-slate-900 dark:text-white">
           {label}
         </span>
       </div>
@@ -829,7 +818,7 @@ function PlanCard({
       <p className="text-2xl font-black text-slate-900 dark:text-white leading-none">
         R$ {price}
       </p>
-      <p className="text-[11px] text-slate-400 font-medium mt-1">
+      <p className="text-[11px] text-slate-400 font-bold uppercase mt-1">
         /{cycle === "monthly" ? "mês" : "ano"}
       </p>
 
