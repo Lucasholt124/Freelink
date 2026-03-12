@@ -2026,6 +2026,7 @@ useEffect(() => {
                 </div>
               </motion.div>
 
+              {/* CTA FREE (Aqui começa o bloco do anúncio) */}
               {publicAd && plan !== "ultra" && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -2042,9 +2043,20 @@ useEffect(() => {
 
                   <div className="relative z-10 bg-white dark:bg-slate-900 rounded-xl sm:rounded-[22px] overflow-hidden flex flex-col md:flex-row">
 
-                    {/* 🧠 IMAGEM/VÍDEO FLUIDO (Adapta 100% ao formato original sem bordas pretas) */}
+                    {/* CONTAINER FIXO - MÍDIA ADAPTÁVEL DENTRO */}
                     {publicAd.mediaUrls && publicAd.mediaUrls.length > 0 && publicAd.mediaUrls[0] !== "" && (
-                      <div className="w-full md:w-[45%] relative bg-slate-50 dark:bg-slate-800/30 flex items-center">
+                      <div className="w-full md:w-2/5 h-64 md:h-auto relative overflow-hidden bg-slate-900 flex items-center justify-center">
+
+                        {/* Fundo Desfocado (Efeito "Instagram/TikTok" para preencher bordas) */}
+                        <div
+                          className="absolute inset-0 opacity-50 blur-xl scale-110"
+                          style={{
+                            backgroundImage: `url(${publicAd.mediaUrls[adImageIndex]})`,
+                            backgroundSize: 'cover',
+                            backgroundPosition: 'center'
+                          }}
+                        />
+
                         <AnimatePresence mode="wait">
                           {publicAd.mediaTypes && publicAd.mediaTypes[adImageIndex] === 'video' ? (
                             <motion.video
@@ -2058,7 +2070,7 @@ useEffect(() => {
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                               transition={{ duration: 0.4 }}
-                              className="w-full h-auto block"
+                              className="w-full h-full object-contain relative z-10"
                             />
                           ) : (
                             <motion.img
@@ -2068,7 +2080,7 @@ useEffect(() => {
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                               transition={{ duration: 0.4 }}
-                              className="w-full h-auto block"
+                              className="w-full h-full object-contain relative z-10"
                               alt="Anúncio"
                             />
                           )}
