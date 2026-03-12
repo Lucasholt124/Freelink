@@ -2041,9 +2041,10 @@ useEffect(() => {
                   <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-md" />
 
                   <div className="relative z-10 bg-white dark:bg-slate-900 rounded-xl sm:rounded-[22px] overflow-hidden flex flex-col md:flex-row">
-                    {/* Imagem ou Vídeo do Anúncio (CORRIGIDO PARA NÃO CORTAR) */}
+
+                    {/* 🧠 IMAGEM/VÍDEO FLUIDO (Adapta 100% ao formato original sem bordas pretas) */}
                     {publicAd.mediaUrls && publicAd.mediaUrls.length > 0 && publicAd.mediaUrls[0] !== "" && (
-                      <div className="w-full md:w-2/5 aspect-video md:aspect-square relative overflow-hidden bg-black flex items-center justify-center">
+                      <div className="w-full md:w-[45%] relative bg-slate-50 dark:bg-slate-800/30 flex items-center">
                         <AnimatePresence mode="wait">
                           {publicAd.mediaTypes && publicAd.mediaTypes[adImageIndex] === 'video' ? (
                             <motion.video
@@ -2056,8 +2057,8 @@ useEffect(() => {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
-                              transition={{ duration: 0.5 }}
-                              className="absolute inset-0 w-full h-full object-contain"
+                              transition={{ duration: 0.4 }}
+                              className="w-full h-auto block"
                             />
                           ) : (
                             <motion.img
@@ -2066,25 +2067,26 @@ useEffect(() => {
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
-                              transition={{ duration: 0.5 }}
-                              className="absolute inset-0 w-full h-full object-contain"
+                              transition={{ duration: 0.4 }}
+                              className="w-full h-auto block"
                               alt="Anúncio"
                             />
                           )}
                         </AnimatePresence>
-                        {/* Badge de Patrocinado */}
-                        <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[9px] font-bold text-white uppercase tracking-wider border border-white/10 z-20">
+
+                        {/* Badge de Patrocinado flutuante */}
+                        <div className="absolute top-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[9px] font-bold text-white uppercase tracking-wider border border-white/20 z-20 shadow-md">
                           Patrocinado
                         </div>
                       </div>
                     )}
 
                     {/* Conteúdo do Anúncio */}
-                    <div className="p-4 md:p-5 flex-1 flex flex-col justify-center">
+                    <div className="p-5 md:p-6 flex-1 flex flex-col justify-center">
                       <h4 className="font-black text-lg md:text-xl text-slate-900 dark:text-white leading-tight mb-2">
                         {publicAd.title}
                       </h4>
-                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-4 line-clamp-3">
+                      <p className="text-sm text-slate-600 dark:text-slate-400 mb-5 line-clamp-4">
                         {publicAd.text}
                       </p>
                       <a
@@ -2092,7 +2094,7 @@ useEffect(() => {
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={handleAdClick}
-                        className="inline-flex items-center justify-center gap-2 w-full py-2.5 px-4 rounded-xl font-bold text-white text-sm transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5"
+                        className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl font-bold text-white text-sm transition-all shadow-md hover:shadow-xl hover:-translate-y-0.5"
                         style={{ background: userAccentColor }}
                       >
                         <ShoppingBag className="w-4 h-4" />
