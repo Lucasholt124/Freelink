@@ -2041,10 +2041,9 @@ useEffect(() => {
                   <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-md" />
 
                   <div className="relative z-10 bg-white dark:bg-slate-900 rounded-xl sm:rounded-[22px] overflow-hidden flex flex-col md:flex-row">
-                    {/* Imagem do Anúncio */}
-                  {/* Imagem ou Vídeo do Anúncio */}
-                  {publicAd.mediaUrls && publicAd.mediaUrls.length > 0 && publicAd.mediaUrls[0] !== "" && (
-                      <div className="w-full md:w-2/5 aspect-video md:aspect-square relative overflow-hidden bg-slate-100 dark:bg-slate-800">
+                    {/* Imagem ou Vídeo do Anúncio (CORRIGIDO PARA NÃO CORTAR) */}
+                    {publicAd.mediaUrls && publicAd.mediaUrls.length > 0 && publicAd.mediaUrls[0] !== "" && (
+                      <div className="w-full md:w-2/5 aspect-video md:aspect-square relative overflow-hidden bg-black flex items-center justify-center">
                         <AnimatePresence mode="wait">
                           {publicAd.mediaTypes && publicAd.mediaTypes[adImageIndex] === 'video' ? (
                             <motion.video
@@ -2054,27 +2053,27 @@ useEffect(() => {
                               muted
                               loop
                               playsInline
-                              initial={{ opacity: 0, scale: 1.05 }}
-                              animate={{ opacity: 1, scale: 1 }}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                               transition={{ duration: 0.5 }}
-                              className="absolute inset-0 w-full h-full object-cover"
+                              className="absolute inset-0 w-full h-full object-contain"
                             />
                           ) : (
                             <motion.img
                               key={adImageIndex}
                               src={publicAd.mediaUrls[adImageIndex]}
-                              initial={{ opacity: 0, scale: 1.05 }}
-                              animate={{ opacity: 1, scale: 1 }}
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                               transition={{ duration: 0.5 }}
-                              className="absolute inset-0 w-full h-full object-cover"
+                              className="absolute inset-0 w-full h-full object-contain"
                               alt="Anúncio"
                             />
                           )}
                         </AnimatePresence>
                         {/* Badge de Patrocinado */}
-                        <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[9px] font-bold text-white uppercase tracking-wider border border-white/10">
+                        <div className="absolute top-2 left-2 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[9px] font-bold text-white uppercase tracking-wider border border-white/10 z-20">
                           Patrocinado
                         </div>
                       </div>

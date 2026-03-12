@@ -22,7 +22,6 @@ import confetti from "canvas-confetti";
 
 export default function AdsManagerComponent({ userPlan }: { userPlan: string }) {
   const campaignsRaw = useQuery(api.ads.getCampaigns);
-  const campaigns = (campaignsRaw ?? []) as Doc<"adCampaigns">[];
 
   const generateUploadUrl = useMutation(api.ads.generateUploadUrl);
   const createCampaign = useMutation(api.ads.createCampaign);
@@ -41,6 +40,18 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [mediaPreviews, setMediaPreviews] = useState<{url: string, type: string}[]>([]);
+
+  // 🛡️ PROTEÇÃO CONTRA O ERRO DE F5 (Hydration/Undefined State)
+  if (campaignsRaw === undefined) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 min-h-[400px]">
+        <Loader2 className="w-10 h-10 animate-spin text-blue-500 mb-4" />
+        <p className="text-gray-500 font-medium">Carregando Hub de Anúncios...</p>
+      </div>
+    );
+  }
+
+  const campaigns = campaignsRaw as Doc<"adCampaigns">[];
 
   const isUltra = userPlan === "ultra";
   const maxMediaAllowed = isUltra ? 10 : 2;
@@ -137,8 +148,8 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
         title: form.title,
         productLink: form.productLink,
         adText: form.adText,
-        mediaStorageIds: mediaStorageIds, // Manda os IDs pro backend
-        mediaTypes: mediaTypes, // Manda se é foto ou vídeo
+        mediaStorageIds: mediaStorageIds,
+        mediaTypes: mediaTypes,
         userPlan: userPlan,
         niche: niche,
       });
@@ -403,7 +414,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
               />
             </div>
 
-            {/* 📸 ÁREA DE UPLOAD DE ARQUIVOS BONITA */}
+            {/* 📸 ÁREA DE UPLOAD DE ARQUIVOS */}
             <div className="p-4 bg-slate-50 border border-slate-200 border-dashed rounded-xl space-y-4">
               <div className="flex items-center justify-between">
                 <Label className="text-sm font-semibold">Mídias (Vídeos ou Imagens)</Label>
