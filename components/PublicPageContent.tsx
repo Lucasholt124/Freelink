@@ -287,7 +287,6 @@ function getCurrentHoliday(): HolidayConfig | null {
     const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
     const range = h.range || 2;
 
-    // Dentro do range (antes ou no dia)
     if (diffDays >= -1 && diffDays <= range) {
       const distance = Math.abs(diffDays);
       if (!best || h.config.priority > best.config.priority || (h.config.priority === best.config.priority && distance < best.distance)) {
@@ -306,7 +305,6 @@ function getCurrentHoliday(): HolidayConfig | null {
 // 🎨 SISTEMA DE CORES INTELIGENTE
 // ============================================================
 function getSmartColors(username: string, accentColor: string) {
-  // Converte hex para HSL para manipulação inteligente
   const hexToHsl = (hex: string): [number, number, number] => {
     const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})/i.exec(hex);
     if (!result) return [250, 80, 60];
@@ -340,24 +338,14 @@ function getSmartColors(username: string, accentColor: string) {
   };
 
   const [h, s, l] = hexToHsl(accentColor);
-
-  // Gera paleta harmônica que NUNCA conflita com o texto
   const bgL = l > 50 ? Math.min(l + 35, 96) : Math.max(l - 25, 8);
   const bgDarkL = l > 50 ? Math.max(l - 55, 5) : Math.max(l - 30, 5);
-
-  // Determina se o fundo é claro ou escuro para ajustar texto automaticamente
   const bgColor = hslToHex(h, Math.max(s - 20, 10), bgL);
   const bgDarkColor = hslToHex(h, Math.max(s - 10, 15), bgDarkL);
-
-  // Cor do texto oposta ao fundo
   const textOnLight = l > 60 ? hslToHex(h, Math.min(s + 10, 80), 15) : hslToHex(h, 10, 10);
   const textOnDark = l < 40 ? hslToHex(h, Math.max(s - 20, 10), 90) : "#f0f0f0";
-
-  // Cor do nome que sempre é legível
   const nameLightBg = l > 70 ? hslToHex(h, Math.min(s + 15, 90), Math.max(l - 40, 20)) : accentColor;
   const nameDarkBg = l < 30 ? hslToHex(h, Math.max(s - 10, 40), Math.min(l + 50, 85)) : hslToHex(h, Math.max(s - 20, 30), Math.min(l + 40, 80));
-
-  // Gradiente de fundo nunca conflita com accent
   const grad1 = hslToHex(h, Math.max(s - 25, 5), bgL);
   const grad2 = hslToHex((h + 30) % 360, Math.max(s - 30, 5), Math.min(bgL + 5, 97));
 
@@ -465,7 +453,6 @@ function HolidayBanner({ holiday, accentColor }: { holiday: HolidayConfig; accen
           borderBottom: `2px solid ${accentColor}`,
         }}
       >
-        {/* Shimmer */}
         <motion.div
           className="absolute inset-0 opacity-30"
           style={{ background: "linear-gradient(90deg, transparent, rgba(255,255,255,0.4), transparent)" }}
@@ -492,7 +479,7 @@ function HolidayBanner({ holiday, accentColor }: { holiday: HolidayConfig; accen
 }
 
 // ============================================================
-// 🌟 ICON MAP (inalterado, apenas organizando)
+// 🌟 ICON MAP
 // ============================================================
 const ICON_MAP = [
   { match: ['google.com/maps', 'goo.gl/maps', 'maps.google', 'maps.app.goo.gl'], icon: <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-[#EA4335]" /> },
@@ -800,7 +787,7 @@ function VerifiedBadge({ size = "default", plan = "free" }: { size?: "default" |
 }
 
 // ============================================================
-// 🎨 UNIQUE BRAND SIGNATURE — marca única por username
+// 🎨 UNIQUE BRAND SIGNATURE
 // ============================================================
 function generateUserBrand(username: string): {
   initials: string;
@@ -810,7 +797,6 @@ function generateUserBrand(username: string): {
   const clean = username.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
   const initials = clean.length >= 2 ? clean[0] + clean[clean.length - 1] : clean[0] || "?";
 
-  // Padrão único baseado no nome
   const hash = username.split('').reduce((acc, c) => acc + c.charCodeAt(0), 0);
   const patterns = [
     "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.15) 0%, transparent 60%)",
@@ -866,13 +852,8 @@ export default function PublicPageContent({
   const userAccentColor = customizations?.accentColor || '#6366f1';
   const performanceConfig = usePerformanceMode();
 
-  // 🎊 Holiday detection
   const currentHoliday = useMemo(() => getCurrentHoliday(), []);
-
-  // 🎨 Smart colors
   const smartColors = useMemo(() => getSmartColors(username, userAccentColor), [username, userAccentColor]);
-
-  // 🏷️ User brand
   const userBrand = useMemo(() => generateUserBrand(username), [username]);
 
   const fullDescription = customizations?.description || "";
@@ -889,7 +870,6 @@ export default function PublicPageContent({
   const [qrCodeDataUrl, setQrCodeDataUrl] = useState("");
   const [linkReactions, setLinkReactions] = useState<Record<string, number>>({});
   const [hoveredLink, setHoveredLink] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [clickCounts, setClickCounts] = useState<Record<string, number>>({});
   const [joinDate] = useState<string>(customizations?._creationTime ? new Date(customizations._creationTime).getFullYear().toString() : "2026");
   const [backgroundConfig, setBackgroundConfig] = useState<BackgroundConfig>({
@@ -927,7 +907,6 @@ export default function PublicPageContent({
   const isFullBackgroundImage = hasBackgroundImage && backgroundConfig.style === "full";
   const isHeaderBackgroundImage = hasBackgroundImage && backgroundConfig.style === "header";
 
-  // Adaptive gradients — usam smartColors quando não há customização
   const adaptiveGrad1 = isDarkMode ? smartColors.gradDark1 : smartColors.gradLight1;
   const adaptiveGrad2 = isDarkMode ? smartColors.gradDark2 : smartColors.gradLight2;
 
@@ -974,44 +953,37 @@ export default function PublicPageContent({
       width: 256, margin: 2,
       color: { dark: userAccentColor, light: '#FFFFFF' },
     }).then(setQrCodeDataUrl);
-
-    setTimeout(() => setIsLoading(false), 1200);
   }, [profileUrl, username, userAccentColor, customizations]);
 
-// 🎰 Gira a Roleta de Anúncios
-useEffect(() => {
-  // Evita rodar duas vezes no React Strict Mode
-  let hasFetched = false;
+  useEffect(() => {
+    let hasFetched = false;
 
-  const loadAd = async () => {
-    if (plan === "ultra" || hasFetched) return;
-    hasFetched = true;
+    const loadAd = async () => {
+      if (plan === "ultra" || hasFetched) return;
+      hasFetched = true;
 
-    try {
-      const ad = await fetchAd({
-        pageOwnerNiche: "geral", // Ajustaremos a IA de nichos depois para não travar agora
-        pageOwnerPlan: plan
-      });
+      try {
+        const ad = await fetchAd({
+          pageOwnerNiche: "geral",
+          pageOwnerPlan: plan
+        });
 
-      // Só atualiza o estado se o backend retornar um anúncio real
-      if (ad && ad.id) {
-        console.log("Anúncio carregado com sucesso:", ad.title); // Para você ver no console se funcionou!
-        setPublicAd(ad);
+        if (ad && ad.id) {
+          console.log("Anúncio carregado com sucesso:", ad.title);
+          setPublicAd(ad);
+        }
+      } catch (e) {
+        console.error("Erro silencioso na roleta de anúncios:", e);
       }
-    } catch (e) {
-      console.error("Erro silencioso na roleta de anúncios:", e);
-    }
-  };
+    };
 
-  // Atrasamos a roleta em meio segundo para não competir com o carregamento dos links
-  const timer = setTimeout(() => {
-    loadAd();
-  }, 500);
+    const timer = setTimeout(() => {
+      loadAd();
+    }, 500);
 
-  return () => clearTimeout(timer);
-}, [plan]); // Removemos o fetchAd das dependências pra não ficar em loop
+    return () => clearTimeout(timer);
+  }, [plan, fetchAd]);
 
-  // Carrossel do Anúncio (Gira imagens a cada 3 segundos)
   useEffect(() => {
     if (!publicAd || !publicAd.mediaUrls || publicAd.mediaUrls.length <= 1) return;
     const interval = setInterval(() => {
@@ -1090,9 +1062,8 @@ useEffect(() => {
   const handleAcceptCookies = () => { setCookieConsent('granted'); localStorage.setItem('freelinnk_cookie_consent', 'granted'); };
   const handleDeclineCookies = () => { setCookieConsent('denied'); localStorage.setItem('freelinnk_cookie_consent', 'denied'); };
 
-  // 🎊 Holiday auto-confetti
   useEffect(() => {
-    if (!isLoading && currentHoliday && !holidayFired && performanceConfig.canUseParticles) {
+    if (currentHoliday && !holidayFired && performanceConfig.canUseParticles) {
       const timer = setTimeout(() => {
         confetti({
           particleCount: 80, spread: 90, origin: { y: 0.4 },
@@ -1103,19 +1074,15 @@ useEffect(() => {
       }, 2500);
       return () => clearTimeout(timer);
     }
-  }, [isLoading, currentHoliday, holidayFired, performanceConfig.canUseParticles]);
+  }, [currentHoliday, holidayFired, performanceConfig.canUseParticles]);
 
-  // ============================================================
-  // STYLE HELPERS
-  // ============================================================
   const getBaseBackgroundStyle = () => {
     if (backgroundConfig.type === "image") return { background: 'transparent' };
     if (backgroundConfig.type === "gradient") {
       return { background: `linear-gradient(135deg, ${backgroundConfig.color1}, ${backgroundConfig.color2})` };
     }
-    // Cor sólida → usa cor harmônica com accent
     if (backgroundConfig.color1 === "#f3f4f6" || backgroundConfig.color1 === "#ffffff") {
-      return { background: isDarkMode ? `linear-gradient(135deg, ${adaptiveGrad1}, ${adaptiveGrad2})` : `linear-gradient(135deg, ${adaptiveGrad1}, ${adaptiveGrad2})` };
+      return { background: `linear-gradient(135deg, ${adaptiveGrad1}, ${adaptiveGrad2})` };
     }
     return { background: backgroundConfig.color1 };
   };
@@ -1149,21 +1116,14 @@ useEffect(() => {
 
   const getTextColor = (variant: 'primary' | 'secondary' | 'muted' = 'primary') => {
     if (variant === 'primary') {
-      return hasBackgroundImage
-        ? (isDarkMode ? '#ffffff' : '#1f2937')
-        : (isDarkMode ? '#f3f4f6' : '#1f2937');
+      return hasBackgroundImage ? (isDarkMode ? '#ffffff' : '#1f2937') : (isDarkMode ? '#f3f4f6' : '#1f2937');
     }
     if (variant === 'secondary') {
-      return hasBackgroundImage
-        ? (isDarkMode ? '#e5e7eb' : '#374151')
-        : (isDarkMode ? '#d1d5db' : '#4b5563');
+      return hasBackgroundImage ? (isDarkMode ? '#e5e7eb' : '#374151') : (isDarkMode ? '#d1d5db' : '#4b5563');
     }
-    return hasBackgroundImage
-      ? (isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(75,85,99,0.8)')
-      : (isDarkMode ? '#9ca3af' : '#6b7280');
+    return hasBackgroundImage ? (isDarkMode ? 'rgba(255,255,255,0.7)' : 'rgba(75,85,99,0.8)') : (isDarkMode ? '#9ca3af' : '#6b7280');
   };
 
-  // Cor do @username que SEMPRE contrasta com o fundo
   const getNameColor = () => {
     if (isDarkMode) return smartColors.nameColorDark;
     return smartColors.nameColorLight;
@@ -1185,88 +1145,18 @@ useEffect(() => {
     return creationTime > Date.now() - 7 * 24 * 60 * 60 * 1000;
   };
 
-  // ============================================================
-  // LOADING SCREEN
-  // ============================================================
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0" style={{ background: `linear-gradient(135deg, ${userAccentColor}, ${userAccentColor}dd)` }} />
-        <motion.div
-          className="absolute inset-0 opacity-30"
-          animate={{
-            background: [
-              `radial-gradient(circle at 0% 0%, ${userAccentColor}80 0%, transparent 50%)`,
-              `radial-gradient(circle at 100% 100%, ${userAccentColor}80 0%, transparent 50%)`,
-              `radial-gradient(circle at 0% 100%, ${userAccentColor}80 0%, transparent 50%)`,
-              `radial-gradient(circle at 100% 0%, ${userAccentColor}80 0%, transparent 50%)`,
-              `radial-gradient(circle at 0% 0%, ${userAccentColor}80 0%, transparent 50%)`,
-            ]
-          }}
-          transition={{ duration: 5, repeat: Infinity }}
-        />
-        <motion.div
-          initial={{ scale: 0, rotate: 0 }}
-          animate={{ scale: 1, rotate: 360 }}
-          transition={{ type: "spring", stiffness: 260, damping: 20 }}
-          className="relative z-10"
-        >
-          <div className="flex flex-col items-center gap-6">
-            <div className="relative">
-              <motion.div
-                className="w-20 h-20 sm:w-28 sm:h-28 border-4 border-transparent border-t-white border-r-white rounded-full"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 1.5, repeat: Infinity, ease: "linear" }}
-              />
-              <motion.div
-                className="absolute inset-2 sm:inset-3 border-4 border-transparent border-b-white/50 border-l-white/50 rounded-full"
-                animate={{ rotate: -360 }}
-                transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-              />
-              {/* Brand glyph no centro */}
-              <motion.div
-                className="absolute inset-0 flex items-center justify-center text-white font-black text-xl sm:text-2xl"
-                animate={{ scale: [1, 1.2, 1], opacity: [0.7, 1, 0.7] }}
-                transition={{ duration: 1.5, repeat: Infinity }}
-              >
-                {userBrand.initials}
-              </motion.div>
-            </div>
-            <motion.div
-              className="flex flex-col items-center gap-2"
-              animate={{ opacity: [0.5, 1, 0.5] }}
-              transition={{ duration: 1.5, repeat: Infinity }}
-            >
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-black text-white px-4 text-center">
-                @{username}
-              </h2>
-              <p className="text-white/70 text-sm">Carregando sua experiência...</p>
-            </motion.div>
-          </div>
-        </motion.div>
-      </div>
-    );
-  }
-
-  // ============================================================
-  // RENDER PRINCIPAL
-  // ============================================================
   return (
     <div className={`min-h-screen w-full overflow-x-hidden transition-colors duration-500 ${isDarkMode ? 'dark' : ''}`}>
-
-      {/* 🎊 HOLIDAY BANNER */}
       <AnimatePresence>
         {currentHoliday && (
           <HolidayBanner holiday={currentHoliday} accentColor={userAccentColor} />
         )}
       </AnimatePresence>
 
-      {/* 🎊 FLOATING EMOJIS DE DATAS COMEMORATIVAS */}
       {currentHoliday && performanceConfig.canUseParticles && (
         <FloatingEmojis emojis={currentHoliday.floatingEmojis} count={8} />
       )}
 
-      {/* 🔥 TRACKING SCRIPTS */}
       {cookieConsent === 'granted' && trackingSettings && (
         <>
           {trackingSettings.googleAnalyticsId && (
@@ -1290,12 +1180,10 @@ useEffect(() => {
         </>
       )}
 
-      {/* PARTÍCULAS */}
       {!isFullBackgroundImage && performanceConfig.canUseParticles && (
         <ParticleField color={hexToRgba(userAccentColor, 0.4)} />
       )}
 
-      {/* BARRA DE PROGRESSO */}
       <motion.div
         className="fixed top-0 left-0 right-0 h-1 origin-left z-[90]"
         style={{
@@ -1306,25 +1194,25 @@ useEffect(() => {
         }}
       />
 
-      {/* BG IMAGEM FULL */}
       {isFullBackgroundImage && (
         <div className="fixed inset-0 -z-10 overflow-hidden">
-          <div
-            className="absolute inset-0 w-full h-full"
-            style={{
-              backgroundImage: `url(${backgroundConfig.imageUrl})`,
-              backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
-              filter: backgroundConfig.imageBlur > 0 ? `blur(${getAdaptiveBlur(backgroundConfig.imageBlur)}px)` : 'none',
-              opacity: backgroundConfig.imageOpacity / 100,
-              transform: backgroundConfig.imageBlur > 0 ? 'scale(1.1)' : 'scale(1)',
-            }}
-          />
-          {/* Holiday overlay */}
-          {currentHoliday && (
-            <div
-              className="absolute inset-0"
-              style={{ background: currentHoliday.bgOverlay }}
+          <div className="absolute inset-0 w-full h-full relative">
+            <Image
+              src={backgroundConfig.imageUrl}
+              alt="Fundo do perfil"
+              fill
+              priority
+              quality={75}
+              className="object-cover"
+              style={{
+                filter: backgroundConfig.imageBlur > 0 ? `blur(${getAdaptiveBlur(backgroundConfig.imageBlur)}px)` : 'none',
+                opacity: backgroundConfig.imageOpacity / 100,
+                transform: backgroundConfig.imageBlur > 0 ? 'scale(1.1)' : 'scale(1)',
+              }}
             />
+          </div>
+          {currentHoliday && (
+            <div className="absolute inset-0" style={{ background: currentHoliday.bgOverlay }} />
           )}
           <div
             className="absolute inset-0"
@@ -1337,10 +1225,8 @@ useEffect(() => {
         </div>
       )}
 
-      {/* BG NORMAL */}
       {!isFullBackgroundImage && (
         <div className="fixed inset-0 -z-10" style={getBaseBackgroundStyle()}>
-          {/* Holiday background overlay */}
           {currentHoliday && (
             <motion.div
               className="absolute inset-0"
@@ -1365,9 +1251,6 @@ useEffect(() => {
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* HEADER                                                        */}
-      {/* ============================================================ */}
       <motion.div
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
@@ -1378,35 +1261,36 @@ useEffect(() => {
             : 'h-48 sm:h-64 md:h-80'
         } ${currentHoliday ? 'pt-10' : ''}`}
       >
-        {/* IMAGEM HEADER */}
         {isHeaderBackgroundImage && (
-          <>
-            <div className="absolute inset-0 w-full h-full">
-              <div
-                className="absolute inset-0 w-full h-full"
+          <div className="absolute inset-0 w-full h-full">
+            <div className="absolute inset-0 w-full h-full relative">
+              <Image
+                src={backgroundConfig.imageUrl}
+                alt="Fundo do cabeçalho"
+                fill
+                priority
+                quality={75}
+                className="object-cover"
                 style={{
-                  backgroundImage: `url(${backgroundConfig.imageUrl})`,
-                  backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat',
                   filter: backgroundConfig.imageBlur > 0 ? `blur(${getAdaptiveBlur(backgroundConfig.imageBlur)}px)` : 'none',
                   opacity: backgroundConfig.imageOpacity / 100,
                 }}
               />
-              {currentHoliday && (
-                <div className="absolute inset-0" style={{ background: currentHoliday.bgOverlay }} />
-              )}
-              <div
-                className="absolute inset-0"
-                style={{
-                  background: isDarkMode
-                    ? 'linear-gradient(to bottom, transparent 30%, rgba(17, 24, 39, 0.9) 100%)'
-                    : 'linear-gradient(to bottom, transparent 30%, rgba(243, 244, 246, 0.9) 100%)',
-                }}
-              />
             </div>
-          </>
+            {currentHoliday && (
+              <div className="absolute inset-0" style={{ background: currentHoliday.bgOverlay }} />
+            )}
+            <div
+              className="absolute inset-0"
+              style={{
+                background: isDarkMode
+                  ? 'linear-gradient(to bottom, transparent 30%, rgba(17, 24, 39, 0.9) 100%)'
+                  : 'linear-gradient(to bottom, transparent 30%, rgba(243, 244, 246, 0.9) 100%)',
+              }}
+            />
+          </div>
         )}
 
-        {/* HEADER GRADIENTE/COR */}
         {!isHeaderBackgroundImage && !isFullBackgroundImage && (
           <motion.div
             className="absolute inset-0"
@@ -1419,7 +1303,6 @@ useEffect(() => {
               clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)",
             }}
           >
-            {/* Holiday tint no header */}
             {currentHoliday && (
               <motion.div
                 className="absolute inset-0"
@@ -1437,17 +1320,14 @@ useEffect(() => {
                 transition={{ duration: 3, repeat: Infinity, ease: "linear" }}
               />
             )}
-            {/* 🎨 Brand pattern único no header */}
             <div className="absolute inset-0" style={{ background: userBrand.pattern, opacity: 0.5 }} />
           </motion.div>
         )}
 
-        {/* HEADER TRANSPARENTE (full bg image) */}
         {isFullBackgroundImage && (
           <div className="absolute inset-0" style={{ background: 'transparent', clipPath: "polygon(0 0, 100% 0, 100% 85%, 0 100%)" }} />
         )}
 
-        {/* BOTÕES */}
         <div className={`absolute left-3 sm:left-4 right-3 sm:right-4 flex justify-between items-center z-20 transition-all duration-300 ${statusMessage ? 'top-14 sm:top-16' : currentHoliday ? 'top-14 sm:top-16' : 'top-3 sm:top-4'}`}>
           <motion.button
             whileHover={performanceConfig.canUseHeavyAnimations ? { scale: 1.1, rotate: 180 } : {}}
@@ -1470,7 +1350,6 @@ useEffect(() => {
           </motion.button>
 
           <div className="flex gap-2">
-            {/* Holiday indicator button */}
             {currentHoliday && (
               <motion.button
                 onClick={() => {
@@ -1525,7 +1404,6 @@ useEffect(() => {
           </div>
         </div>
 
-        {/* STATUS */}
         {statusMessage && (
           <motion.div
             initial={{ y: -50, opacity: 0 }}
@@ -1544,7 +1422,6 @@ useEffect(() => {
           </motion.div>
         )}
 
-        {/* QR CODE MODAL */}
         <AnimatePresence>
           {showQRCode && qrCodeDataUrl && (
             <motion.div
@@ -1585,15 +1462,9 @@ useEffect(() => {
         </AnimatePresence>
       </motion.div>
 
-      {/* ============================================================ */}
-      {/* CONTEÚDO PRINCIPAL                                            */}
-      {/* ============================================================ */}
       <div className={`relative max-w-7xl mx-auto px-3 sm:px-4 md:px-6 lg:px-8 pb-8 sm:pb-12 md:pb-16 w-full ${isHeaderBackgroundImage ? '-mt-20 sm:-mt-28 md:-mt-32' : '-mt-24 sm:-mt-32 md:-mt-40'}`}>
         <div className="grid lg:grid-cols-3 gap-4 sm:gap-5 md:gap-6">
 
-          {/* ============================================================ */}
-          {/* SIDEBAR — PERFIL                                              */}
-          {/* ============================================================ */}
           <motion.aside
             initial={{ opacity: 0, x: -50 }}
             animate={{ opacity: 1, x: 0 }}
@@ -1612,7 +1483,6 @@ useEffect(() => {
                 whileHover={{ y: -5, boxShadow: `0 12px 40px ${hexToRgba(userAccentColor, 0.3)}` }}
                 transition={{ type: "spring", stiffness: 300 }}
               >
-                {/* Holiday tint no card */}
                 {currentHoliday && (
                   <motion.div
                     className="absolute inset-0 rounded-2xl sm:rounded-3xl pointer-events-none"
@@ -1622,7 +1492,6 @@ useEffect(() => {
                   />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none rounded-2xl sm:rounded-3xl" />
-                {/* Brand pattern overlay */}
                 <div className="absolute inset-0 rounded-2xl sm:rounded-3xl pointer-events-none" style={{ background: userBrand.pattern, opacity: 0.3 }} />
                 <motion.div
                   className="absolute inset-0 rounded-2xl sm:rounded-3xl"
@@ -1632,7 +1501,6 @@ useEffect(() => {
                 />
 
                 <div className="relative z-10">
-                  {/* Avatar */}
                   <div className="flex justify-center mb-4 sm:mb-5 md:mb-6">
                     <motion.div
                       whileHover={{ scale: 1.1, rotate: 5 }}
@@ -1683,7 +1551,6 @@ useEffect(() => {
                           } : {}}
                           transition={{ duration: 2, repeat: Infinity }}
                         >
-                          {/* Brand pattern no avatar */}
                           <div className="absolute inset-0" style={{ background: userBrand.pattern }} />
                           <div className="relative z-10 flex flex-col items-center">
                             <span className="text-white/40 text-3xl font-black leading-none mb-0.5">{userBrand.uniqueGlyph}</span>
@@ -1691,8 +1558,6 @@ useEffect(() => {
                           </div>
                         </motion.div>
                       )}
-
-                      {/* Holiday badge no avatar */}
                       {currentHoliday && (
                         <motion.div
                           className="absolute -bottom-1 -right-1 w-9 h-9 rounded-full flex items-center justify-center text-lg z-20 shadow-lg"
@@ -1706,7 +1571,6 @@ useEffect(() => {
                     </motion.div>
                   </div>
 
-                  {/* Nome e Badge */}
                   <div className="text-center space-y-3">
                     <div className="flex items-center justify-center gap-1.5 sm:gap-2 flex-wrap">
                       <motion.h1
@@ -1740,7 +1604,6 @@ useEffect(() => {
                       </Link>
                     )}
 
-                    {/* Bio */}
                     {displayBio && (
                       <motion.p
                         className={`text-base sm:text-lg leading-relaxed px-4 ${hasBackgroundImage ? 'drop-shadow-[0_1px_2px_rgba(0,0,0,0.3)]' : ''}`}
@@ -1753,7 +1616,6 @@ useEffect(() => {
                       </motion.p>
                     )}
 
-                    {/* Data + holiday info */}
                     <div className="flex items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm flex-wrap pt-2" style={{ color: getTextColor('muted') }}>
                       <motion.div className="flex items-center gap-1" whileHover={{ scale: 1.05 }}>
                         <Calendar className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
@@ -1777,9 +1639,6 @@ useEffect(() => {
             </div>
           </motion.aside>
 
-          {/* ============================================================ */}
-          {/* SEÇÃO DE LINKS                                                */}
-          {/* ============================================================ */}
           <motion.main
             initial={{ opacity: 0, y: 50 }}
             animate={{ opacity: 1, y: 0 }}
@@ -1797,14 +1656,12 @@ useEffect(() => {
                 }}
                 whileHover={{ y: -2 }}
               >
-                {/* Holiday tint */}
                 {currentHoliday && (
                   <div className="absolute inset-0 rounded-2xl sm:rounded-3xl pointer-events-none" style={{ background: currentHoliday.bgOverlay, opacity: 0.6 }} />
                 )}
                 <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none rounded-2xl sm:rounded-3xl" />
 
                 <div className="relative z-10">
-                  {/* Header */}
                   <div className="flex items-center justify-between mb-3 sm:mb-4">
                     <motion.h2
                       className={`text-lg sm:text-xl md:text-2xl font-black flex items-center gap-1.5 sm:gap-2 ${hasBackgroundImage ? 'drop-shadow-[0_2px_4px_rgba(0,0,0,0.3)]' : ''}`}
@@ -1826,7 +1683,6 @@ useEffect(() => {
                     </motion.h2>
                   </div>
 
-                  {/* Lista de Links */}
                   <div className="space-y-2 sm:space-y-2.5">
                     {links && links.length > 0 ? (
                       links.map((link, index) => {
@@ -1871,7 +1727,6 @@ useEffect(() => {
                               } as React.CSSProperties}
                               onClick={() => handleTrack(link)}
                             >
-                              {/* Pulso CTA */}
                               {isCta && performanceConfig.canUseHeavyAnimations && (
                                 <motion.div
                                   className="absolute inset-0 rounded-xl sm:rounded-2xl"
@@ -1880,14 +1735,12 @@ useEffect(() => {
                                   transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
                                 />
                               )}
-                              {/* Hover gradiente */}
                               <motion.div
                                 className="absolute inset-0 opacity-0 group-hover:opacity-100"
                                 initial={false}
                                 animate={{ background: isHovered ? `linear-gradient(135deg, ${hexToRgba(userAccentColor, 0.15)}, transparent)` : 'transparent' }}
                                 transition={{ duration: 0.3 }}
                               />
-                              {/* Shimmer */}
                               <motion.div
                                 className="absolute inset-0 opacity-0 group-hover:opacity-100"
                                 style={{ background: `linear-gradient(90deg, transparent, ${hexToRgba(userAccentColor, 0.2)}, transparent)` }}
@@ -1895,7 +1748,6 @@ useEffect(() => {
                                 transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
                               />
 
-                              {/* Ícone */}
                               <motion.span
                                 animate={isHovered && performanceConfig.canUseHeavyAnimations ? { rotate: [0, -10, 10, 0], scale: [1, 1.1, 1] } : {}}
                                 transition={{ duration: 0.5 }}
@@ -1926,7 +1778,6 @@ useEffect(() => {
                                 )}
                               </motion.span>
 
-                              {/* Título */}
                               <div className="flex-1 min-w-0 flex flex-col gap-0.5">
                                 <div className="flex items-center gap-2 flex-wrap">
                                   <span
@@ -1964,7 +1815,6 @@ useEffect(() => {
                                 </div>
                               </div>
 
-                              {/* Ações */}
                               <div className="flex items-center gap-1.5 sm:gap-2 flex-shrink-0 relative z-10 ml-1">
                                 <motion.button
                                   whileHover={{ scale: 1.2 }} whileTap={{ scale: 0.85 }}
@@ -2026,7 +1876,6 @@ useEffect(() => {
                 </div>
               </motion.div>
 
-              {/* CTA FREE (Aqui começa o bloco do anúncio) */}
               {publicAd && plan !== "ultra" && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -2034,7 +1883,6 @@ useEffect(() => {
                   transition={{ delay: 0.4 }}
                   className="relative overflow-hidden rounded-2xl sm:rounded-3xl p-1 mt-6 shadow-xl group"
                 >
-                  {/* Fundo Seguro */}
                   <div
                     className="absolute inset-0 opacity-40"
                     style={{ background: `linear-gradient(135deg, ${userAccentColor}, transparent)` }}
@@ -2042,12 +1890,8 @@ useEffect(() => {
                   <div className="absolute inset-0 bg-white/40 dark:bg-black/40 backdrop-blur-md" />
 
                   <div className="relative z-10 bg-white dark:bg-slate-900 rounded-xl sm:rounded-[22px] overflow-hidden flex flex-col md:flex-row">
-
-                    {/* CONTAINER FIXO - MÍDIA ADAPTÁVEL DENTRO */}
                     {publicAd.mediaUrls && publicAd.mediaUrls.length > 0 && publicAd.mediaUrls[0] !== "" && (
                       <div className="w-full md:w-2/5 h-64 md:h-auto relative overflow-hidden bg-slate-900 flex items-center justify-center">
-
-                        {/* Fundo Desfocado (Efeito "Instagram/TikTok" para preencher bordas) */}
                         <div
                           className="absolute inset-0 opacity-50 blur-xl scale-110"
                           style={{
@@ -2073,27 +1917,30 @@ useEffect(() => {
                               className="w-full h-full object-contain relative z-10"
                             />
                           ) : (
-                            <motion.img
+                            <motion.div
                               key={adImageIndex}
-                              src={publicAd.mediaUrls[adImageIndex]}
                               initial={{ opacity: 0 }}
                               animate={{ opacity: 1 }}
                               exit={{ opacity: 0 }}
                               transition={{ duration: 0.4 }}
-                              className="w-full h-full object-contain relative z-10"
-                              alt="Anúncio"
-                            />
+                              className="absolute inset-0 z-10"
+                            >
+                              <Image
+                                src={publicAd.mediaUrls[adImageIndex]}
+                                alt="Anúncio"
+                                fill
+                                className="object-contain"
+                              />
+                            </motion.div>
                           )}
                         </AnimatePresence>
 
-                        {/* Badge de Patrocinado flutuante */}
                         <div className="absolute top-3 left-3 px-2 py-1 bg-black/60 backdrop-blur-md rounded text-[9px] font-bold text-white uppercase tracking-wider border border-white/20 z-20 shadow-md">
                           Patrocinado
                         </div>
                       </div>
                     )}
 
-                    {/* Conteúdo do Anúncio */}
                     <div className="p-5 md:p-6 flex-1 flex flex-col justify-center">
                       <h4 className="font-black text-lg md:text-xl text-slate-900 dark:text-white leading-tight mb-2">
                         {publicAd.title}
@@ -2117,7 +1964,6 @@ useEffect(() => {
                 </motion.div>
               )}
 
-              {/* CTA FREE */}
               {plan === 'free' && (
                 <motion.div
                   initial={{ opacity: 0, y: 20 }}
@@ -2183,7 +2029,6 @@ useEffect(() => {
           </motion.main>
         </div>
 
-        {/* FOOTER */}
         {plan === 'free' && (
           <motion.footer
             initial={{ opacity: 0 }}
@@ -2208,7 +2053,6 @@ useEffect(() => {
         )}
       </div>
 
-      {/* STICKY CTA */}
       <AnimatePresence>
         {plan === 'free' && showStickyCTA && (
           <motion.div
@@ -2237,7 +2081,6 @@ useEffect(() => {
         )}
       </AnimatePresence>
 
-      {/* COOKIE CONSENT */}
       <AnimatePresence>
         {cookieConsent === null && trackingSettings && (trackingSettings.facebookPixelId || trackingSettings.googleAnalyticsId) && (
           <motion.div
@@ -2279,7 +2122,6 @@ useEffect(() => {
         )}
       </AnimatePresence>
 
-      {/* SCROLL TO TOP */}
       <AnimatePresence>
         <motion.button
           initial={{ scale: 0, opacity: 0 }}
@@ -2311,7 +2153,6 @@ useEffect(() => {
         </motion.button>
       </AnimatePresence>
 
-      {/* ESTILOS GLOBAIS */}
       <style jsx global>{`
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: ${isDarkMode ? 'rgba(17, 24, 39, 0.5)' : 'rgba(243, 244, 246, 0.5)'}; }
