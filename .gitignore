@@ -48,3 +48,6 @@ package-lock.json
 
 /lib/generated/prisma
 
+
+# Sentry Config File
+.env.sentry-build-plugin
