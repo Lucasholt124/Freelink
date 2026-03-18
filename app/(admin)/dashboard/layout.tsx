@@ -1,10 +1,8 @@
 import { ReactNode } from "react";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
-import { fetchQuery } from "convex/nextjs";
-import { api } from "@/convex/_generated/api";
 import DashboardShell from "./DashboardShell";
-import { getUserSubscriptionPlan } from "@/lib/subscription";
+import { getCachedSubscriptionPlan, getCachedUserSlug } from "@/lib/cached-queries";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await currentUser();
@@ -13,10 +11,12 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     return redirect("/sign-in");
   }
 
+  const [userSlug, planDetails] = await Promise.all([
+    getCachedUserSlug(user.id),
+    getCachedSubscriptionPlan(user.id),
+  ]);
   // Busca o slug do usuário no Convex (Backend)
-  const userSlug = await fetchQuery(api.lib.usernames.getUserSlug, {
-    userId: user.id,
-  });
+
 
   // LÓGICA DE PROTEÇÃO:
   // A função getUserSlug retorna o "username" SE existir.
@@ -27,8 +27,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     return redirect("/onboarding");
   }
 
-  // Busca o plano (Free, Pro, Ultra)
-  const planDetails = await getUserSubscriptionPlan(user.id);
+
   const userPlan = planDetails.plan || "free";
 
   return (
