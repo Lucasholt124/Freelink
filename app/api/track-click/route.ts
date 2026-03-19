@@ -5,30 +5,33 @@ import { getClient } from '@/convex/client';
 import { ClientTrackingData } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
-  try {
-    const data: ClientTrackingData = await request.json();
+  // Responde imediatamente — o clique nunca espera o tracking
+  const data: ClientTrackingData = await request.json();
 
-    const country = request.headers.get('x-vercel-ip-country') || 'Unknown';
-    const region = request.headers.get('x-vercel-ip-country-region') || 'Unknown'; // Isso retornará "SE"
-    const city = request.headers.get('x-vercel-ip-city') || 'Unknown';
+  const country = request.headers.get('x-vercel-ip-country') || 'Unknown';
+  const region = request.headers.get('x-vercel-ip-country-region') || 'Unknown';
+  const city = request.headers.get('x-vercel-ip-city') || 'Unknown';
+  const userAgent = request.headers.get('user-agent') || 'unknown';
 
-    const convex = getClient();
-    const profileUserId = await convex.query(api.lib.usernames.getUserIdBySlug, {
-      slug: data.profileUsername,
-    });
-    if (!profileUserId) return NextResponse.json({ error: "Perfil não encontrado" }, { status: 404 });
+  //  não bloqueia a resposta
+  (async () => {
+    try {
+      const convex = getClient();
+      const profileUserId = await convex.query(api.lib.usernames.getUserIdBySlug, {
+        slug: data.profileUsername,
+      });
+      if (!profileUserId) return;
 
-    await sql`
-      INSERT INTO clicks
-        ("profileUserId", "linkId", "visitorId", country, region, city, referrer, "userAgent")
-      VALUES
-        (${profileUserId}, ${data.linkId}, ${data.visitorId}, ${country}, ${region}, ${city}, ${data.referrer}, ${request.headers.get("user-agent") || "unknown"});
-    `;
+      await sql`
+        INSERT INTO clicks
+          ("profileUserId", "linkId", "visitorId", country, region, city, referrer, "userAgent")
+        VALUES
+          (${profileUserId}, ${data.linkId}, ${data.visitorId}, ${country}, ${region}, ${city}, ${data.referrer}, ${userAgent});
+      `;
+    } catch (error) {
+      console.error("Erro ao rastrear clique:", error);
+    }
+  })();
 
-    return NextResponse.json({ success: true });
-
-  } catch (error) {
-    console.error("Erro ao rastrear clique:", error);
-    return NextResponse.json({ error: "Falha ao rastrear o clique" }, { status: 500 });
-  }
+  return NextResponse.json({ success: true });
 }

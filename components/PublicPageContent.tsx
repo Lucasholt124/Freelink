@@ -1903,19 +1903,20 @@ export default function PublicPageContent({
 
                         <AnimatePresence mode="wait">
                           {publicAd.mediaTypes && publicAd.mediaTypes[adImageIndex] === 'video' ? (
-                            <motion.video
-                              key={adImageIndex}
-                              src={publicAd.mediaUrls[adImageIndex]}
-                              autoPlay
-                              muted
-                              loop
-                              playsInline
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.4 }}
-                              className="w-full h-full object-contain relative z-10"
-                            />
+                          <motion.video
+                          key={adImageIndex}
+                          src={publicAd.mediaUrls[adImageIndex]}
+                          autoPlay
+                          muted
+                          loop
+                          playsInline
+                          preload="none"
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          exit={{ opacity: 0 }}
+                          transition={{ duration: 0.4 }}
+                          className="w-full h-full object-contain relative z-10"
+                        />
                           ) : (
                             <motion.div
                               key={adImageIndex}
