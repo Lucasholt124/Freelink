@@ -1,4 +1,3 @@
-// /lib/sessionTracking.ts
 import { useEffect } from "react";
 interface SessionData {
   sessionId: string;

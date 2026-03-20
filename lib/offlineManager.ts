@@ -1,4 +1,3 @@
-// lib/offlineManager.ts
 import { openDB, IDBPDatabase } from 'idb';
 
 // 🇧🇷 Data correta do Brasil

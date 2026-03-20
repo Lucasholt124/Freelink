@@ -1,4 +1,3 @@
-// lib/imageCompression.ts
 import imageCompression from 'browser-image-compression';
 
 interface CompressionResult {

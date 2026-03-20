@@ -1,4 +1,3 @@
-// /lib/performanceMonitor.ts
 interface PerformanceData {
   loadTime: number;
   responseTime: number;
