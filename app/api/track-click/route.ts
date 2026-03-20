@@ -1,9 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sql } from '@vercel/postgres';
-
+import { api } from '@/convex/_generated/api';
+import { getClient } from '@/convex/client';
 import { ClientTrackingData } from '@/lib/types';
 
 export async function POST(request: NextRequest) {
+  // Responde imediatamente — o clique nunca espera o tracking
   const data: ClientTrackingData = await request.json();
 
   const country = request.headers.get('x-vercel-ip-country') || 'Unknown';
@@ -11,22 +13,25 @@ export async function POST(request: NextRequest) {
   const city = request.headers.get('x-vercel-ip-city') || 'Unknown';
   const userAgent = request.headers.get('user-agent') || 'unknown';
 
-  // Responde imediatamente — zero espera pro usuário
-  const response = NextResponse.json({ success: true });
-
-  // Grava em background sem consultar o Convex
+  //  não bloqueia a resposta
   (async () => {
     try {
+      const convex = getClient();
+      const profileUserId = await convex.query(api.lib.usernames.getUserIdBySlug, {
+        slug: data.profileUsername,
+      });
+      if (!profileUserId) return;
+
       await sql`
         INSERT INTO clicks
-          (slug, "linkId", "visitorId", country, region, city, referrer, "userAgent")
+          ("profileUserId", "linkId", "visitorId", country, region, city, referrer, "userAgent")
         VALUES
-          (${data.profileUsername}, ${data.linkId}, ${data.visitorId}, ${country}, ${region}, ${city}, ${data.referrer}, ${userAgent});
+          (${profileUserId}, ${data.linkId}, ${data.visitorId}, ${country}, ${region}, ${city}, ${data.referrer}, ${userAgent});
       `;
     } catch (error) {
       console.error("Erro ao rastrear clique:", error);
     }
   })();
 
-  return response;
+  return NextResponse.json({ success: true });
 }

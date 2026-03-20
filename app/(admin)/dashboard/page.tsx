@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { fetchAnalytics } from "@/lib/analytics-server";
+
 import { Skeleton } from "@/components/ui/skeleton";
 import DashboardOverview from "./DashboardOverview";
 import { getCachedSubscriptionPlan, getCachedUserSlug } from "@/lib/cached-queries";
@@ -11,12 +12,11 @@ export default async function DashboardPage() {
   if (!user) redirect("/sign-in");
 
 
-  const [userSlug, planDetails] = await Promise.all([
+  const [analytics, userSlug, planDetails] = await Promise.all([
+    fetchAnalytics(user.id),
     getCachedUserSlug(user.id),
     getCachedSubscriptionPlan(user.id),
   ]);
-
-  const analytics = await fetchAnalytics(user.id, userSlug ?? '');
 
   const firstName = user.firstName || "Creator";
   const userPlan = planDetails.plan || "free";

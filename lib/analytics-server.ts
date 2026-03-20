@@ -16,7 +16,8 @@ export interface AnalyticsData {
   dailyClicks: { date: string; count: number }[];
 }
 
-export async function fetchAnalytics(userId: string, slug: string): Promise<AnalyticsData> {
+export async function fetchAnalytics(userId: string): Promise<AnalyticsData> {
+  // UMA ÚNICA QUERY SQL que faz tudo de uma vez — elimina 8 round-trips ao banco
   const [aggregatedResult, convexLinks] = await Promise.all([
     sql`
       SELECT
@@ -27,13 +28,13 @@ export async function fetchAnalytics(userId: string, slug: string): Promise<Anal
         -- Top Referrer
         (SELECT COALESCE(NULLIF(referrer, ''), 'Direto')
          FROM clicks c2
-         WHERE (c2.slug = ${slug} OR c2."profileUserId" = ${userId})
+         WHERE c2."profileUserId" = ${userId}
          GROUP BY COALESCE(NULLIF(referrer, ''), 'Direto')
          ORDER BY COUNT(*) DESC LIMIT 1
         ) AS top_referrer_source,
         (SELECT COUNT(*)
          FROM clicks c2
-         WHERE (c2.slug = ${slug} OR c2."profileUserId" = ${userId})
+         WHERE c2."profileUserId" = ${userId}
          GROUP BY COALESCE(NULLIF(referrer, ''), 'Direto')
          ORDER BY COUNT(*) DESC LIMIT 1
         ) AS top_referrer_clicks,
@@ -41,13 +42,13 @@ export async function fetchAnalytics(userId: string, slug: string): Promise<Anal
         -- Top Link
         (SELECT "linkId"
          FROM clicks c2
-         WHERE (c2.slug = ${slug} OR c2."profileUserId" = ${userId}) AND "linkId" IS NOT NULL
+         WHERE c2."profileUserId" = ${userId} AND "linkId" IS NOT NULL
          GROUP BY "linkId"
          ORDER BY COUNT(*) DESC LIMIT 1
         ) AS top_link_id,
         (SELECT COUNT(*)
          FROM clicks c2
-         WHERE (c2.slug = ${slug} OR c2."profileUserId" = ${userId}) AND "linkId" IS NOT NULL
+         WHERE c2."profileUserId" = ${userId} AND "linkId" IS NOT NULL
          GROUP BY "linkId"
          ORDER BY COUNT(*) DESC LIMIT 1
         ) AS top_link_clicks,
@@ -55,13 +56,13 @@ export async function fetchAnalytics(userId: string, slug: string): Promise<Anal
         -- Peak Hour
         (SELECT EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/Sao_Paulo')
          FROM clicks c2
-         WHERE (c2.slug = ${slug} OR c2."profileUserId" = ${userId})
+         WHERE c2."profileUserId" = ${userId}
          GROUP BY EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/Sao_Paulo')
          ORDER BY COUNT(*) DESC LIMIT 1
         ) AS peak_hour,
         (SELECT COUNT(*)
          FROM clicks c2
-         WHERE (c2.slug = ${slug} OR c2."profileUserId" = ${userId})
+         WHERE c2."profileUserId" = ${userId}
          GROUP BY EXTRACT(HOUR FROM timestamp AT TIME ZONE 'America/Sao_Paulo')
          ORDER BY COUNT(*) DESC LIMIT 1
         ) AS peak_hour_clicks,
@@ -69,29 +70,28 @@ export async function fetchAnalytics(userId: string, slug: string): Promise<Anal
         -- Top Country
         (SELECT country
          FROM clicks c2
-         WHERE (c2.slug = ${slug} OR c2."profileUserId" = ${userId})
-           AND country IS NOT NULL AND country != '' AND country != 'Unknown'
+         WHERE c2."profileUserId" = ${userId} AND country IS NOT NULL AND country != '' AND country != 'Unknown'
          GROUP BY country
          ORDER BY COUNT(*) DESC LIMIT 1
         ) AS top_country,
         (SELECT COUNT(*)
          FROM clicks c2
-         WHERE (c2.slug = ${slug} OR c2."profileUserId" = ${userId})
-           AND country IS NOT NULL AND country != '' AND country != 'Unknown'
+         WHERE c2."profileUserId" = ${userId} AND country IS NOT NULL AND country != '' AND country != 'Unknown'
          GROUP BY country
          ORDER BY COUNT(*) DESC LIMIT 1
         ) AS top_country_clicks
 
       FROM clicks
-      WHERE (slug = ${slug} OR "profileUserId" = ${userId});
+      WHERE "profileUserId" = ${userId};
     `,
     fetchQuery(api.lib.links.getLinksByUserId, { userId }),
   ]);
 
+  // Query separada para o histórico (precisa de GROUP BY com múltiplas linhas)
   const historyResult = await sql`
     SELECT to_char(timestamp AT TIME ZONE 'America/Sao_Paulo', 'DD/MM') as day, COUNT(*) as count
     FROM clicks
-    WHERE (slug = ${slug} OR "profileUserId" = ${userId})
+    WHERE "profileUserId" = ${userId}
     AND timestamp >= NOW() - INTERVAL '7 days'
     GROUP BY day
     ORDER BY MAX(timestamp) ASC;
