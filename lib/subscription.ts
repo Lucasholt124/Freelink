@@ -21,7 +21,8 @@ export async function getUserSubscriptionPlan(userId: string): Promise<Subscript
     // currentUser() é automaticamente deduplicado pelo Next.js na mesma request
     // Ao contrário de clerkClient().users.getUser(), isso usa dados já disponíveis
     // no middleware/session sem fazer uma chamada HTTP extra
-    const user = await currentUser();
+    let user = null;
+    try { user = await currentUser(); } catch { /* rota pública, ignora */ }
 
     // Se o userId não bate com o usuário logado, precisamos buscar de outra forma
     if (!user || user.id !== userId) {

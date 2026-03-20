@@ -1,4 +1,3 @@
-// /lib/uptimeMonitor.ts
 interface UptimeData {
   uptime: number;
   totalChecks: number;
