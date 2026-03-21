@@ -6,7 +6,7 @@ const getCurrentMonthString = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 };
 
-// 🔥 NOVA FUNÇÃO: Gera um link seguro para o usuário subir o Vídeo/Imagem
+// 🔥 Gera um link seguro para o usuário subir o Vídeo/Imagem
 export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
 });
@@ -33,14 +33,14 @@ export const getCampaigns = query({
   },
 });
 
-// 🚀 CRIAR CAMPANHA (ATUALIZADO PARA RECEBER ARQUIVOS DO STORAGE)
+// 🚀 CRIAR CAMPANHA
 export const createCampaign = mutation({
   args: {
     title: v.string(),
     productLink: v.string(),
     adText: v.string(),
-    mediaStorageIds: v.array(v.id("_storage")), // 🔥 Recebe os IDs do Storage
-    mediaTypes: v.array(v.string()), // 🔥 Recebe "video" ou "image"
+    mediaStorageIds: v.array(v.id("_storage")),
+    mediaTypes: v.array(v.string()),
     userPlan: v.string(),
     niche: v.optional(v.string()),
   },
@@ -48,7 +48,6 @@ export const createCampaign = mutation({
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autorizado");
 
-    // 🔥 Gera os URLs públicos e rápidos a partir dos arquivos salvos na nuvem
     const mediaUrls = [];
     for (const storageId of args.mediaStorageIds) {
       const url = await ctx.storage.getUrl(storageId);
@@ -64,7 +63,7 @@ export const createCampaign = mutation({
       productLink: args.productLink,
       adText: args.adText,
       mediaUrls: mediaUrls,
-      mediaTypes: args.mediaTypes, // Salva o tipo
+      mediaTypes: args.mediaTypes,
       niche: args.niche || "geral",
       status: "active",
       views: 0,
@@ -119,44 +118,66 @@ export const deleteCampaign = mutation({
   },
 });
 
-// 🎯 ROLETA PÚBLICA (VITRINE) - A MÁGICA ANTI-CONCORRENTE ACONTECE AQUI
-// 🎯 ROLETA PÚBLICA (VITRINE) - A MÁGICA ANTI-CONCORRENTE ACONTECE AQUI
+// 🎯 ROLETA PÚBLICA (VITRINE) - SISTEMA ANTI-CONCORRENTE COM IA GROQ
+// A classificação de nicho feita pela Groq na criação do anúncio é usada aqui
+// para garantir que NUNCA um anúncio apareça na página de um concorrente direto.
+//
+// COMO FUNCIONA O FLUXO COMPLETO:
+// 1. Usuário cria anúncio → Frontend chama /api/analyze-niche com Groq
+// 2. Groq analisa o nome do produto e texto → retorna nicho (ex: "calcados")
+// 3. O nicho é salvo junto com a campanha no banco
+// 4. Quando alguém visita uma página pública, o sistema sabe o nicho do DONO da página
+// 5. O filtro abaixo BLOQUEIA qualquer anúncio do MESMO nicho do dono da página
+// 6. Resultado: Quem vende tênis NUNCA vai ver anúncio de tênis na sua página
 export const getAdForPublicPage = mutation({
   args: {
-    pageOwnerNiche: v.string(), // O nicho da página que está sendo visitada
-    pageOwnerPlan: v.string(),  // Plano de quem é dono do link
+    pageOwnerNiche: v.string(),
+    pageOwnerPlan: v.string(),
   },
   handler: async (ctx, args) => {
-    // 1. Regra de Ouro: Se a página é Ultra, NÃO EXIBE ANÚNCIO
+    // Regra de Ouro: Se a página é Ultra, NÃO EXIBE ANÚNCIO
     if (args.pageOwnerPlan === "ultra") return null;
 
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-    // 2. Busca campanhas ativas
+    // Busca campanhas ativas
     const activeCampaigns = await ctx.db
       .query("adCampaigns")
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect();
 
-    // 3. O Filtro Inteligente:
+    // 🧠 O FILTRO INTELIGENTE ANTI-CONCORRÊNCIA:
+    // Cada campanha tem um nicho classificado pela Groq (ex: "calcados", "beleza", "fitness")
+    // Se o dono da página onde o anúncio vai aparecer vende no MESMO nicho,
+    // o anúncio é BLOQUEADO para não beneficiar concorrentes.
+    //
+    // Exemplo prático:
+    // - Loja "Nike Store SP" → nicho: "calcados"
+    // - Anúncio "Adidas Ultraboost" → nicho: "calcados"
+    // - RESULTADO: ❌ Bloqueado! Nunca vai aparecer na Nike Store SP.
+    // - Mas vai aparecer na "Barbearia do João" (nicho: "beleza") ✅
     const validCampaigns = activeCampaigns.filter(camp => {
       const isNewMonth = camp.lastResetMonth !== currentMonth;
       const viewsCount = isNewMonth ? 0 : camp.views;
 
+      // Bloqueio 1: Limite de views atingido
       if (viewsCount >= camp.maxViewsLimit) return false;
-      // Evita mostrar na página de um concorrente do mesmo nicho
-      if (args.pageOwnerNiche !== "geral" && camp.niche === args.pageOwnerNiche) return false;
+
+      // Bloqueio 2: ANTI-CONCORRÊNCIA - Mesmo nicho = bloqueado
+      if (args.pageOwnerNiche !== "geral" && camp.niche !== "geral") {
+        if (camp.niche === args.pageOwnerNiche) return false;
+      }
 
       return true;
     });
 
     if (validCampaigns.length === 0) return null;
 
-    // Sorteia um anúncio
+    // Sorteia um anúncio dos válidos
     const selectedAd = validCampaigns[Math.floor(Math.random() * validCampaigns.length)];
 
-    // Atualiza as views daquele anúncio
+    // Atualiza as views
     const isNewMonth = selectedAd.lastResetMonth !== currentMonth;
     const newViewsCount = isNewMonth ? 1 : selectedAd.views + 1;
 
@@ -177,7 +198,7 @@ export const getAdForPublicPage = mutation({
   }
 });
 
-// 🖱️ REGISTRAR O CLIQUE DO USUÁRIO FINAL
+// 🖱️ REGISTRAR CLIQUE
 export const registerAdClick = mutation({
   args: { id: v.id("adCampaigns") },
   handler: async (ctx, args) => {

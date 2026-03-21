@@ -7,7 +7,7 @@ import { Id, Doc } from "@/convex/_generated/dataModel";
 import {
   Megaphone, Plus, Play, Pause, Trash2, Eye, MousePointerClick,
   Sparkles, Link as LinkIcon, Loader2, TrendingUp, BarChart3,
-  AlertTriangle, X, UploadCloud, Video
+  AlertTriangle, X, UploadCloud, Video, Clock
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,6 +19,36 @@ import { Progress } from "@/components/ui/progress";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import confetti from "canvas-confetti";
+
+// ⏱️ FUNÇÃO PARA CALCULAR TEMPO DE CAMPANHA RODANDO
+function getTimeRunning(createdAt: number): string {
+  const now = Date.now();
+  const diff = now - createdAt;
+
+  const seconds = Math.floor(diff / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  const weeks = Math.floor(days / 7);
+  const months = Math.floor(days / 30);
+
+  if (months > 0) {
+    return months === 1 ? "Há 1 mês" : `Há ${months} meses`;
+  }
+  if (weeks > 0) {
+    return weeks === 1 ? "Há 1 semana" : `Há ${weeks} semanas`;
+  }
+  if (days > 0) {
+    return days === 1 ? "Há 1 dia" : `Há ${days} dias`;
+  }
+  if (hours > 0) {
+    return hours === 1 ? "Há 1 hora" : `Há ${hours} horas`;
+  }
+  if (minutes > 0) {
+    return minutes === 1 ? "Há 1 minuto" : `Há ${minutes} minutos`;
+  }
+  return "Agora mesmo";
+}
 
 export default function AdsManagerComponent({ userPlan }: { userPlan: string }) {
   const campaignsRaw = useQuery(api.ads.getCampaigns);
@@ -68,7 +98,6 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
       return;
     }
 
-    // Aceita Imagem e Vídeo (limita vídeo em 50MB pra não travar a internet do cara)
     const validFiles = files.filter(f => {
       if (f.type.startsWith('video/') && f.size > 50 * 1024 * 1024) {
         toast.error(`O vídeo ${f.name} é maior que 50MB.`);
@@ -112,7 +141,6 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
       const mediaStorageIds = [];
       const mediaTypes = [];
 
-      // 1. FAZ O UPLOAD REAL DOS ARQUIVOS PARA O CONVEX STORAGE
       for (const file of selectedFiles) {
         toast.loading(`Enviando ${file.name}...`, { id: loadingToast });
         const postUrl = await generateUploadUrl();
@@ -128,7 +156,6 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
         mediaTypes.push(file.type.startsWith('video/') ? 'video' : 'image');
       }
 
-      // 2. CHAMA A IA PARA CLASSIFICAR
       toast.loading("Analisando nicho com Inteligência Artificial...", { id: loadingToast });
       let niche = "geral";
       try {
@@ -141,9 +168,8 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
           const data = await res.json();
           niche = data.niche;
         }
-      } catch  {}
+      } catch {}
 
-      // 3. SALVA A CAMPANHA
       await createCampaign({
         title: form.title,
         productLink: form.productLink,
@@ -162,7 +188,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
       setForm({ title: "", productLink: "", adText: "" });
       setSelectedFiles([]);
       setMediaPreviews([]);
-    } catch  {
+    } catch {
       toast.dismiss(loadingToast);
       toast.error("Erro ao criar campanha. Verifique sua conexão.");
     } finally {
@@ -292,6 +318,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
           {campaigns.map((campaign) => {
             const progress = (campaign.views / campaign.maxViewsLimit) * 100;
             const isCompleted = campaign.views >= campaign.maxViewsLimit;
+            const timeRunning = getTimeRunning(campaign.createdAt);
 
             return (
               <Card key={campaign._id} className="p-5 flex flex-col hover:shadow-lg transition-all border-gray-100 relative overflow-hidden group">
@@ -312,6 +339,21 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
                       {isCompleted && <Badge className="bg-red-100 text-red-700 border-0 text-[10px]">Limite Mensal</Badge>}
                     </div>
                   </div>
+                </div>
+
+                {/* ⏱️ TEMPO DE CAMPANHA RODANDO */}
+                <div className="flex items-center gap-1.5 mb-3 px-2.5 py-1.5 bg-slate-50 rounded-lg border border-slate-100 w-fit">
+                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                  <span className="text-[11px] font-medium text-slate-500">
+                    {campaign.status === 'active' ? (
+                      <>
+                        <span className="inline-block w-1.5 h-1.5 bg-emerald-400 rounded-full mr-1 animate-pulse" />
+                        Rodando {timeRunning.toLowerCase()}
+                      </>
+                    ) : (
+                      <>Criado {timeRunning.toLowerCase()}</>
+                    )}
+                  </span>
                 </div>
 
                 <div className="bg-slate-50 p-3 rounded-lg mb-4 text-xs text-slate-600 line-clamp-3 min-h-[60px] italic border border-slate-100">
@@ -423,7 +465,6 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
                 </span>
               </div>
 
-              {/* Grid de Previews */}
               {mediaPreviews.length > 0 && (
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   {mediaPreviews.map((preview, index) => (
@@ -449,7 +490,6 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
                 </div>
               )}
 
-              {/* Botão de Dropzone para upload */}
               {mediaPreviews.length < maxMediaAllowed && (
                 <label className="flex flex-col items-center justify-center w-full h-24 border-2 border-blue-200 border-dashed rounded-lg cursor-pointer bg-blue-50/50 hover:bg-blue-50 transition-colors group">
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
