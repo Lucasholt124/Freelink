@@ -66,6 +66,7 @@ export default function CustomizationForm({ onComplete, effectiveUserId }: Custo
   const generateUploadUrl = useMutation(api.lib.customizations.generateUploadUrl);
   const removeProfilePicture = useMutation(api.lib.customizations.removeProfilePicture);
   const removeBackgroundImage = useMutation(api.lib.customizations.removeBackgroundImage);
+  const saveUserNiche = useMutation(api.ads.saveUserNiche);
 
   const existingCustomizations = useQuery(
     api.lib.customizations.getUserCustomizations,
@@ -215,6 +216,29 @@ export default function CustomizationForm({ onComplete, effectiveUserId }: Custo
         }
 
         await updateCustomizations(updateData);
+
+        // 🔥 NOVA CHAMADA DA IA PARA CLASSIFICAR O NICHO COM A BIO REAL 🔥
+        if (userSlug) {
+          try {
+            const res = await fetch("/api/analyze-niche", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                title: userSlug, // Manda o username (ex: acai-do-kleiton)
+                text: finalDescription, // Manda a bio completa que ele acabou de digitar
+              }),
+            });
+
+            if (res.ok) {
+              const { niche } = await res.json();
+              // Salva usando o username exato, conforme arrumamos no backend
+              await saveUserNiche({ niche, username: userSlug });
+              console.log(`🎯 Nicho atualizado na edição: ${niche}`);
+            }
+          } catch  {
+            console.log("⚠️ Falha ao classificar nicho na edição, mantendo o atual.");
+          }
+        }
 
         celebrate();
         setJustSaved(true);

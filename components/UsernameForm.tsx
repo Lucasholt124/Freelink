@@ -151,7 +151,7 @@ export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: 
 
           if (res.ok) {
             const { niche } = await res.json();
-            await saveUserNiche({ niche, userId: targetUserId });
+            await saveUserNiche({ niche, username: targetUserId });
             console.log(`✅ Nicho do perfil "${values.username}" classificado: ${niche}`);
           }
         } catch {

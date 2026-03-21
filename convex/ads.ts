@@ -126,21 +126,20 @@ export const deleteCampaign = mutation({
 export const saveUserNiche = mutation({
   args: {
     niche: v.string(),
-    userId: v.optional(v.string()), // Para sub-contas
+    username: v.string(), // 🔥 Atualizado: agora recebe o username exato
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autorizado");
 
-    const targetUserId = args.userId || identity.subject;
-
-    // Busca na tabela usernames (que é a que existe no seu schema)
+    // 🔥 Atualizado: Busca exatamente a página que está sendo editada
     const usernameRecord = await ctx.db
       .query("usernames")
-      .withIndex("by_user_id", (q) => q.eq("userId", targetUserId))
+      .withIndex("by_username", (q) => q.eq("username", args.username))
       .first();
 
-    if (usernameRecord) {
+    // 🔥 Atualizado: Trava de segurança para garantir que quem tá editando é o dono da página
+    if (usernameRecord && usernameRecord.userId === identity.subject) {
       await ctx.db.patch(usernameRecord._id, { niche: args.niche });
     }
 
