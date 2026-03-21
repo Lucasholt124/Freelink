@@ -6,7 +6,6 @@ const getCurrentMonthString = () => {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 };
 
-// 🔥 Gera um link seguro para o usuário subir o Vídeo/Imagem
 export const generateUploadUrl = mutation(async (ctx) => {
   return await ctx.storage.generateUploadUrl();
 });
@@ -33,7 +32,6 @@ export const getCampaigns = query({
   },
 });
 
-// 🚀 CRIAR CAMPANHA
 export const createCampaign = mutation({
   args: {
     title: v.string(),
@@ -118,53 +116,111 @@ export const deleteCampaign = mutation({
   },
 });
 
-// 🎯 ROLETA PÚBLICA (VITRINE) - SISTEMA ANTI-CONCORRENTE COM IA GROQ
-// A classificação de nicho feita pela Groq na criação do anúncio é usada aqui
-// para garantir que NUNCA um anúncio apareça na página de um concorrente direto.
+// ============================================================
+// 🧠 SALVAR NICHO DO DONO DA PÁGINA NA TABELA USERNAMES
+// ============================================================
+// Chamado UMA ÚNICA VEZ quando o usuário salva/edita seu perfil.
+// Grava o nicho direto na tabela "usernames" que já existe.
+// Na visita pública: ZERO chamadas de IA, só leitura de string.
+// ============================================================
+export const saveUserNiche = mutation({
+  args: {
+    niche: v.string(),
+    userId: v.optional(v.string()), // Para sub-contas
+  },
+  handler: async (ctx, args) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity) throw new Error("Não autorizado");
+
+    const targetUserId = args.userId || identity.subject;
+
+    // Busca na tabela usernames (que é a que existe no seu schema)
+    const usernameRecord = await ctx.db
+      .query("usernames")
+      .withIndex("by_user_id", (q) => q.eq("userId", targetUserId))
+      .first();
+
+    if (usernameRecord) {
+      await ctx.db.patch(usernameRecord._id, { niche: args.niche });
+    }
+
+    return { success: true, niche: args.niche };
+  },
+});
+
+// ============================================================
+// 🔍 BUSCAR NICHO DO DONO DA PÁGINA (LEITURA PURA, SEM IA)
+// ============================================================
+// Quando alguém visita freelinnk.com/nike-store, o sistema busca
+// o nicho SALVO na tabela usernames. Sem IA, sem API externa.
+// ============================================================
+export const getPageOwnerNiche = query({
+  args: {
+    username: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const usernameRecord = await ctx.db
+      .query("usernames")
+      .withIndex("by_username", (q) => q.eq("username", args.username))
+      .first();
+
+    if (!usernameRecord) {
+      return { niche: "geral", plan: "free", userId: null };
+    }
+
+    // Busca o plano do usuário (se você tiver uma tabela de planos/subscriptions)
+    // Por enquanto retorna o que temos na tabela usernames
+    return {
+      niche: usernameRecord.niche || "geral",
+      userId: usernameRecord.userId,
+      // Se o plano estiver em outra tabela, busque aqui
+      plan: "free", // TODO: buscar plano real do usuário
+    };
+  },
+});
+
+// ============================================================
+// 🎯 ROLETA PÚBLICA - ZERO IA, SÓ COMPARAÇÃO DE STRINGS
+// ============================================================
+// FLUXO:
+// 1. Anunciante cria campanha → IA classifica → salva niche em adCampaigns (1x)
+// 2. Dono da página salva perfil → IA classifica → salva niche em usernames (1x)
+// 3. Visitante entra → lê usernames.niche + compara com adCampaigns.niche
+//    → ZERO chamadas de IA ✅
 //
-// COMO FUNCIONA O FLUXO COMPLETO:
-// 1. Usuário cria anúncio → Frontend chama /api/analyze-niche com Groq
-// 2. Groq analisa o nome do produto e texto → retorna nicho (ex: "calcados")
-// 3. O nicho é salvo junto com a campanha no banco
-// 4. Quando alguém visita uma página pública, o sistema sabe o nicho do DONO da página
-// 5. O filtro abaixo BLOQUEIA qualquer anúncio do MESMO nicho do dono da página
-// 6. Resultado: Quem vende tênis NUNCA vai ver anúncio de tênis na sua página
+// EXEMPLO:
+// - "nike-store" tem niche="calcados" em usernames
+// - Anúncio "Adidas Ultra" tem niche="calcados" em adCampaigns
+// - Visita em /nike-store → "calcados" === "calcados" → BLOQUEADO ❌
+// - Visita em /barbearia-joao (niche="beleza") → LIBERADO ✅
+// ============================================================
 export const getAdForPublicPage = mutation({
   args: {
     pageOwnerNiche: v.string(),
     pageOwnerPlan: v.string(),
   },
   handler: async (ctx, args) => {
-    // Regra de Ouro: Se a página é Ultra, NÃO EXIBE ANÚNCIO
+    // Ultra não vê anúncio
     if (args.pageOwnerPlan === "ultra") return null;
 
     const now = new Date();
     const currentMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-    // Busca campanhas ativas
     const activeCampaigns = await ctx.db
       .query("adCampaigns")
       .withIndex("by_status", (q) => q.eq("status", "active"))
       .collect();
 
-    // 🧠 O FILTRO INTELIGENTE ANTI-CONCORRÊNCIA:
-    // Cada campanha tem um nicho classificado pela Groq (ex: "calcados", "beleza", "fitness")
-    // Se o dono da página onde o anúncio vai aparecer vende no MESMO nicho,
-    // o anúncio é BLOQUEADO para não beneficiar concorrentes.
-    //
-    // Exemplo prático:
-    // - Loja "Nike Store SP" → nicho: "calcados"
-    // - Anúncio "Adidas Ultraboost" → nicho: "calcados"
-    // - RESULTADO: ❌ Bloqueado! Nunca vai aparecer na Nike Store SP.
-    // - Mas vai aparecer na "Barbearia do João" (nicho: "beleza") ✅
+    // 🧠 FILTRO ANTI-CONCORRÊNCIA: Só comparação de strings salvas
     const validCampaigns = activeCampaigns.filter(camp => {
       const isNewMonth = camp.lastResetMonth !== currentMonth;
       const viewsCount = isNewMonth ? 0 : camp.views;
 
-      // Bloqueio 1: Limite de views atingido
+      // Bloqueio 1: Limite de views
       if (viewsCount >= camp.maxViewsLimit) return false;
 
-      // Bloqueio 2: ANTI-CONCORRÊNCIA - Mesmo nicho = bloqueado
+      // Bloqueio 2: ANTI-CONCORRÊNCIA
+      // Se ambos têm nicho definido e são iguais → BLOQUEIA
       if (args.pageOwnerNiche !== "geral" && camp.niche !== "geral") {
         if (camp.niche === args.pageOwnerNiche) return false;
       }
@@ -174,10 +230,8 @@ export const getAdForPublicPage = mutation({
 
     if (validCampaigns.length === 0) return null;
 
-    // Sorteia um anúncio dos válidos
     const selectedAd = validCampaigns[Math.floor(Math.random() * validCampaigns.length)];
 
-    // Atualiza as views
     const isNewMonth = selectedAd.lastResetMonth !== currentMonth;
     const newViewsCount = isNewMonth ? 1 : selectedAd.views + 1;
 
@@ -198,7 +252,6 @@ export const getAdForPublicPage = mutation({
   }
 });
 
-// 🖱️ REGISTRAR CLIQUE
 export const registerAdClick = mutation({
   args: { id: v.id("adCampaigns") },
   handler: async (ctx, args) => {

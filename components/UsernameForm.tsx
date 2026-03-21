@@ -50,7 +50,7 @@ type FormValues = z.infer<typeof formSchema>;
 interface UsernameFormProps {
   onComplete?: () => void;
   hideSkip?: boolean;
-  effectiveUserId?: string; // ID da sub-conta (se estiver em uma)
+  effectiveUserId?: string;
 }
 
 export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: UsernameFormProps) {
@@ -58,7 +58,6 @@ export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: 
   const [debouncedUsername, setDebouncedUsername] = useState("");
   const [copied, setCopied] = useState(false);
 
-  // Define de quem são os dados: da sub-conta ou da conta principal
   const targetUserId = effectiveUserId || user?.id;
 
   // Queries e Mutations
@@ -73,6 +72,9 @@ export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: 
   );
 
   const setUsername = useMutation(api.lib.usernames.setUsername);
+
+  // 🧠 Mutation para salvar o nicho classificado pela IA
+  const saveUserNiche = useMutation(api.ads.saveUserNiche);
 
   // Form
   const form = useForm<FormValues>({
@@ -93,22 +95,17 @@ export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: 
   // Copy handler
   const handleCopy = useCallback(async () => {
     if (!currentSlug) return;
-
     const url = `${window.location.origin}/${currentSlug}`;
     await navigator.clipboard.writeText(url);
-
     setCopied(true);
     toast.success("Link copiado!");
-
     setTimeout(() => setCopied(false), 2000);
   }, [currentSlug]);
 
   // Share handler
   const handleShare = useCallback(async () => {
     if (!currentSlug) return;
-
     const url = `${window.location.origin}/${currentSlug}`;
-
     if (navigator.share) {
       try {
         await navigator.share({
@@ -133,13 +130,34 @@ export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: 
     if (!targetUserId) return;
 
     try {
-      // Passa o userId correto para salvar na conta/sub-conta
       const result = await setUsername({
         username: values.username,
-        userId: targetUserId
+        userId: targetUserId,
       });
 
       if (result.success) {
+        // 🧠 CLASSIFICAÇÃO DE NICHO - UMA ÚNICA VEZ ao salvar o username
+        // A IA analisa o nome do perfil e grava o nicho na tabela usernames.
+        // Nas visitas públicas futuras: ZERO chamadas de IA.
+        try {
+          const res = await fetch("/api/analyze-niche", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: values.username.replace(/[-_]/g, " "),
+              text: user?.fullName || user?.firstName || values.username,
+            }),
+          });
+
+          if (res.ok) {
+            const { niche } = await res.json();
+            await saveUserNiche({ niche, userId: targetUserId });
+            console.log(`✅ Nicho do perfil "${values.username}" classificado: ${niche}`);
+          }
+        } catch {
+          console.log("⚠️ Classificação de nicho falhou, usando 'geral'");
+        }
+
         // Celebration
         confetti({
           particleCount: 80,
@@ -276,11 +294,11 @@ export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: 
               </div>
             </div>
 
-            {/* Quick Stats - Aparece no hover (desktop) */}
+            {/* Quick Stats */}
             <motion.div
               className="hidden sm:flex items-center gap-4 mt-4 pt-4 border-t border-gray-100 text-xs text-gray-500"
               initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
+              animate={{ opacity: 1, height: "auto" }}
               transition={{ delay: 0.2 }}
             >
               <span className="flex items-center gap-1">
@@ -317,7 +335,6 @@ export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: 
                 </FormLabel>
                 <FormControl>
                   <div className="relative group">
-                    {/* Prefixo */}
                     <div className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-mono text-sm pointer-events-none select-none hidden sm:block">
                       freelinnk.com/
                     </div>
@@ -325,12 +342,11 @@ export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: 
                       ../
                     </div>
 
-                    {/* Input */}
                     <Input
                       placeholder="seu-nome"
                       {...field}
                       onChange={(e) => {
-                        const value = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '');
+                        const value = e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "");
                         field.onChange(value);
                       }}
                       className="pl-[105px] sm:pl-[130px] pr-12 h-12 sm:h-14 border-gray-200 bg-white focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all font-medium text-gray-800 text-base rounded-xl"
@@ -340,92 +356,51 @@ export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: 
                       spellCheck="false"
                     />
 
-                    {/* Status Indicator */}
                     <div className="absolute right-4 top-1/2 -translate-y-1/2">
                       <AnimatePresence mode="wait">
                         {status === "checking" && (
-                          <motion.div
-                            key="checking"
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.5 }}
-                          >
+                          <motion.div key="checking" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
                             <Loader2 className="w-5 h-5 animate-spin text-blue-500" />
                           </motion.div>
                         )}
                         {status === "available" && (
-                          <motion.div
-                            key="available"
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.5 }}
-                          >
+                          <motion.div key="available" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
                             <CheckCircle className="w-5 h-5 text-green-500" />
                           </motion.div>
                         )}
                         {status === "taken" && (
-                          <motion.div
-                            key="taken"
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.5 }}
-                          >
+                          <motion.div key="taken" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
                             <AlertCircle className="w-5 h-5 text-red-500" />
                           </motion.div>
                         )}
                         {status === "current" && (
-                          <motion.div
-                            key="current"
-                            initial={{ opacity: 0, scale: 0.5 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            exit={{ opacity: 0, scale: 0.5 }}
-                          >
+                          <motion.div key="current" initial={{ opacity: 0, scale: 0.5 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.5 }}>
                             <Check className="w-5 h-5 text-gray-400" />
                           </motion.div>
                         )}
                       </AnimatePresence>
                     </div>
 
-                    {/* Glow effect on focus */}
                     <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/20 to-indigo-500/20 opacity-0 group-focus-within:opacity-100 transition-opacity -z-10 blur-xl" />
                   </div>
                 </FormControl>
 
-                {/* Status Messages */}
                 <div className="min-h-[24px] mt-2">
                   <AnimatePresence mode="wait">
                     {status === "available" && (
-                      <motion.p
-                        key="available"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        className="text-sm text-green-600 font-medium flex items-center gap-1.5"
-                      >
+                      <motion.p key="available" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="text-sm text-green-600 font-medium flex items-center gap-1.5">
                         <CheckCircle className="w-4 h-4" />
                         Perfeito! Este nome está disponível
                       </motion.p>
                     )}
                     {status === "taken" && (
-                      <motion.p
-                        key="taken"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        className="text-sm text-red-600 font-medium flex items-center gap-1.5"
-                      >
+                      <motion.p key="taken" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="text-sm text-red-600 font-medium flex items-center gap-1.5">
                         <AlertCircle className="w-4 h-4" />
                         Ops! Este nome já está em uso
                       </motion.p>
                     )}
                     {status === "current" && (
-                      <motion.p
-                        key="current"
-                        initial={{ opacity: 0, x: -10 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        exit={{ opacity: 0, x: 10 }}
-                        className="text-sm text-gray-500 font-medium flex items-center gap-1.5"
-                      >
+                      <motion.p key="current" initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} className="text-sm text-gray-500 font-medium flex items-center gap-1.5">
                         <Check className="w-4 h-4" />
                         Este é seu link atual
                       </motion.p>
@@ -502,7 +477,6 @@ export default function UsernameForm({ onComplete, hideSkip, effectiveUserId }: 
             </Button>
           </motion.div>
 
-          {/* Helper Text */}
           <p className="text-xs text-center text-gray-400 leading-relaxed">
             {currentSlug
               ? "Você pode alterar sua URL a qualquer momento. Links antigos não serão redirecionados."

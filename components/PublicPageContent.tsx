@@ -833,6 +833,7 @@ interface PublicPageContentProps {
   preloadedLinks: Preloaded<typeof api.lib.links.getLinksBySlug>;
   preloadedCustomizations: Preloaded<typeof api.lib.customizations.getCustomizationsBySlug>;
   plan: SubscriptionPlanDetails['plan'];
+  pageOwnerNiche?: string;
 }
 
 type LinkType = Doc<"links"> & { thumbnailUrl?: string };
@@ -845,6 +846,7 @@ export default function PublicPageContent({
   preloadedLinks,
   preloadedCustomizations,
   plan,
+  pageOwnerNiche = "geral",
 }: PublicPageContentProps) {
   const customizations = usePreloadedQuery(preloadedCustomizations);
   const trackingSettings = useQuery(api.tracking.getIdsBySlug, { slug: username });
@@ -964,7 +966,7 @@ export default function PublicPageContent({
 
       try {
         const ad = await fetchAd({
-          pageOwnerNiche: "geral",
+          pageOwnerNiche,
           pageOwnerPlan: plan
         });
 
@@ -982,7 +984,7 @@ export default function PublicPageContent({
     }, 500);
 
     return () => clearTimeout(timer);
-  }, [plan, fetchAd]);
+  }, [plan, fetchAd, pageOwnerNiche]);
 
   useEffect(() => {
     if (!publicAd || !publicAd.mediaUrls || publicAd.mediaUrls.length <= 1) return;

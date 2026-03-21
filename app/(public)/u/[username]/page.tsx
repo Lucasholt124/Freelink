@@ -54,12 +54,15 @@ export default async function PublicLinkInBioPage({ params }: PageProps) {
     notFound();
   }
 
-  const [preloadedLinks, preloadedCustomizations, subscriptionPlan, trackingIds] =
+  // 🧠 Busca o nicho do dono da página (LEITURA PURA, SEM IA)
+  // O nicho já foi classificado e salvo quando o usuário criou/editou o username
+  const [preloadedLinks, preloadedCustomizations, subscriptionPlan, trackingIds, pageOwnerData] =
     await Promise.all([
       preloadQuery(api.lib.links.getLinksBySlug, { slug: username }),
       preloadQuery(api.lib.customizations.getCustomizationsBySlug, { slug: username }),
       getUserSubscriptionPlanByUsername(username),
       fetchQuery(api.tracking.getIdsBySlug, { slug: username }),
+      fetchQuery(api.ads.getPageOwnerNiche, { username: username }),
     ]);
 
   if (!preloadedCustomizations) {
@@ -115,6 +118,7 @@ export default async function PublicLinkInBioPage({ params }: PageProps) {
         preloadedLinks={preloadedLinks}
         preloadedCustomizations={preloadedCustomizations}
         plan={subscriptionPlan.plan}
+        pageOwnerNiche={pageOwnerData?.niche || "geral"}
       />
     </>
   );

@@ -8,6 +8,7 @@ export default defineSchema({
   usernames: defineTable({
     userId: v.string(),
     username: v.string(),
+    niche: v.optional(v.string()),
   })
     .index("by_user_id", ["userId"])
     .index("by_username", ["username"]),
@@ -857,4 +858,5 @@ export default defineSchema({
       .index("by_user", ["userId"])
       .index("by_status", ["status"])
       .index("by_niche", ["niche"]), // Indexado para a busca rápida da IA
+
 });
