@@ -66,10 +66,11 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
     title: "",
     productLink: "",
     adText: "",
+    niche: "geral",
   });
 
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
-  const [mediaPreviews, setMediaPreviews] = useState<{url: string, type: string}[]>([]);
+  const [mediaPreviews, setMediaPreviews] = useState<{ url: string, type: string }[]>([]);
 
   // 🛡️ PROTEÇÃO CONTRA O ERRO DE F5 (Hydration/Undefined State)
   if (campaignsRaw === undefined) {
@@ -156,20 +157,7 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
         mediaTypes.push(file.type.startsWith('video/') ? 'video' : 'image');
       }
 
-      toast.loading("Analisando nicho com Inteligência Artificial...", { id: loadingToast });
-      let niche = "geral";
-      try {
-        const res = await fetch('/api/analyze-niche', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: form.title, text: form.adText })
-        });
-        if (res.ok) {
-          const data = await res.json();
-          niche = data.niche;
-        }
-      } catch {}
-
+      // 🔥 IA REMOVIDA: Usamos o nicho que o próprio anunciante escolheu 🔥
       await createCampaign({
         title: form.title,
         productLink: form.productLink,
@@ -177,15 +165,15 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
         mediaStorageIds: mediaStorageIds,
         mediaTypes: mediaTypes,
         userPlan: userPlan,
-        niche: niche,
+        niche: form.niche,
       });
 
       toast.dismiss(loadingToast);
       confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
-      toast.success(`🚀 Anúncio criado com sucesso! (Nicho: ${niche})`);
+      toast.success(`🚀 Anúncio criado com sucesso! (Nicho: ${form.niche})`);
 
       setIsModalOpen(false);
-      setForm({ title: "", productLink: "", adText: "" });
+      setForm({ title: "", productLink: "", adText: "", niche: "geral" });
       setSelectedFiles([]);
       setMediaPreviews([]);
     } catch {
@@ -328,11 +316,10 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
                   <div className="min-w-0 flex-1 pr-4">
                     <h4 className="font-bold text-lg text-gray-800 truncate">{campaign.title}</h4>
                     <div className="flex flex-wrap items-center gap-2 mt-1">
-                      <Badge variant="outline" className={`text-[10px] uppercase font-bold border-0 ${
-                        campaign.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
+                      <Badge variant="outline" className={`text-[10px] uppercase font-bold border-0 ${campaign.status === 'active' ? 'bg-emerald-100 text-emerald-700' :
                         campaign.status === 'paused' ? 'bg-orange-100 text-orange-700' :
-                        'bg-gray-100 text-gray-700'
-                      }`}>
+                          'bg-gray-100 text-gray-700'
+                        }`}>
                         {campaign.status === 'active' ? 'Rodando' : campaign.status === 'paused' ? 'Pausado' : 'Finalizado'}
                       </Badge>
                       {campaign.niche && <Badge variant="secondary" className="text-[10px]">Nicho: {campaign.niche}</Badge>}
@@ -437,6 +424,28 @@ export default function AdsManagerComponent({ userPlan }: { userPlan: string }) 
                   className="pl-9"
                 />
               </div>
+            </div>
+
+            <div>
+              <Label className="text-sm font-semibold">Categoria do Produto *</Label>
+              <select
+                value={form.niche}
+                onChange={(e) => setForm({ ...form, niche: e.target.value })}
+                className="w-full mt-1.5 h-10 px-3 rounded-md border border-gray-200 bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-sm"
+              >
+                <option value="geral">Geral (Aparece em qualquer lugar)</option>
+                <option value="fitness">Fitness, Academia e Suplementos</option>
+                <option value="vestuario">Roupas, Sapatos e Moda</option>
+                <option value="alimentacao">Alimentação, Lanches e Doces</option>
+                <option value="eletronicos">Eletrônicos e Celulares</option>
+                <option value="beleza">Beleza, Maquiagem e Cosméticos</option>
+                <option value="automotivo">Automotivo, Carros e Motos</option>
+                <option value="cursos">Cursos, E-books e Mentorias</option>
+                <option value="pets">Pets e Veterinária</option>
+                <option value="casa">Casa, Decoração e Móveis</option>
+                <option value="esportes">Esportes</option>
+                <option value="games">Games e Consoles</option>
+              </select>
             </div>
 
             <div>

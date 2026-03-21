@@ -2,39 +2,39 @@ import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   try {
-    const { title, text } = await req.json();
+    // Agora recebemos os links também!
+    const { title, text, links = [] } = await req.json();
 
-    if (!title && !text) {
+    if (!title && !text && links.length === 0) {
       return NextResponse.json({ niche: "geral" });
     }
 
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
+    const linksText = links.join(", "); // Junta os títulos dos links
 
     if (!GROQ_API_KEY) {
       console.warn("⚠️ GROQ_API_KEY não configurada. Usando fallback local.");
-      return NextResponse.json({ niche: classifyNicheLocally(title, text) });
+      return NextResponse.json({ niche: classifyNicheLocally(title, text, linksText) });
     }
 
-    const systemPrompt = `Você é um classificador de nichos de mercado para uma rede de anúncios.
-Sua função é analisar o título e texto de um anúncio/perfil e retornar EXATAMENTE UMA palavra que represente o nicho.
+    // 🔥 A CAMISA DE FORÇA DA IA 🔥
+    const systemPrompt = `Você é um classificador de nichos de mercado extremamente rigoroso.
+Sua função é analisar o Título, a Bio e os Links de uma página e retornar EXATAMENTE UMA PALAVRA da lista permitida.
 
-REGRAS OBRIGATÓRIAS:
-1. Retorne APENAS uma palavra em minúsculo, sem acentos, sem espaços, sem explicação.
-2. Se não conseguir identificar, retorne "geral".
-3. Analise o NOME do produto/perfil, a MARCA mencionada, e o CONTEXTO do texto.
-4. O objetivo é evitar que anúncios de produtos similares apareçam em páginas de concorrentes.
+REGRAS DE DESEMPATE (PRIORIDADE ALTA):
+1. Se o conteúdo envolver academia, treino, crossfit, suplemento, legging, "fit" ou "fitness", IGNORE a palavra "roupa/moda" e retorne SEMPRE "fitness".
+2. Se o conteúdo envolver moda, vestidos, sapatos, estilo (sem relação com academia), retorne "vestuario".
+3. Se o conteúdo for comida, lanche, doce, açaí, retorne "alimentacao".
 
-NICHOS VÁLIDOS (use exatamente estes):
-calcados, roupas, eletronicos, beleza, fitness, games, casa, pets, automotivo, cursos, alimentacao, saude, joias, esportes, tecnologia, infantil, papelaria, musica, viagem, moda, fotografia, design, marketing, financas, juridico, construcao, agro, religiao, artesanato, geral
+LISTA PERMITIDA (Você só pode responder com UMA destas palavras, em minúsculo, sem acentos):
+vestuario, eletronicos, beleza, fitness, games, casa, pets, automotivo, cursos, alimentacao, saude, joias, esportes, tecnologia, infantil, papelaria, musica, viagem, fotografia, design, marketing, financas, juridico, construcao, agro, artesanato, geral`;
 
-Se o perfil/produto mistura nichos, escolha o MAIS FORTE/PRINCIPAL.`;
+    const userMessage = `Classifique o nicho:
+TÍTULO/USERNAME: "${title}"
+BIO/DESCRIÇÃO: "${text}"
+LINKS DA PÁGINA: "${linksText}"
 
-    const userMessage = `Classifique o nicho deste conteúdo:
-
-TÍTULO/NOME: "${title}"
-DESCRIÇÃO/TEXTO: "${text}"
-
-Responda com UMA ÚNICA PALAVRA:`;
+Responda com UMA ÚNICA PALAVRA da lista permitida:`;
 
     const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
       method: "POST",
@@ -48,73 +48,57 @@ Responda com UMA ÚNICA PALAVRA:`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
         ],
-        temperature: 0.1,
-        max_tokens: 20,
-        top_p: 0.9,
+        temperature: 0.1, // Temperatura quase 0 para ela não ser "criativa"
+        max_tokens: 15,
       }),
     });
 
     if (!response.ok) {
-      console.error("Erro na API Groq:", response.status, await response.text());
-      return NextResponse.json({ niche: classifyNicheLocally(title, text) });
+      return NextResponse.json({ niche: classifyNicheLocally(title, text, linksText) });
     }
 
     const data = await response.json();
     const rawNiche = data.choices?.[0]?.message?.content?.trim()?.toLowerCase() || "geral";
 
+    // Limpeza pesada para garantir que não passe ponto, vírgula ou acento
     const cleanNiche = rawNiche
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z]/g, "")
       .substring(0, 30) || "geral";
 
     console.log(`🎯 Nicho classificado: "${title}" → ${cleanNiche}`);
-
     return NextResponse.json({ niche: cleanNiche });
 
-  } catch (error) {
-    console.error("❌ Erro ao classificar nicho:", error);
+  } catch {
     return NextResponse.json({ niche: "geral" });
   }
 }
 
-function classifyNicheLocally(title: string, text: string): string {
-  const combined = `${title} ${text}`.toLowerCase();
+// 🔥 LÓGICA COMPLEXA (FALLBACK) 🔥
+function classifyNicheLocally(title: string, text: string, linksText: string): string {
+  // Junta tudo para analisar
+  const combined = `${title} ${text} ${linksText}`.toLowerCase();
 
-  const nicheKeywords: Record<string, string[]> = {
-    calcados: ["tênis", "tenis", "sapato", "chinelo", "sandalia", "sandália", "bota", "nike", "adidas", "puma", "mizuno", "new balance", "vans", "air max", "jordan", "sapatênis", "sapatenis"],
-    roupas: ["camiseta", "camisa", "vestido", "jaqueta", "calça", "bermuda", "blusa", "moletom", "cropped", "saia", "blazer", "roupa", "look", "outfit"],
-    moda: ["moda", "fashion", "estilo", "tendência", "tendencia", "grife", "boutique", "loja de roupa"],
-    eletronicos: ["celular", "smartphone", "iphone", "samsung", "xiaomi", "notebook", "tablet", "fone", "airpods", "carregador", "cabo", "power bank", "gadget"],
-    beleza: ["maquiagem", "batom", "base", "rimel", "skincare", "perfume", "creme", "hidratante", "protetor solar", "shampoo", "condicionador", "cosmético", "cosmetico", "salão", "salao"],
-    fitness: ["whey", "creatina", "suplemento", "proteina", "proteína", "treino", "academia", "pre treino", "pré-treino", "bcaa", "glutamina", "hipercalorico", "termogenico", "gym"],
-    games: ["ps5", "xbox", "nintendo", "switch", "controle", "joystick", "headset gamer", "placa de video", "gamer", "console", "jogo", "game", "streamer"],
-    casa: ["sofá", "sofa", "mesa", "cadeira", "decoração", "decoracao", "cozinha", "organização", "organizacao", "movel", "móvel", "tapete", "cortina", "luminária", "luminaria"],
-    pets: ["ração", "racao", "coleira", "pet", "cachorro", "gato", "animal", "petisco", "cama pet", "brinquedo pet", "veterinário", "veterinario", "petshop"],
-    automotivo: ["carro", "moto", "pneu", "óleo", "oleo", "filtro", "automotivo", "peça", "peca", "acessório carro", "farol", "volante", "mecânico", "mecanico", "oficina"],
-    cursos: ["curso", "mentoria", "ebook", "e-book", "infoproduto", "aula", "treinamento", "masterclass", "workshop", "hotmart", "kiwify", "eduzz"],
-    alimentacao: ["doce", "bolo", "pizza", "hamburguer", "hamburger", "comida", "restaurante", "delivery", "brigadeiro", "açaí", "acai", "salgado", "confeitaria", "lanchonete"],
-    saude: ["vitamina", "remédio", "remedio", "saúde", "saude", "terapia", "bem-estar", "suplemento natural", "fitoterápico", "fitoterapico", "médico", "medico", "clínica", "clinica"],
-    joias: ["relógio", "relogio", "pulseira", "colar", "brinco", "anel", "joia", "jóia", "acessório", "acessorio", "bijuteria", "semijoias"],
-    esportes: ["futebol", "basquete", "natação", "natacao", "esporte", "bola", "chuteira", "luva", "raquete", "corrida", "ciclismo"],
-    tecnologia: ["software", "app", "aplicativo", "saas", "ferramenta digital", "automação", "automacao", "inteligência artificial", "programação", "programacao", "desenvolvedor"],
-    infantil: ["brinquedo", "bebê", "bebe", "criança", "crianca", "infantil", "berço", "berco", "carrinho", "kids"],
-    papelaria: ["caderno", "caneta", "lápis", "lapis", "mochila", "estojo", "material escolar", "agenda", "planner", "sticker"],
-    musica: ["violão", "violao", "guitarra", "teclado musical", "bateria", "instrumento", "ukulele", "microfone", "música", "musica", "dj", "produtor musical"],
-    viagem: ["mala", "viagem", "passagem", "hotel", "turismo", "hospedagem", "airbnb", "mochilão", "mochilao"],
-    fotografia: ["fotógrafo", "fotografo", "fotografia", "ensaio", "câmera", "camera", "foto", "estúdio", "estudio"],
-    design: ["design", "designer", "logo", "identidade visual", "ui", "ux", "gráfico", "grafico", "ilustração", "ilustracao"],
-    marketing: ["marketing", "tráfego", "trafego", "social media", "gestor", "anúncio", "anuncio", "copywriting", "lead", "funil"],
-    financas: ["investimento", "finanças", "financas", "trading", "cripto", "bitcoin", "renda", "dinheiro", "banco", "empréstimo", "emprestimo"],
-    juridico: ["advogado", "advocacia", "jurídico", "juridico", "direito", "lei", "contrato", "escritório", "escritorio"],
-    construcao: ["construção", "construcao", "obra", "pedreiro", "engenheiro", "arquiteto", "reforma", "material de construção"],
-    agro: ["agro", "fazenda", "rural", "agrícola", "agricola", "pecuária", "pecuaria", "plantação", "plantacao", "semente"],
-    artesanato: ["artesanato", "crochê", "croche", "tricô", "trico", "bordado", "feito à mão", "handmade", "customizado"],
-  };
+  // Mapeamento usando Expressões Regulares (RegEx).
+  // O \b garante que ele só pegue a palavra inteira (ex: \bfit\b não pega "outfit" ou "profit")
+  const nicheRules: { niche: string; regex: RegExp }[] = [
+    { niche: "fitness", regex: /\b(whey|creatina|suplemento|treino|academia|crossfit|gym|fit|fitness|fitniss|legging|maromba)\b/i },
+    { niche: "vestuario", regex: /\b(roupa|moda|fashion|estilo|tendência|grife|boutique|camiseta|camisa|vestido|jaqueta|calça|bermuda|blusa|look|tênis|sapato|sandália|bota|nike|adidas)\b/i },
+    { niche: "alimentacao", regex: /\b(doce|bolo|pizza|hamburguer|hamburger|comida|restaurante|delivery|açaí|acai|lanchonete|ifood)\b/i },
+    { niche: "eletronicos", regex: /\b(celular|smartphone|iphone|samsung|xiaomi|notebook|tablet|fone|tecnologia)\b/i },
+    { niche: "beleza", regex: /\b(maquiagem|batom|base|skincare|perfume|cosmético|salão|cabelo|unha|manicure)\b/i },
+    { niche: "automotivo", regex: /\b(carro|moto|pneu|óleo|mecânico|oficina|veículo|lavajato)\b/i },
+    { niche: "cursos", regex: /\b(curso|mentoria|ebook|e-book|infoproduto|aula|kiwify|hotmart)\b/i },
+    { niche: "pets", regex: /\b(ração|coleira|pet|cachorro|gato|veterinário|petshop)\b/i },
+    { niche: "casa", regex: /\b(sofá|mesa|cadeira|decoração|cozinha|móvel|imóvel|imobiliária)\b/i },
 
-  for (const [niche, keywords] of Object.entries(nicheKeywords)) {
-    for (const keyword of keywords) {
-      if (combined.includes(keyword)) {
-        return niche;
-      }
+  ];
+
+  // A ordem do array acima importa! Ele vai checar fitness ANTES de vestuário.
+  for (const rule of nicheRules) {
+    if (rule.regex.test(combined)) {
+      return rule.niche;
     }
   }
 

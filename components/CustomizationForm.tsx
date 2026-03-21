@@ -78,6 +78,11 @@ export default function CustomizationForm({ onComplete, effectiveUserId }: Custo
     targetUserId ? { userId: targetUserId } : "skip"
   );
 
+  const userLinks = useQuery(
+    api.lib.links.getLinksBySlug,
+    userSlug ? { slug: userSlug } : "skip"
+  );
+
   // --- ESTADOS ---
   const [cleanBio, setCleanBio] = useState("");
   const [statusEnabled, setStatusEnabled] = useState(false);
@@ -220,22 +225,25 @@ export default function CustomizationForm({ onComplete, effectiveUserId }: Custo
         // 🔥 NOVA CHAMADA DA IA PARA CLASSIFICAR O NICHO COM A BIO REAL 🔥
         if (userSlug) {
           try {
+            // Pega apenas os títulos dos links (se existirem) para não enviar dados desnecessários
+            const linksArray = userLinks ? userLinks.map((l: any) => l.title) : [];
+
             const res = await fetch("/api/analyze-niche", {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                title: userSlug, // Manda o username (ex: acai-do-kleiton)
-                text: finalDescription, // Manda a bio completa que ele acabou de digitar
+                title: userSlug,
+                text: finalDescription,
+                links: linksArray, // 🔥 Enviando os títulos dos links!
               }),
             });
 
             if (res.ok) {
               const { niche } = await res.json();
-              // Salva usando o username exato, conforme arrumamos no backend
               await saveUserNiche({ niche, username: userSlug });
               console.log(`🎯 Nicho atualizado na edição: ${niche}`);
             }
-          } catch  {
+          } catch {
             console.log("⚠️ Falha ao classificar nicho na edição, mantendo o atual.");
           }
         }
@@ -615,11 +623,10 @@ export default function CustomizationForm({ onComplete, effectiveUserId }: Custo
                   key={type.id}
                   type="button"
                   onClick={() => setBackgroundConfig((prev) => ({ ...prev, type: type.id as BackgroundType }))}
-                  className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all ${
-                    backgroundConfig.type === type.id
-                      ? "border-purple-500 bg-purple-50 text-purple-700"
-                      : "border-gray-100 hover:border-gray-200 text-gray-600"
-                  }`}
+                  className={`flex flex-col items-center justify-center p-3 sm:p-4 rounded-xl border-2 transition-all ${backgroundConfig.type === type.id
+                    ? "border-purple-500 bg-purple-50 text-purple-700"
+                    : "border-gray-100 hover:border-gray-200 text-gray-600"
+                    }`}
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
                 >
@@ -655,9 +662,8 @@ export default function CustomizationForm({ onComplete, effectiveUserId }: Custo
                           key={color}
                           type="button"
                           onClick={() => setBackgroundConfig((prev) => ({ ...prev, color1: color }))}
-                          className={`w-8 h-8 rounded-lg border transition-transform hover:scale-110 ${
-                            backgroundConfig.color1 === color ? "ring-2 ring-purple-500 ring-offset-2" : "border-gray-200"
-                          }`}
+                          className={`w-8 h-8 rounded-lg border transition-transform hover:scale-110 ${backgroundConfig.color1 === color ? "ring-2 ring-purple-500 ring-offset-2" : "border-gray-200"
+                            }`}
                           style={{ backgroundColor: color }}
                         />
                       ))}
@@ -838,11 +844,10 @@ export default function CustomizationForm({ onComplete, effectiveUserId }: Custo
                       <button
                         type="button"
                         onClick={() => setBackgroundConfig((prev) => ({ ...prev, style: "header" }))}
-                        className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${
-                          backgroundConfig.style === "header"
-                            ? "border-purple-500 bg-purple-50 text-purple-700"
-                            : "border-gray-200 text-gray-600"
-                        }`}
+                        className={`p-3 rounded-lg border-2 text-sm font-medium transition-all ${backgroundConfig.style === "header"
+                          ? "border-purple-500 bg-purple-50 text-purple-700"
+                          : "border-gray-200 text-gray-600"
+                          }`}
                       >
                         Apenas header
                       </button>
