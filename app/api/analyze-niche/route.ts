@@ -91,7 +91,7 @@ function classifyNicheLocally(title: string, text: string, linksText: string): s
   const combined = `${title} ${text} ${linksText}`.toLowerCase();
 
   const nicheRules: { niche: string; regex: RegExp }[] = [
-    { niche: "fitness", regex: /\b(whey|creatina|suplemento|treino|academia|crossfit|gym|fit|fitness|fitniss|legging|maromba)\b/i },
+    { niche: "fitness", regex: /(whey|creatina|suplemento|treino|academia|crossfit|gym|fitness|fitniss|legging|maromba|\bfit\b)/i },
     { niche: "vestuario", regex: /\b(roupa|moda|fashion|estilo|tendência|grife|boutique|camiseta|camisa|vestido|jaqueta|calça|bermuda|blusa|look|tênis|sapato|sandália|bota|nike|adidas)\b/i },
     { niche: "alimentacao", regex: /\b(doce|bolo|pizza|hamburguer|hamburger|comida|restaurante|delivery|açaí|acai|lanchonete|ifood)\b/i },
     { niche: "eletronicos", regex: /\b(celular|smartphone|iphone|samsung|xiaomi|notebook|tablet|fone|tecnologia)\b/i },

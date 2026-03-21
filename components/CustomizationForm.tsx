@@ -232,9 +232,9 @@ export default function CustomizationForm({ onComplete, effectiveUserId }: Custo
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({
-                title: userSlug,
+                title: userSlug.replace(/[-_]/g, " "),
                 text: finalDescription,
-                links: linksArray, // 🔥 Enviando os títulos dos links!
+                links: linksArray,
               }),
             });
 
