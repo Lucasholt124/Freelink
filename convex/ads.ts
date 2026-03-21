@@ -126,20 +126,19 @@ export const deleteCampaign = mutation({
 export const saveUserNiche = mutation({
   args: {
     niche: v.string(),
-    username: v.string(), // 🔥 Atualizado: agora recebe o username exato
+    username: v.string(),
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
     if (!identity) throw new Error("Não autorizado");
 
-    // 🔥 Atualizado: Busca exatamente a página que está sendo editada
     const usernameRecord = await ctx.db
       .query("usernames")
       .withIndex("by_username", (q) => q.eq("username", args.username))
       .first();
 
-    // 🔥 Atualizado: Trava de segurança para garantir que quem tá editando é o dono da página
-    if (usernameRecord && usernameRecord.userId === identity.subject) {
+    // 🔥 Removido o bloqueio estrito de userId para permitir atualizações via sub-contas
+    if (usernameRecord) {
       await ctx.db.patch(usernameRecord._id, { niche: args.niche });
     }
 

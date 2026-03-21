@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
+// 🔥 A LISTA OFICIAL (Tem que bater exatamente com o <select> do AdsManager) 🔥  
+const VALID_NICHES = [
+  "vestuario", "eletronicos", "beleza", "fitness", "games", "casa",
+  "pets", "automotivo", "cursos", "alimentacao", "saude", "joias",
+  "esportes", "tecnologia", "infantil", "papelaria", "musica",
+  "viagem", "fotografia", "design", "marketing", "financas",
+  "juridico", "construcao", "agro", "artesanato", "geral"
+];
+
 export async function POST(req: NextRequest) {
   try {
-    // Agora recebemos os links também!
     const { title, text, links = [] } = await req.json();
 
     if (!title && !text && links.length === 0) {
@@ -10,24 +18,22 @@ export async function POST(req: NextRequest) {
     }
 
     const GROQ_API_KEY = process.env.GROQ_API_KEY;
-    const linksText = links.join(", "); // Junta os títulos dos links
+    const linksText = links.join(", ");
 
     if (!GROQ_API_KEY) {
-      console.warn("⚠️ GROQ_API_KEY não configurada. Usando fallback local.");
       return NextResponse.json({ niche: classifyNicheLocally(title, text, linksText) });
     }
 
-    // 🔥 A CAMISA DE FORÇA DA IA 🔥
     const systemPrompt = `Você é um classificador de nichos de mercado extremamente rigoroso.
-Sua função é analisar o Título, a Bio e os Links de uma página e retornar EXATAMENTE UMA PALAVRA da lista permitida.
+Sua função é analisar o Título, a Bio e os Links e retornar EXATAMENTE UMA PALAVRA da lista permitida.
 
 REGRAS DE DESEMPATE (PRIORIDADE ALTA):
-1. Se o conteúdo envolver academia, treino, crossfit, suplemento, legging, "fit" ou "fitness", IGNORE a palavra "roupa/moda" e retorne SEMPRE "fitness".
-2. Se o conteúdo envolver moda, vestidos, sapatos, estilo (sem relação com academia), retorne "vestuario".
+1. Se o conteúdo envolver academia, treino, crossfit, suplementos, legging, "fit" ou "fitness", IGNORE "roupa/moda" e retorne SEMPRE "fitness".
+2. Se o conteúdo envolver moda, vestidos, sapatos ou estilo (sem relação com academia), retorne "vestuario".
 3. Se o conteúdo for comida, lanche, doce, açaí, retorne "alimentacao".
 
-LISTA PERMITIDA (Você só pode responder com UMA destas palavras, em minúsculo, sem acentos):
-vestuario, eletronicos, beleza, fitness, games, casa, pets, automotivo, cursos, alimentacao, saude, joias, esportes, tecnologia, infantil, papelaria, musica, viagem, fotografia, design, marketing, financas, juridico, construcao, agro, artesanato, geral`;
+LISTA PERMITIDA:
+${VALID_NICHES.join(", ")}`;
 
     const userMessage = `Classifique o nicho:
 TÍTULO/USERNAME: "${title}"
@@ -48,7 +54,7 @@ Responda com UMA ÚNICA PALAVRA da lista permitida:`;
           { role: "system", content: systemPrompt },
           { role: "user", content: userMessage },
         ],
-        temperature: 0.1, // Temperatura quase 0 para ela não ser "criativa"
+        temperature: 0, // Temperatura ZERO para forçar obediência
         max_tokens: 15,
       }),
     });
@@ -60,12 +66,17 @@ Responda com UMA ÚNICA PALAVRA da lista permitida:`;
     const data = await response.json();
     const rawNiche = data.choices?.[0]?.message?.content?.trim()?.toLowerCase() || "geral";
 
-    // Limpeza pesada para garantir que não passe ponto, vírgula ou acento
-    const cleanNiche = rawNiche
+    let cleanNiche = rawNiche
       .normalize("NFD")
       .replace(/[\u0300-\u036f]/g, "")
       .replace(/[^a-z]/g, "")
       .substring(0, 30) || "geral";
+
+    // 🚨 A MÁGICA AQUI: Se a IA inventar uma palavra (ex: "moda"), jogamos fora e usamos o Fallback!
+    if (!VALID_NICHES.includes(cleanNiche)) {
+      console.log(`⚠️ IA inventou "${cleanNiche}". Aplicando fallback rigoroso...`);
+      cleanNiche = classifyNicheLocally(title, text, linksText);
+    }
 
     console.log(`🎯 Nicho classificado: "${title}" → ${cleanNiche}`);
     return NextResponse.json({ niche: cleanNiche });
@@ -77,11 +88,8 @@ Responda com UMA ÚNICA PALAVRA da lista permitida:`;
 
 // 🔥 LÓGICA COMPLEXA (FALLBACK) 🔥
 function classifyNicheLocally(title: string, text: string, linksText: string): string {
-  // Junta tudo para analisar
   const combined = `${title} ${text} ${linksText}`.toLowerCase();
 
-  // Mapeamento usando Expressões Regulares (RegEx).
-  // O \b garante que ele só pegue a palavra inteira (ex: \bfit\b não pega "outfit" ou "profit")
   const nicheRules: { niche: string; regex: RegExp }[] = [
     { niche: "fitness", regex: /\b(whey|creatina|suplemento|treino|academia|crossfit|gym|fit|fitness|fitniss|legging|maromba)\b/i },
     { niche: "vestuario", regex: /\b(roupa|moda|fashion|estilo|tendência|grife|boutique|camiseta|camisa|vestido|jaqueta|calça|bermuda|blusa|look|tênis|sapato|sandália|bota|nike|adidas)\b/i },
@@ -92,15 +100,12 @@ function classifyNicheLocally(title: string, text: string, linksText: string): s
     { niche: "cursos", regex: /\b(curso|mentoria|ebook|e-book|infoproduto|aula|kiwify|hotmart)\b/i },
     { niche: "pets", regex: /\b(ração|coleira|pet|cachorro|gato|veterinário|petshop)\b/i },
     { niche: "casa", regex: /\b(sofá|mesa|cadeira|decoração|cozinha|móvel|imóvel|imobiliária)\b/i },
-
   ];
 
-  // A ordem do array acima importa! Ele vai checar fitness ANTES de vestuário.
   for (const rule of nicheRules) {
     if (rule.regex.test(combined)) {
       return rule.niche;
     }
   }
-
   return "geral";
 }
