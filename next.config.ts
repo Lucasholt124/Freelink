@@ -42,6 +42,7 @@ const nextConfig: NextConfig = {
   compress: true,
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  devIndicators: false,
 
   typescript: {
     ignoreBuildErrors: false,
