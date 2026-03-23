@@ -31,12 +31,16 @@ const nextConfig: NextConfig = {
 
   // 👇 AQUI ESTAVA O ERRO!
   async rewrites() {
-    return [
-      {
-        source: '/:username((?!u|r|api|_next|static|public|dashboard|login|sign-in|sign-up|favicon.ico|giveaway|.*\\..*).*)',
-        destination: '/u/:username',
-      },
-    ];
+    return {
+      beforeFiles: [],
+      afterFiles: [
+        {
+          source: '/:username((?!api|dashboard|login|sign-in|sign-up|giveaway|monitoring|_next|static|public|favicon\\.ico|sitemap\\.xml|robots\\.txt)[a-zA-Z0-9][a-zA-Z0-9_.-]*)',
+          destination: '/u/:username',
+        },
+      ],
+      fallback: [],
+    };
   },
 
   compress: true,
