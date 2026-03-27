@@ -32,20 +32,8 @@ const triggerConfetti = () => {
   const colors = ["#10b981", "#3b82f6", "#8b5cf6", "#f59e0b"];
 
   (function frame() {
-    confetti({
-      particleCount: 7,
-      angle: 60,
-      spread: 55,
-      origin: { x: 0 },
-      colors: colors
-    });
-    confetti({
-      particleCount: 7,
-      angle: 120,
-      spread: 55,
-      origin: { x: 1 },
-      colors: colors
-    });
+    confetti({ particleCount: 7, angle: 60, spread: 55, origin: { x: 0 }, colors });
+    confetti({ particleCount: 7, angle: 120, spread: 55, origin: { x: 1 }, colors });
     if (Date.now() < end) requestAnimationFrame(frame);
   })();
 };
@@ -56,7 +44,10 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<Step>("username");
   const [loading, setLoading] = useState(false);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
-  const [isReady, setIsReady] = useState(false); // NOVO: controla quando mostrar o conteúdo
+
+  // FIX: Separamos "inicializado" (já leu o status do banco uma vez) de "pronto"
+  const [isReady, setIsReady] = useState(false);
+  const hasInitialized = useRef(false); // ← garante que só sincronizamos o step UMA vez
 
   // Form State
   const [username, setUsername] = useState("");
@@ -65,7 +56,7 @@ export default function OnboardingPage() {
   const [bio, setBio] = useState("");
   const [profileImage, setProfileImage] = useState<{ file: File | null; preview: string | null }>({
     file: null,
-    preview: null
+    preview: null,
   });
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
@@ -85,38 +76,45 @@ export default function OnboardingPage() {
   const updateStepMutation = useMutation(api.onboarding.updateOnboardingStep);
   const completeOnboardingMutation = useMutation(api.onboarding.completeOnboarding);
 
-  const isUsernameValid = username.length >= 3 && checkAvailability?.available && /^[a-z0-9_.]+$/.test(username);
+  const isUsernameValid =
+    username.length >= 3 && checkAvailability?.available && /^[a-z0-9_.]+$/.test(username);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // =============================================
-  // CORREÇÃO PRINCIPAL: Lógica de redirecionamento
+  // CORREÇÃO PRINCIPAL: só sincroniza o step na
+  // primeira leitura válida do banco (hasInitialized).
+  // Reações subsequentes do Convex (após mutations)
+  // NÃO sobrescrevem mais o step local.
   // =============================================
   useEffect(() => {
-    // 1. Se o status ainda está carregando (undefined), NÃO faz nada
-    if (onboardingStatus === undefined) {
-      return;
-    }
+    // Ainda carregando
+    if (onboardingStatus === undefined) return;
 
-    // 2. Se retornou null (usuário não autenticado ainda), NÃO faz nada
-    if (onboardingStatus === null) {
-      return;
-    }
+    // Usuário não autenticado ainda
+    if (onboardingStatus === null) return;
 
-    // 3. Se o onboarding está COMPLETO, redireciona para o dashboard
+    // Onboarding já completo → dashboard
     if (onboardingStatus.completed === true) {
       router.replace("/dashboard");
       return;
     }
 
-    // 4. Se chegou aqui, o onboarding NÃO está completo - mostra o wizard
-    const stepOrder: Step[] = ["username", "profile", "link", "success"];
-    const currentStep = onboardingStatus.currentStep;
-    if (currentStep && currentStep >= 1 && currentStep <= 4) {
-      setStep(stepOrder[currentStep - 1]);
-    }
+    // Só sincroniza o step local NA PRIMEIRA VEZ
+    if (!hasInitialized.current) {
+      hasInitialized.current = true;
 
-    // Marca como pronto para renderizar
-    setIsReady(true);
+      const stepOrder: Step[] = ["username", "profile", "link", "success"];
+      const currentStep = onboardingStatus.currentStep;
+
+      if (currentStep && currentStep >= 1 && currentStep <= 4) {
+        setStep(stepOrder[currentStep - 1]);
+      }
+      // Se currentStep for null/undefined/0 → fica em "username" (estado inicial já correto)
+
+      setIsReady(true);
+    }
+    // ↑ Nas próximas re-execuções causadas por mutations (step 2, 3, 4…),
+    //   hasInitialized.current já é true, então não mexemos no step local.
   }, [onboardingStatus, router]);
 
   // Pre-fill from Clerk
@@ -124,13 +122,15 @@ export default function OnboardingPage() {
     if (isClerkLoaded && clerkUser) {
       if (!displayName) setDisplayName(clerkUser.fullName || "");
       if (!profileImage.preview && clerkUser.imageUrl) {
-        setProfileImage(prev => ({ ...prev, preview: clerkUser.imageUrl }));
+        setProfileImage((prev) => ({ ...prev, preview: clerkUser.imageUrl }));
       }
     }
   }, [isClerkLoaded, clerkUser, displayName, profileImage.preview]);
 
   useEffect(() => {
-    return () => { if (profileImage.preview && profileImage.file) URL.revokeObjectURL(profileImage.preview); };
+    return () => {
+      if (profileImage.preview && profileImage.file) URL.revokeObjectURL(profileImage.preview);
+    };
   }, [profileImage.preview, profileImage.file]);
 
   const handleUsernameNext = async () => {
@@ -139,7 +139,7 @@ export default function OnboardingPage() {
     try {
       await setUsernameMutation({ username });
       await updateStepMutation({ step: 2 });
-      setStep("profile");
+      setStep("profile"); // ← local state avança imediatamente, sem depender do Convex re-render
     } catch (e: any) {
       toast.error(e.message || "Erro ao garantir o username.");
     } finally {
@@ -157,17 +157,13 @@ export default function OnboardingPage() {
         const res = await fetch(uploadUrl, {
           method: "POST",
           headers: { "Content-Type": profileImage.file.type },
-          body: profileImage.file
+          body: profileImage.file,
         });
         const json = await res.json();
         profileStorageId = json.storageId;
       }
 
-      await updateCustomizations({
-        description: bio,
-        profilePictureStorageId: profileStorageId
-      });
-
+      await updateCustomizations({ description: bio, profilePictureStorageId: profileStorageId });
       await updateStepMutation({ step: 3 });
       setStep("link");
     } catch (e: any) {
@@ -181,13 +177,8 @@ export default function OnboardingPage() {
     setLoading(true);
     try {
       if (linkTitle && linkUrl) {
-        let finalUrl = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
-        await createLink({
-          title: linkTitle,
-          url: finalUrl,
-          isFeatured: false,
-          badgeType: undefined
-        });
+        const finalUrl = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
+        await createLink({ title: linkTitle, url: finalUrl, isFeatured: false, badgeType: undefined });
       }
       await updateStepMutation({ step: 4 });
       setStep("success");
@@ -196,6 +187,16 @@ export default function OnboardingPage() {
       toast.error(e.message || "Erro ao salvar link.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSkipLink = async () => {
+    try {
+      await updateStepMutation({ step: 4 });
+      setStep("success");
+      triggerConfetti();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao pular etapa.");
     }
   };
 
@@ -213,16 +214,13 @@ export default function OnboardingPage() {
   };
 
   const copyToClipboard = () => {
-    const url = `freelinnk.com/${username}`;
-    navigator.clipboard.writeText(url);
+    navigator.clipboard.writeText(`freelinnk.com/${username}`);
     setCopied(true);
     toast.success("Link copiado!");
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // =============================================
-  // TELA DE LOADING enquanto verifica o status
-  // =============================================
+  // Tela de loading enquanto verifica o status
   if (!isReady) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -272,10 +270,12 @@ export default function OnboardingPage() {
                   {currentStepInfo.num > num ? <Check className="w-4 h-4" /> : num}
                 </div>
                 {num < 4 && (
-                  <div className={cn(
-                    "w-4 sm:w-8 h-0.5 mx-1 rounded-full bg-slate-100",
-                    currentStepInfo.num > num && "bg-emerald-500"
-                  )} />
+                  <div
+                    className={cn(
+                      "w-4 sm:w-8 h-0.5 mx-1 rounded-full bg-slate-100",
+                      currentStepInfo.num > num && "bg-emerald-500"
+                    )}
+                  />
                 )}
               </div>
             ))}
@@ -300,14 +300,16 @@ export default function OnboardingPage() {
 
                 <div className="space-y-4">
                   <label className="text-sm font-bold text-slate-700 block ml-1">Escolha seu username</label>
-                  <div className={cn(
-                    "flex items-center bg-slate-50 border-2 rounded-2xl transition-all h-16 px-4 group",
-                    username.length >= 3
-                      ? isUsernameValid
-                        ? "border-emerald-500 bg-emerald-50/30"
-                        : "border-red-500 bg-red-50/30"
-                      : "border-slate-100 focus-within:border-indigo-500 focus-within:bg-white"
-                  )}>
+                  <div
+                    className={cn(
+                      "flex items-center bg-slate-50 border-2 rounded-2xl transition-all h-16 px-4 group",
+                      username.length >= 3
+                        ? isUsernameValid
+                          ? "border-emerald-500 bg-emerald-50/30"
+                          : "border-red-500 bg-red-50/30"
+                        : "border-slate-100 focus-within:border-indigo-500 focus-within:bg-white"
+                    )}
+                  >
                     <span className="text-slate-400 font-bold select-none pr-1">freelinnk.com/</span>
                     <input
                       type="text"
@@ -365,7 +367,10 @@ export default function OnboardingPage() {
                 <div className="space-y-8">
                   <div className="flex flex-col items-center gap-4">
                     <div className="relative group">
-                      <div className="w-32 h-32 rounded-full border-4 border-slate-50 bg-slate-100 flex items-center justify-center overflow-hidden shadow-inner cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                      <div
+                        className="w-32 h-32 rounded-full border-4 border-slate-50 bg-slate-100 flex items-center justify-center overflow-hidden shadow-inner cursor-pointer"
+                        onClick={() => fileInputRef.current?.click()}
+                      >
                         {profileImage.preview ? (
                           <img src={profileImage.preview} alt="Profile" className="w-full h-full object-cover" />
                         ) : (
@@ -434,7 +439,12 @@ export default function OnboardingPage() {
                     disabled={loading || !displayName}
                     className="flex-[2] h-16 bg-slate-900 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
                   >
-                    {loading ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Continuar"} <ArrowRight className="w-6 h-6" />
+                    {loading ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      "Continuar"
+                    )}{" "}
+                    <ArrowRight className="w-6 h-6" />
                   </button>
                 </div>
               </motion.div>
@@ -450,7 +460,7 @@ export default function OnboardingPage() {
               >
                 <div className="space-y-2">
                   <h1 className="text-3xl font-black text-slate-900 tracking-tight">🔗 Adicione seu primeiro link!</h1>
-                  <p className="text-slate-500 text-lg">Seu perfil fica muito melhor com pelos menos um link.</p>
+                  <p className="text-slate-500 text-lg">Seu perfil fica muito melhor com pelo menos um link.</p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -474,15 +484,23 @@ export default function OnboardingPage() {
                         placeholder="https://instagram.com/seuuser"
                         className={cn(
                           "w-full bg-slate-50 border-2 rounded-2xl px-6 h-14 font-bold text-slate-900 outline-none transition-all",
-                          linkUrl && !linkUrl.startsWith("http") ? "border-red-200 focus:border-red-500" : "border-slate-100 focus:border-indigo-500 focus:bg-white"
+                          linkUrl && !linkUrl.startsWith("http")
+                            ? "border-red-200 focus:border-red-500"
+                            : "border-slate-100 focus:border-indigo-500 focus:bg-white"
                         )}
                       />
-                      {linkUrl && !linkUrl.startsWith("http") && <p className="text-xs text-red-500 mt-1.5 font-bold ml-1">Insira uma URL válida (começando com https://)</p>}
+                      {linkUrl && !linkUrl.startsWith("http") && (
+                        <p className="text-xs text-red-500 mt-1.5 font-bold ml-1">
+                          Insira uma URL válida (começando com https://)
+                        </p>
+                      )}
                     </div>
                   </div>
 
                   <div className="space-y-4">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Preview em tempo real</label>
+                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
+                      Preview em tempo real
+                    </label>
                     <div className="bg-slate-50 rounded-3xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center">
                       <LinkPreviewCard />
                       <div className="mt-4 flex gap-3 opacity-30 grayscale pointer-events-none">
@@ -500,14 +518,17 @@ export default function OnboardingPage() {
                     disabled={loading || !linkTitle || !linkUrl || !linkUrl.startsWith("http")}
                     className="w-full h-16 bg-slate-900 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
                   >
-                    {loading ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Adicionar e continuar"} <ArrowRight className="w-6 h-6" />
+                    {loading ? (
+                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    ) : (
+                      "Adicionar e continuar"
+                    )}{" "}
+                    <ArrowRight className="w-6 h-6" />
                   </button>
+                  {/* FIX: "Pular" agora chama handleSkipLink (async) em vez de chamar
+                      updateStepMutation diretamente inline — evita promise não tratada */}
                   <button
-                    onClick={() => {
-                      updateStepMutation({ step: 4 });
-                      setStep("success");
-                      triggerConfetti();
-                    }}
+                    onClick={handleSkipLink}
                     className="w-full text-slate-400 font-bold hover:text-slate-600 transition-colors"
                   >
                     Pular por agora →
@@ -537,14 +558,22 @@ export default function OnboardingPage() {
                     <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-indigo-500/10 to-transparent" />
                     <div className="flex flex-col items-center pt-4 relative z-10">
                       <div className="w-20 h-20 rounded-full border-4 border-white bg-slate-100 overflow-hidden shadow-lg mb-3">
-                        {profileImage.preview && <img src={profileImage.preview} alt="Profile" className="w-full h-full object-cover" />}
+                        {profileImage.preview && (
+                          <img src={profileImage.preview} alt="Profile" className="w-full h-full object-cover" />
+                        )}
                       </div>
-                      <h3 className="font-black text-slate-900 text-sm truncate w-full px-2">{displayName || "Seu Nome"}</h3>
-                      <p className="text-[10px] text-slate-500 font-medium line-clamp-2 px-4 mt-1">{bio || "Sua bio profissional"}</p>
+                      <h3 className="font-black text-slate-900 text-sm truncate w-full px-2">
+                        {displayName || "Seu Nome"}
+                      </h3>
+                      <p className="text-[10px] text-slate-500 font-medium line-clamp-2 px-4 mt-1">
+                        {bio || "Sua bio profissional"}
+                      </p>
 
                       <div className="w-full space-y-2 mt-6">
                         <div className="w-full h-8 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center">
-                          <span className="text-[10px] font-bold text-slate-400">{linkTitle || "Seu primeiro link"}</span>
+                          <span className="text-[10px] font-bold text-slate-400">
+                            {linkTitle || "Seu primeiro link"}
+                          </span>
                         </div>
                         <div className="w-full h-8 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center opacity-50">
                           <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
@@ -562,7 +591,9 @@ export default function OnboardingPage() {
                 <div className="bg-indigo-50 rounded-2xl p-6 space-y-4">
                   <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">SEU LINK EXCLUSIVO</p>
                   <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
-                    <span className="flex-1 font-black text-indigo-600 text-xl truncate">freelinnk.com/{username}</span>
+                    <span className="flex-1 font-black text-indigo-600 text-xl truncate">
+                      freelinnk.com/{username}
+                    </span>
                     <button
                       onClick={copyToClipboard}
                       className="w-12 h-12 bg-indigo-600 text-white rounded-lg flex items-center justify-center hover:bg-indigo-700 transition-all active:scale-90"
@@ -578,7 +609,8 @@ export default function OnboardingPage() {
                     disabled={isMarkingComplete}
                     className="w-full h-16 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xl rounded-2xl shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 hover:scale-[1.02] transition-all"
                   >
-                    {isMarkingComplete ? "Processando..." : "Ir para o Dashboard"} <Sparkles className="w-6 h-6" />
+                    {isMarkingComplete ? "Processando..." : "Ir para o Dashboard"}{" "}
+                    <Sparkles className="w-6 h-6" />
                   </button>
                 </div>
               </motion.div>
