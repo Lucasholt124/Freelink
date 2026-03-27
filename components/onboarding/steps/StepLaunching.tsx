@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { motion } from "framer-motion";
 import { Rocket, PartyPopper, Check, Loader2, Globe, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -27,8 +26,8 @@ const LaunchChecklistItem = ({ label, completed, active, delay }: { label: strin
       completed
         ? "bg-emerald-50 border border-emerald-100"
         : active
-        ? "bg-violet-50 border border-violet-200"
-        : "bg-slate-50 border border-slate-100"
+          ? "bg-violet-50 border border-violet-200"
+          : "bg-slate-50 border border-slate-100"
     )}
   >
     <div

@@ -1,6 +1,5 @@
 "use client";
 
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { User, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -46,7 +45,7 @@ export function PhonePreview({
         <div className="absolute top-36 -right-[9px] w-[3px] h-20 bg-[#2a2a2a] rounded-r-md" />
 
         <div className="absolute top-6 left-1/2 -translate-x-1/2 w-[30%] h-7 bg-black rounded-full z-30 flex items-center justify-center gap-2 pointer-events-none">
-           <div className="w-1.5 h-1.5 rounded-full bg-[#111] blur-[0.5px]" />
+          <div className="w-1.5 h-1.5 rounded-full bg-[#111] blur-[0.5px]" />
         </div>
 
         <div
@@ -103,9 +102,9 @@ export function PhonePreview({
                     <div className="flex items-center gap-3.5 min-w-0 relative z-10 w-full justify-center">
                       <div className="absolute left-0 text-xl opacity-90">
                         {link.iconPreview ? (
-                           <img src={link.iconPreview} className="w-6 h-6 object-cover rounded-md" alt="" />
+                          <img src={link.iconPreview} className="w-6 h-6 object-cover rounded-md" alt="" />
                         ) : (
-                           getPreviewLinkIcon(link.url, link.title)
+                          getPreviewLinkIcon(link.url, link.title)
                         )}
                       </div>
 

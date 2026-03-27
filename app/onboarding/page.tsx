@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { motion, AnimatePresence } from "framer-motion";
-import { 
-  ChevronLeft, Rocket, User, Link as LinkIcon, CheckCircle2, 
-  ArrowRight, Copy, Check, Upload, X, Globe, Instagram, 
+import {
+  ChevronLeft, Rocket, User, Link as LinkIcon, CheckCircle2,
+  ArrowRight, Copy, Check, Upload, X, Globe, Instagram,
   Linkedin, Twitter, Facebook, ExternalLink, Sparkles
 } from "lucide-react";
 import { toast } from "sonner";
@@ -56,15 +56,16 @@ export default function OnboardingPage() {
   const [step, setStep] = useState<Step>("username");
   const [loading, setLoading] = useState(false);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
+  const [isReady, setIsReady] = useState(false); // NOVO: controla quando mostrar o conteúdo
 
   // Form State
   const [username, setUsername] = useState("");
   const debouncedUsername = useDebounce(username, 500);
   const [displayName, setDisplayName] = useState("");
   const [bio, setBio] = useState("");
-  const [profileImage, setProfileImage] = useState<{ file: File | null; preview: string | null }>({ 
-    file: null, 
-    preview: null 
+  const [profileImage, setProfileImage] = useState<{ file: File | null; preview: string | null }>({
+    file: null,
+    preview: null
   });
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
@@ -73,10 +74,10 @@ export default function OnboardingPage() {
   // Queries/Mutations
   const onboardingStatus = useQuery(api.onboarding.getOnboardingStatus, {});
   const checkAvailability = useQuery(
-    api.lib.usernames.checkUsernameAvailability, 
+    api.lib.usernames.checkUsernameAvailability,
     debouncedUsername.length >= 3 ? { username: debouncedUsername } : "skip"
   );
-  
+
   const setUsernameMutation = useMutation(api.lib.usernames.setUsername);
   const updateCustomizations = useMutation(api.lib.customizations.updateCustomizations);
   const generateUploadUrl = useMutation(api.lib.customizations.generateUploadUrl);
@@ -87,14 +88,35 @@ export default function OnboardingPage() {
   const isUsernameValid = username.length >= 3 && checkAvailability?.available && /^[a-z0-9_.]+$/.test(username);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Sync with current step from DB if available
+  // =============================================
+  // CORREÇÃO PRINCIPAL: Lógica de redirecionamento
+  // =============================================
   useEffect(() => {
-    if (onboardingStatus?.completed) {
-      router.push("/dashboard");
-    } else if (onboardingStatus?.currentStep) {
-      const stepOrder: Step[] = ["username", "profile", "link", "success"];
-      setStep(stepOrder[onboardingStatus.currentStep - 1] || "username");
+    // 1. Se o status ainda está carregando (undefined), NÃO faz nada
+    if (onboardingStatus === undefined) {
+      return;
     }
+
+    // 2. Se retornou null (usuário não autenticado ainda), NÃO faz nada
+    if (onboardingStatus === null) {
+      return;
+    }
+
+    // 3. Se o onboarding está COMPLETO, redireciona para o dashboard
+    if (onboardingStatus.completed === true) {
+      router.replace("/dashboard");
+      return;
+    }
+
+    // 4. Se chegou aqui, o onboarding NÃO está completo - mostra o wizard
+    const stepOrder: Step[] = ["username", "profile", "link", "success"];
+    const currentStep = onboardingStatus.currentStep;
+    if (currentStep && currentStep >= 1 && currentStep <= 4) {
+      setStep(stepOrder[currentStep - 1]);
+    }
+
+    // Marca como pronto para renderizar
+    setIsReady(true);
   }, [onboardingStatus, router]);
 
   // Pre-fill from Clerk
@@ -129,24 +151,23 @@ export default function OnboardingPage() {
     setLoading(true);
     try {
       let profileStorageId = undefined;
-      
-      // Only upload if it's a NEW file (not the Clerk URL)
+
       if (profileImage.file) {
         const uploadUrl = await generateUploadUrl({});
-        const res = await fetch(uploadUrl, { 
-          method: "POST", 
-          headers: { "Content-Type": profileImage.file.type }, 
-          body: profileImage.file 
+        const res = await fetch(uploadUrl, {
+          method: "POST",
+          headers: { "Content-Type": profileImage.file.type },
+          body: profileImage.file
         });
         const json = await res.json();
         profileStorageId = json.storageId;
       }
 
-      await updateCustomizations({ 
-        description: bio, 
-        profilePictureStorageId: profileStorageId 
+      await updateCustomizations({
+        description: bio,
+        profilePictureStorageId: profileStorageId
       });
-      
+
       await updateStepMutation({ step: 3 });
       setStep("link");
     } catch (e: any) {
@@ -161,11 +182,11 @@ export default function OnboardingPage() {
     try {
       if (linkTitle && linkUrl) {
         let finalUrl = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
-        await createLink({ 
-          title: linkTitle, 
-          url: finalUrl, 
-          isFeatured: false, 
-          badgeType: undefined 
+        await createLink({
+          title: linkTitle,
+          url: finalUrl,
+          isFeatured: false,
+          badgeType: undefined
         });
       }
       await updateStepMutation({ step: 4 });
@@ -183,7 +204,7 @@ export default function OnboardingPage() {
     try {
       await completeOnboardingMutation({});
       toast.success("Bem-vindo ao FreeLinnk!");
-      router.push("/dashboard");
+      router.replace("/dashboard");
     } catch (e) {
       toast.error("Erro ao finalizar onboarding.");
     } finally {
@@ -199,9 +220,22 @@ export default function OnboardingPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
+  // =============================================
+  // TELA DE LOADING enquanto verifica o status
+  // =============================================
+  if (!isReady) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-500 font-medium">Carregando...</p>
+        </div>
+      </div>
+    );
+  }
+
   const currentStepInfo = STEPS[step];
-  
-  // Real-time Preview Link Card Component
+
   const LinkPreviewCard = () => (
     <div className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
       <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
@@ -218,20 +252,20 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 relative">
-        
+
         {/* Progress Navigation */}
         <div className="px-8 pt-8 pb-4 flex items-center justify-between">
           <FreelinnkLogo />
           <div className="flex items-center gap-3">
             {[1, 2, 3, 4].map((num) => (
               <div key={num} className="flex items-center">
-                <div 
+                <div
                   className={cn(
                     "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300",
-                    currentStepInfo.num === num 
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-110" 
-                      : currentStepInfo.num > num 
-                        ? "bg-emerald-500 text-white" 
+                    currentStepInfo.num === num
+                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-110"
+                      : currentStepInfo.num > num
+                        ? "bg-emerald-500 text-white"
                         : "bg-slate-100 text-slate-400"
                   )}
                 >
@@ -252,11 +286,11 @@ export default function OnboardingPage() {
         <div className="p-8 pb-12">
           <AnimatePresence mode="wait">
             {step === "username" && (
-              <motion.div 
-                key="username" 
-                initial={{ opacity: 0, y: 10 }} 
-                animate={{ opacity: 1, y: 0 }} 
-                exit={{ opacity: 0, y: -10 }} 
+              <motion.div
+                key="username"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
                 className="space-y-8"
               >
                 <div className="space-y-2">
@@ -268,31 +302,31 @@ export default function OnboardingPage() {
                   <label className="text-sm font-bold text-slate-700 block ml-1">Escolha seu username</label>
                   <div className={cn(
                     "flex items-center bg-slate-50 border-2 rounded-2xl transition-all h-16 px-4 group",
-                    username.length >= 3 
-                      ? isUsernameValid 
-                        ? "border-emerald-500 bg-emerald-50/30" 
+                    username.length >= 3
+                      ? isUsernameValid
+                        ? "border-emerald-500 bg-emerald-50/30"
                         : "border-red-500 bg-red-50/30"
                       : "border-slate-100 focus-within:border-indigo-500 focus-within:bg-white"
                   )}>
                     <span className="text-slate-400 font-bold select-none pr-1">freelinnk.com/</span>
-                    <input 
-                      type="text" 
-                      value={username} 
-                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))} 
-                      placeholder="seuusername" 
-                      className="flex-1 bg-transparent font-black text-slate-900 text-xl outline-none placeholder:text-slate-300" 
-                      autoFocus 
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+                      placeholder="seuusername"
+                      className="flex-1 bg-transparent font-black text-slate-900 text-xl outline-none placeholder:text-slate-300"
+                      autoFocus
                     />
                     <div className="flex items-center justify-center w-8 h-8">
                       {loading && <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />}
                       {!loading && username.length >= 3 && (
-                        isUsernameValid 
+                        isUsernameValid
                           ? <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                           : <X className="w-6 h-6 text-red-500" />
                       )}
                     </div>
                   </div>
-                  
+
                   {username.length > 0 && (
                     <div className="px-1 text-sm font-medium">
                       {username.length < 3 && <p className="text-slate-400">Pelo menos 3 caracteres</p>}
@@ -305,9 +339,9 @@ export default function OnboardingPage() {
                   )}
                 </div>
 
-                <button 
-                  onClick={handleUsernameNext} 
-                  disabled={!isUsernameValid || loading} 
+                <button
+                  onClick={handleUsernameNext}
+                  disabled={!isUsernameValid || loading}
                   className="w-full h-16 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:grayscale shadow-xl shadow-slate-200"
                 >
                   Continuar <ArrowRight className="w-6 h-6" />
@@ -316,11 +350,11 @@ export default function OnboardingPage() {
             )}
 
             {step === "profile" && (
-              <motion.div 
-                key="profile" 
-                initial={{ opacity: 0, x: 20 }} 
-                animate={{ opacity: 1, x: 0 }} 
-                exit={{ opacity: 0, x: -20 }} 
+              <motion.div
+                key="profile"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
                 className="space-y-8"
               >
                 <div className="space-y-2">
@@ -329,7 +363,6 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="space-y-8">
-                  {/* Avatar Upload */}
                   <div className="flex flex-col items-center gap-4">
                     <div className="relative group">
                       <div className="w-32 h-32 rounded-full border-4 border-slate-50 bg-slate-100 flex items-center justify-center overflow-hidden shadow-inner cursor-pointer" onClick={() => fileInputRef.current?.click()}>
@@ -342,18 +375,18 @@ export default function OnboardingPage() {
                           <Upload className="w-8 h-8 text-white" />
                         </div>
                       </div>
-                      <input 
-                        type="file" 
-                        ref={fileInputRef} 
-                        accept="image/*" 
-                        className="hidden" 
+                      <input
+                        type="file"
+                        ref={fileInputRef}
+                        accept="image/*"
+                        className="hidden"
                         onChange={(e) => {
                           const f = e.target.files?.[0];
                           if (f) setProfileImage({ file: f, preview: URL.createObjectURL(f) });
-                        }} 
+                        }}
                       />
                       {profileImage.preview && (
-                        <button 
+                        <button
                           onClick={() => setProfileImage({ file: null, preview: null })}
                           className="absolute -top-1 -right-1 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white hover:scale-110 transition-transform"
                         >
@@ -366,39 +399,39 @@ export default function OnboardingPage() {
                   <div className="space-y-6">
                     <div>
                       <label className="text-sm font-bold text-slate-700 mb-2 block ml-1">Nome de exibição</label>
-                      <input 
-                        type="text" 
-                        value={displayName} 
-                        onChange={(e) => setDisplayName(e.target.value)} 
-                        placeholder="Seu nome ou marca" 
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 h-16 font-bold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all" 
+                      <input
+                        type="text"
+                        value={displayName}
+                        onChange={(e) => setDisplayName(e.target.value)}
+                        placeholder="Seu nome ou marca"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 h-16 font-bold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all"
                       />
                     </div>
                     <div>
                       <label className="flex items-center justify-between text-sm font-bold text-slate-700 mb-2 px-1">
                         Bio <span>{bio.length}/150</span>
                       </label>
-                      <textarea 
-                        value={bio} 
-                        onChange={(e) => setBio(e.target.value.slice(0, 150))} 
-                        placeholder="Conte um pouco sobre você ou seu negócio..." 
-                        rows={3} 
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-medium text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all resize-none" 
+                      <textarea
+                        value={bio}
+                        onChange={(e) => setBio(e.target.value.slice(0, 150))}
+                        placeholder="Conte um pouco sobre você ou seu negócio..."
+                        rows={3}
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-medium text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all resize-none"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div className="flex gap-4">
-                  <button 
-                    onClick={() => setStep("username")} 
+                  <button
+                    onClick={() => setStep("username")}
                     className="flex-1 h-16 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-all"
                   >
                     Voltar
                   </button>
-                  <button 
-                    onClick={handleProfileNext} 
-                    disabled={loading || !displayName} 
+                  <button
+                    onClick={handleProfileNext}
+                    disabled={loading || !displayName}
                     className="flex-[2] h-16 bg-slate-900 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
                   >
                     {loading ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Continuar"} <ArrowRight className="w-6 h-6" />
@@ -408,11 +441,11 @@ export default function OnboardingPage() {
             )}
 
             {step === "link" && (
-              <motion.div 
-                key="link" 
-                initial={{ opacity: 0, scale: 0.95 }} 
-                animate={{ opacity: 1, scale: 1 }} 
-                exit={{ opacity: 0, scale: 0.95 }} 
+              <motion.div
+                key="link"
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
                 className="space-y-8"
               >
                 <div className="space-y-2">
@@ -424,53 +457,52 @@ export default function OnboardingPage() {
                   <div className="space-y-6">
                     <div>
                       <label className="text-sm font-bold text-slate-700 mb-2 block ml-1">Título do link</label>
-                      <input 
-                        type="text" 
-                        value={linkTitle} 
-                        onChange={(e) => setLinkTitle(e.target.value)} 
-                        placeholder="Ex: Meu Instagram" 
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 h-14 font-bold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all" 
+                      <input
+                        type="text"
+                        value={linkTitle}
+                        onChange={(e) => setLinkTitle(e.target.value)}
+                        placeholder="Ex: Meu Instagram"
+                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 h-14 font-bold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all"
                       />
                     </div>
                     <div>
                       <label className="text-sm font-bold text-slate-700 mb-2 block ml-1">URL</label>
-                      <input 
-                        type="url" 
-                        value={linkUrl} 
-                        onChange={(e) => setLinkUrl(e.target.value)} 
-                        placeholder="https://instagram.com/seuuser" 
+                      <input
+                        type="url"
+                        value={linkUrl}
+                        onChange={(e) => setLinkUrl(e.target.value)}
+                        placeholder="https://instagram.com/seuuser"
                         className={cn(
                           "w-full bg-slate-50 border-2 rounded-2xl px-6 h-14 font-bold text-slate-900 outline-none transition-all",
                           linkUrl && !linkUrl.startsWith("http") ? "border-red-200 focus:border-red-500" : "border-slate-100 focus:border-indigo-500 focus:bg-white"
-                        )} 
+                        )}
                       />
                       {linkUrl && !linkUrl.startsWith("http") && <p className="text-xs text-red-500 mt-1.5 font-bold ml-1">Insira uma URL válida (começando com https://)</p>}
                     </div>
                   </div>
 
-                  {/* Real-time Preview */}
                   <div className="space-y-4">
                     <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">Preview em tempo real</label>
                     <div className="bg-slate-50 rounded-3xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center">
-                       <LinkPreviewCard />
-                       <div className="mt-4 flex gap-3 opacity-30 grayscale pointer-events-none">
-                         <div className="w-10 h-10 rounded-full bg-indigo-100" />
-                         <div className="w-10 h-10 rounded-full bg-indigo-100" />
-                         <div className="w-10 h-10 rounded-full bg-indigo-100" />
-                       </div>
+                      <LinkPreviewCard />
+                      <div className="mt-4 flex gap-3 opacity-30 grayscale pointer-events-none">
+                        <div className="w-10 h-10 rounded-full bg-indigo-100" />
+                        <div className="w-10 h-10 rounded-full bg-indigo-100" />
+                        <div className="w-10 h-10 rounded-full bg-indigo-100" />
+                      </div>
                     </div>
                   </div>
                 </div>
 
                 <div className="space-y-4">
-                  <button 
-                    onClick={handleLinkNext} 
-                    disabled={loading || !linkTitle || !linkUrl || !linkUrl.startsWith("http")} 
+                  <button
+                    onClick={handleLinkNext}
+                    disabled={loading || !linkTitle || !linkUrl || !linkUrl.startsWith("http")}
                     className="w-full h-16 bg-slate-900 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
                   >
                     {loading ? <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" /> : "Adicionar e continuar"} <ArrowRight className="w-6 h-6" />
                   </button>
-                  <button 
+                  <button
                     onClick={() => {
                       updateStepMutation({ step: 4 });
                       setStep("success");
@@ -485,10 +517,10 @@ export default function OnboardingPage() {
             )}
 
             {step === "success" && (
-              <motion.div 
-                key="success" 
-                initial={{ opacity: 0, scale: 0.9 }} 
-                animate={{ opacity: 1, scale: 1 }} 
+              <motion.div
+                key="success"
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
                 className="space-y-8 text-center"
               >
                 <div className="space-y-2">
@@ -496,9 +528,8 @@ export default function OnboardingPage() {
                   <p className="text-slate-500 text-lg">Seu FreeLinnk está disponível para o mundo.</p>
                 </div>
 
-                {/* Profile Mockup */}
                 <div className="flex justify-center perspective-1000">
-                  <motion.div 
+                  <motion.div
                     initial={{ rotateY: 15, rotateX: 5 }}
                     animate={{ rotateY: 0, rotateX: 0 }}
                     className="w-64 bg-white rounded-[2.5rem] p-4 shadow-2xl border-8 border-slate-900 relative overflow-hidden"
@@ -510,7 +541,7 @@ export default function OnboardingPage() {
                       </div>
                       <h3 className="font-black text-slate-900 text-sm truncate w-full px-2">{displayName || "Seu Nome"}</h3>
                       <p className="text-[10px] text-slate-500 font-medium line-clamp-2 px-4 mt-1">{bio || "Sua bio profissional"}</p>
-                      
+
                       <div className="w-full space-y-2 mt-6">
                         <div className="w-full h-8 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center">
                           <span className="text-[10px] font-bold text-slate-400">{linkTitle || "Seu primeiro link"}</span>
@@ -528,12 +559,11 @@ export default function OnboardingPage() {
                   </motion.div>
                 </div>
 
-                {/* Link Share Box */}
                 <div className="bg-indigo-50 rounded-2xl p-6 space-y-4">
                   <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">SEU LINK EXCLUSIVO</p>
                   <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
                     <span className="flex-1 font-black text-indigo-600 text-xl truncate">freelinnk.com/{username}</span>
-                    <button 
+                    <button
                       onClick={copyToClipboard}
                       className="w-12 h-12 bg-indigo-600 text-white rounded-lg flex items-center justify-center hover:bg-indigo-700 transition-all active:scale-90"
                     >
@@ -543,7 +573,7 @@ export default function OnboardingPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3">
-                  <button 
+                  <button
                     onClick={handleFinishOnboarding}
                     disabled={isMarkingComplete}
                     className="w-full h-16 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xl rounded-2xl shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 hover:scale-[1.02] transition-all"
