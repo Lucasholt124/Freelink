@@ -21,11 +21,8 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     getCachedOnboardingStatus(user.id),
   ]);
 
-  // LÓGICA DE PROTEÇÃO:
-  // Redireciona para o Onboarding se:
-  // 1. Não tiver username (userSlug === userId)
-  // 2. Não tiver completado os 4 passos do wizard
-  if (userSlug === user.id || !onboarding?.completed) {
+  // Redireciona para o Onboarding se o usuário ainda não escolheu um username (userSlug === userId)
+  if (userSlug === user.id) {
     return redirect("/onboarding");
   }
 

@@ -9,7 +9,6 @@ import {
   ArrowRight, CheckCircle2, Star,
   ShieldCheck, Share2
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import confetti from "canvas-confetti";
 
 export function WelcomeModal() {
@@ -51,19 +50,19 @@ export function WelcomeModal() {
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          className="relative w-full max-w-2xl bg-white rounded-[2.5rem] shadow-2xl shadow-indigo-500/20 overflow-hidden border border-slate-100"
+          className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl shadow-indigo-500/20 overflow-hidden border border-slate-100"
         >
           {/* Close button */}
           <button
             onClick={handleDismiss}
-            className="absolute top-6 right-6 p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-full transition-all z-20"
+            className="absolute top-4 right-4 lg:top-6 lg:right-6 p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-50 rounded-full transition-all z-20"
           >
             <X className="w-6 h-6" />
           </button>
 
           <div className="flex flex-col lg:flex-row h-full">
             {/* Left side: Visuals */}
-            <div className="lg:w-2/5 bg-slate-900 p-8 flex flex-col justify-between relative overflow-hidden">
+            <div className="lg:w-2/5 bg-slate-900 p-6 lg:p-10 flex flex-col justify-between relative overflow-hidden">
               {/* Abstract deco */}
               <div className="absolute top-0 left-0 w-full h-full opacity-20">
                 <div className="absolute top-[-10%] left-[-10%] w-64 h-64 rounded-full bg-indigo-500 blur-3xl animate-pulse" />
@@ -74,7 +73,7 @@ export function WelcomeModal() {
                 <div className="w-12 h-12 bg-white/10 rounded-xl flex items-center justify-center mb-6">
                   <Star className="w-6 h-6 text-yellow-400 fill-yellow-400" />
                 </div>
-                <h2 className="text-3xl font-black text-white leading-tight">
+                <h2 className="text-2xl lg:text-3xl font-black text-white leading-tight">
                   Bem-vindo à elite do <span className="text-indigo-400 font-black italic">FreeLinnk</span>.
                 </h2>
               </div>
@@ -88,7 +87,7 @@ export function WelcomeModal() {
             </div>
 
             {/* Right side: Content */}
-            <div className="lg:w-3/5 p-10 lg:p-12 space-y-8">
+            <div className="lg:w-3/5 p-6 lg:p-12 space-y-6 lg:space-y-8">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 text-indigo-600">
                   <Sparkles className="w-5 h-5" />
