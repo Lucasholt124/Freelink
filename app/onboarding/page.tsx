@@ -7,8 +7,8 @@ import { api } from "@/convex/_generated/api";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   ChevronLeft, Rocket, User, Link as LinkIcon, CheckCircle2,
-  ArrowRight, Copy, Check, Upload, X, Globe, Instagram,
-  Linkedin, Twitter, Facebook, ExternalLink, Sparkles
+  ArrowRight, Copy, Check, Upload, X, Globe, ExternalLink,
+  Sparkles, Share2
 } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
@@ -17,11 +17,11 @@ import { FreelinnkLogo } from "@/components/onboarding/FreelinnkLogo";
 import confetti from "canvas-confetti";
 import { useUser } from "@clerk/nextjs";
 
-type Step = "username" | "profile" | "link" | "success";
+type Step = "profile" | "username" | "link" | "success";
 
 const STEPS: Record<Step, { num: number; total: number; label: string }> = {
-  username: { num: 1, total: 4, label: "Username" },
-  profile: { num: 2, total: 4, label: "Perfil" },
+  profile: { num: 1, total: 4, label: "Perfil" },
+  username: { num: 2, total: 4, label: "Username" },
   link: { num: 3, total: 4, label: "Primeiro Link" },
   success: { num: 4, total: 4, label: "Pronto!" },
 };
@@ -41,13 +41,12 @@ const triggerConfetti = () => {
 export default function OnboardingPage() {
   const router = useRouter();
   const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
-  const [step, setStep] = useState<Step>("username");
+  const [step, setStep] = useState<Step>("profile");
   const [loading, setLoading] = useState(false);
   const [isMarkingComplete, setIsMarkingComplete] = useState(false);
 
-  // FIX: Separamos "inicializado" (já leu o status do banco uma vez) de "pronto"
   const [isReady, setIsReady] = useState(false);
-  const hasInitialized = useRef(false); // ← garante que só sincronizamos o step UMA vez
+  const hasInitialized = useRef(false);
 
   // Form State
   const [username, setUsername] = useState("");
@@ -76,48 +75,31 @@ export default function OnboardingPage() {
   const updateStepMutation = useMutation(api.onboarding.updateOnboardingStep);
   const completeOnboardingMutation = useMutation(api.onboarding.completeOnboarding);
 
-  const isUsernameValid =
-    username.length >= 3 && checkAvailability?.available && /^[a-z0-9_.]+$/.test(username);
+  const isUsernameValid = username.length >= 3 && checkAvailability?.available && /^[a-z0-9_.]+$/.test(username);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // =============================================
-  // CORREÇÃO PRINCIPAL: só sincroniza o step na
-  // primeira leitura válida do banco (hasInitialized).
-  // Reações subsequentes do Convex (após mutations)
-  // NÃO sobrescrevem mais o step local.
-  // =============================================
   useEffect(() => {
-    // Ainda carregando
     if (onboardingStatus === undefined) return;
-
-    // Usuário não autenticado ainda
     if (onboardingStatus === null) return;
 
-    // Onboarding já completo → dashboard
     if (onboardingStatus.completed === true) {
       router.replace("/dashboard");
       return;
     }
 
-    // Só sincroniza o step local NA PRIMEIRA VEZ
     if (!hasInitialized.current) {
       hasInitialized.current = true;
 
-      const stepOrder: Step[] = ["username", "profile", "link", "success"];
+      const stepOrder: Step[] = ["profile", "username", "link", "success"];
       const currentStep = onboardingStatus.currentStep;
 
       if (currentStep && currentStep >= 1 && currentStep <= 4) {
         setStep(stepOrder[currentStep - 1]);
       }
-      // Se currentStep for null/undefined/0 → fica em "username" (estado inicial já correto)
-
       setIsReady(true);
     }
-    // ↑ Nas próximas re-execuções causadas por mutations (step 2, 3, 4…),
-    //   hasInitialized.current já é true, então não mexemos no step local.
   }, [onboardingStatus, router]);
 
-  // Pre-fill from Clerk
   useEffect(() => {
     if (isClerkLoaded && clerkUser) {
       if (!displayName) setDisplayName(clerkUser.fullName || "");
@@ -132,20 +114,6 @@ export default function OnboardingPage() {
       if (profileImage.preview && profileImage.file) URL.revokeObjectURL(profileImage.preview);
     };
   }, [profileImage.preview, profileImage.file]);
-
-  const handleUsernameNext = async () => {
-    if (!isUsernameValid) return toast.error("Por favor, escolha um username válido e disponível.");
-    setLoading(true);
-    try {
-      await setUsernameMutation({ username });
-      await updateStepMutation({ step: 2 });
-      setStep("profile"); // ← local state avança imediatamente, sem depender do Convex re-render
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao garantir o username.");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleProfileNext = async () => {
     setLoading(true);
@@ -164,10 +132,24 @@ export default function OnboardingPage() {
       }
 
       await updateCustomizations({ description: bio, profilePictureStorageId: profileStorageId });
+      await updateStepMutation({ step: 2 });
+      setStep("username");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar perfil.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUsernameNext = async () => {
+    if (!isUsernameValid) return toast.error("Por favor, escolha um username válido e disponível.");
+    setLoading(true);
+    try {
+      await setUsernameMutation({ username });
       await updateStepMutation({ step: 3 });
       setStep("link");
     } catch (e: any) {
-      toast.error(e.message || "Erro ao salvar perfil.");
+      toast.error(e.message || "Erro ao garantir o username.");
     } finally {
       setLoading(false);
     }
@@ -191,12 +173,15 @@ export default function OnboardingPage() {
   };
 
   const handleSkipLink = async () => {
+    setLoading(true);
     try {
       await updateStepMutation({ step: 4 });
       setStep("success");
       triggerConfetti();
     } catch (e: any) {
       toast.error(e.message || "Erro ao pular etapa.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -220,7 +205,23 @@ export default function OnboardingPage() {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Tela de loading enquanto verifica o status
+  const shareLink = async () => {
+    const url = `https://freelinnk.com/${username}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({
+          title: 'Meu FreeLinnk',
+          text: 'Confira todos os meus links em um só lugar!',
+          url: url,
+        });
+      } catch (err) {
+        console.log('Erro ao compartilhar', err);
+      }
+    } else {
+      copyToClipboard();
+    }
+  };
+
   if (!isReady) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
@@ -233,6 +234,8 @@ export default function OnboardingPage() {
   }
 
   const currentStepInfo = STEPS[step];
+  const isLinkReady = linkTitle && linkUrl && linkUrl.startsWith("http");
+  const isLinkPartiallyFilled = !!(linkTitle || linkUrl) && !isLinkReady;
 
   const LinkPreviewCard = () => (
     <div className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
@@ -285,72 +288,8 @@ export default function OnboardingPage() {
         {/* Wizard Content */}
         <div className="p-8 pb-12">
           <AnimatePresence mode="wait">
-            {step === "username" && (
-              <motion.div
-                key="username"
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="space-y-8"
-              >
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">🎉 Bem-vindo ao FreeLinnk!</h1>
-                  <p className="text-slate-500 text-lg">Vamos configurar seu perfil em menos de 2 minutos.</p>
-                </div>
 
-                <div className="space-y-4">
-                  <label className="text-sm font-bold text-slate-700 block ml-1">Escolha seu username</label>
-                  <div
-                    className={cn(
-                      "flex items-center bg-slate-50 border-2 rounded-2xl transition-all h-16 px-4 group",
-                      username.length >= 3
-                        ? isUsernameValid
-                          ? "border-emerald-500 bg-emerald-50/30"
-                          : "border-red-500 bg-red-50/30"
-                        : "border-slate-100 focus-within:border-indigo-500 focus-within:bg-white"
-                    )}
-                  >
-                    <span className="text-slate-400 font-bold select-none pr-1">freelinnk.com/</span>
-                    <input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
-                      placeholder="seuusername"
-                      className="flex-1 bg-transparent font-black text-slate-900 text-xl outline-none placeholder:text-slate-300"
-                      autoFocus
-                    />
-                    <div className="flex items-center justify-center w-8 h-8">
-                      {loading && <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />}
-                      {!loading && username.length >= 3 && (
-                        isUsernameValid
-                          ? <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                          : <X className="w-6 h-6 text-red-500" />
-                      )}
-                    </div>
-                  </div>
-
-                  {username.length > 0 && (
-                    <div className="px-1 text-sm font-medium">
-                      {username.length < 3 && <p className="text-slate-400">Pelo menos 3 caracteres</p>}
-                      {username.length >= 3 && checkAvailability && (
-                        <p className={checkAvailability.available ? "text-emerald-600" : "text-red-500"}>
-                          {checkAvailability.available ? "Disponível!" : "Já está em uso, tente outro"}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleUsernameNext}
-                  disabled={!isUsernameValid || loading}
-                  className="w-full h-16 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:grayscale shadow-xl shadow-slate-200"
-                >
-                  Continuar <ArrowRight className="w-6 h-6" />
-                </button>
-              </motion.div>
-            )}
-
+            {/* STEP 1: PROFILE */}
             {step === "profile" && (
               <motion.div
                 key="profile"
@@ -360,8 +299,8 @@ export default function OnboardingPage() {
                 className="space-y-8"
               >
                 <div className="space-y-2">
-                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">📸 Personalize seu perfil</h1>
-                  <p className="text-slate-500 text-lg">Deixe sua marca registrada para seus seguidores.</p>
+                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">👋 Qual é o seu nome?</h1>
+                  <p className="text-slate-500 text-lg">Vamos começar com o básico. Como as pessoas conhecem você?</p>
                 </div>
 
                 <div className="space-y-8">
@@ -392,13 +331,17 @@ export default function OnboardingPage() {
                       />
                       {profileImage.preview && (
                         <button
-                          onClick={() => setProfileImage({ file: null, preview: null })}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setProfileImage({ file: null, preview: null });
+                          }}
                           className="absolute -top-1 -right-1 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white hover:scale-110 transition-transform"
                         >
                           <X className="w-4 h-4" />
                         </button>
                       )}
                     </div>
+                    <span className="text-xs font-medium text-slate-400">Foto de perfil (Opcional)</span>
                   </div>
 
                   <div className="space-y-6">
@@ -410,39 +353,119 @@ export default function OnboardingPage() {
                         onChange={(e) => setDisplayName(e.target.value)}
                         placeholder="Seu nome ou marca"
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 h-16 font-bold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                        autoFocus
                       />
                     </div>
                     <div>
                       <label className="flex items-center justify-between text-sm font-bold text-slate-700 mb-2 px-1">
-                        Bio <span>{bio.length}/150</span>
+                        Bio <span className="text-slate-400 font-normal">Opcional - {bio.length}/150</span>
                       </label>
                       <textarea
                         value={bio}
                         onChange={(e) => setBio(e.target.value.slice(0, 150))}
-                        placeholder="Conte um pouco sobre você ou seu negócio..."
-                        rows={3}
+                        placeholder="Conte um pouco sobre você ou seu negócio em uma frase..."
+                        rows={2}
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-medium text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all resize-none"
                       />
                     </div>
                   </div>
                 </div>
 
+                <button
+                  onClick={handleProfileNext}
+                  disabled={loading || !displayName}
+                  className="w-full h-16 bg-slate-900 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
+                >
+                  {loading ? (
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    "Continuar"
+                  )}{" "}
+                  <ArrowRight className="w-6 h-6" />
+                </button>
+              </motion.div>
+            )}
+
+            {/* STEP 2: USERNAME */}
+            {step === "username" && (
+              <motion.div
+                key="username"
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
+                className="space-y-8"
+              >
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">🎯 Seu link exclusivo</h1>
+                  <p className="text-slate-500 text-lg">Como você quer ser encontrado na internet?</p>
+                </div>
+
+                <div className="space-y-4">
+                  <label className="text-sm font-bold text-slate-700 block ml-1">Escolha seu endereço</label>
+                  <div
+                    className={cn(
+                      "flex items-center bg-slate-50 border-2 rounded-2xl transition-all h-16 px-4 group",
+                      username.length >= 3
+                        ? isUsernameValid
+                          ? "border-emerald-500 bg-emerald-50/30"
+                          : "border-red-500 bg-red-50/30"
+                        : "border-slate-100 focus-within:border-indigo-500 focus-within:bg-white"
+                    )}
+                  >
+                    <span className="text-slate-400 font-bold select-none pr-1">freelinnk.com/</span>
+                    <input
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
+                      placeholder="seuusername"
+                      className="flex-1 bg-transparent font-black text-slate-900 text-xl outline-none placeholder:text-slate-300 w-full"
+                      autoFocus
+                    />
+                    <div className="flex items-center justify-center w-8 h-8 shrink-0">
+                      {loading && <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />}
+                      {!loading && username.length >= 3 && (
+                        isUsernameValid
+                          ? <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                          : <X className="w-6 h-6 text-red-500" />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="px-1 text-sm font-medium h-6">
+                    {username.length > 0 && username.length < 3 && (
+                      <p className="text-slate-400">Pelo menos 3 caracteres</p>
+                    )}
+                    {username.length >= 3 && checkAvailability && (
+                      <p className={checkAvailability.available ? "text-emerald-600" : "text-red-500"}>
+                        {checkAvailability.available ? "🎉 Nome disponível!" : "Já está em uso, tente outro"}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3 text-indigo-700">
+                  <Rocket className="w-5 h-5 shrink-0 mt-0.5" />
+                  <p className="text-sm font-medium leading-relaxed">
+                    Esse será o seu link público único. Perfis com links simples e fáceis de ler recebem mais visitas!
+                  </p>
+                </div>
+
                 <div className="flex gap-4">
                   <button
-                    onClick={() => setStep("username")}
+                    onClick={() => setStep("profile")}
                     className="flex-1 h-16 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-all"
                   >
                     Voltar
                   </button>
                   <button
-                    onClick={handleProfileNext}
-                    disabled={loading || !displayName}
-                    className="flex-[2] h-16 bg-slate-900 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
+                    onClick={handleUsernameNext}
+                    disabled={!isUsernameValid || loading}
+                    className="flex-[2] h-16 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:grayscale shadow-xl shadow-slate-200"
                   >
                     {loading ? (
                       <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      "Continuar"
+                      "Reservar Link"
                     )}{" "}
                     <ArrowRight className="w-6 h-6" />
                   </button>
@@ -450,17 +473,18 @@ export default function OnboardingPage() {
               </motion.div>
             )}
 
+            {/* STEP 3: LINK */}
             {step === "link" && (
               <motion.div
                 key="link"
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 0.95 }}
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -20 }}
                 className="space-y-8"
               >
                 <div className="space-y-2">
-                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">🔗 Adicione seu primeiro link!</h1>
-                  <p className="text-slate-500 text-lg">Seu perfil fica muito melhor com pelo menos um link.</p>
+                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">🔗 Adicione seu primeiro link</h1>
+                  <p className="text-slate-500 text-lg">Perfis com pelo menos um link configurado têm 3x mais cliques e engajamento. <span className="text-sm bg-slate-100 px-2 py-1 rounded-md ml-1 font-medium">Opcional</span></p>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
@@ -471,12 +495,13 @@ export default function OnboardingPage() {
                         type="text"
                         value={linkTitle}
                         onChange={(e) => setLinkTitle(e.target.value)}
-                        placeholder="Ex: Meu Instagram"
+                        placeholder="Ex: Meu Instagram, WhatsApp..."
                         className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 h-14 font-bold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                        autoFocus
                       />
                     </div>
                     <div>
-                      <label className="text-sm font-bold text-slate-700 mb-2 block ml-1">URL</label>
+                      <label className="text-sm font-bold text-slate-700 mb-2 block ml-1">URL de destino</label>
                       <input
                         type="url"
                         value={linkUrl}
@@ -512,31 +537,34 @@ export default function OnboardingPage() {
                   </div>
                 </div>
 
-                <div className="space-y-4">
+                <div className="space-y-4 pt-4">
                   <button
-                    onClick={handleLinkNext}
-                    disabled={loading || !linkTitle || !linkUrl || !linkUrl.startsWith("http")}
-                    className="w-full h-16 bg-slate-900 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
+                    onClick={isLinkReady ? handleLinkNext : handleSkipLink}
+                    disabled={loading || isLinkPartiallyFilled}
+                    className={cn(
+                      "w-full h-16 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50",
+                      isLinkReady
+                        ? "bg-slate-900 shadow-xl shadow-slate-200 hover:bg-slate-800"
+                        : "bg-slate-300 hover:bg-slate-400 text-slate-600"
+                    )}
                   >
                     {loading ? (
                       <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
                     ) : (
-                      "Adicionar e continuar"
-                    )}{" "}
-                    <ArrowRight className="w-6 h-6" />
+                      isLinkReady ? "Adicionar e continuar" : "Pular sem link"
+                    )}
+                    {isLinkReady && <ArrowRight className="w-6 h-6" />}
                   </button>
-                  {/* FIX: "Pular" agora chama handleSkipLink (async) em vez de chamar
-                      updateStepMutation diretamente inline — evita promise não tratada */}
-                  <button
-                    onClick={handleSkipLink}
-                    className="w-full text-slate-400 font-bold hover:text-slate-600 transition-colors"
-                  >
-                    Pular por agora →
-                  </button>
+                  {isLinkPartiallyFilled && (
+                    <p className="text-center text-sm text-slate-500">
+                      Preencha o título e a URL correta, ou apague os campos para pular.
+                    </p>
+                  )}
                 </div>
               </motion.div>
             )}
 
+            {/* STEP 4: SUCCESS */}
             {step === "success" && (
               <motion.div
                 key="success"
@@ -546,7 +574,7 @@ export default function OnboardingPage() {
               >
                 <div className="space-y-2">
                   <h1 className="text-4xl font-black text-slate-900 tracking-tight">🚀 Tudo pronto! 🎊</h1>
-                  <p className="text-slate-500 text-lg">Seu FreeLinnk está disponível para o mundo.</p>
+                  <p className="text-slate-500 text-lg">Seu perfil FreeLinnk já está disponível para o mundo.</p>
                 </div>
 
                 <div className="flex justify-center perspective-1000">
@@ -558,14 +586,18 @@ export default function OnboardingPage() {
                     <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-indigo-500/10 to-transparent" />
                     <div className="flex flex-col items-center pt-4 relative z-10">
                       <div className="w-20 h-20 rounded-full border-4 border-white bg-slate-100 overflow-hidden shadow-lg mb-3">
-                        {profileImage.preview && (
+                        {profileImage.preview ? (
                           <img src={profileImage.preview} alt="Profile" className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center bg-indigo-50">
+                            <User className="w-10 h-10 text-indigo-300" />
+                          </div>
                         )}
                       </div>
                       <h3 className="font-black text-slate-900 text-sm truncate w-full px-2">
                         {displayName || "Seu Nome"}
                       </h3>
-                      <p className="text-[10px] text-slate-500 font-medium line-clamp-2 px-4 mt-1">
+                      <p className="text-[10px] text-slate-500 font-medium line-clamp-2 px-4 mt-1 min-h-[1.5rem]">
                         {bio || "Sua bio profissional"}
                       </p>
 
@@ -591,26 +623,33 @@ export default function OnboardingPage() {
                 <div className="bg-indigo-50 rounded-2xl p-6 space-y-4">
                   <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">SEU LINK EXCLUSIVO</p>
                   <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
-                    <span className="flex-1 font-black text-indigo-600 text-xl truncate">
+                    <span className="flex-1 font-black text-indigo-600 text-lg sm:text-xl truncate text-left">
                       freelinnk.com/{username}
                     </span>
                     <button
                       onClick={copyToClipboard}
-                      className="w-12 h-12 bg-indigo-600 text-white rounded-lg flex items-center justify-center hover:bg-indigo-700 transition-all active:scale-90"
+                      className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center hover:bg-indigo-200 transition-all active:scale-90 shrink-0"
+                      title="Copiar link"
                     >
                       {copied ? <Check className="w-6 h-6" /> : <Copy className="w-6 h-6" />}
                     </button>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={shareLink}
+                    className="w-full h-16 bg-slate-100 text-slate-900 font-black text-lg rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-200 transition-all"
+                  >
+                    <Share2 className="w-5 h-5" /> Compartilhar
+                  </button>
                   <button
                     onClick={handleFinishOnboarding}
                     disabled={isMarkingComplete}
-                    className="w-full h-16 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-xl rounded-2xl shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 hover:scale-[1.02] transition-all"
+                    className="w-full h-16 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 hover:scale-[1.02] transition-all"
                   >
-                    {isMarkingComplete ? "Processando..." : "Ir para o Dashboard"}{" "}
-                    <Sparkles className="w-6 h-6" />
+                    {isMarkingComplete ? "Processando..." : "Ir pro Dashboard"}{" "}
+                    <Sparkles className="w-5 h-5" />
                   </button>
                 </div>
               </motion.div>
