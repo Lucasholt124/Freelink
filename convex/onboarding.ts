@@ -21,12 +21,31 @@ export const getOnboardingStatus = query({
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .unique();
 
+    // 🔥 BACKUP: Se o usuário já tem links no banco, ele NÃO é novo.
+    // Isso evita que o modal apareça para usuários antigos que não tinham o registro de onboarding.
+    const userLinks = await ctx.db
+      .query("links")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    
+    const hasLinks = !!userLinks;
+
     if (!onboarding) {
       return {
-        completed: false,
-        currentStep: 1,
-        hasSeenWelcome: false,
+        completed: hasLinks,
+        currentStep: hasLinks ? 4 : 1,
+        hasSeenWelcome: hasLinks,
       };
+    }
+
+    // Se o registro existe mas diz que não completou, mas ele JÁ TEM links, 
+    // force a conclusão para não incomodar o usuário.
+    if (!onboarding.completed && hasLinks) {
+       return {
+         ...onboarding,
+         completed: true,
+         hasSeenWelcome: true,
+       };
     }
 
     return onboarding;
