@@ -3,12 +3,12 @@
 import { useUser } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
 import {
-  Loader2, CheckCircle,
-  Zap, Shield,
-  Crown, ArrowRight, Lock,
-  Infinity as InfinityIcon, Check,
-  BarChart3, Megaphone,
-  TrendingUp, MousePointerClick, SearchX, Globe, AlertTriangle, Settings, Layers, Gift, PieChart
+    Loader2, CheckCircle,
+    Zap, Shield,
+    Crown, ArrowRight, Lock,
+    Infinity as InfinityIcon, Check,
+    BarChart3, Megaphone,
+    TrendingUp, MousePointerClick, SearchX, Globe, AlertTriangle, Settings, Layers, Gift, PieChart
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
@@ -24,38 +24,38 @@ import { Textarea } from "@/components/ui/textarea";
 // ============================================
 
 declare global {
-  interface Window {
-    gtag?: (command: 'event', eventName: string, params?: Record<string, unknown>) => void;
-    fbq?: (method: string, eventName: string, params?: Record<string, unknown>) => void;
-  }
+    interface Window {
+        gtag?: (command: 'event', eventName: string, params?: Record<string, unknown>) => void;
+        fbq?: (method: string, eventName: string, params?: Record<string, unknown>) => void;
+    }
 }
 
 function trackEvent(eventName: string, properties?: Record<string, unknown>) {
-  if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
-    window.gtag('event', eventName, properties);
-  }
-  if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
-    window.fbq('track', eventName, properties);
-  }
+    if (typeof window !== 'undefined' && typeof window.gtag === 'function') {
+        window.gtag('event', eventName, properties);
+    }
+    if (typeof window !== 'undefined' && typeof window.fbq === 'function') {
+        window.fbq('track', eventName, properties);
+    }
 }
 
 function useScrollTracking() {
-  useEffect(() => {
-    let maxScroll = 0;
-    const trackScroll = () => {
-      const scrollPercent = Math.round(
-        (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100
-      );
-      if (scrollPercent > maxScroll) {
-        maxScroll = scrollPercent;
-        if ([25, 50, 75, 100].includes(maxScroll)) {
-          trackEvent('ScrollDepth', { depth: maxScroll });
-        }
-      }
-    };
-    window.addEventListener('scroll', trackScroll);
-    return () => window.removeEventListener('scroll', trackScroll);
-  }, []);
+    useEffect(() => {
+        let maxScroll = 0;
+        const trackScroll = () => {
+            const scrollPercent = Math.round(
+                (window.scrollY / (document.documentElement.scrollHeight - window.innerHeight)) * 100
+            );
+            if (scrollPercent > maxScroll) {
+                maxScroll = scrollPercent;
+                if ([25, 50, 75, 100].includes(maxScroll)) {
+                    trackEvent('ScrollDepth', { depth: maxScroll });
+                }
+            }
+        };
+        window.addEventListener('scroll', trackScroll);
+        return () => window.removeEventListener('scroll', trackScroll);
+    }, []);
 }
 
 // ============================================
@@ -66,142 +66,140 @@ type PlanIdentifier = "free" | "pro" | "ultra";
 type BillingCycle = "monthly" | "yearly";
 
 interface PricingSectionProps {
-  currentPlan: PlanIdentifier;
-  billingCycle: BillingCycle;
-  handleBillingCycleChange: (checked: boolean) => void;
-  loading: string | null;
-  handleCheckout: (plan: "pro" | "ultra") => void;
+    currentPlan: PlanIdentifier;
+    billingCycle: BillingCycle;
+    handleBillingCycleChange: (checked: boolean) => void;
+    loading: string | null;
+    handleCheckout: (plan: "pro" | "ultra") => void;
 }
 
 const plans = [
-  {
-    id: "pro",
-    name: "Pro Seller",
-    monthlyPrice: "R$ 34,90",
-    yearlyPrice: "R$ 349",
-    discount: "50% OFF",
-    badge: "🔥 MAIS ESCOLHIDO",
-    description: "Para quem quer profissionalizar as vendas e entender o tráfego.",
-    features: [
-      { text: "Hub de Anúncios (2 Campanhas)", icon: <Megaphone className="w-4 h-4" /> },
-      { text: "1.000 visualizações de Anúncio / mês", icon: <TrendingUp className="w-4 h-4" /> },
-      { text: "Relatório de Inteligência do Link", icon: <PieChart className="w-4 h-4" /> },
-      { text: "Ferramenta de Sorteios Inclusa", icon: <Gift className="w-4 h-4" /> },
-      { text: "Múltiplas Páginas (Até 10 Perfis)", icon: <Layers className="w-4 h-4" /> },
-      { text: "Pixel do Facebook e Google GA4", icon: <TargetIcon /> },
-      { text: "Selo Pro e Sem Logo Freelinnk", icon: <Shield className="w-4 h-4" /> },
-    ],
-    cta: "Desbloquear Pro Agora",
-    color: "blue"
-  },
-  {
-    id: "ultra",
-    name: "Ultra Business",
-    monthlyPrice: "R$ 77,90",
-    yearlyPrice: "R$ 779",
-    discount: "Melhor Valor",
-    badge: "👑 MÁQUINA DE VENDAS",
-    description: "Sua agência de marketing, CRM e gestão em um só lugar.",
-    features: [
-      { text: "Hub de Anúncios (3 Campanhas)", icon: <InfinityIcon className="w-4 h-4" /> },
-      { text: "15.000 visualizações de Anúncio / mês", icon: <Globe className="w-4 h-4" /> },
-      { text: "Calculadora de Lucros e CRM Inteligente", icon: <BarChart3 className="w-4 h-4" /> },
-      { text: "Analytics Detalhado (Calor, Cidades, Horários)", icon: <MousePointerClick className="w-4 h-4" /> },
-      { text: "Múltiplas Páginas (Até 30 Perfis)", icon: <Layers className="w-4 h-4 text-purple-400" /> },
-      { text: "Proteção Total (Seu perfil 100% sem anúncios)", icon: <SearchX className="w-4 h-4" /> },
-      { text: "Suporte VIP via WhatsApp", icon: <Zap className="w-4 h-4" /> },
-    ],
-    cta: "Liberar Ultra — Poder Máximo",
-    color: "purple"
-  }
+    {
+        id: "pro",
+        name: "Pro Seller",
+        monthlyPrice: "R$ 34,90",
+        yearlyPrice: "R$ 349",
+        discount: "50% OFF",
+        badge: "🔥 MAIS ESCOLHIDO",
+        description: "Para quem quer profissionalizar as vendas e entender o tráfego.",
+        features: [
+            { text: "Hub de Anúncios (2 Campanhas)", icon: <Megaphone className="w-4 h-4" /> },
+            { text: "1.000 visualizações de Anúncio / mês", icon: <TrendingUp className="w-4 h-4" /> },
+            { text: "Ferramenta de Sorteios Inclusa", icon: <Gift className="w-4 h-4" /> },
+            { text: "Múltiplas Páginas (Até 10 Perfis)", icon: <Layers className="w-4 h-4" /> },
+            { text: "Pixel do Facebook e Google GA4", icon: <TargetIcon /> },
+            { text: "Selo Pro e Sem Logo Freelinnk", icon: <Shield className="w-4 h-4" /> },
+        ],
+        cta: "Desbloquear Pro Agora",
+        color: "blue"
+    },
+    {
+        id: "ultra",
+        name: "Ultra Business",
+        monthlyPrice: "R$ 77,90",
+        yearlyPrice: "R$ 779",
+        discount: "Melhor Valor",
+        badge: "👑 MÁQUINA DE VENDAS",
+        description: "Sua agência de marketing, CRM e gestão em um só lugar.",
+        features: [
+            { text: "Hub de Anúncios (3 Campanhas)", icon: <InfinityIcon className="w-4 h-4" /> },
+            { text: "15.000 visualizações de Anúncio / mês", icon: <Globe className="w-4 h-4" /> },
+            { text: "Calculadora de Lucros e CRM Inteligente", icon: <BarChart3 className="w-4 h-4" /> },
+            { text: "Múltiplas Páginas (Até 30 Perfis)", icon: <Layers className="w-4 h-4 text-purple-400" /> },
+            { text: "Proteção Total (Seu perfil 100% sem anúncios)", icon: <SearchX className="w-4 h-4" /> },
+            { text: "Suporte VIP via WhatsApp", icon: <Zap className="w-4 h-4" /> },
+        ],
+        cta: "Liberar Ultra — Poder Máximo",
+        color: "purple"
+    }
 ];
 
 // Ícones customizados
-function TargetIcon() { return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>}
+function TargetIcon() { return <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg> }
 
 // ============================================
 // 1. HERO INTELIGENTE (DINÂMICO)
 // ============================================
 function PersonalHeader({ name, currentPlan }: { name: string, currentPlan: PlanIdentifier }) {
 
-  const content = {
-    free: {
-      badge: "⚠️ Atenção: Análise e Vendas Limitadas",
-      badgeColor: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-200 dark:border-red-800",
-      title: <>Você está vendendo às cegas. <br className="hidden md:block"/><span className="text-blue-600">Vamos mudar isso agora?</span></>,
-      description: "Sua taxa de saída e mapas de calor estão bloqueados. Para escalar, você precisa das métricas certas e tráfego orgânico com nosso Hub de Anúncios.",
-      statusColor: "bg-slate-100 dark:bg-slate-800 text-slate-600",
-      statusText: "Free (Limitado)",
-      viralStat: <span className="font-bold text-red-500 flex items-center gap-1 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded"><Lock className="w-3 h-3" /> Bloqueado</span>
-    },
-    pro: {
-      badge: "🚀 Você é Pro! Começando a dominar.",
-      badgeColor: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800",
-      title: <>Você já tem os dados. <br className="hidden md:block"/><span className="text-purple-600">Agora falta dominar a gestão.</span></>,
-      description: "Com o plano Pro, você tem tráfego e relatórios. Mas o Ultra te dá o CRM Inteligente e a Calculadora de Lucros para gerenciar o dinheiro que entra.",
-      statusColor: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
-      statusText: "Pro Seller",
-      viralStat: <span className="font-bold text-blue-600">2 Campanhas de Anúncio</span>
-    },
-    ultra: {
-      badge: "👑 Membro Ultra Business",
-      badgeColor: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-200 dark:border-purple-800",
-      title: <>Sua Máquina de Vendas <br className="hidden md:block"/><span className="text-green-500">está a todo vapor.</span></>,
-      description: "Você tem o pacote completo: 15 mil views mensais, CRM de Lucros, Analytics Profundo e até 30 páginas de Links liberadas.",
-      statusColor: "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300",
-      statusText: "Ultra Business",
-      viralStat: <span className="font-bold text-purple-600 flex items-center gap-1"><InfinityIcon className="w-3 h-3" /> Poder Máximo</span>
-    }
-  };
+    const content = {
+        free: {
+            badge: "⚠️ Atenção: Caixa e Vendas Limitadas",
+            badgeColor: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-200 dark:border-red-800",
+            title: <>Você está vendendo às cegas. <br className="hidden md:block" /><span className="text-blue-600">Vamos mudar isso agora?</span></>,
+            description: "Sua taxa de saída e mapas de calor estão bloqueados. Para escalar, você precisa das métricas certas e tráfego orgânico com nosso Hub de Anúncios.",
+            statusColor: "bg-slate-100 dark:bg-slate-800 text-slate-600",
+            statusText: "Free (Limitado)",
+            viralStat: <span className="font-bold text-red-500 flex items-center gap-1 bg-red-50 dark:bg-red-900/20 px-2 py-0.5 rounded"><Lock className="w-3 h-3" /> Bloqueado</span>
+        },
+        pro: {
+            badge: "🚀 Você é Pro! Começando a dominar.",
+            badgeColor: "bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-900/30 dark:text-blue-200 dark:border-blue-800",
+            title: <>Você já tem os dados. <br className="hidden md:block" /><span className="text-purple-600">Agora falta dominar a gestão.</span></>,
+            description: "Com o plano Pro, você tem tráfego e visualizações reais. Mas o Ultra te dá o CRM Inteligente e a Calculadora de Lucros para gerenciar o dinheiro que entra.",
+            statusColor: "bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300",
+            statusText: "Pro Seller",
+            viralStat: <span className="font-bold text-blue-600">2 Campanhas de Anúncio</span>
+        },
+        ultra: {
+            badge: "👑 Membro Ultra Business",
+            badgeColor: "bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-900/30 dark:text-purple-200 dark:border-purple-800",
+            title: <>Sua Máquina de Vendas <br className="hidden md:block" /><span className="text-green-500">está a todo vapor.</span></>,
+            description: "Você tem o pacote completo: 15 mil views mensais, CRM de Lucros, Analytics Profundo e até 30 páginas de Links liberadas.",
+            statusColor: "bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300",
+            statusText: "Ultra Business",
+            viralStat: <span className="font-bold text-purple-600 flex items-center gap-1"><InfinityIcon className="w-3 h-3" /> Poder Máximo</span>
+        }
+    };
 
-  const activeContent = content[currentPlan] || content.free;
+    const activeContent = content[currentPlan] || content.free;
 
-  return (
-    <div className="w-full max-w-4xl mx-auto mb-16 pt-10">
-       <motion.div
-         initial={{ opacity: 0, y: 20 }}
-         animate={{ opacity: 1, y: 0 }}
-         className="flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left"
-       >
-          <div className="flex-1">
-             <div className={clsx("inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4 border animate-pulse", activeContent.badgeColor)}>
-                {currentPlan === 'free' ? <AlertTriangle className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
-                {activeContent.badge}
-             </div>
+    return (
+        <div className="w-full max-w-4xl mx-auto mb-16 pt-10">
+            <motion.div
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col md:flex-row items-center justify-between gap-8 text-center md:text-left"
+            >
+                <div className="flex-1">
+                    <div className={clsx("inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider mb-4 border animate-pulse", activeContent.badgeColor)}>
+                        {currentPlan === 'free' ? <AlertTriangle className="w-3.5 h-3.5" /> : <Zap className="w-3.5 h-3.5" />}
+                        {activeContent.badge}
+                    </div>
 
-             <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-4 leading-tight">
-                {activeContent.title}
-             </h1>
-             <p className="text-slate-600 dark:text-slate-300 text-lg max-w-xl leading-relaxed">
-                Olá, <strong>{name || "Empreendedor"}</strong>. {activeContent.description}
-             </p>
-          </div>
-
-          <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 min-w-[280px] transform rotate-1 hover:rotate-0 transition-transform duration-500">
-             <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
-                <span className="text-sm font-bold text-slate-500 uppercase tracking-wide">Plano Atual</span>
-                <Badge variant="secondary" className={clsx("border-0 font-bold px-3", activeContent.statusColor)}>{activeContent.statusText}</Badge>
-             </div>
-             <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2">
-                        <PieChart className="w-4 h-4 text-blue-500" /> Relatório Completo
-                    </span>
-                    <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
-                        {currentPlan === 'free' ? <span className="text-red-500"><Lock className="w-3 h-3 inline"/></span> : <CheckCircle className="w-3 h-3 text-green-500"/>}
-                    </span>
+                    <h1 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white mb-4 leading-tight">
+                        {activeContent.title}
+                    </h1>
+                    <p className="text-slate-600 dark:text-slate-300 text-lg max-w-xl leading-relaxed">
+                        Olá, <strong>{name || "Empreendedor"}</strong>. {activeContent.description}
+                    </p>
                 </div>
-                <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-500 dark:text-slate-500 flex items-center gap-2">
-                        <Megaphone className="w-4 h-4 text-purple-500" /> Tráfego do Hub
-                    </span>
-                    {activeContent.viralStat}
+
+                <div className="bg-white dark:bg-slate-900 p-6 rounded-3xl shadow-xl border border-slate-100 dark:border-slate-800 min-w-[280px] transform rotate-1 hover:rotate-0 transition-transform duration-500">
+                    <div className="flex items-center justify-between mb-4 pb-4 border-b border-slate-100 dark:border-slate-800">
+                        <span className="text-sm font-bold text-slate-500 uppercase tracking-wide">Plano Atual</span>
+                        <Badge variant="secondary" className={clsx("border-0 font-bold px-3", activeContent.statusColor)}>{activeContent.statusText}</Badge>
+                    </div>
+                    <div className="space-y-4">
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-slate-600 dark:text-slate-400 flex items-center gap-2">
+                                <PieChart className="w-4 h-4 text-blue-500" /> Gestão Premium
+                            </span>
+                            <span className="font-bold text-slate-900 dark:text-white flex items-center gap-1">
+                                {currentPlan === 'free' ? <span className="text-red-500"><Lock className="w-3 h-3 inline" /></span> : <CheckCircle className="w-3 h-3 text-green-500" />}
+                            </span>
+                        </div>
+                        <div className="flex justify-between items-center">
+                            <span className="text-sm text-slate-500 dark:text-slate-500 flex items-center gap-2">
+                                <Megaphone className="w-4 h-4 text-purple-500" /> Tráfego do Hub
+                            </span>
+                            {activeContent.viralStat}
+                        </div>
+                    </div>
                 </div>
-             </div>
-          </div>
-       </motion.div>
-    </div>
-  );
+            </motion.div>
+        </div>
+    );
 }
 
 // 2. SEÇÃO DE BLOQUEIOS (SÓ APARECE SE FOR FREE)
@@ -215,19 +213,19 @@ function LossAversionSection({ currentPlan }: { currentPlan: PlanIdentifier }) {
             </div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                 {[
-                    { label: "Análise Profunda (Cidades/Saída)", icon: PieChart },
+                    { label: "Otimização Financeira", icon: PieChart },
                     { label: "Hub de Anúncios Automático", icon: Megaphone },
                     { label: "Calculadora de Lucros & CRM", icon: BarChart3 },
                     { label: "Ferramenta de Sorteios", icon: Gift },
                 ].map((item, i) => (
                     <div key={i} className="flex flex-col items-center justify-center p-5 rounded-2xl bg-slate-50/80 dark:bg-slate-900/50 border border-slate-100 dark:border-slate-800 opacity-75 grayscale hover:grayscale-0 hover:opacity-100 hover:bg-red-50 dark:hover:bg-red-900/10 hover:border-red-100 transition-all duration-300 group cursor-not-allowed">
-                         <div className="mb-3 p-3 bg-white dark:bg-slate-800 rounded-full shadow-sm relative group-hover:scale-110 transition-transform">
+                        <div className="mb-3 p-3 bg-white dark:bg-slate-800 rounded-full shadow-sm relative group-hover:scale-110 transition-transform">
                             <item.icon className="w-6 h-6 text-slate-400 group-hover:text-red-500" />
                             <div className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-1 shadow-sm border-2 border-white dark:border-slate-900">
                                 <Lock className="w-2.5 h-2.5" />
                             </div>
-                         </div>
-                         <span className="text-sm font-bold text-slate-500 group-hover:text-red-600 transition-colors text-center">{item.label}</span>
+                        </div>
+                        <span className="text-sm font-bold text-slate-500 group-hover:text-red-600 transition-colors text-center">{item.label}</span>
                     </div>
                 ))}
             </div>
@@ -367,7 +365,7 @@ function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, l
                         </div>
                         {currentPlan !== 'ultra' && (
                             <p className="text-purple-300 text-xs font-bold mt-2">
-                                 Acesso Total a Análise, CRM e Ads
+                                Acesso Total ao CRM e Ads
                             </p>
                         )}
                     </div>
@@ -490,202 +488,202 @@ function FinalCTA({ handleCheckout, currentPlan }: { handleCheckout: (p: "pro" |
 // ============================================
 
 export default function BillingContent() {
-  const { user } = useUser();
-  const [loading, setLoading] = useState<string | null>(null);
-  const [currentPlan, setCurrentPlan] = useState<PlanIdentifier>("free");
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
-  const [showCancelModal, setShowCancelModal] = useState(false);
-  const [cancelReason, setCancelReason] = useState("");
-  const [cancelFeedback, setCancelFeedback] = useState("");
-  const [isSendingFeedback, setIsSendingFeedback] = useState(false);
+    const { user } = useUser();
+    const [loading, setLoading] = useState<string | null>(null);
+    const [currentPlan, setCurrentPlan] = useState<PlanIdentifier>("free");
+    const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
+    const [showCancelModal, setShowCancelModal] = useState(false);
+    const [cancelReason, setCancelReason] = useState("");
+    const [cancelFeedback, setCancelFeedback] = useState("");
+    const [isSendingFeedback, setIsSendingFeedback] = useState(false);
 
-  const searchParams = useSearchParams();
-  const router = useRouter();
+    const searchParams = useSearchParams();
+    const router = useRouter();
 
-  useScrollTracking();
+    useScrollTracking();
 
-  useEffect(() => {
-    const savedCycle = localStorage.getItem('preferredBillingCycle');
-    if (savedCycle && (savedCycle === 'monthly' || savedCycle === 'yearly')) {
-      setBillingCycle(savedCycle as BillingCycle);
+    useEffect(() => {
+        const savedCycle = localStorage.getItem('preferredBillingCycle');
+        if (savedCycle && (savedCycle === 'monthly' || savedCycle === 'yearly')) {
+            setBillingCycle(savedCycle as BillingCycle);
+        }
+    }, []);
+
+    const handleBillingCycleChange = (checked: boolean) => {
+        const newCycle = checked ? 'yearly' : 'monthly';
+        setBillingCycle(newCycle);
+        localStorage.setItem('preferredBillingCycle', newCycle);
+    };
+
+    useEffect(() => {
+        if (user?.publicMetadata?.subscriptionPlan) {
+            setCurrentPlan(user.publicMetadata.subscriptionPlan as PlanIdentifier);
+        } else {
+            setCurrentPlan("free");
+        }
+    }, [user?.publicMetadata]);
+
+    useEffect(() => {
+        const success = searchParams.get("success");
+        const canceled = searchParams.get("canceled");
+        if (success) {
+            toast.success("🚀 Assinatura confirmada! Bem-vindo à rede inteligente.", { duration: 5000 });
+            user?.reload();
+            router.replace("/dashboard/billing", { scroll: false });
+        }
+        if (canceled) {
+            toast.info("Pedido cancelado. Seus dados estão salvos caso queira tentar depois.");
+            router.replace("/dashboard/billing", { scroll: false });
+        }
+    }, [searchParams, router, user]);
+
+    async function handleCheckout(planIdentifier: PlanIdentifier) {
+        if (planIdentifier === 'free') return;
+        const planToBuy = planIdentifier as "pro" | "ultra";
+
+        if (!user?.id) return toast.error("Você precisa estar logado.");
+        setLoading(`${planToBuy}-${billingCycle}`);
+        try {
+            const res = await fetch("/api/stripe/checkout", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ plan: planToBuy, cycle: billingCycle }),
+            });
+            const data = await res.json();
+            if (data.url) window.location.href = data.url;
+            else throw new Error(data.error || "Erro ao iniciar checkout");
+        } catch {
+            toast.error("Erro no processamento. Tente novamente.");
+        } finally {
+            setLoading(null);
+        }
     }
-  }, []);
 
-  const handleBillingCycleChange = (checked: boolean) => {
-    const newCycle = checked ? 'yearly' : 'monthly';
-    setBillingCycle(newCycle);
-    localStorage.setItem('preferredBillingCycle', newCycle);
-  };
-
-  useEffect(() => {
-    if (user?.publicMetadata?.subscriptionPlan) {
-      setCurrentPlan(user.publicMetadata.subscriptionPlan as PlanIdentifier);
-    } else {
-      setCurrentPlan("free");
+    async function handleCancel() {
+        setLoading("cancel");
+        try {
+            const res = await fetch("/api/stripe/cancel", { method: "POST" });
+            if (res.ok) {
+                toast.success("Assinatura cancelada com sucesso.");
+                await user?.reload();
+                setCurrentPlan("free");
+            } else throw new Error();
+        } catch {
+            toast.error("Erro ao cancelar. Contate o suporte.");
+        } finally {
+            setLoading(null);
+        }
     }
-  }, [user?.publicMetadata]);
 
-  useEffect(() => {
-    const success = searchParams.get("success");
-    const canceled = searchParams.get("canceled");
-    if (success) {
-        toast.success("🚀 Assinatura confirmada! Bem-vindo à rede inteligente.", { duration: 5000 });
-        user?.reload();
-        router.replace("/dashboard/billing", { scroll: false });
+    async function handleConfirmCancel() {
+        setIsSendingFeedback(true);
+        try {
+            await fetch("/api/send-feedback", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    email: user?.primaryEmailAddress?.emailAddress,
+                    userId: user?.id,
+                    reason: cancelReason,
+                    feedback: cancelFeedback
+                })
+            });
+        } catch (e) { console.error(e); }
+        setIsSendingFeedback(false);
+        setShowCancelModal(false);
+        handleCancel();
     }
-    if (canceled) {
-        toast.info("Pedido cancelado. Seus dados estão salvos caso queira tentar depois.");
-        router.replace("/dashboard/billing", { scroll: false });
+
+    async function handleManageSubscription() {
+        setLoading("portal");
+        try {
+            const res = await fetch("/api/stripe/portal", { method: "POST" });
+            const data = await res.json();
+            if (data.url) window.location.href = data.url;
+        } catch {
+            toast.error("Erro ao abrir portal.");
+        } finally {
+            setLoading(null);
+        }
     }
-  }, [searchParams, router, user]);
 
-  async function handleCheckout(planIdentifier: PlanIdentifier) {
-    if (planIdentifier === 'free') return;
-    const planToBuy = planIdentifier as "pro" | "ultra";
+    return (
+        <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 font-sans selection:bg-blue-100 selection:text-blue-900">
 
-    if (!user?.id) return toast.error("Você precisa estar logado.");
-    setLoading(`${planToBuy}-${billingCycle}`);
-    try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan: planToBuy, cycle: billingCycle }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-      else throw new Error(data.error || "Erro ao iniciar checkout");
-    } catch  {
-      toast.error("Erro no processamento. Tente novamente.");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  async function handleCancel() {
-    setLoading("cancel");
-    try {
-      const res = await fetch("/api/stripe/cancel", { method: "POST" });
-      if (res.ok) {
-        toast.success("Assinatura cancelada com sucesso.");
-        await user?.reload();
-        setCurrentPlan("free");
-      } else throw new Error();
-    } catch {
-      toast.error("Erro ao cancelar. Contate o suporte.");
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  async function handleConfirmCancel() {
-    setIsSendingFeedback(true);
-    try {
-        await fetch("/api/send-feedback", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                email: user?.primaryEmailAddress?.emailAddress,
-                userId: user?.id,
-                reason: cancelReason,
-                feedback: cancelFeedback
-            })
-        });
-    } catch (e) { console.error(e); }
-    setIsSendingFeedback(false);
-    setShowCancelModal(false);
-    handleCancel();
-  }
-
-  async function handleManageSubscription() {
-    setLoading("portal");
-    try {
-        const res = await fetch("/api/stripe/portal", { method: "POST" });
-        const data = await res.json();
-        if (data.url) window.location.href = data.url;
-    } catch {
-        toast.error("Erro ao abrir portal.");
-    } finally {
-        setLoading(null);
-    }
-  }
-
-  return (
-    <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 font-sans selection:bg-blue-100 selection:text-blue-900">
-
-      <AnimatePresence>
-        {showCancelModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCancelModal(false)} className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" />
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-2xl z-10 border border-slate-200 dark:border-slate-800">
-                <div className="text-center mb-6">
-                    <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                        <ArrowRight className="w-8 h-8 text-red-500 fill-current" />
+            <AnimatePresence>
+                {showCancelModal && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCancelModal(false)} className="absolute inset-0 bg-slate-900/80 backdrop-blur-sm" />
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }} className="relative bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl p-6 shadow-2xl z-10 border border-slate-200 dark:border-slate-800">
+                            <div className="text-center mb-6">
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <ArrowRight className="w-8 h-8 text-red-500 fill-current" />
+                                </div>
+                                <h3 className="text-xl font-bold">Não vá embora ainda!</h3>
+                                <p className="text-slate-500 text-sm mt-2">Você perderá o tráfego do Hub e o CRM de clientes. Tem certeza?</p>
+                            </div>
+                            <div className="space-y-4 mb-6">
+                                <select className="w-full p-3 rounded-lg border border-slate-200 bg-slate-50" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)}>
+                                    <option value="">Por que está cancelando?</option>
+                                    <option value="expensive">Muito caro</option>
+                                    <option value="features">Faltam recursos</option>
+                                    <option value="usage">Não uso o suficiente</option>
+                                </select>
+                                <Textarea placeholder="Como podemos melhorar?" value={cancelFeedback} onChange={(e) => setCancelFeedback(e.target.value)} className="bg-slate-50" />
+                            </div>
+                            <div className="flex gap-3">
+                                <Button variant="outline" onClick={() => setShowCancelModal(false)} className="flex-1 py-6">Voltar</Button>
+                                <Button variant="destructive" onClick={handleConfirmCancel} disabled={!cancelReason || isSendingFeedback} className="flex-1 py-6 bg-red-500 hover:bg-red-600">
+                                    {isSendingFeedback ? <Loader2 className="animate-spin" /> : "Confirmar Cancelamento"}
+                                </Button>
+                            </div>
+                        </motion.div>
                     </div>
-                    <h3 className="text-xl font-bold">Não vá embora ainda!</h3>
-                    <p className="text-slate-500 text-sm mt-2">Você perderá o tráfego do Hub, CRM e seus relatórios profundos. Tem certeza?</p>
-                </div>
-                <div className="space-y-4 mb-6">
-                     <select className="w-full p-3 rounded-lg border border-slate-200 bg-slate-50" value={cancelReason} onChange={(e) => setCancelReason(e.target.value)}>
-                        <option value="">Por que está cancelando?</option>
-                        <option value="expensive">Muito caro</option>
-                        <option value="features">Faltam recursos</option>
-                        <option value="usage">Não uso o suficiente</option>
-                     </select>
-                     <Textarea placeholder="Como podemos melhorar?" value={cancelFeedback} onChange={(e) => setCancelFeedback(e.target.value)} className="bg-slate-50" />
-                </div>
-                <div className="flex gap-3">
-                    <Button variant="outline" onClick={() => setShowCancelModal(false)} className="flex-1 py-6">Voltar</Button>
-                    <Button variant="destructive" onClick={handleConfirmCancel} disabled={!cancelReason || isSendingFeedback} className="flex-1 py-6 bg-red-500 hover:bg-red-600">
-                        {isSendingFeedback ? <Loader2 className="animate-spin" /> : "Confirmar Cancelamento"}
-                    </Button>
-                </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+                )}
+            </AnimatePresence>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-32">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-32">
 
-        <PersonalHeader name={user?.firstName || "Lojista"} currentPlan={currentPlan} />
+                <PersonalHeader name={user?.firstName || "Lojista"} currentPlan={currentPlan} />
 
-        <LossAversionSection currentPlan={currentPlan} />
+                <LossAversionSection currentPlan={currentPlan} />
 
-        <PricingSection
-            currentPlan={currentPlan}
-            billingCycle={billingCycle}
-            handleBillingCycleChange={handleBillingCycleChange}
-            loading={loading}
-            handleCheckout={handleCheckout}
-        />
+                <PricingSection
+                    currentPlan={currentPlan}
+                    billingCycle={billingCycle}
+                    handleBillingCycleChange={handleBillingCycleChange}
+                    loading={loading}
+                    handleCheckout={handleCheckout}
+                />
 
-        <DevastatingROI />
+                <DevastatingROI />
 
-        <GuaranteeSection />
+                <GuaranteeSection />
 
-        <FinalCTA handleCheckout={handleCheckout} currentPlan={currentPlan} />
+                <FinalCTA handleCheckout={handleCheckout} currentPlan={currentPlan} />
 
-        {currentPlan !== "free" && (
-            <div className="text-center border-t border-slate-200 pt-12 max-w-xl mx-auto pb-12">
-                <Button variant="outline" onClick={handleManageSubscription} disabled={loading === "portal"} className="border-slate-300 w-full mb-6 h-12">
-                     {loading === "portal" ? <Loader2 className="animate-spin mr-2" /> : <Settings className="mr-2 w-4 h-4" />}
-                     Gerenciar Cartão e Faturas
-                </Button>
-                <Button variant="ghost" onClick={() => setShowCancelModal(true)} className="text-red-500 hover:text-red-600 hover:bg-red-50 w-full h-12 font-medium">
-                    Cancelar assinatura
-                </Button>
+                {currentPlan !== "free" && (
+                    <div className="text-center border-t border-slate-200 pt-12 max-w-xl mx-auto pb-12">
+                        <Button variant="outline" onClick={handleManageSubscription} disabled={loading === "portal"} className="border-slate-300 w-full mb-6 h-12">
+                            {loading === "portal" ? <Loader2 className="animate-spin mr-2" /> : <Settings className="mr-2 w-4 h-4" />}
+                            Gerenciar Cartão e Faturas
+                        </Button>
+                        <Button variant="ghost" onClick={() => setShowCancelModal(true)} className="text-red-500 hover:text-red-600 hover:bg-red-50 w-full h-12 font-medium">
+                            Cancelar assinatura
+                        </Button>
+                    </div>
+                )}
+
             </div>
-        )}
 
-      </div>
+            {currentPlan === 'free' && (
+                <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-0 left-0 right-0 z-50 p-4 lg:hidden bg-white/80 backdrop-blur-lg border-t border-slate-200">
+                    <Button onClick={() => handleCheckout('pro')} disabled={loading !== null} className="w-full bg-blue-600 text-white font-bold h-12 rounded-xl shadow-lg">
+                        Desbloquear Pro Agora
+                    </Button>
+                </motion.div>
+            )}
 
-      {currentPlan === 'free' && (
-        <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-0 left-0 right-0 z-50 p-4 lg:hidden bg-white/80 backdrop-blur-lg border-t border-slate-200">
-            <Button onClick={() => handleCheckout('pro')} disabled={loading !== null} className="w-full bg-blue-600 text-white font-bold h-12 rounded-xl shadow-lg">
-                Desbloquear Pro Agora
-            </Button>
-        </motion.div>
-      )}
-
-    </div>
-  );
+        </div>
+    );
 }

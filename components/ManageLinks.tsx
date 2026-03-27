@@ -124,11 +124,11 @@ function EditLinkDialog({ link, onClose }: { link: LinkWithExtras, onClose: () =
       if (customMessage.trim()) {
         const encodedMsg = encodeURIComponent(customMessage.trim());
         if (isWhatsApp) {
-           const separator = finalUrl.includes("?") ? "&" : "?";
-           finalUrl = `${finalUrl}${separator}text=${encodedMsg}`;
+          const separator = finalUrl.includes("?") ? "&" : "?";
+          finalUrl = `${finalUrl}${separator}text=${encodedMsg}`;
         } else if (isEmail) {
-           const separator = finalUrl.includes("?") ? "&" : "?";
-           finalUrl = `${finalUrl}${separator}body=${encodedMsg}`;
+          const separator = finalUrl.includes("?") ? "&" : "?";
+          finalUrl = `${finalUrl}${separator}body=${encodedMsg}`;
         }
       }
 
@@ -324,9 +324,7 @@ function SortableLinkItem({ id, link, onEdit, onDelete }: SortableLinkItemProps)
         </div>
 
         <div className="hidden sm:flex items-center gap-1">
-          <Link href={`/dashboard/link/${link._id}`} className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-purple-50 to-pink-50 hover:from-purple-100 hover:to-pink-100 text-purple-700 rounded-xl text-xs font-medium transition-all border border-purple-100 hover:border-purple-200 hover:shadow-sm">
-            <BarChart2 className="w-3.5 h-3.5" /><span>Análises</span>
-          </Link>
+
           <Button variant="ghost" size="icon" className="text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl h-9 w-9" onClick={() => onEdit(link)}><Edit2 className="w-4 h-4" /></Button>
           <Button variant="ghost" size="icon" className="text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl h-9 w-9" onClick={() => onDelete(link._id)}><Trash2 className="w-4 h-4" /></Button>
         </div>
@@ -450,11 +448,11 @@ export default function ManageLinks({ effectiveUserId }: { effectiveUserId?: str
               if (!link) return null;
               return (
                 <SortableLinkItem
-                    key={id}
-                    id={id}
-                    link={link}
-                    onEdit={(l) => setEditingLink(l)}
-                    onDelete={handleDelete}
+                  key={id}
+                  id={id}
+                  link={link}
+                  onEdit={(l) => setEditingLink(l)}
+                  onDelete={handleDelete}
                 />
               );
             })}
@@ -468,7 +466,7 @@ export default function ManageLinks({ effectiveUserId }: { effectiveUserId?: str
     <div className="flex flex-col pb-4">
       <Dialog open={!!editingLink} onOpenChange={(open) => !open && setEditingLink(null)}>
         {editingLink && (
-            <EditLinkDialog link={editingLink} onClose={() => setEditingLink(null)} />
+          <EditLinkDialog link={editingLink} onClose={() => setEditingLink(null)} />
         )}
       </Dialog>
 

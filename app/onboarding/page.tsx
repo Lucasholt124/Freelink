@@ -1,197 +1,55 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useRef, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { motion, AnimatePresence } from "framer-motion";
-import {
-  ChevronLeft,
-  X,
-  Smartphone,
-  Heart,
-  Star,
-  Sparkles,
-  TrendingUp,
-  Globe,
-  Rocket,
-  User,
-  Hash,
-  Link as LinkIcon,
-  Layout,
-  Palette,
-  FileCheck,
-  Clock,
-} from "lucide-react";
+import { ChevronLeft, Rocket, User, Link as LinkIcon, CheckCircle2, ArrowRight, Copy, Check, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useDebounce } from "../hooks/use-debounce";
-import {
-  HERO_PHRASES,
-  LinkItem,
-  NicheOption,
-  NICHES,
-  Step,
-  TemplateOption,
-  TEMPLATES,
-} from "../constants/onboarding-data";
-import { celebrate } from "../constants/onboarding-utils";
 import { FreelinnkLogo } from "@/components/onboarding/FreelinnkLogo";
-import { PhonePreview } from "@/components/onboarding/PhonePreview";
-import { StepWelcome } from "@/components/onboarding/steps/StepWelcome";
-import { StepName } from "@/components/onboarding/steps/StepName";
-import { StepNiche } from "@/components/onboarding/steps/StepNiche";
-import { StepUsername } from "@/components/onboarding/steps/StepUsername";
-import { StepLinks } from "@/components/onboarding/steps/StepLinks";
-import { StepTemplate } from "@/components/onboarding/steps/StepTemplate";
-import { StepReview } from "@/components/onboarding/steps/StepReview";
-import { StepLaunching } from "@/components/onboarding/steps/StepLaunching";
+import confetti from "canvas-confetti";
 
-type ExtendedStep = Step | "review";
+type Step = "username" | "profile" | "link" | "success";
 
-interface StepInfo {
-  num: number;
-  total: number;
-  label: string;
-  icon: React.ReactNode;
-  estimatedTime?: string;
-}
-
-const STEP_INFO: Record<ExtendedStep, StepInfo> = {
-  welcome: { num: 0, total: 6, label: "Início", icon: <Rocket className="w-4 h-4" /> },
-  name: { num: 1, total: 6, label: "Loja/Perfil", icon: <User className="w-4 h-4" />, estimatedTime: "15s" },
-  niche: { num: 2, total: 6, label: "Nicho", icon: <Hash className="w-4 h-4" />, estimatedTime: "10s" },
-  username: { num: 3, total: 6, label: "Seu Link", icon: <LinkIcon className="w-4 h-4" />, estimatedTime: "10s" },
-  links: { num: 4, total: 6, label: "Produtos", icon: <Layout className="w-4 h-4" />, estimatedTime: "Pular" },
-  template: { num: 5, total: 6, label: "Visual", icon: <Palette className="w-4 h-4" />, estimatedTime: "Pular" },
-  review: { num: 6, total: 6, label: "Lançar", icon: <FileCheck className="w-4 h-4" />, estimatedTime: "5s" },
-  launching: { num: 6, total: 6, label: "Construindo Máquina...", icon: <Rocket className="w-4 h-4" /> },
+const STEPS: Record<Step, { num: number; total: number; label: string; icon: React.ReactNode }> = {
+  username: { num: 1, total: 4, label: "Boas-vindas", icon: <Rocket className="w-4 h-4" /> },
+  profile: { num: 2, total: 4, label: "Personalização", icon: <User className="w-4 h-4" /> },
+  link: { num: 3, total: 4, label: "Primeiro Link", icon: <LinkIcon className="w-4 h-4" /> },
+  success: { num: 4, total: 4, label: "Pronto!", icon: <CheckCircle2 className="w-4 h-4" /> },
 };
 
-const StepProgressBar = ({ currentStep }: { currentStep: ExtendedStep }) => {
-  const steps: ExtendedStep[] = ["name", "niche", "username", "links", "template", "review"];
-  const currentIndex = steps.indexOf(currentStep);
+const triggerConfetti = () => {
+  const duration = 3000;
+  const end = Date.now() + duration;
+  const colors = ["#10b981", "#3b82f6", "#8b5cf6"];
 
-  return (
-    <div className="hidden sm:flex items-center gap-1 w-full">
-      {steps.map((s, i) => {
-        const info = STEP_INFO[s];
-        const isActive = i === currentIndex;
-        const isCompleted = i < currentIndex;
-
-        return (
-          <div key={s} className="flex items-center flex-1">
-            <div className="flex flex-col items-center flex-1">
-              <div
-                className={cn(
-                  "w-full h-1.5 rounded-full transition-all duration-500",
-                  isCompleted
-                    ? "bg-gradient-to-r from-emerald-400 to-emerald-500"
-                    : isActive
-                    ? "bg-gradient-to-r from-emerald-300 to-emerald-400 animate-pulse"
-                    : "bg-slate-100"
-                )}
-              />
-              <span
-                className={cn(
-                  "text-[10px] mt-1 font-bold uppercase tracking-wider transition-colors",
-                  isActive ? "text-emerald-600" : isCompleted ? "text-emerald-500" : "text-slate-300"
-                )}
-              >
-                {info.label}
-              </span>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
-};
-
-const EstimatedTime = ({ step }: { step: ExtendedStep }) => {
-  const info = STEP_INFO[step];
-  if (!info.estimatedTime) return null;
-
-  return (
-    <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium bg-slate-50 px-2 py-1 rounded-md">
-      <Clock className="w-3 h-3 text-slate-500" />
-      <span>{info.estimatedTime}</span>
-    </div>
-  );
-};
-
-interface CompletionScoreProps {
-  displayName: string;
-  profileImage: { file: File | null; preview: string | null };
-  bio: string;
-  username: string;
-  links: LinkItem[];
-  selectedTemplate: TemplateOption | null;
-}
-
-const CompletionScore = ({
-  displayName,
-  profileImage,
-  bio,
-  username,
-  links,
-  selectedTemplate,
-}: CompletionScoreProps) => {
-  const score = useMemo(() => {
-    let s = 0;
-    if (displayName) s += 25; // Peso maior para o nome
-    if (username) s += 45; // Peso vital para o @
-    if (profileImage.preview) s += 10;
-    if (bio) s += 5;
-    const validLinks = links.filter((l) => l.title && l.url);
-    s += Math.min(validLinks.length * 5, 10);
-    if (selectedTemplate) s += 5;
-    return Math.min(s, 100);
-  }, [displayName, profileImage, bio, username, links, selectedTemplate]);
-
-  const color = score < 50 ? "text-amber-500" : score < 90 ? "text-emerald-400" : "text-emerald-500";
-
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-8 h-8 relative group cursor-help">
-        <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
-          <path className="text-slate-100" stroke="currentColor" strokeWidth="3" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-          <motion.path
-            className={color} stroke="currentColor" strokeWidth="3" strokeLinecap="round" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
-            initial={{ strokeDasharray: "0, 100" }} animate={{ strokeDasharray: `${score}, 100` }} transition={{ duration: 0.8, ease: "easeOut" }}
-          />
-        </svg>
-        <span className={cn("absolute inset-0 flex items-center justify-center text-[9px] font-black", color)}>{score}%</span>
-      </div>
-    </div>
-  );
+  (function frame() {
+    confetti({ particleCount: 5, angle: 60, spread: 55, origin: { x: 0 }, colors });
+    confetti({ particleCount: 5, angle: 120, spread: 55, origin: { x: 1 }, colors });
+    if (Date.now() < end) requestAnimationFrame(frame);
+  })();
 };
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const [step, setStep] = useState<ExtendedStep>("welcome");
+  const [step, setStep] = useState<Step>("username");
   const [loading, setLoading] = useState(false);
 
-  const [displayName, setDisplayName] = useState("");
-  const [selectedNiche, setSelectedNiche] = useState<NicheOption | null>(null);
+  // Form State
   const [username, setUsername] = useState("");
-  const [links, setLinks] = useState<LinkItem[]>([]);
-  const [selectedTemplate, setSelectedTemplate] = useState<TemplateOption>(TEMPLATES[0]);
-  const [profileImage, setProfileImage] = useState<{ file: File | null; preview: string | null }>({ file: null, preview: null });
-  const [bio, setBio] = useState("");
-  const [nicheSearch, setNicheSearch] = useState("");
-
-  const currentUser = useQuery(api.users.getMyUsername);
-
-  const [showMobilePreview, setShowMobilePreview] = useState(false);
-  const [templateFilter, setTemplateFilter] = useState<"all" | "light" | "dark" | "colorful" | "gradient">("all");
-  const [launchProgress, setLaunchProgress] = useState(0);
-  const [currentPhraseIndex, setCurrentPhraseIndex] = useState(0);
-  const [launchChecklist, setLaunchChecklist] = useState({ profile: false, customization: false, links: false, publishing: false });
-
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const debouncedUsername = useDebounce(username, 500);
+  const [displayName, setDisplayName] = useState("");
+  const [bio, setBio] = useState("");
+  const [profileImage, setProfileImage] = useState<{ file: File | null; preview: string | null }>({ file: null, preview: null });
+  const [linkTitle, setLinkTitle] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [copied, setCopied] = useState(false);
 
+  // Queries/Mutations
+  const currentUser = useQuery(api.users.getMyUsername);
   const checkAvailability = useQuery(api.lib.usernames.checkUsernameAvailability, debouncedUsername.length >= 3 ? { username: debouncedUsername } : "skip");
   const setUsernameMutation = useMutation(api.lib.usernames.setUsername);
   const updateCustomizations = useMutation(api.lib.customizations.updateCustomizations);
@@ -199,315 +57,225 @@ export default function OnboardingPage() {
   const createLink = useMutation(api.lib.links.createLink);
 
   const isUsernameValid = username.length >= 3 && checkAvailability?.available;
-
-  const filteredTemplates = useMemo(() => {
-    if (templateFilter === "all") return TEMPLATES;
-    return TEMPLATES.filter((t) => t.category === templateFilter);
-  }, [templateFilter]);
-
-  const filteredNiches = useMemo(() => {
-    if (!nicheSearch) return NICHES;
-    return NICHES.filter((n) => n.name.toLowerCase().includes(nicheSearch.toLowerCase()) || n.description.toLowerCase().includes(nicheSearch.toLowerCase()));
-  }, [nicheSearch]);
-
-  const validLinksCount = useMemo(() => links.filter((l) => l.title && l.url).length, [links]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (currentUser !== undefined && currentUser !== null) {
-      toast.info("Máquina de vendas identificada! Redirecionando...");
+      toast.info("Você já está na plataforma! Redirecionando...");
       router.push("/dashboard");
     }
   }, [currentUser, router]);
-
-  const usernameSuggestions = useMemo(() => {
-    if (!displayName) return [];
-    const base = displayName.toLowerCase().replace(/[^a-z0-9\s]/g, "");
-    return [base.replace(/\s+/g, ""), base.replace(/\s+/g, "."), base.replace(/\s+/g, "_"), `${base.replace(/\s+/g, "")}oficial`, `loja${base.replace(/\s+/g, "")}`]
-      .map((s) => s.slice(0, 30))
-      .filter((s) => s.length >= 3);
-  }, [displayName]);
-
-  useEffect(() => {
-    if (step !== "welcome") return;
-    const interval = setInterval(() => setCurrentPhraseIndex((prev) => (prev + 1) % HERO_PHRASES.length), 3000);
-    return () => clearInterval(interval);
-  }, [step]);
 
   useEffect(() => {
     return () => { if (profileImage.preview) URL.revokeObjectURL(profileImage.preview); };
   }, [profileImage.preview]);
 
-  const handleLaunch = async () => {
-    setStep("launching");
-    setLaunchProgress(0);
-    setLaunchChecklist({ profile: false, customization: false, links: false, publishing: false });
-
+  const handleUsernameNext = async () => {
+    if (!isUsernameValid) return toast.error("Por favor, escolha um link válido e disponível.");
+    setLoading(true);
     try {
-      setLaunchProgress(10);
-      await new Promise((r) => setTimeout(r, 400));
-      let profileStorageId = undefined;
+      await setUsernameMutation({ username });
+      toast.success("Link garantido!");
+      setStep("profile");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao garantir o link.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  const handleProfileNext = async () => {
+    setLoading(true);
+    try {
+      let profileStorageId = undefined;
       if (profileImage.file) {
-        setLaunchProgress(15);
         const uploadUrl = await generateUploadUrl({});
         const res = await fetch(uploadUrl, { method: "POST", headers: { "Content-Type": profileImage.file.type }, body: profileImage.file });
         const json = await res.json();
         profileStorageId = json.storageId;
       }
-      setLaunchProgress(30);
-      setLaunchChecklist((prev) => ({ ...prev, profile: true }));
-      await new Promise((r) => setTimeout(r, 300));
-
-      await updateCustomizations({
-        description: bio || `${selectedNiche?.emoji || "🚀"} Construindo presença digital`,
-        profilePictureStorageId: profileStorageId,
-        accentColor: selectedTemplate.preview.accent,
-        backgroundType: selectedTemplate.preview.bg.includes("gradient") ? "gradient" : "color",
-        backgroundColor1: selectedTemplate.preview.bg.includes("gradient") ? selectedTemplate.preview.bg.match(/#[a-fA-F0-9]{6}/g)?.[0] || "#0f172a" : selectedTemplate.preview.bg,
-        backgroundColor2: selectedTemplate.preview.bg.includes("gradient") ? selectedTemplate.preview.bg.match(/#[a-fA-F0-9]{6}/g)?.[1] || "#1e1b4b" : undefined,
-      });
-
-      setLaunchProgress(55);
-      setLaunchChecklist((prev) => ({ ...prev, customization: true }));
-      await new Promise((r) => setTimeout(r, 300));
-
-      const validLinks = links.filter((l) => l.title && l.url);
-      for (let i = 0; i < validLinks.length; i++) {
-        await createLink({ title: validLinks[i].title, url: validLinks[i].url, isFeatured: false, badgeType: "new" });
-        setLaunchProgress(55 + ((i + 1) / validLinks.length) * 30);
-      }
-
-      setLaunchChecklist((prev) => ({ ...prev, links: true }));
-      await new Promise((r) => setTimeout(r, 300));
-
-      setLaunchProgress(95);
-      await new Promise((r) => setTimeout(r, 500));
-      setLaunchProgress(100);
-      setLaunchChecklist((prev) => ({ ...prev, publishing: true }));
-      celebrate("epic");
-
-      setTimeout(() => { toast.success("Máquina Ligada! 🚀", { description: "Indo para o painel..." }); }, 500);
-      setTimeout(() => { router.push("/dashboard?welcome=true"); }, 3000);
-    } catch (e) {
-      console.error(e);
-      toast.error("Erro na conexão. Tente novamente.");
-      setStep("review");
+      await updateCustomizations({ description: bio, profilePictureStorageId: profileStorageId });
+      setStep("link");
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar perfil.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const goBack = () => {
-    const order: ExtendedStep[] = ["welcome", "name", "niche", "username", "links", "template", "review"];
-    const idx = order.indexOf(step);
-    if (idx > 0) setStep(order[idx - 1]);
+  const handleLinkNext = async () => {
+    setLoading(true);
+    try {
+      if (linkTitle && linkUrl) {
+        let finalUrl = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
+        await createLink({ title: linkTitle, url: finalUrl, isFeatured: false, badgeType: undefined });
+      }
+      setStep("success");
+      triggerConfetti();
+    } catch (e: any) {
+      toast.error(e.message || "Erro ao salvar link.");
+    } finally {
+      setLoading(false);
+    }
   };
 
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(`freelinnk.com/${username}`);
+    setCopied(true);
+    toast.success("Link copiado para a área de transferência!");
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  const stepOrder: Step[] = ["username", "profile", "link", "success"];
+  const currentStepInfo = STEPS[step];
+  const progressPercent = (currentStepInfo.num / currentStepInfo.total) * 100;
+
   return (
-    <>
-      <div className="min-h-screen bg-slate-50 flex flex-col lg:flex-row overflow-hidden font-sans">
-
-        {/* Painel Esquerdo (Formulários) */}
-        <div className="w-full lg:w-[55%] xl:w-[50%] min-h-screen flex flex-col relative z-10 bg-white border-r border-slate-200 shadow-xl">
-          <div className="absolute inset-0 bg-gradient-to-b from-slate-50/50 to-white pointer-events-none" />
-
-          {step !== "welcome" && step !== "launching" && (
-            <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="relative p-4 sm:p-6 space-y-3 bg-white/80 backdrop-blur-md border-b border-slate-100 z-20">
-              <div className="flex items-center justify-between">
-                <FreelinnkLogo />
-                <div className="flex items-center gap-3">
-                  <EstimatedTime step={step} />
-                  <CompletionScore displayName={displayName} profileImage={profileImage} bio={bio} username={username} links={links} selectedTemplate={selectedTemplate} />
-                </div>
-              </div>
-              <StepProgressBar currentStep={step} />
-
-              {/* Barra Mobile */}
-              <div className="sm:hidden">
-                <div className="flex items-center justify-between mb-1">
-                  <span className="text-xs text-emerald-600 font-bold uppercase tracking-wider">{STEP_INFO[step].label}</span>
-                  <span className="text-xs font-bold text-slate-400">{STEP_INFO[step].num}/{STEP_INFO[step].total}</span>
-                </div>
-                <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
-                  <motion.div className="h-full bg-emerald-500 rounded-full" initial={{ width: "0%" }} animate={{ width: `${(STEP_INFO[step].num / STEP_INFO[step].total) * 100}%` }} transition={{ duration: 0.5 }} />
-                </div>
-              </div>
-            </motion.div>
-          )}
-
-          <div className="relative flex-1 flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
-            <div className="w-full max-w-md">
-              <AnimatePresence mode="wait">
-                {step === "welcome" && <StepWelcome onNext={() => setStep("name")} currentPhraseIndex={currentPhraseIndex} />}
-
-                {step === "name" && (
-                  <StepName
-                    displayName={displayName} setDisplayName={setDisplayName} bio={bio} setBio={setBio}
-                    profileImage={profileImage} fileInputRef={fileInputRef}
-                    onImageSelect={(e) => {
-                      const file = e.target.files?.[0];
-                      if (file) {
-                        if (file.size > 5 * 1024 * 1024) { toast.error("A foto deve ter no máximo 5MB."); return; }
-                        setProfileImage({ file, preview: URL.createObjectURL(file) });
-                      }
-                    }}
-                    onNext={() => setStep("niche")}
-                  />
-                )}
-
-                {step === "niche" && (
-                  <StepNiche
-                    nicheSearch={nicheSearch} setNicheSearch={setNicheSearch} filteredNiches={filteredNiches}
-                    onNicheSelect={(niche) => {
-                      setSelectedNiche(niche);
-                      // Dica: Não criamos links vazios sugeridos se ele não tiver colocado, deixamos para adicionar no painel se quiser.
-                      setLinks(niche.suggestedLinks.slice(0, 2).map((link, i) => ({ id: `suggested-${i}`, title: link.title, url: "" })));
-                      celebrate("small");
-                      setTimeout(() => setStep("username"), 400);
-                    }}
-                  />
-                )}
-
-                {step === "username" && (
-                  <StepUsername
-                    selectedNiche={selectedNiche} username={username} setUsername={setUsername}
-                    debouncedUsername={debouncedUsername} checkAvailability={checkAvailability}
-                    isUsernameValid={!!isUsernameValid} loading={loading}
-                    usernameSuggestions={usernameSuggestions} onShowPreview={() => setShowMobilePreview(true)}
-                    onSubmit={async () => {
-                      setLoading(true);
-                      try {
-                        await setUsernameMutation({ username });
-                        celebrate("medium");
-                        setStep("links");
-                      } catch (e: unknown) {
-                        const message = e instanceof Error ? e.message : "Esse nome já está em uso.";
-                        toast.error(message);
-                      } finally {
-                        setLoading(false);
-                      }
-                    }}
-                  />
-                )}
-
-                {step === "links" && (
-                  <StepLinks
-                    username={username} links={links} selectedNiche={selectedNiche}
-                    updateLinkTitle={(id, title) => setLinks(p => p.map(l => l.id === id ? { ...l, title } : l))}
-                    updateLinkUrl={(id, url) => setLinks(p => p.map(l => l.id === id ? { ...l, url: url.startsWith("http") ? url : url ? `https://${url}` : "" } : l))}
-                    removeLink={(id) => setLinks(p => p.filter(l => l.id !== id))}
-                    addCustomLink={() => setLinks(p => [...p, { id: `custom-${Date.now()}`, title: "", url: "" }])}
-                    validLinksCount={validLinksCount} onShowPreview={() => setShowMobilePreview(true)}
-                    onSubmit={() => { celebrate("small"); setStep("template"); }}
-                  />
-                )}
-
-                {step === "template" && (
-                  <StepTemplate
-                    selectedTemplate={selectedTemplate} setSelectedTemplate={(t) => { setSelectedTemplate(t); celebrate("small"); }}
-                    templateFilter={templateFilter} setTemplateFilter={setTemplateFilter} filteredTemplates={filteredTemplates}
-                    templatesLength={TEMPLATES.length} templatesLightCount={TEMPLATES.filter(t => t.category === "light").length}
-                    templatesDarkCount={TEMPLATES.filter(t => t.category === "dark").length} templatesColorfulCount={TEMPLATES.filter(t => t.category === "colorful").length}
-                    templatesGradientCount={TEMPLATES.filter(t => t.category === "gradient").length}
-                    onNext={() => { celebrate("medium"); setStep("review"); }} onShowPreview={() => setShowMobilePreview(true)}
-                  />
-                )}
-
-                {step === "review" && (
-                  <StepReview
-                    displayName={displayName} bio={bio} username={username} profileImage={profileImage} selectedNiche={selectedNiche}
-                    links={links} validLinksCount={validLinksCount} selectedTemplate={selectedTemplate} loading={loading}
-                    onEditStep={(s) => setStep(s)} onLaunch={handleLaunch} onShowPreview={() => setShowMobilePreview(true)}
-                  />
-                )}
-
-                {step === "launching" && (
-                  <StepLaunching launchProgress={launchProgress} launchChecklist={launchChecklist} validLinksCount={validLinksCount} username={username} />
-                )}
-              </AnimatePresence>
+    <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-4 sm:p-6 font-sans">
+      <div className="w-full max-w-xl bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 flex flex-col relative min-h-[500px]">
+        {/* Progress Header */}
+        <div className="p-6 border-b border-slate-100 bg-white/80 backdrop-blur-md sticky top-0 z-10">
+          <div className="flex items-center justify-between mb-4">
+            <FreelinnkLogo />
+            <div className="flex items-center gap-2">
+              <span className="text-xs font-bold text-slate-400">Passo {currentStepInfo.num} de {currentStepInfo.total}</span>
+              <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">{currentStepInfo.icon}</div>
             </div>
           </div>
-
-          {step !== "welcome" && step !== "launching" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="relative p-4 sm:p-6 bg-white border-t border-slate-100 z-20">
-              <button onClick={goBack} className="flex items-center gap-1.5 text-slate-400 hover:text-slate-900 transition-colors font-bold px-3 py-2 rounded-lg hover:bg-slate-100">
-                <ChevronLeft className="w-4 h-4" /> <span className="text-sm">Voltar</span>
-              </button>
-            </motion.div>
-          )}
+          <div className="w-full h-2 bg-slate-100 rounded-full overflow-hidden">
+            <motion.div className="h-full bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full" initial={{ width: 0 }} animate={{ width: `${progressPercent}%` }} transition={{ duration: 0.5, ease: "easeOut" }} />
+          </div>
         </div>
 
-        {/* Painel Direito (Preview do Celular) */}
-        <div className="hidden lg:flex flex-1 items-center justify-center relative bg-slate-900 overflow-hidden">
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#1e293b_1px,transparent_1px),linear-gradient(to_bottom,#1e293b_1px,transparent_1px)] bg-[size:2rem_2rem]" />
-
-          <motion.div className="absolute w-[600px] h-[600px] rounded-full blur-[150px] opacity-20" style={{ background: selectedTemplate.preview.accent }} animate={{ scale: [1, 1.1, 1], opacity: [0.1, 0.2, 0.1] }} transition={{ duration: 5, repeat: Infinity }} />
-
-          {step !== "welcome" && step !== "launching" && (
-            <PhonePreview username={username} template={selectedTemplate} links={links} profileImage={profileImage} displayName={displayName} bio={bio} />
-          )}
-
-          {step === "welcome" && (
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center space-y-6 z-10">
-              <div className="relative">
-                <motion.div animate={{ rotate: 360 }} transition={{ duration: 20, repeat: Infinity, ease: "linear" }} className="w-64 h-64 rounded-full border-4 border-dashed border-slate-700/50" />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="w-48 h-48 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-3xl flex items-center justify-center shadow-2xl shadow-indigo-500/20 border border-white/10">
-                    <span className="text-7xl font-black text-white">F</span>
+        {/* Form Body */}
+        <div className="flex-1 p-6 sm:p-8 overflow-y-auto">
+          <AnimatePresence mode="wait">
+            {step === "username" && (
+              <motion.div key="username" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                <div className="text-center">
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">Bem-vindo ao FreeLinnk! 🎉</h1>
+                  <p className="text-slate-500">Vamos configurar seu perfil de vendas em menos de 2 minutos.</p>
+                </div>
+                <div className="space-y-4">
+                  <div>
+                    <label className="text-sm font-bold text-slate-900 mb-1.5 block">Meu Link Pessoal</label>
+                    <div className={cn("flex flex-col sm:flex-row items-center bg-white border-2 rounded-xl transition-all p-1", isUsernameValid ? "border-emerald-500 ring-4 ring-emerald-500/10" : "border-slate-200 focus-within:border-indigo-500 focus-within:ring-4 focus-within:ring-indigo-500/10")}>
+                      <span className="px-4 py-3 sm:py-0 text-slate-400 font-bold bg-slate-50 self-stretch flex items-center rounded-lg border border-slate-100 hidden sm:flex">
+                        freelinnk.com/
+                      </span>
+                      <input type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9]/g, ""))} placeholder="nomedaloja" className="w-full bg-transparent px-4 py-3 font-bold text-slate-900 text-lg sm:text-base outline-none placeholder:text-slate-300" autoFocus />
+                    </div>
+                    {debouncedUsername.length >= 3 && checkAvailability && (
+                      <p className={cn("text-xs font-bold mt-2", checkAvailability.available ? "text-emerald-600" : "text-red-500")}>
+                        {checkAvailability.available ? "✅ Nome disponível!" : "❌ Este nome já está em uso."}
+                      </p>
+                    )}
                   </div>
                 </div>
-              </div>
-              <p className="text-slate-400 font-bold tracking-widest uppercase text-sm">Central de Negócios</p>
-            </motion.div>
-          )}
+                <button onClick={handleUsernameNext} disabled={!isUsernameValid || loading} className="w-full py-4 px-6 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg">
+                  {loading ? "Verificando..." : "Continuar"} <ArrowRight className="w-5 h-5" />
+                </button>
+              </motion.div>
+            )}
 
-          {step === "launching" && (
-            <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center z-10">
-              <PhonePreview username={username} template={selectedTemplate} links={links} profileImage={profileImage} displayName={displayName} bio={bio} />
-            </motion.div>
-          )}
+            {step === "profile" && (
+              <motion.div key="profile" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                <div className="text-center">
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">Sua Identidade Visual</h1>
+                  <p className="text-slate-500">Adicione uma foto e uma bio que chame a atenção.</p>
+                </div>
+                <div className="space-y-5">
+                  <div className="flex flex-col items-center">
+                    <input type="file" ref={fileInputRef} accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setProfileImage({ file: f, preview: URL.createObjectURL(f) }); }} />
+                    <button onClick={() => fileInputRef.current?.click()} className="group relative w-24 h-24 rounded-full bg-indigo-50 border-2 border-dashed border-indigo-200 flex items-center justify-center overflow-hidden hover:border-indigo-400 hover:bg-indigo-100 transition-colors">
+                      {profileImage.preview ? (
+                        <img src={profileImage.preview} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center text-indigo-400 group-hover:text-indigo-600">
+                          <Upload className="w-6 h-6 mb-1" />
+                          <span className="text-[9px] font-bold uppercase tracking-wider">Upload</span>
+                        </div>
+                      )}
+                    </button>
+                  </div>
+                  <div>
+                    <label className="text-sm font-bold text-slate-900 mb-1.5 block">Nome de Exibição</label>
+                    <input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Ex: Minha Loja Oficial" className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all" />
+                  </div>
+                  <div>
+                    <label className="flex items-center justify-between text-sm font-bold text-slate-900 mb-1.5">
+                      Bio Curta <span className="text-xs text-slate-400 font-medium">{bio.length}/80</span>
+                    </label>
+                    <textarea value={bio} onChange={(e) => setBio(e.target.value.slice(0, 80))} placeholder="Uma frase de impacto sobre seu negócio..." rows={2} className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 font-medium outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all resize-none" />
+                  </div>
+                </div>
+                <button onClick={handleProfileNext} disabled={loading} className="w-full py-4 px-6 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg active:scale-[0.98]">
+                  {loading ? "Salvando..." : "Continuar"} <ArrowRight className="w-5 h-5" />
+                </button>
+              </motion.div>
+            )}
 
-          {/* Decorativos Flutuantes no Painel Escuro */}
-          <motion.div animate={{ y: [0, -10, 0], rotate: [0, 5, 0] }} transition={{ duration: 4, repeat: Infinity }} className="absolute top-20 right-20 p-3 rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10"><Heart className="w-6 h-6 text-pink-400" /></motion.div>
-          <motion.div animate={{ y: [0, 10, 0], rotate: [0, -5, 0] }} transition={{ duration: 3.5, repeat: Infinity, delay: 0.5 }} className="absolute bottom-32 left-20 p-3 rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10"><Star className="w-6 h-6 text-amber-400" /></motion.div>
-          <motion.div animate={{ y: [0, -8, 0], rotate: [0, 8, 0] }} transition={{ duration: 5, repeat: Infinity, delay: 1 }} className="absolute top-40 left-24 p-3 rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10"><Sparkles className="w-6 h-6 text-emerald-400" /></motion.div>
+            {step === "link" && (
+              <motion.div key="link" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }} className="space-y-6">
+                <div className="text-center">
+                  <h1 className="text-2xl sm:text-3xl font-black text-slate-900 mb-2">Adicione seu primeiro link!</h1>
+                  <p className="text-slate-500">Pode ser o link do seu WhatsApp, Loja ou Site.</p>
+                </div>
+                <div className="p-5 bg-gradient-to-br from-indigo-50 to-purple-50 border border-indigo-100 rounded-2xl space-y-4">
+                  <div>
+                    <label className="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-1.5 block">Título do Botão</label>
+                    <input type="text" value={linkTitle} onChange={(e) => setLinkTitle(e.target.value)} placeholder="Ex: Falar no WhatsApp" className="w-full bg-white border border-indigo-200 rounded-lg px-4 py-3 font-medium outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-bold text-indigo-900 uppercase tracking-widest mb-1.5 block">URL / Link</label>
+                    <input type="url" value={linkUrl} onChange={(e) => setLinkUrl(e.target.value)} placeholder="Ex: wa.me/5511999999999" className="w-full bg-white border border-indigo-200 rounded-lg px-4 py-3 font-medium outline-none focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20" />
+                  </div>
+                </div>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <button onClick={() => setStep("success")} className="py-4 px-6 bg-slate-100 hover:bg-slate-200 text-slate-600 font-bold rounded-xl flex items-center justify-center transition-all w-full sm:w-1/3">
+                    Pular
+                  </button>
+                  <button onClick={handleLinkNext} disabled={loading || (!linkTitle && !linkUrl)} className="py-4 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl flex items-center justify-center gap-2 transition-all shadow-lg shadow-indigo-500/25 w-full sm:w-2/3 disabled:opacity-50">
+                    {loading ? "Adicionando..." : "Adicionar Link"} <ArrowRight className="w-5 h-5" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
-          <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }} className="absolute top-8 right-8 p-4 rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-emerald-400 to-teal-500 flex items-center justify-center"><TrendingUp className="w-6 h-6 text-white" /></div>
-              <div><p className="text-2xl font-black text-white">Pixel</p><p className="text-slate-300 text-xs font-medium uppercase">Pronto p/ Ativar</p></div>
-            </div>
-          </motion.div>
-
-          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.7 }} className="absolute bottom-12 left-8 p-4 rounded-2xl bg-white/10 backdrop-blur-md shadow-2xl border border-white/10">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center"><Globe className="w-6 h-6 text-white" /></div>
-              <div><p className="text-2xl font-black text-white">Tráfego</p><p className="text-slate-300 text-xs font-medium uppercase">Rede Conectada</p></div>
-            </div>
-          </motion.div>
+            {step === "success" && (
+              <motion.div key="success" initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="space-y-8 text-center py-6">
+                <div className="w-24 h-24 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto shadow-inner">
+                  <CheckCircle2 className="w-12 h-12" />
+                </div>
+                <div>
+                  <h1 className="text-3xl font-black text-slate-900 mb-2">Seu FreeLinnk está pronto! 🚀</h1>
+                  <p className="text-slate-500 text-lg">Comece a compartilhar seu link na bio.</p>
+                </div>
+                <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 inline-flex items-center gap-3">
+                  <span className="text-slate-900 font-bold sm:text-lg select-all">freelinnk.com/{username}</span>
+                  <button onClick={copyToClipboard} className="p-2 bg-white text-indigo-600 hover:bg-indigo-50 rounded-lg border border-slate-200 shadow-sm transition-all focus:ring-2 focus:ring-indigo-500/20 active:scale-95">
+                    {copied ? <Check className="w-5 h-5 text-emerald-500" /> : <Copy className="w-5 h-5" />}
+                  </button>
+                </div>
+                <div className="pt-4">
+                  <button onClick={() => router.push("/dashboard")} className="w-full py-4 px-6 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-bold text-lg rounded-xl flex items-center justify-center gap-2 transition-all shadow-xl shadow-indigo-600/20 active:scale-95">
+                    Ir para o Dashboard
+                  </button>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
-      </div>
 
-      {/* Preview Mobile Overlay */}
-      <AnimatePresence>
-        {showMobilePreview && (
-          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-xl flex items-center justify-center p-4 lg:hidden" onClick={() => setShowMobilePreview(false)}>
-            <motion.div initial={{ scale: 0.9, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.9, y: 20 }} onClick={(e) => e.stopPropagation()} className="relative">
-              <button onClick={() => setShowMobilePreview(false)} className="absolute -top-12 right-0 p-2 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"><X className="w-5 h-5" /></button>
-              <div className="absolute -top-12 left-0 flex items-center gap-2 text-white"><Smartphone className="w-4 h-4" /><span className="text-sm font-bold uppercase tracking-wider">Preview de Vendas</span></div>
-              <PhonePreview username={username} template={selectedTemplate} links={links} profileImage={profileImage} displayName={displayName} bio={bio} />
-              <p className="text-center text-white/40 text-xs mt-4 font-medium uppercase tracking-widest">Toque fora para voltar</p>
-            </motion.div>
-          </motion.div>
+        {/* Back Button (Footer) */}
+        {step !== "username" && step !== "success" && (
+          <div className="p-4 border-t border-slate-100 bg-slate-50">
+            <button onClick={() => setStep(stepOrder[stepOrder.indexOf(step) - 1])} disabled={loading} className="text-slate-500 hover:text-slate-900 text-sm font-bold flex items-center gap-1 transition-colors">
+              <ChevronLeft className="w-4 h-4" /> Voltar
+            </button>
+          </div>
         )}
-      </AnimatePresence>
-
-      <style jsx global>{`
-        .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
-    </>
+      </div>
+    </div>
   );
 }

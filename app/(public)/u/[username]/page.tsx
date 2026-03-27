@@ -8,6 +8,7 @@ import { notFound } from "next/navigation";
 import { Metadata } from "next";
 
 export const revalidate = 60;
+export const dynamic = "force-static";
 
 interface PageProps {
   params: Promise<{ username: string }>;

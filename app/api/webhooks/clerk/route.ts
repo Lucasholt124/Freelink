@@ -10,25 +10,21 @@ export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-// 🟢 2. Inicializar Stripe
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2025-10-29.clover', // Ou a versão que você usa
+  apiVersion: '2025-10-29.clover',
 });
 
-// Definindo tipos para os metadados do Clerk
 interface UserPublicMetadata {
   subscriptionPlan: 'free' | 'pro';
   cartAbandoned: boolean;
   totalEmailsReceived: number;
   linksCreated: number;
-  totalClicks: number;
 }
 
 interface UserPrivateMetadata {
   stripeCustomerId?: string;
 }
 
-// Função para garantir que os metadados públicos tenham todos os campos
 function getNormalizedPublicMetadata(metadata: unknown): UserPublicMetadata {
   const md = metadata as Record<string, unknown> | null;
   return {
@@ -36,168 +32,14 @@ function getNormalizedPublicMetadata(metadata: unknown): UserPublicMetadata {
     cartAbandoned: (md?.cartAbandoned as boolean) || false,
     totalEmailsReceived: (md?.totalEmailsReceived as number) || 0,
     linksCreated: (md?.linksCreated as number) || 0,
-    totalClicks: (md?.totalClicks as number) || 0,
   };
 }
 
-
-export async function POST(req: Request) {
-  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET
-
-  if (!WEBHOOK_SECRET) {
-    console.error('❌ CLERK_WEBHOOK_SECRET não encontrado');
-    return NextResponse.json({ error: 'Missing Secret' }, { status: 500 });
-  }
-
-  const headerPayload = await headers();
-  const svix_id = headerPayload.get("svix-id");
-  const svix_timestamp = headerPayload.get("svix-timestamp");
-  const svix_signature = headerPayload.get("svix-signature");
-
-  if (!svix_id || !svix_timestamp || !svix_signature) {
-    console.error('❌ Headers Svix ausentes');
-    return NextResponse.json({ error: 'No svix headers' }, { status: 400 });
-  }
-
-  const payload = await req.json()
-  const body = JSON.stringify(payload);
-
-  const wh = new Webhook(WEBHOOK_SECRET);
-  let evt: WebhookEvent
-
-  try {
-    evt = wh.verify(body, {
-      "svix-id": svix_id,
-      "svix-timestamp": svix_timestamp,
-      "svix-signature": svix_signature,
-    }) as WebhookEvent
-  } catch (err) {
-    console.error('❌ Verificação Svix falhou:', err);
-    return NextResponse.json({ error: 'Verification failed' }, { status: 400 });
-  }
-
-  const eventType = evt.type;
-  console.log(`✅ Clerk Webhook: ${eventType}`);
-
-  // =====================================================
-  // 1. USUÁRIO NOVO (Criação + Stripe + Email)
-  // =====================================================
-  if (eventType === 'user.created') {
-    const { id, email_addresses, first_name } = evt.data;
-
-    const emailObj = email_addresses?.find(e => e.id === evt.data.primary_email_address_id) || email_addresses?.[0];
-    const email = emailObj?.email_address;
-    const name = first_name || "Criador";
-
-    // 🟢 1.1 Criar Cliente no Stripe e Salvar Metadata
-    try {
-      const client = await clerkClient();
-
-      // Criar no Stripe
-      let stripeCustomerId = '';
-      if (email) {
-          const customer = await stripe.customers.create({
-              email: email,
-              name: name,
-              metadata: { userId: id }
-          });
-          stripeCustomerId = customer.id;
-          console.log(`💳 Stripe Customer criado: ${stripeCustomerId}`);
-      }
-
-      // Salvar tudo no Clerk (Stripe ID + Plano Free)
-      await client.users.updateUser(id, {
-        privateMetadata: {
-            stripeCustomerId: stripeCustomerId // Salva no privado
-        },
-        publicMetadata: {
-          subscriptionPlan: 'free',
-          cartAbandoned: false,
-          totalEmailsReceived: 0,
-          linksCreated: 0,
-          totalClicks: 0
-        }
-      });
-      console.log(`🆕 Metadata inicial + Stripe configurados para: ${id}`);
-
-    } catch (metaError) {
-      console.error('❌ Erro ao criar Stripe/Metadata:', metaError);
-    }
-
-    // 1.2 Enviar Email (Resend)
-    if (email) {
-      try {
-        await resend.emails.send({
-          from: 'Freelinnk <contato@send.freelinnk.com>',
-          replyTo: 'contato@freelinnk.com',
-          to: email,
-          subject: `Bem-vindo ao Freelinnk, ${name}! 🎉`,
-          html: getWelcomeEmailHTML(name)
-        });
-        console.log(`📧 Email de boas-vindas enviado: ${email}`);
-      } catch (emailError) {
-        console.error('❌ Erro ao enviar email:', emailError);
-      }
-    }
-  }
-
-  // =====================================================
-  // 2. CORREÇÃO DE USUÁRIOS ANTIGOS
-  // =====================================================
-  if (eventType === 'session.created' || eventType === 'user.updated') {
-    let userId = "";
-    if (eventType === 'session.created') {
-      userId = evt.data.user_id;
-    } else if (eventType === 'user.updated') {
-      userId = evt.data.id;
-    }
-
-    if (userId) {
-      try {
-          const client = await clerkClient();
-          const user = await client.users.getUser(userId);
-          const currentPublic = getNormalizedPublicMetadata(user.publicMetadata);
-          const currentPrivate = user.privateMetadata as UserPrivateMetadata;
-
-          // Se não tiver plano, arruma
-          if (!currentPublic?.subscriptionPlan) {
-              await client.users.updateUser(userId, {
-                  publicMetadata: {
-                      ...currentPublic, // Agora currentPublic está sempre completo
-                      cartAbandoned: false,
-                  }
-              });
-              console.log(`🔧 Plano 'free' injetado em: ${userId}`);
-          }
-
-          // 🟢 Se não tiver Stripe ID (como o Carlos), cria agora!
-          if (!currentPrivate?.stripeCustomerId && user.emailAddresses[0]) {
-             const email = user.emailAddresses[0].emailAddress;
-             const name = user.firstName || "Criador";
-
-             const customer = await stripe.customers.create({
-                  email: email,
-                  name: name,
-                  metadata: { userId: userId }
-             });
-
-             await client.users.updateUser(userId, {
-                 privateMetadata: { ...currentPrivate, stripeCustomerId: customer.id }
-             });
-             console.log(`💳 Stripe ID injetado no login para: ${userId}`);
-          }
-
-      } catch (err) {
-          console.error('❌ Falha na verificação de usuário antigo:', err);
-      }
-    }
-  }
-
-  if (eventType === 'user.deleted') {
-    console.log(`🗑️ Usuário deletado: ${evt.data.id}`);
-  }
-
-  return NextResponse.json({ success: true, event: eventType }, { status: 200 });
+function log(level: 'info' | 'warn' | 'error', msg: string, data?: unknown) {
+  const entry = { ts: new Date().toISOString(), level, msg, ...(data ? { data } : {}) };
+  if (level === 'error') console.error(JSON.stringify(entry));
+  else if (level === 'warn') console.warn(JSON.stringify(entry));
+  else console.log(JSON.stringify(entry));
 }
 
 export async function GET() {
@@ -208,9 +50,165 @@ export async function GET() {
   }, { status: 200 });
 }
 
+export async function POST(req: Request) {
+  const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
+
+  if (!WEBHOOK_SECRET) {
+    log('error', 'CLERK_WEBHOOK_SECRET não encontrado');
+    return NextResponse.json({ error: 'Missing Secret' }, { status: 500 });
+  }
+
+  try {
+    const headerPayload = await headers();
+    const svix_id = headerPayload.get('svix-id');
+    const svix_timestamp = headerPayload.get('svix-timestamp');
+    const svix_signature = headerPayload.get('svix-signature');
+
+    if (!svix_id || !svix_timestamp || !svix_signature) {
+      log('warn', 'Headers Svix ausentes');
+      return NextResponse.json({ error: 'No svix headers' }, { status: 400 });
+    }
+
+    const payload = await req.json();
+    const body = JSON.stringify(payload);
+
+    const wh = new Webhook(WEBHOOK_SECRET);
+    let evt: WebhookEvent;
+
+    try {
+      evt = wh.verify(body, {
+        'svix-id': svix_id,
+        'svix-timestamp': svix_timestamp,
+        'svix-signature': svix_signature,
+      }) as WebhookEvent;
+    } catch (err) {
+      log('error', 'Verificação Svix falhou', err);
+      return NextResponse.json({ error: 'Verification failed' }, { status: 400 });
+    }
+
+    const eventType = evt.type;
+    log('info', `Clerk Webhook recebido: ${eventType}`);
+
+    // =====================================================
+    // 1. USUÁRIO NOVO (Criação + Stripe + Email)
+    // =====================================================
+    if (eventType === 'user.created') {
+      const { id, email_addresses, first_name } = evt.data;
+      const emailObj = email_addresses?.find(e => e.id === evt.data.primary_email_address_id) || email_addresses?.[0];
+      const email = emailObj?.email_address;
+      const name = first_name || 'Criador';
+
+      try {
+        const client = await clerkClient();
+        let stripeCustomerId = '';
+
+        if (email) {
+          const customer = await stripe.customers.create({ email, name, metadata: { userId: id } });
+          stripeCustomerId = customer.id;
+          log('info', `Stripe Customer criado: ${stripeCustomerId}`);
+        }
+
+        await client.users.updateUser(id, {
+          privateMetadata: { stripeCustomerId },
+          publicMetadata: {
+            subscriptionPlan: 'free',
+            cartAbandoned: false,
+            totalEmailsReceived: 0,
+            linksCreated: 0,
+          }
+        });
+        log('info', `Metadata inicial + Stripe configurados para: ${id}`);
+      } catch (err) {
+        log('error', 'Erro ao criar Stripe/Metadata', err);
+      }
+
+      if (email) {
+        try {
+          await resend.emails.send({
+            from: 'Freelinnk <contato@send.freelinnk.com>',
+            replyTo: 'contato@freelinnk.com',
+            to: email,
+            subject: `Bem-vindo ao Freelinnk, ${name}! 🎉`,
+            html: getWelcomeEmailHTML(name)
+          });
+          log('info', `Email de boas-vindas enviado: ${email}`);
+        } catch (err) {
+          log('error', 'Erro ao enviar email de boas-vindas', err);
+        }
+      }
+    }
+
+    // =====================================================
+    // 2. CORREÇÃO DE USUÁRIOS ANTIGOS (session.created / user.updated)
+    // =====================================================
+    if (eventType === 'session.created' || eventType === 'user.updated') {
+      let userId = '';
+      if (eventType === 'session.created') userId = evt.data.user_id;
+      else if (eventType === 'user.updated') userId = evt.data.id;
+
+      if (userId) {
+        try {
+          const client = await clerkClient();
+          const user = await client.users.getUser(userId);
+          const currentPublic = getNormalizedPublicMetadata(user.publicMetadata);
+          const currentPrivate = user.privateMetadata as UserPrivateMetadata;
+
+          if (!currentPublic?.subscriptionPlan) {
+            await client.users.updateUser(userId, {
+              publicMetadata: { ...currentPublic, subscriptionPlan: 'free', cartAbandoned: false }
+            });
+            log('info', `Plano 'free' injetado em: ${userId}`);
+          }
+
+          if (!currentPrivate?.stripeCustomerId && user.emailAddresses[0]) {
+            const email = user.emailAddresses[0].emailAddress;
+            const name = user.firstName || 'Criador';
+            const customer = await stripe.customers.create({ email, name, metadata: { userId } });
+            await client.users.updateUser(userId, {
+              privateMetadata: { ...currentPrivate, stripeCustomerId: customer.id }
+            });
+            log('info', `Stripe ID injetado no login para: ${userId}`);
+          }
+        } catch (err) {
+          log('error', 'Falha na verificação de usuário antigo', err);
+        }
+      }
+    }
+
+    // =====================================================
+    // 3. USUÁRIO DELETADO — Cancelar Stripe customer
+    // =====================================================
+    if (eventType === 'user.deleted') {
+      const { id } = evt.data;
+      log('info', `Usuário deletado: ${id}`);
+
+      if (id) {
+        try {
+          const client = await clerkClient();
+          const user = await client.users.getUser(id).catch(() => null);
+          const stripeCustomerId = (user?.privateMetadata as UserPrivateMetadata)?.stripeCustomerId;
+
+          if (stripeCustomerId) {
+            await stripe.customers.del(stripeCustomerId);
+            log('info', `Stripe customer deletado: ${stripeCustomerId}`);
+          }
+        } catch (err) {
+          log('warn', 'Erro ao deletar customer do Stripe (non-critical)', err);
+        }
+      }
+    }
+
+    // Always return 200 for handled (and unhandled) events to prevent Svix retries
+    return NextResponse.json({ success: true, event: eventType }, { status: 200 });
+
+  } catch (err) {
+    log('error', 'Erro inesperado no webhook do Clerk', err);
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+  }
+}
+
 function getWelcomeEmailHTML(name: string): string {
-    return `
-<!DOCTYPE html>
+  return `<!DOCTYPE html>
 <html>
 <head>
   <meta charset="utf-8">

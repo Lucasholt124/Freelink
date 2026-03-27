@@ -55,7 +55,7 @@ export default function TermsOfServicePage() {
           <ul className="list-disc pl-6 marker:text-slate-400">
             <li><strong>Vitrine Digital (Bio Link):</strong> Criação de página responsiva com seus produtos e redes.</li>
             <li><strong>Hub de Anúncios (Ads Network):</strong> Sistema colaborativo de impulsionamento de produtos nas páginas da rede.</li>
-            <li><strong>Gestão (CRM e Analytics):</strong> Ferramentas financeiras, cálculo de lucro e análise de visitantes.</li>
+            <li><strong>Gestão (CRM e Finanças):</strong> Ferramentas financeiras, cálculo de lucro e otimização de conversões.</li>
             <li><strong>Ferramentas de Tração:</strong> Sorteador inteligente e Encurtador de links.</li>
           </ul>
 

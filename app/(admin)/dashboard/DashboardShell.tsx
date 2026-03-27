@@ -4,7 +4,7 @@ import { ReactNode, useState, useEffect, ForwardRefExoticComponent, RefAttribute
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home, Settings, Scissors, Target, LayoutGrid, Gift,
+  Home, Settings, Target, LayoutGrid, Gift,
   CreditCard, LogOut, ChevronDown, HelpCircle, X,
   LucideProps, Menu, Search, PlusCircle, ArrowRight, Zap, Crown, Shield,
   Calculator, Palette, BarChart3, ChevronRight, Flame, Lock, Users,
@@ -84,15 +84,14 @@ export const navItems: NavItem[] = [
   {
     label: "Negócios",
     subItems: [
-      { href: "/dashboard/profit-calculator", icon: Calculator, label: "Calculadora Financeira", ultra: true, description: "Análise completa" },
+      { href: "/dashboard/profit-calculator", icon: Calculator, label: "Calculadora Financeira", ultra: true, description: "Gestão completa" },
     ]
   },
   {
     label: "Marketing",
     subItems: [
-      { href: "/dashboard/shortener", icon: Scissors, label: "Encurtador", description: "Links curtos" },
       { href: "/dashboard/giveaway", icon: Gift, label: "Sorteios", pro: true, description: "Engajamento" },
-      { href: "/dashboard/ads", icon: Megaphone, label: "Hub de Anúncios", pro: true, new: true, description: "Impulsione produtos" }, // 🔥 NOVO AQUI
+      { href: "/dashboard/ads", icon: Megaphone, label: "Hub de Anúncios", pro: true, new: true, description: "Impulsione produtos" },
       { href: "/dashboard/tracking", icon: Target, label: "Rastreamento", ultra: true, description: "Pixel & Analytics" },
     ]
   },
@@ -110,7 +109,6 @@ const searchableItemsMap: { [key: string]: LucideIcon } = {
   "/dashboard": Home,
   "/dashboard/links": LayoutGrid,
   "/dashboard/profit-calculator": Calculator,
-  "/dashboard/shortener": Scissors,
   "/dashboard/giveaway": Gift,
   "/dashboard/tracking": Target,
   "/dashboard/settings": Settings,
@@ -165,7 +163,6 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
     gradient: "from-slate-900 to-slate-800",
     lossMessage: "Assine e tenha múltiplas páginas na mesma conta.",
     features: [
-      { text: "Rastreamento avançado", icon: Target },
       { text: "Remover branding", icon: Shield },
       { text: "Criar sub-contas", icon: Users },
     ],
@@ -181,7 +178,7 @@ function SidebarContent({ userPlan, uniqueId }: { userPlan: string; uniqueId: st
     features: [
       { text: "Até 30 Sub-contas", icon: Users },
       { text: "Gestão Financeira", icon: Calculator },
-      { text: "Analytics completo", icon: BarChart3 },
+      { text: "Calculadora Avançada", icon: BarChart3 },
     ],
     buttonText: "Virar ULTRA agora",
     buttonGradient: "from-purple-600 to-pink-600",
@@ -355,7 +352,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
 
       <div className="fixed inset-0 z-[-1] bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-900 dark:to-slate-800" />
 
-      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl h-screen sticky top-0">
+      <aside className="hidden lg:flex w-72 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-r border-slate-200/50 dark:border-slate-700/50 p-4 flex-col flex-shrink-0 shadow-xl fixed inset-y-0 z-50">
         <div className="mb-4 px-2 flex-shrink-0">
           <Link href="/dashboard" className="flex items-center group">
             <FreelinkLogo size={40} />
@@ -413,7 +410,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
         )}
       </AnimatePresence>
 
-      <div className="flex-1 flex flex-col min-w-0 relative z-10">
+      <div className="flex-1 flex flex-col min-w-0 relative z-10 lg:pl-72 lg:h-screen lg:overflow-y-auto">
 
         <header className="sticky top-0 bg-white/80 dark:bg-slate-800/80 backdrop-blur-xl border-b border-slate-200/50 p-4 flex justify-between items-center z-40">
           <div className="flex items-center gap-4">
@@ -443,7 +440,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
                     <motion.button onClick={() => { setIsSearchOpen(false); setSearchTerm("") }} className="absolute right-2 top-1/2 -translate-y-1/2 p-1"><X className="w-4 h-4" /></motion.button>
                     {(searchResults.length > 0 || searchLoading) && (
                       <div className="absolute top-full right-0 w-full bg-white shadow-2xl p-2 rounded-lg mt-2 border border-slate-100">
-                        {searchLoading ? ( <div className="p-4 text-center text-xs text-slate-500">Buscando...</div> ) : ( searchResults.map((res, i) => ( <Link href={res.href} key={i} onClick={handleSearchLinkClick}> <div className="p-2 hover:bg-slate-100 rounded flex items-center gap-2 text-sm cursor-pointer"> {res.icon && <res.icon className="w-4 h-4 text-slate-500" />} <span className="truncate">{res.label}</span> </div> </Link> )) )}
+                        {searchLoading ? (<div className="p-4 text-center text-xs text-slate-500">Buscando...</div>) : (searchResults.map((res, i) => (<Link href={res.href} key={i} onClick={handleSearchLinkClick}> <div className="p-2 hover:bg-slate-100 rounded flex items-center gap-2 text-sm cursor-pointer"> {res.icon && <res.icon className="w-4 h-4 text-slate-500" />} <span className="truncate">{res.label}</span> </div> </Link>)))}
                       </div>
                     )}
                   </motion.div>
@@ -497,7 +494,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
                   </div>
                   <div className="flex-1">
                     <h3 className="font-bold text-slate-800 dark:text-white text-sm">Gerenciar Links e Dados</h3>
-                    <p className="text-xs text-slate-500 mt-0.5">Ver estatísticas e editar botões</p>
+                    <p className="text-xs text-slate-500 mt-0.5">Gerenciar botões e vitrine</p>
                   </div>
                   <div className="bg-slate-50 dark:bg-slate-800 p-2 rounded-full border border-slate-100 dark:border-slate-700 group-hover:border-blue-200">
                     <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-blue-500 transition-colors" />

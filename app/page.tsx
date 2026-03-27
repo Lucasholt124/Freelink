@@ -29,6 +29,8 @@ import {
   HowItWorksStep, DifferentialCard, ComparisonCell
 } from "@/components/landing/landing-components";
 
+import FeatureMockupShowcase from "@/components/landing/FeatureMockupShowcase";
+
 
 
 const howItWorks = [
@@ -41,8 +43,8 @@ const howItWorks = [
 const differentials = [
   { icon: <Megaphone size={28} />, title: "Hub de Tráfego Grátis", desc: "Membros Pro/Ultra recebem de 2.000 a 15.000 visitantes reais na vitrine por mês." },
   { icon: <Target size={28} />, title: "Pixel & Remarketing", desc: "O único que permite rastrear cada cliente para você fazer anúncios que convertem." },
-  { icon: <Calculator size={28} />, title: "Gestão Financeira (CRM)", desc: "Uma calculadora de lucros com IA que mostra para onde seu dinheiro está indo." },
-  { icon: <BarChart3 size={28} />, title: "Analytics Profundo", desc: "Saiba qual cidade, horário e celular mais geram vendas no seu link." },
+  { icon: <Calculator size={28} />, title: "Calculadora de Lucro", desc: "Uma ferramenta integrada para você calcular a margem exata e otimizar preços." },
+  { icon: <BarChart3 size={28} />, title: "Google Analytics 1-Click", desc: "Conecte seu GA4 copiando apenas o ID, sem precisar mexer em códigos." },
   { icon: <Gift size={28} />, title: "Máquina de Sorteios", desc: "Sistema integrado para puxar comentários do Instagram e bombar seu engajamento." },
   { icon: <Shield size={28} />, title: "Criptografia de Bancos", desc: "Hospedado na AWS/Vercel com proteção da Cloudflare. Não cai e não trava." },
 ];
@@ -50,24 +52,24 @@ const differentials = [
 const pillars = [
   { icon: <Link2 size={32} />, title: "Sua Vitrine de Alta Conversão", desc: "Pare de mandar seu cliente para um 'linktree' sem graça. Crie uma página rápida, que carrega as imagens do seu produto em milissegundos e transmite confiança.", color: "from-indigo-500 to-blue-500", badge: "Vitrine" },
   { icon: <Megaphone size={32} />, title: "Tráfego Automático (AdsHub)", desc: "Exclusividade Freelinnk: nós exibimos o seu produto em formato de anúncio nas vitrines de outros lojistas que não competem com você. Tráfego real entrando no seu funil.", color: "from-purple-500 to-pink-500", badge: "Tráfego" },
-  { icon: <Calculator size={32} />, title: "CRM e Analytics Comercial", desc: "Você sabe qual é sua taxa de conversão hoje? Nosso sistema mapeia horários de pico, localizações e calcula sua margem de lucro líquida de forma automática.", color: "from-emerald-500 to-teal-500", badge: "Gestão" },
+  { icon: <Calculator size={32} />, title: "Lucro e Rastreamento", desc: "Você sabe qual é sua taxa de conversão hoje? Conecte seu Pixel e use a calculadora para definir sua margem de lucro de forma automática.", color: "from-emerald-500 to-teal-500", badge: "Gestão" },
 ];
 
 const painPoints = [
   { problem: "Usa um agregador de links grátis, feio e amador que espanta clientes", solution: "Uma vitrine Premium que transmite confiança de uma marca gigante" },
   { problem: "Perde clientes quentes porque não pode colocar o Pixel do Facebook no link", solution: "Integração nativa com Meta Pixel e Google Analytics em 1 clique" },
   { problem: "Sofre para conseguir tráfego e visualizações nos seus produtos", solution: "Rede de anúncios interna que joga tráfego qualificado na sua página" },
-  { problem: "Não sabe qual produto dá lucro ou se está pagando imposto demais", solution: "CRM Inteligente que cruza suas vendas e custos, gerando relatórios reais" },
+  { problem: "Não sabe qual produto dá lucro real ou margem de comissão", solution: "Calculadora Inteligente que ajuda a precificar corretamente" },
 ];
 
 const comparisonData = [
   { name: "Páginas Customizáveis", freelinnk: true as const, linktree: true as const, beacons: true as const },
   { name: "Pixel FB / Analytics", freelinnk: true as const, linktree: "paid" as const, beacons: "paid" as const },
   { name: "Hub de Anúncios Nativo", freelinnk: true as const, linktree: false as const, beacons: false as const },
-  { name: "Calculadora de Lucro (CRM)", freelinnk: true as const, linktree: false as const, beacons: false as const },
+  { name: "Calculadora de Lucro", freelinnk: true as const, linktree: false as const, beacons: false as const },
   { name: "Sorteador Instagram", freelinnk: true as const, linktree: false as const, beacons: false as const },
-  { name: "Estatísticas (Cidade/Hora)", freelinnk: true as const, linktree: "paid" as const, beacons: "paid" as const },
-  { name: "Encurtador de Link", freelinnk: true as const, linktree: false as const, beacons: false as const },
+  { name: "Google Analytics 1-Click", freelinnk: true as const, linktree: "paid" as const, beacons: "paid" as const },
+  { name: "Bloqueador de Anúncios", freelinnk: true as const, linktree: false as const, beacons: false as const },
   { name: "Múltiplas Páginas", freelinnk: true as const, linktree: "partial" as const, beacons: "partial" as const },
   { name: "Suporte VIP WhatsApp", freelinnk: true as const, linktree: false as const, beacons: false as const },
   { name: "Garantia 7 Dias", freelinnk: true as const, linktree: false as const, beacons: false as const },
@@ -76,9 +78,9 @@ const comparisonData = [
 const faqs = [
   { q: "O Freelinnk é seguro? Corre o risco de cair?", a: "Absolutamente. Usamos a mesma infraestrutura dos gigantes (Vercel e Cloudflare) com criptografia ponta a ponta. Seu link nunca fica fora do ar." },
   { q: "Qual a vantagem de usar o Hub de Anúncios?", a: "Se você não pagar anúncios no Facebook, ninguém vê seus produtos. Com nosso Hub, os planos Pro e Ultra ganham milhares de visualizações distribuindo seus produtos nas páginas da nossa rede (sempre para nichos compatíveis)." },
-  { q: "Como instalo o Pixel do Facebook?", a: "Se você é Pro ou Ultra, basta colar o código do seu Pixel nas configurações. O Freelinnk rastreia automaticamente visualizações, cliques e redirecionamentos, permitindo campanhas de remarketing perfeitas." },
-  { q: "Como funciona a Garantia de 7 dias?", a: "Comece o teste. Se em 7 dias a ferramenta não te ajudar a vender mais, gerir melhor seu negócio ou captar tráfego, basta pedir o cancelamento. Devolvemos 100% sem dor de cabeça." },
-  { q: "Por que sair do Linktree para o Freelinnk?", a: "O Linktree é um agrupador de botões. O Freelinnk é um funil de vendas. Aqui você tem tráfego, CRM financeiro, Pixel e Sorteador integrados." },
+  { q: "Como instalo o Pixel do Facebook?", a: "Se você é Pro ou Ultra, basta colar o ID do seu Pixel nas configurações. O Freelinnk injeta automaticamente o código, permitindo campanhas de remarketing perfeitas sem precisar de programador." },
+  { q: "Como funciona a Garantia de 7 dias?", a: "Comece o teste. Se em 7 dias a ferramenta não te ajudar a vender mais, captar tráfego ou profissionalizar sua marca, basta pedir o cancelamento. Devolvemos 100% sem dor de cabeça." },
+  { q: "Por que sair do Linktree para o Freelinnk?", a: "O Linktree é um agrupador de botões. O Freelinnk é um funil com Tráfego, Calculadora Financeira, Pixel e Sorteador integrados." },
 ];
 
 export default function LandingPage() {
@@ -425,7 +427,7 @@ export default function LandingPage() {
       </section>
 
 
-      <section id="funcionalidades" className="py-20 bg-white">
+      <section id="funcionalidades" className="py-20 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4">
           <ScrollReveal>
             <div className="text-center mb-16">
@@ -437,11 +439,9 @@ export default function LandingPage() {
               </h2>
             </div>
           </ScrollReveal>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {features.map((feature, i) => (
-              <FeatureCard key={i} feature={feature} />
-            ))}
-          </div>
+          
+          <FeatureMockupShowcase />
+          
         </div>
       </section>
 
@@ -626,7 +626,7 @@ export default function LandingPage() {
                 <span className="text-2xl font-bold">Freelinnk</span>
               </div>
               <p className="text-gray-400 mb-6 max-w-md leading-relaxed">
-                O único Bio Link focado em Vendas. CRM, Pixel de Rastreamento e Rede de Tráfego Automática para lojistas e criadores profissionais.
+                O único Bio Link focado em Vendas. Ferramentas, Pixel de Rastreamento e Rede de Tráfego Automática para lojistas e criadores profissionais.
               </p>
             </div>
             <div>

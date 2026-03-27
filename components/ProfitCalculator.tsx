@@ -387,8 +387,12 @@ const [quickSaleForm, setQuickSaleForm] = useState({
     paymentMethod: "pix" as PaymentMethod,
   });
 
-  const [priceCalcResult, setPriceCalcResult] = useState<PriceCalculationResult | null>(null);
+const [priceCalcResult, setPriceCalcResult] = useState<PriceCalculationResult | null>(null);
 const [productSearchTerm, setProductSearchTerm] = useState("");
+const [customerSearchTerm, setCustomerSearchTerm] = useState("");
+const [customerStatusFilter, setCustomerStatusFilter] = useState("all");
+const [customerSortBy, setCustomerSortBy] = useState("name"); // name, date, lastContact
+
   const productsQuery = useQuery(api.profitCalculator.getProducts, { activeOnly: false });
   const products = useMemo(() => productsQuery ?? [], [productsQuery]);
   const sales = useQuery(api.profitCalculator.getSalesByMonth, { month: selectedMonth }) ?? [];
@@ -439,13 +443,44 @@ const paginatedExpenses = useMemo(() => {
 const [customersPage, setCustomersPage] = useState(1);
 const CUSTOMERS_PER_PAGE = 12;
 
+const filteredAndSortedCustomers = useMemo(() => {
+  let result = [...customers];
+  
+  if (customerSearchTerm) {
+    const term = customerSearchTerm.toLowerCase();
+    result = result.filter(c => 
+      c.name.toLowerCase().includes(term) || 
+      (c.email && c.email.toLowerCase().includes(term)) || 
+      (c.phone && c.phone.replace(/\\D/g, '').includes(term.replace(/\\D/g, '')))
+    );
+  }
+
+  if (customerStatusFilter !== "all") {
+    result = result.filter(c => c.status === customerStatusFilter);
+  }
+
+  result.sort((a, b) => {
+    if (customerSortBy === "name") {
+      return a.name.localeCompare(b.name);
+    } else if (customerSortBy === "date") {
+      return b.createdAt - a.createdAt;
+    } else if (customerSortBy === "lastContact") {
+      const aLast = a.lastPurchase || a.createdAt;
+      const bLast = b.lastPurchase || b.createdAt;
+      return bLast - aLast;
+    }
+    return 0;
+  });
+
+  return result;
+}, [customers, customerSearchTerm, customerStatusFilter, customerSortBy]);
 
 const paginatedCustomers = useMemo(() => {
   const startIndex = (customersPage - 1) * CUSTOMERS_PER_PAGE;
-  return customers.slice(startIndex, startIndex + CUSTOMERS_PER_PAGE);
-}, [customers, customersPage]);
+  return filteredAndSortedCustomers.slice(startIndex, startIndex + CUSTOMERS_PER_PAGE);
+}, [filteredAndSortedCustomers, customersPage]);
 
-const totalCustomersPages = Math.ceil(customers.length / CUSTOMERS_PER_PAGE);
+const totalCustomersPages = Math.ceil(filteredAndSortedCustomers.length / CUSTOMERS_PER_PAGE);
 const totalExpensesPages = Math.ceil(expenses.length / EXPENSES_PER_PAGE);
 const totalSalesPages = Math.ceil(sales.length / SALES_PER_PAGE);
 
@@ -3018,6 +3053,48 @@ const chartData = useMemo(() => {
                   </div>
                 )}
 
+                {/* SEARCH E FILTROS */}
+                {customers.length > 0 && (
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          placeholder="Buscar por nome, email ou telefone..."
+                          value={customerSearchTerm}
+                          onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                          className="pl-9 bg-gray-50 border-gray-200"
+                        />
+                      </div>
+                      <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
+                        <Select value={customerStatusFilter} onValueChange={setCustomerStatusFilter}>
+                          <SelectTrigger className="w-[140px] shrink-0 bg-gray-50 border-gray-200">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos Status</SelectItem>
+                            <SelectItem value="lead">🔥 Lead</SelectItem>
+                            <SelectItem value="ativo">✅ Ativo</SelectItem>
+                            <SelectItem value="vip">💎 VIP</SelectItem>
+                            <SelectItem value="inativo">❄️ Inativo</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        
+                        <Select value={customerSortBy} onValueChange={setCustomerSortBy}>
+                          <SelectTrigger className="w-[160px] shrink-0 bg-gray-50 border-gray-200">
+                            <SelectValue placeholder="Ordenar por" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="name">Nome (A-Z)</SelectItem>
+                            <SelectItem value="date">Mais Recentes</SelectItem>
+                            <SelectItem value="lastContact">Último Contato</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
                 {/* LISTA DE CLIENTES */}
                 {customers.length === 0 ? (
                   <Card className="p-12 text-center border-2 border-dashed">
@@ -3107,12 +3184,12 @@ const chartData = useMemo(() => {
                   </div>
                 )}
 
-                {customers.length > 0 && (
+                {filteredAndSortedCustomers.length > 0 && (
                   <Pagination
                     currentPage={customersPage}
                     totalPages={totalCustomersPages}
                     onPageChange={setCustomersPage}
-                    totalItems={customers.length}
+                    totalItems={filteredAndSortedCustomers.length}
                     itemsPerPage={CUSTOMERS_PER_PAGE}
                   />
                 )}
@@ -4090,8 +4167,6 @@ const chartData = useMemo(() => {
                 />
               </div>
               <div>
-                <Label>Telefone</Label>
-                <div>
                 <Label>Data de Aniversário</Label>
                 <Input
                   type="date"
@@ -4117,6 +4192,8 @@ const chartData = useMemo(() => {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label>Telefone</Label>
                 <Input
                   value={customerForm.phone}
                   onChange={(e) => setCustomerForm({ ...customerForm, phone: e.target.value })}
@@ -4169,15 +4246,6 @@ const chartData = useMemo(() => {
               </div>
               <div>
                 <Label>Telefone</Label>
-                <div>
-                <Label>Data de Aniversário</Label>
-                <Input
-                  type="date"
-                  value={customerForm.birthDate}
-                  onChange={(e) => setCustomerForm({ ...customerForm, birthDate: e.target.value })}
-                  className="bg-white"
-                />
-              </div>
                 <Input
                   value={supplierForm.phone}
                   onChange={(e) => setSupplierForm({ ...supplierForm, phone: e.target.value })}

@@ -62,8 +62,8 @@ export const features = [
   },
   {
     icon: <BarChart3 size={24} />,
-    title: "Analytics Avançado",
-    desc: "Descubra horários de pico, cidade dos clientes e qual botão mais converte.",
+    title: "Integração com Google Analytics",
+    desc: "Acompanhe todos os dados de acessos conectando o seu G-A4 diretamente na plataforma.",
     tag: "PRO",
     color: "from-indigo-500 to-violet-500"
   },
@@ -92,7 +92,7 @@ export const features = [
 
 export const stats = [
   { value: "4.800", suffix: "+", label: "Lojistas Faturando" },
-  { value: "1.2", suffix: "M+", label: "Vendas Rastreadas" },
+  { value: "1.2", suffix: "M+", label: "Cliques Gerados" },
   { value: "15", suffix: "k", label: "Tráfego Grátis (Mês)" },
   { value: "4.9", suffix: "/5", label: "Avaliação de Conversão" },
 ];
@@ -120,7 +120,7 @@ export const testimonials = [
     increase: "+25% Margem Real"
   },
   {
-    text: "Acesso aos dados da minha audiência me diz a hora exata de postar. Sei de que cidade compram mais e foco o frete lá.",
+    text: "O visual profissional da minha bio nova passou muita credibilidade. Percebi que meus clientes compram muito mais rápido agora.",
     author: "Lucas Mendes",
     role: "Vendedor de InfoProdutos",
     avatar: "https://i.pravatar.cc/100?img=12",
@@ -134,7 +134,7 @@ export const testimonials = [
     increase: "30 Clientes Atendidos"
   },
   {
-    text: "Usei o Sorteador pra bombar uma publicação no Instagram. A galera clicou no link da bio e o Analytics rastreou tudo.",
+    text: "Usei o Sorteador pra bombar uma publicação no Instagram. A galera clicou no link da bio e o Pixel do Facebook capturou todos.",
     author: "Ana Paula",
     role: "Nutricionista Esportiva",
     avatar: "https://i.pravatar.cc/100?img=23",
@@ -186,7 +186,7 @@ export const pricingPlans = [
       { text: "Hub de Anúncios (2 Campanhas)", icon: <Megaphone className="w-4 h-4" /> },
       { text: "Até 2.000 Views de Anúncio / Mês", icon: <TrendingUp className="w-4 h-4" />, isHot: true },
       { text: "Pixel FB e Google Analytics", icon: <Target className="w-4 h-4" /> },
-      { text: "Métricas de Cliques (Cidade/Hora)", icon: <BarChart3 className="w-4 h-4" /> },
+      { text: "Sorteios no Instagram", icon: <Gift className="w-4 h-4" /> },
       { text: "Múltiplas Páginas (Até 10 Perfis)", icon: <Layers className="w-4 h-4" /> },
       { text: "Sem Logo do Freelinnk", icon: <Shield className="w-4 h-4" /> },
     ],

@@ -69,7 +69,7 @@ export default function PrivacyPolicyPage() {
           <h3>3.3. Analytics, Pixels e Rede de Anúncios (Hub)</h3>
           <p>Esta é a principal inteligência do Freelinnk para fazer você vender mais:</p>
           <ul className="list-disc pl-6 marker:text-slate-400">
-            <li><strong>Estatísticas Anônimas:</strong> Coletamos quantos cliques seus links recebem, horários de pico e a cidade aproximada dos visitantes para gerar seus relatórios.</li>
+            <li><strong>Otimização de Conversão:</strong> Analisamos tendências de mercado e preferências para aprimorar suas vitrines e campanhas.</li>
             <li><strong>Rastreamento (Pixel):</strong> Se você for usuário Pro/Ultra, permitimos que você injete seu Pixel do Meta/Google na sua página. Nesse caso, a responsabilidade pelo consentimento do usuário final que clica no <em>seu</em> link passa a ser sua (você é o Controlador perante seus clientes).</li>
             <li><strong>Hub de Anúncios:</strong> O Freelinnk possui uma rede de anúncios nativa. A Inteligência Artificial analisa a descrição (Bio) que você escreveu no seu perfil público para categorizar o seu nicho. Isso garante que anúncios de concorrentes não apareçam na sua página, e que o seu anúncio seja mostrado em páginas de interesse comum.</li>
           </ul>
@@ -118,7 +118,7 @@ export default function PrivacyPolicyPage() {
             <li><strong>Convex:</strong> Nosso banco de dados de ultra-velocidade para armazenamento das informações dos links e processamento em tempo real.</li>
             <li><strong>Clerk:</strong> Nosso sistema de proteção de senhas, autenticação e logins.</li>
             <li><strong>Stripe:</strong> Nosso banco processador de pagamentos e cartões.</li>
-            <li><strong>Provedores de IA:</strong> Usamos IA para ler a bio da sua vitrine e gerar relatórios, tudo de forma automatizada sem intervenção humana no seu conteúdo pessoal.</li>
+            <li><strong>Provedores de IA:</strong> Usamos IA para ler a bio da sua vitrine e gerar insights de negócios, tudo de forma automatizada sem intervenção humana no seu conteúdo pessoal.</li>
           </ul>
 
           <h2 className="flex items-center gap-2 text-2xl border-b border-slate-200 pb-2 mt-12">
