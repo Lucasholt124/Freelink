@@ -2,7 +2,11 @@ import { ReactNode } from "react";
 import { currentUser } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import DashboardShell from "./DashboardShell";
-import { getCachedSubscriptionPlan, getCachedUserSlug } from "@/lib/cached-queries";
+import { 
+  getCachedSubscriptionPlan, 
+  getCachedUserSlug, 
+  getCachedOnboardingStatus 
+} from "@/lib/cached-queries";
 
 export default async function DashboardLayout({ children }: { children: ReactNode }) {
   const user = await currentUser();
@@ -11,22 +15,19 @@ export default async function DashboardLayout({ children }: { children: ReactNod
     return redirect("/sign-in");
   }
 
-  const [userSlug, planDetails] = await Promise.all([
+  const [userSlug, planDetails, onboarding] = await Promise.all([
     getCachedUserSlug(user.id),
     getCachedSubscriptionPlan(user.id),
+    getCachedOnboardingStatus(user.id),
   ]);
-  // Busca o slug do usuário no Convex (Backend)
-
 
   // LÓGICA DE PROTEÇÃO:
-  // A função getUserSlug retorna o "username" SE existir.
-  // SE NÃO existir, ela retorna o "userId" como fallback.
-  // Então, se userSlug for igual ao user.id, o usuário NÃO tem username configurado.
-  // Forçamos ele para o Onboarding.
-  if (userSlug === user.id) {
+  // Redireciona para o Onboarding se:
+  // 1. Não tiver username (userSlug === userId)
+  // 2. Não tiver completado os 4 passos do wizard
+  if (userSlug === user.id || !onboarding?.completed) {
     return redirect("/onboarding");
   }
-
 
   const userPlan = planDetails.plan || "free";
 

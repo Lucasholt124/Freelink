@@ -12,3 +12,7 @@ export const getCachedSubscriptionPlan = cache(async (userId: string) => {
 export const getCachedUserSlug = cache(async (userId: string) => {
   return fetchQuery(api.lib.usernames.getUserSlug, { userId });
 });
+
+export const getCachedOnboardingStatus = cache(async (userId: string) => {
+  return fetchQuery(api.onboarding.getOnboardingStatus, { userId });
+});

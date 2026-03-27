@@ -16,6 +16,7 @@ import { motion, AnimatePresence, LayoutGroup } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { WelcomeModal } from "@/components/onboarding/WelcomeModal";
 
 type LucideIcon = ForwardRefExoticComponent<Omit<LucideProps, "ref"> & RefAttributes<SVGSVGElement>>;
 
@@ -506,6 +507,7 @@ export default function DashboardShell({ children, initialPlan }: { children: Re
 
           {children}
           <div className="h-24 lg:hidden" />
+          <WelcomeModal />
         </main>
       </div>
     </div>

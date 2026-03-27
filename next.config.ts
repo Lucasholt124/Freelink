@@ -5,8 +5,8 @@ const nextConfig: NextConfig = {
   // ✅ Evita redirects desnecessários em rotas de API
   skipTrailingSlashRedirect: true,
 
-  // ✅ Pacotes do servidor (Prisma)
-  serverExternalPackages: ['@prisma/client', 'prisma'],
+  // ✅ Pacotes do servidor
+  serverExternalPackages: [],
 
   // ✅ Configuração de Imagens
   images: {

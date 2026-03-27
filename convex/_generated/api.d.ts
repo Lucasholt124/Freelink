@@ -25,6 +25,7 @@ import type * as lib_sentry from "../lib/sentry.js";
 import type * as lib_subAccounts from "../lib/subAccounts.js";
 import type * as lib_usernames from "../lib/usernames.js";
 import type * as lib_withSentry from "../lib/withSentry.js";
+import type * as onboarding from "../onboarding.js";
 import type * as profitCalculator from "../profitCalculator.js";
 import type * as publicGiveaways from "../publicGiveaways.js";
 import type * as shareAchievements from "../shareAchievements.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   "lib/subAccounts": typeof lib_subAccounts;
   "lib/usernames": typeof lib_usernames;
   "lib/withSentry": typeof lib_withSentry;
+  onboarding: typeof onboarding;
   profitCalculator: typeof profitCalculator;
   publicGiveaways: typeof publicGiveaways;
   shareAchievements: typeof shareAchievements;
