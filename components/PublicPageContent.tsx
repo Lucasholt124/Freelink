@@ -49,228 +49,228 @@ const HOLIDAYS: {
   month: number; day: number; range?: number;
   config: HolidayConfig;
 }[] = [
-  {
-    month: 1, day: 1, range: 3,
-    config: {
-      name: "Ano Novo", emoji: "🎆", priority: 10,
-      colors: ["#FFD700", "#FF6B00", "#FF0080"],
-      particleShapes: ["circle", "square"],
-      message: "✨ Feliz Ano Novo! Que {year} seja incrível!",
-      bgOverlay: "radial-gradient(ellipse at top, rgba(255,215,0,0.15) 0%, transparent 70%)",
-      floatingEmojis: ["🎆", "🎇", "🥂", "🎉", "⭐", "🌟", "✨"],
-      textAccent: "#FFD700",
-      confettiColors: ["#FFD700", "#FF6B00", "#FF0080", "#00FFFF", "#FFFFFF"],
-    }
-  },
-  {
-    month: 2, day: 14, range: 2,
-    config: {
-      name: "Dia dos Namorados BR / Valentine's Day", emoji: "💝", priority: 8,
-      colors: ["#FF1493", "#FF69B4", "#FF0080"],
-      particleShapes: ["circle"],
-      message: "💕 Feliz Dia do Amor!",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(255,20,147,0.12) 0%, transparent 70%)",
-      floatingEmojis: ["💝", "💖", "💗", "💓", "💘", "🌹", "💌"],
-      textAccent: "#FF1493",
-      confettiColors: ["#FF1493", "#FF69B4", "#FF0080", "#FFB6C1"],
-    }
-  },
-  {
-    month: 3, day: 8, range: 2,
-    config: {
-      name: "Dia Internacional da Mulher", emoji: "💜", priority: 9,
-      colors: ["#9B59B6", "#E91E63", "#FF9800"],
-      particleShapes: ["circle", "square"],
-      message: "💜 Dia da Mulher — Força, amor e respeito!",
-      bgOverlay: "radial-gradient(ellipse at top left, rgba(155,89,182,0.18) 0%, rgba(233,30,99,0.10) 50%, transparent 80%)",
-      floatingEmojis: ["💜", "🌸", "✊", "🌺", "💐", "🦋", "⭐"],
-      textAccent: "#9B59B6",
-      confettiColors: ["#9B59B6", "#E91E63", "#FF9800", "#FFD700"],
-    }
-  },
-  {
-    month: 4, day: 1, range: 1,
-    config: {
-      name: "April Fools / Dia da Mentira", emoji: "🤡", priority: 4,
-      colors: ["#FF6B35", "#FFD700", "#00E5FF"],
-      particleShapes: ["circle", "square"],
-      message: "🎪 Hoje é dia da mentira... ou não?",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(255,107,53,0.1) 0%, transparent 70%)",
-      floatingEmojis: ["🤡", "🎭", "😂", "🎪", "🃏", "🎈", "❓"],
-      textAccent: "#FF6B35",
-      confettiColors: ["#FF6B35", "#FFD700", "#00E5FF", "#FF1493"],
-    }
-  },
-  {
-    month: 4, day: 22, range: 2,
-    config: {
-      name: "Dia da Terra", emoji: "🌍", priority: 6,
-      colors: ["#2ECC71", "#27AE60", "#3498DB"],
-      particleShapes: ["circle"],
-      message: "🌱 Dia da Terra — Cuide do nosso lar!",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(46,204,113,0.12) 0%, transparent 70%)",
-      floatingEmojis: ["🌍", "🌿", "🌱", "🍃", "♻️", "💚", "🌊"],
-      textAccent: "#2ECC71",
-      confettiColors: ["#2ECC71", "#27AE60", "#3498DB", "#00FF7F"],
-    }
-  },
-  {
-    month: 5, day: 12, range: 3,
-    config: {
-      name: "Dia das Mães", emoji: "🌷", priority: 9,
-      colors: ["#FF6B9D", "#FF8E53", "#FFC0CB"],
-      particleShapes: ["circle"],
-      message: "🌷 Feliz Dia das Mães! Amor incondicional.",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(255,107,157,0.14) 0%, transparent 70%)",
-      floatingEmojis: ["🌷", "💐", "💗", "🤱", "👩‍👦", "🌺", "💝"],
-      textAccent: "#FF6B9D",
-      confettiColors: ["#FF6B9D", "#FF8E53", "#FFC0CB", "#FFB6C1"],
-    }
-  },
-  {
-    month: 6, day: 12, range: 2,
-    config: {
-      name: "Dia dos Namorados", emoji: "💑", priority: 9,
-      colors: ["#E91E63", "#FF5722", "#FF1744"],
-      particleShapes: ["circle"],
-      message: "💑 Feliz Dia dos Namorados! 💕",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(233,30,99,0.13) 0%, transparent 70%)",
-      floatingEmojis: ["💑", "💕", "💋", "🌹", "💌", "💝", "🥂"],
-      textAccent: "#E91E63",
-      confettiColors: ["#E91E63", "#FF5722", "#FF1744", "#FF69B4"],
-    }
-  },
-  {
-    month: 6, day: 24, range: 4,
-    config: {
-      name: "Festa Junina", emoji: "🎪", priority: 7,
-      colors: ["#FF6B00", "#FFD700", "#E91E63"],
-      particleShapes: ["circle", "square"],
-      message: "🎉 Arraiá! Feliz Festa Junina!",
-      bgOverlay: "radial-gradient(ellipse at bottom, rgba(255,107,0,0.15) 0%, transparent 70%)",
-      floatingEmojis: ["🎪", "🌽", "🎵", "🎆", "⭐", "🏮", "🎊"],
-      textAccent: "#FF6B00",
-      confettiColors: ["#FF6B00", "#FFD700", "#E91E63", "#228B22"],
-    }
-  },
-  {
-    month: 8, day: 12, range: 2,
-    config: {
-      name: "Dia dos Pais", emoji: "👨‍👦", priority: 9,
-      colors: ["#1565C0", "#0D47A1", "#42A5F5"],
-      particleShapes: ["circle"],
-      message: "👨‍👦 Feliz Dia dos Pais! Orgulho e amor.",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(21,101,192,0.13) 0%, transparent 70%)",
-      floatingEmojis: ["👨‍👦", "👔", "🏆", "💙", "⭐", "👑", "💪"],
-      textAccent: "#42A5F5",
-      confettiColors: ["#1565C0", "#42A5F5", "#FFD700", "#FFFFFF"],
-    }
-  },
-  {
-    month: 9, day: 7, range: 2,
-    config: {
-      name: "Independência do Brasil", emoji: "🇧🇷", priority: 7,
-      colors: ["#009C3B", "#FFDF00", "#002776"],
-      particleShapes: ["circle", "square"],
-      message: "🇧🇷 Independência do Brasil!",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(0,156,59,0.12) 0%, transparent 70%)",
-      floatingEmojis: ["🇧🇷", "🟢", "🟡", "⭐", "💚", "💛", "🔵"],
-      textAccent: "#FFDF00",
-      confettiColors: ["#009C3B", "#FFDF00", "#002776", "#FFFFFF"],
-    }
-  },
-  {
-    month: 10, day: 12, range: 2,
-    config: {
-      name: "Dia das Crianças", emoji: "🧸", priority: 8,
-      colors: ["#FF6B35", "#FFD700", "#FF1493"],
-      particleShapes: ["circle", "square"],
-      message: "🧸 Feliz Dia das Crianças!",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(255,107,53,0.13) 0%, transparent 70%)",
-      floatingEmojis: ["🧸", "🎈", "🍭", "🎠", "🌈", "🎪", "🎉"],
-      textAccent: "#FF6B35",
-      confettiColors: ["#FF6B35", "#FFD700", "#FF1493", "#00E5FF"],
-    }
-  },
-  {
-    month: 10, day: 31, range: 3,
-    config: {
-      name: "Halloween", emoji: "🎃", priority: 8,
-      colors: ["#FF6B00", "#7B1FA2", "#1A1A2E"],
-      particleShapes: ["circle", "square"],
-      message: "🎃 Trick or Treat! Feliz Halloween!",
-      bgOverlay: "radial-gradient(ellipse at top, rgba(255,107,0,0.18) 0%, rgba(123,31,162,0.12) 50%, transparent 80%)",
-      floatingEmojis: ["🎃", "👻", "🦇", "🕷️", "🕸️", "🌙", "💀"],
-      textAccent: "#FF6B00",
-      confettiColors: ["#FF6B00", "#7B1FA2", "#FF1744", "#FFD700"],
-    }
-  },
-  {
-    month: 11, day: 15, range: 2,
-    config: {
-      name: "Proclamação da República", emoji: "🏛️", priority: 5,
-      colors: ["#009C3B", "#FFDF00", "#002776"],
-      particleShapes: ["circle"],
-      message: "🏛️ Proclamação da República — 15 de Novembro",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(0,156,59,0.1) 0%, transparent 70%)",
-      floatingEmojis: ["🇧🇷", "🏛️", "⭐", "🌟", "💚", "💛", "🔵"],
-      textAccent: "#009C3B",
-      confettiColors: ["#009C3B", "#FFDF00", "#002776"],
-    }
-  },
-  {
-    month: 11, day: 20, range: 2,
-    config: {
-      name: "Consciência Negra", emoji: "✊🏿", priority: 8,
-      colors: ["#FFD700", "#CC0000", "#006400"],
-      particleShapes: ["circle"],
-      message: "✊🏿 Dia da Consciência Negra. Força, memória, luta.",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(255,215,0,0.13) 0%, transparent 70%)",
-      floatingEmojis: ["✊🏿", "🌍", "⭐", "🔥", "💛", "❤️", "💚"],
-      textAccent: "#FFD700",
-      confettiColors: ["#FFD700", "#CC0000", "#006400", "#000000"],
-    }
-  },
-  {
-    month: 11, day: 29, range: 5,
-    config: {
-      name: "Black Friday", emoji: "🛍️", priority: 9,
-      colors: ["#1A1A1A", "#FF1744", "#FFD700"],
-      particleShapes: ["circle", "square"],
-      message: "🛍️ BLACK FRIDAY — As melhores ofertas estão aqui!",
-      bgOverlay: "radial-gradient(ellipse at center, rgba(255,23,68,0.15) 0%, transparent 70%)",
-      floatingEmojis: ["🛍️", "💸", "🔥", "⚡", "💰", "🏷️", "🎁"],
-      textAccent: "#FF1744",
-      confettiColors: ["#FF1744", "#FFD700", "#FF6B00", "#FFFFFF"],
-    }
-  },
-  {
-    month: 12, day: 25, range: 7,
-    config: {
-      name: "Natal", emoji: "🎄", priority: 10,
-      colors: ["#C62828", "#2E7D32", "#FFD700"],
-      particleShapes: ["circle", "square"],
-      message: "🎄 Feliz Natal! Paz, amor e alegria.",
-      bgOverlay: "radial-gradient(ellipse at top, rgba(46,125,50,0.15) 0%, rgba(198,40,40,0.10) 50%, transparent 80%)",
-      floatingEmojis: ["🎄", "⭐", "🎁", "🔔", "🦌", "🎅", "❄️"],
-      textAccent: "#C62828",
-      confettiColors: ["#C62828", "#2E7D32", "#FFD700", "#FFFFFF"],
-    }
-  },
-  {
-    month: 12, day: 31, range: 2,
-    config: {
-      name: "Réveillon", emoji: "🎆", priority: 10,
-      colors: ["#FFD700", "#FF6B00", "#FF0080"],
-      particleShapes: ["circle"],
-      message: "🎆 Feliz Réveillon! Até ano que vem!",
-      bgOverlay: "radial-gradient(ellipse at top, rgba(255,215,0,0.18) 0%, transparent 70%)",
-      floatingEmojis: ["🎆", "🎇", "🥂", "🎉", "⭐", "🌟", "✨"],
-      textAccent: "#FFD700",
-      confettiColors: ["#FFD700", "#FF6B00", "#FF0080", "#00FFFF"],
-    }
-  },
-];
+    {
+      month: 1, day: 1, range: 3,
+      config: {
+        name: "Ano Novo", emoji: "🎆", priority: 10,
+        colors: ["#FFD700", "#FF6B00", "#FF0080"],
+        particleShapes: ["circle", "square"],
+        message: "✨ Feliz Ano Novo! Que {year} seja incrível!",
+        bgOverlay: "radial-gradient(ellipse at top, rgba(255,215,0,0.15) 0%, transparent 70%)",
+        floatingEmojis: ["🎆", "🎇", "🥂", "🎉", "⭐", "🌟", "✨"],
+        textAccent: "#FFD700",
+        confettiColors: ["#FFD700", "#FF6B00", "#FF0080", "#00FFFF", "#FFFFFF"],
+      }
+    },
+    {
+      month: 2, day: 14, range: 2,
+      config: {
+        name: "Dia dos Namorados BR / Valentine's Day", emoji: "💝", priority: 8,
+        colors: ["#FF1493", "#FF69B4", "#FF0080"],
+        particleShapes: ["circle"],
+        message: "💕 Feliz Dia do Amor!",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(255,20,147,0.12) 0%, transparent 70%)",
+        floatingEmojis: ["💝", "💖", "💗", "💓", "💘", "🌹", "💌"],
+        textAccent: "#FF1493",
+        confettiColors: ["#FF1493", "#FF69B4", "#FF0080", "#FFB6C1"],
+      }
+    },
+    {
+      month: 3, day: 8, range: 2,
+      config: {
+        name: "Dia Internacional da Mulher", emoji: "💜", priority: 9,
+        colors: ["#9B59B6", "#E91E63", "#FF9800"],
+        particleShapes: ["circle", "square"],
+        message: "💜 Dia da Mulher — Força, amor e respeito!",
+        bgOverlay: "radial-gradient(ellipse at top left, rgba(155,89,182,0.18) 0%, rgba(233,30,99,0.10) 50%, transparent 80%)",
+        floatingEmojis: ["💜", "🌸", "✊", "🌺", "💐", "🦋", "⭐"],
+        textAccent: "#9B59B6",
+        confettiColors: ["#9B59B6", "#E91E63", "#FF9800", "#FFD700"],
+      }
+    },
+    {
+      month: 4, day: 1, range: 1,
+      config: {
+        name: "April Fools / Dia da Mentira", emoji: "🤡", priority: 4,
+        colors: ["#FF6B35", "#FFD700", "#00E5FF"],
+        particleShapes: ["circle", "square"],
+        message: "🎪 Hoje é dia da mentira... ou não?",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(255,107,53,0.1) 0%, transparent 70%)",
+        floatingEmojis: ["🤡", "🎭", "😂", "🎪", "🃏", "🎈", "❓"],
+        textAccent: "#FF6B35",
+        confettiColors: ["#FF6B35", "#FFD700", "#00E5FF", "#FF1493"],
+      }
+    },
+    {
+      month: 4, day: 22, range: 2,
+      config: {
+        name: "Dia da Terra", emoji: "🌍", priority: 6,
+        colors: ["#2ECC71", "#27AE60", "#3498DB"],
+        particleShapes: ["circle"],
+        message: "🌱 Dia da Terra — Cuide do nosso lar!",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(46,204,113,0.12) 0%, transparent 70%)",
+        floatingEmojis: ["🌍", "🌿", "🌱", "🍃", "♻️", "💚", "🌊"],
+        textAccent: "#2ECC71",
+        confettiColors: ["#2ECC71", "#27AE60", "#3498DB", "#00FF7F"],
+      }
+    },
+    {
+      month: 5, day: 12, range: 3,
+      config: {
+        name: "Dia das Mães", emoji: "🌷", priority: 9,
+        colors: ["#FF6B9D", "#FF8E53", "#FFC0CB"],
+        particleShapes: ["circle"],
+        message: "🌷 Feliz Dia das Mães! Amor incondicional.",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(255,107,157,0.14) 0%, transparent 70%)",
+        floatingEmojis: ["🌷", "💐", "💗", "🤱", "👩‍👦", "🌺", "💝"],
+        textAccent: "#FF6B9D",
+        confettiColors: ["#FF6B9D", "#FF8E53", "#FFC0CB", "#FFB6C1"],
+      }
+    },
+    {
+      month: 6, day: 12, range: 2,
+      config: {
+        name: "Dia dos Namorados", emoji: "💑", priority: 9,
+        colors: ["#E91E63", "#FF5722", "#FF1744"],
+        particleShapes: ["circle"],
+        message: "💑 Feliz Dia dos Namorados! 💕",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(233,30,99,0.13) 0%, transparent 70%)",
+        floatingEmojis: ["💑", "💕", "💋", "🌹", "💌", "💝", "🥂"],
+        textAccent: "#E91E63",
+        confettiColors: ["#E91E63", "#FF5722", "#FF1744", "#FF69B4"],
+      }
+    },
+    {
+      month: 6, day: 24, range: 4,
+      config: {
+        name: "Festa Junina", emoji: "🎪", priority: 7,
+        colors: ["#FF6B00", "#FFD700", "#E91E63"],
+        particleShapes: ["circle", "square"],
+        message: "🎉 Arraiá! Feliz Festa Junina!",
+        bgOverlay: "radial-gradient(ellipse at bottom, rgba(255,107,0,0.15) 0%, transparent 70%)",
+        floatingEmojis: ["🎪", "🌽", "🎵", "🎆", "⭐", "🏮", "🎊"],
+        textAccent: "#FF6B00",
+        confettiColors: ["#FF6B00", "#FFD700", "#E91E63", "#228B22"],
+      }
+    },
+    {
+      month: 8, day: 12, range: 2,
+      config: {
+        name: "Dia dos Pais", emoji: "👨‍👦", priority: 9,
+        colors: ["#1565C0", "#0D47A1", "#42A5F5"],
+        particleShapes: ["circle"],
+        message: "👨‍👦 Feliz Dia dos Pais! Orgulho e amor.",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(21,101,192,0.13) 0%, transparent 70%)",
+        floatingEmojis: ["👨‍👦", "👔", "🏆", "💙", "⭐", "👑", "💪"],
+        textAccent: "#42A5F5",
+        confettiColors: ["#1565C0", "#42A5F5", "#FFD700", "#FFFFFF"],
+      }
+    },
+    {
+      month: 9, day: 7, range: 2,
+      config: {
+        name: "Independência do Brasil", emoji: "🇧🇷", priority: 7,
+        colors: ["#009C3B", "#FFDF00", "#002776"],
+        particleShapes: ["circle", "square"],
+        message: "🇧🇷 Independência do Brasil!",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(0,156,59,0.12) 0%, transparent 70%)",
+        floatingEmojis: ["🇧🇷", "🟢", "🟡", "⭐", "💚", "💛", "🔵"],
+        textAccent: "#FFDF00",
+        confettiColors: ["#009C3B", "#FFDF00", "#002776", "#FFFFFF"],
+      }
+    },
+    {
+      month: 10, day: 12, range: 2,
+      config: {
+        name: "Dia das Crianças", emoji: "🧸", priority: 8,
+        colors: ["#FF6B35", "#FFD700", "#FF1493"],
+        particleShapes: ["circle", "square"],
+        message: "🧸 Feliz Dia das Crianças!",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(255,107,53,0.13) 0%, transparent 70%)",
+        floatingEmojis: ["🧸", "🎈", "🍭", "🎠", "🌈", "🎪", "🎉"],
+        textAccent: "#FF6B35",
+        confettiColors: ["#FF6B35", "#FFD700", "#FF1493", "#00E5FF"],
+      }
+    },
+    {
+      month: 10, day: 31, range: 3,
+      config: {
+        name: "Halloween", emoji: "🎃", priority: 8,
+        colors: ["#FF6B00", "#7B1FA2", "#1A1A2E"],
+        particleShapes: ["circle", "square"],
+        message: "🎃 Trick or Treat! Feliz Halloween!",
+        bgOverlay: "radial-gradient(ellipse at top, rgba(255,107,0,0.18) 0%, rgba(123,31,162,0.12) 50%, transparent 80%)",
+        floatingEmojis: ["🎃", "👻", "🦇", "🕷️", "🕸️", "🌙", "💀"],
+        textAccent: "#FF6B00",
+        confettiColors: ["#FF6B00", "#7B1FA2", "#FF1744", "#FFD700"],
+      }
+    },
+    {
+      month: 11, day: 15, range: 2,
+      config: {
+        name: "Proclamação da República", emoji: "🏛️", priority: 5,
+        colors: ["#009C3B", "#FFDF00", "#002776"],
+        particleShapes: ["circle"],
+        message: "🏛️ Proclamação da República — 15 de Novembro",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(0,156,59,0.1) 0%, transparent 70%)",
+        floatingEmojis: ["🇧🇷", "🏛️", "⭐", "🌟", "💚", "💛", "🔵"],
+        textAccent: "#009C3B",
+        confettiColors: ["#009C3B", "#FFDF00", "#002776"],
+      }
+    },
+    {
+      month: 11, day: 20, range: 2,
+      config: {
+        name: "Consciência Negra", emoji: "✊🏿", priority: 8,
+        colors: ["#FFD700", "#CC0000", "#006400"],
+        particleShapes: ["circle"],
+        message: "✊🏿 Dia da Consciência Negra. Força, memória, luta.",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(255,215,0,0.13) 0%, transparent 70%)",
+        floatingEmojis: ["✊🏿", "🌍", "⭐", "🔥", "💛", "❤️", "💚"],
+        textAccent: "#FFD700",
+        confettiColors: ["#FFD700", "#CC0000", "#006400", "#000000"],
+      }
+    },
+    {
+      month: 11, day: 29, range: 5,
+      config: {
+        name: "Black Friday", emoji: "🛍️", priority: 9,
+        colors: ["#1A1A1A", "#FF1744", "#FFD700"],
+        particleShapes: ["circle", "square"],
+        message: "🛍️ BLACK FRIDAY — As melhores ofertas estão aqui!",
+        bgOverlay: "radial-gradient(ellipse at center, rgba(255,23,68,0.15) 0%, transparent 70%)",
+        floatingEmojis: ["🛍️", "💸", "🔥", "⚡", "💰", "🏷️", "🎁"],
+        textAccent: "#FF1744",
+        confettiColors: ["#FF1744", "#FFD700", "#FF6B00", "#FFFFFF"],
+      }
+    },
+    {
+      month: 12, day: 25, range: 7,
+      config: {
+        name: "Natal", emoji: "🎄", priority: 10,
+        colors: ["#C62828", "#2E7D32", "#FFD700"],
+        particleShapes: ["circle", "square"],
+        message: "🎄 Feliz Natal! Paz, amor e alegria.",
+        bgOverlay: "radial-gradient(ellipse at top, rgba(46,125,50,0.15) 0%, rgba(198,40,40,0.10) 50%, transparent 80%)",
+        floatingEmojis: ["🎄", "⭐", "🎁", "🔔", "🦌", "🎅", "❄️"],
+        textAccent: "#C62828",
+        confettiColors: ["#C62828", "#2E7D32", "#FFD700", "#FFFFFF"],
+      }
+    },
+    {
+      month: 12, day: 31, range: 2,
+      config: {
+        name: "Réveillon", emoji: "🎆", priority: 10,
+        colors: ["#FFD700", "#FF6B00", "#FF0080"],
+        particleShapes: ["circle"],
+        message: "🎆 Feliz Réveillon! Até ano que vem!",
+        bgOverlay: "radial-gradient(ellipse at top, rgba(255,215,0,0.18) 0%, transparent 70%)",
+        floatingEmojis: ["🎆", "🎇", "🥂", "🎉", "⭐", "🌟", "✨"],
+        textAccent: "#FFD700",
+        confettiColors: ["#FFD700", "#FF6B00", "#FF0080", "#00FFFF"],
+      }
+    },
+  ];
 
 function getCurrentHoliday(): HolidayConfig | null {
   const now = new Date();
@@ -379,6 +379,9 @@ function FloatingEmojis({ emojis, count = 12 }: { emojis: string[]; count?: numb
     }));
   }, [emojis, count]);
 
+  const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+
+
   return (
     <div className="fixed inset-0 pointer-events-none z-10 overflow-hidden">
       {items.map((item) => (
@@ -392,7 +395,7 @@ function FloatingEmojis({ emojis, count = 12 }: { emojis: string[]; count?: numb
             rotate: item.rotation,
           }}
           animate={{
-            y: [0, -(window?.innerHeight || 800) - 80],
+            y: [0, -windowHeight - 80],
             rotate: [item.rotation, item.rotation + 180, item.rotation + 360],
             opacity: [0, 0.8, 0.8, 0],
           }}
@@ -1257,11 +1260,10 @@ export default function PublicPageContent({
         initial={{ opacity: 0, y: -50 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: performanceConfig.animationDuration }}
-        className={`relative overflow-hidden ${
-          isHeaderBackgroundImage
-            ? 'min-h-[300px] sm:min-h-[400px] md:min-h-[450px] lg:min-h-[500px]'
-            : 'h-48 sm:h-64 md:h-80'
-        } ${currentHoliday ? 'pt-10' : ''}`}
+        className={`relative overflow-hidden ${isHeaderBackgroundImage
+          ? 'min-h-[300px] sm:min-h-[400px] md:min-h-[450px] lg:min-h-[500px]'
+          : 'h-48 sm:h-64 md:h-80'
+          } ${currentHoliday ? 'pt-10' : ''}`}
       >
         {isHeaderBackgroundImage && (
           <div className="absolute inset-0 w-full h-full">
@@ -1905,20 +1907,20 @@ export default function PublicPageContent({
 
                         <AnimatePresence mode="wait">
                           {publicAd.mediaTypes && publicAd.mediaTypes[adImageIndex] === 'video' ? (
-                          <motion.video
-                          key={adImageIndex}
-                          src={publicAd.mediaUrls[adImageIndex]}
-                          autoPlay
-                          muted
-                          loop
-                          playsInline
-                          preload="none"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                          exit={{ opacity: 0 }}
-                          transition={{ duration: 0.4 }}
-                          className="w-full h-full object-contain relative z-10"
-                        />
+                            <motion.video
+                              key={adImageIndex}
+                              src={publicAd.mediaUrls[adImageIndex]}
+                              autoPlay
+                              muted
+                              loop
+                              playsInline
+                              preload="none"
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.4 }}
+                              className="w-full h-full object-contain relative z-10"
+                            />
                           ) : (
                             <motion.div
                               key={adImageIndex}
