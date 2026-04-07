@@ -3,19 +3,35 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-export const ScrollReveal = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+export const ScrollReveal = ({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
+    initial={{ opacity: 0, y: 10 }}
     whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true, margin: "0px 0px -50px 0px" }}
-    transition={{ duration: 0.4, ease: "easeOut" }}
+    viewport={{ once: true, margin: "0px 0px -30px 0px" }}
+    transition={{ duration: 0.35, ease: "easeOut" }}
     className={className}
   >
     {children}
   </motion.div>
 );
 
-export const FloatingElement = ({ children, delay = 0, y = 10, duration = 6 }: { children: React.ReactNode; delay?: number; y?: number; duration?: number }) => (
+export const FloatingElement = ({
+  children,
+  delay = 0,
+  y = 6,
+  duration = 8,
+}: {
+  children: React.ReactNode;
+  delay?: number;
+  y?: number;
+  duration?: number;
+}) => (
   <motion.div
     animate={{ y: [-y, y, -y] }}
     transition={{ repeat: Infinity, duration, delay, ease: "easeInOut" }}
