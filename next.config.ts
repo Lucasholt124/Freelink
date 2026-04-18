@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
 
   // ✅ Configuração de Imagens
   images: {
+    minimumCacheTTL: 2592000, // Força o cache da imagem otimizada por 30 dias (em segundos)
     remotePatterns: [
       {
         protocol: "https",
@@ -29,11 +30,14 @@ const nextConfig: NextConfig = {
     contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
-  // 👇 AQUI ESTAVA O ERRO!
   async rewrites() {
     return {
       beforeFiles: [],
       afterFiles: [
+        {
+          source: '/cdn/:path*',
+          destination: 'https://original-armadillo-999.convex.cloud/api/storage/:path*',
+        },
         {
           source: '/:username((?!api|dashboard|login|sign-in|sign-up|giveaway|monitoring|_next|static|public|favicon\\.ico|sitemap\\.xml|robots\\.txt)[a-zA-Z0-9][a-zA-Z0-9_.-]*)',
           destination: '/u/:username',

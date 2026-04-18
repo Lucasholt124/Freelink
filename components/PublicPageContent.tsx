@@ -1909,7 +1909,7 @@ export default function PublicPageContent({
                           {publicAd.mediaTypes && publicAd.mediaTypes[adImageIndex] === 'video' ? (
                             <motion.video
                               key={adImageIndex}
-                              src={publicAd.mediaUrls[adImageIndex]}
+                              src={`/cdn/${publicAd.mediaUrls[adImageIndex].split('/').pop()}`}
                               autoPlay
                               muted
                               loop
