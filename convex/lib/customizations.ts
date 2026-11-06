@@ -16,6 +16,7 @@ export const getUserCustomizations = query({
       userId: v.string(),
       profilePictureStorageId: v.optional(v.id("_storage")),
       profilePictureUrl: v.optional(v.string()),
+      displayName: v.optional(v.string()),
       description: v.optional(v.string()),
       accentColor: v.optional(v.string()),
       backgroundType: v.optional(v.union(v.literal("color"), v.literal("gradient"), v.literal("image"))),
@@ -69,6 +70,7 @@ export const getCustomizationsBySlug = query({
       userId: v.string(),
       profilePictureStorageId: v.optional(v.id("_storage")),
       profilePictureUrl: v.optional(v.string()),
+      displayName: v.optional(v.string()),
       description: v.optional(v.string()),
       accentColor: v.optional(v.string()),
       backgroundType: v.optional(v.union(v.literal("color"), v.literal("gradient"), v.literal("image"))),
@@ -146,6 +148,7 @@ export const updateCustomizations = mutation({
   args: {
     userId: v.optional(v.string()), // 🔥 NOVO: Suporte a Sub-contas
     profilePictureStorageId: v.optional(v.id("_storage")),
+    displayName: v.optional(v.string()),
     description: v.optional(v.string()),
     accentColor: v.optional(v.string()),
     backgroundType: v.optional(v.union(v.literal("color"), v.literal("gradient"), v.literal("image"))),
@@ -215,6 +218,12 @@ export const updateCustomizations = mutation({
 
     // 🔥 Preparar objeto de atualização
     const updateData: Record<string, unknown> = {};
+
+    if (args.displayName !== undefined) {
+      const displayName = args.displayName.trim();
+      if (!displayName || displayName.length > 80) throw new Error("O nome deve ter entre 1 e 80 caracteres.");
+      updateData.displayName = displayName;
+    }
 
     // Campos simples
     if (args.description !== undefined) {

@@ -36,6 +36,7 @@ export default defineSchema({
     userId: v.string(),
     profilePictureStorageId: v.optional(v.id("_storage")),
     profilePictureUrl: v.optional(v.string()),
+    displayName: v.optional(v.string()),
     description: v.optional(v.string()),
     accentColor: v.optional(v.string()),
     backgroundType: v.optional(
@@ -210,6 +211,7 @@ export default defineSchema({
   // ============================================
   userOnboarding: defineTable({
     userId: v.string(),
+    firstLinkId: v.optional(v.id("links")),
     currentStep: v.number(),
     completed: v.boolean(),
     steps: v.array(

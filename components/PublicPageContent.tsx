@@ -1589,10 +1589,13 @@ export default function PublicPageContent({
                         } : {}}
                         transition={{ duration: 2, repeat: Infinity }}
                       >
-                        @{username}
+                        {customizations?.displayName?.trim() || `@${username}`}
                       </motion.h1>
                       {plan !== 'free' && <VerifiedBadge size="large" plan={plan} />}
                     </div>
+                    {customizations?.displayName?.trim() && (
+                      <p className="text-sm opacity-70 break-all" style={{ color: getNameColor() }}>@{username}</p>
+                    )}
 
                     {plan === 'free' && (
                       <Link href={getBaseUrl() + "/"} className="group inline-block">

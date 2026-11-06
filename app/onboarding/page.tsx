@@ -1,662 +1,1011 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import { useRouter } from "next/navigation";
-import { useQuery, useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { motion, AnimatePresence } from "framer-motion";
 import {
-  ChevronLeft, Rocket, User, Link as LinkIcon, CheckCircle2,
-  ArrowRight, Copy, Check, Upload, X, Globe, ExternalLink,
-  Sparkles, Share2
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+  type ChangeEvent,
+} from "react";
+import { useRouter } from "next/navigation";
+import { SignInButton, SignUpButton, useUser } from "@clerk/nextjs";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { ConvexError } from "convex/values";
+import {
+  ArrowLeft,
+  ArrowRight,
+  ArrowUpRight,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Copy,
+  ExternalLink,
+  Globe,
+  ImagePlus,
+  Instagram,
+  Link2,
+  LoaderCircle,
+  MessageCircle,
+  Palette,
+  Share2,
+  ShieldCheck,
+  Sparkles,
+  Trash2,
+  UserRound,
 } from "lucide-react";
-import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { useDebounce } from "../hooks/use-debounce";
-import { FreelinnkLogo } from "@/components/onboarding/FreelinnkLogo";
-import confetti from "canvas-confetti";
-import { useUser } from "@clerk/nextjs";
+import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
+import { normalizeLinkUrl, usernameError } from "@/convex/lib/onboarding_utils";
+import { useDebounce } from "@/app/hooks/use-debounce";
+import styles from "./onboarding.module.css";
 
-type Step = "profile" | "username" | "link" | "success";
+type Step = 1 | 2 | 3 | 4;
+const steps = ["Seu perfil", "Seu endereço", "Primeiro link", "Tudo pronto"];
+const titles = [
+  {
+    kicker: "PRIMEIRO, A SUA IDENTIDADE",
+    title: "Vamos dar um rosto à sua página.",
+    description: "Como você quer que as pessoas conheçam você ou sua marca?",
+  },
+  {
+    kicker: "UM ENDEREÇO PARA CHAMAR DE SEU",
+    title: "Qual vai ser o seu link na bio?",
+    description: "Escolha um endereço curto e fácil de compartilhar.",
+  },
+  {
+    kicker: "O PRIMEIRO PASSO DO SEU VISITANTE",
+    title: "Para onde seu link vai levar?",
+    description:
+      "Pode ser seu WhatsApp, Instagram, site ou outro endereço importante.",
+  },
+  {
+    kicker: "SUA PÁGINA GANHOU FORMA",
+    title: "Seu próximo capítulo tem um link.",
+    description:
+      "Tudo salvo. Confira sua página e abra o painel para continuar personalizando.",
+  },
+];
 
-const STEPS: Record<Step, { num: number; total: number; label: string }> = {
-  profile: { num: 1, total: 4, label: "Perfil" },
-  username: { num: 2, total: 4, label: "Username" },
-  link: { num: 3, total: 4, label: "Primeiro Link" },
-  success: { num: 4, total: 4, label: "Pronto!" },
-};
+function Brand() {
+  return (
+    <a href="/" className={styles.brand} aria-label="Freelinnk, início">
+      <span>
+        F<i />
+      </span>
+      Freelinnk<b>.</b>
+    </a>
+  );
+}
 
-const triggerConfetti = () => {
-  const duration = 3000;
-  const end = Date.now() + duration;
-  const colors = ["#10b981", "#3b82f6", "#8b5cf6", "#f59e0b"];
-
-  (function frame() {
-    confetti({ particleCount: 7, angle: 60, spread: 55, origin: { x: 0 }, colors });
-    confetti({ particleCount: 7, angle: 120, spread: 55, origin: { x: 1 }, colors });
-    if (Date.now() < end) requestAnimationFrame(frame);
-  })();
-};
+function PagePreview({
+  name,
+  username,
+  bio,
+  photo,
+  linkTitle,
+  linkUrl,
+}: {
+  name: string;
+  username: string;
+  bio: string;
+  photo: string | null;
+  linkTitle: string;
+  linkUrl: string;
+}) {
+  return (
+    <aside className={styles.previewPanel} aria-label="Prévia da sua página">
+      <div className={styles.previewHeading}>
+        <span>
+          <span /> SUA PÁGINA GANHA FORMA
+        </span>
+        <Palette size={18} />
+      </div>
+      <div className={styles.previewPhone}>
+        <div className={styles.previewBrowser}>
+          <Globe size={10} /> freelinnk.com/{username || "seuendereco"}
+        </div>
+        <div className={styles.previewBody}>
+          <div className={styles.previewAvatar}>
+            {photo ? (
+              <img src={photo} alt="Sua foto na prévia" />
+            ) : (
+              <UserRound size={30} />
+            )}
+          </div>
+          <h2>{name.trim() || "Seu nome ou marca"}</h2>
+          <span className={styles.previewUsername}>
+            @{username || "seuendereco"}
+          </span>
+          <p>
+            {bio.trim() ||
+              "Uma frase sobre você ou sobre o que faz sua marca especial."}
+          </p>
+          <div className={styles.previewLinks}>
+            {linkTitle.trim() ? (
+              <div className={styles.previewLink}>
+                <span>
+                  <Link2 size={17} />
+                </span>
+                <div>
+                  <strong>{linkTitle.trim()}</strong>
+                  <small>
+                    {normalizeLinkUrl(linkUrl)
+                      ? new URL(normalizeLinkUrl(linkUrl)!).hostname
+                      : "Seu endereço de destino"}
+                  </small>
+                </div>
+                <ArrowUpRight size={14} />
+              </div>
+            ) : (
+              <div className={styles.emptyLink}>
+                <Link2 size={19} />
+                <span>
+                  Seu primeiro link
+                  <br />
+                  vai aparecer aqui.
+                </span>
+              </div>
+            )}
+          </div>
+          <div className={styles.previewPowered}>
+            <span>F</span> FEITO COM FREELINNK
+          </div>
+        </div>
+      </div>
+      <p className={styles.previewCaption}>
+        Prévia simplificada da sua página.
+        <br />
+        Você poderá ajustar cores e estilo no painel.
+      </p>
+    </aside>
+  );
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
-  const { user: clerkUser, isLoaded: isClerkLoaded } = useUser();
-  const [step, setStep] = useState<Step>("profile");
-  const [loading, setLoading] = useState(false);
-  const [isMarkingComplete, setIsMarkingComplete] = useState(false);
-
-  const [isReady, setIsReady] = useState(false);
-  const hasInitialized = useRef(false);
-
-  // Form State
-  const [username, setUsername] = useState("");
-  const debouncedUsername = useDebounce(username, 500);
-  const [displayName, setDisplayName] = useState("");
+  const { user, isLoaded, isSignedIn } = useUser();
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth();
+  const data = useQuery(
+    api.onboarding.getOnboardingData,
+    isAuthenticated ? {} : "skip",
+  );
+  const saveProfile = useMutation(api.onboarding.saveProfile);
+  const saveUsername = useMutation(api.onboarding.saveUsername);
+  const saveFirstLink = useMutation(api.onboarding.saveFirstLink);
+  const finish = useMutation(api.onboarding.completeOnboarding);
+  const generateUploadUrl = useMutation(
+    api.lib.customizations.generateUploadUrl,
+  );
+  const [step, setStep] = useState<Step>(1);
+  const [name, setName] = useState("");
   const [bio, setBio] = useState("");
-  const [profileImage, setProfileImage] = useState<{ file: File | null; preview: string | null }>({
-    file: null,
-    preview: null,
-  });
+  const [username, setUsername] = useState("");
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [removePhoto, setRemovePhoto] = useState(false);
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
+  const [linkKind, setLinkKind] = useState("site");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [slow, setSlow] = useState(false);
   const [copied, setCopied] = useState(false);
-
-  // Queries/Mutations
-  const onboardingStatus = useQuery(api.onboarding.getOnboardingStatus, {});
-  const checkAvailability = useQuery(
+  const [origin, setOrigin] = useState("");
+  const initializedUser = useRef<string | null>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const copiedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const debouncedUsername = useDebounce(username, 400);
+  const formatError = usernameError(username);
+  const availability = useQuery(
     api.lib.usernames.checkUsernameAvailability,
-    debouncedUsername.length >= 3 ? { username: debouncedUsername } : "skip"
+    isAuthenticated &&
+      !usernameError(debouncedUsername) &&
+      debouncedUsername !== data?.username
+      ? { username: debouncedUsername }
+      : "skip",
   );
-
-  const setUsernameMutation = useMutation(api.lib.usernames.setUsername);
-  const updateCustomizations = useMutation(api.lib.customizations.updateCustomizations);
-  const generateUploadUrl = useMutation(api.lib.customizations.generateUploadUrl);
-  const createLink = useMutation(api.lib.links.createLink);
-  const updateStepMutation = useMutation(api.onboarding.updateOnboardingStep);
-  const completeOnboardingMutation = useMutation(api.onboarding.completeOnboarding);
-
-  const isUsernameValid = username.length >= 3 && checkAvailability?.available && /^[a-z0-9_.]+$/.test(username);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const ownsUsername = !!username && username === data?.username;
+  const checkingUsername =
+    !formatError &&
+    !ownsUsername &&
+    (debouncedUsername !== username || availability === undefined);
+  const canUseUsername =
+    !formatError &&
+    (ownsUsername || (!checkingUsername && availability?.available === true));
+  const publicUrl = `${origin || "https://freelinnk.com"}/${username}`;
+  const addressHost = origin ? new URL(origin).host : "freelinnk.com";
 
   useEffect(() => {
-    if (onboardingStatus === undefined) return;
-    if (onboardingStatus === null) return;
-
-    if (onboardingStatus.completed === true) {
+    setOrigin(window.location.origin);
+    return () => {
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+    };
+  }, []);
+  useEffect(() => {
+    if (!data || !user) return;
+    if (data.status.completed) {
       router.replace("/dashboard");
       return;
     }
-
-    if (!hasInitialized.current) {
-      hasInitialized.current = true;
-
-      const stepOrder: Step[] = ["profile", "username", "link", "success"];
-      const currentStep = onboardingStatus.currentStep;
-
-      if (currentStep && currentStep >= 1 && currentStep <= 4) {
-        setStep(stepOrder[currentStep - 1]);
-      }
-      setIsReady(true);
-    }
-  }, [onboardingStatus, router]);
-
+    if (initializedUser.current === user.id) return;
+    initializedUser.current = user.id;
+    setName(data.profile?.displayName || user.fullName || "");
+    setBio(data.profile?.bio ?? "");
+    setPhoto(data.profile ? data.profile.photoUrl : user.imageUrl || null);
+    setUsername(data.username);
+    setLinkTitle(data.firstLink?.title ?? "");
+    setLinkUrl(data.firstLink?.url ?? "");
+    setStep(data.status.currentStep as Step);
+    setReady(true);
+  }, [data, user, router]);
   useEffect(() => {
-    if (isClerkLoaded && clerkUser) {
-      if (!displayName) setDisplayName(clerkUser.fullName || "");
-      if (!profileImage.preview && clerkUser.imageUrl) {
-        setProfileImage((prev) => ({ ...prev, preview: clerkUser.imageUrl }));
-      }
+    if (ready) {
+      heading.current?.focus({ preventScroll: true });
+      window.scrollTo({ top: 0, behavior: "instant" });
     }
-  }, [isClerkLoaded, clerkUser, displayName, profileImage.preview]);
-
+  }, [step, ready]);
+  useEffect(
+    () => () => {
+      if (photoFile && photo) URL.revokeObjectURL(photo);
+    },
+    [photoFile, photo],
+  );
+  const waiting =
+    !isLoaded ||
+    (!!isSignedIn && (authLoading || (isAuthenticated && (!data || !ready))));
   useEffect(() => {
-    return () => {
-      if (profileImage.preview && profileImage.file) URL.revokeObjectURL(profileImage.preview);
-    };
-  }, [profileImage.preview, profileImage.file]);
-
-  const handleProfileNext = async () => {
-    setLoading(true);
-    try {
-      let profileStorageId = undefined;
-
-      if (profileImage.file) {
-        const uploadUrl = await generateUploadUrl({});
-        const res = await fetch(uploadUrl, {
-          method: "POST",
-          headers: { "Content-Type": profileImage.file.type },
-          body: profileImage.file,
-        });
-        const json = await res.json();
-        profileStorageId = json.storageId;
-      }
-
-      await updateCustomizations({ description: bio, profilePictureStorageId: profileStorageId });
-      await updateStepMutation({ step: 2 });
-      setStep("username");
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao salvar perfil.");
-    } finally {
-      setLoading(false);
+    if (!waiting) {
+      setSlow(false);
+      return;
     }
-  };
+    const timer = setTimeout(() => setSlow(true), 12000);
+    return () => clearTimeout(timer);
+  }, [waiting]);
 
-  const handleUsernameNext = async () => {
-    if (!isUsernameValid) return toast.error("Por favor, escolha um username válido e disponível.");
-    setLoading(true);
-    try {
-      await setUsernameMutation({ username });
-      await updateStepMutation({ step: 3 });
-      setStep("link");
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao garantir o username.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleLinkNext = async () => {
-    setLoading(true);
-    try {
-      if (linkTitle && linkUrl) {
-        const finalUrl = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
-        await createLink({ title: linkTitle, url: finalUrl, isFeatured: false, badgeType: undefined });
-      }
-      await updateStepMutation({ step: 4 });
-      setStep("success");
-      triggerConfetti();
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao salvar link.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSkipLink = async () => {
-    setLoading(true);
-    try {
-      await updateStepMutation({ step: 4 });
-      setStep("success");
-      triggerConfetti();
-    } catch (e: any) {
-      toast.error(e.message || "Erro ao pular etapa.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleFinishOnboarding = async () => {
-    setIsMarkingComplete(true);
-    try {
-      await completeOnboardingMutation({});
-      toast.success("Bem-vindo ao FreeLinnk!");
-      router.replace("/dashboard");
-    } catch (e) {
-      toast.error("Erro ao finalizar onboarding.");
-    } finally {
-      setIsMarkingComplete(false);
-    }
-  };
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(`freelinnk.com/${username}`);
-    setCopied(true);
-    toast.success("Link copiado!");
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  const shareLink = async () => {
-    const url = `https://freelinnk.com/${username}`;
-    if (navigator.share) {
-      try {
-        await navigator.share({
-          title: 'Meu FreeLinnk',
-          text: 'Confira todos os meus links em um só lugar!',
-          url: url,
-        });
-      } catch (err) {
-        console.log('Erro ao compartilhar', err);
-      }
-    } else {
-      copyToClipboard();
-    }
-  };
-
-  if (!isReady) {
-    return (
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-500 font-medium">Carregando...</p>
-        </div>
-      </div>
+  function goTo(next: Step) {
+    setError(null);
+    setStep(next);
+  }
+  function showError(cause: unknown, fallback: string) {
+    setError(
+      cause instanceof ConvexError && typeof cause.data === "string"
+        ? cause.data
+        : fallback,
     );
   }
 
-  const currentStepInfo = STEPS[step];
-  const isLinkReady = linkTitle && linkUrl && linkUrl.startsWith("http");
-  const isLinkPartiallyFilled = !!(linkTitle || linkUrl) && !isLinkReady;
+  function choosePhoto(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+    if (
+      !["image/jpeg", "image/png", "image/webp"].includes(file.type) ||
+      file.size > 5 * 1024 * 1024
+    ) {
+      setError("Escolha uma imagem JPG, PNG ou WebP com até 5 MB.");
+      return;
+    }
+    setError(null);
+    setPhotoFile(file);
+    setPhoto(URL.createObjectURL(file));
+    setRemovePhoto(false);
+  }
 
-  const LinkPreviewCard = () => (
-    <div className="w-full bg-white border-2 border-slate-100 rounded-2xl p-4 shadow-sm flex items-center gap-4 animate-in fade-in slide-in-from-bottom-2 duration-300">
-      <div className="w-12 h-12 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-        <Globe className="w-6 h-6" />
-      </div>
-      <div className="flex-1 overflow-hidden">
-        <h4 className="font-bold text-slate-900 truncate">{linkTitle || "Título do seu link"}</h4>
-        <p className="text-xs text-slate-400 truncate tracking-tight">{linkUrl || "https://seulink.com"}</p>
-      </div>
-      <ExternalLink className="w-4 h-4 text-slate-300" />
-    </div>
-  );
+  async function submitProfile(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy) return;
+    if (!name.trim() || name.trim().length > 80) {
+      setError("Informe um nome com até 80 caracteres.");
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      let photoStorageId: Id<"_storage"> | undefined;
+      if (photoFile) {
+        const url = await generateUploadUrl({});
+        const response = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": photoFile.type },
+          body: photoFile,
+        });
+        if (!response.ok) throw new Error("upload");
+        const uploaded = await response.json();
+        if (typeof uploaded.storageId !== "string") throw new Error("upload");
+        photoStorageId = uploaded.storageId as Id<"_storage">;
+      }
+      const saved = await saveProfile({
+        displayName: name.trim(),
+        bio: bio.trim(),
+        photoStorageId,
+        photoUrl:
+          !photoFile && photo?.startsWith("https://") ? photo : undefined,
+        removePhoto,
+      });
+      setPhoto(saved.photoUrl);
+      setPhotoFile(null);
+      setRemovePhoto(false);
+      setName(name.trim());
+      setBio(bio.trim());
+      goTo(2);
+    } catch (cause) {
+      showError(cause, "Não foi possível salvar seu perfil. Tente novamente.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitUsername(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (busy || !canUseUsername) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await saveUsername({ username });
+      goTo(3);
+    } catch (cause) {
+      showError(
+        cause,
+        "Não foi possível reservar esse endereço. Tente novamente.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function submitLink(event?: FormEvent<HTMLFormElement>, skip = false) {
+    event?.preventDefault();
+    if (busy) return;
+    const normalized = normalizeLinkUrl(linkUrl);
+    if (
+      !skip &&
+      (linkTitle.trim().length < 3 || linkTitle.trim().length > 100)
+    ) {
+      setError("Dê ao link um título com 3 a 100 caracteres.");
+      return;
+    }
+    if (!skip && !normalized) {
+      setError(
+        "Informe um endereço válido, como exemplo.com ou https://exemplo.com.",
+      );
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await saveFirstLink(
+        skip ? { skip: true } : { title: linkTitle.trim(), url: normalized! },
+      );
+      if (skip) {
+        setLinkTitle(data?.firstLink?.title ?? "");
+        setLinkUrl(data?.firstLink?.url ?? "");
+      } else {
+        setLinkTitle(linkTitle.trim());
+        setLinkUrl(normalized!);
+      }
+      goTo(4);
+    } catch (cause) {
+      showError(
+        cause,
+        "Não foi possível salvar seu link. Seus dados continuam aqui para tentar novamente.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function complete() {
+    if (busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await finish({});
+      router.replace("/dashboard");
+    } catch (cause) {
+      showError(cause, "Não foi possível abrir o painel. Tente novamente.");
+      setBusy(false);
+    }
+  }
+
+  async function copyLink() {
+    try {
+      await navigator.clipboard.writeText(publicUrl);
+      setCopied(true);
+      if (copiedTimer.current) clearTimeout(copiedTimer.current);
+      copiedTimer.current = setTimeout(() => setCopied(false), 2500);
+    } catch {
+      setError(
+        "Não foi possível copiar. Selecione o endereço da sua página e copie manualmente.",
+      );
+    }
+  }
+
+  async function shareLink() {
+    if (!navigator.share) {
+      await copyLink();
+      return;
+    }
+    try {
+      await navigator.share({
+        title: name || "Minha página no Freelinnk",
+        text: "Meus links em um só lugar.",
+        url: publicUrl,
+      });
+    } catch (cause) {
+      if (!(cause instanceof Error && cause.name === "AbortError"))
+        setError(
+          "Não foi possível compartilhar agora. Você pode copiar o endereço.",
+        );
+    }
+  }
+
+  let statusView;
+  if (isLoaded && !isSignedIn)
+    statusView = (
+      <>
+        <span className={styles.statusIcon}>
+          <Link2 />
+        </span>
+        <span className={styles.kicker}>SUA PÁGINA COMEÇA AQUI</span>
+        <h1>
+          Um novo endereço.
+          <br />A mesma essência.
+        </h1>
+        <p>
+          Entre na sua conta para configurar seu perfil e reunir seus links em
+          um só lugar.
+        </p>
+        <SignInButton mode="modal" forceRedirectUrl="/onboarding">
+          <button className={styles.primary}>
+            Entrar e continuar <ArrowRight size={17} />
+          </button>
+        </SignInButton>
+        <div className={styles.signup}>
+          Ainda não tem uma conta?{" "}
+          <SignUpButton mode="modal" forceRedirectUrl="/onboarding">
+            <button>Criar conta grátis</button>
+          </SignUpButton>
+        </div>
+      </>
+    );
+  else if (
+    isLoaded &&
+    isSignedIn &&
+    !authLoading &&
+    (!isAuthenticated || data === null)
+  )
+    statusView = (
+      <>
+        <span className={styles.statusIcon}>
+          <ShieldCheck />
+        </span>
+        <h1>
+          Vamos reconectar
+          <br />
+          sua conta?
+        </h1>
+        <p>
+          Sua sessão não pôde ser confirmada. Atualize a página para tentar
+          novamente.
+        </p>
+        <button
+          className={styles.primary}
+          onClick={() => window.location.reload()}
+        >
+          Tentar novamente <ArrowRight size={17} />
+        </button>
+      </>
+    );
+  else if (!ready || data?.status.completed)
+    statusView = (
+      <>
+        <LoaderCircle className={styles.spinner} size={28} />
+        <h1>Preparando seu espaço.</h1>
+        <p>
+          {slow
+            ? "A conexão está demorando um pouco. Seus dados salvos continuam na sua conta."
+            : "Estamos buscando os avanços da sua página."}
+        </p>
+        {slow && (
+          <button
+            className={styles.secondary}
+            onClick={() => window.location.reload()}
+          >
+            Tentar novamente
+          </button>
+        )}
+      </>
+    );
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
-      <div className="w-full max-w-2xl bg-white rounded-3xl shadow-2xl overflow-hidden border border-slate-100 relative">
-
-        {/* Progress Navigation */}
-        <div className="px-8 pt-8 pb-4 flex items-center justify-between">
-          <FreelinnkLogo />
-          <div className="flex items-center gap-3">
-            {[1, 2, 3, 4].map((num) => (
-              <div key={num} className="flex items-center">
-                <div
-                  className={cn(
-                    "w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-all duration-300",
-                    currentStepInfo.num === num
-                      ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200 scale-110"
-                      : currentStepInfo.num > num
-                        ? "bg-emerald-500 text-white"
-                        : "bg-slate-100 text-slate-400"
-                  )}
-                >
-                  {currentStepInfo.num > num ? <Check className="w-4 h-4" /> : num}
-                </div>
-                {num < 4 && (
-                  <div
-                    className={cn(
-                      "w-4 sm:w-8 h-0.5 mx-1 rounded-full bg-slate-100",
-                      currentStepInfo.num > num && "bg-emerald-500"
-                    )}
-                  />
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Wizard Content */}
-        <div className="p-8 pb-12">
-          <AnimatePresence mode="wait">
-
-            {/* STEP 1: PROFILE */}
-            {step === "profile" && (
-              <motion.div
-                key="profile"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8"
-              >
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">👋 Qual é o seu nome?</h1>
-                  <p className="text-slate-500 text-lg">Vamos começar com o básico. Como as pessoas conhecem você?</p>
-                </div>
-
-                <div className="space-y-8">
-                  <div className="flex flex-col items-center gap-4">
-                    <div className="relative group">
-                      <div
-                        className="w-32 h-32 rounded-full border-4 border-slate-50 bg-slate-100 flex items-center justify-center overflow-hidden shadow-inner cursor-pointer"
-                        onClick={() => fileInputRef.current?.click()}
-                      >
-                        {profileImage.preview ? (
-                          <img src={profileImage.preview} alt="Profile" className="w-full h-full object-cover" />
+    <main className={styles.page}>
+      <header className={styles.header}>
+        <Brand />
+        <span className={styles.headerNote}>
+          <ShieldCheck size={14} /> Seus avanços são salvos ao continuar.
+        </span>
+      </header>
+      {statusView ? (
+        <section className={styles.statusCard}>{statusView}</section>
+      ) : (
+        <div className={styles.workspace}>
+          <section
+            className={styles.wizard}
+            aria-label="Configuração da sua página"
+          >
+            <nav
+              aria-label="Etapas da configuração"
+              className={styles.progress}
+            >
+              <ol>
+                {steps.map((label, index) => (
+                  <li
+                    key={label}
+                    aria-current={step === index + 1 ? "step" : undefined}
+                  >
+                    <button
+                      type="button"
+                      disabled={
+                        busy || index + 1 > (data?.status.currentStep ?? step)
+                      }
+                      onClick={() => goTo((index + 1) as Step)}
+                    >
+                      <span>
+                        {index + 1 < step ? (
+                          <Check size={13} />
                         ) : (
-                          <Upload className="w-8 h-8 text-slate-400" />
+                          String(index + 1).padStart(2, "0")
                         )}
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <Upload className="w-8 h-8 text-white" />
-                        </div>
-                      </div>
-                      <input
-                        type="file"
-                        ref={fileInputRef}
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => {
-                          const f = e.target.files?.[0];
-                          if (f) setProfileImage({ file: f, preview: URL.createObjectURL(f) });
-                        }}
-                      />
-                      {profileImage.preview && (
+                      </span>
+                      <strong>{label}</strong>
+                    </button>
+                  </li>
+                ))}
+              </ol>
+            </nav>
+            <div className={styles.formBody}>
+              <div className={styles.stepHeading}>
+                <span className={styles.kicker}>{titles[step - 1].kicker}</span>
+                <h1 ref={heading} tabIndex={-1}>
+                  {titles[step - 1].title}
+                </h1>
+                <p>{titles[step - 1].description}</p>
+              </div>
+              {error && (
+                <div className={styles.error} role="alert">
+                  {error}
+                </div>
+              )}
+              {step === 1 && (
+                <form onSubmit={submitProfile} noValidate>
+                  <div className={styles.photoRow}>
+                    <div className={styles.avatar}>
+                      {photo ? (
+                        <img src={photo} alt="Foto do seu perfil" />
+                      ) : (
+                        <UserRound size={29} />
+                      )}
+                    </div>
+                    <div>
+                      <button
+                        type="button"
+                        className={styles.photoButton}
+                        disabled={busy}
+                        onClick={() => fileInput.current?.click()}
+                      >
+                        <ImagePlus size={15} />
+                        {photo ? "Trocar foto" : "Adicionar foto"}
+                      </button>
+                      <span>Opcional · JPG, PNG ou WebP · até 5 MB</span>
+                      {photo && (
                         <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setProfileImage({ file: null, preview: null });
+                          type="button"
+                          className={styles.removePhoto}
+                          disabled={busy}
+                          onClick={() => {
+                            setPhoto(null);
+                            setPhotoFile(null);
+                            setRemovePhoto(true);
                           }}
-                          className="absolute -top-1 -right-1 w-8 h-8 bg-red-500 text-white rounded-full flex items-center justify-center shadow-lg border-2 border-white hover:scale-110 transition-transform"
                         >
-                          <X className="w-4 h-4" />
+                          <Trash2 size={11} /> Remover foto
                         </button>
                       )}
                     </div>
-                    <span className="text-xs font-medium text-slate-400">Foto de perfil (Opcional)</span>
-                  </div>
-
-                  <div className="space-y-6">
-                    <div>
-                      <label className="text-sm font-bold text-slate-700 mb-2 block ml-1">Nome de exibição</label>
-                      <input
-                        type="text"
-                        value={displayName}
-                        onChange={(e) => setDisplayName(e.target.value)}
-                        placeholder="Seu nome ou marca"
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 h-16 font-bold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all"
-                        autoFocus
-                      />
-                    </div>
-                    <div>
-                      <label className="flex items-center justify-between text-sm font-bold text-slate-700 mb-2 px-1">
-                        Bio <span className="text-slate-400 font-normal">Opcional - {bio.length}/150</span>
-                      </label>
-                      <textarea
-                        value={bio}
-                        onChange={(e) => setBio(e.target.value.slice(0, 150))}
-                        placeholder="Conte um pouco sobre você ou seu negócio em uma frase..."
-                        rows={2}
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 py-4 font-medium text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all resize-none"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <button
-                  onClick={handleProfileNext}
-                  disabled={loading || !displayName}
-                  className="w-full h-16 bg-slate-900 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all shadow-xl shadow-slate-200 disabled:opacity-50"
-                >
-                  {loading ? (
-                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  ) : (
-                    "Continuar"
-                  )}{" "}
-                  <ArrowRight className="w-6 h-6" />
-                </button>
-              </motion.div>
-            )}
-
-            {/* STEP 2: USERNAME */}
-            {step === "username" && (
-              <motion.div
-                key="username"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8"
-              >
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">🎯 Seu link exclusivo</h1>
-                  <p className="text-slate-500 text-lg">Como você quer ser encontrado na internet?</p>
-                </div>
-
-                <div className="space-y-4">
-                  <label className="text-sm font-bold text-slate-700 block ml-1">Escolha seu endereço</label>
-                  <div
-                    className={cn(
-                      "flex items-center bg-slate-50 border-2 rounded-2xl transition-all h-16 px-4 group",
-                      username.length >= 3
-                        ? isUsernameValid
-                          ? "border-emerald-500 bg-emerald-50/30"
-                          : "border-red-500 bg-red-50/30"
-                        : "border-slate-100 focus-within:border-indigo-500 focus-within:bg-white"
-                    )}
-                  >
-                    <span className="text-slate-400 font-bold select-none pr-1">freelinnk.com/</span>
                     <input
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value.toLowerCase().replace(/[^a-z0-9_.]/g, ""))}
-                      placeholder="seuusername"
-                      className="flex-1 bg-transparent font-black text-slate-900 text-xl outline-none placeholder:text-slate-300 w-full"
-                      autoFocus
+                      ref={fileInput}
+                      onChange={choosePhoto}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className={styles.hidden}
+                      aria-label="Escolher foto de perfil"
                     />
-                    <div className="flex items-center justify-center w-8 h-8 shrink-0">
-                      {loading && <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin" />}
-                      {!loading && username.length >= 3 && (
-                        isUsernameValid
-                          ? <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                          : <X className="w-6 h-6 text-red-500" />
-                      )}
-                    </div>
                   </div>
-
-                  <div className="px-1 text-sm font-medium h-6">
-                    {username.length > 0 && username.length < 3 && (
-                      <p className="text-slate-400">Pelo menos 3 caracteres</p>
-                    )}
-                    {username.length >= 3 && checkAvailability && (
-                      <p className={checkAvailability.available ? "text-emerald-600" : "text-red-500"}>
-                        {checkAvailability.available ? "🎉 Nome disponível!" : "Já está em uso, tente outro"}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex gap-3 text-indigo-700">
-                  <Rocket className="w-5 h-5 shrink-0 mt-0.5" />
-                  <p className="text-sm font-medium leading-relaxed">
-                    Esse será o seu link público único. Perfis com links simples e fáceis de ler recebem mais visitas!
-                  </p>
-                </div>
-
-                <div className="flex gap-4">
-                  <button
-                    onClick={() => setStep("profile")}
-                    className="flex-1 h-16 bg-slate-100 text-slate-600 font-black rounded-2xl hover:bg-slate-200 transition-all"
-                  >
-                    Voltar
-                  </button>
-                  <button
-                    onClick={handleUsernameNext}
-                    disabled={!isUsernameValid || loading}
-                    className="flex-[2] h-16 bg-slate-900 hover:bg-slate-800 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50 disabled:grayscale shadow-xl shadow-slate-200"
-                  >
-                    {loading ? (
-                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      "Reservar Link"
-                    )}{" "}
-                    <ArrowRight className="w-6 h-6" />
-                  </button>
-                </div>
-              </motion.div>
-            )}
-
-            {/* STEP 3: LINK */}
-            {step === "link" && (
-              <motion.div
-                key="link"
-                initial={{ opacity: 0, x: 20 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -20 }}
-                className="space-y-8"
-              >
-                <div className="space-y-2">
-                  <h1 className="text-3xl font-black text-slate-900 tracking-tight">🔗 Adicione seu primeiro link</h1>
-                  <p className="text-slate-500 text-lg">Perfis com pelo menos um link configurado têm 3x mais cliques e engajamento. <span className="text-sm bg-slate-100 px-2 py-1 rounded-md ml-1 font-medium">Opcional</span></p>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-                  <div className="space-y-6">
-                    <div>
-                      <label className="text-sm font-bold text-slate-700 mb-2 block ml-1">Título do link</label>
-                      <input
-                        type="text"
-                        value={linkTitle}
-                        onChange={(e) => setLinkTitle(e.target.value)}
-                        placeholder="Ex: Meu Instagram, WhatsApp..."
-                        className="w-full bg-slate-50 border-2 border-slate-100 rounded-2xl px-6 h-14 font-bold text-slate-900 outline-none focus:border-indigo-500 focus:bg-white transition-all"
-                        autoFocus
-                      />
-                    </div>
-                    <div>
-                      <label className="text-sm font-bold text-slate-700 mb-2 block ml-1">URL de destino</label>
-                      <input
-                        type="url"
-                        value={linkUrl}
-                        onChange={(e) => setLinkUrl(e.target.value)}
-                        placeholder="https://instagram.com/seuuser"
-                        className={cn(
-                          "w-full bg-slate-50 border-2 rounded-2xl px-6 h-14 font-bold text-slate-900 outline-none transition-all",
-                          linkUrl && !linkUrl.startsWith("http")
-                            ? "border-red-200 focus:border-red-500"
-                            : "border-slate-100 focus:border-indigo-500 focus:bg-white"
-                        )}
-                      />
-                      {linkUrl && !linkUrl.startsWith("http") && (
-                        <p className="text-xs text-red-500 mt-1.5 font-bold ml-1">
-                          Insira uma URL válida (começando com https://)
-                        </p>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-4">
-                    <label className="text-xs font-black text-slate-400 uppercase tracking-widest ml-1">
-                      Preview em tempo real
+                  <div className={styles.field}>
+                    <label htmlFor="display-name">
+                      Nome de exibição <span>Obrigatório</span>
                     </label>
-                    <div className="bg-slate-50 rounded-3xl p-6 border-2 border-dashed border-slate-200 flex flex-col items-center">
-                      <LinkPreviewCard />
-                      <div className="mt-4 flex gap-3 opacity-30 grayscale pointer-events-none">
-                        <div className="w-10 h-10 rounded-full bg-indigo-100" />
-                        <div className="w-10 h-10 rounded-full bg-indigo-100" />
-                        <div className="w-10 h-10 rounded-full bg-indigo-100" />
-                      </div>
-                    </div>
+                    <input
+                      id="display-name"
+                      value={name}
+                      maxLength={80}
+                      onChange={(event) => setName(event.target.value)}
+                      disabled={busy}
+                      placeholder="Seu nome ou o nome da sua marca"
+                      autoComplete="nickname"
+                      required
+                      aria-describedby="name-help"
+                    />
+                    <small id="name-help">
+                      É assim que seu nome vai aparecer na página.
+                    </small>
                   </div>
-                </div>
-
-                <div className="space-y-4 pt-4">
-                  <button
-                    onClick={isLinkReady ? handleLinkNext : handleSkipLink}
-                    disabled={loading || isLinkPartiallyFilled}
-                    className={cn(
-                      "w-full h-16 text-white font-black text-lg rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50",
-                      isLinkReady
-                        ? "bg-slate-900 shadow-xl shadow-slate-200 hover:bg-slate-800"
-                        : "bg-slate-300 hover:bg-slate-400 text-slate-600"
-                    )}
-                  >
-                    {loading ? (
-                      <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                    ) : (
-                      isLinkReady ? "Adicionar e continuar" : "Pular sem link"
-                    )}
-                    {isLinkReady && <ArrowRight className="w-6 h-6" />}
-                  </button>
-                  {isLinkPartiallyFilled && (
-                    <p className="text-center text-sm text-slate-500">
-                      Preencha o título e a URL correta, ou apague os campos para pular.
-                    </p>
-                  )}
-                </div>
-              </motion.div>
-            )}
-
-            {/* STEP 4: SUCCESS */}
-            {step === "success" && (
-              <motion.div
-                key="success"
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="space-y-8 text-center"
-              >
-                <div className="space-y-2">
-                  <h1 className="text-4xl font-black text-slate-900 tracking-tight">🚀 Tudo pronto! 🎊</h1>
-                  <p className="text-slate-500 text-lg">Seu perfil FreeLinnk já está disponível para o mundo.</p>
-                </div>
-
-                <div className="flex justify-center perspective-1000">
-                  <motion.div
-                    initial={{ rotateY: 15, rotateX: 5 }}
-                    animate={{ rotateY: 0, rotateX: 0 }}
-                    className="w-64 bg-white rounded-[2.5rem] p-4 shadow-2xl border-8 border-slate-900 relative overflow-hidden"
-                  >
-                    <div className="absolute top-0 left-0 w-full h-20 bg-gradient-to-b from-indigo-500/10 to-transparent" />
-                    <div className="flex flex-col items-center pt-4 relative z-10">
-                      <div className="w-20 h-20 rounded-full border-4 border-white bg-slate-100 overflow-hidden shadow-lg mb-3">
-                        {profileImage.preview ? (
-                          <img src={profileImage.preview} alt="Profile" className="w-full h-full object-cover" />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center bg-indigo-50">
-                            <User className="w-10 h-10 text-indigo-300" />
-                          </div>
-                        )}
-                      </div>
-                      <h3 className="font-black text-slate-900 text-sm truncate w-full px-2">
-                        {displayName || "Seu Nome"}
-                      </h3>
-                      <p className="text-[10px] text-slate-500 font-medium line-clamp-2 px-4 mt-1 min-h-[1.5rem]">
-                        {bio || "Sua bio profissional"}
-                      </p>
-
-                      <div className="w-full space-y-2 mt-6">
-                        <div className="w-full h-8 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center">
-                          <span className="text-[10px] font-bold text-slate-400">
-                            {linkTitle || "Seu primeiro link"}
-                          </span>
-                        </div>
-                        <div className="w-full h-8 bg-slate-50 rounded-lg border border-slate-100 flex items-center justify-center opacity-50">
-                          <div className="w-12 h-1.5 bg-slate-200 rounded-full" />
-                        </div>
-                      </div>
-
-                      <div className="mt-8 flex gap-2">
-                        <div className="w-6 h-6 rounded-full bg-slate-100" />
-                        <div className="w-6 h-6 rounded-full bg-slate-100" />
-                      </div>
-                    </div>
-                  </motion.div>
-                </div>
-
-                <div className="bg-indigo-50 rounded-2xl p-6 space-y-4">
-                  <p className="text-xs font-black text-indigo-400 uppercase tracking-widest">SEU LINK EXCLUSIVO</p>
-                  <div className="flex items-center gap-3 bg-white p-4 rounded-xl border border-indigo-100 shadow-sm">
-                    <span className="flex-1 font-black text-indigo-600 text-lg sm:text-xl truncate text-left">
-                      freelinnk.com/{username}
-                    </span>
+                  <div className={styles.field}>
+                    <label htmlFor="bio">
+                      Sua bio <span>Opcional · {bio.length}/150</span>
+                    </label>
+                    <textarea
+                      id="bio"
+                      value={bio}
+                      maxLength={150}
+                      rows={3}
+                      onChange={(event) => setBio(event.target.value)}
+                      disabled={busy}
+                      placeholder="Conte em uma frase o que as pessoas vão encontrar por aqui."
+                    />
+                  </div>
+                  <div className={styles.actions}>
                     <button
-                      onClick={copyToClipboard}
-                      className="w-12 h-12 bg-indigo-100 text-indigo-600 rounded-lg flex items-center justify-center hover:bg-indigo-200 transition-all active:scale-90 shrink-0"
-                      title="Copiar link"
+                      className={styles.primary}
+                      disabled={busy || !name.trim()}
                     >
-                      {copied ? <Check className="w-6 h-6" /> : <Copy className="w-6 h-6" />}
+                      {busy ? (
+                        <>
+                          <LoaderCircle className={styles.spinner} size={17} />{" "}
+                          Salvando perfil
+                        </>
+                      ) : (
+                        <>
+                          Continuar para o endereço <ArrowRight size={17} />
+                        </>
+                      )}
                     </button>
                   </div>
-                </div>
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  <button
-                    onClick={shareLink}
-                    className="w-full h-16 bg-slate-100 text-slate-900 font-black text-lg rounded-2xl flex items-center justify-center gap-3 hover:bg-slate-200 transition-all"
+                </form>
+              )}
+              {step === 2 && (
+                <form onSubmit={submitUsername} noValidate>
+                  <div className={styles.field}>
+                    <label htmlFor="username">Endereço da sua página</label>
+                    <div
+                      className={`${styles.usernameField} ${username && !checkingUsername && !canUseUsername ? styles.invalidField : ""}`}
+                    >
+                      <span>{addressHost}/</span>
+                      <input
+                        id="username"
+                        value={username}
+                        maxLength={30}
+                        onChange={(event) =>
+                          setUsername(
+                            event.target.value.toLowerCase().replace(/\s/g, ""),
+                          )
+                        }
+                        disabled={busy}
+                        autoComplete="off"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        placeholder="suamarca"
+                        aria-describedby="username-feedback username-help"
+                        aria-invalid={
+                          !!username && !checkingUsername && !canUseUsername
+                        }
+                      />
+                      {checkingUsername ? (
+                        <LoaderCircle size={17} className={styles.spinner} />
+                      ) : canUseUsername ? (
+                        <CheckCircle2 size={17} />
+                      ) : null}
+                    </div>
+                    <div
+                      id="username-feedback"
+                      className={`${styles.feedback} ${canUseUsername ? styles.available : ""}`}
+                      aria-live="polite"
+                    >
+                      {!username
+                        ? "Escolha o endereço que você vai compartilhar na bio."
+                        : formatError ||
+                          (checkingUsername
+                            ? "Verificando disponibilidade…"
+                            : ownsUsername
+                              ? "Esse endereço já está reservado para você."
+                              : canUseUsername
+                                ? "Disponível! Esse endereço pode ser seu."
+                                : availability?.error ||
+                                  "Esse endereço já está em uso. Tente outro.")}
+                    </div>
+                    <small id="username-help">
+                      De 3 a 30 caracteres. Letras, números, hífen e sublinhado.
+                    </small>
+                  </div>
+                  <div className={styles.tip}>
+                    <Link2 size={19} />
+                    <p>
+                      Escolha algo fácil de lembrar.
+                      <br />
+                      <strong>Seu nome, sua marca ou seu negócio.</strong>
+                    </p>
+                  </div>
+                  <div className={styles.actions}>
+                    <button
+                      type="button"
+                      className={styles.back}
+                      onClick={() => goTo(1)}
+                      disabled={busy}
+                    >
+                      <ArrowLeft size={15} /> Voltar
+                    </button>
+                    <button
+                      className={styles.primary}
+                      disabled={busy || !canUseUsername}
+                    >
+                      {busy ? (
+                        <>
+                          <LoaderCircle className={styles.spinner} size={17} />{" "}
+                          Reservando
+                        </>
+                      ) : (
+                        <>
+                          Reservar meu endereço <ArrowRight size={17} />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </form>
+              )}
+              {step === 3 && (
+                <form onSubmit={submitLink} noValidate>
+                  <div
+                    className={styles.presets}
+                    role="group"
+                    aria-label="Tipo do primeiro link"
                   >
-                    <Share2 className="w-5 h-5" /> Compartilhar
+                    {[
+                      {
+                        id: "whatsapp",
+                        icon: MessageCircle,
+                        label: "WhatsApp",
+                        title: "Fale no WhatsApp",
+                      },
+                      {
+                        id: "instagram",
+                        icon: Instagram,
+                        label: "Instagram",
+                        title: "Meu Instagram",
+                      },
+                      {
+                        id: "site",
+                        icon: Globe,
+                        label: "Site ou outro",
+                        title: "Visite meu site",
+                      },
+                    ].map(({ id, icon: Icon, label, title }) => (
+                      <button
+                        key={id}
+                        type="button"
+                        aria-pressed={linkKind === id}
+                        disabled={busy}
+                        onClick={() => {
+                          setLinkKind(id);
+                          if (
+                            !linkTitle ||
+                            [
+                              "Fale no WhatsApp",
+                              "Meu Instagram",
+                              "Visite meu site",
+                            ].includes(linkTitle)
+                          )
+                            setLinkTitle(title);
+                        }}
+                      >
+                        <Icon size={16} /> {label}
+                      </button>
+                    ))}
+                  </div>
+                  <div className={styles.field}>
+                    <label htmlFor="link-title">Título do botão</label>
+                    <input
+                      id="link-title"
+                      value={linkTitle}
+                      maxLength={100}
+                      onChange={(event) => setLinkTitle(event.target.value)}
+                      disabled={busy}
+                      placeholder="Ex.: Conheça meu trabalho"
+                      aria-describedby="link-title-help"
+                    />
+                    <small id="link-title-help">
+                      O texto que seu visitante vai ver. Mínimo de 3 caracteres.
+                    </small>
+                  </div>
+                  <div className={styles.field}>
+                    <label htmlFor="link-url">Endereço de destino</label>
+                    <input
+                      id="link-url"
+                      inputMode="url"
+                      value={linkUrl}
+                      onChange={(event) => setLinkUrl(event.target.value)}
+                      disabled={busy}
+                      autoComplete="url"
+                      autoCapitalize="none"
+                      spellCheck={false}
+                      placeholder={
+                        linkKind === "whatsapp"
+                          ? "https://wa.me/5511999999999"
+                          : linkKind === "instagram"
+                            ? "https://instagram.com/seuperfil"
+                            : "seusite.com.br"
+                      }
+                      aria-describedby="link-url-help"
+                    />
+                    <small id="link-url-help">
+                      Pode colar o endereço completo ou sem https://.
+                    </small>
+                  </div>
+                  <div className={styles.actions}>
+                    <button
+                      type="button"
+                      className={styles.back}
+                      onClick={() => goTo(2)}
+                      disabled={busy}
+                    >
+                      <ArrowLeft size={15} /> Voltar
+                    </button>
+                    <button className={styles.primary} disabled={busy}>
+                      {busy ? (
+                        <>
+                          <LoaderCircle className={styles.spinner} size={17} />{" "}
+                          Salvando
+                        </>
+                      ) : (
+                        <>
+                          Salvar e revisar <ArrowRight size={17} />
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.skip}
+                    disabled={busy}
+                    onClick={() => submitLink(undefined, true)}
+                  >
+                    Adicionar meu primeiro link depois
+                  </button>
+                </form>
+              )}
+              {step === 4 && (
+                <div className={styles.success}>
+                  <div className={styles.successNotice}>
+                    <CheckCircle2 size={21} />
+                    <div>
+                      <strong>Perfil e endereço salvos.</strong>
+                      <span>
+                        {data?.firstLink
+                          ? "Seu primeiro link também está na página."
+                          : "Você pode adicionar seus links pelo painel."}
+                      </span>
+                    </div>
+                  </div>
+                  <label className={styles.addressLabel} htmlFor="public-url">
+                    SEU NOVO ENDEREÇO
+                  </label>
+                  <div className={styles.publicAddress}>
+                    <input
+                      id="public-url"
+                      readOnly
+                      value={publicUrl}
+                      aria-label="Endereço da sua página"
+                    />
+                    <button
+                      type="button"
+                      onClick={copyLink}
+                      aria-label="Copiar endereço da página"
+                    >
+                      {copied ? <Check size={18} /> : <Copy size={18} />}
+                    </button>
+                  </div>
+                  <span className={styles.copyFeedback} role="status">
+                    {copied
+                      ? "Endereço copiado!"
+                      : "Pronto para colocar na sua bio."}
+                  </span>
+                  <div className={styles.successLinks}>
+                    <a
+                      href={publicUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      Ver minha página <ExternalLink size={14} />
+                    </a>
+                    <button type="button" onClick={shareLink}>
+                      Compartilhar <Share2 size={14} />
+                    </button>
+                  </div>
+                  <div className={styles.nextSteps}>
+                    <span>SEU PRÓXIMO PASSO NO PAINEL</span>
+                    <p>
+                      <Palette size={17} /> Personalize as cores e o estilo da
+                      página.
+                    </p>
+                    <p>
+                      <Link2 size={17} /> Organize seus links e contatos.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className={styles.primary}
+                    disabled={busy}
+                    onClick={complete}
+                  >
+                    {busy ? (
+                      <>
+                        <LoaderCircle className={styles.spinner} size={17} />{" "}
+                        Abrindo seu painel
+                      </>
+                    ) : (
+                      <>
+                        Concluir e abrir meu painel <ArrowRight size={17} />
+                      </>
+                    )}
                   </button>
                   <button
-                    onClick={handleFinishOnboarding}
-                    disabled={isMarkingComplete}
-                    className="w-full h-16 bg-gradient-to-r from-indigo-600 to-purple-600 text-white font-black text-lg rounded-2xl shadow-xl shadow-indigo-200 flex items-center justify-center gap-3 hover:scale-[1.02] transition-all"
+                    className={styles.skip}
+                    type="button"
+                    disabled={busy}
+                    onClick={() => goTo(1)}
                   >
-                    {isMarkingComplete ? "Processando..." : "Ir pro Dashboard"}{" "}
-                    <Sparkles className="w-5 h-5" />
+                    Revisar meus dados
                   </button>
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+              )}
+            </div>
+            <div className={styles.formFooter}>
+              <ShieldCheck size={13} /> Seu progresso fica salvo na sua conta.
+            </div>
+          </section>
+          <div className={styles.desktopPreview}>
+            <PagePreview
+              name={name}
+              username={username}
+              bio={bio}
+              photo={photo}
+              linkTitle={linkTitle}
+              linkUrl={linkUrl}
+            />
+          </div>
+          <details className={styles.mobilePreview}>
+            <summary>
+              <span>
+                <Sparkles size={15} /> Ver prévia da minha página
+              </span>
+              <ChevronDown size={16} />
+            </summary>
+            <PagePreview
+              name={name}
+              username={username}
+              bio={bio}
+              photo={photo}
+              linkTitle={linkTitle}
+              linkUrl={linkUrl}
+            />
+          </details>
         </div>
-      </div>
-    </div>
+      )}
+      <footer className={styles.footer}>
+        Freelinnk · Seu negócio merece mais que um link na bio.
+      </footer>
+    </main>
   );
 }

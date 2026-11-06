@@ -61,7 +61,7 @@ export function AnimatedCounter({
       transition={{ duration: 0.3 }}
       className={className}
     >
-      {prefix === "R$" ? formatCurrency(count) : `${prefix}${count.toFixed(decimals)}${suffix}`}
+      {prefix === "R$" ? formatCurrency(count) : `${prefix}${new Intl.NumberFormat("pt-BR", { minimumFractionDigits: decimals, maximumFractionDigits: decimals }).format(count)}${suffix}`}
     </motion.span>
   );
 }

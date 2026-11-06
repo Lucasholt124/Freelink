@@ -23,7 +23,7 @@ export default async function DashboardLayout({ children }: { children: ReactNod
   ]);
 
   // Redireciona para o Onboarding se o usuário ainda não escolheu um username (userSlug === userId)
-  if (userSlug === user.id) {
+  if (userSlug === user.id || onboarding?.completed === false) {
     return redirect("/onboarding");
   }
 

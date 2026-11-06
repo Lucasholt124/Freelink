@@ -91,7 +91,7 @@ export const features = [
 ];
 
 export const stats = [
-  { value: "4.800", suffix: "+", label: "Lojistas Faturando" },
+  { value: "4800", decimals: 0, suffix: "+", label: "Lojistas Faturando" },
   { value: "1.2", suffix: "M+", label: "Cliques Gerados" },
   { value: "15", suffix: "k", label: "Tráfego Grátis (Mês)" },
   { value: "4.9", suffix: "/5", label: "Avaliação de Conversão" },
