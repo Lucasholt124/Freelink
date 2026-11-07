@@ -51,6 +51,7 @@ import {
 } from "@/lib/page-editor";
 import {
   accentText,
+  isContactLink,
   linkDestination,
   profileBadges,
 } from "@/lib/public-profile";
@@ -517,7 +518,9 @@ function LinkDialog({
   const [address, setAddress] = useState("");
   const [kind, setKind] = useState<DestinationKind>("site");
   const [message, setMessage] = useState("");
-  const [featured, setFeatured] = useState(false);
+  const [featuredOverride, setFeaturedOverride] = useState<boolean | null>(
+    null,
+  );
   const [badge, setBadge] = useState<keyof typeof profileBadges | "">("");
   const [thumbnail, setThumbnail] = useState<{
     id?: Id<"_storage">;
@@ -529,6 +532,10 @@ function LinkDialog({
   const [error, setError] = useState("");
   const [discard, setDiscard] = useState(false);
   const [baseline, setBaseline] = useState("");
+  const url = buildLinkDestination(kind, address, message);
+  const featured =
+    featuredOverride ??
+    (["whatsapp", "email", "phone"].includes(kind) || isContactLink(url || ""));
   const snapshot = JSON.stringify({
     title,
     address,
@@ -558,14 +565,13 @@ function LinkDialog({
     setAddress(initial.address);
     setKind(initial.kind);
     setMessage(initial.message);
-    setFeatured(initial.featured);
+    setFeaturedOverride(link ? initial.featured : null);
     setBadge(initial.badge as typeof badge);
     setThumbnail(initial.thumbnail);
     setBaseline(JSON.stringify(initial));
     setError("");
     setDiscard(false);
   }, [open, link?._id]);
-  const url = buildLinkDestination(kind, address, message);
   const destination = destinations.find((item) => item.kind === kind)!;
   function close() {
     if (busy || uploading) return;
@@ -763,11 +769,19 @@ function LinkDialog({
                 <input
                   type="checkbox"
                   checked={featured}
-                  onChange={(event) => setFeatured(event.target.checked)}
+                  onChange={(event) =>
+                    setFeaturedOverride(event.target.checked)
+                  }
                 />
                 <span>
                   <strong>Destacar este link</strong>
-                  <small>O botão ganha a cor principal da marca.</small>
+                  <small>
+                    {!link &&
+                    (["whatsapp", "email", "phone"].includes(kind) ||
+                      isContactLink(url || ""))
+                      ? "Contatos já vêm em destaque. Você pode desmarcar se preferir."
+                      : "O botão ganha a cor principal da marca."}
+                  </small>
                 </span>
               </label>
               <details className={styles.disclosure}>

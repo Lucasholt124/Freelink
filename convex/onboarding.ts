@@ -7,6 +7,7 @@ import {
   usernameError,
 } from "./lib/onboarding_utils";
 import type { Doc } from "./_generated/dataModel";
+import { isContactLink } from "../lib/public-profile";
 
 async function requireUser(ctx: { auth: MutationCtx["auth"] }) {
   const identity = await ctx.auth.getUserIdentity();
@@ -242,14 +243,18 @@ export const saveFirstLink = mutation({
         );
       const existing = firstLinkId ? await ctx.db.get(firstLinkId) : null;
       if (existing?.userId === userId)
-        await ctx.db.patch(existing._id, { title, url });
+        await ctx.db.patch(existing._id, {
+          title,
+          url,
+          ...(existing.url !== url ? { isFeatured: isContactLink(url) } : {}),
+        });
       else
         firstLinkId = await ctx.db.insert("links", {
           userId,
           title,
           url,
           order: Date.now(),
-          isFeatured: false,
+          isFeatured: isContactLink(url),
         });
     }
     const progressId = await saveProgress(ctx, userId, 4, progress);

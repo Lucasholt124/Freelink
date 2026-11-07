@@ -268,3 +268,31 @@ test("client and server share the same URL and username rules", () => {
   assert.ok(usernameError("nome.com"));
   assert.ok(usernameError("ab"));
 });
+
+test("onboarding contacts are featured automatically and a retry preserves explicit edits", async () => {
+  const ctx = context();
+  await prepared(ctx);
+  await run("saveFirstLink", ctx, {
+    title: "Fale no WhatsApp",
+    url: "https://wa.me/5511999998888",
+  });
+  const id = ctx.db.rows("links")[0]._id;
+  assert.equal((await ctx.db.get(id)).isFeatured, true);
+  await ctx.db.patch(id, { isFeatured: false });
+  await run("saveFirstLink", ctx, {
+    title: "Novo título de contato",
+    url: "https://wa.me/5511999998888",
+  });
+  assert.equal((await ctx.db.get(id)).isFeatured, false);
+  await run("saveFirstLink", ctx, {
+    title: "Visite meu site",
+    url: "https://example.com/",
+  });
+  assert.equal((await ctx.db.get(id)).isFeatured, false);
+  await run("saveFirstLink", ctx, {
+    title: "Nosso WhatsApp",
+    url: "https://api.whatsapp.com/send?phone=5511999998888",
+  });
+  assert.equal((await ctx.db.get(id)).isFeatured, true);
+  assert.equal(ctx.db.rows("links").length, 1);
+});

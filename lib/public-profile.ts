@@ -48,6 +48,10 @@ export function linkDestination(value: string) {
   return host;
 }
 
+export function isContactLink(value: string) {
+  return ["WhatsApp", "E-mail", "Telefone"].includes(linkDestination(value));
+}
+
 export function profileBio(description: string) {
   const lines = description.split("\n");
   if (/^(AVISO|STATUS):/i.test(lines[0]))

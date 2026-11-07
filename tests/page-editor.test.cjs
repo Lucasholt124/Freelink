@@ -28,6 +28,8 @@ function bundle(relative, mocks = {}) {
 const api = bundle("convex/pageWorkspaces.ts");
 const helper = bundle("lib/page-editor.ts");
 const legacy = bundle("convex/lib/subAccounts.ts");
+const legacyLinks = bundle("convex/lib/links.ts");
+const { isContactLink } = bundle("lib/public-profile.ts");
 const { normalizeLinkUrl, usernameError } = bundle(
   "convex/lib/onboarding_utils.ts",
 );
@@ -434,4 +436,72 @@ test("legacy three-digit brand colors remain editable without changing their mea
   assert.equal(values.accentColor, "#aabbcc");
   assert.equal(values.backgroundColor1, "#ffffff");
   assert.equal(helper.appearanceError(values), "");
+});
+
+test("contact defaults recognize real destinations and reject lookalike hosts", () => {
+  for (const url of [
+    "https://wa.me/5511999998888",
+    "https://api.whatsapp.com/send?phone=5511999998888",
+    "https://web.whatsapp.com/send?phone=5511999998888",
+    "mailto:loja@example.com",
+    "tel:+5511999998888",
+  ])
+    assert.equal(isContactLink(url), true, url);
+  for (const url of [
+    "https://example.com/?next=wa.me",
+    "https://wa.me.example.com/",
+    "https://whatsapp.com.evil.example/",
+    "https://instagram.com/loja/",
+    "javascript:alert(1)",
+  ])
+    assert.equal(isContactLink(url), false, url);
+});
+
+test("new contacts default to featured while explicit choices and existing links are preserved", async () => {
+  const ctx = context();
+  const { isFeatured, ...args } = linkArgs("test-user");
+  for (const url of [
+    "https://wa.me/5511999998888",
+    "mailto:loja@example.com",
+    "tel:+5511999998888",
+  ]) {
+    const id = await run("saveLink", ctx, { ...args, url });
+    assert.equal((await ctx.db.get(id)).isFeatured, true);
+  }
+  const site = await run("saveLink", ctx, args);
+  assert.equal((await ctx.db.get(site)).isFeatured, false);
+  const contact = await run("saveLink", ctx, {
+    ...args,
+    url: "https://wa.me/5511999998888",
+    isFeatured: false,
+  });
+  assert.equal((await ctx.db.get(contact)).isFeatured, false);
+  await run("saveLink", ctx, {
+    ...args,
+    url: "https://wa.me/5511999998888",
+    linkId: contact,
+    title: "Contato atualizado",
+  });
+  assert.equal((await ctx.db.get(contact)).isFeatured, false);
+  const featuredSite = await run("saveLink", ctx, {
+    ...args,
+    isFeatured: true,
+  });
+  assert.equal((await ctx.db.get(featuredSite)).isFeatured, true);
+});
+
+test("legacy creation uses contact default without overriding an explicit opt-out", async () => {
+  const ctx = context();
+  for (const [setting, expected] of [
+    [undefined, true],
+    [false, false],
+    [true, true],
+  ]) {
+    const id = await legacyLinks.createLink._handler(ctx, {
+      title: "Contato da loja",
+      url: "https://wa.me/5511999998888",
+      ...(setting === undefined ? {} : { isFeatured: setting }),
+    });
+    assert.equal((await ctx.db.get(id)).isFeatured, expected);
+  }
 });

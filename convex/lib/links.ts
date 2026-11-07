@@ -1,5 +1,6 @@
 import { mutation, query } from "../_generated/server";
 import { v } from "convex/values";
+import { isContactLink } from "../../lib/public-profile";
 
 // ID DO ADMIN MASTER
 const ADMIN_USER_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
@@ -55,7 +56,7 @@ export const createLink = mutation({
       url: args.url.trim(),
       order: Date.now(),
       thumbnailStorageId: args.thumbnailStorageId,
-      isFeatured: args.isFeatured || false,
+      isFeatured: args.isFeatured ?? isContactLink(args.url),
       badgeType: args.badgeType,
     });
   },

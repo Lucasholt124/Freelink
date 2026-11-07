@@ -1,6 +1,8 @@
 "use client";
 
 import { useUser } from "@clerk/nextjs";
+import Link from "next/link";
+import { billingPrices, money, annualDiscount, billingPriceNote, billingPlan } from "@/lib/billing-options";
 import { Button } from "@/components/ui/button";
 import {
     Loader2, CheckCircle,
@@ -77,14 +79,14 @@ const plans = [
     {
         id: "pro",
         name: "Pro Seller",
-        monthlyPrice: "R$ 34,90",
-        yearlyPrice: "R$ 349",
-        discount: "50% OFF",
+        monthlyPrice: money(billingPrices.pro.monthly),
+        yearlyPrice: money(billingPrices.pro.yearly),
+        discount: `${annualDiscount("pro")}% de economia no anual`,
         badge: "🔥 MAIS ESCOLHIDO",
         description: "Para quem quer profissionalizar as vendas e entender o tráfego.",
         features: [
             { text: "Hub de Anúncios (2 Campanhas)", icon: <Megaphone className="w-4 h-4" /> },
-            { text: "1.000 visualizações de Anúncio / mês", icon: <TrendingUp className="w-4 h-4" /> },
+            { text: "2.000 visualizações de Anúncio / mês (1.000 por campanha)", icon: <TrendingUp className="w-4 h-4" /> },
             { text: "Ferramenta de Sorteios Inclusa", icon: <Gift className="w-4 h-4" /> },
             { text: "Múltiplas Páginas (Até 10 Perfis)", icon: <Layers className="w-4 h-4" /> },
             { text: "Pixel do Facebook e Google GA4", icon: <TargetIcon /> },
@@ -96,8 +98,8 @@ const plans = [
     {
         id: "ultra",
         name: "Ultra Business",
-        monthlyPrice: "R$ 77,90",
-        yearlyPrice: "R$ 779",
+        monthlyPrice: money(billingPrices.ultra.monthly),
+        yearlyPrice: money(billingPrices.ultra.yearly),
         discount: "Melhor Valor",
         badge: "👑 MÁQUINA DE VENDAS",
         description: "Sua agência de marketing, CRM e gestão em um só lugar.",
@@ -265,20 +267,28 @@ function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, l
     };
 
     return (
-        <div className="max-w-6xl mx-auto mb-24">
+        <div id="planos" className="max-w-6xl mx-auto mb-24 scroll-mt-24">
             {/* Toggle */}
             <div className="flex flex-col items-center justify-center mb-12">
                 <h2 className="text-3xl sm:text-4xl font-black text-slate-900 dark:text-white mb-6 text-center">Invista na sua Gestão e Tráfego</h2>
                 <div className="flex items-center gap-4 bg-white dark:bg-slate-900 p-1.5 rounded-full border border-slate-200 dark:border-slate-800 shadow-sm relative">
-                    <span className={clsx("px-6 py-2.5 rounded-full text-sm font-bold cursor-pointer transition-all", billingCycle === 'monthly' ? "bg-slate-100 text-slate-900" : "text-slate-500")}>Mensal</span>
-                    <Switch checked={billingCycle === 'yearly'} onCheckedChange={handleBillingCycleChange} />
-                    <span className={clsx("px-6 py-2.5 rounded-full text-sm font-bold cursor-pointer transition-all", billingCycle === 'yearly' ? "bg-green-100 text-green-700" : "text-slate-500")}>Anual</span>
+                    <button type="button" disabled={loading !== null} aria-pressed={billingCycle === "monthly"} onClick={() => handleBillingCycleChange(false)} className={clsx("px-6 py-2.5 rounded-full text-sm font-bold transition-all focus-visible:outline-2 focus-visible:outline-blue-500", billingCycle === "monthly" ? "bg-slate-100 text-slate-900" : "text-slate-500")}>Mensal</button>
+                    <Switch aria-label="Cobrança anual" disabled={loading !== null} checked={billingCycle === 'yearly'} onCheckedChange={handleBillingCycleChange} />
+                    <button type="button" disabled={loading !== null} aria-pressed={billingCycle === "yearly"} onClick={() => handleBillingCycleChange(true)} className={clsx("px-6 py-2.5 rounded-full text-sm font-bold transition-all focus-visible:outline-2 focus-visible:outline-blue-500", billingCycle === "yearly" ? "bg-green-100 text-green-700" : "text-slate-500")}>Anual</button>
 
                     {billingCycle === 'monthly' && (
                         <div className="absolute -right-28 top-1/2 -translate-y-1/2 hidden md:flex items-center gap-1 text-xs font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-1 rounded-lg animate-bounce">
                             <ArrowRight className="w-3 h-3" /> -2 Meses Grátis
                         </div>
                     )}
+                </div>
+                <p className="mt-5 text-sm text-slate-500 text-center" aria-live="polite">
+                    {billingCycle === "yearly" ? "Economize 2 mensalidades. O plano anual é cobrado em uma única vez." : "Flexibilidade para pagar mês a mês. Economize 2 mensalidades no anual."}
+                </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-x-5 gap-y-2 text-xs font-medium text-slate-500">
+                    <span className="flex items-center gap-1.5"><Shield className="h-3.5 w-3.5 text-green-600" /> 7 dias para testar</span>
+                    <span className="flex items-center gap-1.5"><Lock className="h-3.5 w-3.5" /> Checkout via Stripe</span>
+                    <Link href="/dashboard/help#help-teste" className="underline underline-offset-4 hover:text-blue-600">Dúvidas sobre a assinatura?</Link>
                 </div>
             </div>
 
@@ -312,11 +322,12 @@ function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, l
                         </div>
                         {currentPlan !== 'pro' && (
                             <div className="text-green-600 text-xs font-bold mt-2 flex items-center gap-1">
-                                <CheckCircle className="w-3 h-3" /> {plans[0].discount} aplicado
+                                <CheckCircle className="w-3 h-3" /> {billingCycle === "yearly" ? plans[0].discount : "7 dias grátis para testar"}
                             </div>
                         )}
                     </div>
 
+                    <p className="text-xs text-slate-500 -mt-5 mb-6 leading-relaxed">{billingPriceNote("pro", billingCycle)}</p>
                     {renderButton("pro", plans[0].cta, "blue")}
 
                     <div className="space-y-4">
@@ -370,6 +381,7 @@ function PricingSection({ currentPlan, billingCycle, handleBillingCycleChange, l
                         )}
                     </div>
 
+                    <p className="text-xs text-slate-400 -mt-5 mb-6 leading-relaxed">{billingPriceNote("ultra", billingCycle)}</p>
                     {renderButton("ultra", plans[1].cta, "white")}
 
                     <div className="relative z-10 space-y-4">
@@ -398,7 +410,7 @@ function DevastatingROI() {
         <div className="max-w-3xl mx-auto bg-slate-50 dark:bg-slate-900/50 rounded-3xl p-8 sm:p-10 border border-slate-200 dark:border-slate-800 mb-24">
             <div className="text-center mb-8">
                 <h3 className="text-2xl font-black text-slate-900 dark:text-white">A conta não mente 💸</h3>
-                <p className="text-slate-500 mt-2">Veja quanto custaria para comprar todas essas ferramentas separadas:</p>
+                <p className="text-slate-500 mt-2">Compare os valores de referência destas ferramentas separadas:</p>
             </div>
 
             <div className="flex flex-col md:flex-row gap-8 items-center justify-between">
@@ -427,10 +439,10 @@ function DevastatingROI() {
 
                 <div className="bg-white dark:bg-slate-800 p-6 rounded-2xl shadow-xl border border-green-100 dark:border-green-900/30 w-full md:w-auto min-w-[250px] text-center transform scale-105">
                     <p className="text-xs font-bold uppercase text-slate-400 tracking-wider mb-2">Freelinnk Ultra</p>
-                    <p className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">R$ 77</p>
+                    <p className="text-5xl font-black text-slate-900 dark:text-white tracking-tighter">{money(billingPrices.ultra.monthly)}</p>
                     <p className="text-sm text-slate-500 mb-4">/mês</p>
                     <Badge className="bg-green-100 text-green-700 border-0 w-full justify-center py-1.5 font-bold">
-                        💥 Economia: R$ 3.513/ano
+                        💥 Economia: {money((36980 - billingPrices.ultra.monthly) * 12)}/ano
                     </Badge>
                 </div>
             </div>
@@ -460,7 +472,7 @@ function GuaranteeSection() {
 }
 
 // 6. FINAL CTA (EMOCIONAL & FORTE)
-function FinalCTA({ handleCheckout, currentPlan }: { handleCheckout: (p: "pro" | "ultra") => void, currentPlan: PlanIdentifier }) {
+function FinalCTA({ handleCheckout, currentPlan, loading }: { handleCheckout: (p: "pro" | "ultra") => void, currentPlan: PlanIdentifier, loading: string | null }) {
     if (currentPlan !== 'free') return null;
 
     return (
@@ -471,7 +483,8 @@ function FinalCTA({ handleCheckout, currentPlan }: { handleCheckout: (p: "pro" |
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <Button
                     onClick={() => handleCheckout('pro')}
-                    className="h-14 px-10 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg shadow-xl shadow-blue-500/30 hover:scale-105 transition-transform"
+                    disabled={loading !== null}
+                    className="h-auto min-h-14 w-full sm:w-auto whitespace-normal px-5 sm:px-10 py-3 rounded-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg leading-snug shadow-xl shadow-blue-500/30 hover:scale-105 transition-transform"
                 >
                     Começar a Vender com o Pro
                 </Button>
@@ -488,7 +501,8 @@ function FinalCTA({ handleCheckout, currentPlan }: { handleCheckout: (p: "pro" |
 // ============================================
 
 export default function BillingContent() {
-    const { user } = useUser();
+    const { user, isLoaded } = useUser();
+    const [planReady, setPlanReady] = useState(false);
     const [loading, setLoading] = useState<string | null>(null);
     const [currentPlan, setCurrentPlan] = useState<PlanIdentifier>("free");
     const [billingCycle, setBillingCycle] = useState<BillingCycle>("monthly");
@@ -503,25 +517,23 @@ export default function BillingContent() {
     useScrollTracking();
 
     useEffect(() => {
-        const savedCycle = localStorage.getItem('preferredBillingCycle');
-        if (savedCycle && (savedCycle === 'monthly' || savedCycle === 'yearly')) {
-            setBillingCycle(savedCycle as BillingCycle);
-        }
+        try {
+            const savedCycle = localStorage.getItem('preferredBillingCycle');
+            if (savedCycle === 'monthly' || savedCycle === 'yearly') setBillingCycle(savedCycle);
+        } catch { /* A escolha continua funcionando sem armazenamento local. */ }
     }, []);
 
     const handleBillingCycleChange = (checked: boolean) => {
         const newCycle = checked ? 'yearly' : 'monthly';
         setBillingCycle(newCycle);
-        localStorage.setItem('preferredBillingCycle', newCycle);
+        try { localStorage.setItem('preferredBillingCycle', newCycle); } catch { /* Preferência opcional. */ }
     };
 
     useEffect(() => {
-        if (user?.publicMetadata?.subscriptionPlan) {
-            setCurrentPlan(user.publicMetadata.subscriptionPlan as PlanIdentifier);
-        } else {
-            setCurrentPlan("free");
-        }
-    }, [user?.publicMetadata]);
+        if (!isLoaded) return;
+        setCurrentPlan(billingPlan(user?.publicMetadata?.subscriptionPlan, user?.id));
+        setPlanReady(true);
+    }, [isLoaded, user?.id, user?.publicMetadata]);
 
     useEffect(() => {
         const success = searchParams.get("success");
@@ -550,7 +562,7 @@ export default function BillingContent() {
                 body: JSON.stringify({ plan: planToBuy, cycle: billingCycle }),
             });
             const data = await res.json();
-            if (data.url) window.location.href = data.url;
+            if (res.ok && typeof data.url === "string" && data.url) window.location.href = data.url;
             else throw new Error(data.error || "Erro ao iniciar checkout");
         } catch {
             toast.error("Erro no processamento. Tente novamente.");
@@ -599,13 +611,16 @@ export default function BillingContent() {
         try {
             const res = await fetch("/api/stripe/portal", { method: "POST" });
             const data = await res.json();
-            if (data.url) window.location.href = data.url;
+            if (!res.ok || typeof data.url !== "string" || !data.url) throw new Error();
+            window.location.href = data.url;
         } catch {
-            toast.error("Erro ao abrir portal.");
+            toast.error("Não foi possível abrir suas faturas. Tente novamente ou fale com o suporte.");
         } finally {
             setLoading(null);
         }
     }
+
+    if (!isLoaded || !planReady) return <div role="status" className="py-12 text-center text-sm text-slate-500">Consultando seu plano…</div>;
 
     return (
         <div className="relative min-h-screen bg-slate-50 dark:bg-slate-950 font-sans selection:bg-blue-100 selection:text-blue-900">
@@ -660,10 +675,10 @@ export default function BillingContent() {
 
                 <GuaranteeSection />
 
-                <FinalCTA handleCheckout={handleCheckout} currentPlan={currentPlan} />
+                <FinalCTA handleCheckout={handleCheckout} currentPlan={currentPlan} loading={loading} />
 
                 {currentPlan !== "free" && (
-                    <div className="text-center border-t border-slate-200 pt-12 max-w-xl mx-auto pb-12">
+                    <div id="assinatura" className="text-center border-t border-slate-200 pt-12 max-w-xl mx-auto pb-12 scroll-mt-24">
                         <Button variant="outline" onClick={handleManageSubscription} disabled={loading === "portal"} className="border-slate-300 w-full mb-6 h-12">
                             {loading === "portal" ? <Loader2 className="animate-spin mr-2" /> : <Settings className="mr-2 w-4 h-4" />}
                             Gerenciar Cartão e Faturas
@@ -679,8 +694,9 @@ export default function BillingContent() {
             {currentPlan === 'free' && (
                 <motion.div initial={{ y: 100 }} animate={{ y: 0 }} className="fixed bottom-0 left-0 right-0 z-50 p-4 lg:hidden bg-white/80 backdrop-blur-lg border-t border-slate-200">
                     <Button onClick={() => handleCheckout('pro')} disabled={loading !== null} className="w-full bg-blue-600 text-white font-bold h-12 rounded-xl shadow-lg">
-                        Desbloquear Pro Agora
+                        {loading?.startsWith("pro-") ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Abrindo checkout…</> : "Desbloquear Pro Agora"}
                     </Button>
+                    <p className="mt-2 text-center text-[11px] text-slate-500">7 dias grátis · Depois, {money(billingPrices.pro[billingCycle])}/{billingCycle === "yearly" ? "ano em cobrança única" : "mês"}</p>
                 </motion.div>
             )}
 

@@ -9,7 +9,7 @@ import {
 import { internal } from "./_generated/api";
 import { ConvexError, v } from "convex/values";
 import { usernameError } from "./lib/onboarding_utils";
-import { publicLinkUrl } from "../lib/public-profile";
+import { publicLinkUrl, isContactLink } from "../lib/public-profile";
 import { extraPageLimit, validColor } from "../lib/page-editor";
 
 type ReadCtx = Pick<QueryCtx, "auth" | "db" | "storage">;
@@ -308,7 +308,7 @@ export const saveLink = mutation({
     linkId: v.optional(v.id("links")),
     title: v.string(),
     url: v.string(),
-    isFeatured: v.boolean(),
+    isFeatured: v.optional(v.boolean()),
     badgeType: badge,
     thumbnailId: v.optional(v.id("_storage")),
     clearThumbnail: v.boolean(),
@@ -328,7 +328,8 @@ export const saveLink = mutation({
     const values = {
       title,
       url,
-      isFeatured: args.isFeatured,
+      isFeatured:
+        args.isFeatured ?? (link ? !!link.isFeatured : isContactLink(url)),
       badgeType: args.badgeType || undefined,
       ...(args.clearThumbnail
         ? { thumbnailStorageId: undefined }
