@@ -8,9 +8,15 @@ export type SubscriptionPlanDetails = {
   mentorIaUsageCount: number;
 };
 
-const DEFAULT_PLAN: SubscriptionPlanDetails = { plan: "free", isPaid: false, mentorIaUsageCount: 0 };
+const DEFAULT_PLAN: SubscriptionPlanDetails = {
+  plan: "free",
+  isPaid: false,
+  mentorIaUsageCount: 0,
+};
 
-export async function getUserSubscriptionPlan(userId: string): Promise<SubscriptionPlanDetails> {
+export async function getUserSubscriptionPlan(
+  userId: string,
+): Promise<SubscriptionPlanDetails> {
   if (userId === "user_301NTkVsE3v48SXkoCEp0XOXifI") {
     return { plan: "ultra", isPaid: true, mentorIaUsageCount: 0 };
   }
@@ -22,7 +28,11 @@ export async function getUserSubscriptionPlan(userId: string): Promise<Subscript
     // Ao contrário de clerkClient().users.getUser(), isso usa dados já disponíveis
     // no middleware/session sem fazer uma chamada HTTP extra
     let user = null;
-    try { user = await currentUser(); } catch { /* rota pública, ignora */ }
+    try {
+      user = await currentUser();
+    } catch {
+      /* rota pública, ignora */
+    }
 
     // Se o userId não bate com o usuário logado, precisamos buscar de outra forma
     if (!user || user.id !== userId) {
@@ -30,27 +40,47 @@ export async function getUserSubscriptionPlan(userId: string): Promise<Subscript
       const { clerkClient } = await import("@clerk/nextjs/server");
       const clerk = await clerkClient();
       const clerkUser = await clerk.users.getUser(userId);
-      const planName = (clerkUser.publicMetadata.subscriptionPlan as SubscriptionPlanDetails['plan']) || "free";
-      return { plan: planName, isPaid: planName === "pro" || planName === "ultra", mentorIaUsageCount: 0 };
+      const planName =
+        (clerkUser.publicMetadata
+          .subscriptionPlan as SubscriptionPlanDetails["plan"]) || "free";
+      return {
+        plan: planName,
+        isPaid: planName === "pro" || planName === "ultra",
+        mentorIaUsageCount: 0,
+      };
     }
 
-    const planName = (user.publicMetadata.subscriptionPlan as SubscriptionPlanDetails['plan']) || "free";
+    const planName =
+      (user.publicMetadata
+        .subscriptionPlan as SubscriptionPlanDetails["plan"]) || "free";
     return {
       plan: planName,
       isPaid: planName === "pro" || planName === "ultra",
       mentorIaUsageCount: 0,
     };
   } catch (error) {
-    console.error(`Erro ao buscar dados de assinatura para userId ${userId}:`, error);
+    console.error(
+      `Erro ao buscar dados de assinatura para userId ${userId}:`,
+      error,
+    );
     return DEFAULT_PLAN;
   }
 }
 
-export async function getUserSubscriptionPlanByUsername(username: string): Promise<SubscriptionPlanDetails> {
+export async function getUserSubscriptionPlanByUsername(
+  username: string,
+): Promise<SubscriptionPlanDetails> {
   try {
-    const userObject = await fetchQuery(api.users.getUserByUsername, { username });
+    const userObject = await fetchQuery(api.users.getUserByUsername, {
+      username,
+    });
     if (!userObject?.userId) return DEFAULT_PLAN;
-    return await getUserSubscriptionPlan(userObject.userId);
+    const parent = await fetchQuery(api.lib.subAccounts.getOwnerOfSubAccount, {
+      subUserId: userObject.userId,
+    });
+    return await getUserSubscriptionPlan(
+      parent?.ownerUserId || userObject.userId,
+    );
   } catch (error) {
     console.error(`Erro ao buscar plano por username "${username}":`, error);
     return DEFAULT_PLAN;

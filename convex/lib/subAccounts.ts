@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { mutation, query } from "../_generated/server";
+import { ConvexError } from "convex/values";
 
 // ID DO ADMIN MASTER
 const ADMIN_USER_ID = "user_301NTkVsE3v48SXkoCEp0XOXifI";
@@ -19,6 +20,9 @@ function getSubAccountLimit(plan: string): number {
 export const getSubAccounts = query({
   args: { ownerUserId: v.string() },
   handler: async (ctx, { ownerUserId }) => {
+    const identity = await ctx.auth.getUserIdentity();
+    if (!identity || identity.subject !== ownerUserId)
+      throw new ConvexError("Acesso negado.");
     return await ctx.db
       .query("subAccounts")
       .withIndex("by_owner", (q) => q.eq("ownerUserId", ownerUserId))
@@ -65,57 +69,17 @@ export const getSubAccountBySubUserId = query({
 // ============================================
 // MUTATION: Cria uma nova sub-conta
 // ============================================
+// Creation is verified by pageWorkspaces.createPage. Keep a clear error for stale clients.
 export const createSubAccount = mutation({
   args: {
     ownerUserId: v.string(),
     username: v.string(),
     displayName: v.optional(v.string()),
   },
-  handler: async (ctx, { ownerUserId, username, displayName }) => {
-    const usernameRegex = /^[a-z0-9_-]{3,30}$/;
-    if (!usernameRegex.test(username)) {
-      throw new Error("Username inválido. Use 3-30 caracteres: letras, números, hífen ou underscore.");
-    }
-
-    const existingSubAccount = await ctx.db
-      .query("subAccounts")
-      .withIndex("by_username", (q) => q.eq("username", username))
-      .first();
-
-    if (existingSubAccount) {
-      throw new Error("Este username já está em uso por outra página.");
-    }
-
-    const existingUsername = await ctx.db
-      .query("usernames")
-      .withIndex("by_username", (q) => q.eq("username", username))
-      .first();
-
-    if (existingUsername) {
-      throw new Error("Este username já está em uso.");
-    }
-
-    const subUserId = `sub_${ownerUserId}_${username}_${Date.now()}`;
-
-    const subAccountId = await ctx.db.insert("subAccounts", {
-      ownerUserId,
-      subUserId,
-      username,
-      displayName: displayName || username,
-      createdAt: Date.now(),
-    });
-
-    await ctx.db.insert("usernames", {
-      userId: subUserId,
-      username,
-    });
-
-    return {
-      success: true,
-      subAccountId,
-      subUserId,
-      username,
-    };
+  handler: async () => {
+    throw new ConvexError(
+      "Atualize o painel para criar uma página pelo novo editor.",
+    );
   },
 });
 
@@ -131,6 +95,13 @@ export const deleteSubAccount = mutation({
     if (!subAccount) {
       throw new Error("Sub-conta não encontrada.");
     }
+    const identity = await ctx.auth.getUserIdentity();
+    if (
+      !identity ||
+      (identity.subject !== subAccount.ownerUserId &&
+        identity.subject !== ADMIN_USER_ID)
+    )
+      throw new ConvexError("Acesso negado.");
 
     const { subUserId, username } = subAccount;
 
@@ -176,16 +147,17 @@ export const validateSubAccountLimit = mutation({
     plan: v.string(),
   },
   handler: async (ctx, { ownerUserId, plan }) => {
-
     // MAGICA DO ADMIN NO BACKEND
     if (ownerUserId === ADMIN_USER_ID) {
-        return { allowed: true, current: 0, limit: 999, remaining: 999 };
+      return { allowed: true, current: 0, limit: 999, remaining: 999 };
     }
 
     const limit = getSubAccountLimit(plan);
 
     if (limit === 0) {
-      throw new Error("Seu plano não permite criar páginas adicionais. Assine o Pro ou Ultra.");
+      throw new Error(
+        "Seu plano não permite criar páginas adicionais. Assine o Pro ou Ultra.",
+      );
     }
 
     const existing = await ctx.db
@@ -195,7 +167,7 @@ export const validateSubAccountLimit = mutation({
 
     if (existing.length >= limit) {
       throw new Error(
-        `Limite de ${limit} páginas atingido para o plano ${plan}. Faça upgrade para criar mais.`
+        `Limite de ${limit} páginas atingido para o plano ${plan}. Faça upgrade para criar mais.`,
       );
     }
 

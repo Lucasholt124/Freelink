@@ -37,6 +37,10 @@ import {
   searchDashboard,
 } from "@/lib/dashboard-navigation";
 import styles from "./dashboard.module.css";
+import {
+  PageWorkspaceProvider,
+  usePageWorkspace,
+} from "@/components/page-editor/WorkspaceProvider";
 
 const icons = {
   home: Home,
@@ -51,7 +55,7 @@ const icons = {
 };
 const groups = ["Seu espaço", "Crescimento", "Gestão", "Sua conta"];
 
-export default function DashboardShell({
+function DashboardShellContent({
   children,
   initialPlan,
 }: {
@@ -59,6 +63,7 @@ export default function DashboardShell({
   initialPlan: string;
 }) {
   const pathname = usePathname();
+  const workspace = usePageWorkspace();
   const { user } = useUser();
   const { signOut } = useClerk();
   const { isAuthenticated } = useConvexAuth();
@@ -74,8 +79,9 @@ export default function DashboardShell({
   const [shortcutLabel, setShortcutLabel] = useState("Ctrl K");
   const active = activeDashboardHref(pathname);
   const name = overview?.displayName || user?.firstName || "Sua conta";
-  const publicPath = overview?.username
-    ? `/${encodeURIComponent(overview.username)}`
+  const publicUsername = workspace.selected?.username || overview?.username;
+  const publicPath = publicUsername
+    ? `/${encodeURIComponent(publicUsername)}`
     : null;
 
   useEffect(() => {
@@ -314,7 +320,10 @@ export default function DashboardShell({
                 Ver página <ArrowUpRight size={16} aria-hidden="true" />
               </Link>
             )}
-            <Link href="/dashboard/new-link" className={styles.newLink}>
+            <Link
+              href={workspace.withPage("/dashboard/new-link")}
+              className={styles.newLink}
+            >
               <Plus size={17} aria-hidden="true" />
               <span>Novo link</span>
             </Link>
@@ -403,5 +412,21 @@ export default function DashboardShell({
       </Dialog.Root>
       <WelcomeModal />
     </div>
+  );
+}
+
+export default function DashboardShell({
+  children,
+  initialPlan,
+}: {
+  children: ReactNode;
+  initialPlan: string;
+}) {
+  return (
+    <PageWorkspaceProvider initialPlan={initialPlan}>
+      <DashboardShellContent initialPlan={initialPlan}>
+        {children}
+      </DashboardShellContent>
+    </PageWorkspaceProvider>
   );
 }

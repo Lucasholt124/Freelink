@@ -13,13 +13,15 @@ export function Providers({ children }: { children: ReactNode }) {
     <ClerkProvider
       publishableKey={process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY!}
       localization={ptBR}
-      afterSignInUrl="/dashboard"
-      afterSignUpUrl="/dashboard"
+      signInFallbackRedirectUrl="/dashboard"
+      signUpFallbackRedirectUrl="/onboarding"
       signInUrl="/sign-in"
       signUpUrl="/sign-up"
       appearance={{
         variables: { colorPrimary: "#6366f1" },
-        elements: { formButtonPrimary: "bg-gradient-to-r from-blue-500 to-purple-600" },
+        elements: {
+          formButtonPrimary: "bg-gradient-to-r from-blue-500 to-purple-600",
+        },
       }}
     >
       <ConvexProviderWithClerk client={convex} useAuth={useAuth}>

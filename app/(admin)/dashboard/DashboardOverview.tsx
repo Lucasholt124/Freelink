@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 import { useConvexAuth, useQuery } from "convex/react";
 import {
   ArrowRight,
@@ -22,6 +23,10 @@ import {
 } from "lucide-react";
 import { api } from "@/convex/_generated/api";
 import { hasPlan, normalizePlan } from "@/lib/dashboard-navigation";
+import {
+  DASHBOARD_LOAD_TIMEOUT_MS,
+  resolveDashboardLoadState,
+} from "@/lib/dashboard-load-state";
 import styles from "./dashboard.module.css";
 
 interface DashboardOverviewProps {
@@ -76,11 +81,35 @@ export default function DashboardOverview({
   firstName,
   userSlug,
 }: DashboardOverviewProps) {
-  const { isAuthenticated } = useConvexAuth();
+  const { isAuthenticated, isLoading: convexLoading } = useConvexAuth();
+  const { isLoaded: clerkLoaded, isSignedIn } = useUser();
   const data = useQuery(
     api.dashboard.getOverview,
     isAuthenticated ? {} : "skip",
   );
+  const [loadTimedOut, setLoadTimedOut] = useState(false);
+  const waitingForData =
+    !clerkLoaded || convexLoading || (isAuthenticated && data === undefined);
+  useEffect(() => {
+    if (!waitingForData) {
+      setLoadTimedOut(false);
+      return;
+    }
+    const timer = setTimeout(
+      () => setLoadTimedOut(true),
+      DASHBOARD_LOAD_TIMEOUT_MS,
+    );
+    return () => clearTimeout(timer);
+  }, [waitingForData]);
+  const loadState = resolveDashboardLoadState({
+    clerkLoaded,
+    clerkSignedIn: !!isSignedIn,
+    convexLoading,
+    convexAuthenticated: isAuthenticated,
+    overview:
+      data === undefined ? "pending" : data === null ? "empty" : "ready",
+    timedOut: loadTimedOut,
+  });
   const plan = normalizePlan(userPlan);
   const daily = useQuery(
     api.profitCalculator.getDailySummary,
@@ -126,7 +155,54 @@ export default function DashboardOverview({
     }
   }
 
-  if (!data)
+  if (loadState !== "ready" || !data) {
+    if (loadState !== "loading") {
+      const signedOut = loadState === "signed-out";
+      return (
+        <section
+          className={`${styles.overview} ${styles.connectionPanel}`}
+          role="alert"
+          aria-labelledby="dashboard-connection-title"
+        >
+          <span className={styles.checklistIcon}>
+            <Link2 size={22} aria-hidden="true" />
+          </span>
+          <h1 id="dashboard-connection-title">
+            {signedOut
+              ? "Sua sessão precisa ser renovada"
+              : loadState === "timeout"
+                ? "Os dados demoraram para carregar"
+                : "Não foi possível conectar sua conta"}
+          </h1>
+          <p>
+            {signedOut
+              ? "Entre novamente para acessar sua página e seus links."
+              : loadState === "timeout"
+                ? "A conexão está demorando mais que o esperado. Você pode tentar carregar o painel novamente."
+                : "Sua sessão está aberta, mas não conseguimos validar o acesso aos dados do painel. Tente novamente ou fale com o suporte."}
+          </p>
+          <div>
+            {signedOut ? (
+              <Link href="/sign-in" className={styles.primaryButton}>
+                Entrar novamente
+              </Link>
+            ) : (
+              <button
+                type="button"
+                className={styles.primaryButton}
+                onClick={() => window.location.reload()}
+              >
+                Tentar novamente
+              </button>
+            )}
+            <Link href="/dashboard/help" className={styles.textLink}>
+              Central de ajuda
+              <ArrowUpRight size={15} aria-hidden="true" />
+            </Link>
+          </div>
+        </section>
+      );
+    }
     return (
       <div
         className={styles.overview}
@@ -148,6 +224,7 @@ export default function DashboardOverview({
         </span>
       </div>
     );
+  }
 
   const name =
     data.displayName || (firstName === "Creator" ? "por aqui" : firstName);
