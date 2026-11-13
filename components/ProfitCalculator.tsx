@@ -1,6 +1,14 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { filterCrmCustomers } from "@/lib/crm";
+import { ProductCapture } from "@/components/finance/ProductCapture";
+import { ProductLabels } from "@/components/finance/ProductLabels";
+import { ReceiveSaleDialog } from "@/components/finance/ReceiveSaleDialog";
+import { validQuantity, retailNumber, allowsFraction } from "@/lib/retail";
+import retailStyles from "@/components/finance/retail.module.css";
+import { FinanceNavigation } from "@/components/finance/FinanceNavigation";
+import styles from "@/components/finance/finance-workspace.module.css";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -184,6 +192,10 @@ export default function FinancialManagerPro() {
   const [activeTab, setActiveTab] = useState<TabType>("dashboard");
   const [summaryView, setSummaryView] = useState<"month" | "year" | "all">("month");
   const [showAddProduct, setShowAddProduct] = useState(false);
+  const [captureSeed, setCaptureSeed] = useState<Doc<"products"> | null>(null);
+  const [captureCode, setCaptureCode] = useState<string | undefined>(undefined);
+  const [labelProducts, setLabelProducts] = useState<Doc<"products">[]>([]);
+  const [receivingSale, setReceivingSale] = useState<Doc<"sales"> | null>(null);
   const [showEditProduct, setShowEditProduct] = useState(false);
   const [showAddSale, setShowAddSale] = useState(false);
   const [showAddExpense, setShowAddExpense] = useState(false);
@@ -443,37 +455,18 @@ const paginatedExpenses = useMemo(() => {
 const [customersPage, setCustomersPage] = useState(1);
 const CUSTOMERS_PER_PAGE = 12;
 
-const filteredAndSortedCustomers = useMemo(() => {
-  let result = [...customers];
-  
-  if (customerSearchTerm) {
-    const term = customerSearchTerm.toLowerCase();
-    result = result.filter(c => 
-      c.name.toLowerCase().includes(term) || 
-      (c.email && c.email.toLowerCase().includes(term)) || 
-      (c.phone && c.phone.replace(/\\D/g, '').includes(term.replace(/\\D/g, '')))
-    );
-  }
+const filteredAndSortedCustomers = useMemo(
+  () => filterCrmCustomers(customers, customerSearchTerm, customerStatusFilter, customerSortBy),
+  [customers, customerSearchTerm, customerStatusFilter, customerSortBy],
+);
 
-  if (customerStatusFilter !== "all") {
-    result = result.filter(c => c.status === customerStatusFilter);
-  }
+useEffect(() => {
+  setCustomersPage(1);
+}, [customerSearchTerm, customerStatusFilter, customerSortBy]);
 
-  result.sort((a, b) => {
-    if (customerSortBy === "name") {
-      return a.name.localeCompare(b.name);
-    } else if (customerSortBy === "date") {
-      return b.createdAt - a.createdAt;
-    } else if (customerSortBy === "lastContact") {
-      const aLast = a.lastPurchase || a.createdAt;
-      const bLast = b.lastPurchase || b.createdAt;
-      return bLast - aLast;
-    }
-    return 0;
-  });
-
-  return result;
-}, [customers, customerSearchTerm, customerStatusFilter, customerSortBy]);
+useEffect(() => {
+  setCustomersPage((page) => Math.min(page, Math.max(1, Math.ceil(filteredAndSortedCustomers.length / CUSTOMERS_PER_PAGE))));
+}, [filteredAndSortedCustomers.length]);
 
 const paginatedCustomers = useMemo(() => {
   const startIndex = (customersPage - 1) * CUSTOMERS_PER_PAGE;
@@ -584,6 +577,8 @@ const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
         phone: customerForm.phone || undefined,
         address: customerForm.address || undefined,
         notes: customerForm.notes || undefined,
+        birthDate: customerForm.birthDate || undefined,
+        status: customerForm.status || undefined,
       });
 
       toast.success("✅ Cliente atualizado com sucesso!");
@@ -712,20 +707,14 @@ const totalSuppliersPages = Math.ceil(suppliers.length / SUPPLIERS_PER_PAGE);
   const costPrice = parseFloat(form.costPrice);
   const salePrice = parseFloat(form.salePrice);
 
-  if (isNaN(costPrice) || costPrice <= 0) errors.push("Custo deve ser maior que zero");
+  if (!Number.isFinite(costPrice) || costPrice < 0) errors.push("Custo deve ser zero ou maior");
   if (costPrice > 1000000) errors.push("Custo parece muito alto, confira");
 
   if (isNaN(salePrice) || salePrice <= 0) errors.push("Preço de venda deve ser maior que zero");
   if (salePrice > 1000000) errors.push("Preço de venda parece muito alto, confira");
 
-  if (salePrice <= costPrice) errors.push("Preço de venda deve ser maior que o custo");
-
-  const margin = ((salePrice - costPrice) / salePrice) * 100;
-  if (margin < 5) errors.push("Margem muito baixa (menos de 5%)");
-  if (margin > 90) errors.push("Margem muito alta (mais de 90%), confira");
-
-  if (form.stock && parseInt(form.stock) < 0) errors.push("Estoque não pode ser negativo");
-  if (form.minStock && parseInt(form.minStock) < 0) errors.push("Estoque mínimo não pode ser negativo");
+  if (form.stock && !validQuantity(parseFloat(form.stock), form.unit || "un", true)) errors.push("Confira a quantidade em estoque e a unidade de venda");
+  if (form.minStock && !validQuantity(parseFloat(form.minStock), form.unit || "un", true)) errors.push("Confira o estoque mínimo e a unidade de venda");
 
   return errors;
 };
@@ -747,8 +736,8 @@ const handleAddProduct = async () => {
       salePrice: parseFloat(productForm.salePrice),
       sku: productForm.sku || undefined,
       category: productForm.category || undefined,
-      stock: productForm.stock ? parseInt(productForm.stock) : undefined,
-      minStock: productForm.minStock ? parseInt(productForm.minStock) : undefined,
+      stock: productForm.stock ? parseFloat(productForm.stock) : undefined,
+      minStock: productForm.minStock ? parseFloat(productForm.minStock) : undefined,
       unit: productForm.unit || "un",
       description: productForm.description || undefined,
     });
@@ -784,8 +773,8 @@ const handleEditProduct = async () => {
       salePrice: productForm.salePrice ? parseFloat(productForm.salePrice) : undefined,
       sku: productForm.sku || undefined,
       category: productForm.category || undefined,
-      stock: productForm.stock ? parseInt(productForm.stock) : undefined,
-      minStock: productForm.minStock ? parseInt(productForm.minStock) : undefined,
+      stock: productForm.stock ? parseFloat(productForm.stock) : undefined,
+      minStock: productForm.minStock ? parseFloat(productForm.minStock) : undefined,
       unit: productForm.unit || undefined,
       description: productForm.description || undefined,
     });
@@ -858,18 +847,7 @@ const openEditProduct = (productId: Id<"products">) => {
 };
 
 const handleDuplicateProduct = (product: Doc<"products">) => {
-  setProductForm({
-    name: `${product.name} (Cópia)`,
-    costPrice: product.costPrice.toString(),
-    salePrice: product.salePrice.toString(),
-    sku: product.sku ? `${product.sku}-copy` : "",
-    category: product.category || "",
-    stock: "0",
-    minStock: product.minStock?.toString() || "",
-    unit: product.unit || "un",
-    description: product.description || "",
-  });
-  setEditingProductId(null);
+  setCaptureSeed(product);
   setShowAddProduct(true);
 };
 
@@ -1518,7 +1496,7 @@ const chartData = useMemo(() => {
 }, [sales, expenses, dailySummary]);
   const categories = Array.from(new Set(products.map((p) => p.category).filter(Boolean)));
 
-  const isLoading = products === undefined || dashboard === undefined;
+  const isLoading = productsQuery === undefined || dashboard === undefined;
 
   if (isLoading) {
     return (
@@ -1538,7 +1516,7 @@ const chartData = useMemo(() => {
   }
 
   return (
-    <>
+    <div className={styles.workspace}>
       {/* ✅ ONBOARDING */}
       {showOnboarding && !hasSeenOnboarding && (
         <Onboarding
@@ -1565,7 +1543,7 @@ const chartData = useMemo(() => {
       </div>
 
       {/* [CORREÇÃO 1] - Este é agora o ÚNICO container principal. O duplicado foi removido. */}
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-6">
+      <div className={styles.canvas}>
 
         {/* ✅ INDICADOR DE STATUS OFFLINE */}
         {!isOnline && (
@@ -1587,29 +1565,22 @@ const chartData = useMemo(() => {
             </button>
           </div>
         )}
-        <div className="fixed inset-0 overflow-hidden pointer-events-none">
-          <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl animate-pulse" />
-          <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/5 rounded-full blur-3xl animate-pulse delay-700" />
-          <div className="absolute top-1/2 left-1/2 w-96 h-96 bg-pink-500/5 rounded-full blur-3xl animate-pulse delay-1000" />
-        </div>
-
-        <div className="relative max-w-[1600px] mx-auto px-3 md:px-6 lg:px-8 py-4 md:py-6 lg:py-8">
-          <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-4 md:mb-6 lg:mb-8">
-            <div className="flex items-center gap-3">
-              <div className="p-3 lg:p-4 bg-gradient-to-br from-blue-600 to-purple-600 rounded-2xl shadow-lg">
-                <Rocket className="w-6 h-6 md:w-8 md:h-8 lg:w-10 lg:h-10 text-white" />
-              </div>
+        <div className={styles.content}>
+          <header className={styles.header}>
+            <div className={styles.identity}>
+              <div className={styles.brandIcon}><BarChart3 className="w-6 h-6" aria-hidden="true" /></div>
               <div>
-                <h1 className="text-2xl md:text-3xl lg:text-4xl font-black bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent">
-                  Gestão PRO
-                </h1>
-                <p className="text-xs md:text-sm lg:text-base text-gray-600">Acabou papel e caneta! 🚀</p>
+                <p className={styles.eyebrow}>Seu negócio em dia <span>Ultra</span></p>
+                <h1 className={styles.title}>Financeiro e CRM</h1>
+                <p className={styles.subtitle}>Mais organização para cuidar de quem compra de você.</p>
               </div>
             </div>
-
+            <div className={styles.headerActions}>
+              <Button onClick={() => setShowPDV(true)} className={styles.primary}><ShoppingCart className="w-4 h-4 mr-2" />Vender</Button>
+              <Button variant="outline" onClick={() => { setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: "", status: "" }); setShowAddCustomer(true); }}><Plus className="w-4 h-4 mr-2" />Cliente</Button>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm" className="relative">
+                  <Button variant="outline" size="sm" className="relative" aria-label={`Alertas: ${alerts.length}`}>
                     <Bell className="w-4 h-4" />
                     {alerts.length > 0 && (
                       <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 rounded-full text-white text-[10px] flex items-center justify-center font-bold animate-pulse">
@@ -1650,7 +1621,7 @@ const chartData = useMemo(() => {
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="sm">
+                  <Button variant="outline" size="sm" aria-label="Configurações e exportação">
                     <Settings className="w-4 h-4" />
                   </Button>
                 </DropdownMenuTrigger>
@@ -1701,13 +1672,14 @@ const chartData = useMemo(() => {
                 </DropdownMenuContent>
               </DropdownMenu>
             </div>
-          </div>
+          </header>
 
-          <Card className="p-3 md:p-4 lg:p-5 bg-white/90 backdrop-blur-xl border-2 mb-4 md:mb-6 lg:mb-8 shadow-lg">
+          <Card className={styles.month}>
             <div className="flex items-center justify-between gap-4">
               <Button
                 variant="outline"
                 size="sm"
+                aria-label="Mês anterior"
                 onClick={() => navigateMonth("prev")}
                 className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 rounded-full hover:bg-blue-50 transition-all"
               >
@@ -1729,6 +1701,7 @@ const chartData = useMemo(() => {
               <Button
                 variant="outline"
                 size="sm"
+                aria-label="Próximo mês"
                 onClick={() => navigateMonth("next")}
                 className="h-9 w-9 md:h-10 md:w-10 lg:h-12 lg:w-12 shrink-0 rounded-full hover:bg-blue-50 transition-all"
               >
@@ -1737,6 +1710,9 @@ const chartData = useMemo(() => {
             </div>
           </Card>
 
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-4 md:space-y-6">
+            <FinanceNavigation activeTab={activeTab} />
+            {activeTab === "dashboard" && <div className={styles.overview}>
           {/* [CORREÇÃO 2] - GamificationBar foi MOVIDA para cá, logo após o Card do mês */}
           <GamificationBar />
 
@@ -1884,7 +1860,7 @@ const chartData = useMemo(() => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4">
             {/* 💰 RECEITA */}
-            <Card className="p-4 md:p-5 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer">
+            <Card data-crm-metric="revenue" className="p-4 md:p-5 bg-gradient-to-br from-blue-500 to-blue-600 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer">
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -1906,7 +1882,7 @@ const chartData = useMemo(() => {
             </Card>
 
             {/* 💸 GASTOS */}
-            <Card className="p-4 md:p-5 bg-gradient-to-br from-red-500 to-red-600 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer">
+            <Card data-crm-metric="expenses" className="p-4 md:p-5 bg-gradient-to-br from-red-500 to-red-600 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer">
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -1928,7 +1904,7 @@ const chartData = useMemo(() => {
             </Card>
 
             {/* 💚 LUCRO */}
-            <Card className={`p-4 md:p-5 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer ${
+            <Card data-crm-metric="profit" data-negative={monthlyReport.netProfit < 0} className={`p-4 md:p-5 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer ${
               monthlyReport.netProfit >= 0
                 ? "bg-gradient-to-br from-emerald-500 to-emerald-600"
                 : "bg-gradient-to-br from-orange-500 to-orange-600"
@@ -1958,7 +1934,7 @@ const chartData = useMemo(() => {
             </Card>
 
             {/* 📦 PRODUTOS */}
-            <Card className="p-4 md:p-5 bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer">
+            <Card data-crm-metric="products" className="p-4 md:p-5 bg-gradient-to-br from-purple-500 to-purple-600 border-0 text-white overflow-hidden relative group hover:scale-105 hover:shadow-2xl transition-all cursor-pointer">
               <div className="relative z-10">
                 <div className="flex items-center justify-between mb-3">
                   <div className="p-2 bg-white/20 rounded-lg backdrop-blur-sm">
@@ -1982,124 +1958,7 @@ const chartData = useMemo(() => {
             </div>
           )}
 
-          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as TabType)} className="space-y-4 md:space-y-6">
-            {/* ✅ MENU TABLET (md: 768px - lg: 1024px) - Layout otimizado com scroll horizontal */}
-            <div className="hidden md:block lg:hidden sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-2 -mx-3 px-3">
-              <div className="overflow-x-auto scrollbar-hide">
-                <TabsList className="inline-flex w-max min-w-full bg-white/90 backdrop-blur-xl shadow-xl h-auto p-1.5 rounded-2xl gap-1">
-                  <TabsTrigger value="dashboard" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
-                    <BarChart3 className="w-4 h-4 mr-1.5" />
-                    Dashboard
-                  </TabsTrigger>
-                  <TabsTrigger value="rapido" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
-                    <Zap className="w-4 h-4 mr-1.5" />
-                    Rápido
-                  </TabsTrigger>
-                  <TabsTrigger value="produtos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
-                    <Package className="w-4 h-4 mr-1.5" />
-                    Produtos
-                  </TabsTrigger>
-                  <TabsTrigger value="vendas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
-                    <ShoppingCart className="w-4 h-4 mr-1.5" />
-                    Vendas
-                  </TabsTrigger>
-                  <TabsTrigger value="gastos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
-                    <Receipt className="w-4 h-4 mr-1.5" />
-                    Gastos
-                  </TabsTrigger>
-                  <TabsTrigger value="resumo" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
-                    <FileText className="w-4 h-4 mr-1.5" />
-                    Resumo
-                  </TabsTrigger>
-                  <TabsTrigger value="metas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
-                    <Target className="w-4 h-4 mr-1.5" />
-                    Metas
-                  </TabsTrigger>
-                  <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-rose-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
-                    <Users className="w-4 h-4 mr-1.5" />
-                    Clientes
-                  </TabsTrigger>
-                  <TabsTrigger value="fornecedores" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-2.5 px-3 rounded-xl transition-all text-xs whitespace-nowrap flex-shrink-0">
-                    <Truck className="w-4 h-4 mr-1.5" />
-                    Fornecedores
-                  </TabsTrigger>
-                </TabsList>
-              </div>
-            </div>
-
-            <div className="hidden lg:block sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30 pb-2">
-              <TabsList className="grid grid-cols-9 w-full bg-white/90 backdrop-blur-xl shadow-xl h-auto p-1 rounded-2xl">
-                <TabsTrigger value="dashboard" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Dashboard
-                </TabsTrigger>
-                <TabsTrigger value="rapido" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                  <Zap className="w-4 h-4 mr-2" />
-                  Rápido
-                </TabsTrigger>
-                <TabsTrigger value="produtos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-pink-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                  <Package className="w-4 h-4 mr-2" />
-                  Produtos
-                </TabsTrigger>
-                <TabsTrigger value="vendas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-emerald-600 data-[state=active]:to-green-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Vendas
-                </TabsTrigger>
-                <TabsTrigger value="gastos" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-red-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                  <Receipt className="w-4 h-4 mr-2" />
-                  Gastos
-                </TabsTrigger>
-                <TabsTrigger value="resumo" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-indigo-600 data-[state=active]:to-purple-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                  <FileText className="w-4 h-4 mr-2" />
-                  Resumo
-                </TabsTrigger>
-                <TabsTrigger value="metas" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-yellow-600 data-[state=active]:to-orange-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                  <Target className="w-4 h-4 mr-2" />
-                  Metas
-                </TabsTrigger>
-                <TabsTrigger value="clientes" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-pink-600 data-[state=active]:to-rose-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                  <Users className="w-4 h-4 mr-2" />
-                  Clientes
-                </TabsTrigger>
-                <TabsTrigger value="fornecedores" className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-teal-600 data-[state=active]:to-cyan-600 data-[state=active]:text-white py-3 rounded-xl transition-all">
-                  <Truck className="w-4 h-4 mr-2" />
-                  Fornecedores
-                </TabsTrigger>
-              </TabsList>
-            </div>
-
-            <div className="md:hidden overflow-x-auto pb-2 -mx-3 px-3 sticky top-0 z-40 bg-gradient-to-br from-slate-50 via-blue-50/30 to-purple-50/30">
-              <div className="flex gap-2 min-w-max">
-                <Button size="sm" variant={activeTab === "dashboard" ? "default" : "outline"} onClick={() => setActiveTab("dashboard")} className={activeTab === "dashboard" ? "bg-blue-600" : ""}>
-                  <BarChart3 className="w-4 h-4 mr-1" />
-                  Início
-                </Button>
-                <Button size="sm" variant={activeTab === "rapido" ? "default" : "outline"} onClick={() => setActiveTab("rapido")} className={activeTab === "rapido" ? "bg-emerald-600" : ""}>
-                  <Zap className="w-4 h-4 mr-1" />
-                  Rápido
-                </Button>
-                <Button size="sm" variant={activeTab === "produtos" ? "default" : "outline"} onClick={() => setActiveTab("produtos")} className={activeTab === "produtos" ? "bg-purple-600" : ""}>
-                  <Package className="w-4 h-4 mr-1" />
-                  Produtos
-                </Button>
-                <Button size="sm" variant={activeTab === "vendas" ? "default" : "outline"} onClick={() => setActiveTab("vendas")} className={activeTab === "vendas" ? "bg-emerald-600" : ""}>
-                  <ShoppingCart className="w-4 h-4 mr-1" />
-                  Vendas
-                </Button>
-                <Button size="sm" variant={activeTab === "gastos" ? "default" : "outline"} onClick={() => setActiveTab("gastos")} className={activeTab === "gastos" ? "bg-red-600" : ""}>
-                  <Receipt className="w-4 h-4 mr-1" />
-                  Gastos
-                </Button>
-                <Button size="sm" variant={activeTab === "resumo" ? "default" : "outline"} onClick={() => setActiveTab("resumo")} className={activeTab === "resumo" ? "bg-indigo-600" : ""}>
-                  <FileText className="w-4 h-4 mr-1" />
-                  Resumo
-                </Button>
-                <Button size="sm" variant="outline" onClick={() => setShowMobileMenu(true)}>
-                  <Menu className="w-4 h-4 mr-1" />
-                  Mais
-                </Button>
-              </div>
-            </div>
+            </div>}
 
             <TabsContent value="dashboard">
               {!dashboard ? (
@@ -2109,18 +1968,18 @@ const chartData = useMemo(() => {
                 </Card>
               ) : (
                 <div className="space-y-4 md:space-y-6 lg:space-y-8">
-                  {/* ✅ LABEL CLARO: Dashboard do Mês */}
+                  {/* ✅ LABEL CLARO: Visão geral do negócio */}
                    {chartData.length > 0 && (
     <RevenueChart data={chartData} type="area" height={300} />
   )}
                   <div className="flex items-center gap-3 mb-2">
                     <BarChart3 className="w-5 h-5 md:w-6 md:h-6 text-blue-600" />
                     <div>
-                      <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-800">Dashboard do Mês</h2>
-                      <p className="text-xs md:text-sm text-gray-500">Visão geral de {formatMonthName(selectedMonth)}</p>
+                      <h2 className="text-lg md:text-xl lg:text-2xl font-bold text-gray-800">Visão geral do negócio</h2>
+                      <p className="text-xs md:text-sm text-gray-500">Indicadores acumulados de vendas, gastos e produtos</p>
                     </div>
                     <Badge variant="outline" className="ml-auto text-xs md:text-sm bg-blue-100 text-blue-700 border-blue-300">
-                      {formatMonthName(selectedMonth)}
+                      Todo o período
                     </Badge>
                   </div>
 
@@ -2364,6 +2223,10 @@ const chartData = useMemo(() => {
 
             <TabsContent value="produtos">
               <div className="space-y-4">
+                <div className={retailStyles.retailEntry}>
+                  <div><h3>Seu catálogo, pronto para vender</h3><p>Cadastre com foto, organize as opções e encontre cada produto pela etiqueta ou pelo catálogo.</p></div>
+                  <div><button type="button" className={retailStyles.secondary} onClick={() => setShowPDV(true)}><ShoppingCart size={16} />Vender</button><button type="button" className={retailStyles.primary} onClick={() => setShowAddProduct(true)}><Plus size={16} />Cadastrar produto</button></div>
+                </div>
                 <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
 <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
   <div className="relative w-full sm:w-64">
@@ -2410,9 +2273,8 @@ const chartData = useMemo(() => {
                       <Download className="w-4 h-4 mr-2" />
                       Exportar PDF
                     </Button>
-                    <Button onClick={() => setShowAddProduct(true)} className="bg-purple-600 hover:bg-purple-700">
-                      <Plus className="w-4 h-4 mr-2" />
-                      Novo Produto
+                    <Button variant="outline" onClick={() => setLabelProducts(filteredProducts.filter(product => product.active))} disabled={!filteredProducts.some(product => product.active)}>
+                      <Copy className="w-4 h-4 mr-2" />Etiquetas
                     </Button>
                   </div>
                 </div>
@@ -2450,6 +2312,7 @@ const chartData = useMemo(() => {
             className="h-full"
           >
                         <Card key={product._id} className={`p-3 md:p-4 hover:shadow-lg transition-shadow ${!product.active ? "opacity-50" : ""}`}>
+                          {product.imageUrl && <img src={product.imageUrl} alt={product.name} className={retailStyles.catalogPhoto} loading="lazy" />}
                           <div className="flex justify-between gap-2 mb-3">
                             <div className="flex-1 min-w-0">
                               <h4 className="font-bold text-base md:text-lg truncate">{product.name}</h4>
@@ -2467,6 +2330,9 @@ const chartData = useMemo(() => {
                                 </Button>
                               </DropdownMenuTrigger>
                               <DropdownMenuContent align="end">
+                                <DropdownMenuItem onClick={() => setLabelProducts([product])}>
+                                  <Copy className="w-4 h-4 mr-2" />Preparar etiqueta
+                                </DropdownMenuItem>
                                 <DropdownMenuItem onClick={() => openEditProduct(product._id)}>
                                   <Edit className="w-4 h-4 mr-2" />
                                   Editar
@@ -2513,7 +2379,7 @@ const chartData = useMemo(() => {
                           <div className="bg-emerald-50 rounded-lg p-2.5 md:p-3">
                             <div className="flex justify-between items-center gap-2">
                               <div className="flex-1">
-                                <p className="text-[10px] md:text-xs text-gray-600">Lucro/un:</p>
+                                <p className="text-[10px] md:text-xs text-gray-600">Lucro/{product.unit || "un"}:</p>
                                 <p className="font-bold text-emerald-600 text-sm md:text-base truncate">{formatCurrency(profit)}</p>
                               </div>
                               <div className="text-right flex-1">
@@ -2579,7 +2445,7 @@ const chartData = useMemo(() => {
                       <Download className="w-4 h-4 mr-2" />
                       Exportar PDF
                     </Button>
-                    <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
+                    <Button onClick={() => setShowPDV(true)} className="bg-emerald-600 hover:bg-emerald-700" disabled={products.filter((p) => p.active).length === 0}>
                       <Plus className="w-4 h-4 mr-2" />
                       Nova Venda
                     </Button>
@@ -2599,7 +2465,7 @@ const chartData = useMemo(() => {
                     <ShoppingCart className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                     <h3 className="text-xl font-bold mb-2">Nenhuma venda registrada</h3>
                     <p className="text-gray-500 mb-4">Comece registrando sua primeira venda</p>
-                    <Button onClick={() => setShowAddSale(true)} className="bg-emerald-600" disabled={products.filter((p) => p.active).length === 0}>                      Registrar Primeira Venda
+                    <Button onClick={() => setShowPDV(true)} className="bg-emerald-600" disabled={products.filter((p) => p.active).length === 0}>                      Registrar Primeira Venda
                     </Button>
                   </Card>
                 ) : (
@@ -2618,12 +2484,15 @@ const chartData = useMemo(() => {
                               )}
                             </div>
                             <p className="text-sm text-gray-600">
-                              {sale.quantity}x {formatCurrency(sale.salePrice)} • {formatDate(sale.date)}
+                              {sale.items?.length ? `${sale.items.length} produto${sale.items.length > 1 ? "s" : ""} na venda` : `${sale.quantity}x ${formatCurrency(sale.salePrice)}`} • {formatDate(sale.date)}
                             </p>
+                            {sale.items?.length ? <details className="mt-2 text-xs text-gray-600"><summary className="cursor-pointer text-purple-700">Ver produtos da venda</summary><ul className="mt-2 space-y-1">{sale.items.map((item, itemIndex) => <li key={itemIndex}>{item.productName} · {retailNumber(item.quantity)} {item.unit || "un"} · {formatCurrency(item.salePrice * item.quantity)}</li>)}</ul></details> : null}
                             {sale.notes && <p className="text-xs text-gray-500 mt-1">{sale.notes}</p>}
                           </div>
                           <div className="text-right">
-                            <p className="font-bold text-emerald-600 mb-2">{formatCurrency(sale.profit)}</p>
+                            <p className="text-xs text-gray-500">Total: <strong className="text-gray-800">{formatCurrency(sale.totalRevenue)}</strong></p>
+                            <p className={`font-bold text-xs mb-2 ${sale.profit < 0 ? "text-red-600" : "text-emerald-600"}`}>Lucro: {formatCurrency(sale.profit)}</p>
+                            {(sale.paymentStatus === "pending" || sale.paymentStatus === "overdue") && <Button variant="outline" size="sm" className="mr-1" onClick={() => setReceivingSale(sale)}>Registrar recebimento</Button>}
                             <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => handleDeleteSale(sale._id, sale.month)}>
                               <Trash2 className="w-4 h-4 text-red-500" />
                             </Button>
@@ -2956,25 +2825,78 @@ const chartData = useMemo(() => {
                   <div>
                     <h3 className="text-xl font-bold flex items-center gap-2">
                       <Users className="w-6 h-6 text-pink-600" />
-                      CRM Inteligente ({customers.length})
+                      Clientes ({customers.length})
                     </h3>
-                    <p className="text-sm text-gray-500">Gerencie relacionamentos e gere vendas automáticas</p>
+                    <p className="text-sm text-gray-500">Cadastros, histórico de compras e contato em um só lugar.</p>
                   </div>
                   <Button onClick={() => {
                     setCustomerForm({ name: "", email: "", phone: "", address: "", notes: "", birthDate: "", status: "" });
                     setShowAddCustomer(true);
-                  }} className="bg-pink-600 hover:bg-pink-700 shadow-lg hover:shadow-pink-500/30 transition-all">
+                  }} className={styles.primary}>
                     <Plus className="w-4 h-4 mr-2" /> Novo Cliente
                   </Button>
                 </div>
 
+                {/* SEARCH E FILTROS */}
+                {customers.length > 0 && (
+                  <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-4">
+                    <div className="flex flex-col md:flex-row gap-4">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+                        <Input
+                          aria-label="Buscar clientes"
+                          placeholder="Nome, e-mail ou telefone"
+                          value={customerSearchTerm}
+                          onChange={(e) => setCustomerSearchTerm(e.target.value)}
+                          className="pl-9 bg-gray-50 border-gray-200"
+                        />
+                      </div>
+                      <div className={`${styles.customerFilters} flex gap-2 w-full md:w-auto pb-1 md:pb-0`}>
+                        <Select value={customerStatusFilter} onValueChange={setCustomerStatusFilter}>
+                          <SelectTrigger aria-label="Filtrar clientes por status" className="w-[165px] shrink-0 bg-gray-50 border-gray-200">
+                            <SelectValue placeholder="Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="all">Todos os status</SelectItem>
+                            <SelectItem value="lead">🔥 Lead</SelectItem>
+                            <SelectItem value="ativo">✅ Ativo</SelectItem>
+                            <SelectItem value="vip">💎 VIP</SelectItem>
+                            <SelectItem value="inativo">❄️ Inativo</SelectItem>
+                          </SelectContent>
+                        </Select>
+
+                        <Select value={customerSortBy} onValueChange={setCustomerSortBy}>
+                          <SelectTrigger aria-label="Ordenar clientes" className="w-[195px] shrink-0 bg-gray-50 border-gray-200">
+                            <SelectValue placeholder="Ordenar por" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="name">Nome (A-Z)</SelectItem>
+                            <SelectItem value="date">Mais Recentes</SelectItem>
+                            <SelectItem value="lastContact">Última compra / cadastro</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {customers.length > 0 && <p className={styles.resultCount} role="status">{filteredAndSortedCustomers.length} de {customers.length} clientes encontrados</p>}
+                {customers.length > 0 && filteredAndSortedCustomers.length === 0 && (
+                  <div className={styles.emptyResults}>
+                    <h4>Nenhum cliente encontrado</h4>
+                    <p>Tente outro nome, e-mail ou telefone, ou limpe os filtros.</p>
+                    <Button variant="outline" onClick={() => { setCustomerSearchTerm(""); setCustomerStatusFilter("all"); }}>Limpar filtros</Button>
+                  </div>
+                )}
+
                 {/* PAINEL DE AUTOMAÇÕES (Ações do Dia) */}
                 {customers.length > 0 && (
-                  <div className="bg-gradient-to-br from-pink-50 to-purple-50 rounded-2xl p-5 border border-pink-100 shadow-sm">
-                    <h4 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
-                      <Sparkles className="w-5 h-5 text-pink-500" />
-                      Ações Recomendadas Hoje
-                    </h4>
+                  <details className={styles.opportunities}>
+                    <summary>
+                      <Sparkles className="w-4 h-4" aria-hidden="true" />
+                      Oportunidades de contato
+                    <span>Aniversários, novidades e clientes VIP</span>
+                    </summary>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
@@ -2987,7 +2909,8 @@ const chartData = useMemo(() => {
                         <p className="text-xs text-gray-500 mb-3">Envie os parabéns com um cupom especial para quem faz aniversário este mês.</p>
                         <Button
                           size="sm"
-                          className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white"
+                          variant="outline"
+                          className="w-full text-emerald-700 hover:bg-emerald-50"
                           onClick={() => {
                             const aniversariantes = customers.filter(c => c.birthDate && new Date(c.birthDate).getMonth() === new Date().getMonth());
                             if(aniversariantes.length === 0) return toast.info("Nenhum aniversariante este mês.");
@@ -3011,7 +2934,8 @@ const chartData = useMemo(() => {
                         <p className="text-xs text-gray-500 mb-3">Estes clientes não compram há mais de um mês. Mande as novidades!</p>
                         <Button
                           size="sm"
-                          className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white"
+                          variant="outline"
+                          className="w-full text-emerald-700 hover:bg-emerald-50"
                           onClick={() => {
                             const trintaDias = Date.now() - (30 * 24 * 60 * 60 * 1000);
                             const sumidos = customers.filter(c => c.lastPurchase && c.lastPurchase < trintaDias);
@@ -3035,7 +2959,8 @@ const chartData = useMemo(() => {
                         <p className="text-xs text-gray-500 mb-3">Seus melhores compradores. Mande um mimo ou aviso de pré-venda.</p>
                         <Button
                           size="sm"
-                          className="w-full bg-[#25D366] hover:bg-[#128C7E] text-white"
+                          variant="outline"
+                          className="w-full text-emerald-700 hover:bg-emerald-50"
                           onClick={() => {
                             const vips = [...customers].sort((a, b) => b.totalSpent - a.totalSpent);
                             if(vips.length === 0 || vips[0].totalSpent === 0) return toast.info("Ainda sem VIPs.");
@@ -3050,57 +2975,16 @@ const chartData = useMemo(() => {
                       </div>
 
                     </div>
-                  </div>
+                  </details>
                 )}
 
-                {/* SEARCH E FILTROS */}
-                {customers.length > 0 && (
-                  <div className="bg-white p-4 rounded-xl shadow-sm border border-gray-100 space-y-4">
-                    <div className="flex flex-col md:flex-row gap-4">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
-                        <Input
-                          placeholder="Buscar por nome, email ou telefone..."
-                          value={customerSearchTerm}
-                          onChange={(e) => setCustomerSearchTerm(e.target.value)}
-                          className="pl-9 bg-gray-50 border-gray-200"
-                        />
-                      </div>
-                      <div className="flex gap-2 w-full md:w-auto overflow-x-auto pb-1 md:pb-0">
-                        <Select value={customerStatusFilter} onValueChange={setCustomerStatusFilter}>
-                          <SelectTrigger className="w-[140px] shrink-0 bg-gray-50 border-gray-200">
-                            <SelectValue placeholder="Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="all">Todos Status</SelectItem>
-                            <SelectItem value="lead">🔥 Lead</SelectItem>
-                            <SelectItem value="ativo">✅ Ativo</SelectItem>
-                            <SelectItem value="vip">💎 VIP</SelectItem>
-                            <SelectItem value="inativo">❄️ Inativo</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        
-                        <Select value={customerSortBy} onValueChange={setCustomerSortBy}>
-                          <SelectTrigger className="w-[160px] shrink-0 bg-gray-50 border-gray-200">
-                            <SelectValue placeholder="Ordenar por" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="name">Nome (A-Z)</SelectItem>
-                            <SelectItem value="date">Mais Recentes</SelectItem>
-                            <SelectItem value="lastContact">Último Contato</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 {/* LISTA DE CLIENTES */}
                 {customers.length === 0 ? (
                   <Card className="p-12 text-center border-2 border-dashed">
                     <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
                     <h3 className="text-xl font-bold mb-2">Nenhum cliente cadastrado</h3>
-                    <p className="text-gray-500 mb-4">Comece a construir sua base de clientes para ativar as automações!</p>
+                    <p className="text-gray-500 mb-4">Cadastre seu primeiro cliente para organizar contatos e acompanhar as compras.</p>
                     <Button onClick={() => setShowAddCustomer(true)} className="bg-pink-600">
                       Cadastrar Primeiro Cliente
                     </Button>
@@ -3108,11 +2992,11 @@ const chartData = useMemo(() => {
                 ) : (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-4">
                     {paginatedCustomers.map((customer) => (
-                      <Card key={customer._id} className="p-4 hover:shadow-lg transition-all relative group border-gray-100">
+                      <Card key={customer._id} className={`${styles.customerCard} p-4 hover:shadow-lg transition-all relative group border-gray-100`}>
                         <div className="flex justify-between items-start gap-2 mb-3">
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
-                              <h4 className="font-bold text-lg text-gray-800 truncate">{customer.name}</h4>
+                              <h4 className="font-bold text-lg text-gray-800 truncate" title={customer.name}>{customer.name}</h4>
                               {customer.status && (
                                 <Badge className={`text-[10px] px-1.5 py-0 hover:bg-opacity-80 border-0 ${
                                   customer.status === 'vip' ? 'bg-purple-100 text-purple-700' :
@@ -3139,6 +3023,8 @@ const chartData = useMemo(() => {
                               size="icon"
                               variant="ghost"
                               className="h-8 w-8 text-blue-600 hover:bg-blue-50"
+                              aria-label={`Editar ${customer.name}`}
+                              title="Editar cliente"
                               onClick={() => openEditCustomer(customer)}
                             >
                               <Edit className="w-4 h-4" />
@@ -3147,6 +3033,8 @@ const chartData = useMemo(() => {
                               size="icon"
                               variant="ghost"
                               className="h-8 w-8 text-red-500 hover:bg-red-50"
+                              aria-label={`Excluir ${customer.name}`}
+                              title="Excluir cliente"
                               onClick={() => handleDeleteCustomer(customer._id, customer.name)}
                             >
                               <Trash2 className="w-4 h-4" />
@@ -3155,6 +3043,8 @@ const chartData = useMemo(() => {
                               <Button
                                 size="icon"
                                 variant="ghost"
+                                aria-label={`Abrir WhatsApp de ${customer.name}`}
+                                title="Abrir WhatsApp"
                                 className="h-8 w-8 text-[#25D366] hover:bg-green-50"
                                 onClick={() => {
                                   const phone = customer.phone?.replace(/\D/g, '');
@@ -3271,7 +3161,7 @@ const chartData = useMemo(() => {
               </div>
               {/* DIALOG DE EDIÇÃO DE FORNECEDOR */}
               <Dialog open={showEditSupplier} onOpenChange={setShowEditSupplier}>
-                <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+                <DialogContent className={`${styles.dialog} w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6`}>
                   <DialogHeader>
                     <DialogTitle>✏️ Editar Fornecedor</DialogTitle>
                     <DialogDescription>Atualize os dados do fornecedor</DialogDescription>
@@ -3321,9 +3211,10 @@ const chartData = useMemo(() => {
             </TabsContent>
           </Tabs>
         </div>
+      </div>
 
         <Dialog open={showQuickSale} onOpenChange={setShowQuickSale}>
-          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogContent className={`${styles.dialog} w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6`}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <div className="p-2 bg-emerald-100 rounded-lg">
@@ -3466,7 +3357,7 @@ const chartData = useMemo(() => {
         </Dialog>
 
         <Dialog open={showQuickExpense} onOpenChange={setShowQuickExpense}>
-          <DialogContent className="sm:max-w-md">
+          <DialogContent className={`${styles.dialog} sm:max-w-md`}>
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <div className="p-2 bg-red-100 rounded-lg">
@@ -3595,155 +3486,18 @@ const chartData = useMemo(() => {
           </SheetContent>
         </Sheet>
 
-        <Dialog open={showAddProduct} onOpenChange={setShowAddProduct}>
-          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
-            <DialogHeader>
-              <DialogTitle>➕ Cadastrar Novo Produto</DialogTitle>
-              <DialogDescription>Preencha os dados do produto para cadastro no sistema</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Nome do Produto *</Label>
-                  <Input
-                    value={productForm.name}
-                    onChange={(e) => setProductForm({ ...productForm, name: e.target.value })}
-                    placeholder="Ex: Camiseta Básica"
-                  />
-                </div>
-                <div>
-                  <Label>SKU / Código</Label>
-                  <Input
-                    value={productForm.sku}
-                    onChange={(e) => setProductForm({ ...productForm, sku: e.target.value })}
-                    placeholder="Ex: CAM-001"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>Preço de Custo * (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={productForm.costPrice}
-                    onChange={(e) => setProductForm({ ...productForm, costPrice: e.target.value })}
-                    placeholder="0,00"
-                  />
-                </div>
-                <div>
-                  <Label>Preço de Venda * (R$)</Label>
-                  <Input
-                    type="number"
-                    step="0.01"
-                    value={productForm.salePrice}
-                    onChange={(e) => setProductForm({ ...productForm, salePrice: e.target.value })}
-                    placeholder="0,00"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label>Estoque Inicial</Label>
-                  <Input
-                    type="number"
-                    value={productForm.stock}
-                    onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label>Estoque Mínimo</Label>
-                  <Input
-                    type="number"
-                    value={productForm.minStock}
-                    onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label>Unidade</Label>
-                  <Select
-                    value={productForm.unit}
-                    onValueChange={(v) => setProductForm({ ...productForm, unit: v })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="un">Unidade</SelectItem>
-                      <SelectItem value="kg">Kg</SelectItem>
-                      <SelectItem value="L">Litro</SelectItem>
-                      <SelectItem value="m">Metro</SelectItem>
-                      <SelectItem value="cx">Caixa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-
-              <div>
-                <Label>Categoria</Label>
-                <Input
-                  value={productForm.category}
-                  onChange={(e) => setProductForm({ ...productForm, category: e.target.value })}
-                  placeholder="Ex: Roupas"
-                />
-              </div>
-
-              <div>
-                <Label>Descrição</Label>
-                <Textarea
-                  value={productForm.description}
-                  onChange={(e) => setProductForm({ ...productForm, description: e.target.value })}
-                  placeholder="Descrição do produto"
-                  rows={3}
-                />
-              </div>
-
-              {productForm.costPrice &&
-                productForm.salePrice &&
-                parseFloat(productForm.salePrice) > parseFloat(productForm.costPrice) && (
-                  <Alert>
-                    <CheckCircle2 className="h-4 w-4" />
-                    <AlertTitle>Lucro por unidade</AlertTitle>
-                    <AlertDescription>
-                      {formatCurrency(parseFloat(productForm.salePrice) - parseFloat(productForm.costPrice))}{" "}
-                      (
-                      {(
-                        ((parseFloat(productForm.salePrice) - parseFloat(productForm.costPrice)) /
-                          parseFloat(productForm.salePrice)) *
-                        100
-                      ).toFixed(1)}
-                      % de margem)
-                    </AlertDescription>
-                  </Alert>
-                )}
-            </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowAddProduct(false)}>
-                Cancelar
-              </Button>
-              <Button onClick={handleAddProduct} className="bg-purple-600" disabled={isSubmitting}>
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Salvando...
-                  </>
-                ) : (
-                  <>
-                    <Save className="w-4 h-4 mr-2" />
-                    Salvar Produto
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+        <ProductCapture
+          open={showAddProduct}
+          onClose={() => { setShowAddProduct(false); setCaptureSeed(null); setCaptureCode(undefined); }}
+          onSaved={() => { setActiveTab("produtos"); setProductsPage(1); setSearchQuery(""); setFilterCategory("all"); }}
+          initialCode={captureCode}
+          seed={captureSeed}
+        />
+        <ProductLabels open={labelProducts.length > 0} onClose={() => setLabelProducts([])} products={labelProducts} />
+        {receivingSale && <ReceiveSaleDialog key={receivingSale._id} sale={receivingSale} onClose={() => setReceivingSale(null)} />}
 
         <Dialog open={showEditProduct} onOpenChange={setShowEditProduct}>
-          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogContent className={`${styles.dialog} w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6`}>
             <DialogHeader>
               <DialogTitle>✏️ Editar Produto</DialogTitle>
               <DialogDescription>Altere as informações do produto</DialogDescription>
@@ -3792,6 +3546,7 @@ const chartData = useMemo(() => {
                   <Label>Estoque</Label>
                   <Input
                     type="number"
+                    step={allowsFraction(productForm.unit) ? "0.001" : "1"}
                     value={productForm.stock}
                     onChange={(e) => setProductForm({ ...productForm, stock: e.target.value })}
                   />
@@ -3800,6 +3555,7 @@ const chartData = useMemo(() => {
                   <Label>Estoque Mínimo</Label>
                   <Input
                     type="number"
+                    step={allowsFraction(productForm.unit) ? "0.001" : "1"}
                     value={productForm.minStock}
                     onChange={(e) => setProductForm({ ...productForm, minStock: e.target.value })}
                   />
@@ -3828,7 +3584,7 @@ const chartData = useMemo(() => {
         </Dialog>
 
         <Dialog open={showAddSale} onOpenChange={setShowAddSale}>
-          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogContent className={`${styles.dialog} w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6`}>
             <DialogHeader>
               <DialogTitle>🛒 Registrar Venda</DialogTitle>
               <DialogDescription>
@@ -3983,7 +3739,7 @@ const chartData = useMemo(() => {
         </Dialog>
 
         <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
-          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogContent className={`${styles.dialog} w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6`}>
             <DialogHeader>
               <DialogTitle>💸 Registrar Gasto</DialogTitle>
               <DialogDescription>Registre uma despesa ou gasto do negócio</DialogDescription>
@@ -4070,7 +3826,7 @@ const chartData = useMemo(() => {
         </Dialog>
 {/* DIALOG DE EDIÇÃO DE CLIENTE */}
 <Dialog open={showEditCustomer} onOpenChange={setShowEditCustomer}>
-          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogContent className={`${styles.dialog} w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6`}>
             <DialogHeader>
               <DialogTitle>✏️ Editar Cliente</DialogTitle>
               <DialogDescription>Atualize os dados do cliente</DialogDescription>
@@ -4143,7 +3899,7 @@ const chartData = useMemo(() => {
           </DialogContent>
         </Dialog>
         <Dialog open={showAddCustomer} onOpenChange={setShowAddCustomer}>
-          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogContent className={`${styles.dialog} w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6`}>
             <DialogHeader>
               <DialogTitle>👤 Cadastrar Cliente</DialogTitle>
               <DialogDescription>Adicione um novo cliente ao sistema</DialogDescription>
@@ -4221,7 +3977,7 @@ const chartData = useMemo(() => {
         </Dialog>
 
         <Dialog open={showAddSupplier} onOpenChange={setShowAddSupplier}>
-          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogContent className={`${styles.dialog} w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6`}>
             <DialogHeader>
               <DialogTitle>🚚 Cadastrar Fornecedor</DialogTitle>
               <DialogDescription>Adicione um novo fornecedor ao sistema</DialogDescription>
@@ -4265,7 +4021,7 @@ const chartData = useMemo(() => {
         </Dialog>
 
         <Dialog open={showAddGoal} onOpenChange={setShowAddGoal}>
-          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogContent className={`${styles.dialog} w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6`}>
             <DialogHeader>
               <DialogTitle>🎯 Criar Meta</DialogTitle>
               <DialogDescription>Defina uma meta financeira para acompanhar seu progresso</DialogDescription>
@@ -4339,7 +4095,7 @@ const chartData = useMemo(() => {
         </Dialog>
 
         <Dialog open={showPriceCalculator} onOpenChange={setShowPriceCalculator}>
-          <DialogContent className="w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6">
+          <DialogContent className={`${styles.dialog} w-full md:max-w-2xl lg:max-w-3xl max-h-[90vh] overflow-y-auto p-4 md:p-6`}>
             <DialogHeader>
               <DialogTitle>🧮 Calculadora de Preço</DialogTitle>
               <DialogDescription>
@@ -4425,8 +4181,9 @@ const chartData = useMemo(() => {
             onClose={() => setShowPDV(false)}
             products={products}
             customers={customers}
+            onCreateProduct={(code) => { setCaptureCode(code); setShowPDV(false); setShowAddProduct(true); }}
           />
         )}
-    </>
+    </div>
   );
 }

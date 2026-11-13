@@ -9,10 +9,7 @@ import Stripe from 'stripe';
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY as string, {
-  apiVersion: '2025-10-29.clover',
-});
+
 
 interface UserPublicMetadata {
   subscriptionPlan: 'free' | 'pro';
@@ -51,6 +48,9 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  if (!process.env.STRIPE_SECRET_KEY || !process.env.RESEND_API_KEY) return NextResponse.json({ error: 'Webhook temporariamente indisponível.' }, { status: 503 });
+  const resend = new Resend(process.env.RESEND_API_KEY);
+  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2025-10-29.clover' });
   const WEBHOOK_SECRET = process.env.CLERK_WEBHOOK_SECRET;
 
   if (!WEBHOOK_SECRET) {

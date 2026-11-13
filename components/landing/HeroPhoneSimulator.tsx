@@ -68,10 +68,10 @@ export default function HeroPhoneSimulator() {
         </div>
         <div className={styles.screen}>
           <img
-            src="/ImpulsioneWeb.jpeg"
+            src="/landing/pages/impulsioneweb-2026-11.webp"
             alt="Página real da Impulsione Web no Freelinnk, com perfil personalizado e botões para WhatsApp, site oficial, plataforma e Instagram"
-            width={818}
-            height={1600}
+            width={750}
+            height={1560}
             fetchPriority="high"
           />
         </div>

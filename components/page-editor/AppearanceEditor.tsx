@@ -34,6 +34,7 @@ import {
   PageCollection,
   type PageData,
 } from "./EditorLayout";
+import PageAdCategory from "./PageAdCategory";
 import styles from "./editor.module.css";
 
 export default function WorkspaceAppearance() {
@@ -264,6 +265,7 @@ function AppearancePanel({ data }: { data: PageData }) {
                     {values.bio.length}/160
                   </span>
                 </label>
+                <PageAdCategory username={selected!.username} />
                 <details className={styles.disclosure}>
                   <summary>
                     Adicionar um aviso à página <span>Opcional</span>

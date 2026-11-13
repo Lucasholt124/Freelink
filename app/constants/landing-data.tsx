@@ -145,29 +145,37 @@ export const testimonials = [
 export const realPages = [
   {
     id: 1,
-    image: "/ImpulsioneWeb.jpeg",
-    name: "@ImpulsioneWeb",
+    image: "/landing/pages/impulsioneweb-2026-11.webp",
+    width: 750,
+    height: 1560,
+    name: "@impulsioneweb",
     type: "Agência Digital",
     color: "from-blue-600 to-indigo-600"
   },
   {
     id: 2,
-    image: "/Glam-Fit.jpeg",
-    name: "@Glam-Fit",
+    image: "/landing/pages/glamfitonline-2026-11.webp",
+    width: 780,
+    height: 1610,
+    name: "@glamfitonline",
     type: "Moda Fitness",
     color: "from-pink-500 to-rose-500"
   },
   {
     id: 3,
-    image: "/Studio-Oliveira.jpeg",
-    name: "@Studio-Oliveira",
+    image: "/landing/pages/studio-oliveira-2026-11.webp",
+    width: 750,
+    height: 980,
+    name: "@StudioOliveira",
     type: "Nails Designer",
     color: "from-purple-500 to-violet-500"
   },
   {
     id: 4,
-    image: "/Penelope-Variedades.jpeg",
-    name: "@Penelope-Variedades",
+    image: "/landing/pages/penelope-variedades-2026-11.webp",
+    width: 750,
+    height: 1290,
+    name: "@Penelopevariedades",
     type: "Loja Virtual",
     color: "from-orange-500 to-amber-500"
   },

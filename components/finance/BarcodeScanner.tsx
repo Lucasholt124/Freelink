@@ -1,86 +1,128 @@
 "use client";
 
-import { useEffect, useRef, useState } from 'react';
-import { Loader2 } from 'lucide-react';
-import { Html5QrcodeScanner } from 'html5-qrcode';
+import { useEffect, useId, useRef, useState } from "react";
+import type { Html5Qrcode } from "html5-qrcode";
+import { Camera, Loader2, RefreshCw } from "lucide-react";
+import styles from "./retail.module.css";
 
-interface BarcodeScannerProps {
-  onScan: (barcode: string) => void;
-}
-
-export function BarcodeScanner({ onScan }: BarcodeScannerProps) {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const scannerInstance = useRef<Html5QrcodeScanner | null>(null);
-
+export function BarcodeScanner({ onScan }: { onScan: (code: string) => void }) {
+  const id = `retail-reader-${useId().replace(/[^a-zA-Z0-9]/g, "")}`;
+  const callback = useRef(onScan);
+  callback.current = onScan;
+  const [attempt, setAttempt] = useState(0);
+  const [status, setStatus] = useState<"starting" | "ready" | "error">(
+    "starting",
+  );
+  const [message, setMessage] = useState("");
   useEffect(() => {
-    let isMounted = true;
-
-    import('html5-qrcode').then(({ Html5QrcodeScanner }) => {
-      if (!isMounted) return;
-
-      // Configuramos para a câmera traseira e melhoramos a proporção
-      scannerInstance.current = new Html5QrcodeScanner(
-        "reader",
-        {
-          fps: 10,
-          qrbox: { width: 250, height: 150 },
-          aspectRatio: 1.0,
-          formatsToSupport: [0, 1, 2, 3, 4], // EAN e afins
-          videoConstraints: {
-            facingMode: "environment", // 🔥 Força a usar a câmera de trás
-          }
-        },
-        false
-      );
-
-      scannerInstance.current.render(
-        (decodedText: string) => {
-          if (scannerInstance.current) {
-            scannerInstance.current.clear();
-          }
-          onScan(decodedText);
-        },
-        () => {
-          // Ignora mensagens de console contínuas para não travar
-        }
-      );
-
-      // Hack para injetar os atributos playsInline no vídeo (Conserta tela preta no iPhone)
-      setTimeout(() => {
-        const videoEl = document.querySelector('#reader video') as HTMLVideoElement;
-        if (videoEl) {
-          videoEl.setAttribute('playsinline', 'true');
-          videoEl.setAttribute('webkit-playsinline', 'true');
-          videoEl.setAttribute('muted', 'true');
-        }
-      }, 500);
-
-      setIsLoaded(true);
-    });
-
-    return () => {
-      isMounted = false;
-      if (scannerInstance.current) {
-        scannerInstance.current.clear().catch(console.error);
+    let cancelled = false,
+      scanned = false;
+    let reader: Html5Qrcode | undefined;
+    const release = async () => {
+      if (!reader) return;
+      try {
+        if (reader.isScanning) await reader.stop();
+      } catch {
+        /* already stopped */
+      }
+      try {
+        reader.clear();
+      } catch {
+        /* view already removed */
       }
     };
-  }, [onScan]);
-
+    setStatus("starting");
+    void (async () => {
+      try {
+        const { Html5Qrcode, Html5QrcodeSupportedFormats: F } =
+          await import("html5-qrcode");
+        if (cancelled) return;
+        reader = new Html5Qrcode(id, {
+          verbose: false,
+          formatsToSupport: [
+            F.QR_CODE,
+            F.EAN_13,
+            F.EAN_8,
+            F.CODE_128,
+            F.CODE_39,
+            F.CODE_93,
+            F.UPC_A,
+            F.UPC_E,
+            F.ITF,
+            F.CODABAR,
+            F.DATA_MATRIX,
+          ],
+        });
+        await reader.start(
+          { facingMode: "environment" },
+          {
+            fps: 10,
+            qrbox: (width, height) => ({
+              width: Math.min(280, Math.floor(width * 0.85)),
+              height: Math.min(190, Math.floor(height * 0.7)),
+            }),
+          },
+          (code) => {
+            if (cancelled || scanned) return;
+            scanned = true;
+            void release().then(() => {
+              if (!cancelled) callback.current(code);
+            });
+          },
+          () => {},
+        );
+        if (cancelled) {
+          await release();
+          return;
+        }
+        setStatus("ready");
+      } catch (error) {
+        if (cancelled) return;
+        const name = error instanceof Error ? error.name : String(error);
+        setMessage(
+          /NotAllowed|Permission|denied/i.test(name)
+            ? "Permita o uso da câmera nas configurações do navegador e tente novamente."
+            : "Não consegui abrir a câmera. Feche outros aplicativos que a estejam usando e tente novamente.",
+        );
+        setStatus("error");
+      }
+    })();
+    return () => {
+      cancelled = true;
+      void release();
+    };
+  }, [id, attempt]);
   return (
-    <div className="flex flex-col items-center justify-center w-full bg-slate-900 rounded-xl p-2 relative overflow-hidden">
-      {!isLoaded && (
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-900 z-10">
-          <Loader2 className="w-8 h-8 animate-spin text-purple-500 mb-2" />
-          <span className="text-white text-xs font-medium">Iniciando câmera...</span>
+    <div className={styles.scanner}>
+      <div id={id} className={styles.scannerVideo} />
+      {status === "starting" && (
+        <p role="status">
+          <Loader2 className="animate-spin" size={18} />
+          Abrindo a câmera…
+        </p>
+      )}
+      {status === "ready" && (
+        <p>
+          <Camera size={16} />
+          Aponte para o código de barras ou QR Code da etiqueta.
+        </p>
+      )}
+      {status === "error" && (
+        <div role="alert">
+          <p>{message}</p>
+          <button
+            type="button"
+            onClick={() => setAttempt((value) => value + 1)}
+          >
+            <RefreshCw size={16} />
+            Tentar novamente
+          </button>
         </div>
       )}
-
-      {/* Onde a mágica da câmera acontece */}
-      <div id="reader" className="w-full rounded-lg overflow-hidden border-2 border-purple-500/50 shadow-2xl bg-black [&>div]:!bg-transparent [&_video]:!object-cover"></div>
-
-      <p className="text-xs text-gray-400 mt-3 font-medium text-center">
-        Aponte a câmera para a etiqueta da peça.
-      </p>
+      <small>
+        A câmera lê a etiqueta. Para identificar o produto pela foto, use o
+        catálogo.
+      </small>
     </div>
   );
 }

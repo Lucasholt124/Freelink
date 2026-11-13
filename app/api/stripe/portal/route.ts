@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth, clerkClient } from "@clerk/nextjs/server";
-import { stripe } from "@/lib/stripe";
+import { getStripe } from "@/lib/stripe";
 import { getBaseUrl } from "@/convex/lib/getBaseUrl";
 
 export async function POST() {
@@ -13,6 +13,8 @@ export async function POST() {
       );
     }
 
+    if (!process.env.STRIPE_SECRET_KEY) return NextResponse.json({ error: "Pagamentos temporariamente indisponíveis." }, { status: 503 });
+    const stripe = getStripe();
     // CORREÇÃO: Obter o cliente do Clerk
     const clerk = await clerkClient();
     const user = await clerk.users.getUser(userId);

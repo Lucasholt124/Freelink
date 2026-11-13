@@ -12,10 +12,10 @@ export const runtime = 'nodejs';
 // CORREÇÃO: Usando a API da Groq
 // =======================================================
 // A biblioteca da OpenAI funciona com a Groq, só precisamos mudar a URL base.
-const groq = new OpenAI({
+function groqClient() { return new OpenAI({
   apiKey: process.env.GROQ_API_KEY, // <-- Usando a chave da Groq
   baseURL: 'https://api.groq.com/openai/v1', // <-- Apontando para os servidores da Groq
-});
+}); }
 
 
 async function generateAnalysis(username: string, bio: string, offer: string, audience: string) {
@@ -38,8 +38,8 @@ async function generateAnalysis(username: string, bio: string, offer: string, au
     `;
 
     // Usamos o cliente da Groq para fazer a chamada
-    const response = await groq.chat.completions.create({
-      model: 'llama3-8b-8192', // Usamos um modelo disponível na Groq
+    const response = await groqClient().chat.completions.create({
+      model: process.env.GROQ_TEXT_MODEL || "llama-3.3-70b-versatile",
       response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: 'Você é um assistente de marketing que retorna respostas apenas no formato JSON estruturado solicitado.' },
@@ -84,7 +84,7 @@ export async function POST(req: Request) {
         const defaultUsername = "usuario";
         const defaultBio = "Bio não fornecida";
 
-        return generateAnalysis(
+        return await generateAnalysis(
             username || defaultUsername,
             bio || defaultBio,
             offer,
@@ -93,7 +93,7 @@ export async function POST(req: Request) {
     }
 
     // Gerar análise com os dados fornecidos
-    return generateAnalysis(username, bio, offer, audience);
+    return await generateAnalysis(username, bio, offer, audience);
 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : "Ocorreu um erro interno.";

@@ -2,6 +2,17 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 
 export default defineSchema({
+  retailPhotos: defineTable({
+    userId: v.string(), storageId: v.id("_storage"), createdAt: v.number(),
+  }).index("by_storage", ["storageId"]),
+  retailRequests: defineTable({
+    userId: v.string(), requestId: v.string(), operation: v.union(v.literal("capture"),v.literal("sale")),
+    fingerprint: v.string(), productIds: v.optional(v.array(v.id("products"))),
+    saleId: v.optional(v.id("sales")), createdAt: v.number(),
+  }).index("by_user_request", ["userId", "requestId"]),
+  retailPhotoUsage: defineTable({
+    userId: v.string(), day: v.string(), count: v.number(), lastRequestedAt: v.number(),
+  }).index("by_user_day", ["userId", "day"]),
   // ============================================
   // 👤 USUÁRIOS E PERFIL
   // ============================================
@@ -9,6 +20,7 @@ export default defineSchema({
     userId: v.string(),
     username: v.string(),
     niche: v.optional(v.string()),
+    nicheConfirmed: v.optional(v.boolean()),
   })
     .index("by_user_id", ["userId"])
     .index("by_username", ["username"]),
@@ -491,6 +503,8 @@ export default defineSchema({
     unit: v.optional(v.string()),
     imageStorageId: v.optional(v.id("_storage")),
     imageUrl: v.optional(v.string()),
+    variantGroupId: v.optional(v.string()),
+    variantOptions: v.optional(v.array(v.object({ name: v.string(), value: v.string() }))),
     active: v.boolean(),
     featured: v.optional(v.boolean()),
     notes: v.optional(v.string()),
@@ -517,11 +531,13 @@ export default defineSchema({
     quantity: v.number(),
     costPrice: v.number(),
     salePrice: v.number(),
+    retailRequestId: v.optional(v.string()),
     // 🔥 NOVO CAMPO: Adicionado para o Carrinho de Vendas Múltiplas
     items: v.optional(
       v.array(
         v.object({
           productId: v.optional(v.id("products")),
+          unit: v.optional(v.string()),
           productName: v.string(),
           quantity: v.number(),
           costPrice: v.number(),
@@ -823,6 +839,7 @@ export default defineSchema({
 
   cashFlow: defineTable({
     userId: v.string(),
+    saleId: v.optional(v.id("sales")),
     businessId: v.optional(v.id("businesses")),
     type: v.union(v.literal("in"), v.literal("out")),
     amount: v.number(),
@@ -833,6 +850,7 @@ export default defineSchema({
     paymentMethod: v.optional(v.string()),
     createdAt: v.number(),
   })
+    .index("by_sale", ["saleId"])
     .index("by_user", ["userId"])
     .index("by_user_date", ["userId", "date"])
     .index("by_business", ["businessId"])
@@ -841,6 +859,15 @@ export default defineSchema({
    // ==========================================
     // 📢 TABELAS DO HUB DE ANÚNCIOS E REDE (ADS)
     // ==========================================
+    adEntitlements: defineTable({
+      userId: v.string(),
+      plan: v.union(v.literal("free"), v.literal("pro"), v.literal("ultra")),
+      expiresAt: v.number(),
+    }).index("by_user", ["userId"]),
+    adPlacements: defineTable({
+      campaignId: v.id("adCampaigns"), username: v.string(), sessionId: v.string(),
+      createdAt: v.number(), expiresAt: v.number(), viewed: v.boolean(), clicked: v.boolean(),
+    }).index("by_page_session", ["username", "sessionId"]),
     adCampaigns: defineTable({
       userId: v.string(),
       title: v.string(),
@@ -848,7 +875,8 @@ export default defineSchema({
       adText: v.string(),
       mediaTypes: v.optional(v.array(v.string())),
       mediaUrls: v.array(v.string()), // 🔥 Agora é um array (suporta N imagens/gifs/vídeos)
-      niche: v.optional(v.string()), // 🔥 A IA vai preencher isso (Ex: "moda", "comida", "serviços")
+      niche: v.optional(v.string()),
+    // Categoria confirmável pelo anunciante.
       status: v.union(v.literal("active"), v.literal("paused"), v.literal("completed")),
       views: v.number(),
       clicks: v.number(),

@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import {
   type Preloaded,
   useMutation,
+  useAction,
   usePreloadedQuery,
   useQuery,
 } from "convex/react";
@@ -23,6 +24,7 @@ import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import type { SubscriptionPlanDetails } from "@/lib/subscription";
 import { trackLinkClick } from "@/lib/analytics";
+import { observeAdVisibility } from "@/lib/ad-visibility";
 import { publicLinkUrl } from "@/lib/public-profile";
 import ProfileView, { type ProfileLink } from "./public-profile/ProfileView";
 import styles from "./public-profile/public-profile.module.css";
@@ -38,6 +40,7 @@ interface PublicPageContentProps {
 }
 type Consent = "granted" | "denied" | null;
 type PublicAd = {
+  placementId: Id<"adPlacements">;
   id: Id<"adCampaigns">;
   title: string;
   text: string;
@@ -197,7 +200,7 @@ export default function PublicPageContent({
         onQr={() => setQrOpen(true)}
         onLink={trackOwnerLink}
       >
-        {plan !== "ultra" && <ProfileAd plan={plan} niche={pageOwnerNiche} />}
+        {plan !== "ultra" && <ProfileAd username={username} />}
         {hasTracking && (
           <section
             className={styles.privacy}
@@ -338,17 +341,29 @@ export default function PublicPageContent({
   );
 }
 
-function ProfileAd({ plan, niche }: { plan: "free" | "pro"; niche: string }) {
-  const fetchAd = useMutation(api.ads.getAdForPublicPage);
+function ProfileAd({ username }: { username: string }) {
+  const fetchAd = useAction(api.ads.selectAdForPage);
   const registerAdClick = useMutation(api.ads.registerAdClick);
+  const confirmView = useMutation(api.ads.confirmAdView);
+  const adElement = useRef<HTMLElement>(null);
+  const sessionId = useRef("");
+  const viewRequest = useRef<Promise<boolean> | null>(null);
   const [ad, setAd] = useState<PublicAd | null>(null);
   const [media, setMedia] = useState(0);
   useEffect(() => {
     let active = true;
     setAd(null);
+    viewRequest.current = null;
+    try {
+      const key = `freelinnk:ad-session:${username}`;
+      sessionId.current = sessionStorage.getItem(key) || crypto.randomUUID();
+      sessionStorage.setItem(key, sessionId.current);
+    } catch {
+      sessionId.current = crypto.randomUUID();
+    }
     setMedia(0);
     const timer = setTimeout(() => {
-      void fetchAd({ pageOwnerNiche: niche, pageOwnerPlan: plan })
+      void fetchAd({ username, sessionId: sessionId.current })
         .then((result) => {
           if (active && result?.id) setAd(result);
         })
@@ -358,12 +373,22 @@ function ProfileAd({ plan, niche }: { plan: "free" | "pro"; niche: string }) {
       active = false;
       clearTimeout(timer);
     };
-  }, [fetchAd, niche, plan]);
+  }, [fetchAd, username]);
+  useEffect(() => {
+    if (!ad || !adElement.current) return;
+    return observeAdVisibility(adElement.current, () => {
+      viewRequest.current = confirmView({
+        placementId: ad.placementId,
+        sessionId: sessionId.current,
+      }).catch(() => false);
+    });
+  }, [ad, confirmView]);
   const href = ad && publicLinkUrl(ad.link);
   if (!ad || !href) return null;
   const mediaUrl = ad.mediaUrls[media];
   return (
     <aside
+      ref={adElement}
       className={styles.sponsor}
       aria-label="Publicidade da rede Freelinnk"
     >
@@ -425,7 +450,17 @@ function ProfileAd({ plan, niche }: { plan: "free" | "pro"; niche: string }) {
             target="_blank"
             rel="sponsored noopener noreferrer"
             onClick={() => {
-              void registerAdClick({ id: ad.id }).catch(() => {});
+              // Preserve the destination even when analytics are unavailable.
+              void viewRequest.current
+                ?.then((viewed) =>
+                  viewed
+                    ? registerAdClick({
+                        placementId: ad.placementId,
+                        sessionId: sessionId.current,
+                      })
+                    : false,
+                )
+                .catch(() => {});
             }}
           >
             Conhecer anunciante

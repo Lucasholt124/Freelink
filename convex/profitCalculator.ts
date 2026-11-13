@@ -1,6 +1,7 @@
+import { cartTotals, roundMoney, roundQuantity, validQuantity, validateSaleDate } from "../lib/retail";
 // convex/profitCalculator.ts
 import { action, mutation, query, internalMutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values";
 import { api, internal } from "./_generated/api";
 import { Doc, Id } from "./_generated/dataModel";
 
@@ -1634,6 +1635,21 @@ export const deleteSale = mutation({
       }
     }
 
+    if (!sale.productId && sale.items?.length) {
+      for (const item of sale.items) {
+        if (!item.productId) continue;
+        const product=await ctx.db.get(item.productId);
+        if (!product || product.userId!==identity.subject) continue;
+        await ctx.db.patch(product._id,{
+          ...(product.stock===undefined?{}:{stock:roundQuantity(product.stock+item.quantity)}),
+          totalSold:Math.max(0,roundQuantity((product.totalSold??0)-item.quantity)),
+          totalRevenue:Math.max(0,roundMoney((product.totalRevenue??0)-roundMoney(item.salePrice*item.quantity))),
+          totalProfit:Math.max(0,roundMoney((product.totalProfit??0)-roundMoney(roundMoney(item.salePrice*item.quantity)-roundMoney(item.costPrice*item.quantity)))),
+          updatedAt:Date.now(),
+        });
+      }
+    }
+
     // ✅ 2. ATUALIZAR DADOS DO CLIENTE
     if (sale.customerId) {
       const customer = await ctx.db.get(sale.customerId);
@@ -1647,7 +1663,8 @@ export const deleteSale = mutation({
     }
 
     // ✅ 3. DELETAR CASH FLOW RELACIONADO
-    const cashFlows = await ctx.db
+    const linkedCashFlows = await ctx.db.query("cashFlow").withIndex("by_sale", q => q.eq("saleId", sale._id)).collect();
+    const cashFlows = linkedCashFlows.length ? linkedCashFlows : await ctx.db
       .query("cashFlow")
       .withIndex("by_user_date", (q) =>
         q.eq("userId", identity.subject).eq("date", sale.date)
@@ -1657,9 +1674,10 @@ export const deleteSale = mutation({
     for (const flow of cashFlows) {
       // Verificar se é o cash flow desta venda
       if (
-        flow.type === "in" &&
+        flow.saleId === sale._id ||
+        (!flow.saleId && !sale.retailRequestId && flow.type === "in" &&
         Math.abs(flow.amount - sale.totalRevenue) < 0.01 &&
-        (!sale.businessId || flow.businessId === sale.businessId)
+        (!sale.businessId || flow.businessId === sale.businessId))
       ) {
         await ctx.db.delete(flow._id);
         break; // Deletar apenas um cash flow correspondente
@@ -3353,6 +3371,7 @@ export const predictNextMonth = action({
 // =================================================================
 export const addPDVSale = mutation({
   args: {
+    requestId: v.optional(v.string()),
     businessId: v.optional(v.id("businesses")),
     customerId: v.optional(v.id("customers")),
     items: v.array(
@@ -3372,52 +3391,74 @@ export const addPDVSale = mutation({
   },
   handler: async (ctx, args) => {
     const identity = await ctx.auth.getUserIdentity();
-    if (!identity) throw new Error("Faça login para continuar");
+    if (!identity) throw new ConvexError("Faça login para continuar");
 
-    let totalCost = 0;
-    let totalRevenue = 0;
-
-    // 1. Validar e abater estoque de TODOS os itens do carrinho
-    for (const item of args.items) {
-      const product = await ctx.db.get(item.productId);
-      if (!product) throw new Error(`Produto ${item.productName} não encontrado.`);
-      if (!product.active) throw new Error(`Produto ${item.productName} está inativo.`);
-
-      if (product.stock !== undefined) {
-        const newStock = product.stock - item.quantity;
-        if (newStock < 0) throw new Error(`Estoque insuficiente para ${product.name}. Disponível: ${product.stock}`);
-
-        await ctx.db.patch(product._id, {
-          stock: newStock,
-          totalSold: (product.totalSold ?? 0) + item.quantity,
-          totalRevenue: (product.totalRevenue ?? 0) + (item.salePrice * item.quantity),
-          totalProfit: (product.totalProfit ?? 0) + ((item.salePrice - item.costPrice) * item.quantity),
-          updatedAt: Date.now(),
-        });
-
-        // Alerta de estoque baixo automático
-        if (product.minStock && newStock <= product.minStock) {
-          await ctx.db.insert("alerts", {
-            userId: identity.subject,
-            businessId: product.businessId,
-            type: "low_stock",
-            severity: "warning",
-            title: "⚠️ Estoque Baixo",
-            message: `O produto "${product.name}" chegou a ${newStock} unidades.`,
-            relatedId: product._id,
-            read: false,
-            createdAt: Date.now(),
-          });
-        }
+    const fingerprint=JSON.stringify(args);
+    if (args.requestId) {
+      if (!/^[a-zA-Z0-9_-]{12,100}$/.test(args.requestId)) throw new ConvexError("Reabra a venda e tente novamente.");
+      const receipt=await ctx.db.query("retailRequests").withIndex("by_user_request",q=>q.eq("userId",identity.subject).eq("requestId",args.requestId!)).unique();
+      if (receipt) {
+        if (receipt.operation!=="sale" || receipt.fingerprint!==fingerprint) throw new ConvexError("Esta venda já foi enviada com outros dados. Confira seu histórico.");
+        return receipt.saleId!;
       }
-
-      totalCost += item.costPrice * item.quantity;
-      totalRevenue += item.salePrice * item.quantity;
     }
-
-    // 2. Aplicar desconto no total da compra
-    const finalRevenue = totalRevenue - (args.discount ?? 0);
-    const profit = finalRevenue - totalCost;
+    if (!args.items.length || args.items.length>100) throw new ConvexError("Adicione entre 1 e 100 produtos à venda.");
+    if (!validateSaleDate(args.date)) throw new ConvexError("Confira a data da venda.");
+    const paymentMethod=args.paymentMethod || "pix";
+    const paymentStatus=args.paymentStatus || "paid";
+    if (!["cash","credit_card","debit_card","pix","bank_transfer","other"].includes(paymentMethod)) throw new ConvexError("Escolha uma forma de pagamento válida.");
+    if (!["paid","pending","overdue"].includes(paymentStatus)) throw new ConvexError("Confira a situação do pagamento.");
+    if (args.businessId) {
+      const business=await ctx.db.get(args.businessId);
+      if (!business || business.userId!==identity.subject) throw new ConvexError("Negócio não encontrado.");
+    }
+    if (args.customerId) {
+      const customer=await ctx.db.get(args.customerId);
+      if (!customer || customer.userId!==identity.subject || (args.businessId && customer.businessId!==args.businessId)) throw new ConvexError("Cliente não encontrado neste negócio.");
+    }
+    const products=new Map<Id<"products">,Doc<"products">>();
+    const quantities=new Map<Id<"products">,number>();
+    for (const item of args.items) {
+      const product=products.get(item.productId) || await ctx.db.get(item.productId);
+      if (!product || product.userId!==identity.subject || (args.businessId && product.businessId!==args.businessId)) throw new ConvexError("Produto não encontrado neste negócio.");
+      if (!product.active) throw new ConvexError(`${product.name} está inativo.`);
+      if (!validQuantity(item.quantity,product.unit || "un")) throw new ConvexError(`Confira a quantidade de ${product.name}.`);
+      if (!Number.isFinite(product.salePrice) || product.salePrice<=0 || !Number.isFinite(product.costPrice) || product.costPrice<0) throw new ConvexError(`Confira os preços de ${product.name}.`);
+      if (product.salePrice!==item.salePrice || product.costPrice!==item.costPrice) throw new ConvexError(`O preço de ${product.name} mudou. Remova esse item e adicione novamente para conferir o valor atualizado.`);
+      products.set(product._id,product);
+      quantities.set(product._id,roundQuantity((quantities.get(product._id)||0)+item.quantity));
+    }
+    const items=[...quantities].map(([productId,quantity])=>{
+      const product=products.get(productId)!;
+      return {productId,quantity,productName:product.name,costPrice:product.costPrice,salePrice:product.salePrice,unit:product.unit || "un"};
+    });
+    const discount=args.discount ?? 0;
+    const totals=cartTotals(items,discount);
+    if (!Number.isFinite(discount) || discount<0 || discount>totals.subtotal || roundMoney(discount)!==discount) throw new ConvexError("O desconto deve estar entre zero e o valor dos produtos, com até duas casas decimais.");
+    // Validate every line before making any stock changes. Convex commits this atomically.
+    for (const [id,quantity] of quantities) {
+      const product=products.get(id)!;
+      if (quantity>1_000_000 || (product.stock!==undefined && quantity>product.stock)) throw new ConvexError(`Estoque insuficiente para ${product.name}. Disponível: ${product.stock ?? 0}.`);
+    }
+    for (const [id,quantity] of quantities) {
+      const product=products.get(id)!;
+      const newStock=product.stock===undefined?undefined:roundQuantity(product.stock-quantity);
+      await ctx.db.patch(id,{
+        ...(newStock===undefined?{}:{stock:newStock}),
+        totalSold:roundQuantity((product.totalSold??0)+quantity),
+        totalRevenue:roundMoney((product.totalRevenue??0)+roundMoney(product.salePrice*quantity)),
+        totalProfit:roundMoney((product.totalProfit??0)+roundMoney(roundMoney(product.salePrice*quantity)-roundMoney(product.costPrice*quantity))),
+        updatedAt:Date.now(),
+      });
+      if (newStock!==undefined && product.minStock && newStock<=product.minStock) await ctx.db.insert("alerts",{
+        userId:identity.subject,businessId:product.businessId,type:"low_stock",severity:"warning",title:"Estoque baixo",
+        message:`${product.name} está com ${newStock} ${product.unit || "un"} em estoque.`,relatedId:id,read:false,createdAt:Date.now(),
+      });
+    }
+    const totalCost=totals.cost;
+    const totalRevenue=totals.subtotal;
+    const finalRevenue=totals.total;
+    const profit=totals.profit;
     const month = args.date.substring(0, 7);
 
     // 3. Salvar a Venda
@@ -3425,17 +3466,18 @@ export const addPDVSale = mutation({
       userId: identity.subject,
       businessId: args.businessId,
       customerId: args.customerId,
-      productName: args.items.length === 1 ? args.items[0].productName : `Venda Múltipla (${args.items.length} itens)`,
-      quantity: args.items.reduce((sum, item) => sum + item.quantity, 0),
+      productName: items.length === 1 ? items[0].productName : `Venda Múltipla (${items.length} itens)`,
+      quantity: roundQuantity(items.reduce((sum, item) => sum + item.quantity, 0)),
       costPrice: totalCost,
       salePrice: totalRevenue,
-      items: args.items, // 🔥 Salvando o array do carrinho!
+      retailRequestId: args.requestId,
+      items, // 🔥 Salvando o array do carrinho!
       discount: args.discount,
       totalCost,
       totalRevenue: finalRevenue,
       profit,
-      paymentMethod: args.paymentMethod as undefined,
-      paymentStatus: args.paymentStatus as undefined,
+      paymentMethod: paymentMethod as "cash" | "credit_card" | "debit_card" | "pix" | "bank_transfer" | "other",
+      paymentStatus: paymentStatus as "paid" | "pending" | "overdue",
       date: args.date,
       month,
       notes: args.notes,
@@ -3457,20 +3499,21 @@ export const addPDVSale = mutation({
     }
 
     // 5. Registrar no Fluxo de Caixa (se estiver pago)
-    if (args.paymentStatus === "paid") {
+    if (paymentStatus === "paid") {
       const now = new Date();
       const brazilTime = new Date(now.toLocaleString("en-US", { timeZone: "America/Sao_Paulo" }));
       const time = brazilTime.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
 
       await ctx.db.insert("cashFlow", {
+        saleId,
         userId: identity.subject,
         businessId: args.businessId,
         type: "in",
         amount: finalRevenue,
-        description: args.items.length === 1 ? `Venda: ${args.items[0].productName}` : `Venda PDV (${args.items.length} itens)`,
+        description: items.length === 1 ? `Venda: ${items[0].productName}` : `Venda PDV (${items.length} itens)`,
         date: args.date,
         time,
-        paymentMethod: args.paymentMethod,
+        paymentMethod,
         createdAt: Date.now(),
       });
     }
@@ -3492,6 +3535,7 @@ export const addPDVSale = mutation({
       businessId: args.businessId,
     });
 
+    if (args.requestId) await ctx.db.insert("retailRequests",{userId:identity.subject,requestId:args.requestId,operation:"sale",fingerprint,saleId,createdAt:Date.now()});
     return saleId;
   },
 });

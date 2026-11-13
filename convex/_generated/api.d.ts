@@ -31,6 +31,7 @@ import type * as onboarding from "../onboarding.js";
 import type * as pageWorkspaces from "../pageWorkspaces.js";
 import type * as profitCalculator from "../profitCalculator.js";
 import type * as publicGiveaways from "../publicGiveaways.js";
+import type * as retail from "../retail.js";
 import type * as shareAchievements from "../shareAchievements.js";
 import type * as shortLinks from "../shortLinks.js";
 import type * as tracking from "../tracking.js";
@@ -66,6 +67,7 @@ declare const fullApi: ApiFromModules<{
   pageWorkspaces: typeof pageWorkspaces;
   profitCalculator: typeof profitCalculator;
   publicGiveaways: typeof publicGiveaways;
+  retail: typeof retail;
   shareAchievements: typeof shareAchievements;
   shortLinks: typeof shortLinks;
   tracking: typeof tracking;

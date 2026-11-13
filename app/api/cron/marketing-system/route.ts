@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { clerkClient } from "@clerk/nextjs/server";
 import { Resend } from "resend";
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+
 
 // ============================================================
 // 🎯 CONFIGURAÇÃO & TIPAGEM
@@ -739,16 +739,17 @@ export async function GET(req: Request) {
   const authHeader = req.headers.get('authorization');
   const expectedAuth = `Bearer ${process.env.CRON_SECRET}`;
 
-  if (!authHeader || authHeader !== expectedAuth) {
+  if (!process.env.CRON_SECRET || !authHeader || authHeader !== expectedAuth) {
     console.error('❌ Unauthorized');
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
   if (!process.env.RESEND_API_KEY) {
     console.error('❌ RESEND_API_KEY não configurado');
-    return NextResponse.json({ error: 'Missing Resend API Key' }, { status: 500 });
+    return NextResponse.json({ error: 'Missing Resend API Key' }, { status: 503 });
   }
 
+  const resend = new Resend(process.env.RESEND_API_KEY);
   const clerk = await clerkClient();
 
   // Buscar usuários (com limite de segurança para paginação)

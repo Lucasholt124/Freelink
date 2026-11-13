@@ -1,6 +1,7 @@
 import Stripe from "stripe";
-
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-   apiVersion: '2025-10-29.clover', // Use a versão mais recente da API
-  typescript: true,
-});
+let client: Stripe | undefined;
+export function getStripe() {
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) throw new Error("Pagamentos temporariamente indisponíveis.");
+  return client ??= new Stripe(key, { apiVersion: "2025-10-29.clover", typescript: true });
+}

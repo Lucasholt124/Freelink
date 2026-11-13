@@ -34,10 +34,10 @@ export default function RealPagesShowcase() {
                 <div />
                 <img
                   src={page.image}
-                  alt={`Página ${page.name} criada no Freelinnk`}
+                  alt={`Página real de ${page.name} no layout atual do Freelinnk`}
                   loading="lazy"
-                  width={260}
-                  height={510}
+                  width={page.width}
+                  height={page.height}
                 />
               </div>
               <span className={styles.galleryExpand}>
@@ -80,7 +80,9 @@ export default function RealPagesShowcase() {
           <div className={styles.dialogImage}>
             <img
               src={selected.image}
-              alt={`Vitrine completa de ${selected.name}`}
+              alt={`Prévia real da página de ${selected.name}`}
+              width={selected.width}
+              height={selected.height}
             />
           </div>
         )}

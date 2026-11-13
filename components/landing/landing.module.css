@@ -1024,6 +1024,7 @@
   letter-spacing: 0.8px;
 }
 .galleryPhone {
+  min-height: 340px;
   width: 100%;
   max-width: 184px;
   border: 4px solid #34313c;
