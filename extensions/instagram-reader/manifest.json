@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "Freelinnk — Leitor de comentários",
+  "version": "0.1.0",
+  "description": "Coleta comentários carregados no Instagram para sorteios no Freelinnk. Versão experimental para computador.",
+  "permissions": ["storage"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_title": "Abrir sorteios no Freelinnk" },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.freelinnk.com/dashboard/giveaway*",
+        "https://freelinnk.com/dashboard/giveaway*",
+        "http://localhost/dashboard/giveaway*",
+        "http://127.0.0.1/dashboard/giveaway*"
+      ],
+      "js": ["bridge.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": ["https://www.instagram.com/*", "https://instagram.com/*"],
+      "js": ["collector.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}
